@@ -70,9 +70,19 @@ export function AuthProvider({ children }) {
     }
   }
 
+  // Merge a partial update into the current user object.
+  // Used by the onboarding page after saving answers.
+  function updateUser(updatedFields) {
+    setUser(prev => ({ ...prev, ...updatedFields }));
+    if (updatedFields.language) {
+      setLanguage(updatedFields.language);
+      localStorage.setItem('mg_language', updatedFields.language);
+    }
+  }
+
   return (
     <AuthContext.Provider
-      value={{ user, token, loading, language, login, logout, toggleLanguage }}
+      value={{ user, token, loading, language, login, logout, toggleLanguage, updateUser }}
     >
       {children}
     </AuthContext.Provider>

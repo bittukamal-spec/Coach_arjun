@@ -3,6 +3,7 @@ import { useAuth } from './contexts/AuthContext';
 import LandingPage from './pages/LandingPage';
 import Dashboard from './pages/Dashboard';
 import AuthCallback from './pages/AuthCallback';
+import OnboardingPage from './pages/OnboardingPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import { translations } from './i18n/translations';
 
@@ -23,17 +24,31 @@ function App() {
 
   return (
     <Routes>
+      {/* Public */}
       <Route path="/" element={<LandingPage />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
+
+      {/* Onboarding — logged in but NOT yet onboarded */}
+      <Route
+        path="/onboarding"
+        element={
+          <ProtectedRoute requireOnboarding={false}>
+            <OnboardingPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* App — logged in AND onboarded */}
       <Route
         path="/dashboard"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute requireOnboarding={true}>
             <Dashboard />
           </ProtectedRoute>
         }
       />
-      {/* Catch-all: redirect unknown URLs to home */}
+
+      {/* Catch-all */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

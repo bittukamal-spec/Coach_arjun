@@ -2,6 +2,12 @@ import Navbar from '../components/Navbar';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 
+const SPORT_ICONS = {
+  cricket: '🏏', football: '⚽', badminton: '🏸', athletics: '🏃',
+  wrestling: '🤼', boxing: '🥊', kabaddi: '🤸', tennis: '🎾',
+  hockey: '🏑', swimming: '🏊', other: '🏅',
+};
+
 // Placeholder cards for features we'll build in the next steps
 const UPCOMING = [
   { icon: '💬', labelKey: 'openCoach',    description: 'Chat with your AI mental performance coach' },
@@ -40,16 +46,26 @@ function Dashboard() {
             </div>
           </div>
 
-          {/* Tier badge */}
-          <span
-            className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full mt-2 ${
+          {/* Badges row */}
+          <div className="flex flex-wrap gap-2 mt-2">
+            <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full ${
               isPremium
                 ? 'bg-amber-50 text-amber-700 border border-amber-200'
                 : 'bg-gray-100 text-gray-500 border border-gray-200'
-            }`}
-          >
-            {isPremium ? '⭐ ' + t.dashboard.premiumTier : '🆓 ' + t.dashboard.freeTier}
-          </span>
+            }`}>
+              {isPremium ? '⭐ ' + t.dashboard.premiumTier : '🆓 ' + t.dashboard.freeTier}
+            </span>
+            {user?.sport && (
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full bg-calm-50 text-calm-600 border border-calm-100">
+                {SPORT_ICONS[user.sport] || '🏅'} {user.sport.charAt(0).toUpperCase() + user.sport.slice(1)}
+              </span>
+            )}
+            {user?.experienceLevel && (
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100">
+                {user.experienceLevel.charAt(0).toUpperCase() + user.experienceLevel.slice(1)}
+              </span>
+            )}
+          </div>
         </div>
 
         <p className="text-lg text-gray-600 mb-8">{t.dashboard.subtitle}</p>
