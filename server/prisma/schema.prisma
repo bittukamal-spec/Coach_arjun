@@ -1,0 +1,30 @@
+// MindGame Database Schema
+// Run `npm run db:migrate` to apply changes
+// Run `npm run db:studio` to open a visual database browser
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  googleId  String   @unique
+  email     String   @unique
+  name      String
+  avatar    String?
+
+  // "free" = limited check-ins/chats per week
+  // "premium" = full access (₹299/month)
+  tier      String   @default("free")
+
+  // "en" = English, "hi" = Hindi
+  language  String   @default("en")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
