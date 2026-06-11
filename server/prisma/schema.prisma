@@ -32,9 +32,21 @@ model User {
   onboardingDone  Boolean @default(false)
 
   messages  Message[]
+  checkIns  CheckIn[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model CheckIn {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mood        Int      // 1–5
+  focus       Int      // 1–5
+  confidence  Int      // 1–5
+  reflection  String?  // optional free-text, max 500 chars
+  createdAt   DateTime @default(now())
 }
 
 model Message {

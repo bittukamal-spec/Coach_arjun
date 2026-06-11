@@ -101,6 +101,42 @@ export const translations = {
       errorRetry: 'Something went wrong. Please try again.',
       backToDashboard: '← Dashboard',
     },
+    checkin: {
+      title: 'Daily Check-in',
+      subtitle: 'How are you doing today?',
+      backToDashboard: '← Dashboard',
+      usageLabel: (used, limit) => `${used}/${limit} check-ins this week`,
+      // Metric labels
+      moodLabel: 'Mood',
+      focusLabel: 'Focus',
+      confidenceLabel: 'Confidence',
+      // Mood options
+      mood1: 'Very Low', mood2: 'Low', mood3: 'Okay', mood4: 'Good', mood5: 'Great',
+      // Focus options
+      focus1: 'Scattered', focus2: 'Distracted', focus3: 'Average', focus4: 'Focused', focus5: 'Locked in',
+      // Confidence options
+      conf1: 'Doubtful', conf2: 'Uncertain', conf3: 'Moderate', conf4: 'Confident', conf5: 'Unstoppable',
+      // Reflection
+      reflectionLabel: 'Anything on your mind? (optional)',
+      reflectionPlaceholder: 'How was training? What\'s on your mind today…',
+      charsLeft: (n) => `${n}/500`,
+      // Buttons
+      saveBtn: 'Save Check-in',
+      saving: 'Saving…',
+      // Success state
+      savedTitle: 'Check-in saved! ✓',
+      savedSubtitle: 'Great habit. You\'re building your mental game one day at a time.',
+      talkToCoach: 'Talk to your coach about this →',
+      backBtn: 'Back to Dashboard',
+      // Already done today
+      alreadyTitle: 'Already checked in today',
+      alreadySubtitle: 'Come back tomorrow. Consistency is the key.',
+      // Limit reached
+      limitTitle: 'Weekly limit reached',
+      limitDesc: 'You\'ve used all 3 free check-ins this week.',
+      upgradePrompt: 'Upgrade to Premium for daily check-ins',
+      upgrade: 'Upgrade — ₹299/mo',
+    },
     common: {
       loading: 'Loading…',
       error: 'Something went wrong. Please refresh.',
@@ -205,6 +241,33 @@ export const translations = {
       upgrade: 'अपग्रेड करें — ₹299/माह',
       errorRetry: 'कुछ गलत हो गया। कृपया पुनः प्रयास करें।',
       backToDashboard: '← डैशबोर्ड',
+    },
+    checkin: {
+      title: 'दैनिक चेक-इन',
+      subtitle: 'आज आप कैसा महसूस कर रहे हैं?',
+      backToDashboard: '← डैशबोर्ड',
+      usageLabel: (used, limit) => `इस सप्ताह ${used}/${limit} चेक-इन`,
+      moodLabel: 'मूड',
+      focusLabel: 'फोकस',
+      confidenceLabel: 'आत्मविश्वास',
+      mood1: 'बहुत कम', mood2: 'कम', mood3: 'ठीक', mood4: 'अच्छा', mood5: 'शानदार',
+      focus1: 'बिखरा', focus2: 'विचलित', focus3: 'औसत', focus4: 'फोकस्ड', focus5: 'पूरी तरह',
+      conf1: 'संशय में', conf2: 'अनिश्चित', conf3: 'मध्यम', conf4: 'आत्मविश्वासी', conf5: 'अजेय',
+      reflectionLabel: 'कुछ मन में है? (वैकल्पिक)',
+      reflectionPlaceholder: 'ट्रेनिंग कैसी रही? आज क्या चल रहा है मन में…',
+      charsLeft: (n) => `${n}/500`,
+      saveBtn: 'चेक-इन सेव करें',
+      saving: 'सेव हो रहा है…',
+      savedTitle: 'चेक-इन सेव हो गया! ✓',
+      savedSubtitle: 'बढ़िया आदत। आप एक दिन में अपना मानसिक खेल बना रहे हैं।',
+      talkToCoach: 'इस बारे में कोच से बात करें →',
+      backBtn: 'डैशबोर्ड पर वापस',
+      alreadyTitle: 'आज पहले से चेक-इन हो चुका है',
+      alreadySubtitle: 'कल वापस आएं। निरंतरता ही सफलता की कुंजी है।',
+      limitTitle: 'साप्ताहिक सीमा पूरी हो गई',
+      limitDesc: 'आपने इस सप्ताह के सभी 3 मुफ़्त चेक-इन उपयोग कर लिए हैं।',
+      upgradePrompt: 'रोज़ाना चेक-इन के लिए प्रीमियम अपग्रेड करें',
+      upgrade: 'अपग्रेड करें — ₹299/माह',
     },
     common: {
       loading: 'लोड हो रहा है…',
