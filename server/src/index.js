@@ -6,6 +6,7 @@ const passport = require('passport');
 require('./config/passport'); // Register Google OAuth strategy
 
 const authRoutes = require('./routes/auth');
+const chatRoutes = require('./routes/chat');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -21,6 +22,7 @@ app.use(passport.initialize());
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/chat', chatRoutes);
 
 // Health check — useful to confirm the server is running
 app.get('/api/health', (_req, res) => {

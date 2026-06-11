@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
@@ -8,11 +9,11 @@ const SPORT_ICONS = {
   hockey: '🏑', swimming: '🏊', other: '🏅',
 };
 
-// Placeholder cards for features we'll build in the next steps
-const UPCOMING = [
-  { icon: '💬', labelKey: 'openCoach',    description: 'Chat with your AI mental performance coach' },
-  { icon: '✅', labelKey: 'startCheckin', description: 'Rate your mood, focus, and confidence today' },
-  { icon: '📈', labelKey: 'viewProgress', description: 'Charts of your mental performance over time' },
+// 'to' = route; null = coming soon
+const FEATURES = [
+  { icon: '💬', labelKey: 'openCoach',    description: 'Chat with your AI mental performance coach', to: '/coaching' },
+  { icon: '✅', labelKey: 'startCheckin', description: 'Rate your mood, focus, and confidence today',  to: null },
+  { icon: '📈', labelKey: 'viewProgress', description: 'Charts of your mental performance over time',  to: null },
 ];
 
 function Dashboard() {
@@ -72,19 +73,33 @@ function Dashboard() {
 
         {/* Feature cards */}
         <div className="grid sm:grid-cols-3 gap-5 mb-10">
-          {UPCOMING.map(({ icon, labelKey, description }) => (
-            <div
-              key={labelKey}
-              className="card group hover:border-brand-200 hover:shadow-md transition-all cursor-not-allowed opacity-70"
-            >
-              <div className="text-3xl mb-3">{icon}</div>
-              <h3 className="font-semibold text-gray-900 mb-1">{t.dashboard[labelKey]}</h3>
-              <p className="text-sm text-gray-500 leading-relaxed mb-4">{description}</p>
-              <span className="inline-block text-xs font-semibold bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
-                {t.dashboard.comingSoon}
-              </span>
-            </div>
-          ))}
+          {FEATURES.map(({ icon, labelKey, description, to }) => {
+            const card = (
+              <div
+                className={`card group transition-all h-full ${
+                  to
+                    ? 'hover:border-brand-300 hover:shadow-md cursor-pointer'
+                    : 'opacity-60 cursor-not-allowed'
+                }`}
+              >
+                <div className="text-3xl mb-3">{icon}</div>
+                <h3 className="font-semibold text-gray-900 mb-1">{t.dashboard[labelKey]}</h3>
+                <p className="text-sm text-gray-500 leading-relaxed mb-4">{description}</p>
+                {to ? (
+                  <span className="inline-block text-xs font-semibold bg-brand-50 text-brand-600 border border-brand-200 px-2 py-0.5 rounded-full group-hover:bg-brand-100 transition-colors">
+                    Open →
+                  </span>
+                ) : (
+                  <span className="inline-block text-xs font-semibold bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
+                    {t.dashboard.comingSoon}
+                  </span>
+                )}
+              </div>
+            );
+            return to
+              ? <Link key={labelKey} to={to}>{card}</Link>
+              : <div key={labelKey}>{card}</div>;
+          })}
         </div>
 
         {/* Upgrade banner for free users */}

@@ -31,6 +31,17 @@ model User {
   goals           String  @default("[]") // JSON array e.g. '["focus","confidence"]'
   onboardingDone  Boolean @default(false)
 
+  messages  Message[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String   // "user" | "assistant"
+  content   String
+  createdAt DateTime @default(now())
 }
