@@ -6,6 +6,7 @@ import AuthCallback from './pages/AuthCallback';
 import OnboardingPage from './pages/OnboardingPage';
 import ChatPage from './pages/ChatPage';
 import CheckInPage from './pages/CheckInPage';
+import ProgressPage from './pages/ProgressPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import { translations } from './i18n/translations';
 
@@ -62,6 +63,15 @@ function App() {
         element={
           <ProtectedRoute requireOnboarding={true}>
             <CheckInPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/progress"
+        element={
+          <ProtectedRoute requireOnboarding={true}>
+            <ProgressPage />
           </ProtectedRoute>
         }
       />

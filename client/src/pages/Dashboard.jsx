@@ -15,14 +15,21 @@ function Dashboard() {
   const t = translations[language];
   const isPremium = user?.tier === 'premium';
 
-  // Check-in card status: null=loading, false=not done, object=done today
+  // Check-in card: null=loading, false=not done, object=done today
   const [todayCheckIn, setTodayCheckIn] = useState(null);
+  // Streak for the progress card
+  const [streak, setStreak] = useState(null);
 
   useEffect(() => {
     fetch('/api/checkin/today', { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : null)
       .then(data => setTodayCheckIn(data?.checkIn || false))
       .catch(() => setTodayCheckIn(false));
+
+    fetch('/api/progress/summary?days=7', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => setStreak(data?.streak ?? 0))
+      .catch(() => {});
   }, [token]);
 
   // Feature cards — 'to' = route, null = coming soon
@@ -47,8 +54,10 @@ function Dashboard() {
       icon: '📈',
       labelKey: 'viewProgress',
       description: language === 'hi' ? 'समय के साथ अपना मानसिक प्रदर्शन चार्ट देखें' : 'Charts of your mental performance over time',
-      to: null,
-      badge: null,
+      to: '/progress',
+      badge: streak !== null && streak > 0
+        ? { label: `🔥 ${streak} ${language === 'hi' ? 'दिन' : streak === 1 ? 'day' : 'days'}`, color: 'bg-orange-50 text-orange-600 border-orange-200' }
+        : null,
     },
   ];
 
