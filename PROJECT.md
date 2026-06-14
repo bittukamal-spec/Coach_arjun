@@ -98,13 +98,25 @@ Get Anthropic API key from: console.anthropic.com
 - [ ] **PostgreSQL** — replace SQLite for production (Railway/Supabase free tier)
 - [ ] **Custom domain** — mindgame.in or similar (~₹800/year)
 
-### Phase 2 — Growth
-- [ ] **Personalized training plans** — Claude generates a weekly mental plan
-- [ ] **Coach memory** — summarize old sessions, give Claude more context
-- [ ] **Email notifications** — daily check-in reminders
-- [ ] **Admin dashboard** — see users, revenue, usage stats
+### Phase 2 — Differentiators (What makes us better than ChatGPT)
+- [ ] **Weekly insight card** — AI auto-spots patterns in check-in data ("Your confidence drops on match days")
+- [ ] **Pre-match routine** — 5-min guided mental warmup (breathing + visualization) before a match
+- [ ] **Post-loss protocol** — structured conversation to process defeat and reset mentally
+- [ ] **Slump recovery plan** — 7-day mental training plan when scores drop for 5+ days
+- [ ] **Shareable PDF report** — 30-day mental performance summary athlete can show their coach/parents
+- [ ] **India-specific pressure onboarding** — family pressure, board exams, financial stress, coach culture
+- [ ] **Crisis detection** — flag when check-in scores crash for 5+ days, suggest professional help
+- [ ] **Coach personas** — Tactical / Motivator / Calm Guide styles the user can pick
+- [ ] **Community feed** — anonymous posts from athletes, premium users can post
+- [ ] **Sport-specific protocols** — kabaddi, kho-kho, shooting, wrestling (not just cricket)
 
-### Phase 3 — Mobile App
+### Phase 3 — Growth
+- [ ] **Coach memory** — summarize old sessions, give Claude more context
+- [ ] **Email/WhatsApp reminders** — daily check-in nudge
+- [ ] **Admin dashboard** — see users, revenue, usage stats
+- [ ] **Parent/coach portal** — optional visibility for youth athletes
+
+### Phase 4 — Mobile App
 - [ ] Convert frontend to React Native
 - [ ] Google Play Store (Android)
 - [ ] Apple App Store (iOS — needs Mac + $99/year developer account)
@@ -189,11 +201,17 @@ mindgame/
 
 | Service | Cost |
 |---|---|
-| Railway (server + DB) | ~$5–10/month |
+| Railway (server + DB) | ~₹800–1,500/month |
 | Vercel (frontend) | Free |
-| Domain (.in) | ~₹800/year |
-| Anthropic API | ~$0.25 per 1M tokens (Haiku — very cheap) |
-| Razorpay | 2% per transaction |
+| Domain (.in) | ~₹800/year (~₹70/month) |
+| Anthropic API (Haiku) | ~₹0.10 per conversation — 500 users ≈ ₹2,000/month |
+| Razorpay | 2% per transaction, no monthly fee |
+| **Total (500 users)** | **~₹5,000/month costs vs ₹1,49,500 revenue** |
+
+### Break-even point
+- Fixed costs: ~₹2,500/month
+- Need only **9 premium subscribers at ₹299/month** to cover costs
+- At 100 premium users → ₹29,900 revenue, ~₹4,000 costs → **₹25,900 profit/month**
 
 ---
 
