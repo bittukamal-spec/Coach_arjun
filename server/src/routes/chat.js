@@ -205,7 +205,7 @@ router.post('/message', authenticate, checkFreeLimit, async (req, res) => {
     res.end();
 
   } catch (err) {
-    // If headers already sent, send an error event; otherwise send JSON error
+    console.error('[chat] Anthropic error:', err?.message || err);
     if (res.headersSent) {
       res.write(`data: ${JSON.stringify({ t: 'error', message: 'AI response failed. Please try again.' })}\n\n`);
       res.end();
