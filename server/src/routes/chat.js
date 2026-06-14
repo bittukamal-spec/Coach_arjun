@@ -182,8 +182,6 @@ router.post('/message', authenticate, checkFreeLimit, async (req, res) => {
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     let fullText = '';
 
-    // Stream the response from Claude
-    // Switch to 'claude-sonnet-4-6' for richer responses (higher cost)
     const stream = anthropic.messages.stream({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 800,
@@ -191,10 +189,12 @@ router.post('/message', authenticate, checkFreeLimit, async (req, res) => {
       messages: conversationHistory,
     });
 
-    for await (const text of stream.textStream) {
+    stream.on('text', (text) => {
       fullText += text;
       res.write(`data: ${JSON.stringify({ t: 'd', c: text })}\n\n`);
-    }
+    });
+
+    await stream.finalMessage();
 
     // Save the complete assistant response
     const assistantMsg = await prisma.message.create({
