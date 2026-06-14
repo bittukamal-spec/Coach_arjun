@@ -1,9 +1,6 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const passport = require('passport');
-
-require('./config/passport'); // Register Google OAuth strategy
 
 const authRoutes     = require('./routes/auth');
 const chatRoutes     = require('./routes/chat');
@@ -20,7 +17,6 @@ app.use(
     credentials: true,
   })
 );
-app.use(passport.initialize());
 
 // Routes
 app.use('/api/auth',     authRoutes);

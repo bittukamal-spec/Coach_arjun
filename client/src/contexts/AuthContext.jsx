@@ -45,6 +45,17 @@ export function AuthProvider({ children }) {
     setToken(newToken);
   }
 
+  // Skip the /me round-trip when the server already returned the user object
+  function loginWithUser(newToken, newUser) {
+    localStorage.setItem('mg_token', newToken);
+    setToken(newToken);
+    setUser(newUser);
+    const lang = newUser.language || 'en';
+    setLanguage(lang);
+    localStorage.setItem('mg_language', lang);
+    setLoading(false);
+  }
+
   function logout() {
     localStorage.removeItem('mg_token');
     setToken(null);
@@ -82,7 +93,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, token, loading, language, login, logout, toggleLanguage, updateUser }}
+      value={{ user, token, loading, language, login, loginWithUser, logout, toggleLanguage, updateUser }}
     >
       {children}
     </AuthContext.Provider>

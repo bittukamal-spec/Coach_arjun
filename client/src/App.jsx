@@ -2,7 +2,6 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import LandingPage from './pages/LandingPage';
 import Dashboard from './pages/Dashboard';
-import AuthCallback from './pages/AuthCallback';
 import OnboardingPage from './pages/OnboardingPage';
 import ChatPage from './pages/ChatPage';
 import CheckInPage from './pages/CheckInPage';
@@ -29,7 +28,6 @@ function App() {
     <Routes>
       {/* Public */}
       <Route path="/" element={<LandingPage />} />
-      <Route path="/auth/callback" element={<AuthCallback />} />
 
       {/* Onboarding — logged in but NOT yet onboarded */}
       <Route

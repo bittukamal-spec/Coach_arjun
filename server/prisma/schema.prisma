@@ -13,9 +13,10 @@ datasource db {
 
 model User {
   id        String   @id @default(cuid())
-  googleId  String   @unique
+  googleId  String?  @unique  // kept optional for potential future re-addition
   email     String   @unique
   name      String
+  password  String?            // bcrypt hash — null for any legacy Google accounts
   avatar    String?
 
   // "free" = limited check-ins/chats per week
