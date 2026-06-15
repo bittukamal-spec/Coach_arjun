@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
+import { apiFetch } from '../api';
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -92,7 +93,7 @@ function ChatPage() {
 
   async function fetchMessages() {
     try {
-      const res = await fetch('/api/chat/messages', {
+      const res = await apiFetch('/api/chat/messages', {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
@@ -104,7 +105,7 @@ function ChatPage() {
 
   async function fetchUsage() {
     try {
-      const res = await fetch('/api/chat/usage', {
+      const res = await apiFetch('/api/chat/usage', {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
@@ -133,7 +134,7 @@ function ChatPage() {
     setUsage(prev => prev.isPremium ? prev : { ...prev, used: prev.used + 1 });
 
     try {
-      const res = await fetch('/api/chat/message', {
+      const res = await apiFetch('/api/chat/message', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

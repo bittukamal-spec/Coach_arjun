@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
+import { apiFetch } from '../api';
 
 const SPORT_ICONS = {
   cricket: '🏏', football: '⚽', badminton: '🏸', athletics: '🏃',
@@ -21,12 +22,12 @@ function Dashboard() {
   const [streak, setStreak] = useState(null);
 
   useEffect(() => {
-    fetch('/api/checkin/today', { headers: { Authorization: `Bearer ${token}` } })
+    apiFetch('/api/checkin/today', { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : null)
       .then(data => setTodayCheckIn(data?.checkIn || false))
       .catch(() => setTodayCheckIn(false));
 
-    fetch('/api/progress/summary?days=7', { headers: { Authorization: `Bearer ${token}` } })
+    apiFetch('/api/progress/summary?days=7', { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : null)
       .then(data => setStreak(data?.streak ?? 0))
       .catch(() => {});

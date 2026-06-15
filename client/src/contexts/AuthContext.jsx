@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { apiFetch } from '../api';
 
 const AuthContext = createContext(null);
 
@@ -12,7 +13,7 @@ export function AuthProvider({ children }) {
 
   const fetchUser = useCallback(async (activeToken) => {
     try {
-      const res = await fetch('/api/auth/me', {
+      const res = await apiFetch('/api/auth/me', {
         headers: { Authorization: `Bearer ${activeToken}` },
       });
       if (res.ok) {
@@ -70,7 +71,7 @@ export function AuthProvider({ children }) {
 
     // Persist preference to the server if the user is logged in
     if (token) {
-      await fetch('/api/auth/me/language', {
+      await apiFetch('/api/auth/me/language', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

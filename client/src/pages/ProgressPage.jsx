@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { apiFetch } from '../api';
 import {
   ResponsiveContainer,
   LineChart,
@@ -83,7 +84,7 @@ function ProgressPage() {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/progress/summary?days=${days}`, {
+    apiFetch(`/api/progress/summary?days=${days}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => r.ok ? r.json() : Promise.reject())

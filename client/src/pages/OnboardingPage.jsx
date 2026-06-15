@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
+import { apiFetch } from '../api';
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 
@@ -80,7 +81,7 @@ function OnboardingPage() {
     setSubmitting(true);
     setError('');
     try {
-      const res = await fetch('/api/auth/me/onboarding', {
+      const res = await apiFetch('/api/auth/me/onboarding', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
+import { apiFetch } from '../api';
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
@@ -150,7 +151,7 @@ function CheckInPage() {
   useEffect(() => {
     async function load() {
       try {
-        const res = await fetch('/api/checkin/today', {
+        const res = await apiFetch('/api/checkin/today', {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (res.ok) {
@@ -181,7 +182,7 @@ function CheckInPage() {
     setSubmitting(true);
     setError('');
     try {
-      const res = await fetch('/api/checkin', {
+      const res = await apiFetch('/api/checkin', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

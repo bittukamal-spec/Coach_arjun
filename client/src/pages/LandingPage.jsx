@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
+import { apiFetch } from '../api';
 
 const FEATURES = [
   { icon: '🤖', key: 'feature1' },
@@ -32,7 +33,7 @@ function LandingPage() {
       : { email: email.trim(), password };
 
     try {
-      const res  = await fetch(endpoint, {
+      const res  = await apiFetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
