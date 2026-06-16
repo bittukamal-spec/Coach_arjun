@@ -12,21 +12,7 @@ const PORT = process.env.PORT || 5000;
 
 app.use(express.json());
 
-const ALLOWED_ORIGINS = [
-  'http://localhost:5173',
-  process.env.CLIENT_URL,
-].filter(Boolean);
-
-app.use(
-  cors({
-    origin: (origin, cb) => {
-      // allow requests with no origin (e.g. curl, mobile) and listed origins
-      if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
-      cb(null, false);
-    },
-    credentials: true,
-  })
-);
+app.use(cors({ origin: true, credentials: true }));
 
 // Routes
 app.use('/api/auth',     authRoutes);
