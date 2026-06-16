@@ -32,8 +32,16 @@ model User {
   goals           String  @default("[]") // JSON array e.g. '["focus","confidence"]'
   onboardingDone  Boolean @default(false)
 
-  messages  Message[]
-  checkIns  CheckIn[]
+  // Extended onboarding fields
+  competitionLevel  String?   // "recreational" | "local" | "state" | "national" | "international"
+  primaryChallenge  String?   // "nerves" | "failure" | "focus" | "family_pressure" | "injury" | "consistency"
+  pressureResponse  String?   // "has_routine" | "talks_to_others" | "ignores_it" | "struggles" | "unaware"
+  position          String?   // free text, e.g. "batsman", "goalkeeper"
+
+  messages       Message[]
+  checkIns       CheckIn[]
+  memories       UserMemory[]
+  passwordResets PasswordResetToken[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -56,5 +64,28 @@ model Message {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   role      String   // "user" | "assistant"
   content   String
+  createdAt DateTime @default(now())
+}
+
+model UserMemory {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  memKey    String   // e.g., "fear", "strength", "background", "pattern", "trigger"
+  value     String   // e.g., "freezes before penalty kicks"
+  source    String   @default("chat") // "chat" | "onboarding"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, memKey])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
   createdAt DateTime @default(now())
 }

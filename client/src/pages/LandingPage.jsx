@@ -144,9 +144,20 @@ function LandingPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 mb-1">
-                    {t.auth.passwordLabel}
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-semibold text-gray-500">
+                      {t.auth.passwordLabel}
+                    </label>
+                    {tab === 'signin' && (
+                      <button
+                        type="button"
+                        onClick={() => navigate('/forgot-password')}
+                        className="text-xs text-brand-600 hover:text-brand-700 font-medium transition-colors"
+                      >
+                        Forgot password?
+                      </button>
+                    )}
+                  </div>
                   <input
                     type="password"
                     value={password}

@@ -6,6 +6,8 @@ import OnboardingPage from './pages/OnboardingPage';
 import ChatPage from './pages/ChatPage';
 import CheckInPage from './pages/CheckInPage';
 import ProgressPage from './pages/ProgressPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import { translations } from './i18n/translations';
 
@@ -28,6 +30,8 @@ function App() {
     <Routes>
       {/* Public */}
       <Route path="/" element={<LandingPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
 
       {/* Onboarding — logged in but NOT yet onboarded */}
       <Route

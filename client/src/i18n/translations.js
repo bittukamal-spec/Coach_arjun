@@ -87,7 +87,16 @@ export const translations = {
       goalMotivation: 'Staying Motivated',
       goalCommunication: 'Team Communication',
       goalInjury: 'Dealing with Injuries',
-      // Step 4
+      // Step 2 — Competition Level
+      competitionTitle: "What's your competition level?",
+      competitionSubtitle: 'This helps Arjun personalise your coaching.',
+      // Step 4 — Biggest Mental Challenge
+      challengeTitle: "What's your biggest mental challenge?",
+      challengeSubtitle: 'This helps Arjun personalise your coaching.',
+      // Step 5 — Pressure Response
+      pressureTitle: 'How do you currently handle pressure?',
+      pressureSubtitle: 'This helps Arjun personalise your coaching.',
+      // Step 7 (was Step 4)
       langTitle: 'How would you like to be coached?',
       langSubtitle: 'You can change this any time from the settings.',
       langEn: 'English',
@@ -257,7 +266,16 @@ export const translations = {
       goalMotivation: 'प्रेरित रहना',
       goalCommunication: 'टीम संचार',
       goalInjury: 'चोट से निपटना',
-      // Step 4
+      // Step 2 — Competition Level
+      competitionTitle: 'आपका प्रतियोगिता स्तर क्या है?',
+      competitionSubtitle: 'यह अर्जुन को आपकी कोचिंग व्यक्तिगत बनाने में मदद करता है।',
+      // Step 4 — Biggest Mental Challenge
+      challengeTitle: 'आपकी सबसे बड़ी मानसिक चुनौती क्या है?',
+      challengeSubtitle: 'यह अर्जुन को आपकी कोचिंग व्यक्तिगत बनाने में मदद करता है।',
+      // Step 5 — Pressure Response
+      pressureTitle: 'आप अभी दबाव कैसे संभालते हैं?',
+      pressureSubtitle: 'यह अर्जुन को आपकी कोचिंग व्यक्तिगत बनाने में मदद करता है।',
+      // Step 7 (was Step 4)
       langTitle: 'आप किस भाषा में कोचिंग चाहते हैं?',
       langSubtitle: 'आप इसे सेटिंग्स से कभी भी बदल सकते हैं।',
       langEn: 'English',

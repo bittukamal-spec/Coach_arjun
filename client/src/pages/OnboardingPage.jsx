@@ -20,11 +20,36 @@ const SPORTS = [
   { value: 'other',     icon: '🏅', en: 'Other',      hi: 'अन्य' },
 ];
 
+const COMPETITION_LEVELS = [
+  { value: 'recreational', icon: '🌱', en: 'Just for fun / Club',           hi: 'मनोरंजन / क्लब स्तर' },
+  { value: 'local',        icon: '🏅', en: 'District / Local tournaments',  hi: 'जिला / स्थानीय टूर्नामेंट' },
+  { value: 'state',        icon: '🥈', en: 'State level',                   hi: 'राज्य स्तर' },
+  { value: 'national',     icon: '🥇', en: 'National level',                hi: 'राष्ट्रीय स्तर' },
+  { value: 'international',icon: '🌍', en: 'International',                 hi: 'अंतरराष्ट्रीय' },
+];
+
 const LEVELS = [
   { value: 'beginner',     emoij: '🌱', labelKey: 'levelBeginner',     descKey: 'levelBeginnerDesc' },
   { value: 'amateur',      emoij: '🏅', labelKey: 'levelAmateur',      descKey: 'levelAmateurDesc' },
   { value: 'competitive',  emoij: '🥈', labelKey: 'levelCompetitive',  descKey: 'levelCompetitiveDesc' },
   { value: 'professional', emoij: '🏆', labelKey: 'levelProfessional', descKey: 'levelProfessionalDesc' },
+];
+
+const CHALLENGES = [
+  { value: 'nerves',          icon: '😰', en: 'Pre-match nerves & anxiety',         hi: 'मैच से पहले घबराहट' },
+  { value: 'failure',         icon: '😞', en: 'Dealing with losses & failure',       hi: 'हार और असफलता से उबरना' },
+  { value: 'focus',           icon: '🎯', en: 'Losing focus during play',            hi: 'खेल के दौरान ध्यान खोना' },
+  { value: 'family_pressure', icon: '👨‍👩‍👦', en: 'Pressure from family/coaches',        hi: 'परिवार/कोच का दबाव' },
+  { value: 'injury',          icon: '🏥', en: 'Recovering from injury',              hi: 'चोट से वापसी' },
+  { value: 'consistency',     icon: '📈', en: 'Staying consistent',                  hi: 'लगातार अच्छा प्रदर्शन' },
+];
+
+const PRESSURE_RESPONSES = [
+  { value: 'has_routine',     icon: '🧘', en: 'I have a routine (breathing, music)', hi: 'मेरी एक दिनचर्या है (सांस, संगीत)' },
+  { value: 'talks_to_others', icon: '🗣️', en: 'I talk to someone I trust',          hi: 'मैं किसी भरोसेमंद से बात करता हूं' },
+  { value: 'ignores_it',      icon: '😶', en: 'I try to ignore it and push through', hi: 'मैं इसे नजरअंदाज करने की कोशिश करता हूं' },
+  { value: 'struggles',       icon: '😔', en: 'I struggle and it affects my game',   hi: 'मैं संघर्ष करता हूं और इसका असर पड़ता है' },
+  { value: 'unaware',         icon: '🤷', en: "I've never thought about it",          hi: 'मैंने कभी इसके बारे में नहीं सोचा' },
 ];
 
 const GOALS = [
@@ -38,7 +63,7 @@ const GOALS = [
   { value: 'injury',        icon: '🏥', labelKey: 'goalInjury' },
 ];
 
-const TOTAL_STEPS = 4;
+const TOTAL_STEPS = 7;
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -50,7 +75,10 @@ function OnboardingPage() {
   const [step, setStep] = useState(1);
   const [data, setData] = useState({
     sport: '',
+    competitionLevel: '',
     experienceLevel: '',
+    primaryChallenge: '',
+    pressureResponse: '',
     goals: [],
     language: language,
   });
@@ -61,9 +89,12 @@ function OnboardingPage() {
 
   function canContinue() {
     if (step === 1) return data.sport !== '';
-    if (step === 2) return data.experienceLevel !== '';
-    if (step === 3) return data.goals.length > 0;
-    if (step === 4) return data.language !== '';
+    if (step === 2) return data.competitionLevel !== '';
+    if (step === 3) return data.experienceLevel !== '';
+    if (step === 4) return data.primaryChallenge !== '';
+    if (step === 5) return data.pressureResponse !== '';
+    if (step === 6) return data.goals.length > 0;
+    if (step === 7) return data.language !== '';
     return false;
   }
 
@@ -171,8 +202,37 @@ function OnboardingPage() {
             </div>
           )}
 
-          {/* ── Step 2: Experience Level ── */}
+          {/* ── Step 2: Competition Level ── */}
           {step === 2 && (
+            <div className="animate-fade-in">
+              <h1 className="text-2xl font-bold text-gray-900 mb-1">{t.competitionTitle}</h1>
+              <p className="text-gray-500 text-sm mb-6">{t.competitionSubtitle}</p>
+              <div className="flex flex-col gap-3">
+                {COMPETITION_LEVELS.map(level => (
+                  <button
+                    key={level.value}
+                    onClick={() => setData(d => ({ ...d, competitionLevel: level.value }))}
+                    className={`flex items-center gap-4 p-4 rounded-2xl border-2 text-left transition-all ${
+                      data.competitionLevel === level.value
+                        ? 'border-brand-500 bg-brand-50 shadow-md'
+                        : 'border-gray-100 bg-white hover:border-brand-200'
+                    }`}
+                  >
+                    <span className="text-2xl">{level.icon}</span>
+                    <span className="font-semibold text-gray-900">
+                      {language === 'hi' ? level.hi : level.en}
+                    </span>
+                    {data.competitionLevel === level.value && (
+                      <span className="ml-auto text-brand-500 text-lg">✓</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── Step 3: Experience Level ── */}
+          {step === 3 && (
             <div className="animate-fade-in">
               <h1 className="text-2xl font-bold text-gray-900 mb-1">{t.levelTitle}</h1>
               <p className="text-gray-500 text-sm mb-6">{t.levelSubtitle}</p>
@@ -201,8 +261,66 @@ function OnboardingPage() {
             </div>
           )}
 
-          {/* ── Step 3: Goals ── */}
-          {step === 3 && (
+          {/* ── Step 4: Biggest Mental Challenge ── */}
+          {step === 4 && (
+            <div className="animate-fade-in">
+              <h1 className="text-2xl font-bold text-gray-900 mb-1">{t.challengeTitle}</h1>
+              <p className="text-gray-500 text-sm mb-6">{t.challengeSubtitle}</p>
+              <div className="flex flex-col gap-3">
+                {CHALLENGES.map(challenge => (
+                  <button
+                    key={challenge.value}
+                    onClick={() => setData(d => ({ ...d, primaryChallenge: challenge.value }))}
+                    className={`flex items-center gap-4 p-4 rounded-2xl border-2 text-left transition-all ${
+                      data.primaryChallenge === challenge.value
+                        ? 'border-brand-500 bg-brand-50 shadow-md'
+                        : 'border-gray-100 bg-white hover:border-brand-200'
+                    }`}
+                  >
+                    <span className="text-2xl">{challenge.icon}</span>
+                    <span className="font-semibold text-gray-900">
+                      {language === 'hi' ? challenge.hi : challenge.en}
+                    </span>
+                    {data.primaryChallenge === challenge.value && (
+                      <span className="ml-auto text-brand-500 text-lg">✓</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── Step 5: Pressure Response ── */}
+          {step === 5 && (
+            <div className="animate-fade-in">
+              <h1 className="text-2xl font-bold text-gray-900 mb-1">{t.pressureTitle}</h1>
+              <p className="text-gray-500 text-sm mb-6">{t.pressureSubtitle}</p>
+              <div className="flex flex-col gap-3">
+                {PRESSURE_RESPONSES.map(response => (
+                  <button
+                    key={response.value}
+                    onClick={() => setData(d => ({ ...d, pressureResponse: response.value }))}
+                    className={`flex items-center gap-4 p-4 rounded-2xl border-2 text-left transition-all ${
+                      data.pressureResponse === response.value
+                        ? 'border-brand-500 bg-brand-50 shadow-md'
+                        : 'border-gray-100 bg-white hover:border-brand-200'
+                    }`}
+                  >
+                    <span className="text-2xl">{response.icon}</span>
+                    <span className="font-semibold text-gray-900">
+                      {language === 'hi' ? response.hi : response.en}
+                    </span>
+                    {data.pressureResponse === response.value && (
+                      <span className="ml-auto text-brand-500 text-lg">✓</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── Step 6: Goals ── */}
+          {step === 6 && (
             <div className="animate-fade-in">
               <h1 className="text-2xl font-bold text-gray-900 mb-1">{t.goalsTitle}</h1>
               <div className="flex items-center justify-between mb-6">
@@ -243,8 +361,8 @@ function OnboardingPage() {
             </div>
           )}
 
-          {/* ── Step 4: Language ── */}
-          {step === 4 && (
+          {/* ── Step 7: Language ── */}
+          {step === 7 && (
             <div className="animate-fade-in">
               <h1 className="text-2xl font-bold text-gray-900 mb-1">{t.langTitle}</h1>
               <p className="text-gray-500 text-sm mb-6">{t.langSubtitle}</p>
