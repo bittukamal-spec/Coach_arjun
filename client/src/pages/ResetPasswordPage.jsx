@@ -14,10 +14,10 @@ function ResetPasswordPage() {
 
   if (!token) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-brand-50 via-white to-calm-50 flex flex-col">
+      <div className="min-h-screen bg-dark-900 flex flex-col">
         <header className="max-w-5xl mx-auto px-4 py-5 flex items-center gap-2 w-full">
           <span className="text-2xl">🧠</span>
-          <span className="font-bold text-gray-900 text-lg tracking-tight">MindGame</span>
+          <span className="font-bold text-white text-lg tracking-tight">Arjun</span>
         </header>
         <main className="flex-1 flex items-center justify-center px-4">
           <div className="w-full max-w-sm">
@@ -85,11 +85,11 @@ function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-brand-50 via-white to-calm-50 flex flex-col">
+    <div className="min-h-screen bg-dark-900 flex flex-col">
       {/* Top bar */}
       <header className="max-w-5xl mx-auto px-4 py-5 flex items-center gap-2 w-full">
         <span className="text-2xl">🧠</span>
-        <span className="font-bold text-gray-900 text-lg tracking-tight">MindGame</span>
+        <span className="font-bold text-white text-lg tracking-tight">Arjun</span>
       </header>
 
       <main className="flex-1 flex items-center justify-center px-4">
@@ -98,7 +98,7 @@ function ResetPasswordPage() {
             <div className="mb-6">
               <h1 className="text-2xl font-bold text-gray-900 mb-1">Set new password</h1>
               <p className="text-sm text-gray-500">
-                Choose a new password for your MindGame account
+                Choose a new password for your Arjun account
               </p>
             </div>
 

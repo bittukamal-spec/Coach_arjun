@@ -150,13 +150,15 @@ function OnboardingPage() {
   const progress = (step / TOTAL_STEPS) * 100;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-brand-50 via-white to-calm-50 flex flex-col">
+    <div className="min-h-screen bg-dark-900 flex flex-col">
 
       {/* Top bar */}
       <header className="px-4 py-5 flex items-center justify-between max-w-lg mx-auto w-full">
-        <div className="flex items-center gap-2">
-          <span className="text-xl">🧠</span>
-          <span className="font-bold text-gray-900 tracking-tight">MindGame</span>
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg bg-brand-500 flex items-center justify-center">
+            <span className="text-white font-bold text-xs">A</span>
+          </div>
+          <span className="font-bold text-white tracking-tight">Arjun</span>
         </div>
         <span className="text-sm text-gray-400">{t.stepOf(step, TOTAL_STEPS)}</span>
       </header>

@@ -37,12 +37,14 @@ function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-brand-50 via-white to-calm-50 flex flex-col">
+    <div className="min-h-screen bg-dark-900 flex flex-col">
       {/* Top bar */}
       <header className="max-w-5xl mx-auto px-4 py-5 flex items-center justify-between w-full">
-        <div className="flex items-center gap-2">
-          <span className="text-2xl">🧠</span>
-          <span className="font-bold text-gray-900 text-lg tracking-tight">MindGame</span>
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center">
+            <span className="text-white font-bold text-sm">A</span>
+          </div>
+          <span className="font-bold text-white text-lg tracking-tight">Arjun</span>
         </div>
       </header>
 

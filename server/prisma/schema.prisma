@@ -1,4 +1,4 @@
-// MindGame Database Schema
+// Arjun — AI Mental Coach Database Schema
 // Run `npm run db:migrate` to apply changes
 // Run `npm run db:studio` to open a visual database browser
 
@@ -38,6 +38,10 @@ model User {
   primaryChallenge  String?   // "nerves" | "failure" | "focus" | "family_pressure" | "injury" | "consistency"
   pressureResponse  String?   // "has_routine" | "talks_to_others" | "ignores_it" | "struggles" | "unaware"
   position          String?   // free text, e.g. "batsman", "goalkeeper"
+
+  // WhatsApp / notifications (Sprint 2)
+  phone         String?           // "+917012345678"
+  reminderOptIn Boolean  @default(false)
 
   messages       Message[]
   checkIns       CheckIn[]

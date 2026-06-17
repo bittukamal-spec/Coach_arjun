@@ -180,6 +180,19 @@ router.patch('/me/onboarding', authenticate, async (req, res) => {
   }
 });
 
+// ── DELETE /api/auth/account ──────────────────────────────────────────────
+// Permanently delete the authenticated user and all their data.
+
+router.delete('/account', authenticate, async (req, res) => {
+  try {
+    // Prisma cascades deletes via onDelete: Cascade on all relations
+    await prisma.user.delete({ where: { id: req.userId } });
+    res.json({ message: 'Account deleted' });
+  } catch {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // ── POST /api/auth/logout ──────────────────────────────────────────────────
 
 router.post('/logout', (_req, res) => {

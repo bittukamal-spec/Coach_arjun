@@ -6,9 +6,11 @@ import OnboardingPage from './pages/OnboardingPage';
 import ChatPage from './pages/ChatPage';
 import CheckInPage from './pages/CheckInPage';
 import ProgressPage from './pages/ProgressPage';
+import AccountPage from './pages/AccountPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import ProtectedRoute from './components/ProtectedRoute';
+import BottomNav from './components/BottomNav';
 import { translations } from './i18n/translations';
 
 function App() {
@@ -17,10 +19,10 @@ function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand-50 to-calm-50">
+      <div className="min-h-screen flex items-center justify-center bg-dark-900">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-4 border-brand-600 border-t-transparent rounded-full animate-spin" />
-          <p className="text-gray-400 text-sm">{t.common.loading}</p>
+          <div className="w-10 h-10 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
+          <p className="text-slate-400 text-sm">{t.common.loading}</p>
         </div>
       </div>
     );
@@ -43,12 +45,13 @@ function App() {
         }
       />
 
-      {/* App — logged in AND onboarded */}
+      {/* App — logged in AND onboarded — include BottomNav */}
       <Route
         path="/dashboard"
         element={
           <ProtectedRoute requireOnboarding={true}>
             <Dashboard />
+            <BottomNav />
           </ProtectedRoute>
         }
       />
@@ -57,6 +60,7 @@ function App() {
         element={
           <ProtectedRoute requireOnboarding={true}>
             <ChatPage />
+            <BottomNav />
           </ProtectedRoute>
         }
       />
@@ -65,15 +69,25 @@ function App() {
         element={
           <ProtectedRoute requireOnboarding={true}>
             <CheckInPage />
+            <BottomNav />
           </ProtectedRoute>
         }
       />
-
       <Route
         path="/progress"
         element={
           <ProtectedRoute requireOnboarding={true}>
             <ProgressPage />
+            <BottomNav />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/account"
+        element={
+          <ProtectedRoute requireOnboarding={true}>
+            <AccountPage />
+            <BottomNav />
           </ProtectedRoute>
         }
       />
