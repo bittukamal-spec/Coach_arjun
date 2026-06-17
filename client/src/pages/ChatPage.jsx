@@ -67,7 +67,7 @@ function ChatPage() {
   const [streaming, setStreaming] = useState(false);
   const [waitingForFirst, setWaitingForFirst] = useState(false);
   const [error, setError]         = useState('');
-  const [usage, setUsage]         = useState({ isPremium: false, used: 0, limit: 5 });
+  const [usage, setUsage]         = useState({ isPremium: false, trialDaysRemaining: 14 });
 
   const bottomRef  = useRef(null);
   const inputRef   = useRef(null);
@@ -130,8 +130,7 @@ function ChatPage() {
     setWaitingForFirst(true);
     setStreaming(true);
 
-    // Update usage count optimistically
-    setUsage(prev => prev.isPremium ? prev : { ...prev, used: prev.used + 1 });
+    // Trial is date-based — no optimistic count update needed
 
     try {
       const res = await apiFetch('/api/chat/message', {
@@ -147,7 +146,7 @@ function ChatPage() {
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         if (res.status === 429) {
-          setUsage(prev => ({ ...prev, used: prev.limit }));
+          setUsage(prev => ({ ...prev, trialDaysRemaining: 0 }));
         }
         throw new Error(body.error || 'Request failed');
       }
@@ -218,7 +217,7 @@ function ChatPage() {
 
   // ── Derived state ─────────────────────────────────────────────────────────
 
-  const atLimit = !usage.isPremium && usage.used >= usage.limit;
+  const atLimit = !usage.isPremium && usage.trialDaysRemaining === 0;
   const hasMessages = messages.length > 0;
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -262,13 +261,13 @@ function ChatPage() {
               <span className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-1 rounded-full">
                 ⭐ {t.usagePremium}
               </span>
+            ) : atLimit ? (
+              <span className="text-xs font-semibold text-red-600 bg-red-50 border border-red-200 px-2 py-1 rounded-full">
+                Trial ended
+              </span>
             ) : (
-              <span className={`text-xs font-semibold px-2 py-1 rounded-full border ${
-                atLimit
-                  ? 'text-red-600 bg-red-50 border-red-200'
-                  : 'text-gray-500 bg-gray-100 border-gray-200'
-              }`}>
-                {t.usageLabel(usage.used, usage.limit)}
+              <span className="text-xs font-semibold text-gray-500 bg-gray-100 border border-gray-200 px-2 py-1 rounded-full">
+                {t.trialLabel(usage.trialDaysRemaining)}
               </span>
             )}
           </div>

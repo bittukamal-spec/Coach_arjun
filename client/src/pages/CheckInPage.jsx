@@ -138,9 +138,8 @@ function CheckInPage() {
   const { token, language } = useAuth();
   const t = translations[language].checkin;
 
-  const [pageState, setPageState] = useState('loading'); // loading | form | done | saved | limit
+  const [pageState, setPageState] = useState('loading'); // loading | form | done | saved
   const [checkIn, setCheckIn]     = useState(null);
-  const [usage, setUsage]         = useState({ used: 0, limit: 3, isPremium: false });
   const [ratings, setRatings]     = useState({ mood: 0, focus: 0, confidence: 0 });
   const [reflection, setReflection] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -156,12 +155,9 @@ function CheckInPage() {
         });
         if (res.ok) {
           const data = await res.json();
-          setUsage(data.usage);
           if (data.checkIn) {
             setCheckIn(data.checkIn);
             setPageState('done');
-          } else if (!data.usage.isPremium && data.usage.used >= data.usage.limit) {
-            setPageState('limit');
           } else {
             setPageState('form');
           }
@@ -225,20 +221,9 @@ function CheckInPage() {
           <div className="text-center">
             <p className="font-semibold text-gray-900 text-sm">{t.title}</p>
           </div>
-          {!usage.isPremium && pageState !== 'loading' && (
-            <span className={`text-xs font-semibold px-2 py-1 rounded-full border ${
-              usage.used >= usage.limit
-                ? 'text-red-600 bg-red-50 border-red-200'
-                : 'text-gray-500 bg-gray-100 border-gray-200'
-            }`}>
-              {t.usageLabel(usage.used, usage.limit)}
-            </span>
-          )}
-          {usage.isPremium && (
-            <span className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-1 rounded-full">
-              ⭐
-            </span>
-          )}
+          <span className="text-xs font-semibold text-gray-500 bg-gray-100 border border-gray-200 px-2 py-1 rounded-full">
+            {t.usageLabel()}
+          </span>
         </div>
       </header>
 
@@ -259,17 +244,6 @@ function CheckInPage() {
         {/* ── Just saved ── */}
         {pageState === 'saved' && checkIn && (
           <ResultCard checkIn={checkIn} isNew={true} language={language} t={t} />
-        )}
-
-        {/* ── Limit reached ── */}
-        {pageState === 'limit' && (
-          <div className="text-center card py-10 animate-fade-in">
-            <div className="text-5xl mb-4">🔒</div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">{t.limitTitle}</h2>
-            <p className="text-gray-500 text-sm mb-6">{t.limitDesc}</p>
-            <button className="btn-primary mb-3 w-full justify-center">{t.upgrade}</button>
-            <Link to="/dashboard" className="btn-secondary w-full justify-center">{t.backBtn}</Link>
-          </div>
         )}
 
         {/* ── Check-in form ── */}

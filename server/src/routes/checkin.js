@@ -5,42 +5,23 @@ const authenticate = require('../middleware/authenticate');
 const router = express.Router();
 const prisma = new PrismaClient();
 
-const FREE_LIMIT = 3; // check-ins per week for free tier
-
 function startOfTodayUTC() {
   const d = new Date();
   d.setUTCHours(0, 0, 0, 0);
   return d;
 }
 
-function startOfWeekAgo() {
-  return new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-}
-
 // ── GET /api/checkin/today ─────────────────────────────────────────────────
-// Returns today's check-in (if any) and weekly usage stats.
+// Returns today's check-in (if any). Check-ins are always unlimited.
 
 router.get('/today', authenticate, async (req, res) => {
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: req.userId },
-      select: { tier: true },
+    const checkIn = await prisma.checkIn.findFirst({
+      where: { userId: req.userId, createdAt: { gte: startOfTodayUTC() } },
+      orderBy: { createdAt: 'desc' },
     });
 
-    const [checkIn, used] = await Promise.all([
-      prisma.checkIn.findFirst({
-        where: { userId: req.userId, createdAt: { gte: startOfTodayUTC() } },
-        orderBy: { createdAt: 'desc' },
-      }),
-      prisma.checkIn.count({
-        where: { userId: req.userId, createdAt: { gte: startOfWeekAgo() } },
-      }),
-    ]);
-
-    res.json({
-      checkIn: checkIn || null,
-      usage: { used, limit: FREE_LIMIT, isPremium: user?.tier === 'premium' },
-    });
+    res.json({ checkIn: checkIn || null });
   } catch {
     res.status(500).json({ error: 'Server error' });
   }
@@ -72,25 +53,6 @@ router.post('/', authenticate, async (req, res) => {
     });
     if (existing) {
       return res.status(409).json({ error: 'Already checked in today', checkIn: existing });
-    }
-
-    // Block free users who hit the weekly limit
-    const user = await prisma.user.findUnique({
-      where: { id: req.userId },
-      select: { tier: true },
-    });
-    if (user?.tier !== 'premium') {
-      const used = await prisma.checkIn.count({
-        where: { userId: req.userId, createdAt: { gte: startOfWeekAgo() } },
-      });
-      if (used >= FREE_LIMIT) {
-        return res.status(429).json({
-          error: 'Weekly check-in limit reached. Upgrade to Premium for daily check-ins.',
-          code: 'LIMIT_REACHED',
-          used,
-          limit: FREE_LIMIT,
-        });
-      }
     }
 
     const checkIn = await prisma.checkIn.create({

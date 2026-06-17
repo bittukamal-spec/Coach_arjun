@@ -63,7 +63,7 @@ const GOALS = [
   { value: 'injury',        icon: '🏥', labelKey: 'goalInjury' },
 ];
 
-const TOTAL_STEPS = 7;
+const TOTAL_STEPS = 5;
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
@@ -78,9 +78,8 @@ function OnboardingPage() {
     competitionLevel: '',
     experienceLevel: '',
     primaryChallenge: '',
-    pressureResponse: '',
     goals: [],
-    language: language,
+    language: language, // auto-detected from app UI; not shown as a step
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -92,9 +91,7 @@ function OnboardingPage() {
     if (step === 2) return data.competitionLevel !== '';
     if (step === 3) return data.experienceLevel !== '';
     if (step === 4) return data.primaryChallenge !== '';
-    if (step === 5) return data.pressureResponse !== '';
-    if (step === 6) return data.goals.length > 0;
-    if (step === 7) return data.language !== '';
+    if (step === 5) return data.goals.length > 0;
     return false;
   }
 
@@ -290,37 +287,8 @@ function OnboardingPage() {
             </div>
           )}
 
-          {/* ── Step 5: Pressure Response ── */}
+          {/* ── Step 5: Goals ── */}
           {step === 5 && (
-            <div className="animate-fade-in">
-              <h1 className="text-2xl font-bold text-gray-900 mb-1">{t.pressureTitle}</h1>
-              <p className="text-gray-500 text-sm mb-6">{t.pressureSubtitle}</p>
-              <div className="flex flex-col gap-3">
-                {PRESSURE_RESPONSES.map(response => (
-                  <button
-                    key={response.value}
-                    onClick={() => setData(d => ({ ...d, pressureResponse: response.value }))}
-                    className={`flex items-center gap-4 p-4 rounded-2xl border-2 text-left transition-all ${
-                      data.pressureResponse === response.value
-                        ? 'border-brand-500 bg-brand-50 shadow-md'
-                        : 'border-gray-100 bg-white hover:border-brand-200'
-                    }`}
-                  >
-                    <span className="text-2xl">{response.icon}</span>
-                    <span className="font-semibold text-gray-900">
-                      {language === 'hi' ? response.hi : response.en}
-                    </span>
-                    {data.pressureResponse === response.value && (
-                      <span className="ml-auto text-brand-500 text-lg">✓</span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* ── Step 6: Goals ── */}
-          {step === 6 && (
             <div className="animate-fade-in">
               <h1 className="text-2xl font-bold text-gray-900 mb-1">{t.goalsTitle}</h1>
               <div className="flex items-center justify-between mb-6">
@@ -361,37 +329,6 @@ function OnboardingPage() {
             </div>
           )}
 
-          {/* ── Step 7: Language ── */}
-          {step === 7 && (
-            <div className="animate-fade-in">
-              <h1 className="text-2xl font-bold text-gray-900 mb-1">{t.langTitle}</h1>
-              <p className="text-gray-500 text-sm mb-6">{t.langSubtitle}</p>
-              <div className="grid grid-cols-2 gap-4">
-                {[
-                  { value: 'en', label: t.langEn, desc: t.langEnDesc, flag: '🇬🇧' },
-                  { value: 'hi', label: t.langHi, desc: t.langHiDesc, flag: '🇮🇳' },
-                ].map(lang => (
-                  <button
-                    key={lang.value}
-                    onClick={() => setData(d => ({ ...d, language: lang.value }))}
-                    className={`flex flex-col items-center gap-2 p-6 rounded-2xl border-2 transition-all ${
-                      data.language === lang.value
-                        ? 'border-brand-500 bg-brand-50 shadow-md'
-                        : 'border-gray-100 bg-white hover:border-brand-200'
-                    }`}
-                  >
-                    <span className="text-3xl">{lang.flag}</span>
-                    <span className="font-bold text-gray-900 text-lg">{lang.label}</span>
-                    <span className="text-xs text-gray-500">{lang.desc}</span>
-                    {data.language === lang.value && (
-                      <span className="text-brand-500 text-lg">✓</span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* ── Error message ── */}
           {error && (
             <div className="mt-4 text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
@@ -418,7 +355,7 @@ function OnboardingPage() {
               className="btn-primary px-8 py-3 rounded-2xl"
             >
               {submitting
-                ? 'Saving…'
+                ? (language === 'hi' ? 'सेव हो रहा है…' : 'Saving…')
                 : step === TOTAL_STEPS
                 ? t.complete
                 : t.continue}

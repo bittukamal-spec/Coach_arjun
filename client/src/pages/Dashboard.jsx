@@ -11,10 +11,22 @@ const SPORT_ICONS = {
   hockey: '🏑', swimming: '🏊', other: '🏅',
 };
 
+const TRIAL_DAYS = 14;
+
+function getTrialDaysRemaining(user) {
+  if (user?.tier === 'premium') return null;
+  const start = user?.trialStarted || null;
+  if (!start) return TRIAL_DAYS; // existing users without trialStarted get full trial
+  const daysSince = Math.floor((Date.now() - new Date(start).getTime()) / (1000 * 60 * 60 * 24));
+  return Math.max(0, TRIAL_DAYS - daysSince);
+}
+
 function Dashboard() {
   const { user, token, language, logout } = useAuth();
   const t = translations[language];
   const isPremium = user?.tier === 'premium';
+  const trialDaysRemaining = getTrialDaysRemaining(user);
+  const trialEnded = !isPremium && trialDaysRemaining === 0;
 
   // Check-in card: null=loading, false=not done, object=done today
   const [todayCheckIn, setTodayCheckIn] = useState(null);
@@ -147,8 +159,8 @@ function Dashboard() {
           })}
         </div>
 
-        {/* Upgrade banner */}
-        {!isPremium && (
+        {/* Trial ended — full upgrade banner */}
+        {trialEnded && (
           <div className="card bg-gradient-to-r from-brand-500 to-brand-700 border-0 text-white">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
@@ -163,6 +175,38 @@ function Dashboard() {
                 {t.dashboard.upgrade}
               </button>
             </div>
+          </div>
+        )}
+
+        {/* Trial active — last 3 days urgent nudge */}
+        {!isPremium && !trialEnded && trialDaysRemaining <= 3 && (
+          <div className="card border-amber-200 bg-amber-50">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="font-semibold text-amber-800 mb-0.5">
+                  ⏰ {trialDaysRemaining === 1
+                    ? (language === 'hi' ? 'आपके ट्रायल का आखिरी दिन है' : 'Last day of your free trial')
+                    : (language === 'hi' ? `${trialDaysRemaining} दिन बचे हैं` : `${trialDaysRemaining} days left in your free trial`)}
+                </p>
+                <p className="text-amber-600 text-sm">
+                  {language === 'hi' ? 'अर्जुन से बात करना न भूलें' : "Don't miss out on coaching with Arjun"}
+                </p>
+              </div>
+              <button className="bg-amber-500 text-white font-semibold text-sm px-4 py-2 rounded-xl hover:bg-amber-600 transition-colors whitespace-nowrap shrink-0">
+                {language === 'hi' ? 'अपग्रेड करें' : 'Upgrade'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Trial active — soft info nudge (days 4-14) */}
+        {!isPremium && !trialEnded && trialDaysRemaining > 3 && (
+          <div className="text-center py-2">
+            <span className="text-xs text-gray-400">
+              {language === 'hi'
+                ? `🆓 ${trialDaysRemaining} दिन का फ्री ट्रायल चल रहा है`
+                : `🆓 Free trial — ${trialDaysRemaining} days remaining`}
+            </span>
           </div>
         )}
 

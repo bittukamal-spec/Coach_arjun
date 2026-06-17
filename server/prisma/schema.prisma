@@ -19,9 +19,10 @@ model User {
   password  String?            // bcrypt hash — null for any legacy Google accounts
   avatar    String?
 
-  // "free" = limited check-ins/chats per week
+  // "free" = 14-day trial, then blocked
   // "premium" = full access (₹299/month)
-  tier      String   @default("free")
+  tier         String    @default("free")
+  trialStarted DateTime?  // set on registration; 14-day trial window
 
   // "en" = English, "hi" = Hindi
   language  String   @default("en")

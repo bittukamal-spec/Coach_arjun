@@ -9,8 +9,7 @@ const prisma = new PrismaClient();
 // How many past messages to send to Claude as context (keeps costs reasonable)
 const MAX_HISTORY = 20;
 
-// Free tier weekly message limit
-const FREE_LIMIT = 5;
+const TRIAL_DAYS = 14;
 
 // Human-readable goal names for the system prompt
 const GOAL_LABELS = {
@@ -41,30 +40,29 @@ const PRESSURE_LABELS = {
   unaware:         'Has not developed any coping strategy yet',
 };
 
-// ── Middleware: block free users who hit their weekly limit ────────────────
+// ── Middleware: block free users whose 14-day trial has ended ─────────────
 
 async function checkFreeLimit(req, res, next) {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
-      select: { tier: true },
+      select: { tier: true, trialStarted: true, createdAt: true },
     });
     if (user?.tier === 'premium') return next();
 
-    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const used = await prisma.message.count({
-      where: { userId: req.userId, role: 'user', createdAt: { gte: weekAgo } },
-    });
+    // Fall back to createdAt for users registered before trialStarted field existed
+    const trialStart = user?.trialStarted || user?.createdAt;
+    const daysSinceStart = trialStart
+      ? Math.floor((Date.now() - new Date(trialStart).getTime()) / (1000 * 60 * 60 * 24))
+      : 0;
 
-    if (used >= FREE_LIMIT) {
-      return res.status(429).json({
-        error: 'Weekly message limit reached. Upgrade to Premium for unlimited access.',
-        code: 'LIMIT_REACHED',
-        used,
-        limit: FREE_LIMIT,
-      });
-    }
-    next();
+    if (daysSinceStart < TRIAL_DAYS) return next();
+
+    return res.status(429).json({
+      error: 'Your 14-day free trial has ended. Upgrade to Premium for unlimited coaching.',
+      code: 'TRIAL_ENDED',
+      daysRemaining: 0,
+    });
   } catch {
     res.status(500).json({ error: 'Server error' });
   }
@@ -230,25 +228,26 @@ router.get('/messages', authenticate, async (req, res) => {
   }
 });
 
-// ── GET /api/chat/usage — weekly usage for the free tier badge ────────────
+// ── GET /api/chat/usage — trial status for the UI ────────────────────────
 
 router.get('/usage', authenticate, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
-      select: { tier: true },
+      select: { tier: true, trialStarted: true, createdAt: true },
     });
 
     if (user?.tier === 'premium') {
-      return res.json({ isPremium: true, used: 0, limit: null });
+      return res.json({ isPremium: true, trialDaysRemaining: null });
     }
 
-    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const used = await prisma.message.count({
-      where: { userId: req.userId, role: 'user', createdAt: { gte: weekAgo } },
-    });
+    const trialStart = user?.trialStarted || user?.createdAt;
+    const daysSinceStart = trialStart
+      ? Math.floor((Date.now() - new Date(trialStart).getTime()) / (1000 * 60 * 60 * 24))
+      : 0;
+    const trialDaysRemaining = Math.max(0, TRIAL_DAYS - daysSinceStart);
 
-    res.json({ isPremium: false, used, limit: FREE_LIMIT });
+    res.json({ isPremium: false, trialDaysRemaining });
   } catch {
     res.status(500).json({ error: 'Server error' });
   }

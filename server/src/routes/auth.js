@@ -4,7 +4,7 @@ const jwt     = require('jsonwebtoken');
 const crypto  = require('crypto');
 const { PrismaClient } = require('@prisma/client');
 const authenticate = require('../middleware/authenticate');
-const { sendPasswordResetEmail } = require('../services/email');
+const { sendPasswordResetEmail, sendWelcomeEmail } = require('../services/email');
 
 const router  = express.Router();
 const prisma  = new PrismaClient();
@@ -13,7 +13,7 @@ const SALT_ROUNDS = 12;
 // Fields we're safe to return to the client (never include password)
 const SAFE_SELECT = {
   id: true, email: true, name: true, avatar: true,
-  tier: true, language: true,
+  tier: true, language: true, trialStarted: true,
   sport: true, experienceLevel: true, goals: true, onboardingDone: true,
   competitionLevel: true, primaryChallenge: true, pressureResponse: true, position: true,
 };
@@ -54,12 +54,18 @@ router.post('/register', async (req, res) => {
     const hashed = await bcrypt.hash(password, SALT_ROUNDS);
     const user = await prisma.user.create({
       data: {
-        name:     name.trim(),
-        email:    email.toLowerCase().trim(),
-        password: hashed,
+        name:         name.trim(),
+        email:        email.toLowerCase().trim(),
+        password:     hashed,
+        trialStarted: new Date(),
       },
       select: SAFE_SELECT,
     });
+
+    // Fire-and-forget welcome email — don't block the response
+    sendWelcomeEmail(user.email, user.name).catch(err =>
+      console.error('[auth] welcome email failed:', err?.message)
+    );
 
     res.status(201).json({ token: makeToken(user), user: parseGoals(user) });
   } catch {
