@@ -23,7 +23,7 @@ router.post('/', authenticate, async (req, res) => {
   let arjunInsight = null;
   try {
     const msg = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001',
       max_tokens: 200,
       messages: [{
         role: 'user',

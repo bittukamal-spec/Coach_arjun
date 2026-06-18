@@ -218,7 +218,7 @@ async function extractAndStoreMemories(userId, history, latestResponse) {
     const recentMessages = history.slice(-10).map(m => `${m.role}: ${m.content}`).join('\n');
 
     const extraction = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001',
       max_tokens: 200,
       messages: [{
         role: 'user',
@@ -395,7 +395,7 @@ router.post('/message', authenticate, checkFreeLimit, async (req, res) => {
     let fullText = '';
 
     const stream = anthropic.messages.stream({
-      model: 'claude-haiku-4-5-20251001',
+      model: process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001',
       max_tokens: 800,
       system: buildSystemPrompt(user, recentCheckIns, memories, sessionType),
       messages: conversationHistory,
