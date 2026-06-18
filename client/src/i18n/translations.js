@@ -59,6 +59,12 @@ export const translations = {
       premiumTier: 'Premium',
       upgradePrompt: 'Upgrade to Premium for unlimited access',
       upgrade: 'Upgrade — ₹299/mo',
+      // Daily Mental Drill
+      drillTitle: "Today's Mental Drill",
+      drillDone: 'Done today · +15 MXP',
+      drillStart: 'Start Drill',
+      drillComplete: 'Mark as Done',
+      drillTypeLabels: { breathing: 'Breathing', visualization: 'Visualization', 'self-talk': 'Self-Talk', focus: 'Focus', pressure: 'Pressure' },
     },
     onboarding: {
       stepOf: (s, t) => `Step ${s} of ${t}`,
@@ -155,6 +161,10 @@ export const translations = {
       reflectionLabel: 'Anything on your mind? (optional)',
       reflectionPlaceholder: 'How was training? What\'s on your mind today…',
       charsLeft: (n) => `${n}/500`,
+      // Gratitude
+      gratitudeLabel: 'One win from today (optional)',
+      gratitudePlaceholder: 'What went well in training or sport today?',
+      gratitudeXp: '+3 MXP',
       // Buttons
       saveBtn: 'Save Check-in',
       saving: 'Saving…',
@@ -278,6 +288,11 @@ export const translations = {
       premiumTier: 'प्रीमियम',
       upgradePrompt: 'असीमित पहुंच के लिए प्रीमियम में अपग्रेड करें',
       upgrade: 'अपग्रेड करें — ₹299/माह',
+      drillTitle: 'आज का मानसिक अभ्यास',
+      drillDone: 'हो गया · +15 MXP',
+      drillStart: 'अभ्यास शुरू करें',
+      drillComplete: 'हो गया',
+      drillTypeLabels: { breathing: 'श्वास', visualization: 'विज़ुअलाइज़', 'self-talk': 'सेल्फ-टॉक', focus: 'फोकस', pressure: 'दबाव' },
     },
     onboarding: {
       stepOf: (s, t) => `चरण ${s} / ${t}`,
@@ -369,6 +384,9 @@ export const translations = {
       reflectionLabel: 'कुछ मन में है? (वैकल्पिक)',
       reflectionPlaceholder: 'ट्रेनिंग कैसी रही? आज क्या चल रहा है मन में…',
       charsLeft: (n) => `${n}/500`,
+      gratitudeLabel: 'आज की एक जीत (वैकल्पिक)',
+      gratitudePlaceholder: 'आज ट्रेनिंग या खेल में क्या अच्छा हुआ?',
+      gratitudeXp: '+3 MXP',
       saveBtn: 'चेक-इन सेव करें',
       saving: 'सेव हो रहा है…',
       savedTitle: 'लॉग हो गया! ✓',

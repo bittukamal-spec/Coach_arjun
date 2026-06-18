@@ -141,11 +141,14 @@ function buildSystemPrompt(user, checkIns = [], memories = [], sessionType = nul
     const todayEntry = daysSince === 0
       ? `- TODAY's scores: mood ${latest.mood}/5 | focus ${latest.focus}/5 | confidence ${latest.confidence}/5 ← REFERENCE THESE NUMBERS DIRECTLY`
       : '';
+    const gratitudeEntry = daysSince === 0 && latest.gratitude
+      ? `- Today's gratitude: "${latest.gratitude}"`
+      : '';
 
     checkInSection = `## Recent Mental State (Last 7 Days)
 - Avg mood: ${avgMood}/5 | Avg focus: ${avgFocus}/5 | Avg confidence: ${avgConfidence}/5
 - Trend: ${trend} based on first vs last check-ins
-- Last check-in: ${daysSince} day${daysSince !== 1 ? 's' : ''} ago${latestReflection ? `\n- Latest reflection: "${latestReflection}"` : ''}${todayEntry ? '\n' + todayEntry : ''}`;
+- Last check-in: ${daysSince} day${daysSince !== 1 ? 's' : ''} ago${latestReflection ? `\n- Latest reflection: "${latestReflection}"` : ''}${todayEntry ? '\n' + todayEntry : ''}${gratitudeEntry ? '\n' + gratitudeEntry : ''}`;
   } else {
     checkInSection = `## Recent Mental State (Last 7 Days)
 No recent check-ins — the athlete hasn't tracked their mental state yet.`;

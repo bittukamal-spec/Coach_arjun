@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
 import { MessageCircle, CheckSquare, TrendingUp, Zap } from 'lucide-react';
+import { DRILLS, DRILL_TYPE_COLORS } from '../data/drills';
 
 const SPORT_ICONS = {
   cricket: '🏏', football: '⚽', badminton: '🏸', athletics: '🏃',
@@ -31,6 +32,9 @@ function Dashboard() {
 
   const [todayCheckIn, setTodayCheckIn] = useState(null);
   const [streak, setStreak] = useState(null);
+  const [drillState, setDrillState] = useState({ drillIndex: null, completed: false });
+  const [drillExpanded, setDrillExpanded] = useState(false);
+  const [drillLoading, setDrillLoading] = useState(false);
 
   useEffect(() => {
     apiFetch('/api/checkin/today', { headers: { Authorization: `Bearer ${token}` } })
@@ -42,7 +46,29 @@ function Dashboard() {
       .then(r => r.ok ? r.json() : null)
       .then(data => setStreak(data?.streak ?? 0))
       .catch(() => {});
+
+    apiFetch('/api/drills/today', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setDrillState(data); })
+      .catch(() => {});
   }, [token]);
+
+  async function completeDrill() {
+    if (drillLoading) return;
+    setDrillLoading(true);
+    try {
+      const res = await apiFetch('/api/drills/complete', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        setDrillState(prev => ({ ...prev, completed: true }));
+        setDrillExpanded(false);
+      }
+    } finally {
+      setDrillLoading(false);
+    }
+  }
 
   const FEATURES = [
     {
@@ -173,6 +199,70 @@ function Dashboard() {
             return <Link key={labelKey} to={to}>{card}</Link>;
           })}
         </div>
+
+        {/* Daily Mental Drill */}
+        {drillState.drillIndex !== null && (() => {
+          const drill = DRILLS[drillState.drillIndex];
+          const colors = DRILL_TYPE_COLORS[drill.type];
+          const drillTitle = language === 'hi' ? drill.titleHi : drill.title;
+          const drillInstruction = language === 'hi' ? drill.instructionHi : drill.instruction;
+          const typeLabel = t.dashboard.drillTypeLabels[drill.type];
+          return (
+            <div className={`card mb-6 border-t-2 ${colors.border}`}>
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-2xl shrink-0">{drill.icon}</span>
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-0.5">
+                      {t.dashboard.drillTitle}
+                    </p>
+                    <p className="font-bold text-white leading-tight truncate">{drillTitle}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${colors.badge}`}>
+                    {typeLabel}
+                  </span>
+                  <span className="text-xs text-slate-500 bg-dark-700 border border-dark-600 px-2 py-0.5 rounded-full">
+                    {drill.duration}
+                  </span>
+                </div>
+              </div>
+
+              {drillState.completed ? (
+                <div className="flex items-center gap-2 text-win-400 text-sm font-semibold">
+                  <span>✅</span>
+                  <span>{t.dashboard.drillDone}</span>
+                </div>
+              ) : drillExpanded ? (
+                <div className="animate-fade-in">
+                  <p className="text-sm text-slate-300 leading-relaxed mb-4">{drillInstruction}</p>
+                  <button
+                    onClick={completeDrill}
+                    disabled={drillLoading}
+                    className="w-full py-3 rounded-xl bg-win-600 hover:bg-win-700 text-white font-semibold text-sm transition-all active:scale-95 disabled:opacity-60 flex items-center justify-center gap-2"
+                  >
+                    {drillLoading
+                      ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Saving…</>
+                      : <>{t.dashboard.drillComplete} ✓</>}
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-sm text-slate-500 leading-relaxed mb-3 line-clamp-2">
+                    {drillInstruction.substring(0, 100)}…
+                  </p>
+                  <button
+                    onClick={() => setDrillExpanded(true)}
+                    className={`text-sm font-semibold px-4 py-2 rounded-xl border transition-all active:scale-95 ${colors.badge} ${colors.border}`}
+                  >
+                    {t.dashboard.drillStart} →
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Trial ended — upgrade banner */}
         {trialEnded && (

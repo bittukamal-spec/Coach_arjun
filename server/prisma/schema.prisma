@@ -46,11 +46,12 @@ model User {
   // Gamification
   xp            Int      @default(0)
 
-  messages       Message[]
-  checkIns       CheckIn[]
-  memories       UserMemory[]
-  passwordResets PasswordResetToken[]
-  achievements   UserAchievement[]
+  messages         Message[]
+  checkIns         CheckIn[]
+  memories         UserMemory[]
+  passwordResets   PasswordResetToken[]
+  achievements     UserAchievement[]
+  drillCompletions DrillCompletion[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -64,6 +65,7 @@ model CheckIn {
   focus       Int      // 1–5
   confidence  Int      // 1–5
   reflection  String?  // optional free-text, max 500 chars
+  gratitude   String?  // optional: one win from today, max 300 chars
   createdAt   DateTime @default(now())
 }
 
@@ -97,6 +99,14 @@ model UserAchievement {
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, key])
+}
+
+model DrillCompletion {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  drillIndex  Int
+  completedAt DateTime @default(now())
 }
 
 model PasswordResetToken {

@@ -110,8 +110,16 @@ function ResultCard({ checkIn, isNew, language, t, xpEarned, newAchievements }) 
 
       {/* Reflection */}
       {checkIn.reflection && (
-        <div className="bg-dark-700 border border-dark-500 rounded-xl px-4 py-3 mb-4 text-sm text-slate-300 italic">
+        <div className="bg-dark-700 border border-dark-500 rounded-xl px-4 py-3 mb-3 text-sm text-slate-300 italic">
           "{checkIn.reflection}"
+        </div>
+      )}
+
+      {/* Gratitude */}
+      {checkIn.gratitude && (
+        <div className="bg-win-500/10 border border-win-500/20 rounded-xl px-4 py-3 mb-4 text-sm text-win-300 flex items-start gap-2">
+          <span className="shrink-0">🙏</span>
+          <span className="italic">"{checkIn.gratitude}"</span>
         </div>
       )}
 
@@ -171,6 +179,7 @@ function CheckInPage() {
   const [checkIn, setCheckIn]     = useState(null);
   const [ratings, setRatings]     = useState({ mood: 0, focus: 0, confidence: 0 });
   const [reflection, setReflection] = useState('');
+  const [gratitude, setGratitude]   = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError]           = useState('');
   const [xpEarned, setXpEarned]       = useState(null);
@@ -215,7 +224,7 @@ function CheckInPage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ ...ratings, reflection: reflection.trim() || undefined }),
+        body: JSON.stringify({ ...ratings, reflection: reflection.trim() || undefined, gratitude: gratitude.trim() || undefined }),
       });
       const data = await res.json();
       if (res.status === 201) {
@@ -330,7 +339,7 @@ function CheckInPage() {
             })}
 
             {/* Reflection */}
-            <div className="mb-6">
+            <div className="mb-4">
               <div className="flex items-center justify-between mb-2">
                 <label className="font-semibold text-slate-200 text-sm">{t.reflectionLabel}</label>
                 <span className={`text-xs ${charsLeft < 50 ? 'text-orange-400' : 'text-slate-500'}`}>
@@ -343,6 +352,27 @@ function CheckInPage() {
                 placeholder={t.reflectionPlaceholder}
                 rows={3}
                 className="w-full bg-dark-700 border border-dark-500 text-slate-100 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent resize-none placeholder-slate-500"
+              />
+            </div>
+
+            {/* Gratitude */}
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-2">
+                <label className="flex items-center gap-1.5 font-semibold text-slate-200 text-sm">
+                  <span>🙏</span> {t.gratitudeLabel}
+                </label>
+                {gratitude.trim() && (
+                  <span className="text-xs font-semibold text-win-400 bg-win-500/10 border border-win-500/20 px-2 py-0.5 rounded-full">
+                    {t.gratitudeXp}
+                  </span>
+                )}
+              </div>
+              <textarea
+                value={gratitude}
+                onChange={e => setGratitude(e.target.value.slice(0, 300))}
+                placeholder={t.gratitudePlaceholder}
+                rows={2}
+                className="w-full bg-dark-700 border border-dark-500 text-slate-100 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-win-500 focus:border-transparent resize-none placeholder-slate-500"
               />
             </div>
 

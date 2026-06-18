@@ -32,7 +32,7 @@ router.get('/today', authenticate, async (req, res) => {
 // Create a new check-in. Blocks if already done today or free limit hit.
 
 router.post('/', authenticate, async (req, res) => {
-  const { mood, focus, confidence, reflection } = req.body;
+  const { mood, focus, confidence, reflection, gratitude } = req.body;
 
   // Validate ratings
   for (const [key, val] of Object.entries({ mood, focus, confidence })) {
@@ -45,6 +45,12 @@ router.post('/', authenticate, async (req, res) => {
   }
   if (reflection && reflection.length > 500) {
     return res.status(400).json({ error: 'Reflection too long (max 500 characters)' });
+  }
+  if (gratitude !== undefined && typeof gratitude !== 'string') {
+    return res.status(400).json({ error: '"gratitude" must be a string' });
+  }
+  if (gratitude && gratitude.length > 300) {
+    return res.status(400).json({ error: 'Gratitude too long (max 300 characters)' });
   }
 
   try {
@@ -63,11 +69,12 @@ router.post('/', authenticate, async (req, res) => {
         focus,
         confidence,
         reflection: reflection?.trim() || null,
+        gratitude:  gratitude?.trim()  || null,
       },
     });
 
-    // Award XP: +10 base, +5 bonus for reflection
-    const xpEarned = reflection?.trim() ? 15 : 10;
+    // Award XP: +10 base, +5 for reflection, +3 for gratitude
+    const xpEarned = 10 + (reflection?.trim() ? 5 : 0) + (gratitude?.trim() ? 3 : 0);
     const [{ xp }, newAchievements] = await Promise.all([
       awardXP(req.userId, xpEarned),
       checkCheckInAchievements(req.userId),
