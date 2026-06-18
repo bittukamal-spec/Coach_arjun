@@ -56,6 +56,7 @@ model User {
   passwordResets   PasswordResetToken[]
   achievements     UserAchievement[]
   drillCompletions DrillCompletion[]
+  debriefs         Debrief[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -111,6 +112,17 @@ model DrillCompletion {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   drillIndex  Int
   completedAt DateTime @default(now())
+}
+
+model Debrief {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wentWell       String   // max 500 chars
+  doDifferently  String   // max 500 chars
+  nextFocus      String   // max 300 chars
+  arjunInsight   String?  // AI-generated coaching insight
+  createdAt      DateTime @default(now())
 }
 
 model PasswordResetToken {

@@ -9,6 +9,7 @@ import ProgressPage from './pages/ProgressPage';
 import AccountPage from './pages/AccountPage';
 import BreathingPage from './pages/BreathingPage';
 import RitualPage from './pages/RitualPage';
+import DebriefPage from './pages/DebriefPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -108,6 +109,15 @@ function App() {
         element={
           <ProtectedRoute requireOnboarding={true}>
             <RitualPage />
+            <BottomNav />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/debrief"
+        element={
+          <ProtectedRoute requireOnboarding={true}>
+            <DebriefPage />
             <BottomNav />
           </ProtectedRoute>
         }

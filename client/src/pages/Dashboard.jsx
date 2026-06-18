@@ -123,6 +123,14 @@ function Dashboard() {
       color: 'text-amber-400',
       border: 'border-amber-500/30 hover:border-amber-500/60',
     },
+    {
+      icon: '📋',
+      label: language === 'hi' ? 'पोस्ट-मैच डीब्रीफ' : 'Post-Match Debrief',
+      desc: language === 'hi' ? '3 सवाल जो असली सीख देते हैं' : '3 questions that build real learning',
+      to: '/debrief',
+      color: 'text-sky-400',
+      border: 'border-sky-500/30 hover:border-sky-500/60',
+    },
   ];
 
   const accentBorder = { brand: 'border-brand-600/50 hover:border-brand-500', win: 'border-win-600/40 hover:border-win-500', fire: 'border-fire-600/40 hover:border-fire-500' };
