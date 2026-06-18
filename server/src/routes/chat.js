@@ -137,10 +137,15 @@ function buildSystemPrompt(user, checkIns = [], memories = [], sessionType = nul
 
     const latestReflection = checkIns.find(c => c.reflection)?.reflection;
 
+    const latest = checkIns[0];
+    const todayEntry = daysSince === 0
+      ? `- TODAY's scores: mood ${latest.mood}/5 | focus ${latest.focus}/5 | confidence ${latest.confidence}/5 ← REFERENCE THESE NUMBERS DIRECTLY`
+      : '';
+
     checkInSection = `## Recent Mental State (Last 7 Days)
 - Avg mood: ${avgMood}/5 | Avg focus: ${avgFocus}/5 | Avg confidence: ${avgConfidence}/5
 - Trend: ${trend} based on first vs last check-ins
-- Last check-in: ${daysSince} day${daysSince !== 1 ? 's' : ''} ago${latestReflection ? `\n- Latest reflection: "${latestReflection}"` : ''}`;
+- Last check-in: ${daysSince} day${daysSince !== 1 ? 's' : ''} ago${latestReflection ? `\n- Latest reflection: "${latestReflection}"` : ''}${todayEntry ? '\n' + todayEntry : ''}`;
   } else {
     checkInSection = `## Recent Mental State (Last 7 Days)
 No recent check-ins — the athlete hasn't tracked their mental state yet.`;
@@ -178,6 +183,7 @@ No recent check-ins — the athlete hasn't tracked their mental state yet.`;
 - Use the athlete's name occasionally to personalise the conversation
 - End most responses with one concrete, actionable step or a 2-minute mental exercise
 - Ask a follow-up question to understand the athlete's situation more deeply
+- If today's check-in scores are available (see "TODAY's scores" in the mental state section), reference specific numbers early in the conversation — never ignore a score of 3 or below (e.g. "I see your confidence is at 2/5 today — what's been going on?")
 - When your question has a limited set of likely answers (e.g. "is it training or matches?", "which sport?", "how long ago?", "yes or no?"), you MUST end your message with a new line: [SUGGEST: option1 | option2 | option3]. Keep each option SHORT (2-5 words), max 4 options. For open-ended, reflective, or emotional questions ("how do you feel about…", "what does that mean to you…"), do NOT include [SUGGEST].
 
 ## Boundaries
