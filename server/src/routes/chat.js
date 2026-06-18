@@ -68,9 +68,38 @@ async function checkFreeLimit(req, res, next) {
   }
 }
 
+// ── Session-specific coaching instructions ────────────────────────────────
+
+const SESSION_INSTRUCTIONS = {
+  match_prep: `The athlete is preparing for an upcoming match.
+Start by asking: what sport is the match for, and when is it?
+Then progressively understand: what they're most worried about, what's happened in similar situations before.
+Goal: help them build a simple pre-match mental routine.`,
+
+  post_match: `The athlete wants to process a recent match result.
+Start by asking what happened — win or loss, and how they felt during it.
+Validate their emotions first. Then help extract one key learning.
+Do NOT minimise a loss or over-celebrate a win.`,
+
+  build_focus: `The athlete wants to improve concentration.
+Start by asking when focus breaks — during training, during matches, or both?
+Identify the trigger first. Then offer ONE specific practical technique (e.g. attention anchor, pre-point routine).`,
+
+  confidence: `The athlete is struggling with self-belief.
+Start by asking what specific situation is triggering doubt right now.
+Understand the root cause before any advice. One question at a time.`,
+
+  handle_pressure: `The athlete is dealing with pressure.
+Start by asking where the pressure is coming from — family, coach, selection, or self-imposed?
+Validate before advising. Avoid platitudes like "just believe in yourself".`,
+
+  open: `Open conversation. Follow the athlete's lead completely.
+Be warm and curious. Ask one natural follow-up question per response.`,
+};
+
 // ── Helper: build personalised system prompt ─────────────────────────────
 
-function buildSystemPrompt(user, checkIns = [], memories = []) {
+function buildSystemPrompt(user, checkIns = [], memories = [], sessionType = null) {
   const goals = JSON.parse(user.goals || '[]').map(g => GOAL_LABELS[g] || g);
   const goalsText = goals.length ? goals.join(', ') : 'general mental performance';
 
@@ -124,6 +153,10 @@ No recent check-ins — the athlete hasn't tracked their mental state yet.`;
     memorySection = `## What I Know About This Athlete (Long-term Memory)\nNo long-term notes yet.`;
   }
 
+  const sessionSection = sessionType && SESSION_INSTRUCTIONS[sessionType]
+    ? `## Active Session\n${SESSION_INSTRUCTIONS[sessionType]}\n\nFor this session: Ask ONE focused question at a time. Do not give advice, techniques, or solutions until you fully understand the athlete's situation.`
+    : '';
+
   return `You are Arjun — a mental performance coach who specialises in sports psychology for Indian athletes. You are warm, direct, and feel like a trusted older brother who truly understands the pressures of Indian sports culture.
 
 ## Athlete Profile
@@ -143,6 +176,7 @@ No recent check-ins — the athlete hasn't tracked their mental state yet.`;
 - Use the athlete's name occasionally to personalise the conversation
 - End most responses with one concrete, actionable step or a 2-minute mental exercise
 - Ask a follow-up question to understand the athlete's situation more deeply
+- When asking a situational or factual question where short choices would help the athlete respond, optionally append on a new line at the very end of your message: [SUGGEST: option1 | option2 | option3]. Keep options SHORT (2-5 words), max 4 options. Only use for factual/situational questions — skip for reflective, emotional, or rhetorical prompts.
 
 ## Boundaries
 - You are a performance coach, not a doctor or clinical therapist
@@ -153,7 +187,7 @@ No recent check-ins — the athlete hasn't tracked their mental state yet.`;
 ## Language
 ${langInstruction}
 
-${checkInSection}
+${sessionSection ? sessionSection + '\n\n' : ''}${checkInSection}
 
 ${memorySection}`;
 }
@@ -262,11 +296,14 @@ router.post('/message', authenticate, checkFreeLimit, async (req, res) => {
     });
   }
 
-  const { content } = req.body;
+  const { content, sessionType = null } = req.body;
   if (!content || typeof content !== 'string' || content.trim().length === 0) {
     return res.status(400).json({ error: 'Message content is required' });
   }
-  if (content.length > 2000) {
+
+  const isSessionStart = content.startsWith('__SESSION:');
+
+  if (!isSessionStart && content.length > 2000) {
     return res.status(400).json({ error: 'Message too long (max 2000 characters)' });
   }
 
@@ -302,10 +339,12 @@ router.post('/message', authenticate, checkFreeLimit, async (req, res) => {
       select: { memKey: true, value: true },
     });
 
-    // Save the user's message first
-    await prisma.message.create({
-      data: { userId: req.userId, role: 'user', content: content.trim() },
-    });
+    // Save the user's message (skip invisible session-start markers)
+    if (!isSessionStart) {
+      await prisma.message.create({
+        data: { userId: req.userId, role: 'user', content: content.trim() },
+      });
+    }
 
     // Fetch recent history to provide context to Claude
     const history = await prisma.message.findMany({
@@ -320,6 +359,20 @@ router.post('/message', authenticate, checkFreeLimit, async (req, res) => {
       content: m.content,
     }));
 
+    // For session starts, append a clean opening for Claude (not saved to DB)
+    if (isSessionStart) {
+      const SESSION_LABELS = {
+        match_prep: 'an upcoming match',
+        post_match: 'a recent match result',
+        build_focus: 'improving focus and concentration',
+        confidence: 'building confidence',
+        handle_pressure: 'handling pressure',
+        open: 'an open coaching conversation',
+      };
+      const label = SESSION_LABELS[sessionType] || 'mental performance coaching';
+      conversationHistory.push({ role: 'user', content: `I want to talk about ${label}.` });
+    }
+
     // Set up Server-Sent Events stream
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -332,7 +385,7 @@ router.post('/message', authenticate, checkFreeLimit, async (req, res) => {
     const stream = anthropic.messages.stream({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 800,
-      system: buildSystemPrompt(user, recentCheckIns, memories),
+      system: buildSystemPrompt(user, recentCheckIns, memories, sessionType),
       messages: conversationHistory,
     });
 

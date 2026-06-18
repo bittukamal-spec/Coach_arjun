@@ -125,6 +125,15 @@ export const translations = {
       upgrade: 'Upgrade — ₹299/mo',
       errorRetry: 'Something went wrong. Please try again.',
       backToDashboard: '← Dashboard',
+      sessionTitle: 'What do you want to work on today?',
+      sessions: {
+        match_prep:      { title: 'Before a match',   desc: 'Prepare mentally for what\'s ahead',           icon: '🧘' },
+        post_match:      { title: 'After a match',    desc: 'Process the result and move forward',          icon: '🔄' },
+        build_focus:     { title: 'Build my focus',   desc: 'Train concentration, block distractions',      icon: '🎯' },
+        confidence:      { title: 'Boost confidence', desc: 'When doubt creeps in before big moments',      icon: '💪' },
+        handle_pressure: { title: 'Handle pressure',  desc: 'From family, coach, or expectations',          icon: '😤' },
+        open:            { title: 'Just talk',         desc: 'No agenda — Arjun listens',                    icon: '💬' },
+      },
     },
     checkin: {
       title: 'Daily Check-in',
@@ -334,6 +343,15 @@ export const translations = {
       upgrade: 'अपग्रेड करें — ₹299/माह',
       errorRetry: 'कुछ गलत हो गया। कृपया पुनः प्रयास करें।',
       backToDashboard: '← डैशबोर्ड',
+      sessionTitle: 'आज किस पर काम करना है?',
+      sessions: {
+        match_prep:      { title: 'मैच से पहले',        desc: 'आगे के लिए मानसिक तैयारी',              icon: '🧘' },
+        post_match:      { title: 'मैच के बाद',          desc: 'नतीजे को समझें और आगे बढ़ें',          icon: '🔄' },
+        build_focus:     { title: 'फोकस बनाएं',          desc: 'एकाग्रता बढ़ाएं, ध्यान भटकना रोकें',  icon: '🎯' },
+        confidence:      { title: 'आत्मविश्वास बढ़ाएं',  desc: 'बड़े पलों से पहले की आत्मशंका',        icon: '💪' },
+        handle_pressure: { title: 'दबाव संभालें',         desc: 'परिवार, कोच या उम्मीदों का दबाव',     icon: '😤' },
+        open:            { title: 'बस बात करें',          desc: 'कोई एजेंडा नहीं — अर्जुन सुनेगा',     icon: '💬' },
+      },
     },
     checkin: {
       title: 'दैनिक चेक-इन',

@@ -4,20 +4,38 @@ import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
 
+// ─── Session definitions ───────────────────────────────────────────────────────
+
+const SESSIONS = [
+  { key: 'match_prep',      accent: 'border-violet-500/30 hover:border-violet-400' },
+  { key: 'post_match',      accent: 'border-blue-500/30 hover:border-blue-400' },
+  { key: 'build_focus',     accent: 'border-orange-500/30 hover:border-orange-400' },
+  { key: 'confidence',      accent: 'border-brand-600/30 hover:border-brand-500' },
+  { key: 'handle_pressure', accent: 'border-red-500/30 hover:border-red-400' },
+  { key: 'open',            accent: 'border-win-600/30 hover:border-win-500' },
+];
+
+// ─── Helpers ───────────────────────────────────────────────────────────────────
+
+function extractSuggestions(text) {
+  const match = text.match(/\[SUGGEST:\s*([^\]]+)\]/);
+  if (!match) return { clean: text, suggestions: [] };
+  const suggestions = match[1].split('|').map(s => s.trim()).filter(Boolean);
+  const clean = text.replace(/\n?\[SUGGEST:[^\]]+\]/, '').trimEnd();
+  return { clean, suggestions };
+}
+
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function MessageBubble({ message, isStreaming }) {
   const isUser = message.role === 'user';
   return (
     <div className={`flex gap-3 ${isUser ? 'flex-row-reverse' : 'flex-row'} items-end`}>
-      {/* Avatar */}
       {!isUser && (
-        <div className="w-8 h-8 rounded-full bg-brand-600 text-white flex items-center justify-center text-sm shrink-0 mb-1">
-          🧠
+        <div className="w-8 h-8 rounded-full bg-brand-600 text-white flex items-center justify-center text-sm font-bold shrink-0 mb-1">
+          A
         </div>
       )}
-
-      {/* Bubble */}
       <div
         className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
           isUser
@@ -41,8 +59,8 @@ function MessageBubble({ message, isStreaming }) {
 function TypingIndicator() {
   return (
     <div className="flex gap-3 items-end">
-      <div className="w-8 h-8 rounded-full bg-brand-600 text-white flex items-center justify-center text-sm shrink-0">
-        🧠
+      <div className="w-8 h-8 rounded-full bg-brand-600 text-white flex items-center justify-center text-sm font-bold shrink-0">
+        A
       </div>
       <div className="bg-dark-800 border border-dark-600 shadow-sm rounded-2xl rounded-bl-sm px-4 py-3">
         <span className="inline-flex gap-1">
@@ -61,17 +79,20 @@ function ChatPage() {
   const { user, token, language } = useAuth();
   const t = translations[language].chat;
 
-  const [messages, setMessages]   = useState([]);
-  const [input, setInput]         = useState('');
-  const [loading, setLoading]     = useState(true);
-  const [streaming, setStreaming] = useState(false);
+  const [messages, setMessages]         = useState([]);
+  const [input, setInput]               = useState('');
+  const [loading, setLoading]           = useState(true);
+  const [streaming, setStreaming]       = useState(false);
   const [waitingForFirst, setWaitingForFirst] = useState(false);
-  const [error, setError]         = useState('');
-  const [usage, setUsage]         = useState({ isPremium: false, trialDaysRemaining: 14 });
+  const [error, setError]               = useState('');
+  const [usage, setUsage]               = useState({ isPremium: false, trialDaysRemaining: 14 });
+  const [quickReplies, setQuickReplies] = useState([]);
+  const [activeSession, setActiveSession] = useState(null);
 
-  const bottomRef  = useRef(null);
-  const inputRef   = useRef(null);
-  const streamIdRef = useRef(null); // tracks the temp streaming message id
+  const bottomRef      = useRef(null);
+  const inputRef       = useRef(null);
+  const streamIdRef    = useRef(null);
+  const fullStreamText = useRef('');
 
   // ── Load history + usage on mount ────────────────────────────────────────
 
@@ -117,20 +138,26 @@ function ChatPage() {
 
   // ── Send message with streaming ───────────────────────────────────────────
 
-  const sendMessage = useCallback(async () => {
-    const trimmed = input.trim();
+  const sendMessage = useCallback(async (overrideContent = null, forceSessionType = undefined) => {
+    const trimmed = (overrideContent != null ? overrideContent : input).trim();
     if (!trimmed || streaming) return;
 
-    setInput('');
-    setError('');
+    const isSessionStart = trimmed.startsWith('__SESSION:');
+    const sessionType = forceSessionType !== undefined ? forceSessionType : activeSession;
 
-    // Add user message to UI immediately
-    const tempUserId = 'user-' + Date.now();
-    setMessages(prev => [...prev, { id: tempUserId, role: 'user', content: trimmed }]);
+    if (!overrideContent) setInput('');
+    setError('');
+    setQuickReplies([]);
+
+    // Add user message to UI (skip for invisible session-start markers)
+    if (!isSessionStart) {
+      const tempUserId = 'user-' + Date.now();
+      setMessages(prev => [...prev, { id: tempUserId, role: 'user', content: trimmed }]);
+    }
+
     setWaitingForFirst(true);
     setStreaming(true);
-
-    // Trial is date-based — no optimistic count update needed
+    fullStreamText.current = '';
 
     try {
       const res = await apiFetch('/api/chat/message', {
@@ -139,10 +166,9 @@ function ChatPage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ content: trimmed }),
+        body: JSON.stringify({ content: trimmed, sessionType }),
       });
 
-      // Non-streaming error (e.g. 429 limit reached, 503 no API key)
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         if (res.status === 429) {
@@ -151,13 +177,11 @@ function ChatPage() {
         throw new Error(body.error || 'Request failed');
       }
 
-      // Create the streaming message placeholder
       const streamId = 'stream-' + Date.now();
       streamIdRef.current = streamId;
       setMessages(prev => [...prev, { id: streamId, role: 'assistant', content: '', streaming: true }]);
       setWaitingForFirst(false);
 
-      // Read the SSE stream
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
@@ -175,17 +199,17 @@ function ChatPage() {
           try {
             const data = JSON.parse(line.slice(6));
             if (data.t === 'd') {
+              fullStreamText.current += data.c;
               setMessages(prev =>
-                prev.map(m =>
-                  m.id === streamId ? { ...m, content: m.content + data.c } : m
-                )
+                prev.map(m => m.id === streamId ? { ...m, content: m.content + data.c } : m)
               );
             } else if (data.t === 'end') {
+              const { clean, suggestions } = extractSuggestions(fullStreamText.current);
               setMessages(prev =>
-                prev.map(m =>
-                  m.id === streamId ? { ...m, id: data.id, streaming: false } : m
-                )
+                prev.map(m => m.id === streamId ? { ...m, content: clean, id: data.id, streaming: false } : m)
               );
+              setQuickReplies(suggestions);
+              fullStreamText.current = '';
             } else if (data.t === 'error') {
               setMessages(prev => prev.filter(m => m.id !== streamId));
               setError(data.message || t.errorRetry);
@@ -195,7 +219,6 @@ function ChatPage() {
       }
     } catch (err) {
       setWaitingForFirst(false);
-      // Remove the streaming placeholder if it exists
       setMessages(prev => prev.filter(m => !m.streaming));
       setError(err.message || t.errorRetry);
     } finally {
@@ -204,7 +227,16 @@ function ChatPage() {
       streamIdRef.current = null;
       inputRef.current?.focus();
     }
-  }, [input, streaming, token, t.errorRetry]);
+  }, [input, streaming, token, t.errorRetry, activeSession]);
+
+  // ── Session card click ────────────────────────────────────────────────────
+
+  function handleSessionStart(sessionKey) {
+    if (streaming) return;
+    setActiveSession(sessionKey);
+    setQuickReplies([]);
+    sendMessage(`__SESSION:${sessionKey}__`, sessionKey);
+  }
 
   // ── Send on Enter (not Shift+Enter) ──────────────────────────────────────
 
@@ -219,6 +251,7 @@ function ChatPage() {
 
   const atLimit = !usage.isPremium && usage.trialDaysRemaining === 0;
   const hasMessages = messages.length > 0;
+  const lastArjunMsgId = [...messages].reverse().find(m => m.role === 'assistant')?.id;
 
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -235,28 +268,34 @@ function ChatPage() {
 
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <header className="shrink-0 bg-dark-900 border-b border-dark-600 px-4 py-3">
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <Link
               to="/dashboard"
-              className="text-sm text-slate-400 hover:text-slate-200 transition-colors"
+              className="text-sm text-slate-400 hover:text-slate-200 transition-colors shrink-0"
             >
               {t.backToDashboard}
             </Link>
-            <div className="w-px h-4 bg-dark-600" />
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-brand-600 text-white flex items-center justify-center text-sm font-bold">
+            <div className="w-px h-4 bg-dark-600 shrink-0" />
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-8 h-8 rounded-full bg-brand-600 text-white flex items-center justify-center text-sm font-bold shrink-0">
                 A
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="font-semibold text-slate-100 text-sm leading-none">{t.title}</p>
-                <p className="text-xs text-slate-500 leading-none mt-0.5">{t.subtitle}</p>
+                {activeSession ? (
+                  <p className="text-xs text-brand-400 leading-none mt-0.5 truncate">
+                    {t.sessions[activeSession].icon} {t.sessions[activeSession].title}
+                  </p>
+                ) : (
+                  <p className="text-xs text-slate-500 leading-none mt-0.5">{t.subtitle}</p>
+                )}
               </div>
             </div>
           </div>
 
           {/* Usage badge */}
-          <div>
+          <div className="shrink-0">
             {usage.isPremium ? (
               <span className="text-xs font-semibold text-amber-400 bg-amber-950/40 border border-amber-700/40 px-2 py-1 rounded-full">
                 ⭐ {t.usagePremium}
@@ -278,39 +317,58 @@ function ChatPage() {
       <div className="flex-1 overflow-y-auto px-4 py-6">
         <div className="max-w-2xl mx-auto flex flex-col gap-4">
 
-          {/* Empty state */}
+          {/* Session card picker (shown only when no messages yet) */}
           {!hasMessages && !waitingForFirst && (
-            <div className="flex flex-col items-center text-center py-12 gap-3">
-              <div className="w-16 h-16 rounded-full bg-brand-600 flex items-center justify-center text-2xl font-bold text-white">
-                A
+            <div className="py-4 animate-fade-in">
+              <div className="text-center mb-6">
+                <div className="w-14 h-14 rounded-full bg-brand-600 flex items-center justify-center text-xl font-bold text-white mx-auto mb-3">
+                  A
+                </div>
+                <p className="font-semibold text-slate-100 mb-1">{t.sessionTitle}</p>
+                <p className="text-sm text-slate-500 max-w-xs mx-auto">{t.emptySubtitle}</p>
               </div>
-              <div>
-                <p className="font-semibold text-slate-100 mb-1">{t.emptyTitle}</p>
-                <p className="text-sm text-slate-400 max-w-xs">{t.emptySubtitle}</p>
-              </div>
-              {/* Starter prompts */}
-              <div className="flex flex-wrap gap-2 mt-2 justify-center">
-                {[
-                  language === 'hi' ? 'मैच से पहले बहुत घबराहट होती है' : 'I get really nervous before matches',
-                  language === 'hi' ? 'अपना फोकस कैसे बढ़ाऊं?' : 'How do I improve my focus?',
-                  language === 'hi' ? 'हार के बाद कैसे उबरें?' : 'How to recover after a bad loss?',
-                ].map(prompt => (
-                  <button
-                    key={prompt}
-                    onClick={() => { setInput(prompt); inputRef.current?.focus(); }}
-                    className="text-xs bg-dark-700 border border-dark-500 text-slate-400 px-3 py-1.5 rounded-full hover:border-brand-500 hover:text-brand-400 transition-colors"
-                  >
-                    {prompt}
-                  </button>
-                ))}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {SESSIONS.map(({ key, accent }) => {
+                  const def = t.sessions[key];
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => handleSessionStart(key)}
+                      disabled={atLimit}
+                      className={`card card-glow text-left flex flex-col gap-2 p-4 border ${accent} transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed`}
+                    >
+                      <span className="text-3xl">{def.icon}</span>
+                      <p className="font-semibold text-white text-sm leading-tight">{def.title}</p>
+                      <p className="text-xs text-slate-500 leading-tight">{def.desc}</p>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
 
           {/* Message list */}
-          {messages.map(msg => (
-            <MessageBubble key={msg.id} message={msg} isStreaming={msg.streaming} />
-          ))}
+          {messages.map(msg => {
+            const isLastArjun = msg.role === 'assistant' && msg.id === lastArjunMsgId;
+            return (
+              <div key={msg.id} className="flex flex-col gap-2">
+                <MessageBubble message={msg} isStreaming={msg.streaming} />
+                {isLastArjun && !msg.streaming && quickReplies.length > 0 && (
+                  <div className="flex flex-wrap gap-2 ml-11">
+                    {quickReplies.map(reply => (
+                      <button
+                        key={reply}
+                        onClick={() => sendMessage(reply)}
+                        className="text-xs bg-dark-700 border border-brand-600/40 text-brand-300 px-3 py-1.5 rounded-full hover:bg-brand-600/20 hover:border-brand-500 active:scale-95 transition-all"
+                      >
+                        {reply}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
 
           {/* Typing indicator (before first token arrives) */}
           {waitingForFirst && <TypingIndicator />}
@@ -361,7 +419,7 @@ function ChatPage() {
               }}
             />
             <button
-              onClick={sendMessage}
+              onClick={() => sendMessage()}
               disabled={!input.trim() || streaming || atLimit}
               className="w-11 h-11 bg-brand-600 text-white rounded-2xl flex items-center justify-center hover:bg-brand-700 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:scale-100 shrink-0"
               aria-label={t.send}

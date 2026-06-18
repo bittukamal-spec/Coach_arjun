@@ -133,11 +133,17 @@ function Dashboard() {
             </div>
           </div>
           {user?.xp !== undefined && (
-            <div className="flex items-center gap-2 bg-brand-500/10 border border-brand-500/20 px-4 py-2 rounded-xl">
-              <Zap size={16} className="text-brand-400" />
-              <div className="text-right">
-                <p className="text-lg font-bold text-white leading-none">{user.xp}</p>
-                <p className="text-xs text-slate-500">MXP</p>
+            <div className="relative group">
+              <div className="flex items-center gap-2 bg-brand-500/10 border border-brand-500/20 px-4 py-2 rounded-xl cursor-default">
+                <Zap size={16} className="text-brand-400" />
+                <div className="text-right">
+                  <p className="text-lg font-bold text-white leading-none">{user.xp}</p>
+                  <p className="text-xs text-slate-500">MXP</p>
+                </div>
+              </div>
+              <div className="absolute bottom-full right-0 mb-2 w-48 bg-dark-700 border border-dark-500 rounded-xl px-3 py-2 text-xs text-slate-300 hidden group-hover:block z-10 pointer-events-none shadow-lg">
+                <p className="font-semibold text-white mb-0.5">Mental XP</p>
+                <p>Earn points by checking in and talking to Arjun.</p>
               </div>
             </div>
           )}
