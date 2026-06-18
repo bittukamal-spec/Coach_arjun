@@ -123,22 +123,25 @@ function Dashboard() {
           </div>
         </div>
 
-        {/* Streak HUD strip */}
-        {streak !== null && streak > 0 && (
-          <div className="card mb-6 flex items-center justify-between gap-4 bg-gradient-to-r from-dark-800 to-dark-700 border-fire-600/30">
-            <div className="flex items-center gap-3">
-              <span className="text-4xl animate-flame-pulse">🔥</span>
-              <div>
-                <p className="text-2xl font-bold text-white leading-none">{streak}</p>
-                <p className="text-slate-400 text-sm">{language === 'hi' ? 'दिन की लकीर' : 'day streak'}</p>
-              </div>
-            </div>
-            <div className="text-right">
-              <Zap size={20} className="text-fire-400 ml-auto mb-1" />
-              <p className="text-xs text-slate-500">{language === 'hi' ? 'जारी रखें!' : 'Keep it up!'}</p>
+        {/* Streak + XP HUD strip */}
+        <div className="card mb-6 flex items-center justify-between gap-4 bg-gradient-to-r from-dark-800 to-dark-700 border-fire-600/30">
+          <div className="flex items-center gap-3">
+            <span className={`text-4xl ${streak > 0 ? 'animate-flame-pulse' : ''}`}>🔥</span>
+            <div>
+              <p className="text-2xl font-bold text-white leading-none">{streak ?? 0}</p>
+              <p className="text-slate-400 text-sm">{language === 'hi' ? 'दिन की लकीर' : 'day streak'}</p>
             </div>
           </div>
-        )}
+          {user?.xp !== undefined && (
+            <div className="flex items-center gap-2 bg-brand-500/10 border border-brand-500/20 px-4 py-2 rounded-xl">
+              <Zap size={16} className="text-brand-400" />
+              <div className="text-right">
+                <p className="text-lg font-bold text-white leading-none">{user.xp}</p>
+                <p className="text-xs text-slate-500">MXP</p>
+              </div>
+            </div>
+          )}
+        </div>
 
         <p className="text-slate-400 text-base mb-6">{t.dashboard.subtitle}</p>
 

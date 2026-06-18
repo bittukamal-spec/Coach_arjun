@@ -16,6 +16,7 @@ const SAFE_SELECT = {
   tier: true, language: true, trialStarted: true,
   sport: true, experienceLevel: true, goals: true, onboardingDone: true,
   competitionLevel: true, primaryChallenge: true, pressureResponse: true, position: true,
+  xp: true, createdAt: true,
 };
 
 function makeToken(user) {

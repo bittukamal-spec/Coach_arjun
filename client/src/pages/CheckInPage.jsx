@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
+import { Zap } from 'lucide-react';
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
@@ -72,7 +73,7 @@ function MetricPill({ emoji, label, value, color }) {
   );
 }
 
-function ResultCard({ checkIn, isNew, language, t }) {
+function ResultCard({ checkIn, isNew, language, t, xpEarned, newAchievements }) {
   const insight = getInsight(checkIn, language);
 
   const metricEmojis = {
@@ -119,6 +120,30 @@ function ResultCard({ checkIn, isNew, language, t }) {
         💡 {insight}
       </div>
 
+      {/* XP earned (only on new save) */}
+      {isNew && xpEarned && (
+        <div className="flex items-center justify-center gap-2 mb-4 animate-fade-in">
+          <Zap size={16} className="text-brand-400" />
+          <span className="text-brand-400 font-semibold text-sm">+{xpEarned} MXP earned</span>
+        </div>
+      )}
+
+      {/* New achievements unlocked */}
+      {isNew && newAchievements.length > 0 && (
+        <div className="mb-5 space-y-2">
+          {newAchievements.map(a => (
+            <div key={a.key} className="flex items-center gap-3 bg-fire-500/10 border border-fire-500/20 rounded-xl px-4 py-3 animate-badge-pop">
+              <span className="text-2xl">{a.icon}</span>
+              <div>
+                <p className="font-semibold text-fire-300 text-sm">Achievement unlocked!</p>
+                <p className="text-white text-sm font-bold">{a.name}</p>
+              </div>
+              <span className="ml-auto text-xs font-semibold text-fire-400 bg-fire-500/20 px-2 py-0.5 rounded-full">+{a.xp} XP</span>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* CTAs */}
       <div className="flex flex-col gap-3">
         <Link to="/coaching" className="btn-primary justify-center text-sm">
@@ -144,6 +169,8 @@ function CheckInPage() {
   const [reflection, setReflection] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError]           = useState('');
+  const [xpEarned, setXpEarned]       = useState(null);
+  const [newAchievements, setNewAchievements] = useState([]);
 
   // ── Load today's status on mount ─────────────────────────────────────────
 
@@ -189,6 +216,8 @@ function CheckInPage() {
       const data = await res.json();
       if (res.status === 201) {
         setCheckIn(data.checkIn);
+        setXpEarned(data.xpEarned ?? 10);
+        setNewAchievements(data.newAchievements ?? []);
         setPageState('saved');
       } else if (res.status === 409) {
         setCheckIn(data.checkIn);
@@ -238,12 +267,12 @@ function CheckInPage() {
 
         {/* ── Already done today ── */}
         {pageState === 'done' && checkIn && (
-          <ResultCard checkIn={checkIn} isNew={false} language={language} t={t} />
+          <ResultCard checkIn={checkIn} isNew={false} language={language} t={t} xpEarned={null} newAchievements={[]} />
         )}
 
         {/* ── Just saved ── */}
         {pageState === 'saved' && checkIn && (
-          <ResultCard checkIn={checkIn} isNew={true} language={language} t={t} />
+          <ResultCard checkIn={checkIn} isNew={true} language={language} t={t} xpEarned={xpEarned} newAchievements={newAchievements} />
         )}
 
         {/* ── Check-in form ── */}

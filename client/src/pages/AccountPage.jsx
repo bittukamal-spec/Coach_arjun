@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
-import { LogOut, Trash2, ChevronRight, Shield, Bell, User } from 'lucide-react';
+import { LogOut, Trash2, ChevronRight, Shield, Bell, User, Zap, Award } from 'lucide-react';
+import { ACHIEVEMENTS, ALL_ACHIEVEMENT_KEYS } from '../data/achievements';
 
 const TRIAL_DAYS = 14;
 
@@ -75,6 +76,15 @@ function AccountPage() {
     }
   }
 
+  const [earnedAchievements, setEarnedAchievements] = useState(null);
+
+  useEffect(() => {
+    apiFetch('/api/achievements/me', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => setEarnedAchievements(data?.achievements ?? []))
+      .catch(() => setEarnedAchievements([]));
+  }, [token]);
+
   const memberSince = user?.createdAt
     ? new Date(user.createdAt).toLocaleDateString(language === 'hi' ? 'hi-IN' : 'en-IN', { month: 'long', year: 'numeric' })
     : '';
@@ -95,6 +105,12 @@ function AccountPage() {
             <p className="text-slate-500 text-sm">{user?.email}</p>
             {memberSince && (
               <p className="text-slate-600 text-xs mt-0.5">{t.memberSince} {memberSince}</p>
+            )}
+            {user?.xp !== undefined && (
+              <div className="flex items-center gap-1.5 mt-1.5">
+                <Zap size={13} className="text-brand-400" />
+                <span className="text-brand-400 text-xs font-semibold">{user.xp} MXP</span>
+              </div>
             )}
           </div>
         </div>
@@ -202,6 +218,43 @@ function AccountPage() {
             <p className="text-xs text-slate-600 mt-2">
               {language === 'hi' ? 'जल्द आ रहा है' : 'Coming soon'}
             </p>
+          </div>
+        </section>
+
+        {/* Achievements */}
+        <section className="mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Award size={16} className="text-brand-400" />
+            <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wide">
+              {language === 'hi' ? 'बैज' : 'Badges'}
+            </h2>
+            {earnedAchievements && (
+              <span className="text-xs text-slate-600">{earnedAchievements.length}/{ALL_ACHIEVEMENT_KEYS.length}</span>
+            )}
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            {ALL_ACHIEVEMENT_KEYS.map(key => {
+              const def = ACHIEVEMENTS[key];
+              const earned = earnedAchievements?.find(a => a.key === key);
+              return (
+                <div
+                  key={key}
+                  className={`card p-4 flex flex-col items-center text-center gap-1.5 transition-all ${
+                    earned
+                      ? 'border-brand-600/40 bg-brand-500/5 animate-badge-pop'
+                      : 'opacity-35 grayscale'
+                  }`}
+                >
+                  <span className="text-3xl">{def.icon}</span>
+                  <p className="text-xs font-semibold text-white leading-tight">{def.name}</p>
+                  {earned ? (
+                    <span className="text-[10px] text-brand-400 font-medium">+{def.xp} XP</span>
+                  ) : (
+                    <p className="text-[10px] text-slate-600 leading-tight">{def.desc}</p>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </section>
 

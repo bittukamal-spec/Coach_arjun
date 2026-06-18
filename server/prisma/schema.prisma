@@ -43,10 +43,14 @@ model User {
   phone         String?           // "+917012345678"
   reminderOptIn Boolean  @default(false)
 
+  // Gamification
+  xp            Int      @default(0)
+
   messages       Message[]
   checkIns       CheckIn[]
   memories       UserMemory[]
   passwordResets PasswordResetToken[]
+  achievements   UserAchievement[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -83,6 +87,16 @@ model UserMemory {
   updatedAt DateTime @updatedAt
 
   @@unique([userId, memKey])
+}
+
+model UserAchievement {
+  id       String   @id @default(cuid())
+  userId   String
+  key      String   // e.g. "first_checkin", "streak_7"
+  earnedAt DateTime @default(now())
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, key])
 }
 
 model PasswordResetToken {

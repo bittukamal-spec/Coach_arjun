@@ -1,6 +1,7 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const authenticate = require('../middleware/authenticate');
+const { awardXP, checkCheckInAchievements } = require('../services/gamification');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -65,7 +66,14 @@ router.post('/', authenticate, async (req, res) => {
       },
     });
 
-    res.status(201).json({ checkIn });
+    // Award XP: +10 base, +5 bonus for reflection
+    const xpEarned = reflection?.trim() ? 15 : 10;
+    const [{ xp }, newAchievements] = await Promise.all([
+      awardXP(req.userId, xpEarned),
+      checkCheckInAchievements(req.userId),
+    ]);
+
+    res.status(201).json({ checkIn, xp, xpEarned, newAchievements });
   } catch {
     res.status(500).json({ error: 'Server error' });
   }
