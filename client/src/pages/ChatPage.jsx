@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
@@ -78,6 +78,7 @@ function TypingIndicator() {
 function ChatPage() {
   const { user, token, language } = useAuth();
   const t = translations[language].chat;
+  const location = useLocation();
 
   const [messages, setMessages]         = useState([]);
   const [input, setInput]               = useState('');
@@ -89,10 +90,11 @@ function ChatPage() {
   const [quickReplies, setQuickReplies] = useState([]);
   const [activeSession, setActiveSession] = useState(null);
 
-  const bottomRef      = useRef(null);
-  const inputRef       = useRef(null);
-  const streamIdRef    = useRef(null);
-  const fullStreamText = useRef('');
+  const bottomRef        = useRef(null);
+  const inputRef         = useRef(null);
+  const streamIdRef      = useRef(null);
+  const fullStreamText   = useRef('');
+  const pendingSessionRef = useRef(location.state?.sessionType ?? null);
 
   // ── Load history + usage on mount ────────────────────────────────────────
 
@@ -109,6 +111,20 @@ function ChatPage() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, waitingForFirst]);
+
+  // ── Auto-start session when navigated from check-in ───────────────────────
+
+  useEffect(() => {
+    if (!loading && pendingSessionRef.current) {
+      const key = pendingSessionRef.current;
+      pendingSessionRef.current = null;
+      if (messages.length === 0) {
+        handleSessionStart(key);
+      } else {
+        setActiveSession(key);
+      }
+    }
+  }, [loading, messages.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── API helpers ───────────────────────────────────────────────────────────
 
@@ -264,33 +280,24 @@ function ChatPage() {
   }
 
   return (
-    <div className="flex flex-col h-dvh bg-dark-900">
+    <div className="flex flex-col h-[calc(100dvh-4rem)] sm:h-dvh bg-dark-900">
 
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <header className="shrink-0 bg-dark-900 border-b border-dark-600 px-4 py-3">
         <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <Link
-              to="/dashboard"
-              className="text-sm text-slate-400 hover:text-slate-200 transition-colors shrink-0"
-            >
-              {t.backToDashboard}
-            </Link>
-            <div className="w-px h-4 bg-dark-600 shrink-0" />
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="w-8 h-8 rounded-full bg-brand-600 text-white flex items-center justify-center text-sm font-bold shrink-0">
-                A
-              </div>
-              <div className="min-w-0">
-                <p className="font-semibold text-slate-100 text-sm leading-none">{t.title}</p>
-                {activeSession ? (
-                  <p className="text-xs text-brand-400 leading-none mt-0.5 truncate">
-                    {t.sessions[activeSession].icon} {t.sessions[activeSession].title}
-                  </p>
-                ) : (
-                  <p className="text-xs text-slate-500 leading-none mt-0.5">{t.subtitle}</p>
-                )}
-              </div>
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-8 h-8 rounded-full bg-brand-600 text-white flex items-center justify-center text-sm font-bold shrink-0">
+              A
+            </div>
+            <div className="min-w-0">
+              <p className="font-semibold text-slate-100 text-sm leading-none">{t.title}</p>
+              {activeSession ? (
+                <p className="text-xs text-brand-400 leading-none mt-0.5 truncate">
+                  {t.sessions[activeSession].icon} {t.sessions[activeSession].title}
+                </p>
+              ) : (
+                <p className="text-xs text-slate-500 leading-none mt-0.5">{t.subtitle}</p>
+              )}
             </div>
           </div>
 

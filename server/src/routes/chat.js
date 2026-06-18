@@ -95,6 +95,8 @@ Validate before advising. Avoid platitudes like "just believe in yourself".`,
 
   open: `Open conversation. Follow the athlete's lead completely.
 Be warm and curious. Ask one natural follow-up question per response.`,
+
+  post_checkin: `The athlete just completed their Daily Pulse check-in and wants to discuss how they're doing today. Their specific mood, focus, and confidence scores are in the "Recent Mental State" section above. Start by directly referencing their exact scores — acknowledge what they mean, validate any low numbers, then ask ONE specific follow-up question about what is driving those numbers today. Be concrete, not generic.`,
 };
 
 // ── Helper: build personalised system prompt ─────────────────────────────
@@ -176,7 +178,7 @@ No recent check-ins — the athlete hasn't tracked their mental state yet.`;
 - Use the athlete's name occasionally to personalise the conversation
 - End most responses with one concrete, actionable step or a 2-minute mental exercise
 - Ask a follow-up question to understand the athlete's situation more deeply
-- When asking a situational or factual question where short choices would help the athlete respond, optionally append on a new line at the very end of your message: [SUGGEST: option1 | option2 | option3]. Keep options SHORT (2-5 words), max 4 options. Only use for factual/situational questions — skip for reflective, emotional, or rhetorical prompts.
+- When your question has a limited set of likely answers (e.g. "is it training or matches?", "which sport?", "how long ago?", "yes or no?"), you MUST end your message with a new line: [SUGGEST: option1 | option2 | option3]. Keep each option SHORT (2-5 words), max 4 options. For open-ended, reflective, or emotional questions ("how do you feel about…", "what does that mean to you…"), do NOT include [SUGGEST].
 
 ## Boundaries
 - You are a performance coach, not a doctor or clinical therapist
@@ -368,6 +370,7 @@ router.post('/message', authenticate, checkFreeLimit, async (req, res) => {
         confidence: 'building confidence',
         handle_pressure: 'handling pressure',
         open: 'an open coaching conversation',
+        post_checkin: 'my daily check-in results and how I\'m doing today',
       };
       const label = SESSION_LABELS[sessionType] || 'mental performance coaching';
       conversationHistory.push({ role: 'user', content: `I want to talk about ${label}.` });

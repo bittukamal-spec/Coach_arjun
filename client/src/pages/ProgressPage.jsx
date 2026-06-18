@@ -113,7 +113,7 @@ function ProgressPage() {
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 py-8">
+      <main className="max-w-2xl mx-auto px-4 py-8 pb-20">
 
         {/* Loading */}
         {loading && (

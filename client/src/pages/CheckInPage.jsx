@@ -146,7 +146,11 @@ function ResultCard({ checkIn, isNew, language, t, xpEarned, newAchievements }) 
 
       {/* CTAs */}
       <div className="flex flex-col gap-3">
-        <Link to="/coaching" className="btn-primary justify-center text-sm">
+        <Link
+          to="/coaching"
+          state={{ sessionType: 'post_checkin' }}
+          className="btn-primary justify-center text-sm"
+        >
           {t.talkToCoach}
         </Link>
         <Link to="/dashboard" className="btn-secondary justify-center text-sm">
@@ -160,7 +164,7 @@ function ResultCard({ checkIn, isNew, language, t, xpEarned, newAchievements }) 
 // ─── Main component ────────────────────────────────────────────────────────────
 
 function CheckInPage() {
-  const { token, language } = useAuth();
+  const { user, token, language } = useAuth();
   const t = translations[language].checkin;
 
   const [pageState, setPageState] = useState('loading'); // loading | form | done | saved
@@ -244,19 +248,17 @@ function CheckInPage() {
       {/* Header */}
       <header className="bg-dark-900 border-b border-dark-600 px-4 py-4 sticky top-0 z-10">
         <div className="max-w-lg mx-auto flex items-center justify-between">
-          <Link to="/dashboard" className="text-sm text-slate-400 hover:text-slate-200 transition-colors">
+          <Link to="/dashboard" className="hidden sm:block text-sm text-slate-400 hover:text-slate-200 transition-colors">
             {t.backToDashboard}
           </Link>
-          <div className="text-center">
-            <p className="font-semibold text-slate-100 text-sm">{t.title}</p>
-          </div>
-          <span className="text-xs font-semibold text-slate-400 bg-dark-700 border border-dark-500 px-2 py-1 rounded-full">
-            {t.usageLabel()}
+          <p className="font-semibold text-slate-100 text-sm sm:absolute sm:left-1/2 sm:-translate-x-1/2">{t.title}</p>
+          <span className="text-xs font-semibold text-win-400 bg-win-500/10 border border-win-500/20 px-2 py-1 rounded-full ml-auto sm:ml-0">
+            +10 MXP
           </span>
         </div>
       </header>
 
-      <main className="max-w-lg mx-auto px-4 py-8">
+      <main className="max-w-lg mx-auto px-4 py-8 pb-20">
 
         {/* ── Loading ── */}
         {pageState === 'loading' && (
@@ -278,7 +280,12 @@ function CheckInPage() {
         {/* ── Check-in form ── */}
         {pageState === 'form' && (
           <div className="animate-fade-in">
-            <p className="text-slate-400 text-sm text-center mb-8">{t.subtitle}</p>
+            <div className="text-center mb-8">
+              <p className="text-xl font-bold text-white mb-1">
+                {language === 'hi' ? `आज कैसे हैं, ${user?.name?.split(' ')[0]}?` : `How are you today, ${user?.name?.split(' ')[0]}?`}
+              </p>
+              <p className="text-sm text-slate-500">{t.subtitle}</p>
+            </div>
 
             {/* Rating rows */}
             {METRICS.map(metric => {
@@ -350,14 +357,19 @@ function CheckInPage() {
             <button
               onClick={handleSubmit}
               disabled={!canSubmit || submitting}
-              className="btn-primary w-full justify-center py-4 text-base rounded-2xl"
+              className="w-full justify-center py-4 text-base rounded-2xl font-bold text-white transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:scale-100
+                bg-gradient-to-r from-brand-600 to-brand-500 hover:from-brand-700 hover:to-brand-600 shadow-lg shadow-brand-900/40 flex items-center gap-2"
             >
-              {submitting ? t.saving : t.saveBtn}
+              {submitting ? (
+                <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> {t.saving}</>
+              ) : (
+                <>{t.saveBtn} ⚡</>
+              )}
             </button>
 
             {!canSubmit && (
               <p className="text-xs text-center text-slate-500 mt-3">
-                Rate all three metrics to save your check-in
+                {language === 'hi' ? 'तीनों मेट्रिक्स रेट करें' : 'Rate all three to save your pulse'}
               </p>
             )}
           </div>
