@@ -10,7 +10,7 @@ const METRICS = [
   {
     key: 'mood',
     labelKey: 'moodLabel',
-    color: { ring: 'border-violet-500', bg: 'bg-violet-50', text: 'text-violet-600' },
+    color: { ring: 'border-violet-500', bg: 'bg-violet-500/10', text: 'text-violet-400' },
     options: [
       { v: 1, emoji: '😞', labelKey: 'mood1' },
       { v: 2, emoji: '😕', labelKey: 'mood2' },
@@ -22,7 +22,7 @@ const METRICS = [
   {
     key: 'focus',
     labelKey: 'focusLabel',
-    color: { ring: 'border-blue-500', bg: 'bg-blue-50', text: 'text-blue-600' },
+    color: { ring: 'border-blue-500', bg: 'bg-blue-500/10', text: 'text-blue-400' },
     options: [
       { v: 1, emoji: '🌀', labelKey: 'focus1' },
       { v: 2, emoji: '😶', labelKey: 'focus2' },
@@ -34,7 +34,7 @@ const METRICS = [
   {
     key: 'confidence',
     labelKey: 'confidenceLabel',
-    color: { ring: 'border-orange-500', bg: 'bg-orange-50', text: 'text-orange-600' },
+    color: { ring: 'border-orange-500', bg: 'bg-orange-500/10', text: 'text-orange-400' },
     options: [
       { v: 1, emoji: '😨', labelKey: 'conf1' },
       { v: 2, emoji: '😟', labelKey: 'conf2' },
@@ -64,10 +64,10 @@ function getInsight(checkIn, language) {
 
 function MetricPill({ emoji, label, value, color }) {
   return (
-    <div className={`flex flex-col items-center gap-1 px-4 py-3 rounded-xl ${color.bg} border border-opacity-30`}>
+    <div className={`flex flex-col items-center gap-1 px-4 py-3 rounded-xl ${color.bg} border border-dark-500`}>
       <span className="text-2xl">{emoji}</span>
       <span className={`text-xs font-semibold ${color.text}`}>{label}</span>
-      <span className="text-xs text-gray-400">{value}/5</span>
+      <span className="text-xs text-slate-500">{value}/5</span>
     </div>
   );
 }
@@ -86,10 +86,10 @@ function ResultCard({ checkIn, isNew, language, t }) {
       {/* Header */}
       <div className="text-center mb-6">
         <div className="text-5xl mb-3">✅</div>
-        <h2 className="text-xl font-bold text-gray-900 mb-1">
+        <h2 className="text-xl font-bold text-slate-100 mb-1">
           {isNew ? t.savedTitle : t.alreadyTitle}
         </h2>
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-slate-400">
           {isNew ? t.savedSubtitle : t.alreadySubtitle}
         </p>
       </div>
@@ -109,13 +109,13 @@ function ResultCard({ checkIn, isNew, language, t }) {
 
       {/* Reflection */}
       {checkIn.reflection && (
-        <div className="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 mb-4 text-sm text-gray-700 italic">
+        <div className="bg-dark-700 border border-dark-500 rounded-xl px-4 py-3 mb-4 text-sm text-slate-300 italic">
           "{checkIn.reflection}"
         </div>
       )}
 
       {/* Insight */}
-      <div className="bg-brand-50 border border-brand-100 rounded-xl px-4 py-3 mb-6 text-sm text-brand-800 leading-relaxed">
+      <div className="bg-brand-600/10 border border-brand-600/20 rounded-xl px-4 py-3 mb-6 text-sm text-brand-300 leading-relaxed">
         💡 {insight}
       </div>
 
@@ -211,17 +211,17 @@ function CheckInPage() {
   // ─────────────────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-dark-900">
       {/* Header */}
-      <header className="bg-white border-b border-gray-100 px-4 py-4 sticky top-0 z-10">
+      <header className="bg-dark-900 border-b border-dark-600 px-4 py-4 sticky top-0 z-10">
         <div className="max-w-lg mx-auto flex items-center justify-between">
-          <Link to="/dashboard" className="text-sm text-gray-400 hover:text-gray-700 transition-colors">
+          <Link to="/dashboard" className="text-sm text-slate-400 hover:text-slate-200 transition-colors">
             {t.backToDashboard}
           </Link>
           <div className="text-center">
-            <p className="font-semibold text-gray-900 text-sm">{t.title}</p>
+            <p className="font-semibold text-slate-100 text-sm">{t.title}</p>
           </div>
-          <span className="text-xs font-semibold text-gray-500 bg-gray-100 border border-gray-200 px-2 py-1 rounded-full">
+          <span className="text-xs font-semibold text-slate-400 bg-dark-700 border border-dark-500 px-2 py-1 rounded-full">
             {t.usageLabel()}
           </span>
         </div>
@@ -249,7 +249,7 @@ function CheckInPage() {
         {/* ── Check-in form ── */}
         {pageState === 'form' && (
           <div className="animate-fade-in">
-            <p className="text-gray-500 text-sm text-center mb-8">{t.subtitle}</p>
+            <p className="text-slate-400 text-sm text-center mb-8">{t.subtitle}</p>
 
             {/* Rating rows */}
             {METRICS.map(metric => {
@@ -259,7 +259,7 @@ function CheckInPage() {
                 <div key={metric.key} className="mb-7">
                   {/* Metric label + selected label */}
                   <div className="flex items-center justify-between mb-3">
-                    <p className="font-semibold text-gray-800">{t[metric.labelKey]}</p>
+                    <p className="font-semibold text-slate-200">{t[metric.labelKey]}</p>
                     {selectedOption && (
                       <span className={`text-sm font-medium ${metric.color.text} transition-all`}>
                         {t[selectedOption.labelKey]}
@@ -278,11 +278,11 @@ function CheckInPage() {
                           className={`flex flex-col items-center gap-1.5 py-3 rounded-2xl border-2 transition-all active:scale-95 ${
                             isSelected
                               ? `${metric.color.ring} ${metric.color.bg} shadow-sm scale-105`
-                              : 'border-gray-100 bg-white hover:border-gray-300'
+                              : 'border-dark-600 bg-dark-800 hover:border-dark-500'
                           }`}
                         >
                           <span className="text-2xl leading-none">{opt.emoji}</span>
-                          <span className={`text-xs font-medium ${isSelected ? metric.color.text : 'text-gray-400'}`}>
+                          <span className={`text-xs font-medium ${isSelected ? metric.color.text : 'text-slate-500'}`}>
                             {opt.v}
                           </span>
                         </button>
@@ -296,8 +296,8 @@ function CheckInPage() {
             {/* Reflection */}
             <div className="mb-6">
               <div className="flex items-center justify-between mb-2">
-                <label className="font-semibold text-gray-800 text-sm">{t.reflectionLabel}</label>
-                <span className={`text-xs ${charsLeft < 50 ? 'text-orange-500' : 'text-gray-400'}`}>
+                <label className="font-semibold text-slate-200 text-sm">{t.reflectionLabel}</label>
+                <span className={`text-xs ${charsLeft < 50 ? 'text-orange-400' : 'text-slate-500'}`}>
                   {t.charsLeft(charsLeft)}
                 </span>
               </div>
@@ -306,13 +306,13 @@ function CheckInPage() {
                 onChange={e => setReflection(e.target.value.slice(0, 500))}
                 placeholder={t.reflectionPlaceholder}
                 rows={3}
-                className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent resize-none placeholder-gray-400 bg-white"
+                className="w-full bg-dark-700 border border-dark-500 text-slate-100 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent resize-none placeholder-slate-500"
               />
             </div>
 
             {/* Error */}
             {error && (
-              <div className="mb-4 text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
+              <div className="mb-4 text-sm text-red-400 bg-red-950/20 border border-red-900/20 rounded-xl px-4 py-3">
                 ⚠️ {error}
               </div>
             )}
@@ -327,7 +327,7 @@ function CheckInPage() {
             </button>
 
             {!canSubmit && (
-              <p className="text-xs text-center text-gray-400 mt-3">
+              <p className="text-xs text-center text-slate-500 mt-3">
                 Rate all three metrics to save your check-in
               </p>
             )}

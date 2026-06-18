@@ -26,9 +26,9 @@ const METRIC_CONFIG = [
 
 function StatCard({ icon, value, label, trend, trendLabel }) {
   const trendColor =
-    trend === null  ? 'text-gray-400' :
-    trend > 0.05   ? 'text-green-600' :
-    trend < -0.05  ? 'text-red-500'   : 'text-gray-400';
+    trend === null  ? 'text-slate-500' :
+    trend > 0.05   ? 'text-win-400' :
+    trend < -0.05  ? 'text-red-400'   : 'text-slate-500';
 
   const trendArrow =
     trend === null  ? '—' :
@@ -39,10 +39,10 @@ function StatCard({ icon, value, label, trend, trendLabel }) {
     <div className="card flex flex-col gap-1">
       <div className="flex items-center gap-2 mb-1">
         <span className="text-xl">{icon}</span>
-        <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">{label}</span>
+        <span className="text-xs font-medium text-slate-400 uppercase tracking-wide">{label}</span>
       </div>
-      <p className="text-3xl font-bold text-gray-900 leading-none">
-        {value ?? <span className="text-gray-300 text-xl">—</span>}
+      <p className="text-3xl font-bold text-slate-100 leading-none">
+        {value ?? <span className="text-dark-600 text-xl">—</span>}
       </p>
       {trendLabel !== undefined && (
         <p className={`text-xs font-medium mt-1 ${trendColor}`}>
@@ -56,15 +56,15 @@ function StatCard({ icon, value, label, trend, trendLabel }) {
 function CustomTooltip({ active, payload, label, t }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-white border border-gray-100 shadow-xl rounded-2xl px-4 py-3 text-sm min-w-[140px]">
-      <p className="font-semibold text-gray-700 mb-2 text-xs">{label}</p>
+    <div className="bg-dark-700 border border-dark-500 shadow-xl rounded-2xl px-4 py-3 text-sm min-w-[140px]">
+      <p className="font-semibold text-slate-300 mb-2 text-xs">{label}</p>
       {payload.map(entry => (
         <div key={entry.dataKey} className="flex items-center justify-between gap-4 mb-1">
           <div className="flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: entry.color }} />
-            <span className="text-gray-500 capitalize text-xs">{entry.name}</span>
+            <span className="text-slate-400 capitalize text-xs">{entry.name}</span>
           </div>
-          <span className="font-bold text-gray-900">{entry.value}/5</span>
+          <span className="font-bold text-slate-100">{entry.value}/5</span>
         </div>
       ))}
     </div>
@@ -101,14 +101,14 @@ function ProgressPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-dark-900">
       {/* Header */}
-      <header className="bg-white border-b border-gray-100 px-4 py-4 sticky top-0 z-10">
+      <header className="bg-dark-900 border-b border-dark-600 px-4 py-4 sticky top-0 z-10">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <Link to="/dashboard" className="text-sm text-gray-400 hover:text-gray-700 transition-colors">
+          <Link to="/dashboard" className="text-sm text-slate-400 hover:text-slate-200 transition-colors">
             {t.backToDashboard}
           </Link>
-          <p className="font-semibold text-gray-900">{t.title}</p>
+          <p className="font-semibold text-slate-100">{t.title}</p>
           <div className="w-20" /> {/* spacer to centre the title */}
         </div>
       </header>
@@ -147,7 +147,7 @@ function ProgressPage() {
 
             {/* ── Weekly average cards ── */}
             <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">
                 {t.weeklyAvg}
               </p>
               <div className="grid grid-cols-3 gap-3">
@@ -161,29 +161,29 @@ function ProgressPage() {
                       className="card py-4 flex flex-col items-center text-center gap-1"
                       style={{ borderTopColor: color, borderTopWidth: '3px' }}
                     >
-                      <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">
+                      <p className="text-xs font-medium text-slate-400 uppercase tracking-wide">
                         {t[labelKey]}
                       </p>
-                      <p className="text-2xl font-bold text-gray-900">
-                        {curr ?? <span className="text-gray-300 text-lg">—</span>}
+                      <p className="text-2xl font-bold text-slate-100">
+                        {curr ?? <span className="text-dark-500 text-lg">—</span>}
                         {curr && <span className="text-xs font-normal text-gray-400">/5</span>}
                       </p>
                       {/* Trend */}
                       {diff !== null && (
                         <p className={`text-xs font-medium ${
-                          diff > 0.05 ? 'text-green-600' : diff < -0.05 ? 'text-red-500' : 'text-gray-400'
+                          diff > 0.05 ? 'text-win-400' : diff < -0.05 ? 'text-red-400' : 'text-slate-500'
                         }`}>
                           {diff > 0.05 ? `↑ +${diff}` : diff < -0.05 ? `↓ ${diff}` : `→ ${t.same}`}
                         </p>
                       )}
                       {diff === null && prev === null && curr !== null && (
-                        <p className="text-xs text-gray-300">new</p>
+                        <p className="text-xs text-slate-500">new</p>
                       )}
                     </div>
                   );
                 })}
               </div>
-              <p className="text-xs text-gray-400 text-center mt-2">{t.vsLastWeek}</p>
+              <p className="text-xs text-slate-500 text-center mt-2">{t.vsLastWeek}</p>
             </div>
 
             {/* ── Period toggle ── */}
@@ -195,7 +195,7 @@ function ProgressPage() {
                   className={`px-5 py-2 rounded-xl text-sm font-semibold transition-all ${
                     days === d
                       ? 'bg-brand-600 text-white shadow-sm'
-                      : 'bg-white text-gray-600 border border-gray-200 hover:border-brand-300'
+                      : 'bg-dark-700 text-slate-400 border border-dark-500 hover:border-brand-500'
                   }`}
                 >
                   {d === 7 ? t.days7 : t.days30}
@@ -209,7 +209,7 @@ function ProgressPage() {
                 <p className="text-sm font-semibold text-gray-700 mb-4">{t.chartTitle}</p>
                 <ResponsiveContainer width="100%" height={260}>
                   <LineChart data={data.chartData} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#2A2A50" />
                     <XAxis
                       dataKey="date"
                       tick={{ fontSize: 11, fill: '#9CA3AF' }}
@@ -250,8 +250,8 @@ function ProgressPage() {
             ) : (
               <div className="card text-center py-12">
                 <div className="text-4xl mb-4">📈</div>
-                <h3 className="font-semibold text-gray-900 mb-2">{t.noData}</h3>
-                <p className="text-sm text-gray-500 mb-6 max-w-xs mx-auto">{t.noDataSub}</p>
+                <h3 className="font-semibold text-slate-100 mb-2">{t.noData}</h3>
+                <p className="text-sm text-slate-400 mb-6 max-w-xs mx-auto">{t.noDataSub}</p>
                 <Link to="/checkin" className="btn-primary justify-center">
                   {t.startCheckin}
                 </Link>
