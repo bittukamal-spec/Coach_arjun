@@ -29,27 +29,19 @@ const COMPETITION_LEVELS = [
 ];
 
 const LEVELS = [
-  { value: 'beginner',     emoij: '🌱', labelKey: 'levelBeginner',     descKey: 'levelBeginnerDesc' },
-  { value: 'amateur',      emoij: '🏅', labelKey: 'levelAmateur',      descKey: 'levelAmateurDesc' },
-  { value: 'competitive',  emoij: '🥈', labelKey: 'levelCompetitive',  descKey: 'levelCompetitiveDesc' },
-  { value: 'professional', emoij: '🏆', labelKey: 'levelProfessional', descKey: 'levelProfessionalDesc' },
+  { value: 'beginner',     icon: '🌱', labelKey: 'levelBeginner',     descKey: 'levelBeginnerDesc' },
+  { value: 'amateur',      icon: '🏅', labelKey: 'levelAmateur',      descKey: 'levelAmateurDesc' },
+  { value: 'competitive',  icon: '🥈', labelKey: 'levelCompetitive',  descKey: 'levelCompetitiveDesc' },
+  { value: 'professional', icon: '🏆', labelKey: 'levelProfessional', descKey: 'levelProfessionalDesc' },
 ];
 
 const CHALLENGES = [
-  { value: 'nerves',          icon: '😰', en: 'Pre-match nerves & anxiety',         hi: 'मैच से पहले घबराहट' },
-  { value: 'failure',         icon: '😞', en: 'Dealing with losses & failure',       hi: 'हार और असफलता से उबरना' },
-  { value: 'focus',           icon: '🎯', en: 'Losing focus during play',            hi: 'खेल के दौरान ध्यान खोना' },
-  { value: 'family_pressure', icon: '👨‍👩‍👦', en: 'Pressure from family/coaches',        hi: 'परिवार/कोच का दबाव' },
-  { value: 'injury',          icon: '🏥', en: 'Recovering from injury',              hi: 'चोट से वापसी' },
-  { value: 'consistency',     icon: '📈', en: 'Staying consistent',                  hi: 'लगातार अच्छा प्रदर्शन' },
-];
-
-const PRESSURE_RESPONSES = [
-  { value: 'has_routine',     icon: '🧘', en: 'I have a routine (breathing, music)', hi: 'मेरी एक दिनचर्या है (सांस, संगीत)' },
-  { value: 'talks_to_others', icon: '🗣️', en: 'I talk to someone I trust',          hi: 'मैं किसी भरोसेमंद से बात करता हूं' },
-  { value: 'ignores_it',      icon: '😶', en: 'I try to ignore it and push through', hi: 'मैं इसे नजरअंदाज करने की कोशिश करता हूं' },
-  { value: 'struggles',       icon: '😔', en: 'I struggle and it affects my game',   hi: 'मैं संघर्ष करता हूं और इसका असर पड़ता है' },
-  { value: 'unaware',         icon: '🤷', en: "I've never thought about it",          hi: 'मैंने कभी इसके बारे में नहीं सोचा' },
+  { value: 'nerves',          icon: '😰', en: 'Pre-match nerves & anxiety',   hi: 'मैच से पहले घबराहट' },
+  { value: 'failure',         icon: '😞', en: 'Dealing with losses & failure', hi: 'हार और असफलता से उबरना' },
+  { value: 'focus',           icon: '🎯', en: 'Losing focus during play',      hi: 'खेल के दौरान ध्यान खोना' },
+  { value: 'family_pressure', icon: '👨‍👩‍👦', en: 'Pressure from family/coaches', hi: 'परिवार/कोच का दबाव' },
+  { value: 'injury',          icon: '🏥', en: 'Recovering from injury',        hi: 'चोट से वापसी' },
+  { value: 'consistency',     icon: '📈', en: 'Staying consistent',            hi: 'लगातार अच्छा प्रदर्शन' },
 ];
 
 const GOALS = [
@@ -79,12 +71,10 @@ function OnboardingPage() {
     experienceLevel: '',
     primaryChallenge: '',
     goals: [],
-    language: language, // auto-detected from app UI; not shown as a step
+    language: language,
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-
-  // ── Navigation helpers ──────────────────────────────────────────────────
 
   function canContinue() {
     if (step === 1) return data.sport !== '';
@@ -96,14 +86,9 @@ function OnboardingPage() {
   }
 
   function handleContinue() {
-    if (step < TOTAL_STEPS) {
-      setStep(s => s + 1);
-    } else {
-      handleSubmit();
-    }
+    if (step < TOTAL_STEPS) setStep(s => s + 1);
+    else handleSubmit();
   }
-
-  // ── Submission ──────────────────────────────────────────────────────────
 
   async function handleSubmit() {
     setSubmitting(true);
@@ -111,18 +96,13 @@ function OnboardingPage() {
     try {
       const res = await apiFetch('/api/auth/me/onboarding', {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(data),
       });
-
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || 'Failed to save');
       }
-
       const { user } = await res.json();
       updateUser(user);
       navigate('/dashboard', { replace: true });
@@ -132,22 +112,20 @@ function OnboardingPage() {
     }
   }
 
-  // ── Goal toggle ─────────────────────────────────────────────────────────
-
   function toggleGoal(value) {
     setData(prev => {
       const already = prev.goals.includes(value);
-      if (already) {
-        return { ...prev, goals: prev.goals.filter(g => g !== value) };
-      }
-      if (prev.goals.length >= 3) return prev; // max 3
+      if (already) return { ...prev, goals: prev.goals.filter(g => g !== value) };
+      if (prev.goals.length >= 3) return prev;
       return { ...prev, goals: [...prev.goals, value] };
     });
   }
 
-  // ── Progress bar ────────────────────────────────────────────────────────
-
   const progress = (step / TOTAL_STEPS) * 100;
+
+  const btnBase = 'flex items-center gap-4 p-4 rounded-2xl border-2 text-left transition-all';
+  const btnSelected = 'border-brand-500 bg-brand-500/15';
+  const btnDefault  = 'border-dark-600 bg-dark-800 hover:border-brand-500/50';
 
   return (
     <div className="min-h-screen bg-dark-900 flex flex-col">
@@ -160,39 +138,37 @@ function OnboardingPage() {
           </div>
           <span className="font-bold text-white tracking-tight">Arjun</span>
         </div>
-        <span className="text-sm text-gray-400">{t.stepOf(step, TOTAL_STEPS)}</span>
+        <span className="text-sm text-slate-500">{t.stepOf(step, TOTAL_STEPS)}</span>
       </header>
 
       {/* Progress bar */}
-      <div className="h-1 bg-gray-100 mx-4 rounded-full max-w-lg mx-auto w-[calc(100%-2rem)]">
+      <div className="h-1 bg-dark-700 mx-4 rounded-full max-w-lg mx-auto w-[calc(100%-2rem)]">
         <div
           className="h-1 bg-brand-500 rounded-full transition-all duration-500"
           style={{ width: `${progress}%` }}
         />
       </div>
 
-      {/* Card */}
+      {/* Steps */}
       <main className="flex-1 flex items-start justify-center px-4 pt-8 pb-20">
         <div className="w-full max-w-lg">
 
           {/* ── Step 1: Sport ── */}
           {step === 1 && (
             <div className="animate-fade-in">
-              <h1 className="text-2xl font-bold text-gray-900 mb-1">{t.sportTitle}</h1>
-              <p className="text-gray-500 text-sm mb-6">{t.sportSubtitle}</p>
+              <h1 className="text-2xl font-bold text-white mb-1">{t.sportTitle}</h1>
+              <p className="text-slate-400 text-sm mb-6">{t.sportSubtitle}</p>
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                 {SPORTS.map(sport => (
                   <button
                     key={sport.value}
                     onClick={() => setData(d => ({ ...d, sport: sport.value }))}
                     className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl border-2 transition-all ${
-                      data.sport === sport.value
-                        ? 'border-brand-500 bg-brand-50 shadow-md'
-                        : 'border-gray-100 bg-white hover:border-brand-200'
+                      data.sport === sport.value ? btnSelected : 'border-dark-600 bg-dark-800 hover:border-brand-500/50'
                     }`}
                   >
                     <span className="text-2xl">{sport.icon}</span>
-                    <span className="text-xs font-medium text-gray-700 text-center leading-tight">
+                    <span className="text-xs font-medium text-slate-300 text-center leading-tight">
                       {language === 'hi' ? sport.hi : sport.en}
                     </span>
                   </button>
@@ -204,25 +180,21 @@ function OnboardingPage() {
           {/* ── Step 2: Competition Level ── */}
           {step === 2 && (
             <div className="animate-fade-in">
-              <h1 className="text-2xl font-bold text-gray-900 mb-1">{t.competitionTitle}</h1>
-              <p className="text-gray-500 text-sm mb-6">{t.competitionSubtitle}</p>
+              <h1 className="text-2xl font-bold text-white mb-1">{t.competitionTitle}</h1>
+              <p className="text-slate-400 text-sm mb-6">{t.competitionSubtitle}</p>
               <div className="flex flex-col gap-3">
                 {COMPETITION_LEVELS.map(level => (
                   <button
                     key={level.value}
                     onClick={() => setData(d => ({ ...d, competitionLevel: level.value }))}
-                    className={`flex items-center gap-4 p-4 rounded-2xl border-2 text-left transition-all ${
-                      data.competitionLevel === level.value
-                        ? 'border-brand-500 bg-brand-50 shadow-md'
-                        : 'border-gray-100 bg-white hover:border-brand-200'
-                    }`}
+                    className={`${btnBase} ${data.competitionLevel === level.value ? btnSelected : btnDefault}`}
                   >
                     <span className="text-2xl">{level.icon}</span>
-                    <span className="font-semibold text-gray-900">
+                    <span className="font-semibold text-white">
                       {language === 'hi' ? level.hi : level.en}
                     </span>
                     {data.competitionLevel === level.value && (
-                      <span className="ml-auto text-brand-500 text-lg">✓</span>
+                      <span className="ml-auto text-brand-400 text-lg">✓</span>
                     )}
                   </button>
                 ))}
@@ -233,26 +205,22 @@ function OnboardingPage() {
           {/* ── Step 3: Experience Level ── */}
           {step === 3 && (
             <div className="animate-fade-in">
-              <h1 className="text-2xl font-bold text-gray-900 mb-1">{t.levelTitle}</h1>
-              <p className="text-gray-500 text-sm mb-6">{t.levelSubtitle}</p>
+              <h1 className="text-2xl font-bold text-white mb-1">{t.levelTitle}</h1>
+              <p className="text-slate-400 text-sm mb-6">{t.levelSubtitle}</p>
               <div className="flex flex-col gap-3">
                 {LEVELS.map(level => (
                   <button
                     key={level.value}
                     onClick={() => setData(d => ({ ...d, experienceLevel: level.value }))}
-                    className={`flex items-center gap-4 p-4 rounded-2xl border-2 text-left transition-all ${
-                      data.experienceLevel === level.value
-                        ? 'border-brand-500 bg-brand-50 shadow-md'
-                        : 'border-gray-100 bg-white hover:border-brand-200'
-                    }`}
+                    className={`${btnBase} ${data.experienceLevel === level.value ? btnSelected : btnDefault}`}
                   >
-                    <span className="text-2xl">{level.emoij}</span>
+                    <span className="text-2xl">{level.icon}</span>
                     <div>
-                      <p className="font-semibold text-gray-900">{t[level.labelKey]}</p>
-                      <p className="text-xs text-gray-500">{t[level.descKey]}</p>
+                      <p className="font-semibold text-white">{t[level.labelKey]}</p>
+                      <p className="text-xs text-slate-500">{t[level.descKey]}</p>
                     </div>
                     {data.experienceLevel === level.value && (
-                      <span className="ml-auto text-brand-500 text-lg">✓</span>
+                      <span className="ml-auto text-brand-400 text-lg">✓</span>
                     )}
                   </button>
                 ))}
@@ -263,25 +231,21 @@ function OnboardingPage() {
           {/* ── Step 4: Biggest Mental Challenge ── */}
           {step === 4 && (
             <div className="animate-fade-in">
-              <h1 className="text-2xl font-bold text-gray-900 mb-1">{t.challengeTitle}</h1>
-              <p className="text-gray-500 text-sm mb-6">{t.challengeSubtitle}</p>
+              <h1 className="text-2xl font-bold text-white mb-1">{t.challengeTitle}</h1>
+              <p className="text-slate-400 text-sm mb-6">{t.challengeSubtitle}</p>
               <div className="flex flex-col gap-3">
                 {CHALLENGES.map(challenge => (
                   <button
                     key={challenge.value}
                     onClick={() => setData(d => ({ ...d, primaryChallenge: challenge.value }))}
-                    className={`flex items-center gap-4 p-4 rounded-2xl border-2 text-left transition-all ${
-                      data.primaryChallenge === challenge.value
-                        ? 'border-brand-500 bg-brand-50 shadow-md'
-                        : 'border-gray-100 bg-white hover:border-brand-200'
-                    }`}
+                    className={`${btnBase} ${data.primaryChallenge === challenge.value ? btnSelected : btnDefault}`}
                   >
                     <span className="text-2xl">{challenge.icon}</span>
-                    <span className="font-semibold text-gray-900">
+                    <span className="font-semibold text-white">
                       {language === 'hi' ? challenge.hi : challenge.en}
                     </span>
                     {data.primaryChallenge === challenge.value && (
-                      <span className="ml-auto text-brand-500 text-lg">✓</span>
+                      <span className="ml-auto text-brand-400 text-lg">✓</span>
                     )}
                   </button>
                 ))}
@@ -292,21 +256,21 @@ function OnboardingPage() {
           {/* ── Step 5: Goals ── */}
           {step === 5 && (
             <div className="animate-fade-in">
-              <h1 className="text-2xl font-bold text-gray-900 mb-1">{t.goalsTitle}</h1>
+              <h1 className="text-2xl font-bold text-white mb-1">{t.goalsTitle}</h1>
               <div className="flex items-center justify-between mb-6">
-                <p className="text-gray-500 text-sm">{t.goalsSubtitle}</p>
+                <p className="text-slate-400 text-sm">{t.goalsSubtitle}</p>
                 <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
                   data.goals.length === 3
                     ? 'bg-brand-500 text-white'
-                    : 'bg-gray-100 text-gray-500'
+                    : 'bg-dark-700 text-slate-500'
                 }`}>
                   {t.goalsSelected(data.goals.length)}
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 {GOALS.map(goal => {
-                  const selected  = data.goals.includes(goal.value);
-                  const maxed     = data.goals.length >= 3 && !selected;
+                  const selected = data.goals.includes(goal.value);
+                  const maxed    = data.goals.length >= 3 && !selected;
                   return (
                     <button
                       key={goal.value}
@@ -314,14 +278,14 @@ function OnboardingPage() {
                       disabled={maxed}
                       className={`flex items-center gap-3 p-4 rounded-2xl border-2 text-left transition-all ${
                         selected
-                          ? 'border-brand-500 bg-brand-50 shadow-md'
+                          ? btnSelected
                           : maxed
-                          ? 'border-gray-100 bg-gray-50 opacity-40 cursor-not-allowed'
-                          : 'border-gray-100 bg-white hover:border-brand-200'
+                          ? 'border-dark-700 bg-dark-800 opacity-30 cursor-not-allowed'
+                          : 'border-dark-600 bg-dark-800 hover:border-brand-500/50'
                       }`}
                     >
                       <span className="text-xl">{goal.icon}</span>
-                      <span className="text-sm font-medium text-gray-800 leading-tight">
+                      <span className="text-sm font-medium text-slate-200 leading-tight">
                         {t[goal.labelKey]}
                       </span>
                     </button>
@@ -331,19 +295,19 @@ function OnboardingPage() {
             </div>
           )}
 
-          {/* ── Error message ── */}
+          {/* Error */}
           {error && (
-            <div className="mt-4 text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
+            <div className="mt-4 text-sm text-red-400 bg-red-950/20 border border-red-900/20 rounded-xl px-4 py-3">
               ⚠️ {error}
             </div>
           )}
 
-          {/* ── Navigation buttons ── */}
+          {/* Navigation */}
           <div className="flex items-center justify-between mt-8">
             {step > 1 ? (
               <button
                 onClick={() => setStep(s => s - 1)}
-                className="text-sm font-medium text-gray-500 hover:text-gray-800 transition-colors"
+                className="text-sm font-medium text-slate-400 hover:text-slate-200 transition-colors"
               >
                 {t.back}
               </button>
@@ -354,7 +318,7 @@ function OnboardingPage() {
             <button
               onClick={handleContinue}
               disabled={!canContinue() || submitting}
-              className="btn-primary px-8 py-3 rounded-2xl"
+              className="btn-primary px-8 py-3 rounded-2xl disabled:opacity-40"
             >
               {submitting
                 ? (language === 'hi' ? 'सेव हो रहा है…' : 'Saving…')
