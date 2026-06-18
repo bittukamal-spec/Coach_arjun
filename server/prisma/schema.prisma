@@ -39,6 +39,10 @@ model User {
   pressureResponse  String?   // "has_routine" | "talks_to_others" | "ignores_it" | "struggles" | "unaware"
   position          String?   // free text, e.g. "batsman", "goalkeeper"
 
+  // Pre-match ritual
+  ritualName    String?
+  ritualSteps   String  @default("[]") // JSON: [{type, label}]
+
   // WhatsApp / notifications (Sprint 2)
   phone         String?           // "+917012345678"
   reminderOptIn Boolean  @default(false)

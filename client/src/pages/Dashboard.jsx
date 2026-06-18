@@ -106,6 +106,25 @@ function Dashboard() {
     },
   ];
 
+  const TOOLS = [
+    {
+      icon: '🌬️',
+      label: language === 'hi' ? 'श्वास कक्ष' : 'Breathing Room',
+      desc: language === 'hi' ? 'दबाव को 2 मिनट में काबू करें' : 'Control nerves in 2 minutes',
+      to: '/breathing',
+      color: 'text-violet-400',
+      border: 'border-violet-500/30 hover:border-violet-500/60',
+    },
+    {
+      icon: '🏆',
+      label: language === 'hi' ? 'प्री-मैच रिचुअल' : 'Pre-Match Ritual',
+      desc: language === 'hi' ? 'हर बार चोटी की अवस्था में आएं' : 'Enter peak state on command',
+      to: '/ritual',
+      color: 'text-amber-400',
+      border: 'border-amber-500/30 hover:border-amber-500/60',
+    },
+  ];
+
   const accentBorder = { brand: 'border-brand-600/50 hover:border-brand-500', win: 'border-win-600/40 hover:border-win-500', fire: 'border-fire-600/40 hover:border-fire-500' };
   const accentIcon = { brand: 'text-brand-400', win: 'text-win-400', fire: 'text-fire-400' };
 
@@ -198,6 +217,24 @@ function Dashboard() {
             );
             return <Link key={labelKey} to={to}>{card}</Link>;
           })}
+        </div>
+
+        {/* Mental Tools row */}
+        <div className="mb-6">
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
+            {language === 'hi' ? 'मानसिक उपकरण' : 'Mental Tools'}
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            {TOOLS.map(({ icon, label, desc, to, color, border }) => (
+              <Link key={to} to={to}>
+                <div className={`bg-dark-800 rounded-2xl border ${border} p-4 h-full transition-all active:scale-95`}>
+                  <span className="text-2xl mb-2 block">{icon}</span>
+                  <p className={`text-sm font-semibold ${color} mb-0.5`}>{label}</p>
+                  <p className="text-xs text-slate-500 leading-snug">{desc}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
         </div>
 
         {/* Daily Mental Drill */}

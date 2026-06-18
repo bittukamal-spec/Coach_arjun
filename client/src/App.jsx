@@ -7,6 +7,8 @@ import ChatPage from './pages/ChatPage';
 import CheckInPage from './pages/CheckInPage';
 import ProgressPage from './pages/ProgressPage';
 import AccountPage from './pages/AccountPage';
+import BreathingPage from './pages/BreathingPage';
+import RitualPage from './pages/RitualPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -87,6 +89,25 @@ function App() {
         element={
           <ProtectedRoute requireOnboarding={true}>
             <AccountPage />
+            <BottomNav />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/breathing"
+        element={
+          <ProtectedRoute requireOnboarding={true}>
+            <BreathingPage />
+            <BottomNav />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/ritual"
+        element={
+          <ProtectedRoute requireOnboarding={true}>
+            <RitualPage />
             <BottomNav />
           </ProtectedRoute>
         }

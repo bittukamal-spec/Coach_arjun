@@ -8,6 +8,7 @@ const checkinRoutes     = require('./routes/checkin');
 const progressRoutes    = require('./routes/progress');
 const achievementRoutes = require('./routes/achievements');
 const drillRoutes       = require('./routes/drills');
+const ritualRoutes      = require('./routes/ritual');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -23,6 +24,7 @@ app.use('/api/checkin',      checkinRoutes);
 app.use('/api/progress',     progressRoutes);
 app.use('/api/achievements', achievementRoutes);
 app.use('/api/drills',       drillRoutes);
+app.use('/api/ritual',       ritualRoutes);
 
 // Health check — useful to confirm the server is running
 app.get('/api/health', (_req, res) => {
