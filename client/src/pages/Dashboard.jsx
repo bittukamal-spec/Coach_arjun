@@ -13,6 +13,24 @@ const SPORT_ICONS = {
   hockey: '🏑', swimming: '🏊', other: '🏅',
 };
 
+const ALL_ACHIEVEMENTS = [
+  { key: 'first_checkin', name: 'First Step',     icon: '🌱', desc: 'Complete your first check-in' },
+  { key: 'streak_3',      name: 'Rookie Mind',    icon: '🏅', desc: '3-day check-in streak' },
+  { key: 'streak_7',      name: 'Mental Athlete', icon: '🔥', desc: '7-day check-in streak' },
+  { key: 'streak_14',     name: 'Zone Master',    icon: '⚡', desc: '14-day check-in streak' },
+  { key: 'streak_30',     name: 'Elite Mindset',  icon: '🏆', desc: '30-day check-in streak' },
+  { key: 'comeback',      name: 'Comeback',       icon: '💪', desc: 'Return after 3+ days away' },
+  { key: 'reflector',     name: 'Deep Thinker',   icon: '🧠', desc: 'Write reflections in 5 check-ins' },
+  { key: 'perfect_week',  name: 'Perfect Week',   icon: '🛡️', desc: '7 check-ins in 7 days' },
+  { key: 'chat_10',       name: 'In the Zone',    icon: '💬', desc: '10 coaching sessions with Arjun' },
+];
+
+function computeFitnessScore(weeklyAvg, streak) {
+  if (!weeklyAvg || weeklyAvg.mood === null) return null;
+  const base = (weeklyAvg.mood * 0.3 + weeklyAvg.focus * 0.3 + weeklyAvg.confidence * 0.3) / 5 * 100;
+  return Math.round(Math.min(100, base + Math.min(streak * 2, 10)));
+}
+
 const TRIAL_DAYS = 14;
 
 function getTrialDaysRemaining(user) {
@@ -32,6 +50,8 @@ function Dashboard() {
 
   const [todayCheckIn, setTodayCheckIn] = useState(null);
   const [streak, setStreak] = useState(null);
+  const [weeklyAvg, setWeeklyAvg] = useState(null);
+  const [achievements, setAchievements] = useState(null); // null = loading
   const [drillState, setDrillState] = useState({ drillIndex: null, completed: false });
   const [drillExpanded, setDrillExpanded] = useState(false);
   const [drillLoading, setDrillLoading] = useState(false);
@@ -44,13 +64,21 @@ function Dashboard() {
 
     apiFetch('/api/progress/summary?days=7', { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : null)
-      .then(data => setStreak(data?.streak ?? 0))
+      .then(data => {
+        setStreak(data?.streak ?? 0);
+        setWeeklyAvg(data?.weeklyAvg ?? null);
+      })
       .catch(() => {});
 
     apiFetch('/api/drills/today', { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data) setDrillState(data); })
       .catch(() => {});
+
+    apiFetch('/api/achievements/me', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => setAchievements(data?.achievements ?? []))
+      .catch(() => setAchievements([]));
   }, [token]);
 
   async function completeDrill() {
@@ -136,6 +164,15 @@ function Dashboard() {
   const accentBorder = { brand: 'border-brand-600/50 hover:border-brand-500', win: 'border-win-600/40 hover:border-win-500', fire: 'border-fire-600/40 hover:border-fire-500' };
   const accentIcon = { brand: 'text-brand-400', win: 'text-win-400', fire: 'text-fire-400' };
 
+  const fitnessScore = computeFitnessScore(weeklyAvg, streak ?? 0);
+  const fitnessLevel = fitnessScore === null ? null
+    : fitnessScore <= 40 ? { label: t.dashboard.fitnessNeedsWork, color: 'text-red-400',  bar: 'bg-red-500' }
+    : fitnessScore <= 70 ? { label: t.dashboard.fitnessBuilding,  color: 'text-fire-400', bar: 'bg-fire-500' }
+    :                      { label: t.dashboard.fitnessStrong,    color: 'text-win-400',  bar: 'bg-win-500' };
+
+  const earnedKeys = new Set((achievements || []).map(a => a.key));
+  const earnedMap  = Object.fromEntries((achievements || []).map(a => [a.key, a]));
+
   return (
     <div className="min-h-screen bg-dark-900">
       <Navbar />
@@ -199,6 +236,37 @@ function Dashboard() {
                 <p>Earn points by checking in and talking to Arjun.</p>
               </div>
             </div>
+          )}
+        </div>
+
+        {/* Mental Fitness Score */}
+        <div className="card mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+              {t.dashboard.fitnessTitle}
+            </p>
+            {fitnessLevel && (
+              <span className={`text-xs font-bold uppercase tracking-wide ${fitnessLevel.color}`}>
+                {fitnessLevel.label}
+              </span>
+            )}
+          </div>
+          {fitnessScore !== null ? (
+            <>
+              <div className="flex items-end gap-2 mb-3">
+                <p className={`text-4xl font-bold leading-none ${fitnessLevel.color}`}>{fitnessScore}</p>
+                <p className="text-slate-600 text-sm mb-1">/100</p>
+              </div>
+              <div className="h-2 bg-dark-700 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-1000 ${fitnessLevel.bar}`}
+                  style={{ width: `${fitnessScore}%` }}
+                />
+              </div>
+              <p className="text-xs text-slate-600 mt-2">{t.dashboard.fitnessBasis}</p>
+            </>
+          ) : (
+            <p className="text-sm text-slate-500">{t.dashboard.fitnessNoData}</p>
           )}
         </div>
 
@@ -308,6 +376,44 @@ function Dashboard() {
             </div>
           );
         })()}
+
+        {/* Achievements */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+              {t.dashboard.achievementsTitle}
+            </p>
+            {achievements !== null && (
+              <p className="text-xs text-slate-600">
+                {t.dashboard.achievementsEarned(earnedKeys.size, ALL_ACHIEVEMENTS.length)}
+              </p>
+            )}
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {ALL_ACHIEVEMENTS.map(({ key, name, icon, desc }) => {
+              const earned = earnedMap[key];
+              return (
+                <div
+                  key={key}
+                  title={desc}
+                  className={`bg-dark-800 border rounded-2xl p-3 text-center transition-all ${
+                    earned ? 'border-dark-500' : 'border-dark-700 opacity-35'
+                  }`}
+                >
+                  <div className={`text-3xl mb-1.5 ${earned ? '' : 'grayscale'}`}>{icon}</div>
+                  <p className={`text-xs font-semibold leading-tight ${earned ? 'text-white' : 'text-slate-600'}`}>
+                    {name}
+                  </p>
+                  {earned && (
+                    <p className="text-xs text-slate-600 mt-0.5">
+                      {new Date(earned.earnedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
 
         {/* Trial ended — upgrade banner */}
         {trialEnded && (

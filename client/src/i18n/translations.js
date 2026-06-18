@@ -65,6 +65,16 @@ export const translations = {
       drillStart: 'Start Drill',
       drillComplete: 'Mark as Done',
       drillTypeLabels: { breathing: 'Breathing', visualization: 'Visualization', 'self-talk': 'Self-Talk', focus: 'Focus', pressure: 'Pressure' },
+      // Mental Fitness Score
+      fitnessTitle: 'Mental Fitness Score',
+      fitnessNeedsWork: 'Needs Work',
+      fitnessBuilding: 'Building',
+      fitnessStrong: 'Strong',
+      fitnessBasis: 'Based on last 7 days of check-ins',
+      fitnessNoData: 'Complete check-ins to see your score',
+      // Achievements
+      achievementsTitle: 'Achievements',
+      achievementsEarned: (n, t) => `${n} of ${t} earned`,
     },
     onboarding: {
       stepOf: (s, t) => `Step ${s} of ${t}`,
@@ -364,6 +374,16 @@ export const translations = {
       drillStart: 'अभ्यास शुरू करें',
       drillComplete: 'हो गया',
       drillTypeLabels: { breathing: 'श्वास', visualization: 'विज़ुअलाइज़', 'self-talk': 'सेल्फ-टॉक', focus: 'फोकस', pressure: 'दबाव' },
+      // Mental Fitness Score
+      fitnessTitle: 'मानसिक फिटनेस स्कोर',
+      fitnessNeedsWork: 'सुधार की ज़रूरत',
+      fitnessBuilding: 'बन रहा है',
+      fitnessStrong: 'मज़बूत',
+      fitnessBasis: 'पिछले 7 दिनों के चेक-इन के आधार पर',
+      fitnessNoData: 'स्कोर देखने के लिए चेक-इन करें',
+      // Achievements
+      achievementsTitle: 'उपलब्धियां',
+      achievementsEarned: (n, t) => `${n} / ${t} मिली`,
     },
     onboarding: {
       stepOf: (s, t) => `चरण ${s} / ${t}`,
