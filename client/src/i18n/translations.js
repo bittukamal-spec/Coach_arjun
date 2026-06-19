@@ -37,6 +37,37 @@ export const translations = {
       ctaTitle: 'Start training your mind today',
       ctaDesc: 'First 14 days completely free.',
       ctaBtn: 'Get Started Free →',
+      // Personalization section
+      personalizeTitle: 'Arjun learns you. Then coaches you.',
+      personalizeSubtitle: 'Every response is built from your sport, personality, and real-time data — not a generic template.',
+      personalizeItems: [
+        { icon: '🏏', title: 'Your Sport & Level', desc: 'Tailored to cricket, football, badminton, and 7+ more sports' },
+        { icon: '📊', title: 'Daily Check-ins', desc: 'Mood, focus, energy, sleep — Arjun reads your mental state' },
+        { icon: '🎮', title: 'Game Performance', desc: 'Your focus and reaction scores reveal mental strengths' },
+        { icon: '🧠', title: 'Your Personality', desc: 'OCEAN test shapes how Arjun talks to you and what advice fits' },
+      ],
+      // All features
+      allFeaturesTitle: 'Everything in one app',
+      allFeaturesSubtitle: 'Built for the way Indian athletes actually train and compete.',
+      allFeatures: [
+        { icon: '📊', title: 'Daily Pulse', desc: 'Track mood, focus, energy, and sleep in 60 seconds. Arjun reads your patterns.' },
+        { icon: '💬', title: 'Talk to Arjun', desc: 'AI coaching for 6 session types — before a match, after a loss, building focus, and more.' },
+        { icon: '🎮', title: 'Mental Games', desc: '5 sport-specific mini-games: Concentration Grid, Stroop Focus, Reaction Ball, Thought Buster, Focus Filter.' },
+        { icon: '⚡', title: "Today's Drill", desc: 'A new 2-minute mental drill every day. Box breathing, visualization, self-talk, pressure training.' },
+        { icon: '🧘', title: 'Pre-Match Ritual', desc: 'Build your own game-day routine. Breathing → cue word → visualization. Tap it before every match.' },
+        { icon: '🔄', title: 'Post-Match Debrief', desc: '3 questions after every game. What went well, what to change, one focus next time. Arjun reflects back.' },
+      ],
+      // Research section
+      researchTitle: 'What the research says',
+      researchSubtitle: 'Every feature in Arjun is built on peer-reviewed sport psychology.',
+      researchFacts: [
+        { stat: '18%', desc: 'Athletes with pre-match routines perform 18% better under pressure', source: 'Cotterill, Journal of Applied Sport Psychology' },
+        { stat: '31%', desc: '8 weeks of breathing exercises reduced athlete anxiety by 31%', source: 'Jerath et al., Applied Psychophysiology' },
+        { stat: '=', desc: 'Mental imagery training improves performance as much as physical practice', source: 'Driskell et al. — 35 studies, 3,000+ athletes' },
+        { stat: '12–17%', desc: 'Self-talk cues improve skill execution accuracy by 12–17%', source: 'Hatzigeorgiadis et al., Psychological Science' },
+        { stat: '19%', desc: 'Gratitude journaling reduced athlete burnout by 19% over 8 weeks', source: 'Chen & Kee, Journal of Applied Sport Psychology' },
+        { stat: '23%', desc: 'Athletes who track mood recover 23% faster from performance setbacks', source: 'Raglin, International Journal of Sport Psychology' },
+      ],
     },
     auth: {
       tabSignIn: 'Sign In',
@@ -306,6 +337,71 @@ export const translations = {
       whatsappDesc: 'Daily nudge if you haven\'t checked in',
       whatsappPlaceholder: '+91 your number',
       memberSince: 'Member since',
+      // Profile edit
+      profileSectionTitle: 'Your Profile',
+      nameLabel: 'Name',
+      ageLabel: 'Age',
+      agePlaceholder: 'Your age (8–80)',
+      sportLabel: 'Sport',
+      sportPlaceholder: 'e.g. Cricket, Football, Badminton',
+      levelLabel: 'Experience Level',
+      competitionLabel: 'Competition Level',
+      challengeLabel: 'Biggest Challenge',
+      goalsLabel: 'Mental Goals (max 3)',
+      positionLabel: 'Position / Role',
+      positionPlaceholder: 'e.g. Batsman, Goalkeeper, Sprinter',
+      saveProfile: 'Save Profile',
+      // Mental DNA (OCEAN)
+      dnaTitle: 'Mental DNA',
+      dnaSubtitle: 'Your Big Five personality profile — shapes how Arjun coaches you',
+      dnaTake: 'Take Personality Test',
+      dnaRetake: 'Retake Test',
+      dnaTraits: {
+        O: 'Openness', C: 'Conscientiousness', E: 'Extraversion', A: 'Agreeableness', N: 'Neuroticism',
+      },
+      // Photo
+      changePhoto: 'Change Photo',
+      uploadPhoto: 'Upload Photo',
+    },
+    personality: {
+      title: 'Mental DNA Test',
+      subtitle: 'Discover your Big Five personality profile. Arjun uses this to personalise every coaching session.',
+      questionOf: (n, t) => `Question ${n} of ${t}`,
+      scaleLabels: ['Strongly Disagree', 'Disagree', 'Neutral', 'Agree', 'Strongly Agree'],
+      questions: [
+        'I enjoy trying new training techniques even if they feel unusual.',
+        'I always complete my training sessions even when I don\'t feel like it.',
+        'I perform better when there\'s a crowd cheering.',
+        'I prefer my team winning over my personal glory.',
+        'I tend to overthink mistakes after a bad game.',
+        'I like to experiment with different mental approaches before competing.',
+        'I write down goals and track them consistently.',
+        'I get energy from team huddles and group warmups.',
+        'I often put my teammates\' needs ahead of my own.',
+        'Pressure situations make me anxious rather than excited.',
+      ],
+      traits: ['Openness', 'Conscientiousness', 'Extraversion', 'Agreeableness', 'Neuroticism'],
+      traitEmojis: ['🌟', '📋', '🤝', '💙', '🌊'],
+      traitDescriptions: [
+        (v) => v >= 4 ? 'Curious & creative — loves new techniques' : v <= 2 ? 'Prefers proven, familiar routines' : 'Balanced approach to new ideas',
+        (v) => v >= 4 ? 'Highly disciplined & goal-driven' : v <= 2 ? 'Flexible, spontaneous approach' : 'Moderately structured',
+        (v) => v >= 4 ? 'Energised by team & crowd' : v <= 2 ? 'Thrives with internal focus & quiet' : 'Comfortable in both settings',
+        (v) => v >= 4 ? 'Team-first, receptive to feedback' : v <= 2 ? 'Independent & self-reliant' : 'Balanced team & individual focus',
+        (v) => v >= 4 ? 'Tends toward anxiety — calming first' : v <= 2 ? 'Emotionally stable under pressure' : 'Moderate emotional reactivity',
+      ],
+      coachingNote: (traits) => {
+        const notes = [];
+        if (traits.N >= 4) notes.push('Arjun will always calm you first before advising.');
+        if (traits.C >= 4) notes.push('You\'ll get structured, step-by-step plans.');
+        if (traits.E <= 2) notes.push('Advice will focus on internal focus over team talk.');
+        if (traits.O >= 4) notes.push('Arjun will suggest varied, creative techniques.');
+        return notes.length ? notes.join(' ') : 'Arjun will adapt coaching to your unique profile.';
+      },
+      saving: 'Saving…',
+      saveBtn: 'Save My Profile →',
+      resultTitle: 'Your Mental DNA',
+      backBtn: '← Back',
+      goToAccount: 'View My Profile',
     },
     debrief: {
       title: 'Post-Match Debrief',
@@ -364,6 +460,34 @@ export const translations = {
       ctaTitle: 'आज ही शुरू करें',
       ctaDesc: 'पहले 14 दिन बिल्कुल मुफ़्त।',
       ctaBtn: 'मुफ़्त शुरू करें →',
+      personalizeTitle: 'अर्जुन आपको समझता है। फिर कोचिंग देता है।',
+      personalizeSubtitle: 'हर जवाब आपके खेल, व्यक्तित्व और असली डेटा से बनता है।',
+      personalizeItems: [
+        { icon: '🏏', title: 'आपका खेल और स्तर', desc: 'क्रिकेट, फुटबॉल, बैडमिंटन और 7+ खेलों के लिए' },
+        { icon: '📊', title: 'रोज़ाना चेक-इन', desc: 'मूड, फोकस, ऊर्जा, नींद — अर्जुन आपकी स्थिति पढ़ता है' },
+        { icon: '🎮', title: 'गेम प्रदर्शन', desc: 'आपके स्कोर मानसिक ताकत और कमज़ोरी दिखाते हैं' },
+        { icon: '🧠', title: 'आपका व्यक्तित्व', desc: 'OCEAN टेस्ट बताता है अर्जुन आपसे कैसे बात करे' },
+      ],
+      allFeaturesTitle: 'सब कुछ एक ऐप में',
+      allFeaturesSubtitle: 'भारतीय एथलीट के तरीके से बनाया गया।',
+      allFeatures: [
+        { icon: '📊', title: 'डेली पल्स', desc: '60 सेकंड में मूड, फोकस, ऊर्जा और नींद ट्रैक करें।' },
+        { icon: '💬', title: 'अर्जुन से बात करें', desc: 'मैच से पहले, हार के बाद, फोकस बनाने के लिए — 6 सेशन टाइप।' },
+        { icon: '🎮', title: 'मानसिक गेम्स', desc: '5 खेल-विशिष्ट गेम्स: एकाग्रता, रिएक्शन, फोकस और ज़्यादा।' },
+        { icon: '⚡', title: 'आज का अभ्यास', desc: 'हर दिन 2 मिनट का नया मानसिक अभ्यास।' },
+        { icon: '🧘', title: 'प्री-मैच रिचुअल', desc: 'अपनी खुद की गेम-डे दिनचर्या बनाएं।' },
+        { icon: '🔄', title: 'मैच के बाद डीब्रीफ', desc: '3 सवाल। क्या अच्छा रहा, क्या बदलें, अगली बार एक फोकस।' },
+      ],
+      researchTitle: 'रिसर्च क्या कहती है',
+      researchSubtitle: 'अर्जुन की हर सुविधा वैज्ञानिक खेल मनोविज्ञान पर बनी है।',
+      researchFacts: [
+        { stat: '18%', desc: 'प्री-मैच रूटीन वाले एथलीट दबाव में 18% बेहतर प्रदर्शन करते हैं', source: 'Cotterill, Journal of Applied Sport Psychology' },
+        { stat: '31%', desc: '8 हफ्ते की ब्रीदिंग एक्सरसाइज़ से खिलाड़ियों की चिंता 31% कम हुई', source: 'Jerath et al., Applied Psychophysiology' },
+        { stat: '=', desc: 'मानसिक इमेजरी ट्रेनिंग शारीरिक अभ्यास जितनी असरदार है', source: 'Driskell et al. — 35 अध्ययन, 3,000+ एथलीट' },
+        { stat: '12–17%', desc: 'सेल्फ-टॉक कार्डस से स्किल एग्ज़ीक्यूशन 12-17% बेहतर हुई', source: 'Hatzigeorgiadis et al., Psychological Science' },
+        { stat: '19%', desc: '8 हफ्ते की कृतज्ञता जर्नलिंग से खिलाड़ियों का बर्नआउट 19% कम हुआ', source: 'Chen & Kee, Journal of Applied Sport Psychology' },
+        { stat: '23%', desc: 'मूड ट्रैक करने वाले खिलाड़ी असफलता से 23% तेज़ उबरते हैं', source: 'Raglin, International Journal of Sport Psychology' },
+      ],
     },
     auth: {
       tabSignIn: 'साइन इन',
@@ -620,6 +744,68 @@ export const translations = {
       whatsappDesc: 'अगर चेक-इन न हो तो दैनिक नज',
       whatsappPlaceholder: '+91 आपका नंबर',
       memberSince: 'सदस्य बने',
+      profileSectionTitle: 'आपकी प्रोफाइल',
+      nameLabel: 'नाम',
+      ageLabel: 'उम्र',
+      agePlaceholder: 'आपकी उम्र (8–80)',
+      sportLabel: 'खेल',
+      sportPlaceholder: 'जैसे: क्रिकेट, फुटबॉल, बैडमिंटन',
+      levelLabel: 'अनुभव स्तर',
+      competitionLabel: 'प्रतियोगिता स्तर',
+      challengeLabel: 'सबसे बड़ी चुनौती',
+      goalsLabel: 'मानसिक लक्ष्य (अधिकतम 3)',
+      positionLabel: 'पोजीशन / भूमिका',
+      positionPlaceholder: 'जैसे: बल्लेबाज़, गोलकीपर, धावक',
+      saveProfile: 'प्रोफाइल सेव करें',
+      dnaTitle: 'मानसिक DNA',
+      dnaSubtitle: 'आपका Big Five व्यक्तित्व — अर्जुन इससे कोचिंग बदलता है',
+      dnaTake: 'व्यक्तित्व परीक्षण लें',
+      dnaRetake: 'दोबारा परीक्षण दें',
+      dnaTraits: {
+        O: 'खुलापन', C: 'कर्तव्यनिष्ठा', E: 'बहिर्मुखता', A: 'सहमतता', N: 'तंत्रिकावाद',
+      },
+      changePhoto: 'फ़ोटो बदलें',
+      uploadPhoto: 'फ़ोटो अपलोड करें',
+    },
+    personality: {
+      title: 'मानसिक DNA परीक्षण',
+      subtitle: 'अपना Big Five व्यक्तित्व प्रोफाइल जानें। अर्जुन इसका उपयोग हर कोचिंग सेशन को व्यक्तिगत बनाने के लिए करता है।',
+      questionOf: (n, t) => `सवाल ${n} / ${t}`,
+      scaleLabels: ['बिल्कुल असहमत', 'असहमत', 'तटस्थ', 'सहमत', 'पूरी तरह सहमत'],
+      questions: [
+        'मैं नई ट्रेनिंग तकनीकें आज़माना पसंद करता हूं, भले ही वे अजीब लगें।',
+        'मैं हमेशा अपने ट्रेनिंग सेशन पूरे करता हूं, चाहे मन हो या न हो।',
+        'मैं भीड़ के सामने बेहतर प्रदर्शन करता हूं।',
+        'मैं व्यक्तिगत प्रसिद्धि से ज़्यादा टीम की जीत चाहता हूं।',
+        'मैं बुरे मैच के बाद गलतियों के बारे में ज़्यादा सोचता हूं।',
+        'मैं प्रतिस्पर्धा से पहले अलग मानसिक तरीके आज़माना पसंद करता हूं।',
+        'मैं लक्ष्य लिखता हूं और नियमित रूप से उन्हें ट्रैक करता हूं।',
+        'टीम हडल और ग्रुप वॉर्मअप मुझे ऊर्जा देते हैं।',
+        'मैं अक्सर अपनी ज़रूरतों से पहले साथियों की ज़रूरतें रखता हूं।',
+        'दबाव की स्थितियां मुझे उत्साह की जगह चिंता देती हैं।',
+      ],
+      traits: ['खुलापन', 'कर्तव्यनिष्ठा', 'बहिर्मुखता', 'सहमतता', 'तंत्रिकावाद'],
+      traitEmojis: ['🌟', '📋', '🤝', '💙', '🌊'],
+      traitDescriptions: [
+        (v) => v >= 4 ? 'जिज्ञासु और रचनात्मक — नई तकनीकें पसंद' : v <= 2 ? 'जाने-माने तरीके पसंद' : 'नई और पुरानी तकनीकों में संतुलन',
+        (v) => v >= 4 ? 'अत्यधिक अनुशासित और लक्ष्य-केंद्रित' : v <= 2 ? 'लचीला और स्वाभाविक तरीका' : 'मध्यम अनुशासन',
+        (v) => v >= 4 ? 'टीम और भीड़ से ऊर्जा मिलती है' : v <= 2 ? 'आंतरिक फोकस और शांति से ताकत' : 'दोनों परिस्थितियों में सहज',
+        (v) => v >= 4 ? 'टीम-केंद्रित, फीडबैक स्वीकार करते हैं' : v <= 2 ? 'स्वतंत्र और आत्मनिर्भर' : 'संतुलित',
+        (v) => v >= 4 ? 'चिंता की प्रवृत्ति — पहले शांत करना ज़रूरी' : v <= 2 ? 'दबाव में स्थिर' : 'मध्यम भावनात्मक प्रतिक्रिया',
+      ],
+      coachingNote: (traits) => {
+        const notes = [];
+        if (traits.N >= 4) notes.push('अर्जुन पहले आपको शांत करेगा, फिर सलाह देगा।');
+        if (traits.C >= 4) notes.push('आपको क्रमबद्ध, चरण-दर-चरण योजनाएं मिलेंगी।');
+        if (traits.E <= 2) notes.push('सलाह आंतरिक फोकस पर होगी, न कि टीम बातचीत पर।');
+        if (traits.O >= 4) notes.push('अर्जुन विविध, रचनात्मक तकनीकें सुझाएगा।');
+        return notes.length ? notes.join(' ') : 'अर्जुन आपकी अनूठी प्रोफाइल के अनुसार कोचिंग देगा।';
+      },
+      saving: 'सेव हो रहा है…',
+      saveBtn: 'मेरी प्रोफाइल सेव करें →',
+      resultTitle: 'आपका मानसिक DNA',
+      backBtn: '← वापस',
+      goToAccount: 'प्रोफाइल देखें',
     },
     debrief: {
       title: 'पोस्ट-मैच डीब्रीफ',

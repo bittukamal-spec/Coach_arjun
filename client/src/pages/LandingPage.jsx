@@ -5,11 +5,7 @@ import { translations } from '../i18n/translations';
 
 const SPORTS = ['🏏', '⚽', '🏸', '🏃', '🤼', '🥊', '🏑', '🎾', '🏊', '🥋'];
 
-const FEATURES = [
-  { icon: '🎯', key: 'feature1', glow: 'rgba(139,92,246,0.15)' },
-  { icon: '📊', key: 'feature2', glow: 'rgba(16,185,129,0.15)' },
-  { icon: '⚡', key: 'feature3', glow: 'rgba(249,115,22,0.15)' },
-];
+const RESEARCH_COLORS = ['text-brand-400', 'text-win-400', 'text-fire-400', 'text-purple-400', 'text-cyan-400', 'text-amber-400'];
 
 const STEPS = [
   { num: '01', icon: '⚡', key: 'step1' },
@@ -88,6 +84,7 @@ function LandingPage() {
           <span className="w-1.5 h-1.5 rounded-full bg-brand-400 animate-pulse" />
           {t.landing.badge}
         </div>
+
 
         {/* Headline */}
         <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold leading-[1.05] mb-6">
@@ -238,22 +235,60 @@ function LandingPage() {
         </div>
       </section>
 
-      {/* ── Features ── */}
-      <section className="py-20">
+      {/* ── How Arjun personalizes ── */}
+      <section className="py-20 border-t border-dark-700">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-14">
+            <p className="text-xs font-bold text-brand-400 uppercase tracking-widest mb-3">Personalized for you</p>
+            <h2 className="text-3xl sm:text-4xl font-bold text-white">{t.landing.personalizeTitle}</h2>
+            <p className="text-slate-400 mt-4 max-w-xl mx-auto text-sm leading-relaxed">{t.landing.personalizeSubtitle}</p>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {t.landing.personalizeItems.map((item) => (
+              <div key={item.title} className="card card-glow text-center py-6">
+                <div className="text-4xl mb-4">{item.icon}</div>
+                <h3 className="font-bold text-white text-sm mb-2">{item.title}</h3>
+                <p className="text-xs text-slate-500 leading-relaxed">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── All Features ── */}
+      <section className="py-20 border-t border-dark-700">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-14">
             <p className="text-xs font-bold text-brand-400 uppercase tracking-widest mb-3">What you get</p>
-            <h2 className="text-3xl sm:text-4xl font-bold text-white">
-              {language === 'hi' ? 'अर्जुन आपको क्या देता है' : 'Everything you need to perform'}
-            </h2>
+            <h2 className="text-3xl sm:text-4xl font-bold text-white">{t.landing.allFeaturesTitle}</h2>
+            <p className="text-slate-400 mt-4 max-w-xl mx-auto text-sm">{t.landing.allFeaturesSubtitle}</p>
           </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {t.landing.allFeatures.map((feat) => (
+              <div key={feat.title} className="card card-glow hover:border-brand-600/40 transition-all">
+                <div className="text-3xl mb-4">{feat.icon}</div>
+                <h3 className="font-bold text-white text-base mb-2">{feat.title}</h3>
+                <p className="text-sm text-slate-500 leading-relaxed">{feat.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-          <div className="grid sm:grid-cols-3 gap-6">
-            {FEATURES.map(({ icon, key, glow }) => (
-              <div key={key} className="card card-glow" style={{ '--glow-color': glow }}>
-                <div className="text-4xl mb-5">{icon}</div>
-                <h3 className="font-bold text-white text-lg mb-3 leading-snug">{t.landing[`${key}Title`]}</h3>
-                <p className="text-sm text-slate-500 leading-relaxed">{t.landing[`${key}Desc`]}</p>
+      {/* ── Research Facts ── */}
+      <section className="py-20 border-t border-dark-700">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-14">
+            <p className="text-xs font-bold text-brand-400 uppercase tracking-widest mb-3">Science-backed</p>
+            <h2 className="text-3xl sm:text-4xl font-bold text-white">{t.landing.researchTitle}</h2>
+            <p className="text-slate-400 mt-4 max-w-xl mx-auto text-sm">{t.landing.researchSubtitle}</p>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {t.landing.researchFacts.map((fact, i) => (
+              <div key={i} className="card border-l-4 border-l-brand-500 hover:border-brand-600/40 transition-all">
+                <p className={`text-3xl font-extrabold mb-2 ${RESEARCH_COLORS[i % RESEARCH_COLORS.length]}`}>{fact.stat}</p>
+                <p className="text-sm text-white font-medium leading-snug mb-3">{fact.desc}</p>
+                <p className="text-[11px] text-slate-600 italic">{fact.source}</p>
               </div>
             ))}
           </div>

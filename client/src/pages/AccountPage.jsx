@@ -1,11 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
-import { LogOut, Trash2, ChevronRight, Shield, Bell, User, Zap, Award } from 'lucide-react';
+import { LogOut, Trash2, ChevronRight, Shield, Bell, User, Zap, Award, Camera, Brain } from 'lucide-react';
 import { ACHIEVEMENTS, ALL_ACHIEVEMENT_KEYS } from '../data/achievements';
+
+const EXPERIENCE_LEVELS = ['beginner', 'amateur', 'competitive', 'professional'];
+const COMPETITION_LEVELS = ['recreational', 'local', 'state', 'national', 'international'];
+const CHALLENGE_OPTIONS = ['nerves', 'failure', 'focus', 'family_pressure', 'injury', 'consistency'];
+const GOAL_OPTIONS = ['focus', 'pressure', 'nerves', 'confidence', 'resilience', 'motivation', 'communication', 'injury'];
+
+const EXPERIENCE_LABELS = { beginner: 'Beginner', amateur: 'Amateur', competitive: 'Competitive', professional: 'Professional' };
+const COMPETITION_LABELS = { recreational: 'Recreational', local: 'Local / Club', state: 'State Level', national: 'National', international: 'International' };
+const CHALLENGE_LABELS = { nerves: 'Pre-match nerves', failure: 'Handling losses', focus: 'Losing focus', family_pressure: 'Family/coach pressure', injury: 'Injury recovery', consistency: 'Staying consistent' };
+const GOAL_LABELS_MAP = { focus: 'Focus', pressure: 'Pressure', nerves: 'Nerves', confidence: 'Confidence', resilience: 'Resilience', motivation: 'Motivation', communication: 'Team Communication', injury: 'Injuries' };
 
 const TRIAL_DAYS = 14;
 
@@ -21,6 +31,7 @@ function AccountPage() {
   const { user, token, language, logout, updateUser } = useAuth();
   const t = translations[language].account;
   const navigate = useNavigate();
+  const fileInputRef = useRef(null);
 
   const isPremium = user?.tier === 'premium';
   const trialDaysRemaining = getTrialDaysRemaining(user);
@@ -29,11 +40,82 @@ function AccountPage() {
   const [saving, setSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState('');
 
+  // Profile edit state
+  const [profileName, setProfileName] = useState(user?.name || '');
+  const [profileAge, setProfileAge] = useState(user?.age ? String(user.age) : '');
+  const [profileSport, setProfileSport] = useState(user?.sport || '');
+  const [profileExperience, setProfileExperience] = useState(user?.experienceLevel || '');
+  const [profileCompetition, setProfileCompetition] = useState(user?.competitionLevel || '');
+  const [profileChallenge, setProfileChallenge] = useState(user?.primaryChallenge || '');
+  const [profileGoals, setProfileGoals] = useState(Array.isArray(user?.goals) ? user.goals : []);
+  const [profilePosition, setProfilePosition] = useState(user?.position || '');
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileSaved, setProfileSaved] = useState('');
+  const [profileError, setProfileError] = useState('');
+
+  // Photo upload
+  const [avatar, setAvatar] = useState(() => localStorage.getItem(`arjun_avatar_${user?.id}`) || null);
+
   // Delete account state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+
+  function handlePhotoUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target.result;
+      setAvatar(dataUrl);
+      localStorage.setItem(`arjun_avatar_${user.id}`, dataUrl);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function toggleGoal(goal) {
+    setProfileGoals(prev => {
+      if (prev.includes(goal)) return prev.filter(g => g !== goal);
+      if (prev.length >= 3) return prev;
+      return [...prev, goal];
+    });
+  }
+
+  async function handleSaveProfile() {
+    setProfileSaving(true);
+    setProfileError('');
+    setProfileSaved('');
+    try {
+      const body = {};
+      if (profileName.trim()) body.name = profileName.trim();
+      if (profileAge) body.age = parseInt(profileAge, 10);
+      if (profileSport.trim()) body.sport = profileSport.trim();
+      if (profileExperience) body.experienceLevel = profileExperience;
+      if (profileCompetition) body.competitionLevel = profileCompetition;
+      if (profileChallenge) body.primaryChallenge = profileChallenge;
+      if (profileGoals.length > 0) body.goals = profileGoals;
+      body.position = profilePosition;
+
+      const res = await apiFetch('/api/auth/me/profile', {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        updateUser(data.user);
+        setProfileSaved(t.saved);
+        setTimeout(() => setProfileSaved(''), 2000);
+      } else {
+        setProfileError(data.error || 'Something went wrong');
+      }
+    } catch {
+      setProfileError('Network error. Please try again.');
+    } finally {
+      setProfileSaving(false);
+    }
+  }
 
   async function handleLanguageChange(lang) {
     setSaving(true);
@@ -95,14 +177,39 @@ function AccountPage() {
 
       <main className="max-w-2xl mx-auto px-4 pt-24 pb-28 animate-fade-in">
 
-        {/* Profile header */}
+        {/* Profile header with photo upload */}
         <div className="flex items-center gap-4 mb-8">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-white text-2xl font-bold flex items-center justify-center ring-2 ring-brand-600/40">
-            {user?.name?.charAt(0)?.toUpperCase()}
+          <div className="relative flex-shrink-0">
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              className="w-16 h-16 rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-white text-2xl font-bold flex items-center justify-center ring-2 ring-brand-600/40 cursor-pointer overflow-hidden"
+            >
+              {avatar
+                ? <img src={avatar} alt="avatar" className="w-16 h-16 object-cover" />
+                : user?.name?.charAt(0)?.toUpperCase()
+              }
+            </div>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-dark-700 border border-dark-500 flex items-center justify-center hover:bg-dark-600 transition-colors"
+              title={t.uploadPhoto}
+            >
+              <Camera size={12} className="text-slate-400" />
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handlePhotoUpload}
+            />
           </div>
           <div>
             <h1 className="text-xl font-bold text-white">{user?.name}</h1>
             <p className="text-slate-500 text-sm">{user?.email}</p>
+            {user?.sport && (
+              <p className="text-slate-600 text-xs mt-0.5 capitalize">{user.sport}{user?.competitionLevel ? ` · ${COMPETITION_LABELS[user.competitionLevel] || user.competitionLevel}` : ''}</p>
+            )}
             {memberSince && (
               <p className="text-slate-600 text-xs mt-0.5">{t.memberSince} {memberSince}</p>
             )}
@@ -161,43 +268,196 @@ function AccountPage() {
           </div>
         </section>
 
-        {/* Language preference */}
+        {/* Profile edit section */}
         <section className="mb-6">
           <div className="flex items-center gap-2 mb-3">
             <User size={16} className="text-brand-400" />
             <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wide">{t.editProfile}</h2>
           </div>
-          <div className="card">
-            <p className="text-sm font-medium text-slate-300 mb-3">
-              {language === 'hi' ? 'कोचिंग भाषा' : 'Coaching language'}
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => handleLanguageChange('en')}
-                disabled={saving}
-                className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
-                  user?.language === 'en'
-                    ? 'bg-brand-500 text-white border-brand-500'
-                    : 'bg-dark-700 text-slate-400 border-dark-500 hover:border-brand-600'
-                }`}
-              >
-                English
-              </button>
-              <button
-                onClick={() => handleLanguageChange('hi')}
-                disabled={saving}
-                className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
-                  user?.language === 'hi'
-                    ? 'bg-brand-500 text-white border-brand-500'
-                    : 'bg-dark-700 text-slate-400 border-dark-500 hover:border-brand-600'
-                }`}
-              >
-                हिंदी
-              </button>
+          <div className="card space-y-4">
+            {/* Name */}
+            <div>
+              <label className="text-xs text-slate-500 font-medium block mb-1">{t.nameLabel}</label>
+              <input
+                type="text"
+                value={profileName}
+                onChange={e => setProfileName(e.target.value)}
+                className="input-field"
+                placeholder={user?.name}
+              />
             </div>
-            {savedMsg && (
-              <p className="text-win-400 text-xs mt-2 text-center">{savedMsg}</p>
+
+            {/* Age + Sport row */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-slate-500 font-medium block mb-1">{t.ageLabel}</label>
+                <input
+                  type="number"
+                  value={profileAge}
+                  onChange={e => setProfileAge(e.target.value)}
+                  className="input-field"
+                  placeholder={t.agePlaceholder}
+                  min="8" max="80"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 font-medium block mb-1">{t.sportLabel}</label>
+                <input
+                  type="text"
+                  value={profileSport}
+                  onChange={e => setProfileSport(e.target.value)}
+                  className="input-field"
+                  placeholder={t.sportPlaceholder}
+                />
+              </div>
+            </div>
+
+            {/* Position */}
+            <div>
+              <label className="text-xs text-slate-500 font-medium block mb-1">{t.positionLabel}</label>
+              <input
+                type="text"
+                value={profilePosition}
+                onChange={e => setProfilePosition(e.target.value)}
+                className="input-field"
+                placeholder={t.positionPlaceholder}
+              />
+            </div>
+
+            {/* Experience level */}
+            <div>
+              <label className="text-xs text-slate-500 font-medium block mb-2">{t.levelLabel}</label>
+              <div className="grid grid-cols-2 gap-2">
+                {EXPERIENCE_LEVELS.map(lv => (
+                  <button
+                    key={lv}
+                    onClick={() => setProfileExperience(lv)}
+                    className={`py-2 rounded-xl text-xs font-semibold border transition-all ${
+                      profileExperience === lv ? 'bg-brand-500 text-white border-brand-500' : 'bg-dark-700 text-slate-400 border-dark-500 hover:border-brand-600'
+                    }`}
+                  >
+                    {EXPERIENCE_LABELS[lv]}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Competition level */}
+            <div>
+              <label className="text-xs text-slate-500 font-medium block mb-2">{t.competitionLabel}</label>
+              <div className="grid grid-cols-2 gap-2">
+                {COMPETITION_LEVELS.map(lv => (
+                  <button
+                    key={lv}
+                    onClick={() => setProfileCompetition(lv)}
+                    className={`py-2 rounded-xl text-xs font-semibold border transition-all ${
+                      profileCompetition === lv ? 'bg-brand-500 text-white border-brand-500' : 'bg-dark-700 text-slate-400 border-dark-500 hover:border-brand-600'
+                    }`}
+                  >
+                    {COMPETITION_LABELS[lv]}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Goals */}
+            <div>
+              <label className="text-xs text-slate-500 font-medium block mb-2">{t.goalsLabel}</label>
+              <div className="flex flex-wrap gap-2">
+                {GOAL_OPTIONS.map(g => (
+                  <button
+                    key={g}
+                    onClick={() => toggleGoal(g)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                      profileGoals.includes(g) ? 'bg-brand-500 text-white border-brand-500' : 'bg-dark-700 text-slate-400 border-dark-500 hover:border-brand-600'
+                    }`}
+                  >
+                    {GOAL_LABELS_MAP[g]}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Language */}
+            <div>
+              <label className="text-xs text-slate-500 font-medium block mb-2">
+                {language === 'hi' ? 'कोचिंग भाषा' : 'Coaching language'}
+              </label>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => handleLanguageChange('en')}
+                  disabled={saving}
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
+                    user?.language === 'en' ? 'bg-brand-500 text-white border-brand-500' : 'bg-dark-700 text-slate-400 border-dark-500 hover:border-brand-600'
+                  }`}
+                >
+                  English
+                </button>
+                <button
+                  onClick={() => handleLanguageChange('hi')}
+                  disabled={saving}
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
+                    user?.language === 'hi' ? 'bg-brand-500 text-white border-brand-500' : 'bg-dark-700 text-slate-400 border-dark-500 hover:border-brand-600'
+                  }`}
+                >
+                  हिंदी
+                </button>
+              </div>
+              {savedMsg && <p className="text-win-400 text-xs mt-2 text-center">{savedMsg}</p>}
+            </div>
+
+            {profileError && <p className="text-red-400 text-xs">{profileError}</p>}
+            {profileSaved && <p className="text-win-400 text-xs text-center">{profileSaved}</p>}
+
+            <button
+              onClick={handleSaveProfile}
+              disabled={profileSaving}
+              className="btn-primary w-full justify-center py-3 disabled:opacity-50"
+            >
+              {profileSaving ? t.saving : t.saveProfile}
+            </button>
+          </div>
+        </section>
+
+        {/* Mental DNA — OCEAN personality */}
+        <section className="mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Brain size={16} className="text-brand-400" />
+            <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wide">{t.dnaTitle}</h2>
+          </div>
+          <div className="card">
+            <p className="text-xs text-slate-500 mb-4">{t.dnaSubtitle}</p>
+            {user?.oceanO != null ? (
+              <div className="space-y-3 mb-4">
+                {Object.entries(t.dnaTraits).map(([key, traitName]) => {
+                  const val = user[`ocean${key}`];
+                  return (
+                    <div key={key}>
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-xs text-slate-400 font-medium">{traitName}</span>
+                        <span className="text-xs text-brand-400 font-bold">{val}/5</span>
+                      </div>
+                      <div className="w-full bg-dark-600 rounded-full h-1.5">
+                        <div
+                          className="h-1.5 rounded-full bg-gradient-to-r from-brand-600 to-brand-400"
+                          style={{ width: `${(val / 5) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-slate-600 text-sm mb-4">
+                {language === 'hi' ? 'अभी तक परीक्षण नहीं लिया।' : 'No personality test taken yet.'}
+              </p>
             )}
+            <button
+              onClick={() => navigate('/personality-test')}
+              className="btn-secondary w-full justify-center py-2.5 text-sm"
+            >
+              {user?.oceanO != null ? t.dnaRetake : t.dnaTake}
+            </button>
           </div>
         </section>
 

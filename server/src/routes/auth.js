@@ -17,6 +17,8 @@ const SAFE_SELECT = {
   sport: true, experienceLevel: true, goals: true, onboardingDone: true,
   competitionLevel: true, primaryChallenge: true, pressureResponse: true, position: true,
   xp: true, createdAt: true,
+  oceanO: true, oceanC: true, oceanE: true, oceanA: true, oceanN: true,
+  age: true,
 };
 
 function makeToken(user) {
@@ -172,6 +174,77 @@ router.patch('/me/onboarding', authenticate, async (req, res) => {
         ...(primaryChallenge && { primaryChallenge }),
         ...(pressureResponse && { pressureResponse }),
         ...(position && { position }),
+      },
+      select: SAFE_SELECT,
+    });
+    res.json({ user: parseGoals(user) });
+  } catch {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ── PUT /api/auth/me/profile — update editable profile fields ─────────────
+
+router.put('/me/profile', authenticate, async (req, res) => {
+  const { name, age, sport, competitionLevel, experienceLevel, primaryChallenge, goals, language, position } = req.body;
+
+  const validLevels  = ['beginner', 'amateur', 'competitive', 'professional'];
+  const validGoals   = ['focus', 'pressure', 'nerves', 'confidence', 'resilience', 'motivation', 'communication', 'injury'];
+  const validLangs   = ['en', 'hi'];
+
+  const updates = {};
+  if (name && typeof name === 'string' && name.trim()) updates.name = name.trim();
+  if (age !== undefined && age !== null) {
+    const ageNum = parseInt(age, 10);
+    if (!isNaN(ageNum) && ageNum >= 8 && ageNum <= 80) updates.age = ageNum;
+  }
+  if (sport && typeof sport === 'string') updates.sport = sport.trim();
+  if (competitionLevel && validLevels.includes(competitionLevel)) updates.competitionLevel = competitionLevel;
+  if (experienceLevel && validLevels.includes(experienceLevel)) updates.experienceLevel = experienceLevel;
+  if (primaryChallenge) updates.primaryChallenge = primaryChallenge;
+  if (goals && Array.isArray(goals) && goals.every(g => validGoals.includes(g))) {
+    updates.goals = JSON.stringify(goals);
+  }
+  if (language && validLangs.includes(language)) updates.language = language;
+  if (position !== undefined) updates.position = position || null;
+
+  if (Object.keys(updates).length === 0) {
+    return res.status(400).json({ error: 'No valid fields to update' });
+  }
+
+  try {
+    const user = await prisma.user.update({
+      where: { id: req.userId },
+      data: updates,
+      select: SAFE_SELECT,
+    });
+    res.json({ user: parseGoals(user) });
+  } catch {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ── POST /api/auth/me/ocean — save OCEAN personality test results ──────────
+
+router.post('/me/ocean', authenticate, async (req, res) => {
+  const { oceanO, oceanC, oceanE, oceanA, oceanN } = req.body;
+
+  for (const [key, val] of Object.entries({ oceanO, oceanC, oceanE, oceanA, oceanN })) {
+    const num = parseInt(val, 10);
+    if (isNaN(num) || num < 1 || num > 5) {
+      return res.status(400).json({ error: `${key} must be an integer 1–5` });
+    }
+  }
+
+  try {
+    const user = await prisma.user.update({
+      where: { id: req.userId },
+      data: {
+        oceanO: parseInt(oceanO, 10),
+        oceanC: parseInt(oceanC, 10),
+        oceanE: parseInt(oceanE, 10),
+        oceanA: parseInt(oceanA, 10),
+        oceanN: parseInt(oceanN, 10),
       },
       select: SAFE_SELECT,
     });

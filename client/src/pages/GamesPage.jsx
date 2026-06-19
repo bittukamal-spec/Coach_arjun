@@ -955,13 +955,13 @@ function GamesPage() {
     catch { return new Set(); }
   });
 
-  async function awardXP(gameId) {
+  async function awardXP(gameId, score) {
     if (played.has(gameId)) return;
     try {
       const res = await apiFetch('/api/games/xp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ gameType: gameId }),
+        body: JSON.stringify({ gameType: gameId, score: typeof score === 'number' ? score : 0 }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -976,7 +976,7 @@ function GamesPage() {
   }
 
   function handleDone(gameId, score) {
-    awardXP(gameId);
+    awardXP(gameId, score);
   }
 
   return (

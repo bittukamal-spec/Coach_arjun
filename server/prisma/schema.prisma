@@ -50,6 +50,16 @@ model User {
   // Gamification
   xp            Int      @default(0)
 
+  // OCEAN Big Five personality (1–5 scale, null = not taken yet)
+  oceanO        Int?   // Openness
+  oceanC        Int?   // Conscientiousness
+  oceanE        Int?   // Extraversion
+  oceanA        Int?   // Agreeableness
+  oceanN        Int?   // Neuroticism
+
+  // Demographics
+  age           Int?   // age in years
+
   messages         Message[]
   checkIns         CheckIn[]
   memories         UserMemory[]
@@ -57,6 +67,7 @@ model User {
   achievements     UserAchievement[]
   drillCompletions DrillCompletion[]
   debriefs         Debrief[]
+  gameSessions     GameSession[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -125,6 +136,15 @@ model Debrief {
   nextFocus      String   // max 300 chars
   arjunInsight   String?  // AI-generated coaching insight
   createdAt      DateTime @default(now())
+}
+
+model GameSession {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gameType    String   // "grid" | "stroop" | "reaction" | "thought" | "filter"
+  score       Int
+  completedAt DateTime @default(now())
 }
 
 model PasswordResetToken {

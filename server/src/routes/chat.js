@@ -102,7 +102,7 @@ Be warm and curious. Ask one natural follow-up question per response.`,
 // ── Helper: build personalised system prompt ─────────────────────────────
 
 function buildSystemPrompt(user, checkIns = [], memories = [], sessionType = null, extra = {}) {
-  const { recentDebriefs = [], todayDrill = null, achievementCount = 0 } = extra;
+  const { recentDebriefs = [], todayDrill = null, achievementCount = 0, recentDrills = [], gameSessions = [], ritual = null } = extra;
   const goals = JSON.parse(user.goals || '[]').map(g => GOAL_LABELS[g] || g);
   const goalsText = goals.length ? goals.join(', ') : 'general mental performance';
 
@@ -184,15 +184,91 @@ No recent check-ins — the athlete hasn't tracked their mental state yet.`;
   activityLines.push(`- Total Mental XP: ${user.xp || 0}`);
   const activitySection = `## App Activity Today\n${activityLines.length ? activityLines.join('\n') : '- No activity recorded yet today'}`;
 
+  // ── Behavioral patterns (new enriched context) ───────────────────────────
+  const patternLines = [];
+
+  // Drill consistency
+  if (recentDrills.length > 0) {
+    const uniqueDays = new Set(recentDrills.map(d => new Date(d.completedAt).toDateString())).size;
+    const consistency = uniqueDays >= 6 ? 'highly consistent (6–7 days)' : uniqueDays >= 4 ? 'moderately consistent (4–5 days)' : `low consistency (only ${uniqueDays} day${uniqueDays !== 1 ? 's' : ''} this week)`;
+    patternLines.push(`- Mental drill consistency this week: ${consistency}`);
+  }
+
+  // Game performance patterns
+  const GAME_LABELS = { grid: 'Concentration Grid', stroop: 'Stroop Focus Test', reaction: 'Reaction Ball', thought: 'Thought Buster', filter: 'Focus Filter' };
+  if (gameSessions.length > 0) {
+    const byType = {};
+    for (const g of gameSessions) {
+      if (!byType[g.gameType]) byType[g.gameType] = [];
+      byType[g.gameType].push(g.score);
+    }
+    const insights = Object.entries(byType).map(([type, scores]) => {
+      const avg = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+      return `${GAME_LABELS[type] || type}: avg score ${avg}`;
+    }).join(', ');
+    patternLines.push(`- Mental game performance (last 10 sessions): ${insights}`);
+  }
+
+  // Pre-match ritual steps
+  if (ritual?.ritualSteps) {
+    try {
+      const steps = JSON.parse(ritual.ritualSteps);
+      if (Array.isArray(steps) && steps.length > 0) {
+        const stepList = steps.map((s, i) => `${i + 1}) ${s.label}`).join(', ');
+        patternLines.push(`- Pre-match ritual steps: ${stepList}`);
+      }
+    } catch { /* ignore parse errors */ }
+  } else if (user.ritualName) {
+    patternLines.push(`- Has named their ritual "${user.ritualName}" but steps not yet configured`);
+  }
+
+  // Mood volatility from check-ins
+  if (checkIns.length >= 3) {
+    const moods = checkIns.map(c => c.mood);
+    const avgMoodVal = moods.reduce((a, b) => a + b, 0) / moods.length;
+    const variance = moods.reduce((a, b) => a + Math.abs(b - avgMoodVal), 0) / moods.length;
+    if (variance > 1.2) patternLines.push(`- Mood has varied significantly (±${variance.toFixed(1)} avg swing) — emotionally volatile phase — validate feelings before advice`);
+    else patternLines.push(`- Mood is relatively stable (avg swing ±${variance.toFixed(1)})`);
+  }
+
+  // Athlete age
+  if (user.age) patternLines.push(`- Age: ${user.age} years old`);
+
+  const patternSection = patternLines.length > 0
+    ? `## Athlete Behavioral Patterns\n${patternLines.join('\n')}`
+    : '';
+
+  // ── OCEAN personality profile ────────────────────────────────────────────
+  let oceanSection = '';
+  if (user.oceanO != null) {
+    const oceanDescriptions = {
+      O: user.oceanO >= 4 ? 'creative, curious, open to trying new techniques' : user.oceanO <= 2 ? 'prefers familiar, proven routines — introduce changes gradually' : 'moderately open to new ideas',
+      C: user.oceanC >= 4 ? 'highly disciplined, structure-driven, goal-focused — give clear step-by-step plans' : user.oceanC <= 2 ? 'flexible but may struggle with consistency — short habit loops work better' : 'moderately conscientious',
+      E: user.oceanE >= 4 ? 'energised by team & crowd, motivated by recognition — use social/team framing' : user.oceanE <= 2 ? 'introverted, prefers internal motivation — quiet focus strategies work best' : 'moderately extraverted',
+      A: user.oceanA >= 4 ? 'team-oriented, receptive to feedback — responds well to collaborative coaching' : user.oceanA <= 2 ? 'independent-minded — frame advice as their own idea where possible' : 'moderately agreeable',
+      N: user.oceanN >= 4 ? 'higher anxiety tendency — prioritise calming and grounding before performance advice' : user.oceanN <= 2 ? 'emotionally stable under pressure — can push harder, less hand-holding needed' : 'moderate emotional reactivity',
+    };
+    oceanSection = `## Personality Profile (Big Five / OCEAN)
+- Openness: ${user.oceanO}/5 — ${oceanDescriptions.O}
+- Conscientiousness: ${user.oceanC}/5 — ${oceanDescriptions.C}
+- Extraversion: ${user.oceanE}/5 — ${oceanDescriptions.E}
+- Agreeableness: ${user.oceanA}/5 — ${oceanDescriptions.A}
+- Neuroticism: ${user.oceanN}/5 — ${oceanDescriptions.N}
+Adapt ALL advice and coaching style to match this personality. High N = calm first, then advise. Low E = avoid "talk to teammates" advice. High C = give structured 3-step plans.`;
+  }
+
   const sessionSection = sessionType && SESSION_INSTRUCTIONS[sessionType]
     ? `## Active Session\n${SESSION_INSTRUCTIONS[sessionType]}\n\nFor this session: Ask ONE focused question at a time. Do not give advice, techniques, or solutions until you fully understand the athlete's situation.`
     : '';
+
+  const extraSections = [patternSection, oceanSection].filter(Boolean).join('\n\n');
 
   return `You are Arjun — a mental performance coach who specialises in sports psychology for Indian athletes. You are warm, direct, and feel like a trusted older brother who truly understands the pressures of Indian sports culture.
 
 ## Athlete Profile
 - **Name:** ${user.name}
 - **Sport:** ${user.sport ? user.sport.charAt(0).toUpperCase() + user.sport.slice(1) : 'Not specified'}
+- **Age:** ${user.age ? `${user.age} years` : 'Not specified'}
 - **Experience level:** ${user.experienceLevel || 'Not specified'}
 - **Competition level:** ${user.competitionLevel || 'Not specified'}
 - **Biggest mental challenge:** ${CHALLENGE_LABELS[user.primaryChallenge] || user.primaryChallenge || 'Not specified'}
@@ -223,7 +299,7 @@ ${sessionSection ? sessionSection + '\n\n' : ''}${checkInSection}
 
 ${activitySection}${debriefSection ? '\n\n' + debriefSection : ''}
 
-${memorySection}`;
+${memorySection}${extraSections ? '\n\n' + extraSections : ''}`;
 }
 
 // ── Background memory extraction ──────────────────────────────────────────
@@ -342,18 +418,14 @@ router.post('/message', authenticate, checkFreeLimit, async (req, res) => {
   }
 
   try {
-    // Fetch user profile for the system prompt (including new onboarding fields)
+    // Fetch user profile for the system prompt (including OCEAN + age + all onboarding fields)
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
       select: {
-        name: true,
-        sport: true,
-        experienceLevel: true,
-        goals: true,
-        language: true,
-        competitionLevel: true,
-        primaryChallenge: true,
-        pressureResponse: true,
+        name: true, sport: true, experienceLevel: true, goals: true, language: true,
+        competitionLevel: true, primaryChallenge: true, pressureResponse: true,
+        ritualName: true, ritualSteps: true, xp: true, age: true,
+        oceanO: true, oceanC: true, oceanE: true, oceanA: true, oceanN: true,
       },
     });
 
@@ -390,6 +462,25 @@ router.post('/message', authenticate, checkFreeLimit, async (req, res) => {
 
     // Fetch recent achievements count for streak
     const achievementCount = await prisma.userAchievement.count({ where: { userId: req.userId } });
+
+    // Fetch drill patterns (last 7 days)
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const recentDrills = await prisma.drillCompletion.findMany({
+      where: { userId: req.userId, completedAt: { gte: sevenDaysAgo } },
+      orderBy: { completedAt: 'desc' },
+      select: { drillIndex: true, completedAt: true },
+    });
+
+    // Fetch recent game sessions (last 10)
+    const gameSessions = await prisma.gameSession.findMany({
+      where: { userId: req.userId },
+      orderBy: { completedAt: 'desc' },
+      take: 10,
+      select: { gameType: true, score: true, completedAt: true },
+    });
+
+    // Fetch ritual steps
+    const ritual = user.ritualSteps ? { ritualSteps: user.ritualSteps } : null;
 
     // Save the user's message (skip invisible session-start markers)
     if (!isSessionStart) {
@@ -438,7 +529,7 @@ router.post('/message', authenticate, checkFreeLimit, async (req, res) => {
     const stream = anthropic.messages.stream({
       model: process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001',
       max_tokens: 800,
-      system: buildSystemPrompt(user, recentCheckIns, memories, sessionType, { recentDebriefs, todayDrill, achievementCount }),
+      system: buildSystemPrompt(user, recentCheckIns, memories, sessionType, { recentDebriefs, todayDrill, achievementCount, recentDrills, gameSessions, ritual }),
       messages: conversationHistory,
     });
 

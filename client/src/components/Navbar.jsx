@@ -1,9 +1,11 @@
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { ArjunLogo } from './ArjunLogo';
 
 function Navbar() {
   const { user, language, toggleLanguage } = useAuth();
+  const navigate = useNavigate();
   const t = translations[language];
 
   return (
@@ -27,9 +29,17 @@ function Navbar() {
           </button>
 
           {user && (
-            <div className="w-8 h-8 rounded-full bg-brand-500 text-white text-sm font-bold flex items-center justify-center ring-2 ring-brand-700">
-              {user.name.charAt(0).toUpperCase()}
-            </div>
+            <button
+              onClick={() => navigate('/account')}
+              className="w-8 h-8 rounded-full bg-brand-500 text-white text-sm font-bold flex items-center justify-center ring-2 ring-brand-700 hover:bg-brand-600 transition-colors focus:outline-none focus:ring-brand-400 overflow-hidden"
+              title="My Profile"
+              aria-label="Go to profile"
+            >
+              {user.avatar
+                ? <img src={user.avatar} alt="avatar" className="w-8 h-8 object-cover" />
+                : user.name.charAt(0).toUpperCase()
+              }
+            </button>
           )}
         </div>
       </div>
