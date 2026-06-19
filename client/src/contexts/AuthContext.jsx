@@ -4,7 +4,9 @@ import { apiFetch } from '../api';
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser]       = useState(null);
+  const [user, setUser]       = useState(() => {
+    try { return JSON.parse(localStorage.getItem('mg_user') || 'null'); } catch { return null; }
+  });
   const [loading, setLoading] = useState(true);
   const [token, setToken]     = useState(() => localStorage.getItem('mg_token'));
   const [language, setLanguage] = useState(
@@ -19,16 +21,16 @@ export function AuthProvider({ children }) {
       if (res.ok) {
         const data = await res.json();
         setUser(data.user);
+        localStorage.setItem('mg_user', JSON.stringify(data.user));
         const userLang = data.user.language || 'en';
         setLanguage(userLang);
         localStorage.setItem('mg_language', userLang);
       } else if (res.status === 401 || res.status === 403) {
-        // Token is genuinely invalid — clear it
         logout();
       }
-      // Any other server error: keep the token, user stays logged in
+      // Other server errors or network failures: keep existing user from localStorage
     } catch {
-      // Network error (Railway cold start, no internet) — don't log out
+      // Network error (Railway cold start) — user stays from localStorage
     } finally {
       setLoading(false);
     }
@@ -50,6 +52,7 @@ export function AuthProvider({ children }) {
   // Skip the /me round-trip when the server already returned the user object
   function loginWithUser(newToken, newUser) {
     localStorage.setItem('mg_token', newToken);
+    localStorage.setItem('mg_user', JSON.stringify(newUser));
     setToken(newToken);
     setUser(newUser);
     const lang = newUser.language || 'en';
@@ -60,6 +63,7 @@ export function AuthProvider({ children }) {
 
   function logout() {
     localStorage.removeItem('mg_token');
+    localStorage.removeItem('mg_user');
     setToken(null);
     setUser(null);
     setLoading(false);
@@ -86,7 +90,11 @@ export function AuthProvider({ children }) {
   // Merge a partial update into the current user object.
   // Used by the onboarding page after saving answers.
   function updateUser(updatedFields) {
-    setUser(prev => ({ ...prev, ...updatedFields }));
+    setUser(prev => {
+      const updated = { ...prev, ...updatedFields };
+      localStorage.setItem('mg_user', JSON.stringify(updated));
+      return updated;
+    });
     if (updatedFields.language) {
       setLanguage(updatedFields.language);
       localStorage.setItem('mg_language', updatedFields.language);

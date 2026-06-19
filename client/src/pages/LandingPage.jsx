@@ -116,13 +116,25 @@ function LandingPage() {
 
         {/* ── CTAs ── */}
         {installed ? (
-          <div className="flex flex-col items-center gap-3">
-            <div className="flex items-center gap-2 text-win-400 text-sm font-semibold bg-win-500/10 border border-win-500/20 px-6 py-3 rounded-2xl">
-              <span>✓</span> App installed — open it from your home screen
+          <div className="flex flex-col items-center gap-4">
+            <div className="flex items-center gap-2 text-win-400 text-sm font-semibold bg-win-500/10 border border-win-500/20 px-5 py-3 rounded-2xl">
+              <span>✓</span> App installed on your device
             </div>
-            <button onClick={() => navigate('/auth')} className="text-sm text-slate-500 hover:text-slate-300 transition-colors">
-              Sign in →
-            </button>
+            <p className="text-slate-500 text-sm">Sign in or create your account to get started</p>
+            <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs">
+              <button
+                onClick={() => navigate('/auth')}
+                className="btn-primary flex-1 justify-center py-3.5 text-base"
+              >
+                Create Account
+              </button>
+              <button
+                onClick={() => navigate('/auth?tab=signin')}
+                className="btn-secondary flex-1 justify-center py-3.5 text-base"
+              >
+                Sign In
+              </button>
+            </div>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-4">
@@ -169,12 +181,20 @@ function LandingPage() {
             )}
 
             {/* Secondary: sign up in browser */}
-            <button
-              onClick={() => navigate('/auth')}
-              className="text-sm text-slate-500 hover:text-slate-300 transition-colors"
-            >
-              Or sign up / sign in without installing →
-            </button>
+            <div className="flex gap-3 mt-1">
+              <button
+                onClick={() => navigate('/auth')}
+                className="btn-secondary px-6 py-3 text-sm"
+              >
+                Create Account
+              </button>
+              <button
+                onClick={() => navigate('/auth?tab=signin')}
+                className="btn-secondary px-6 py-3 text-sm"
+              >
+                Sign In
+              </button>
+            </div>
           </div>
         )}
 
