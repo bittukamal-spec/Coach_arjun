@@ -20,7 +20,7 @@ import BottomNav from './components/BottomNav';
 import { translations } from './i18n/translations';
 
 function App() {
-  const { loading, language } = useAuth();
+  const { loading, language, user } = useAuth();
   const t = translations[language];
 
   if (loading) {
@@ -37,8 +37,8 @@ function App() {
   return (
     <Routes>
       {/* Public */}
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/auth" element={<AuthPage />} />
+      <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <LandingPage />} />
+      <Route path="/auth" element={user ? <Navigate to="/dashboard" replace /> : <AuthPage />} />
       <Route path="/privacy" element={<PrivacyPage />} />
       <Route path="/terms" element={<TermsPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
