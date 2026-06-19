@@ -326,9 +326,13 @@ function LandingPage() {
           <p className="text-xs text-slate-600 text-center">
             © {new Date().getFullYear()} Arjun · AI Mental Performance Coaching
           </p>
-          <button onClick={toggleLanguage} className="text-xs text-slate-600 hover:text-slate-400 transition-colors">
-            {language === 'en' ? 'हिंदी में देखें' : 'View in English'}
-          </button>
+          <div className="flex items-center gap-4">
+            <button onClick={() => navigate('/privacy')} className="text-xs text-slate-600 hover:text-slate-400 transition-colors">Privacy</button>
+            <button onClick={() => navigate('/terms')} className="text-xs text-slate-600 hover:text-slate-400 transition-colors">Terms</button>
+            <button onClick={toggleLanguage} className="text-xs text-slate-600 hover:text-slate-400 transition-colors">
+              {language === 'en' ? 'हिंदी' : 'English'}
+            </button>
+          </div>
         </div>
       </footer>
 

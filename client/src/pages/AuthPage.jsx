@@ -143,7 +143,10 @@ function AuthPage() {
 
               {tab === 'signup' && (
                 <p className="text-center text-xs text-slate-600 mt-4">
-                  By signing up you agree to our terms
+                  By signing up you agree to our{' '}
+                  <button onClick={() => navigate('/terms')} className="underline hover:text-slate-400 transition-colors">Terms</button>
+                  {' '}and{' '}
+                  <button onClick={() => navigate('/privacy')} className="underline hover:text-slate-400 transition-colors">Privacy Policy</button>
                 </p>
               )}
             </div>
