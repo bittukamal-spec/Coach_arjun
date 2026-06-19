@@ -518,6 +518,30 @@ function AccountPage() {
           </div>
         </section>
 
+        {/* Help & Support */}
+        <section className="mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-slate-500 text-base">💬</span>
+            <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wide">
+              {language === 'hi' ? 'सहायता' : 'Help & Support'}
+            </h2>
+          </div>
+          <div className="card px-4 py-4">
+            <p className="text-sm text-slate-400 mb-2">
+              {language === 'hi'
+                ? 'कोई सवाल या समस्या है? हम यहाँ हैं।'
+                : 'Have a question or billing issue? We\'re here.'}
+            </p>
+            <a
+              href="mailto:kamal.prabhanshu@outlook.com"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-brand-400 hover:text-brand-300 transition-colors"
+            >
+              <span>✉</span>
+              kamal.prabhanshu@outlook.com
+            </a>
+          </div>
+        </section>
+
         {/* Account actions */}
         <section className="mb-6">
           <div className="flex items-center gap-2 mb-3">

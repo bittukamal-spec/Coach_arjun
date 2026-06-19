@@ -121,6 +121,8 @@ function ChatPage() {
   const [usage, setUsage]                   = useState({ isPremium: false, trialDaysRemaining: 14 });
   const [quickReplies, setQuickReplies]     = useState([]);
   const [activeSession, setActiveSession]   = useState(null);
+  const [showIntro, setShowIntro]           = useState(() => !localStorage.getItem('arjun_chat_intro_seen'));
+  const [showSafety, setShowSafety]         = useState(false);
 
   const bottomRef          = useRef(null);
   const inputRef           = useRef(null);
@@ -332,7 +334,7 @@ function ChatPage() {
                   {t.sessions[activeSession].icon} {t.sessions[activeSession].title}
                 </p>
               ) : (
-                <p className="text-xs text-slate-500 leading-none mt-0.5">{t.subtitle}</p>
+                <p className="text-xs text-slate-500 leading-none mt-0.5">{t.aiLabel}</p>
               )}
             </div>
           </div>
@@ -384,9 +386,39 @@ function ChatPage() {
         </div>
       </div>
 
+      {/* ── Safety signpost ─────────────────────────────────────────────── */}
+      <div className="shrink-0 px-4 py-1 border-b border-dark-700 text-center">
+        <button
+          onClick={() => setShowSafety(s => !s)}
+          className="text-[11px] text-slate-600 hover:text-slate-400 transition-colors"
+        >
+          ℹ {t.safetyLinkLabel}
+        </button>
+        {showSafety && (
+          <div className="mt-1 mb-1 bg-dark-800 border border-dark-600 rounded-xl px-3 py-2 text-left max-w-2xl mx-auto">
+            <p className="text-xs text-slate-400">{t.safetyNote}</p>
+            <p className="text-xs text-slate-500 mt-1">{t.safetyHelpline}</p>
+          </div>
+        )}
+      </div>
+
       {/* ── Messages area ───────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto px-4 py-6">
         <div className="max-w-2xl mx-auto flex flex-col gap-4">
+
+          {/* One-time AI intro banner */}
+          {showIntro && (
+            <div className="bg-dark-800 border border-brand-500/30 rounded-2xl p-4 animate-fade-in">
+              <p className="font-bold text-white text-sm mb-1">{t.aiIntroTitle}</p>
+              <p className="text-xs text-slate-400 leading-relaxed mb-3">{t.aiIntroBody}</p>
+              <button
+                onClick={() => { localStorage.setItem('arjun_chat_intro_seen', '1'); setShowIntro(false); }}
+                className="text-xs font-semibold text-brand-400 bg-brand-500/10 border border-brand-500/20 px-3 py-1.5 rounded-full hover:bg-brand-500/20 transition-colors"
+              >
+                {t.aiIntroDismiss}
+              </button>
+            </div>
+          )}
 
           {/* No session selected yet */}
           {!hasMessages && !activeSession && !waitingForFirst && (

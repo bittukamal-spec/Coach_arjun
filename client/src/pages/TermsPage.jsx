@@ -55,7 +55,7 @@ function TermsPage() {
         </Section>
 
         <Section title="4. Your account">
-          <p>You are responsible for keeping your account credentials secure. Do not share your password. Notify us immediately at kamal.prabhanshu@outlook.com if you believe your account has been compromised.</p>
+          <p>You are responsible for keeping your account credentials secure. Do not share your password. Notify us immediately at <a href="mailto:kamal.prabhanshu@outlook.com" className="text-brand-400 hover:text-brand-300 underline underline-offset-2">kamal.prabhanshu@outlook.com</a> if you believe your account has been compromised.</p>
           <p>One person, one account. You may not create accounts on behalf of others or use automated systems to access Arjun.</p>
         </Section>
 
@@ -63,7 +63,7 @@ function TermsPage() {
           <p><strong className="text-white">Free trial:</strong> New accounts receive 14 days of full access to Arjun coaching at no cost. No credit card is required to start.</p>
           <p><strong className="text-white">Premium subscription:</strong> After the trial, continued access to AI coaching requires a paid subscription (₹299/month or ₹1999/year). Check-ins and progress tracking remain free forever.</p>
           <p><strong className="text-white">Billing:</strong> Subscription billing details will be provided when payment features are activated. You will be notified before any charge.</p>
-          <p><strong className="text-white">Refunds:</strong> We offer a 7-day refund on monthly subscriptions if you are unsatisfied. Contact kamal.prabhanshu@outlook.com.</p>
+          <p><strong className="text-white">Refunds:</strong> We offer a 7-day refund on monthly subscriptions if you are unsatisfied. Contact <a href="mailto:kamal.prabhanshu@outlook.com" className="text-brand-400 hover:text-brand-300 underline underline-offset-2">kamal.prabhanshu@outlook.com</a>. See our full <button onClick={() => navigate('/refund')} className="text-brand-400 hover:text-brand-300 underline underline-offset-2">Refund &amp; Cancellation Policy</button>.</p>
         </Section>
 
         <Section title="6. Acceptable use">
@@ -81,11 +81,11 @@ function TermsPage() {
           <p>If at any point you are experiencing thoughts of self-harm, suicide, or a mental health emergency, <strong className="text-white">please stop using this app and contact a professional immediately</strong>.</p>
           <p>India crisis resources:</p>
           <ul className="list-disc list-inside space-y-1 ml-2">
-            <li><strong className="text-white">iCall:</strong> 9152987821</li>
+            <li><strong className="text-white">iCall:</strong> <a href="tel:9152987821" className="text-brand-400 hover:text-brand-300">9152987821</a></li>
             <li><strong className="text-white">Vandrevala Foundation:</strong> 1860-2662-345 (24/7)</li>
             <li><strong className="text-white">NIMHANS:</strong> 080-46110007</li>
           </ul>
-          <p>Arjun is not equipped to handle crisis situations and is not a substitute for emergency care.</p>
+          <p>Arjun is a <strong className="text-white">mental performance tool, not a medical or crisis service</strong>. It is not equipped to handle crisis situations and is not a substitute for emergency care.</p>
         </Section>
 
         <Section title="8. Intellectual property">
@@ -123,7 +123,7 @@ function TermsPage() {
 
         <Section title="14. Contact">
           <p><strong className="text-white">Prabhanshu Kamal</strong><br />
-          Email: <strong className="text-white">kamal.prabhanshu@outlook.com</strong></p>
+          Email: <a href="mailto:kamal.prabhanshu@outlook.com" className="text-brand-400 hover:text-brand-300 underline underline-offset-2">kamal.prabhanshu@outlook.com</a></p>
         </Section>
       </main>
 
@@ -132,6 +132,7 @@ function TermsPage() {
           <span className="text-xs text-slate-600">© {new Date().getFullYear()} Arjun</span>
           <div className="flex gap-4">
             <button onClick={() => navigate('/privacy')} className="text-xs text-slate-500 hover:text-slate-300">Privacy</button>
+            <button onClick={() => navigate('/refund')} className="text-xs text-slate-500 hover:text-slate-300">Refund</button>
             <button onClick={() => navigate('/')} className="text-xs text-slate-500 hover:text-slate-300">Home</button>
           </div>
         </div>

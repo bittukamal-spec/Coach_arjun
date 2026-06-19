@@ -35,7 +35,7 @@ function PrivacyPage() {
         </div>
 
         <Section title="1. Who we are">
-          <p>Arjun is an AI mental performance coaching service operated by Prabhanshu Kamal ("we", "us", "our"). Our contact email is <strong className="text-white">kamal.prabhanshu@outlook.com</strong>.</p>
+          <p>Arjun is an AI mental performance coaching service operated by Prabhanshu Kamal ("we", "us", "our"). Our contact email is <a href="mailto:kamal.prabhanshu@outlook.com" className="text-brand-400 hover:text-brand-300 underline underline-offset-2">kamal.prabhanshu@outlook.com</a>.</p>
           <p>This Privacy Policy explains how we collect, use, and protect your personal data when you use Arjun at <strong className="text-white">coacharjun.in</strong>.</p>
         </Section>
 
@@ -82,7 +82,7 @@ function PrivacyPage() {
             <li><strong className="text-white">Erasure:</strong> Delete your account and all associated data at any time from Settings → Account → Delete Account</li>
             <li><strong className="text-white">Grievance:</strong> Raise a complaint about how we handle your data</li>
           </ul>
-          <p>To exercise any of these rights, email us at <strong className="text-white">kamal.prabhanshu@outlook.com</strong>. We will respond within 30 days.</p>
+          <p>To exercise any of these rights, email us at <a href="mailto:kamal.prabhanshu@outlook.com" className="text-brand-400 hover:text-brand-300 underline underline-offset-2">kamal.prabhanshu@outlook.com</a>. We will respond within 30 days.</p>
         </Section>
 
         <Section title="7. Data retention">
@@ -105,7 +105,7 @@ function PrivacyPage() {
         <Section title="11. Contact and grievances">
           <p>Data Controller / Grievance Officer:<br />
           <strong className="text-white">Prabhanshu Kamal</strong><br />
-          Email: <strong className="text-white">kamal.prabhanshu@outlook.com</strong><br />
+          Email: <a href="mailto:kamal.prabhanshu@outlook.com" className="text-brand-400 hover:text-brand-300 underline underline-offset-2">kamal.prabhanshu@outlook.com</a><br />
           Response time: within 30 days</p>
         </Section>
       </main>
@@ -115,6 +115,7 @@ function PrivacyPage() {
           <span className="text-xs text-slate-600">© {new Date().getFullYear()} Arjun</span>
           <div className="flex gap-4">
             <button onClick={() => navigate('/terms')} className="text-xs text-slate-500 hover:text-slate-300">Terms</button>
+            <button onClick={() => navigate('/refund')} className="text-xs text-slate-500 hover:text-slate-300">Refund</button>
             <button onClick={() => navigate('/')} className="text-xs text-slate-500 hover:text-slate-300">Home</button>
           </div>
         </div>
