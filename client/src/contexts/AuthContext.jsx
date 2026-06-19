@@ -7,7 +7,8 @@ export function AuthProvider({ children }) {
   const [user, setUser]       = useState(() => {
     try { return JSON.parse(localStorage.getItem('mg_user') || 'null'); } catch { return null; }
   });
-  const [loading, setLoading] = useState(true);
+  // If we already have a cached user, start as not-loading so the app shows immediately
+  const [loading, setLoading] = useState(() => !localStorage.getItem('mg_user'));
   const [token, setToken]     = useState(() => localStorage.getItem('mg_token'));
   const [language, setLanguage] = useState(
     () => localStorage.getItem('mg_language') || 'en'
@@ -26,11 +27,15 @@ export function AuthProvider({ children }) {
         setLanguage(userLang);
         localStorage.setItem('mg_language', userLang);
       } else if (res.status === 401 || res.status === 403) {
-        logout();
+        // Token genuinely rejected by server — clear everything
+        localStorage.removeItem('mg_token');
+        localStorage.removeItem('mg_user');
+        setToken(null);
+        setUser(null);
       }
       // Other server errors or network failures: keep existing user from localStorage
     } catch {
-      // Network error (Railway cold start) — user stays from localStorage
+      // Network error (Railway cold start, offline) — keep user from localStorage
     } finally {
       setLoading(false);
     }
