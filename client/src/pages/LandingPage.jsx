@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
@@ -30,6 +30,23 @@ function LandingPage() {
   const [password, setPassword] = useState('');
   const [error, setError]       = useState('');
   const [busy, setBusy]         = useState(false);
+  const [installPrompt, setInstallPrompt] = useState(null);
+  const [installed, setInstalled]         = useState(false);
+
+  useEffect(() => {
+    const handler = (e) => { e.preventDefault(); setInstallPrompt(e); };
+    window.addEventListener('beforeinstallprompt', handler);
+    window.addEventListener('appinstalled', () => setInstalled(true));
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  async function handleInstall() {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    const { outcome } = await installPrompt.userChoice;
+    if (outcome === 'accepted') setInstalled(true);
+    setInstallPrompt(null);
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -78,6 +95,17 @@ function LandingPage() {
           >
             {language === 'en' ? 'हिंदी' : 'English'}
           </button>
+          {installPrompt && !installed && (
+            <button
+              onClick={handleInstall}
+              className="flex items-center gap-1.5 text-sm font-semibold bg-brand-500/15 border border-brand-500/40 text-brand-300 hover:bg-brand-500/25 px-3 py-1.5 rounded-lg transition-all"
+            >
+              <span>📲</span> Install App
+            </button>
+          )}
+          {installed && (
+            <span className="text-sm text-win-400 font-medium">✓ Installed</span>
+          )}
           <button
             onClick={() => { setTab('signin'); authRef.current?.scrollIntoView({ behavior: 'smooth' }); }}
             className="text-sm font-medium text-slate-300 hover:text-white transition-colors hidden sm:block"
@@ -138,6 +166,29 @@ function LandingPage() {
                 </div>
               ))}
             </div>
+
+            {/* PWA Install button — shown when browser prompt is available */}
+            {installPrompt && !installed && (
+              <div className="mt-8 flex justify-center lg:justify-start">
+                <button
+                  onClick={handleInstall}
+                  className="flex items-center gap-2 bg-dark-700 border border-dark-500 hover:border-brand-500/50 text-slate-300 hover:text-white px-5 py-3 rounded-xl transition-all group"
+                >
+                  <span className="text-xl">📲</span>
+                  <div className="text-left">
+                    <p className="text-sm font-semibold leading-none">Install Arjun App</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Add to home screen — works offline</p>
+                  </div>
+                </button>
+              </div>
+            )}
+            {installed && (
+              <div className="mt-8 flex justify-center lg:justify-start">
+                <div className="flex items-center gap-2 text-win-400 text-sm font-medium bg-win-500/10 border border-win-500/20 px-4 py-2.5 rounded-xl">
+                  <span>✓</span> App installed on your device
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Right: auth card */}
