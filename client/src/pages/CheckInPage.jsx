@@ -117,9 +117,27 @@ function ResultCard({ checkIn, isNew, language, t, xpEarned, newAchievements }) 
 
       {/* Gratitude */}
       {checkIn.gratitude && (
-        <div className="bg-win-500/10 border border-win-500/20 rounded-xl px-4 py-3 mb-4 text-sm text-win-300 flex items-start gap-2">
+        <div className="bg-win-500/10 border border-win-500/20 rounded-xl px-4 py-3 mb-3 text-sm text-win-300 flex items-start gap-2">
           <span className="shrink-0">🙏</span>
           <span className="italic">"{checkIn.gratitude}"</span>
+        </div>
+      )}
+
+      {/* Energy + Sleep quick summary */}
+      {(checkIn.energy || checkIn.sleep) && (
+        <div className="flex items-center gap-3 mb-4">
+          {checkIn.energy && (
+            <div className="flex items-center gap-1.5 bg-dark-700 border border-dark-500 rounded-xl px-3 py-2 text-xs text-slate-300">
+              <span>⚡</span>
+              <span>Energy: {checkIn.energy}/5</span>
+            </div>
+          )}
+          {checkIn.sleep && (
+            <div className="flex items-center gap-1.5 bg-dark-700 border border-dark-500 rounded-xl px-3 py-2 text-xs text-slate-300">
+              <span>🌙</span>
+              <span>Sleep: {checkIn.sleep.charAt(0).toUpperCase() + checkIn.sleep.slice(1)}</span>
+            </div>
+          )}
         </div>
       )}
 
@@ -180,6 +198,8 @@ function CheckInPage() {
   const [ratings, setRatings]     = useState({ mood: 0, focus: 0, confidence: 0 });
   const [reflection, setReflection] = useState('');
   const [gratitude, setGratitude]   = useState('');
+  const [energy, setEnergy]         = useState(0);   // 0 = not set
+  const [sleep, setSleep]           = useState('');  // '' | 'poor' | 'ok' | 'great'
   const [submitting, setSubmitting] = useState(false);
   const [error, setError]           = useState('');
   const [xpEarned, setXpEarned]       = useState(null);
@@ -224,7 +244,13 @@ function CheckInPage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ ...ratings, reflection: reflection.trim() || undefined, gratitude: gratitude.trim() || undefined }),
+        body: JSON.stringify({
+          ...ratings,
+          reflection: reflection.trim() || undefined,
+          gratitude: gratitude.trim() || undefined,
+          energy: energy || undefined,
+          sleep: sleep || undefined,
+        }),
       });
       const data = await res.json();
       if (res.status === 201) {
@@ -356,7 +382,7 @@ function CheckInPage() {
             </div>
 
             {/* Gratitude */}
-            <div className="mb-6">
+            <div className="mb-5">
               <div className="flex items-center justify-between mb-2">
                 <label className="flex items-center gap-1.5 font-semibold text-slate-200 text-sm">
                   <span>🙏</span> {t.gratitudeLabel}
@@ -374,6 +400,80 @@ function CheckInPage() {
                 rows={2}
                 className="w-full bg-dark-700 border border-dark-500 text-slate-100 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-win-500 focus:border-transparent resize-none placeholder-slate-500"
               />
+            </div>
+
+            {/* Energy slider */}
+            <div className="mb-5">
+              <div className="flex items-center justify-between mb-3">
+                <label className="flex items-center gap-1.5 font-semibold text-slate-200 text-sm">
+                  <span>⚡</span> {t.energyLabel}
+                </label>
+                <div className="flex items-center gap-1.5">
+                  {energy > 0 && (
+                    <span className="text-sm font-medium text-fire-400">{t[`energy${energy}`]}</span>
+                  )}
+                  {energy > 0 && (
+                    <span className="text-xs font-semibold text-fire-400 bg-fire-500/10 border border-fire-500/20 px-2 py-0.5 rounded-full">
+                      {t.energyXp}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="grid grid-cols-5 gap-2">
+                {[1, 2, 3, 4, 5].map(v => {
+                  const emojis = ['😩', '😔', '😐', '💪', '🚀'];
+                  const isSelected = energy === v;
+                  return (
+                    <button
+                      key={v}
+                      onClick={() => setEnergy(prev => prev === v ? 0 : v)}
+                      className={`flex flex-col items-center gap-1.5 py-3 rounded-2xl border-2 transition-all active:scale-95 ${
+                        isSelected
+                          ? 'border-fire-500 bg-fire-500/10 scale-105'
+                          : 'border-dark-600 bg-dark-800 hover:border-dark-500'
+                      }`}
+                    >
+                      <span className="text-2xl leading-none">{emojis[v - 1]}</span>
+                      <span className={`text-xs font-medium ${isSelected ? 'text-fire-400' : 'text-slate-500'}`}>{v}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Sleep picker */}
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-3">
+                <label className="flex items-center gap-1.5 font-semibold text-slate-200 text-sm">
+                  <span>🌙</span> {t.sleepLabel}
+                </label>
+                {sleep && (
+                  <span className="text-xs font-semibold text-fire-400 bg-fire-500/10 border border-fire-500/20 px-2 py-0.5 rounded-full">
+                    {t.energyXp}
+                  </span>
+                )}
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { val: 'poor',  label: t.sleepPoor,  emoji: '😴', color: 'border-red-500 bg-red-500/10 text-red-400' },
+                  { val: 'ok',    label: t.sleepOk,    emoji: '😑', color: 'border-amber-500 bg-amber-500/10 text-amber-400' },
+                  { val: 'great', label: t.sleepGreat, emoji: '🌟', color: 'border-win-500 bg-win-500/10 text-win-400' },
+                ].map(opt => {
+                  const isSelected = sleep === opt.val;
+                  return (
+                    <button
+                      key={opt.val}
+                      onClick={() => setSleep(prev => prev === opt.val ? '' : opt.val)}
+                      className={`flex flex-col items-center gap-1.5 py-3 rounded-2xl border-2 transition-all active:scale-95 ${
+                        isSelected ? opt.color + ' scale-105' : 'border-dark-600 bg-dark-800 hover:border-dark-500'
+                      }`}
+                    >
+                      <span className="text-2xl leading-none">{opt.emoji}</span>
+                      <span className={`text-xs font-medium ${isSelected ? '' : 'text-slate-500'}`}>{opt.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Error */}

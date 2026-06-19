@@ -190,6 +190,13 @@ export const translations = {
       gratitudeLabel: 'One win from today (optional)',
       gratitudePlaceholder: 'What went well in training or sport today?',
       gratitudeXp: '+3 MXP',
+      // Energy
+      energyLabel: 'Energy level (optional)',
+      energy1: 'Drained', energy2: 'Low', energy3: 'OK', energy4: 'Good', energy5: 'Peak',
+      energyXp: '+2 MXP',
+      // Sleep
+      sleepLabel: 'How did you sleep? (optional)',
+      sleepPoor: 'Poor', sleepOk: 'OK', sleepGreat: 'Great',
       // Buttons
       saveBtn: 'Save Check-in',
       saving: 'Saving…',
@@ -502,6 +509,11 @@ export const translations = {
       gratitudeLabel: 'आज की एक जीत (वैकल्पिक)',
       gratitudePlaceholder: 'आज ट्रेनिंग या खेल में क्या अच्छा हुआ?',
       gratitudeXp: '+3 MXP',
+      energyLabel: 'ऊर्जा स्तर (वैकल्पिक)',
+      energy1: 'थका हुआ', energy2: 'कम', energy3: 'ठीक', energy4: 'अच्छा', energy5: 'चरम पर',
+      energyXp: '+2 MXP',
+      sleepLabel: 'नींद कैसी थी? (वैकल्पिक)',
+      sleepPoor: 'खराब', sleepOk: 'ठीक', sleepGreat: 'अच्छी',
       saveBtn: 'चेक-इन सेव करें',
       saving: 'सेव हो रहा है…',
       savedTitle: 'लॉग हो गया! ✓',

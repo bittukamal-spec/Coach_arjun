@@ -356,6 +356,9 @@ function ChatPage() {
 
       {/* ── Session picker bar (always visible) ─────────────────────────── */}
       <div className="shrink-0 border-b border-dark-600 bg-dark-900/80">
+        <p className="text-xs text-slate-600 font-medium px-4 pt-2">
+          {language === 'hi' ? 'विषय चुनें' : 'Choose a focus'}
+        </p>
         <div className="overflow-x-auto no-scrollbar">
           <div className="flex gap-2 px-4 py-2 max-w-2xl mx-auto w-max min-w-full">
             {SESSIONS.map(({ key, color, activeBg }) => {

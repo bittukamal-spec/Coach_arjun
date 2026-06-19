@@ -32,13 +32,21 @@ router.get('/today', authenticate, async (req, res) => {
 // Create a new check-in. Blocks if already done today or free limit hit.
 
 router.post('/', authenticate, async (req, res) => {
-  const { mood, focus, confidence, reflection, gratitude } = req.body;
+  const { mood, focus, confidence, energy, sleep, reflection, gratitude } = req.body;
 
-  // Validate ratings
+  // Validate required 1-5 sliders
   for (const [key, val] of Object.entries({ mood, focus, confidence })) {
     if (!Number.isInteger(val) || val < 1 || val > 5) {
       return res.status(400).json({ error: `"${key}" must be an integer between 1 and 5` });
     }
+  }
+  // Validate optional energy
+  if (energy !== undefined && energy !== null && (!Number.isInteger(energy) || energy < 1 || energy > 5)) {
+    return res.status(400).json({ error: '"energy" must be an integer between 1 and 5' });
+  }
+  // Validate optional sleep
+  if (sleep !== undefined && sleep !== null && !['poor', 'ok', 'great'].includes(sleep)) {
+    return res.status(400).json({ error: '"sleep" must be "poor", "ok", or "great"' });
   }
   if (reflection !== undefined && typeof reflection !== 'string') {
     return res.status(400).json({ error: '"reflection" must be a string' });
@@ -68,13 +76,18 @@ router.post('/', authenticate, async (req, res) => {
         mood,
         focus,
         confidence,
+        energy:     energy     ?? null,
+        sleep:      sleep      ?? null,
         reflection: reflection?.trim() || null,
         gratitude:  gratitude?.trim()  || null,
       },
     });
 
-    // Award XP: +10 base, +5 for reflection, +3 for gratitude
-    const xpEarned = 10 + (reflection?.trim() ? 5 : 0) + (gratitude?.trim() ? 3 : 0);
+    // Award XP: +10 base, +5 for reflection, +3 for gratitude, +2 for energy+sleep
+    const xpEarned = 10
+      + (reflection?.trim() ? 5 : 0)
+      + (gratitude?.trim()  ? 3 : 0)
+      + ((energy || sleep)  ? 2 : 0);
     const [{ xp }, newAchievements] = await Promise.all([
       awardXP(req.userId, xpEarned),
       checkCheckInAchievements(req.userId),

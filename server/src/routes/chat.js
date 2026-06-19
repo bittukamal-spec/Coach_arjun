@@ -101,7 +101,8 @@ Be warm and curious. Ask one natural follow-up question per response.`,
 
 // ── Helper: build personalised system prompt ─────────────────────────────
 
-function buildSystemPrompt(user, checkIns = [], memories = [], sessionType = null) {
+function buildSystemPrompt(user, checkIns = [], memories = [], sessionType = null, extra = {}) {
+  const { recentDebriefs = [], todayDrill = null, achievementCount = 0 } = extra;
   const goals = JSON.parse(user.goals || '[]').map(g => GOAL_LABELS[g] || g);
   const goalsText = goals.length ? goals.join(', ') : 'general mental performance';
 
@@ -138,8 +139,9 @@ function buildSystemPrompt(user, checkIns = [], memories = [], sessionType = nul
     const latestReflection = checkIns.find(c => c.reflection)?.reflection;
 
     const latest = checkIns[0];
+    const sleepLabels = { poor: 'Poor (likely affecting performance)', ok: 'OK', great: 'Great (well-rested)' };
     const todayEntry = daysSince === 0
-      ? `- TODAY's scores: mood ${latest.mood}/5 | focus ${latest.focus}/5 | confidence ${latest.confidence}/5 ← REFERENCE THESE NUMBERS DIRECTLY`
+      ? `- TODAY's scores: mood ${latest.mood}/5 | focus ${latest.focus}/5 | confidence ${latest.confidence}/5${latest.energy ? ` | energy ${latest.energy}/5` : ''}${latest.sleep ? ` | sleep: ${sleepLabels[latest.sleep]}` : ''} ← REFERENCE THESE DIRECTLY`
       : '';
     const gratitudeEntry = daysSince === 0 && latest.gratitude
       ? `- Today's gratitude: "${latest.gratitude}"`
@@ -147,7 +149,7 @@ function buildSystemPrompt(user, checkIns = [], memories = [], sessionType = nul
 
     checkInSection = `## Recent Mental State (Last 7 Days)
 - Avg mood: ${avgMood}/5 | Avg focus: ${avgFocus}/5 | Avg confidence: ${avgConfidence}/5
-- Trend: ${trend} based on first vs last check-ins
+- Trend: ${trend} based on check-in history
 - Last check-in: ${daysSince} day${daysSince !== 1 ? 's' : ''} ago${latestReflection ? `\n- Latest reflection: "${latestReflection}"` : ''}${todayEntry ? '\n' + todayEntry : ''}${gratitudeEntry ? '\n' + gratitudeEntry : ''}`;
   } else {
     checkInSection = `## Recent Mental State (Last 7 Days)
@@ -162,6 +164,25 @@ No recent check-ins — the athlete hasn't tracked their mental state yet.`;
   } else {
     memorySection = `## What I Know About This Athlete (Long-term Memory)\nNo long-term notes yet.`;
   }
+
+  // ── Post-match debriefs ───────────────────────────────────────────────────
+  let debriefSection = '';
+  if (recentDebriefs.length > 0) {
+    const lines = recentDebriefs.map((d, i) => {
+      const daysAgo = Math.floor((Date.now() - new Date(d.createdAt).getTime()) / 86400000);
+      return `Debrief ${i + 1} (${daysAgo === 0 ? 'today' : `${daysAgo}d ago`}):\n  ✓ Went well: "${d.wentWell}"\n  △ Do differently: "${d.doDifferently}"\n  → Next focus: "${d.nextFocus}"`;
+    }).join('\n\n');
+    debriefSection = `## Recent Post-Match Debriefs\n${lines}`;
+  }
+
+  // ── Daily drill + activity context ──────────────────────────────────────
+  const drillNames = ['Box Breathing','Perfect Performance','Cue Words','Single-Point Focus','Pressure + Visualize','4-7-8 Calm Down','Victory Replay','Flip the Negative','Gratitude Recall','Body Scan','Power Pose','Breath + Focus','Mindful Warm-up','Confidence Anchor','Pre-performance Cue','Mental Reset','Distraction Deletion','Flow State Recall','Resilience Flashback','Competition Simulation'];
+  const activityLines = [];
+  if (todayDrill) activityLines.push(`- Completed today's mental drill: "${drillNames[todayDrill.drillIndex % drillNames.length] || 'Mental Drill'}"`);
+  if (user.ritualName) activityLines.push(`- Has a pre-match ritual: "${user.ritualName}"`);
+  if (achievementCount > 0) activityLines.push(`- Has earned ${achievementCount} achievement badge${achievementCount !== 1 ? 's' : ''}`);
+  activityLines.push(`- Total Mental XP: ${user.xp || 0}`);
+  const activitySection = `## App Activity Today\n${activityLines.length ? activityLines.join('\n') : '- No activity recorded yet today'}`;
 
   const sessionSection = sessionType && SESSION_INSTRUCTIONS[sessionType]
     ? `## Active Session\n${SESSION_INSTRUCTIONS[sessionType]}\n\nFor this session: Ask ONE focused question at a time. Do not give advice, techniques, or solutions until you fully understand the athlete's situation.`
@@ -199,6 +220,8 @@ No recent check-ins — the athlete hasn't tracked their mental state yet.`;
 ${langInstruction}
 
 ${sessionSection ? sessionSection + '\n\n' : ''}${checkInSection}
+
+${activitySection}${debriefSection ? '\n\n' + debriefSection : ''}
 
 ${memorySection}`;
 }
@@ -339,7 +362,7 @@ router.post('/message', authenticate, checkFreeLimit, async (req, res) => {
       where: { userId: req.userId },
       orderBy: { createdAt: 'desc' },
       take: 7,
-      select: { mood: true, focus: true, confidence: true, reflection: true, createdAt: true },
+      select: { mood: true, focus: true, confidence: true, energy: true, sleep: true, reflection: true, gratitude: true, createdAt: true },
     });
 
     // Fetch user memories
@@ -349,6 +372,24 @@ router.post('/message', authenticate, checkFreeLimit, async (req, res) => {
       take: 10,
       select: { memKey: true, value: true },
     });
+
+    // Fetch last 2 post-match debriefs
+    const recentDebriefs = await prisma.debrief.findMany({
+      where: { userId: req.userId },
+      orderBy: { createdAt: 'desc' },
+      take: 2,
+      select: { wentWell: true, doDifferently: true, nextFocus: true, createdAt: true },
+    });
+
+    // Fetch today's drill completion
+    const todayStart = new Date(); todayStart.setUTCHours(0, 0, 0, 0);
+    const todayDrill = await prisma.drillCompletion.findFirst({
+      where: { userId: req.userId, completedAt: { gte: todayStart } },
+      select: { drillIndex: true },
+    });
+
+    // Fetch recent achievements count for streak
+    const achievementCount = await prisma.userAchievement.count({ where: { userId: req.userId } });
 
     // Save the user's message (skip invisible session-start markers)
     if (!isSessionStart) {
@@ -397,7 +438,7 @@ router.post('/message', authenticate, checkFreeLimit, async (req, res) => {
     const stream = anthropic.messages.stream({
       model: process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001',
       max_tokens: 800,
-      system: buildSystemPrompt(user, recentCheckIns, memories, sessionType),
+      system: buildSystemPrompt(user, recentCheckIns, memories, sessionType, { recentDebriefs, todayDrill, achievementCount }),
       messages: conversationHistory,
     });
 

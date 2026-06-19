@@ -69,6 +69,8 @@ model CheckIn {
   mood        Int      // 1–5
   focus       Int      // 1–5
   confidence  Int      // 1–5
+  energy      Int?     // 1–5: how physically/mentally energised the athlete feels
+  sleep       String?  // "poor" | "ok" | "great"
   reflection  String?  // optional free-text, max 500 chars
   gratitude   String?  // optional: one win from today, max 300 chars
   createdAt   DateTime @default(now())

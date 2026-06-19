@@ -1,5 +1,6 @@
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
+import { ArjunLogo } from './ArjunLogo';
 
 function Navbar() {
   const { user, language, toggleLanguage } = useAuth();
@@ -9,7 +10,8 @@ function Navbar() {
     <nav className="fixed top-0 inset-x-0 z-50 bg-dark-900/95 backdrop-blur-md border-b border-dark-600">
       <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
         {/* Logo */}
-        <div className="flex items-center">
+        <div className="flex items-center gap-2">
+          <ArjunLogo size={30} />
           <span className="font-bold text-lg tracking-tight">
             <span className="text-brand-400">A</span><span className="text-white">rjun</span>
           </span>

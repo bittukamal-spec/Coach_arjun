@@ -1,12 +1,21 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <rect width="512" height="512" rx="96" fill="#7C3AED"/>
-  <text
-    x="256"
-    y="352"
-    text-anchor="middle"
-    font-family="system-ui, -apple-system, sans-serif"
-    font-weight="800"
-    font-size="300"
-    fill="white"
-  >A</text>
+
+  <!-- Bow arc — curves right like a brain hemisphere -->
+  <path d="M 168 92 C 430 92 430 420 168 420"
+        stroke="white" stroke-width="28" fill="none" stroke-linecap="round"/>
+
+  <!-- Brain fold hint — subtle inner sulcus line -->
+  <path d="M 196 182 C 268 202 268 308 196 328"
+        stroke="white" stroke-width="14" fill="none" stroke-linecap="round" opacity="0.5"/>
+
+  <!-- Arrow shaft -->
+  <line x1="86" y1="256" x2="376" y2="256" stroke="white" stroke-width="22" stroke-linecap="round"/>
+
+  <!-- Arrowhead -->
+  <polygon points="364,226 422,256 364,286" fill="white"/>
+
+  <!-- Fletching (feathers at back of arrow) -->
+  <line x1="112" y1="256" x2="80" y2="220" stroke="white" stroke-width="16" stroke-linecap="round"/>
+  <line x1="112" y1="256" x2="80" y2="292" stroke="white" stroke-width="16" stroke-linecap="round"/>
 </svg>

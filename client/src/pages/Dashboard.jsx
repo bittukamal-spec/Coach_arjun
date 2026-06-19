@@ -320,59 +320,91 @@ function Dashboard() {
           const drillTitle = language === 'hi' ? drill.titleHi : drill.title;
           const drillInstruction = language === 'hi' ? drill.instructionHi : drill.instruction;
           const typeLabel = t.dashboard.drillTypeLabels[drill.type];
+
+          // "Why this drill" — based on latest check-in scores
+          let whyText = null;
+          if (weeklyAvg) {
+            if (drill.type === 'breathing' && weeklyAvg.confidence < 3.5) whyText = language === 'hi' ? 'तनाव कम करने के लिए' : 'To calm pre-performance nerves';
+            else if (drill.type === 'visualization' && weeklyAvg.confidence < 3.5) whyText = language === 'hi' ? 'आत्मविश्वास बढ़ाने के लिए' : 'To rebuild your confidence today';
+            else if (drill.type === 'focus' && weeklyAvg.focus < 3.5) whyText = language === 'hi' ? 'फोकस मजबूत करने के लिए' : 'Your focus has been low — sharpen it';
+            else if (drill.type === 'self-talk' && weeklyAvg.mood < 3.5) whyText = language === 'hi' ? 'मानसिक ऊर्जा के लिए' : 'To shift your mental energy today';
+            else if (drill.type === 'pressure') whyText = language === 'hi' ? 'दबाव के लिए तैयारी' : 'Build your pressure tolerance';
+          }
+
           return (
-            <div className={`card mb-6 border-t-2 ${colors.border}`}>
-              <div className="flex items-start justify-between gap-3 mb-3">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-2xl shrink-0">{drill.icon}</span>
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-0.5">
-                      {t.dashboard.drillTitle}
-                    </p>
-                    <p className="font-bold text-white leading-tight truncate">{drillTitle}</p>
+            <div className={`mb-6 rounded-2xl border border-dark-600 overflow-hidden bg-dark-800`}>
+              {/* Type bar */}
+              <div className={`h-1 w-full ${colors.border.replace('border-', 'bg-').replace('/40','').replace('/30','')}`} />
+
+              <div className="p-4">
+                {/* Header row */}
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl shrink-0 ${colors.badge}`}>
+                      {drill.icon}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-0.5">
+                        {t.dashboard.drillTitle}
+                      </p>
+                      <p className="font-bold text-white leading-tight">{drillTitle}</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${colors.badge}`}>
+                      {typeLabel}
+                    </span>
+                    <span className="text-xs text-slate-500">⏱ {drill.duration}</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${colors.badge}`}>
-                    {typeLabel}
-                  </span>
-                  <span className="text-xs text-slate-500 bg-dark-700 border border-dark-600 px-2 py-0.5 rounded-full">
-                    {drill.duration}
-                  </span>
-                </div>
-              </div>
 
-              {drillState.completed ? (
-                <div className="flex items-center gap-2 text-win-400 text-sm font-semibold">
-                  <span>✅</span>
-                  <span>{t.dashboard.drillDone}</span>
-                </div>
-              ) : drillExpanded ? (
-                <div className="animate-fade-in">
-                  <p className="text-sm text-slate-300 leading-relaxed mb-4">{drillInstruction}</p>
-                  <button
-                    onClick={completeDrill}
-                    disabled={drillLoading}
-                    className="w-full py-3 rounded-xl bg-win-600 hover:bg-win-700 text-white font-semibold text-sm transition-all active:scale-95 disabled:opacity-60 flex items-center justify-center gap-2"
-                  >
-                    {drillLoading
-                      ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Saving…</>
-                      : <>{t.dashboard.drillComplete} ✓</>}
-                  </button>
-                </div>
-              ) : (
-                <div>
-                  <p className="text-sm text-slate-500 leading-relaxed mb-3 line-clamp-2">
-                    {drillInstruction.substring(0, 100)}…
-                  </p>
-                  <button
-                    onClick={() => setDrillExpanded(true)}
-                    className={`text-sm font-semibold px-4 py-2 rounded-xl border transition-all active:scale-95 ${colors.badge} ${colors.border}`}
-                  >
-                    {t.dashboard.drillStart} →
-                  </button>
-                </div>
-              )}
+                {/* Why this drill */}
+                {whyText && !drillState.completed && (
+                  <div className="flex items-center gap-1.5 text-xs text-brand-400 bg-brand-500/10 border border-brand-500/20 rounded-lg px-3 py-1.5 mb-3">
+                    <span>🎯</span>
+                    <span className="font-medium">{language === 'hi' ? 'आज का कारण:' : 'Why today:'} {whyText}</span>
+                  </div>
+                )}
+
+                {/* Drill content */}
+                {drillState.completed ? (
+                  <div className="flex items-center gap-2 text-win-400 text-sm font-semibold bg-win-500/10 rounded-xl px-3 py-2.5">
+                    <span>✅</span>
+                    <span>{t.dashboard.drillDone}</span>
+                    <span className="ml-auto text-xs text-win-600">+15 MXP</span>
+                  </div>
+                ) : drillExpanded ? (
+                  <div className="animate-fade-in">
+                    <div className="bg-dark-700 rounded-xl p-3 mb-4">
+                      <p className="text-sm text-slate-200 leading-relaxed">{drillInstruction}</p>
+                    </div>
+                    <button
+                      onClick={completeDrill}
+                      disabled={drillLoading}
+                      className="w-full py-3 rounded-xl bg-win-600 hover:bg-win-700 text-white font-bold text-sm transition-all active:scale-95 disabled:opacity-60 flex items-center justify-center gap-2"
+                    >
+                      {drillLoading
+                        ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> {language === 'hi' ? 'सेव हो रहा है…' : 'Saving…'}</>
+                        : <>{language === 'hi' ? 'पूरा किया ✓ +15 MXP' : 'Done ✓ +15 MXP'}</>}
+                    </button>
+                    <button onClick={() => setDrillExpanded(false)} className="w-full text-xs text-slate-600 hover:text-slate-400 mt-2 py-1">
+                      {language === 'hi' ? 'छुपाएं' : 'Collapse'}
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-sm text-slate-500 leading-relaxed mb-3">
+                      {drillInstruction.substring(0, 90)}…
+                    </p>
+                    <button
+                      onClick={() => setDrillExpanded(true)}
+                      className={`text-sm font-bold px-5 py-2.5 rounded-xl transition-all active:scale-95 ${colors.badge} border ${colors.border}`}
+                    >
+                      {t.dashboard.drillStart} →
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           );
         })()}
