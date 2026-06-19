@@ -4,6 +4,183 @@ import { ArrowLeft, Zap } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiFetch } from '../api';
 
+// ── Sport-specific personalisation ────────────────────────────────────────────
+
+const SPORT_PROFILES = {
+  cricket: {
+    label: 'cricket',
+    reactionAction: 'BAT!',
+    reactionContext: 'A fast bowler at 140+ km/h gives you ~420ms. Batsmen train daily to cut this.',
+    reactionElite: 220, reactionGood: 290,
+    reactionEliteLabel: 'Elite batsman', reactionBenchmark: 'Elite batsmen: <220ms · Target: <290ms',
+    negThoughts: [
+      'What if I get bowled out first ball?', "I always choke against fast bowling",
+      'The selectors are watching', "I can't face this bowler", 'What if I drop the catch?',
+    ],
+    gridTip: 'Used by BCCI academies and county coaches to sharpen scanning speed in the field.',
+    stroopTip: 'Helps batsmen ignore scoreboard and crowd noise — focus only on ball trajectory.',
+    thoughtTip: 'Pop those pre-innings nerves. Every ball is a fresh start.',
+    filterTip: 'Trains you to hear your own cue words above crowd noise and commentary.',
+  },
+  football: {
+    label: 'football',
+    reactionAction: 'SAVE!',
+    reactionContext: 'A penalty kick reaches the goal in ~300ms. Goalkeepers must react before the ball leaves the boot.',
+    reactionElite: 220, reactionGood: 300,
+    reactionEliteLabel: 'Elite goalkeeper', reactionBenchmark: 'Elite goalkeepers: <220ms · Target: <300ms',
+    negThoughts: [
+      'What if I miss the penalty?', "I always freeze under pressure",
+      'The whole team is depending on me', "I haven't scored in 3 games", 'What if I get tackled?',
+    ],
+    gridTip: 'Used by European football academies to train midfielders\' spatial awareness and scanning.',
+    stroopTip: 'Sharpens split-second decision-making — pass, shoot, or hold?',
+    thoughtTip: 'Clear the mental clutter before every match. Confidence is earned by showing up.',
+    filterTip: 'Helps you focus on "Process" and "Position" over "Crowd" and "Result" pressure.',
+  },
+  badminton: {
+    label: 'badminton',
+    reactionAction: 'HIT!',
+    reactionContext: 'A smash at 300+ km/h leaves under 300ms to react — the fastest reaction sport.',
+    reactionElite: 190, reactionGood: 260,
+    reactionEliteLabel: 'Elite shuttler', reactionBenchmark: 'Elite shuttlers: <190ms · Target: <260ms',
+    negThoughts: [
+      'What if I net the shuttle?', "I can't return their smash",
+      'I lost the last 3 rallies', 'What if I cramp up?', "My footwork isn't fast enough",
+    ],
+    gridTip: 'Sharpens the fast court scanning shuttlers use to read opponent position.',
+    stroopTip: 'Trains shuttle tracking — brain ignores irrelevant cues, locks on the shuttle.',
+    thoughtTip: 'Every rally is new. Pop the last rally\'s doubts before the next one starts.',
+    filterTip: 'Helps you stay "Zone" and "Ready" rather than "Judge" and "Result" focused.',
+  },
+  tennis: {
+    label: 'tennis',
+    reactionAction: 'HIT!',
+    reactionContext: 'A 200+ km/h serve gives you under 400ms. Tennis players train reaction from childhood.',
+    reactionElite: 210, reactionGood: 280,
+    reactionEliteLabel: 'Elite player', reactionBenchmark: 'Elite players: <210ms · Target: <280ms',
+    negThoughts: [
+      'What if I double fault?', 'I always tighten up on match point',
+      'My second serve is weak', 'What if I choke the tiebreak?', "I'm not good enough for this level",
+    ],
+    gridTip: 'Used in high-performance tennis programs to train court awareness and ball-tracking.',
+    stroopTip: 'Builds the attention control to watch the ball hit the racquet, not the opponent.',
+    thoughtTip: 'Each point is 0-0. Pop the previous game\'s pressure before the next serve.',
+    filterTip: 'Trains the mental skill of focusing on "Play" and "Now" over "Score" and "Crowd".',
+  },
+  hockey: {
+    label: 'hockey',
+    reactionAction: 'HIT!',
+    reactionContext: 'A drag flick reaches the goalkeeper in under 300ms — fastest in field sports.',
+    reactionElite: 210, reactionGood: 280,
+    reactionEliteLabel: 'Elite player', reactionBenchmark: 'Elite players: <210ms · Target: <280ms',
+    negThoughts: [
+      'What if I miss the drag flick?', "I can't hold my position under pressure",
+      'The defender is too fast', 'What if I get yellow-carded?', 'I made an error last match',
+    ],
+    gridTip: 'Used by national-level hockey programs to train visual scanning across the pitch.',
+    stroopTip: 'Trains rapid decision-making — pass, dribble, or shoot in a split second.',
+    thoughtTip: 'Clear match anxiety one thought at a time. Pop it, replace it, play.',
+    filterTip: 'Builds the mental discipline to filter tactical cues from crowd pressure.',
+  },
+  boxing: {
+    label: 'boxing',
+    reactionAction: 'DODGE!',
+    reactionContext: 'A punch travels at 40+ km/h — reaction and anticipation are everything in boxing.',
+    reactionElite: 180, reactionGood: 250,
+    reactionEliteLabel: 'Elite boxer', reactionBenchmark: 'Elite boxers: <180ms · Target: <250ms',
+    negThoughts: [
+      "What if I can't take the punch?", 'My opponent is faster',
+      "I've never won at this level", 'What if I freeze?', 'My corner doubts me',
+    ],
+    gridTip: 'Trains the rapid visual scanning boxers use to track punches and openings.',
+    stroopTip: 'Sharpens the ability to read head movement, not flinch on feints.',
+    thoughtTip: 'Clear the fear between rounds. Champions fight one round at a time.',
+    filterTip: 'Trains focus words ("Breathe", "Jab", "Move") over noise ("Hurt", "Lose").',
+  },
+  wrestling: {
+    label: 'wrestling',
+    reactionAction: 'MOVE!',
+    reactionContext: 'First-move advantage in wrestling is decided in under 200ms — every millisecond counts.',
+    reactionElite: 220, reactionGood: 300,
+    reactionEliteLabel: 'Elite wrestler', reactionBenchmark: 'Elite wrestlers: <220ms · Target: <300ms',
+    negThoughts: [
+      "I can't take this opponent down", 'What if I get pinned?',
+      'My opponent is stronger', 'I lost the last match against them', "My technique isn't clean",
+    ],
+    gridTip: 'Trains the spatial awareness wrestlers use to track opponent position in real time.',
+    stroopTip: 'Builds decision speed — attack, defend, or wait — in fractions of a second.',
+    thoughtTip: 'Clear doubt before the whistle. Each period is a chance to reset.',
+    filterTip: 'Helps focus on "Now" and "Act" rather than "Result" and "Fear" under match pressure.',
+  },
+  kabaddi: {
+    label: 'kabaddi',
+    reactionAction: 'TAG!',
+    reactionContext: 'A raider escapes in ~400ms. Defenders must read body language before the raider moves.',
+    reactionElite: 220, reactionGood: 300,
+    reactionEliteLabel: 'Elite kabaddi player', reactionBenchmark: 'Elite players: <220ms · Target: <300ms',
+    negThoughts: [
+      'What if I miss the tackle?', "I can't hold the raider",
+      'My team is losing because of me', 'What if I run out of breath?', 'The crowd is against us',
+    ],
+    gridTip: 'Trains the spatial scanning kabaddi defenders use to anticipate raider movements.',
+    stroopTip: 'Builds rapid body-read ability — react to movement, not to noise.',
+    thoughtTip: 'One raid at a time. Pop the last one\'s pressure before the next begins.',
+    filterTip: 'Builds "Zone" focus over crowd pressure — critical in pro kabaddi venues.',
+  },
+  athletics: {
+    label: 'athletics',
+    reactionAction: 'GO!',
+    reactionContext: 'Elite sprinters leave the block within 130ms of the gun. A false start costs the race.',
+    reactionElite: 160, reactionGood: 230,
+    reactionEliteLabel: 'Elite sprinter', reactionBenchmark: 'Elite sprinters: <160ms · Target: <230ms',
+    negThoughts: [
+      "What if I false start?", "I'm not fast enough",
+      'My competitor is in better form', 'What if I cramp up?', 'I peaked in training',
+    ],
+    gridTip: 'Used in sprint programs to train track scanning and split-time anticipation.',
+    stroopTip: 'Trains focus on starting signal — blocks out stadium noise and crowd anxiety.',
+    thoughtTip: 'Clear the blocks, clear the mind. Pop the pressure, run free.',
+    filterTip: 'Trains race-day focus: "Start", "Drive", "Lean" over "Crowd" and "Result".',
+  },
+  swimming: {
+    label: 'swimming',
+    reactionAction: 'DIVE!',
+    reactionContext: 'Elite swimmers leave the block within 600ms. Reaction training shortens start times.',
+    reactionElite: 200, reactionGood: 280,
+    reactionEliteLabel: 'Elite swimmer', reactionBenchmark: 'Elite swimmers: <200ms · Target: <280ms',
+    negThoughts: [
+      "What if I false start?", "My turns aren't fast enough",
+      'The other lane is faster', 'What if I lose my stroke rhythm?', 'I peaked in training',
+    ],
+    gridTip: 'Trains the quick visual scanning used during turns and competitor tracking.',
+    stroopTip: 'Builds ability to lock into stroke rhythm, ignore lane pressure and timers.',
+    thoughtTip: 'Length by length. Pop the last lap\'s doubt before pushing off the wall.',
+    filterTip: 'Trains "Rhythm", "Now", "Breathe" focus over "Lane" and "Time" pressure.',
+  },
+};
+
+const DEFAULT_SPORT_PROFILE = {
+  label: 'athlete',
+  reactionAction: 'TAP!',
+  reactionContext: 'Reaction speed is trainable — 3 weeks of daily practice can cut 30–50ms.',
+  reactionElite: 220, reactionGood: 300,
+  reactionEliteLabel: 'Elite athlete', reactionBenchmark: 'Elite athletes: <220ms · Target: <300ms',
+  negThoughts: [
+    'What if I fail?', "I'm not ready", "Everyone's watching",
+    'I always choke', 'What if I get dropped?', "I'm not good enough",
+    "They'll judge me", "I'm too nervous", 'Last time was terrible',
+    "I can't handle this pressure",
+  ],
+  gridTip: 'Used by elite teams worldwide to train selective attention and scanning speed.',
+  stroopTip: 'Trains inhibitory control — blocking distractions to stay focused under pressure.',
+  thoughtTip: 'Based on Thought Stopping — a CBT technique used by sport psychologists worldwide.',
+  filterTip: 'Trains selective attention and distraction resistance — crucial under competition pressure.',
+};
+
+function getSportProfile(sport) {
+  return SPORT_PROFILES[sport] || DEFAULT_SPORT_PROFILE;
+}
+
 // ── Game catalogue ──────────────────────────────────────────────────────────────
 
 const GAMES = [
@@ -16,7 +193,7 @@ const GAMES = [
     duration: '60 sec',
     description: 'Find numbers 1→25 in order as fast as you can.',
     descHi: 'जल्दी से 1→25 क्रम में संख्याएं ढूंढें।',
-    tip: 'Used by NFL teams, cricket academies, and Olympic athletes to train selective attention and scanning speed.',
+    getTip: (sp) => sp.gridTip,
   },
   {
     id: 'stroop_focus',
@@ -27,7 +204,7 @@ const GAMES = [
     duration: '60 sec',
     description: 'Tap the ink COLOR — ignore what the word says.',
     descHi: 'स्याही का रंग टैप करें — शब्द को नज़रअंदाज़ करें।',
-    tip: 'The Stroop Effect trains inhibitory control — blocking distractions to focus on what actually matters under pressure.',
+    getTip: (sp) => sp.stroopTip,
   },
   {
     id: 'reaction_ball',
@@ -38,7 +215,7 @@ const GAMES = [
     duration: '5 rounds',
     description: 'Tap as fast as you can when the ball appears.',
     descHi: 'बॉल दिखते ही जितनी जल्दी हो सके टैप करें।',
-    tip: 'Elite cricket batsmen react in under 220ms. Reaction speed is trainable — 3 weeks of practice can cut 30-50ms.',
+    getTip: (sp) => `${sp.reactionContext} Reaction speed is trainable — 3 weeks of practice can cut 30–50ms.`,
   },
   {
     id: 'thought_buster',
@@ -49,7 +226,7 @@ const GAMES = [
     duration: '45 sec',
     description: 'Pop negative thoughts before they take over.',
     descHi: 'नकारात्मक विचारों को उनके हावी होने से पहले पॉप करें।',
-    tip: 'Based on Thought Stopping — a proven CBT technique used by sport psychologists to interrupt negative self-talk.',
+    getTip: (sp) => `${sp.thoughtTip} Based on CBT Thought Stopping — a proven sport psychology technique.`,
   },
   {
     id: 'focus_filter',
@@ -60,7 +237,7 @@ const GAMES = [
     duration: '45 sec',
     description: 'Pick FOCUS words, reject NOISE words. Fast.',
     descHi: 'फोकस शब्द चुनें, शोर के शब्द रिजेक्ट करें।',
-    tip: 'Trains selective attention and distraction resistance — the exact mental skill needed under competition pressure.',
+    getTip: (sp) => sp.filterTip,
   },
 ];
 
@@ -327,7 +504,8 @@ function StroopFocus({ onDone }) {
 // ── GAME 3: Reaction Ball ──────────────────────────────────────────────────────
 // Go/No-Go paradigm — tap on green, wait through the anticipation phase
 
-function ReactionBall({ onDone }) {
+function ReactionBall({ onDone, sportProfile }) {
+  const sp = sportProfile;
   const [phase, setPhase]   = useState('ready'); // ready|waiting|green|result|done
   const [round, setRound]   = useState(1);
   const [times, setTimes]   = useState([]);
@@ -392,7 +570,8 @@ function ReactionBall({ onDone }) {
   if (phase === 'ready') return (
     <div className="text-center py-2">
       <p className="text-slate-300 text-sm mb-1">Wait for the circle to turn <span className="text-win-400 font-bold">GREEN</span>.</p>
-      <p className="text-slate-300 text-sm mb-5">Tap it immediately. Don't tap early!</p>
+      <p className="text-slate-400 text-xs mb-3 leading-relaxed">{sp.reactionContext}</p>
+      <p className="text-slate-500 text-xs mb-5">5 rounds · Don't tap early!</p>
       {hi > 0 && hi < 9999 && <p className="text-xs text-amber-400 mb-4">Your best: {hi}ms avg</p>}
       <button onClick={() => { doneRef.current = false; beginWait(); }} className="btn-primary">Start →</button>
     </div>
@@ -401,7 +580,10 @@ function ReactionBall({ onDone }) {
   if (phase === 'done') {
     const newHi = parseInt(localStorage.getItem('hi_reaction') || '9999');
     const avg = Math.round(times.reduce((a, b) => a + b, 0) / times.length);
-    const rating = avg < 220 ? '🏆 Elite Reflex' : avg < 280 ? '🔥 Strong' : avg < 350 ? '💪 Good' : '📈 Train Daily';
+    const rating =
+      avg < sp.reactionElite ? `🏆 ${sp.reactionEliteLabel}` :
+      avg < sp.reactionGood  ? '🔥 Strong' :
+      avg < sp.reactionGood + 70 ? '💪 Good' : '📈 Train Daily';
     return (
       <div className="text-center py-2">
         <p className="text-4xl font-black text-white mb-1">{avg}<span className="text-slate-400 text-xl">ms avg</span></p>
@@ -412,7 +594,7 @@ function ReactionBall({ onDone }) {
             <span key={i} className="text-xs bg-dark-700 px-2 py-1 rounded-lg text-slate-400">R{i+1}: {t}ms</span>
           ))}
         </div>
-        <p className="text-xs text-slate-500 mb-5">Elite batsmen: &lt;220ms · Target: &lt;280ms</p>
+        <p className="text-xs text-slate-500 mb-5">{sp.reactionBenchmark}</p>
         <button onClick={reset} className="btn-secondary text-sm">Play Again</button>
       </div>
     );
@@ -430,7 +612,7 @@ function ReactionBall({ onDone }) {
         }`}
       >
         {phase === 'waiting' && <span className="text-slate-600 text-4xl">●</span>}
-        {phase === 'green'   && 'TAP!'}
+        {phase === 'green'   && sp.reactionAction}
         {phase === 'result'  && (early ? '⚡ Early!' : `${lastMs}ms`)}
       </button>
       {phase === 'waiting' && <p className="text-slate-500 text-sm mt-5">Wait for green…</p>}
@@ -442,7 +624,7 @@ function ReactionBall({ onDone }) {
 // ── GAME 4: Thought Buster ────────────────────────────────────────────────────
 // CBT thought stopping — pop negative thought bubbles, replace with focus words
 
-const NEG_THOUGHTS = [
+const UNIVERSAL_NEG_THOUGHTS = [
   'What if I fail?', "I'm not ready", "Everyone's watching",
   'I always choke', 'What if I get dropped?', "I'm not good enough",
   "They'll judge me", "I'm too nervous", 'Last time was terrible',
@@ -452,12 +634,16 @@ const COUNTER_WORDS = ['Trust', 'Breathe', 'Focus', 'Now', 'Process', 'Here', 'S
 
 let _bubbleId = 0;
 
-function ThoughtBuster({ onDone }) {
+function ThoughtBuster({ onDone, sportProfile }) {
+  const negThoughts = [
+    ...(sportProfile?.negThoughts || []),
+    ...UNIVERSAL_NEG_THOUGHTS,
+  ].slice(0, 14); // blend sport-specific + universal, cap at 14
   const [phase, setPhase]           = useState('ready');
   const [bubbles, setBubbles]       = useState([]);
   const [score, setScore]           = useState(0);
   const [pops, setPops]             = useState([]); // [{id, word, x, y}]
-  const queueRef                    = useRef(shuffle([...NEG_THOUGHTS, ...NEG_THOUGHTS]));
+  const queueRef                    = useRef(shuffle([...negThoughts, ...negThoughts]));
   const qIdxRef                     = useRef(0);
   const spawnRef                    = useRef(null);
   const doneRef                     = useRef(false);
@@ -505,7 +691,7 @@ function ThoughtBuster({ onDone }) {
     doneRef.current = false;
     scoreRef.current = 0;
     qIdxRef.current = 0;
-    queueRef.current = shuffle([...NEG_THOUGHTS, ...NEG_THOUGHTS]);
+    queueRef.current = shuffle([...negThoughts, ...negThoughts]);
     setBubbles([]);
     setPops([]);
     setScore(0);
@@ -711,10 +897,11 @@ const GAME_COMPONENTS = {
   focus_filter:       FocusFilter,
 };
 
-function GameRunner({ gameId, onBack, onDone, xpEarned }) {
+function GameRunner({ gameId, onBack, onDone, xpEarned, sportProfile }) {
   const game = GAMES.find(g => g.id === gameId);
   const GameComponent = GAME_COMPONENTS[gameId];
   const style = TYPE_STYLES[game.type];
+  const tip = game.getTip(sportProfile);
 
   return (
     <div className="animate-fade-in">
@@ -729,12 +916,15 @@ function GameRunner({ gameId, onBack, onDone, xpEarned }) {
           <div className="flex items-center gap-2 mt-0.5">
             <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${style.badge}`}>{game.type}</span>
             <span className="text-[10px] text-slate-500">{game.duration}</span>
+            {sportProfile.label !== 'athlete' && (
+              <span className="text-[10px] text-brand-400">· for {sportProfile.label}</span>
+            )}
           </div>
         </div>
       </div>
 
       <div className={`bg-dark-800 rounded-2xl border border-dark-600 border-t-4 ${style.topBorder} p-5 mb-4`}>
-        <GameComponent onDone={onDone} />
+        <GameComponent onDone={onDone} sportProfile={sportProfile} />
       </div>
 
       {xpEarned && (
@@ -746,7 +936,7 @@ function GameRunner({ gameId, onBack, onDone, xpEarned }) {
 
       <div className="bg-dark-800/50 border border-dark-600 rounded-xl px-4 py-3">
         <p className="text-xs text-slate-500 leading-relaxed">
-          <span className="text-slate-400 font-medium">Why this helps: </span>{game.tip}
+          <span className="text-slate-400 font-medium">Why this helps: </span>{tip}
         </p>
       </div>
     </div>
@@ -756,7 +946,8 @@ function GameRunner({ gameId, onBack, onDone, xpEarned }) {
 // ── Main GamesPage ─────────────────────────────────────────────────────────────
 
 function GamesPage() {
-  const { token, language } = useAuth();
+  const { token, language, user } = useAuth();
+  const sportProfile = getSportProfile(user?.sport);
   const [activeGame, setActiveGame]   = useState(null);
   const [xpMap, setXpMap]             = useState({}); // gameId → xpEarned
   const [played, setPlayed]           = useState(() => {
@@ -818,6 +1009,7 @@ function GamesPage() {
             onBack={() => setActiveGame(null)}
             onDone={(score) => handleDone(activeGame, score)}
             xpEarned={xpMap[activeGame]}
+            sportProfile={sportProfile}
           />
         ) : (
           <>
