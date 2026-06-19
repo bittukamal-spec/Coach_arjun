@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, CheckSquare, MessageCircle, TrendingUp, User } from 'lucide-react';
+import { Home, CheckSquare, MessageCircle, Gamepad2, TrendingUp } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 
@@ -7,8 +7,8 @@ const NAV_ITEMS = [
   { icon: Home,          labelKey: 'home',     path: '/dashboard' },
   { icon: CheckSquare,   labelKey: 'checkin',  path: '/checkin'   },
   { icon: MessageCircle, labelKey: 'coach',    path: '/coaching'  },
+  { icon: Gamepad2,      labelKey: 'games',    path: '/games'     },
   { icon: TrendingUp,    labelKey: 'progress', path: '/progress'  },
-  { icon: User,          labelKey: 'profile',  path: '/account'   },
 ];
 
 function BottomNav() {

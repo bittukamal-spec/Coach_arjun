@@ -61,6 +61,7 @@ export const translations = {
       home: 'Home',
       checkin: 'Check-in',
       coach: 'Arjun',
+      games: 'Games',
       profile: 'Profile',
     },
     dashboard: {
@@ -387,6 +388,7 @@ export const translations = {
       home: 'होम',
       checkin: 'चेक-इन',
       coach: 'अर्जुन',
+      games: 'गेम्स',
       profile: 'प्रोफाइल',
     },
     dashboard: {

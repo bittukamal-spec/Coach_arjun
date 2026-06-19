@@ -13,6 +13,7 @@ import AccountPage from './pages/AccountPage';
 import BreathingPage from './pages/BreathingPage';
 import RitualPage from './pages/RitualPage';
 import DebriefPage from './pages/DebriefPage';
+import GamesPage from './pages/GamesPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -124,6 +125,15 @@ function App() {
         element={
           <ProtectedRoute requireOnboarding={true}>
             <DebriefPage />
+            <BottomNav />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/games"
+        element={
+          <ProtectedRoute requireOnboarding={true}>
+            <GamesPage />
             <BottomNav />
           </ProtectedRoute>
         }
