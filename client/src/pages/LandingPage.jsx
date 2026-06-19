@@ -24,27 +24,31 @@ function LandingPage() {
 
   const [installPrompt, setInstallPrompt] = useState(null);
   const [installed, setInstalled]         = useState(false);
-  const [isIOS, setIsIOS]                 = useState(false);
-  const [showIOSHint, setShowIOSHint]     = useState(false);
+  const [showHint, setShowHint]           = useState(false);
+
+  // Detect platform
+  const isIOS        = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+  const isAndroid    = /android/i.test(navigator.userAgent);
+  const isStandalone = window.navigator.standalone ||
+                       window.matchMedia('(display-mode: standalone)').matches;
 
   useEffect(() => {
-    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
-    const standalone = window.navigator.standalone;
-    setIsIOS(ios);
-    if (standalone) setInstalled(true);
-
+    if (isStandalone) setInstalled(true);
     const handler = (e) => { e.preventDefault(); setInstallPrompt(e); };
     window.addEventListener('beforeinstallprompt', handler);
-    window.addEventListener('appinstalled', () => setInstalled(true));
+    window.addEventListener('appinstalled', () => { setInstalled(true); setInstallPrompt(null); });
     return () => window.removeEventListener('beforeinstallprompt', handler);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleInstall() {
-    if (!installPrompt) return;
-    installPrompt.prompt();
-    const { outcome } = await installPrompt.userChoice;
-    if (outcome === 'accepted') setInstalled(true);
-    setInstallPrompt(null);
+    if (installPrompt) {
+      installPrompt.prompt();
+      const { outcome } = await installPrompt.userChoice;
+      if (outcome === 'accepted') setInstalled(true);
+      setInstallPrompt(null);
+    } else {
+      setShowHint(true);
+    }
   }
 
   const taglineLines = t.landing.tagline.split('\n');
@@ -110,22 +114,22 @@ function LandingPage() {
           ))}
         </div>
 
-        {/* ── Install CTAs ── */}
+        {/* ── CTAs ── */}
         {installed ? (
           <div className="flex flex-col items-center gap-3">
             <div className="flex items-center gap-2 text-win-400 text-sm font-semibold bg-win-500/10 border border-win-500/20 px-6 py-3 rounded-2xl">
               <span>✓</span> App installed — open it from your home screen
             </div>
             <button onClick={() => navigate('/auth')} className="text-sm text-slate-500 hover:text-slate-300 transition-colors">
-              Or sign in here →
+              Sign in →
             </button>
           </div>
-        ) : installPrompt ? (
-          /* Android: native install prompt available */
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+        ) : (
+          <div className="flex flex-col items-center gap-4">
+            {/* Primary: Install button — always shown */}
             <button
               onClick={handleInstall}
-              className="flex items-center gap-3 bg-brand-500 hover:bg-brand-600 text-white font-bold px-8 py-4 rounded-2xl shadow-xl shadow-brand-500/30 transition-all active:scale-95 text-base"
+              className="flex items-center gap-3 bg-brand-500 hover:bg-brand-600 text-white font-bold px-8 py-4 rounded-2xl shadow-xl shadow-brand-500/30 transition-all active:scale-95 text-base w-full max-w-xs justify-center"
             >
               <span className="text-xl">📲</span>
               <div className="text-left">
@@ -133,54 +137,43 @@ function LandingPage() {
                 <p className="text-xs font-normal text-brand-200 mt-0.5">Add to home screen — free</p>
               </div>
             </button>
-            <button
-              onClick={() => navigate('/auth')}
-              className="text-sm text-slate-400 hover:text-white transition-colors underline underline-offset-4"
-            >
-              Use in browser instead
-            </button>
-          </div>
-        ) : isIOS ? (
-          /* iPhone: show manual instructions */
-          <div className="flex flex-col items-center gap-4">
-            <button
-              onClick={() => navigate('/auth')}
-              className="btn-primary px-10 py-4 text-base"
-            >
-              Get Started Free
-            </button>
-            <button
-              onClick={() => setShowIOSHint(h => !h)}
-              className="text-sm text-brand-400 hover:text-brand-300 transition-colors"
-            >
-              📲 Want to install on iPhone?
-            </button>
-            {showIOSHint && (
-              <div className="bg-dark-800 border border-dark-600 rounded-2xl px-5 py-4 text-sm text-slate-400 text-left max-w-xs">
-                <p className="font-semibold text-white mb-2">Add to Home Screen on iPhone:</p>
-                <ol className="space-y-1 list-decimal list-inside text-slate-400">
-                  <li>Open this page in <strong className="text-white">Safari</strong></li>
-                  <li>Tap the <strong className="text-white">Share</strong> button (box with arrow)</li>
-                  <li>Tap <strong className="text-white">"Add to Home Screen"</strong></li>
-                  <li>Tap <strong className="text-white">Add</strong></li>
-                </ol>
+
+            {/* Install hint popup */}
+            {showHint && (
+              <div className="bg-dark-800 border border-dark-500 rounded-2xl px-5 py-4 text-sm text-left max-w-xs w-full">
+                <p className="font-semibold text-white mb-3">How to install:</p>
+                {isIOS ? (
+                  <ol className="space-y-1.5 list-decimal list-inside text-slate-400">
+                    <li>Open this page in <strong className="text-white">Safari</strong></li>
+                    <li>Tap <strong className="text-white">Share</strong> (box with ↑ arrow)</li>
+                    <li>Tap <strong className="text-white">"Add to Home Screen"</strong></li>
+                    <li>Tap <strong className="text-white">Add</strong></li>
+                  </ol>
+                ) : isAndroid ? (
+                  <ol className="space-y-1.5 list-decimal list-inside text-slate-400">
+                    <li>Tap the <strong className="text-white">⋮ menu</strong> in Chrome</li>
+                    <li>Tap <strong className="text-white">"Add to Home screen"</strong></li>
+                    <li>Tap <strong className="text-white">Add</strong></li>
+                  </ol>
+                ) : (
+                  <ol className="space-y-1.5 list-decimal list-inside text-slate-400">
+                    <li>Look for the <strong className="text-white">install icon</strong> in your browser address bar (↓ with a circle)</li>
+                    <li>Click it and select <strong className="text-white">Install</strong></li>
+                    <li>Or tap <strong className="text-white">⋮ → Install Arjun</strong></li>
+                  </ol>
+                )}
+                <button onClick={() => setShowHint(false)} className="mt-3 text-xs text-slate-600 hover:text-slate-400">
+                  Close
+                </button>
               </div>
             )}
-          </div>
-        ) : (
-          /* Desktop or prompt not yet fired */
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+
+            {/* Secondary: sign up in browser */}
             <button
               onClick={() => navigate('/auth')}
-              className="btn-primary px-10 py-4 text-base"
+              className="text-sm text-slate-500 hover:text-slate-300 transition-colors"
             >
-              Get Started Free
-            </button>
-            <button
-              onClick={() => navigate('/auth?tab=signin')}
-              className="btn-secondary px-8 py-4 text-base"
-            >
-              Sign In
+              Or sign up / sign in without installing →
             </button>
           </div>
         )}
@@ -313,10 +306,10 @@ function LandingPage() {
           <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">{t.landing.ctaTitle}</h2>
           <p className="text-slate-400 mb-8">{t.landing.ctaDesc}</p>
           <button
-            onClick={installPrompt && !installed ? handleInstall : () => navigate('/auth')}
+            onClick={installed ? () => navigate('/auth') : handleInstall}
             className="btn-primary px-10 py-4 text-base"
           >
-            {installPrompt && !installed ? '📲 Install Arjun App' : t.landing.ctaBtn}
+            {installed ? t.landing.ctaBtn : '📲 Install Arjun App'}
           </button>
         </div>
       </section>
