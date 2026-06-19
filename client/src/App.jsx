@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import LandingPage from './pages/LandingPage';
+import AuthPage from './pages/AuthPage';
 import Dashboard from './pages/Dashboard';
 import OnboardingPage from './pages/OnboardingPage';
 import ChatPage from './pages/ChatPage';
@@ -35,6 +36,7 @@ function App() {
     <Routes>
       {/* Public */}
       <Route path="/" element={<LandingPage />} />
+      <Route path="/auth" element={<AuthPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
 

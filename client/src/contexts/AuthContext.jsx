@@ -19,15 +19,16 @@ export function AuthProvider({ children }) {
       if (res.ok) {
         const data = await res.json();
         setUser(data.user);
-        // Sync language from the user's saved preference
         const userLang = data.user.language || 'en';
         setLanguage(userLang);
         localStorage.setItem('mg_language', userLang);
-      } else {
+      } else if (res.status === 401 || res.status === 403) {
+        // Token is genuinely invalid — clear it
         logout();
       }
+      // Any other server error: keep the token, user stays logged in
     } catch {
-      logout();
+      // Network error (Railway cold start, no internet) — don't log out
     } finally {
       setLoading(false);
     }
