@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { ChevronLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
@@ -11,7 +12,8 @@ const METRICS = [
   {
     key: 'mood',
     labelKey: 'moodLabel',
-    color: { ring: 'border-violet-500', bg: 'bg-violet-500/10', text: 'text-violet-400' },
+    questionEn: "How's your mood?",
+    questionHi: 'आज का मूड कैसा है?',
     options: [
       { v: 1, emoji: '😞', labelKey: 'mood1' },
       { v: 2, emoji: '😕', labelKey: 'mood2' },
@@ -19,11 +21,14 @@ const METRICS = [
       { v: 4, emoji: '😊', labelKey: 'mood4' },
       { v: 5, emoji: '😄', labelKey: 'mood5' },
     ],
+    color: 'border-brand-500 bg-brand-500/10 text-brand-600',
+    barColor: 'bg-brand-500',
   },
   {
     key: 'focus',
     labelKey: 'focusLabel',
-    color: { ring: 'border-blue-500', bg: 'bg-blue-500/10', text: 'text-blue-400' },
+    questionEn: "How's your focus?",
+    questionHi: 'आज का फोकस कैसा है?',
     options: [
       { v: 1, emoji: '🌀', labelKey: 'focus1' },
       { v: 2, emoji: '😶', labelKey: 'focus2' },
@@ -31,11 +36,14 @@ const METRICS = [
       { v: 4, emoji: '🎯', labelKey: 'focus4' },
       { v: 5, emoji: '⚡', labelKey: 'focus5' },
     ],
+    color: 'border-sky-500 bg-sky-500/10 text-sky-600',
+    barColor: 'bg-sky-500',
   },
   {
     key: 'confidence',
     labelKey: 'confidenceLabel',
-    color: { ring: 'border-orange-500', bg: 'bg-orange-500/10', text: 'text-orange-400' },
+    questionEn: "How's your confidence?",
+    questionHi: 'आत्मविश्वास कैसा है?',
     options: [
       { v: 1, emoji: '😨', labelKey: 'conf1' },
       { v: 2, emoji: '😟', labelKey: 'conf2' },
@@ -43,148 +51,23 @@ const METRICS = [
       { v: 4, emoji: '💪', labelKey: 'conf4' },
       { v: 5, emoji: '🔥', labelKey: 'conf5' },
     ],
+    color: 'border-win-500 bg-win-500/10 text-win-600',
+    barColor: 'bg-win-500',
   },
 ];
 
-// Rule-based insight — no API call needed
+const STEPS = ['mood', 'focus', 'confidence', 'notes'];
+
 function getInsight(checkIn, language) {
   const { mood, focus, confidence } = checkIn;
   const avg = (mood + focus + confidence) / 3;
-
   const pick = (en, hi) => language === 'hi' ? hi : en;
-
-  if (avg >= 4.5)  return pick("You're at your peak today! Push hard in training — this is your window.", "आज आप चोटी पर हैं! ट्रेनिंग में जोर लगाएं — यह आपका सुनहरा मौका है।");
-  if (focus <= 2)  return pick("Focus is low today. Try box breathing: 4 counts in → hold 4 → out 4. Repeat 3 times.", "आज फोकस कम है। बॉक्स ब्रीदिंग आज़माएं: 4 सांस लें → 4 रोकें → 4 छोड़ें। 3 बार दोहराएं।");
-  if (confidence <= 2) return pick("Confidence is shaky — that's normal before big challenges. Recall your best performance; that athlete is still you.", "आत्मविश्वास कम है — बड़े चैलेंज से पहले यह सामान्य है। अपने सर्वश्रेष्ठ प्रदर्शन को याद करें; वह एथलीट अभी भी आप हैं।");
-  if (mood <= 2)   return pick("Mood is low — be kind to yourself today. A light session and good rest may serve you better than pushing hard.", "मूड कम है — आज खुद के प्रति दयालु रहें। हल्की ट्रेनिंग और अच्छा आराम आज बेहतर रहेगा।");
-  if (avg >= 3.5)  return pick("Solid mental state today. Channel it into focused, deliberate practice.", "आज मानसिक स्थिति अच्छी है। इसे केंद्रित और सोच-समझकर की गई प्रैक्टिस में लगाएं।");
-  return pick("Every check-in builds self-awareness. Your coach can help you work through today's feelings.", "हर चेक-इन आत्म-जागरूकता बढ़ाता है। आपका कोच आज की भावनाओं में मदद कर सकता है।");
-}
-
-// ─── Sub-components ────────────────────────────────────────────────────────────
-
-function MetricPill({ emoji, label, value, color }) {
-  return (
-    <div className={`flex flex-col items-center gap-1 px-4 py-3 rounded-xl ${color.bg} border border-dark-500`}>
-      <span className="text-2xl">{emoji}</span>
-      <span className={`text-xs font-semibold ${color.text}`}>{label}</span>
-      <span className="text-xs text-slt">{value}/5</span>
-    </div>
-  );
-}
-
-function ResultCard({ checkIn, isNew, language, t, xpEarned, newAchievements }) {
-  const insight = getInsight(checkIn, language);
-
-  const metricEmojis = {
-    mood:       METRICS[0].options[checkIn.mood - 1].emoji,
-    focus:      METRICS[1].options[checkIn.focus - 1].emoji,
-    confidence: METRICS[2].options[checkIn.confidence - 1].emoji,
-  };
-
-  return (
-    <div className="animate-fade-in">
-      {/* Header */}
-      <div className="text-center mb-6">
-        <div className="text-5xl mb-3">✅</div>
-        <h2 className="text-xl font-bold text-ink mb-1">
-          {isNew ? t.savedTitle : t.alreadyTitle}
-        </h2>
-        <p className="text-sm text-slt">
-          {isNew ? t.savedSubtitle : t.alreadySubtitle}
-        </p>
-      </div>
-
-      {/* Ratings summary */}
-      <div className="flex justify-center gap-3 mb-5">
-        {METRICS.map(m => (
-          <MetricPill
-            key={m.key}
-            emoji={metricEmojis[m.key]}
-            label={t[m.labelKey]}
-            value={checkIn[m.key]}
-            color={m.color}
-          />
-        ))}
-      </div>
-
-      {/* Reflection */}
-      {checkIn.reflection && (
-        <div className="bg-dark-700 border border-dark-500 rounded-xl px-4 py-3 mb-3 text-sm text-ink italic">
-          "{checkIn.reflection}"
-        </div>
-      )}
-
-      {/* Gratitude */}
-      {checkIn.gratitude && (
-        <div className="bg-win-500/10 border border-win-500/20 rounded-xl px-4 py-3 mb-3 text-sm text-win-300 flex items-start gap-2">
-          <span className="shrink-0">🙏</span>
-          <span className="italic">"{checkIn.gratitude}"</span>
-        </div>
-      )}
-
-      {/* Energy + Sleep quick summary */}
-      {(checkIn.energy || checkIn.sleep) && (
-        <div className="flex items-center gap-3 mb-4">
-          {checkIn.energy && (
-            <div className="flex items-center gap-1.5 bg-dark-700 border border-dark-500 rounded-xl px-3 py-2 text-xs text-ink">
-              <span>⚡</span>
-              <span>Energy: {checkIn.energy}/5</span>
-            </div>
-          )}
-          {checkIn.sleep && (
-            <div className="flex items-center gap-1.5 bg-dark-700 border border-dark-500 rounded-xl px-3 py-2 text-xs text-ink">
-              <span>🌙</span>
-              <span>Sleep: {checkIn.sleep.charAt(0).toUpperCase() + checkIn.sleep.slice(1)}</span>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Insight */}
-      <div className="bg-brand-600/10 border border-brand-600/20 rounded-xl px-4 py-3 mb-6 text-sm text-brand-500 leading-relaxed">
-        💡 {insight}
-      </div>
-
-      {/* XP earned (only on new save) */}
-      {isNew && xpEarned && (
-        <div className="flex items-center justify-center gap-2 mb-4 animate-fade-in">
-          <Zap size={16} className="text-brand-400" />
-          <span className="text-brand-400 font-semibold text-sm">+{xpEarned} MXP earned</span>
-        </div>
-      )}
-
-      {/* New achievements unlocked */}
-      {isNew && newAchievements.length > 0 && (
-        <div className="mb-5 space-y-2">
-          {newAchievements.map(a => (
-            <div key={a.key} className="flex items-center gap-3 bg-fire-500/10 border border-fire-500/20 rounded-xl px-4 py-3 animate-badge-pop">
-              <span className="text-2xl">{a.icon}</span>
-              <div>
-                <p className="font-semibold text-fire-300 text-sm">Achievement unlocked!</p>
-                <p className="text-ink text-sm font-bold">{a.name}</p>
-              </div>
-              <span className="ml-auto text-xs font-semibold text-fire-400 bg-fire-500/20 px-2 py-0.5 rounded-full">+{a.xp} XP</span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* CTAs */}
-      <div className="flex flex-col gap-3">
-        <Link
-          to="/coaching"
-          state={{ sessionType: 'post_checkin' }}
-          className="btn-primary justify-center text-sm"
-        >
-          {t.talkToCoach}
-        </Link>
-        <Link to="/dashboard" className="btn-secondary justify-center text-sm">
-          {t.backBtn}
-        </Link>
-      </div>
-    </div>
-  );
+  if (avg >= 4.5)  return pick("You're at your peak today! Push hard in training.", "आज आप चोटी पर हैं! ट्रेनिंग में जोर लगाएं।");
+  if (focus <= 2)  return pick("Focus is low. Try box breathing: 4 in → hold 4 → out 4.", "आज फोकस कम है। बॉक्स ब्रीदिंग आज़माएं: 4 सांस लें → 4 रोकें → 4 छोड़ें।");
+  if (confidence <= 2) return pick("Confidence is shaky — that's normal. Recall your best performance.", "आत्मविश्वास कम है — यह सामान्य है। अपने सर्वश्रेष्ठ प्रदर्शन को याद करें।");
+  if (mood <= 2)   return pick("Mood is low — be kind to yourself today.", "मूड कम है — आज खुद के प्रति दयालु रहें।");
+  if (avg >= 3.5)  return pick("Solid mental state today. Channel it into deliberate practice.", "आज मानसिक स्थिति अच्छी है। इसे प्रैक्टिस में लगाएं।");
+  return pick("Every check-in builds self-awareness. Keep going.", "हर चेक-इन आत्म-जागरूकता बढ़ाता है। जारी रखें।");
 }
 
 // ─── Main component ────────────────────────────────────────────────────────────
@@ -192,46 +75,38 @@ function ResultCard({ checkIn, isNew, language, t, xpEarned, newAchievements }) 
 function CheckInPage() {
   const { user, token, language } = useAuth();
   const t = translations[language].checkin;
+  const hi = language === 'hi';
 
-  const [pageState, setPageState] = useState('loading'); // loading | form | done | saved
-  const [checkIn, setCheckIn]     = useState(null);
-  const [ratings, setRatings]     = useState({ mood: 0, focus: 0, confidence: 0 });
+  const [pageState, setPageState]   = useState('loading'); // loading | steps | done | saved
+  const [step, setStep]             = useState(0); // index into STEPS
+  const [ratings, setRatings]       = useState({ mood: 0, focus: 0, confidence: 0 });
   const [reflection, setReflection] = useState('');
-  const [gratitude, setGratitude]   = useState('');
-  const [energy, setEnergy]         = useState(0);   // 0 = not set
-  const [sleep, setSleep]           = useState('');  // '' | 'poor' | 'ok' | 'great'
+  const [checkIn, setCheckIn]       = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError]           = useState('');
-  const [xpEarned, setXpEarned]       = useState(null);
+  const [xpEarned, setXpEarned]     = useState(null);
   const [newAchievements, setNewAchievements] = useState([]);
-
-  // ── Load today's status on mount ─────────────────────────────────────────
+  const [advancing, setAdvancing]   = useState(false); // brief lock during auto-advance
 
   useEffect(() => {
-    async function load() {
-      try {
-        const res = await apiFetch('/api/checkin/today', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.checkIn) {
-            setCheckIn(data.checkIn);
-            setPageState('done');
-          } else {
-            setPageState('form');
-          }
-        } else {
-          setPageState('form');
-        }
-      } catch {
-        setPageState('form');
-      }
-    }
-    load();
+    apiFetch('/api/checkin/today', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.checkIn) { setCheckIn(data.checkIn); setPageState('done'); }
+        else setPageState('steps');
+      })
+      .catch(() => setPageState('steps'));
   }, [token]);
 
-  // ── Submit ────────────────────────────────────────────────────────────────
+  function handleRate(metricKey, value) {
+    if (advancing) return;
+    setRatings(prev => ({ ...prev, [metricKey]: value }));
+    setAdvancing(true);
+    setTimeout(() => {
+      setStep(s => s + 1);
+      setAdvancing(false);
+    }, 380);
+  }
 
   async function handleSubmit() {
     if (submitting) return;
@@ -240,17 +115,8 @@ function CheckInPage() {
     try {
       const res = await apiFetch('/api/checkin', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          ...ratings,
-          reflection: reflection.trim() || undefined,
-          gratitude: gratitude.trim() || undefined,
-          energy: energy || undefined,
-          sleep: sleep || undefined,
-        }),
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ ...ratings, reflection: reflection.trim() || undefined }),
       });
       const data = await res.json();
       if (res.status === 201) {
@@ -261,8 +127,6 @@ function CheckInPage() {
       } else if (res.status === 409) {
         setCheckIn(data.checkIn);
         setPageState('done');
-      } else if (res.status === 429) {
-        setPageState('limit');
       } else {
         throw new Error(data.error || 'Save failed');
       }
@@ -273,238 +137,226 @@ function CheckInPage() {
     }
   }
 
-  const canSubmit = ratings.mood > 0 && ratings.focus > 0 && ratings.confidence > 0;
-  const charsLeft = 500 - reflection.length;
+  const currentMetric = METRICS[step]; // null when step === 3 (notes)
+  const isNotesStep   = step === 3;
+  const progressPct   = Math.min((step / 3) * 100, 100);
 
-  // ─────────────────────────────────────────────────────────────────────────
+  // ── Result view (done or saved) ───────────────────────────────────────────
+
+  if (pageState === 'done' || pageState === 'saved') {
+    const isNew = pageState === 'saved';
+    return (
+      <div className="min-h-screen bg-dark-900">
+        <header className="px-4 py-4 flex items-center gap-3 max-w-lg mx-auto">
+          <Link to="/dashboard" className="text-slt hover:text-ink transition-colors">
+            <ChevronLeft size={24} />
+          </Link>
+        </header>
+        <main className="max-w-lg mx-auto px-4 pb-24 animate-fade-in">
+          <div className="text-center mb-8">
+            <div className="text-5xl mb-3">✅</div>
+            <h2 className="text-2xl font-bold text-ink mb-1">
+              {isNew ? t.savedTitle : t.alreadyTitle}
+            </h2>
+            <p className="text-slt">{isNew ? t.savedSubtitle : t.alreadySubtitle}</p>
+          </div>
+
+          {/* Score bars */}
+          <div className="bg-dark-800 border border-dark-600 rounded-2xl p-5 mb-5">
+            {METRICS.map(m => (
+              <div key={m.key} className="mb-3 last:mb-0">
+                <div className="flex justify-between mb-1.5">
+                  <span className="text-sm text-slt">{t[m.labelKey]}</span>
+                  <span className="text-sm font-bold text-ink">{checkIn[m.key]}/5</span>
+                </div>
+                <div className="h-1.5 bg-dark-700 rounded-full overflow-hidden">
+                  <div className={`h-full rounded-full ${m.barColor}`} style={{ width: `${(checkIn[m.key] / 5) * 100}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Insight */}
+          <div className="bg-brand-500/10 border border-brand-500/20 rounded-2xl px-4 py-4 mb-5 text-sm text-brand-600 leading-relaxed">
+            💡 {getInsight(checkIn, language)}
+          </div>
+
+          {/* XP */}
+          {isNew && xpEarned && (
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <Zap size={16} className="text-brand-500" />
+              <span className="text-brand-600 font-semibold text-sm">+{xpEarned} MXP earned</span>
+            </div>
+          )}
+
+          {/* Achievements */}
+          {isNew && newAchievements.length > 0 && (
+            <div className="mb-5 space-y-2">
+              {newAchievements.map(a => (
+                <div key={a.key} className="flex items-center gap-3 bg-fire-500/10 border border-fire-500/20 rounded-2xl px-4 py-3">
+                  <span className="text-2xl">{a.icon}</span>
+                  <div>
+                    <p className="font-semibold text-fire-600 text-sm">Achievement unlocked!</p>
+                    <p className="text-ink text-sm font-bold">{a.name}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* CTAs */}
+          <div className="flex flex-col gap-3">
+            <Link
+              to="/coaching"
+              state={{ sessionType: 'post_checkin' }}
+              className="w-full text-center py-4 bg-brand-600 text-white font-bold rounded-2xl active:scale-[0.98] transition-transform"
+            >
+              {t.talkToCoach}
+            </Link>
+            <Link
+              to="/dashboard"
+              className="w-full text-center py-3.5 bg-dark-800 border border-dark-600 text-ink font-semibold rounded-2xl active:scale-[0.98] transition-transform"
+            >
+              {t.backBtn}
+            </Link>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // ── Loading ──────────────────────────────────────────────────────────────
+
+  if (pageState === 'loading') {
+    return (
+      <div className="min-h-screen bg-dark-900 flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // ── Step-by-step form ────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-dark-900">
-      {/* Header */}
-      <header className="bg-dark-900 border-b border-dark-600 px-4 py-4 sticky top-0 z-10">
-        <div className="max-w-lg mx-auto flex items-center justify-between">
-          <Link to="/dashboard" className="hidden sm:block text-sm text-slt hover:text-ink transition-colors">
-            {t.backToDashboard}
-          </Link>
-          <p className="font-semibold text-ink text-sm sm:absolute sm:left-1/2 sm:-translate-x-1/2">{t.title}</p>
-          <span className="text-xs font-semibold text-win-400 bg-win-500/10 border border-win-500/20 px-2 py-1 rounded-full ml-auto sm:ml-0">
-            +10 MXP
-          </span>
+    <div className="min-h-screen bg-dark-900 flex flex-col">
+
+      {/* Progress bar */}
+      <div className="shrink-0 flex items-center gap-3 px-4 pt-4 pb-3 max-w-lg mx-auto w-full">
+        <button
+          onClick={() => step > 0 ? setStep(s => s - 1) : null}
+          className={`shrink-0 p-1 -ml-1 transition-colors ${step > 0 ? 'text-slt hover:text-ink' : 'text-dark-700 pointer-events-none'}`}
+        >
+          <ChevronLeft size={24} />
+        </button>
+        <div className="flex-1 h-1 bg-dark-700 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-brand-500 rounded-full transition-all duration-400"
+            style={{ width: `${progressPct}%` }}
+          />
         </div>
-      </header>
+      </div>
 
-      <main className="max-w-lg mx-auto px-4 py-8 pb-20">
+      {/* Content */}
+      <div className="flex-1 flex flex-col px-4 pt-8 pb-8 max-w-lg mx-auto w-full">
 
-        {/* ── Loading ── */}
-        {pageState === 'loading' && (
-          <div className="flex justify-center pt-20">
-            <div className="w-8 h-8 border-4 border-brand-600 border-t-transparent rounded-full animate-spin" />
+        {/* ── Metric step (0-2) ── */}
+        {!isNotesStep && currentMetric && (
+          <div key={currentMetric.key} className="animate-fade-in flex flex-col flex-1">
+            <div className="mb-10">
+              <p className="text-xs font-bold text-slt uppercase tracking-widest mb-2">
+                {hi ? 'आज का चेक-इन' : "Today's check-in"}
+              </p>
+              <h1 className="text-3xl font-bold text-ink">
+                {hi ? currentMetric.questionHi : currentMetric.questionEn}
+              </h1>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              {currentMetric.options.map(opt => {
+                const selected = ratings[currentMetric.key] === opt.v;
+                return (
+                  <button
+                    key={opt.v}
+                    onClick={() => handleRate(currentMetric.key, opt.v)}
+                    disabled={advancing}
+                    className={`flex items-center gap-4 px-5 py-4 rounded-2xl border-2 text-left transition-all active:scale-[0.98] ${
+                      selected
+                        ? currentMetric.color
+                        : 'border-dark-600 bg-dark-800 hover:border-dark-400'
+                    }`}
+                  >
+                    <span className="text-3xl shrink-0">{opt.emoji}</span>
+                    <span className={`font-semibold text-base ${selected ? '' : 'text-ink'}`}>
+                      {t[opt.labelKey]}
+                    </span>
+                    {selected && <span className="ml-auto text-sm">✓</span>}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
 
-        {/* ── Already done today ── */}
-        {pageState === 'done' && checkIn && (
-          <ResultCard checkIn={checkIn} isNew={false} language={language} t={t} xpEarned={null} newAchievements={[]} />
-        )}
-
-        {/* ── Just saved ── */}
-        {pageState === 'saved' && checkIn && (
-          <ResultCard checkIn={checkIn} isNew={true} language={language} t={t} xpEarned={xpEarned} newAchievements={newAchievements} />
-        )}
-
-        {/* ── Check-in form ── */}
-        {pageState === 'form' && (
-          <div className="animate-fade-in">
-            <div className="text-center mb-8">
-              <p className="text-xl font-bold text-ink mb-1">
-                {language === 'hi' ? `आज कैसे हैं, ${user?.name?.split(' ')[0]}?` : `How are you today, ${user?.name?.split(' ')[0]}?`}
+        {/* ── Notes step (3) ── */}
+        {isNotesStep && (
+          <div className="animate-fade-in flex flex-col flex-1">
+            <div className="mb-8">
+              <p className="text-xs font-bold text-slt uppercase tracking-widest mb-2">
+                {hi ? 'आज का चेक-इन' : "Today's check-in"}
               </p>
-              <p className="text-sm text-slate-500">{t.subtitle}</p>
+              <h1 className="text-3xl font-bold text-ink mb-1">
+                {hi ? 'कुछ नोट्स?' : 'Any notes?'}
+              </h1>
+              <p className="text-slt">{hi ? 'वैकल्पिक — छोड़ सकते हैं' : 'Optional — you can skip this'}</p>
             </div>
 
-            {/* Rating rows */}
-            {METRICS.map(metric => {
-              const selected = ratings[metric.key];
-              const selectedOption = metric.options.find(o => o.v === selected);
-              return (
-                <div key={metric.key} className="mb-7">
-                  {/* Metric label + selected label */}
-                  <div className="flex items-center justify-between mb-3">
-                    <p className="font-semibold text-ink">{t[metric.labelKey]}</p>
-                    {selectedOption && (
-                      <span className={`text-sm font-medium ${metric.color.text} transition-all`}>
-                        {t[selectedOption.labelKey]}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* 5 emoji buttons */}
-                  <div className="grid grid-cols-5 gap-2">
-                    {metric.options.map(opt => {
-                      const isSelected = selected === opt.v;
-                      return (
-                        <button
-                          key={opt.v}
-                          onClick={() => setRatings(prev => ({ ...prev, [metric.key]: opt.v }))}
-                          className={`flex flex-col items-center gap-1.5 py-3 rounded-2xl border-2 transition-all active:scale-95 ${
-                            isSelected
-                              ? `${metric.color.ring} ${metric.color.bg} shadow-sm scale-105`
-                              : 'border-dark-600 bg-dark-800 hover:border-dark-500'
-                          }`}
-                        >
-                          <span className="text-2xl leading-none">{opt.emoji}</span>
-                          <span className={`text-xs font-medium ${isSelected ? metric.color.text : 'text-slt'}`}>
-                            {opt.v}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
+            {/* Quick score recap */}
+            <div className="flex gap-2 mb-6">
+              {METRICS.map(m => (
+                <div key={m.key} className="flex-1 bg-dark-800 border border-dark-600 rounded-xl py-2 text-center">
+                  <p className="text-xs text-slt mb-0.5">{t[m.labelKey]}</p>
+                  <p className="font-bold text-ink">{ratings[m.key]}/5</p>
                 </div>
-              );
-            })}
-
-            {/* Reflection */}
-            <div className="mb-4">
-              <div className="flex items-center justify-between mb-2">
-                <label className="font-semibold text-ink text-sm">{t.reflectionLabel}</label>
-                <span className={`text-xs ${charsLeft < 50 ? 'text-orange-400' : 'text-slt'}`}>
-                  {t.charsLeft(charsLeft)}
-                </span>
-              </div>
-              <textarea
-                value={reflection}
-                onChange={e => setReflection(e.target.value.slice(0, 500))}
-                placeholder={t.reflectionPlaceholder}
-                rows={3}
-                className="w-full bg-dark-700 border border-dark-500 text-ink rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent resize-none placeholder-slt"
-              />
+              ))}
             </div>
 
-            {/* Gratitude */}
-            <div className="mb-5">
-              <div className="flex items-center justify-between mb-2">
-                <label className="flex items-center gap-1.5 font-semibold text-ink text-sm">
-                  <span>🙏</span> {t.gratitudeLabel}
-                </label>
-                {gratitude.trim() && (
-                  <span className="text-xs font-semibold text-win-400 bg-win-500/10 border border-win-500/20 px-2 py-0.5 rounded-full">
-                    {t.gratitudeXp}
-                  </span>
-                )}
-              </div>
-              <textarea
-                value={gratitude}
-                onChange={e => setGratitude(e.target.value.slice(0, 300))}
-                placeholder={t.gratitudePlaceholder}
-                rows={2}
-                className="w-full bg-dark-700 border border-dark-500 text-ink rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-win-500 focus:border-transparent resize-none placeholder-slt"
-              />
-            </div>
+            <textarea
+              value={reflection}
+              onChange={e => setReflection(e.target.value.slice(0, 500))}
+              placeholder={hi ? 'आज के बारे में कुछ लिखें…' : 'Write anything about today…'}
+              rows={4}
+              className="w-full bg-dark-800 border border-dark-600 text-ink rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent resize-none placeholder-slt mb-4"
+            />
 
-            {/* Energy slider */}
-            <div className="mb-5">
-              <div className="flex items-center justify-between mb-3">
-                <label className="flex items-center gap-1.5 font-semibold text-ink text-sm">
-                  <span>⚡</span> {t.energyLabel}
-                </label>
-                <div className="flex items-center gap-1.5">
-                  {energy > 0 && (
-                    <span className="text-sm font-medium text-fire-400">{t[`energy${energy}`]}</span>
-                  )}
-                  {energy > 0 && (
-                    <span className="text-xs font-semibold text-fire-400 bg-fire-500/10 border border-fire-500/20 px-2 py-0.5 rounded-full">
-                      {t.energyXp}
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div className="grid grid-cols-5 gap-2">
-                {[1, 2, 3, 4, 5].map(v => {
-                  const emojis = ['😩', '😔', '😐', '💪', '🚀'];
-                  const isSelected = energy === v;
-                  return (
-                    <button
-                      key={v}
-                      onClick={() => setEnergy(prev => prev === v ? 0 : v)}
-                      className={`flex flex-col items-center gap-1.5 py-3 rounded-2xl border-2 transition-all active:scale-95 ${
-                        isSelected
-                          ? 'border-fire-500 bg-fire-500/10 scale-105'
-                          : 'border-dark-600 bg-dark-800 hover:border-dark-500'
-                      }`}
-                    >
-                      <span className="text-2xl leading-none">{emojis[v - 1]}</span>
-                      <span className={`text-xs font-medium ${isSelected ? 'text-fire-400' : 'text-slt'}`}>{v}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Sleep picker */}
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-3">
-                <label className="flex items-center gap-1.5 font-semibold text-ink text-sm">
-                  <span>🌙</span> {t.sleepLabel}
-                </label>
-                {sleep && (
-                  <span className="text-xs font-semibold text-fire-400 bg-fire-500/10 border border-fire-500/20 px-2 py-0.5 rounded-full">
-                    {t.energyXp}
-                  </span>
-                )}
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { val: 'poor',  label: t.sleepPoor,  emoji: '😴', color: 'border-red-500 bg-red-500/10 text-red-400' },
-                  { val: 'ok',    label: t.sleepOk,    emoji: '😑', color: 'border-amber-500 bg-amber-500/10 text-amber-400' },
-                  { val: 'great', label: t.sleepGreat, emoji: '🌟', color: 'border-win-500 bg-win-500/10 text-win-400' },
-                ].map(opt => {
-                  const isSelected = sleep === opt.val;
-                  return (
-                    <button
-                      key={opt.val}
-                      onClick={() => setSleep(prev => prev === opt.val ? '' : opt.val)}
-                      className={`flex flex-col items-center gap-1.5 py-3 rounded-2xl border-2 transition-all active:scale-95 ${
-                        isSelected ? opt.color + ' scale-105' : 'border-dark-600 bg-dark-800 hover:border-dark-500'
-                      }`}
-                    >
-                      <span className="text-2xl leading-none">{opt.emoji}</span>
-                      <span className={`text-xs font-medium ${isSelected ? '' : 'text-slt'}`}>{opt.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Error */}
             {error && (
-              <div className="mb-4 text-sm text-red-400 bg-red-950/20 border border-red-900/20 rounded-xl px-4 py-3">
+              <div className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
                 ⚠️ {error}
               </div>
             )}
 
-            {/* Submit */}
-            <button
-              onClick={handleSubmit}
-              disabled={!canSubmit || submitting}
-              className="w-full justify-center py-4 text-base rounded-2xl font-bold text-white transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:scale-100
-                bg-brand-500 hover:bg-brand-600 flex items-center gap-2"
-            >
-              {submitting ? (
-                <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> {t.saving}</>
-              ) : (
-                <>{t.saveBtn} ⚡</>
+            <div className="flex flex-col gap-3 mt-auto">
+              <button
+                onClick={handleSubmit}
+                disabled={submitting}
+                className="w-full py-4 bg-brand-600 text-white font-bold rounded-2xl text-base active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {submitting
+                  ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> {t.saving}</>
+                  : <>{t.saveBtn} ⚡</>}
+              </button>
+              {!submitting && (
+                <button
+                  onClick={handleSubmit}
+                  disabled={submitting}
+                  className="w-full py-3 text-slt hover:text-ink text-sm font-medium transition-colors"
+                >
+                  {hi ? 'नोट छोड़ें और सेव करें' : 'Skip notes & save'}
+                </button>
               )}
-            </button>
-
-            {!canSubmit && (
-              <p className="text-xs text-center text-slt mt-3">
-                {language === 'hi' ? 'तीनों मेट्रिक्स रेट करें' : 'Rate all three to save your pulse'}
-              </p>
-            )}
+            </div>
           </div>
         )}
-      </main>
+      </div>
     </div>
   );
 }

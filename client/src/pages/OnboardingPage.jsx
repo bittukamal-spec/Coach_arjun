@@ -1,77 +1,104 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ChevronLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
 
-// ─── Data ────────────────────────────────────────────────────────────────────
+// ─── Data ─────────────────────────────────────────────────────────────────────
 
 const SPORTS = [
-  { value: 'cricket',   icon: '🏏', en: 'Cricket',    hi: 'क्रिकेट' },
-  { value: 'football',  icon: '⚽', en: 'Football',   hi: 'फुटबॉल' },
-  { value: 'badminton', icon: '🏸', en: 'Badminton',  hi: 'बैडमिंटन' },
-  { value: 'athletics', icon: '🏃', en: 'Athletics',  hi: 'एथलेटिक्स' },
-  { value: 'wrestling', icon: '🤼', en: 'Wrestling',  hi: 'कुश्ती' },
-  { value: 'boxing',    icon: '🥊', en: 'Boxing',     hi: 'मुक्केबाज़ी' },
-  { value: 'kabaddi',   icon: '🤸', en: 'Kabaddi',    hi: 'कबड्डी' },
-  { value: 'tennis',    icon: '🎾', en: 'Tennis',     hi: 'टेनिस' },
-  { value: 'hockey',    icon: '🏑', en: 'Hockey',     hi: 'हॉकी' },
-  { value: 'swimming',  icon: '🏊', en: 'Swimming',   hi: 'तैराकी' },
-  { value: 'other',     icon: '🏅', en: 'Other',      hi: 'अन्य' },
+  { value: 'cricket',    icon: '🏏', en: 'Cricket',     hi: 'क्रिकेट'       },
+  { value: 'football',   icon: '⚽', en: 'Football',    hi: 'फुटबॉल'         },
+  { value: 'badminton',  icon: '🏸', en: 'Badminton',   hi: 'बैडमिंटन'       },
+  { value: 'athletics',  icon: '🏃', en: 'Athletics',   hi: 'एथलेटिक्स'      },
+  { value: 'wrestling',  icon: '🤼', en: 'Wrestling',   hi: 'कुश्ती'          },
+  { value: 'boxing',     icon: '🥊', en: 'Boxing',      hi: 'मुक्केबाज़ी'      },
+  { value: 'kabaddi',    icon: '🤸', en: 'Kabaddi',     hi: 'कबड्डी'          },
+  { value: 'tennis',     icon: '🎾', en: 'Tennis',      hi: 'टेनिस'           },
+  { value: 'hockey',     icon: '🏑', en: 'Hockey',      hi: 'हॉकी'            },
+  { value: 'swimming',   icon: '🏊', en: 'Swimming',    hi: 'तैराकी'          },
+  { value: 'other',      icon: '🏅', en: 'Other sport', hi: 'अन्य खेल'        },
 ];
 
 const COMPETITION_LEVELS = [
-  { value: 'recreational', icon: '🌱', en: 'Just for fun / Club',           hi: 'मनोरंजन / क्लब स्तर' },
-  { value: 'local',        icon: '🏅', en: 'District / Local tournaments',  hi: 'जिला / स्थानीय टूर्नामेंट' },
-  { value: 'state',        icon: '🥈', en: 'State level',                   hi: 'राज्य स्तर' },
-  { value: 'national',     icon: '🥇', en: 'National level',                hi: 'राष्ट्रीय स्तर' },
-  { value: 'international',icon: '🌍', en: 'International',                 hi: 'अंतरराष्ट्रीय' },
+  { value: 'recreational', icon: '🌱', en: 'Just for fun / Club',          hi: 'मनोरंजन / क्लब स्तर'       },
+  { value: 'local',        icon: '🏅', en: 'District / Local tournaments', hi: 'जिला / स्थानीय टूर्नामेंट' },
+  { value: 'state',        icon: '🥈', en: 'State level',                  hi: 'राज्य स्तर'                 },
+  { value: 'national',     icon: '🥇', en: 'National level',               hi: 'राष्ट्रीय स्तर'             },
+  { value: 'international',icon: '🌍', en: 'International',                hi: 'अंतरराष्ट्रीय'              },
 ];
 
 const LEVELS = [
-  { value: 'beginner',     icon: '🌱', labelKey: 'levelBeginner',     descKey: 'levelBeginnerDesc' },
-  { value: 'amateur',      icon: '🏅', labelKey: 'levelAmateur',      descKey: 'levelAmateurDesc' },
-  { value: 'competitive',  icon: '🥈', labelKey: 'levelCompetitive',  descKey: 'levelCompetitiveDesc' },
+  { value: 'beginner',     icon: '🌱', labelKey: 'levelBeginner',     descKey: 'levelBeginnerDesc'     },
+  { value: 'amateur',      icon: '🏅', labelKey: 'levelAmateur',      descKey: 'levelAmateurDesc'      },
+  { value: 'competitive',  icon: '🥈', labelKey: 'levelCompetitive',  descKey: 'levelCompetitiveDesc'  },
   { value: 'professional', icon: '🏆', labelKey: 'levelProfessional', descKey: 'levelProfessionalDesc' },
 ];
 
 const CHALLENGES = [
-  { value: 'nerves',          icon: '😰', en: 'Pre-match nerves & anxiety',   hi: 'मैच से पहले घबराहट' },
+  { value: 'nerves',          icon: '😰', en: 'Pre-match nerves & anxiety',   hi: 'मैच से पहले घबराहट'    },
   { value: 'failure',         icon: '😞', en: 'Dealing with losses & failure', hi: 'हार और असफलता से उबरना' },
   { value: 'focus',           icon: '🎯', en: 'Losing focus during play',      hi: 'खेल के दौरान ध्यान खोना' },
-  { value: 'family_pressure', icon: '👨‍👩‍👦', en: 'Pressure from family/coaches', hi: 'परिवार/कोच का दबाव' },
-  { value: 'injury',          icon: '🏥', en: 'Recovering from injury',        hi: 'चोट से वापसी' },
+  { value: 'family_pressure', icon: '👨‍👩‍👦', en: 'Pressure from family/coaches', hi: 'परिवार/कोच का दबाव'   },
+  { value: 'injury',          icon: '🏥', en: 'Recovering from injury',        hi: 'चोट से वापसी'           },
   { value: 'consistency',     icon: '📈', en: 'Staying consistent',            hi: 'लगातार अच्छा प्रदर्शन' },
 ];
 
 const GOALS = [
-  { value: 'focus',         icon: '🎯', labelKey: 'goalFocus' },
-  { value: 'pressure',      icon: '💪', labelKey: 'goalPressure' },
-  { value: 'nerves',        icon: '😰', labelKey: 'goalNerves' },
-  { value: 'confidence',    icon: '⭐', labelKey: 'goalConfidence' },
-  { value: 'resilience',    icon: '🔄', labelKey: 'goalResilience' },
-  { value: 'motivation',    icon: '🔥', labelKey: 'goalMotivation' },
+  { value: 'focus',         icon: '🎯', labelKey: 'goalFocus'         },
+  { value: 'pressure',      icon: '💪', labelKey: 'goalPressure'      },
+  { value: 'nerves',        icon: '😰', labelKey: 'goalNerves'        },
+  { value: 'confidence',    icon: '⭐', labelKey: 'goalConfidence'    },
+  { value: 'resilience',    icon: '🔄', labelKey: 'goalResilience'    },
+  { value: 'motivation',    icon: '🔥', labelKey: 'goalMotivation'    },
   { value: 'communication', icon: '🤝', labelKey: 'goalCommunication' },
-  { value: 'injury',        icon: '🏥', labelKey: 'goalInjury' },
+  { value: 'injury',        icon: '🏥', labelKey: 'goalInjury'        },
 ];
 
 const TOTAL_STEPS = 5;
 
-// ─── Component ───────────────────────────────────────────────────────────────
+// ─── Option row ───────────────────────────────────────────────────────────────
+
+function OptionRow({ icon, label, sublabel, selected, onClick, disabled }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl border transition-all text-left active:scale-[0.99] ${
+        selected
+          ? 'border-brand-500 bg-brand-500/10'
+          : disabled
+          ? 'border-dark-700 bg-dark-800 opacity-30 cursor-not-allowed'
+          : 'border-dark-600 bg-dark-800 hover:border-dark-400'
+      }`}
+    >
+      <span className="text-2xl shrink-0">{icon}</span>
+      <div className="flex-1 min-w-0">
+        <p className={`font-semibold leading-tight ${selected ? 'text-ink' : 'text-ink'}`}>{label}</p>
+        {sublabel && <p className="text-xs text-slt mt-0.5">{sublabel}</p>}
+      </div>
+      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
+        selected ? 'border-brand-500 bg-brand-500' : 'border-dark-500'
+      }`}>
+        {selected && <span className="text-white text-[10px] font-bold">✓</span>}
+      </div>
+    </button>
+  );
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 function OnboardingPage() {
   const { token, language, updateUser } = useAuth();
   const navigate = useNavigate();
   const t = translations[language].onboarding;
+  const hi = language === 'hi';
 
   const [step, setStep] = useState(1);
   const [data, setData] = useState({
-    sport: '',
-    competitionLevel: '',
-    experienceLevel: '',
-    primaryChallenge: '',
-    goals: [],
-    language: language,
+    sport: '', competitionLevel: '', experienceLevel: '',
+    primaryChallenge: '', goals: [], language,
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -121,214 +148,157 @@ function OnboardingPage() {
     });
   }
 
-  const progress = (step / TOTAL_STEPS) * 100;
-
-  const btnBase = 'flex items-center gap-4 p-4 rounded-2xl border-2 text-left transition-all';
-  const btnSelected = 'border-brand-500 bg-brand-500/15';
-  const btnDefault  = 'border-dark-600 bg-dark-800 hover:border-brand-500/50';
-
   return (
     <div className="min-h-screen bg-dark-900 flex flex-col">
 
-      {/* Top bar */}
-      <header className="px-4 py-5 flex items-center justify-between max-w-lg mx-auto w-full">
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-brand-500 flex items-center justify-center">
-            <span className="text-white font-bold text-xs">A</span>
-          </div>
-          <span className="font-bold text-ink tracking-tight">Arjun</span>
+      {/* ── Fixed top bar: back arrow + progress ──────────────── */}
+      <div className="shrink-0 flex items-center gap-3 px-4 pt-4 pb-3 max-w-lg mx-auto w-full">
+        {step > 1 ? (
+          <button onClick={() => setStep(s => s - 1)} className="shrink-0 p-1 -ml-1 text-slt hover:text-ink transition-colors">
+            <ChevronLeft size={24} />
+          </button>
+        ) : (
+          <div className="w-7 shrink-0" />
+        )}
+        <div className="flex-1 h-1 bg-dark-700 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-brand-500 rounded-full transition-all duration-500"
+            style={{ width: `${(step / TOTAL_STEPS) * 100}%` }}
+          />
         </div>
-        <span className="text-sm text-slt">{t.stepOf(step, TOTAL_STEPS)}</span>
-      </header>
-
-      {/* Progress bar */}
-      <div className="h-1 bg-dark-700 mx-4 rounded-full max-w-lg mx-auto w-[calc(100%-2rem)]">
-        <div
-          className="h-1 bg-brand-500 rounded-full transition-all duration-500"
-          style={{ width: `${progress}%` }}
-        />
       </div>
 
-      {/* Steps */}
-      <main className="flex-1 flex items-start justify-center px-4 pt-8 pb-20">
-        <div className="w-full max-w-lg">
+      {/* ── Scrollable content ─────────────────────────────────── */}
+      <div className="flex-1 overflow-y-auto px-4 pt-6 pb-32 max-w-lg mx-auto w-full">
 
-          {/* ── Step 1: Sport ── */}
-          {step === 1 && (
-            <div className="animate-fade-in">
-              <h1 className="text-2xl font-bold text-ink mb-1">{t.sportTitle}</h1>
-              <p className="text-slt text-sm mb-6">{t.sportSubtitle}</p>
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                {SPORTS.map(sport => (
-                  <button
-                    key={sport.value}
-                    onClick={() => setData(d => ({ ...d, sport: sport.value }))}
-                    className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl border-2 transition-all ${
-                      data.sport === sport.value ? btnSelected : 'border-dark-600 bg-dark-800 hover:border-brand-500/50'
-                    }`}
-                  >
-                    <span className="text-2xl">{sport.icon}</span>
-                    <span className="text-xs font-medium text-slt text-center leading-tight">
-                      {language === 'hi' ? sport.hi : sport.en}
-                    </span>
-                  </button>
-                ))}
-              </div>
+        {/* Step 1: Sport */}
+        {step === 1 && (
+          <div className="animate-fade-in">
+            <h1 className="text-3xl font-bold text-ink mb-1">{t.sportTitle}</h1>
+            <p className="text-slt mb-8">{t.sportSubtitle}</p>
+            <div className="grid grid-cols-2 gap-3">
+              {SPORTS.map(sport => (
+                <OptionRow
+                  key={sport.value}
+                  icon={sport.icon}
+                  label={hi ? sport.hi : sport.en}
+                  selected={data.sport === sport.value}
+                  onClick={() => setData(d => ({ ...d, sport: sport.value }))}
+                />
+              ))}
             </div>
-          )}
-
-          {/* ── Step 2: Competition Level ── */}
-          {step === 2 && (
-            <div className="animate-fade-in">
-              <h1 className="text-2xl font-bold text-ink mb-1">{t.competitionTitle}</h1>
-              <p className="text-slt text-sm mb-6">{t.competitionSubtitle}</p>
-              <div className="flex flex-col gap-3">
-                {COMPETITION_LEVELS.map(level => (
-                  <button
-                    key={level.value}
-                    onClick={() => setData(d => ({ ...d, competitionLevel: level.value }))}
-                    className={`${btnBase} ${data.competitionLevel === level.value ? btnSelected : btnDefault}`}
-                  >
-                    <span className="text-2xl">{level.icon}</span>
-                    <span className="font-semibold text-ink">
-                      {language === 'hi' ? level.hi : level.en}
-                    </span>
-                    {data.competitionLevel === level.value && (
-                      <span className="ml-auto text-brand-400 text-lg">✓</span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* ── Step 3: Experience Level ── */}
-          {step === 3 && (
-            <div className="animate-fade-in">
-              <h1 className="text-2xl font-bold text-ink mb-1">{t.levelTitle}</h1>
-              <p className="text-slt text-sm mb-6">{t.levelSubtitle}</p>
-              <div className="flex flex-col gap-3">
-                {LEVELS.map(level => (
-                  <button
-                    key={level.value}
-                    onClick={() => setData(d => ({ ...d, experienceLevel: level.value }))}
-                    className={`${btnBase} ${data.experienceLevel === level.value ? btnSelected : btnDefault}`}
-                  >
-                    <span className="text-2xl">{level.icon}</span>
-                    <div>
-                      <p className="font-semibold text-ink">{t[level.labelKey]}</p>
-                      <p className="text-xs text-slt">{t[level.descKey]}</p>
-                    </div>
-                    {data.experienceLevel === level.value && (
-                      <span className="ml-auto text-brand-400 text-lg">✓</span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* ── Step 4: Biggest Mental Challenge ── */}
-          {step === 4 && (
-            <div className="animate-fade-in">
-              <h1 className="text-2xl font-bold text-ink mb-1">{t.challengeTitle}</h1>
-              <p className="text-slt text-sm mb-6">{t.challengeSubtitle}</p>
-              <div className="flex flex-col gap-3">
-                {CHALLENGES.map(challenge => (
-                  <button
-                    key={challenge.value}
-                    onClick={() => setData(d => ({ ...d, primaryChallenge: challenge.value }))}
-                    className={`${btnBase} ${data.primaryChallenge === challenge.value ? btnSelected : btnDefault}`}
-                  >
-                    <span className="text-2xl">{challenge.icon}</span>
-                    <span className="font-semibold text-ink">
-                      {language === 'hi' ? challenge.hi : challenge.en}
-                    </span>
-                    {data.primaryChallenge === challenge.value && (
-                      <span className="ml-auto text-brand-400 text-lg">✓</span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* ── Step 5: Goals ── */}
-          {step === 5 && (
-            <div className="animate-fade-in">
-              <h1 className="text-2xl font-bold text-ink mb-1">{t.goalsTitle}</h1>
-              <div className="flex items-center justify-between mb-6">
-                <p className="text-slt text-sm">{t.goalsSubtitle}</p>
-                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                  data.goals.length === 3
-                    ? 'bg-brand-500 text-white'
-                    : 'bg-dark-700 text-slt'
-                }`}>
-                  {t.goalsSelected(data.goals.length)}
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                {GOALS.map(goal => {
-                  const selected = data.goals.includes(goal.value);
-                  const maxed    = data.goals.length >= 3 && !selected;
-                  return (
-                    <button
-                      key={goal.value}
-                      onClick={() => toggleGoal(goal.value)}
-                      disabled={maxed}
-                      className={`flex items-center gap-3 p-4 rounded-2xl border-2 text-left transition-all ${
-                        selected
-                          ? btnSelected
-                          : maxed
-                          ? 'border-dark-700 bg-dark-800 opacity-30 cursor-not-allowed'
-                          : 'border-dark-600 bg-dark-800 hover:border-brand-500/50'
-                      }`}
-                    >
-                      <span className="text-xl">{goal.icon}</span>
-                      <span className="text-sm font-medium text-ink leading-tight">
-                        {t[goal.labelKey]}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Error */}
-          {error && (
-            <div className="mt-4 text-sm text-red-400 bg-red-950/20 border border-red-900/20 rounded-xl px-4 py-3">
-              ⚠️ {error}
-            </div>
-          )}
-
-          {/* Navigation */}
-          <div className="flex items-center justify-between mt-8">
-            {step > 1 ? (
-              <button
-                onClick={() => setStep(s => s - 1)}
-                className="text-sm font-medium text-slt hover:text-ink transition-colors"
-              >
-                {t.back}
-              </button>
-            ) : (
-              <div />
-            )}
-
-            <button
-              onClick={handleContinue}
-              disabled={!canContinue() || submitting}
-              className="btn-primary px-8 py-3 rounded-2xl disabled:opacity-40"
-            >
-              {submitting
-                ? (language === 'hi' ? 'सेव हो रहा है…' : 'Saving…')
-                : step === TOTAL_STEPS
-                ? t.complete
-                : t.continue}
-            </button>
           </div>
-        </div>
-      </main>
+        )}
+
+        {/* Step 2: Competition Level */}
+        {step === 2 && (
+          <div className="animate-fade-in">
+            <h1 className="text-3xl font-bold text-ink mb-1">{t.competitionTitle}</h1>
+            <p className="text-slt mb-8">{t.competitionSubtitle}</p>
+            <div className="flex flex-col gap-3">
+              {COMPETITION_LEVELS.map(level => (
+                <OptionRow
+                  key={level.value}
+                  icon={level.icon}
+                  label={hi ? level.hi : level.en}
+                  selected={data.competitionLevel === level.value}
+                  onClick={() => setData(d => ({ ...d, competitionLevel: level.value }))}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Step 3: Experience Level */}
+        {step === 3 && (
+          <div className="animate-fade-in">
+            <h1 className="text-3xl font-bold text-ink mb-1">{t.levelTitle}</h1>
+            <p className="text-slt mb-8">{t.levelSubtitle}</p>
+            <div className="flex flex-col gap-3">
+              {LEVELS.map(level => (
+                <OptionRow
+                  key={level.value}
+                  icon={level.icon}
+                  label={t[level.labelKey]}
+                  sublabel={t[level.descKey]}
+                  selected={data.experienceLevel === level.value}
+                  onClick={() => setData(d => ({ ...d, experienceLevel: level.value }))}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Step 4: Primary Challenge */}
+        {step === 4 && (
+          <div className="animate-fade-in">
+            <h1 className="text-3xl font-bold text-ink mb-1">{t.challengeTitle}</h1>
+            <p className="text-slt mb-8">{t.challengeSubtitle}</p>
+            <div className="flex flex-col gap-3">
+              {CHALLENGES.map(challenge => (
+                <OptionRow
+                  key={challenge.value}
+                  icon={challenge.icon}
+                  label={hi ? challenge.hi : challenge.en}
+                  selected={data.primaryChallenge === challenge.value}
+                  onClick={() => setData(d => ({ ...d, primaryChallenge: challenge.value }))}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Step 5: Goals (multi-select up to 3) */}
+        {step === 5 && (
+          <div className="animate-fade-in">
+            <h1 className="text-3xl font-bold text-ink mb-1">{t.goalsTitle}</h1>
+            <p className="text-slt mb-8">
+              {t.goalsSubtitle}{' '}
+              <span className={`font-semibold ${data.goals.length === 3 ? 'text-brand-600' : 'text-slt'}`}>
+                ({data.goals.length}/3)
+              </span>
+            </p>
+            <div className="flex flex-col gap-3">
+              {GOALS.map(goal => {
+                const selected = data.goals.includes(goal.value);
+                const maxed    = data.goals.length >= 3 && !selected;
+                return (
+                  <OptionRow
+                    key={goal.value}
+                    icon={goal.icon}
+                    label={t[goal.labelKey]}
+                    selected={selected}
+                    disabled={maxed}
+                    onClick={() => toggleGoal(goal.value)}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {error && (
+          <div className="mt-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+            ⚠️ {error}
+          </div>
+        )}
+      </div>
+
+      {/* ── Fixed bottom CTA ───────────────────────────────────── */}
+      <div className="shrink-0 px-4 pb-8 pt-4 bg-dark-900 border-t border-dark-700 max-w-lg mx-auto w-full">
+        <button
+          onClick={handleContinue}
+          disabled={!canContinue() || submitting}
+          className="w-full py-4 rounded-2xl bg-brand-600 text-white font-bold text-base transition-all active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed"
+        >
+          {submitting
+            ? (hi ? 'सेव हो रहा है…' : 'Saving…')
+            : step === TOTAL_STEPS
+            ? t.complete
+            : t.continue}
+        </button>
+      </div>
+
     </div>
   );
 }

@@ -4,32 +4,8 @@ import Navbar from '../components/Navbar';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
-import { MessageCircle, CheckSquare, TrendingUp, Zap, Flame, Wind, Trophy, ClipboardList, CheckCircle2 } from 'lucide-react';
+import { Flame, Zap, CheckCircle2, Wind, Trophy, ClipboardList, Gamepad2 } from 'lucide-react';
 import { DRILLS, DRILL_TYPE_COLORS } from '../data/drills';
-
-const SPORT_ICONS = {
-  cricket: '🏏', football: '⚽', badminton: '🏸', athletics: '🏃',
-  wrestling: '🤼', boxing: '🥊', kabaddi: '🤸', tennis: '🎾',
-  hockey: '🏑', swimming: '🏊', other: '🏅',
-};
-
-const ALL_ACHIEVEMENTS = [
-  { key: 'first_checkin', name: 'First Step',     icon: '🌱', desc: 'Complete your first check-in' },
-  { key: 'streak_3',      name: 'Rookie Mind',    icon: '🏅', desc: '3-day check-in streak' },
-  { key: 'streak_7',      name: 'Mental Athlete', icon: '🔥', desc: '7-day check-in streak' },
-  { key: 'streak_14',     name: 'Zone Master',    icon: '⚡', desc: '14-day check-in streak' },
-  { key: 'streak_30',     name: 'Elite Mindset',  icon: '🏆', desc: '30-day check-in streak' },
-  { key: 'comeback',      name: 'Comeback',       icon: '💪', desc: 'Return after 3+ days away' },
-  { key: 'reflector',     name: 'Deep Thinker',   icon: '🧠', desc: 'Write reflections in 5 check-ins' },
-  { key: 'perfect_week',  name: 'Perfect Week',   icon: '🛡️', desc: '7 check-ins in 7 days' },
-  { key: 'chat_10',       name: 'In the Zone',    icon: '💬', desc: '10 coaching sessions with Arjun' },
-];
-
-function computeFitnessScore(weeklyAvg, streak) {
-  if (!weeklyAvg || weeklyAvg.mood === null) return null;
-  const base = (weeklyAvg.mood * 0.3 + weeklyAvg.focus * 0.3 + weeklyAvg.confidence * 0.3) / 5 * 100;
-  return Math.round(Math.min(100, base + Math.min(streak * 2, 10)));
-}
 
 const TRIAL_DAYS = 14;
 
@@ -41,20 +17,27 @@ function getTrialDaysRemaining(user) {
   return Math.max(0, TRIAL_DAYS - daysSince);
 }
 
+function SectionLabel({ children }) {
+  return (
+    <p className="text-[11px] font-bold text-slt uppercase tracking-widest mb-3 px-4">
+      {children}
+    </p>
+  );
+}
+
 function Dashboard() {
   const { user, token, language } = useAuth();
   const t = translations[language];
+  const hi = language === 'hi';
   const isPremium = user?.tier === 'premium';
   const trialDaysRemaining = getTrialDaysRemaining(user);
   const trialEnded = !isPremium && trialDaysRemaining === 0;
 
   const [todayCheckIn, setTodayCheckIn] = useState(null);
-  const [streak, setStreak] = useState(null);
-  const [weeklyAvg, setWeeklyAvg] = useState(null);
-  const [achievements, setAchievements] = useState(null); // null = loading
-  const [drillState, setDrillState] = useState({ drillIndex: null, completed: false });
+  const [streak, setStreak]             = useState(null);
+  const [drillState, setDrillState]     = useState({ drillIndex: null, completed: false });
   const [drillExpanded, setDrillExpanded] = useState(false);
-  const [drillLoading, setDrillLoading] = useState(false);
+  const [drillLoading, setDrillLoading]   = useState(false);
 
   useEffect(() => {
     apiFetch('/api/checkin/today', { headers: { Authorization: `Bearer ${token}` } })
@@ -64,21 +47,13 @@ function Dashboard() {
 
     apiFetch('/api/progress/summary?days=7', { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        setStreak(data?.streak ?? 0);
-        setWeeklyAvg(data?.weeklyAvg ?? null);
-      })
+      .then(data => setStreak(data?.streak ?? 0))
       .catch(() => {});
 
     apiFetch('/api/drills/today', { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data) setDrillState(data); })
       .catch(() => {});
-
-    apiFetch('/api/achievements/me', { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.ok ? r.json() : null)
-      .then(data => setAchievements(data?.achievements ?? []))
-      .catch(() => setAchievements([]));
   }, [token]);
 
   async function completeDrill() {
@@ -89,414 +64,233 @@ function Dashboard() {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (res.ok) {
-        setDrillState(prev => ({ ...prev, completed: true }));
-        setDrillExpanded(false);
-      }
+      if (res.ok) setDrillState(prev => ({ ...prev, completed: true }));
     } finally {
       setDrillLoading(false);
     }
   }
 
-  const FEATURES = [
-    {
-      icon: MessageCircle,
-      labelKey: 'openCoach',
-      description: language === 'hi'
-        ? 'अर्जुन से बात करें — फोकस, दबाव, आत्मविश्वास'
-        : 'Talk to Arjun about focus, pressure, confidence',
-      to: '/coaching',
-      accent: 'brand',
-    },
-    {
-      icon: CheckSquare,
-      labelKey: 'startCheckin',
-      description: language === 'hi'
-        ? 'मूड, फोकस और आत्मविश्वास रेट करें'
-        : 'Rate your mood, focus, and confidence today',
-      to: '/checkin',
-      badge: todayCheckIn
-        ? { label: language === 'hi' ? 'आज हो गया ✓' : 'Done today ✓', color: 'bg-win-500/20 text-win-400 border-win-500/30' }
-        : null,
-      accent: 'win',
-    },
-    {
-      icon: TrendingUp,
-      labelKey: 'viewProgress',
-      description: language === 'hi'
-        ? 'समय के साथ अपना मानसिक प्रदर्शन देखें'
-        : 'See your mental performance over time',
-      to: '/progress',
-      badge: streak !== null && streak > 0
-        ? { label: `🔥 ${streak} ${language === 'hi' ? 'दिन' : streak === 1 ? 'day' : 'days'}`, color: 'bg-fire-500/20 text-fire-400 border-fire-500/30' }
-        : null,
-      accent: 'fire',
-    },
-  ];
+  const hour = new Date().getHours();
+  const greeting = hour < 12
+    ? (hi ? 'सुप्रभात' : 'Good morning')
+    : hour < 17
+    ? (hi ? 'नमस्ते' : 'Good afternoon')
+    : (hi ? 'शुभ संध्या' : 'Good evening');
 
   const TOOLS = [
-    {
-      Icon: Wind,
-      label: language === 'hi' ? 'श्वास कक्ष' : 'Breathing Room',
-      desc: language === 'hi' ? 'दबाव को 2 मिनट में काबू करें' : 'Control nerves in 2 minutes',
-      to: '/breathing',
-      color: 'text-brand-500',
-      border: 'border-brand-500/30 hover:border-brand-500/60',
-    },
-    {
-      Icon: Trophy,
-      label: language === 'hi' ? 'प्री-मैच रिचुअल' : 'Pre-Match Ritual',
-      desc: language === 'hi' ? 'हर बार चोटी की अवस्था में आएं' : 'Enter peak state on command',
-      to: '/ritual',
-      color: 'text-fire-500',
-      border: 'border-fire-500/30 hover:border-fire-500/60',
-    },
-    {
-      Icon: ClipboardList,
-      label: language === 'hi' ? 'पोस्ट-मैच डीब्रीफ' : 'Post-Match Debrief',
-      desc: language === 'hi' ? '3 सवाल जो असली सीख देते हैं' : '3 questions that build real learning',
-      to: '/debrief',
-      color: 'text-sky-600',
-      border: 'border-sky-500/30 hover:border-sky-500/60',
-    },
+    { Icon: Wind,          label: hi ? 'श्वास'      : 'Breathing',  to: '/breathing', color: 'text-brand-600' },
+    { Icon: Trophy,        label: hi ? 'रिचुअल'    : 'Ritual',     to: '/ritual',    color: 'text-fire-600'  },
+    { Icon: ClipboardList, label: hi ? 'डीब्रीफ'    : 'Debrief',    to: '/debrief',   color: 'text-sky-600'   },
+    { Icon: Gamepad2,      label: hi ? 'गेम्स'     : 'Games',      to: '/games',     color: 'text-violet-600'},
   ];
-
-  const accentBorder = { brand: 'border-brand-600/50 hover:border-brand-500', win: 'border-win-600/40 hover:border-win-500', fire: 'border-fire-600/40 hover:border-fire-500' };
-  const accentIcon = { brand: 'text-brand-400', win: 'text-win-400', fire: 'text-fire-400' };
-
-  const fitnessScore = computeFitnessScore(weeklyAvg, streak ?? 0);
-  const fitnessLevel = fitnessScore === null ? null
-    : fitnessScore <= 40 ? { label: t.dashboard.fitnessNeedsWork, color: 'text-red-400',  bar: 'bg-red-500' }
-    : fitnessScore <= 70 ? { label: t.dashboard.fitnessBuilding,  color: 'text-fire-400', bar: 'bg-fire-500' }
-    :                      { label: t.dashboard.fitnessStrong,    color: 'text-win-400',  bar: 'bg-win-500' };
-
-  const earnedKeys = new Set((achievements || []).map(a => a.key));
-  const earnedMap  = Object.fromEntries((achievements || []).map(a => [a.key, a]));
 
   return (
     <div className="min-h-screen bg-dark-900">
       <Navbar />
 
-      <main className="max-w-5xl mx-auto px-4 pt-24 pb-24 animate-fade-in">
+      <main className="max-w-lg mx-auto pt-20 pb-24 animate-fade-in">
 
-        {/* Welcome header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-4 mb-3">
-            <div className="w-14 h-14 rounded-full bg-brand-500 text-white text-2xl font-bold flex items-center justify-center shadow-lg ring-2 ring-brand-600/40">
+        {/* ── Profile header ─────────────────────────────────── */}
+        <div className="flex items-center justify-between px-4 py-5">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-full bg-brand-500 text-white font-bold text-lg flex items-center justify-center shrink-0">
               {user?.name?.charAt(0)?.toUpperCase()}
             </div>
             <div>
-              <p className="text-slt text-sm">{t.dashboard.welcomeBack}</p>
-              <h1 className="text-2xl font-bold text-ink">{user?.name}</h1>
+              <p className="text-xs text-slt">{greeting}</p>
+              <p className="text-base font-bold text-ink leading-tight">{user?.name}</p>
             </div>
           </div>
-
-          {/* Badges row */}
-          <div className="flex flex-wrap gap-2">
-            <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full border ${
-              isPremium
-                ? 'bg-fire-500/20 text-fire-400 border-fire-500/30'
-                : 'bg-brand-500/15 text-brand-400 border-brand-500/25'
-            }`}>
-              {isPremium ? '⭐ ' + t.dashboard.premiumTier : '🆓 ' + t.dashboard.freeTier}
-            </span>
-            {user?.sport && (
-              <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full bg-dark-700 text-slt border border-dark-500">
-                {SPORT_ICONS[user.sport] || '🏅'} {user.sport.charAt(0).toUpperCase() + user.sport.slice(1)}
-              </span>
-            )}
-            {user?.experienceLevel && (
-              <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full bg-dark-700 text-slt border border-dark-500">
-                {user.experienceLevel.charAt(0).toUpperCase() + user.experienceLevel.slice(1)}
-              </span>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 bg-dark-800 border border-dark-600 px-3 py-1.5 rounded-full">
+              <Flame size={13} className={streak > 0 ? 'text-fire-500' : 'text-slt'} />
+              <span className="text-xs font-bold text-ink">{streak ?? 0}</span>
+            </div>
+            {user?.xp !== undefined && (
+              <div className="flex items-center gap-1.5 bg-dark-800 border border-dark-600 px-3 py-1.5 rounded-full">
+                <Zap size={13} className="text-brand-500" />
+                <span className="text-xs font-bold text-ink">{user.xp}</span>
+              </div>
             )}
           </div>
         </div>
 
-        {/* Streak + XP HUD strip */}
-        <div className="card mb-6 flex items-center justify-between gap-4 bg-dark-800 border-fire-600/30">
-          <div className="flex items-center gap-3">
-            <Flame size={36} className={`${streak > 0 ? 'animate-flame-pulse text-fire-500' : 'text-fire-400'}`} />
-            <div>
-              <p className="text-2xl font-bold text-ink leading-none">{streak ?? 0}</p>
-              <p className="text-slt text-sm">{language === 'hi' ? 'दिन की लकीर' : 'day streak'}</p>
-            </div>
+        {/* ── TODAY ──────────────────────────────────────────── */}
+        <div className="mb-7">
+          <SectionLabel>{hi ? 'आज' : 'Today'}</SectionLabel>
+          <div className="px-4">
+            {todayCheckIn === null ? (
+              <div className="bg-dark-800 border border-dark-600 rounded-2xl p-5 space-y-3 animate-pulse">
+                <div className="h-3 bg-dark-700 rounded w-20" />
+                <div className="h-5 bg-dark-700 rounded w-40" />
+                <div className="h-10 bg-dark-700 rounded-xl" />
+              </div>
+            ) : todayCheckIn ? (
+              <div className="bg-dark-800 border border-dark-600 rounded-2xl p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <CheckCircle2 size={15} className="text-win-500 shrink-0" />
+                  <p className="text-sm font-semibold text-win-600">
+                    {hi ? 'आज का चेक-इन हो गया' : "Today's check-in done"}
+                  </p>
+                </div>
+                {[
+                  { key: 'mood',       label: hi ? 'मूड'          : 'Mood',       color: 'bg-brand-500' },
+                  { key: 'focus',      label: hi ? 'फोकस'        : 'Focus',      color: 'bg-sky-500'   },
+                  { key: 'confidence', label: hi ? 'आत्मविश्वास' : 'Confidence', color: 'bg-win-500'   },
+                ].map(({ key, label, color }) => (
+                  <div key={key} className="mb-3 last:mb-0">
+                    <div className="flex justify-between mb-1">
+                      <span className="text-xs text-slt">{label}</span>
+                      <span className="text-xs font-bold text-ink">{todayCheckIn[key]}/5</span>
+                    </div>
+                    <div className="h-1.5 bg-dark-700 rounded-full overflow-hidden">
+                      <div className={`h-full rounded-full ${color}`} style={{ width: `${(todayCheckIn[key] / 5) * 100}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <Link to="/checkin">
+                <div className="bg-dark-800 border border-dark-600 rounded-2xl p-5 active:scale-[0.99] transition-transform">
+                  <p className="text-xs text-slt font-semibold uppercase tracking-wide mb-1">
+                    {hi ? 'दैनिक चेक-इन' : 'Daily check-in'}
+                  </p>
+                  <p className="text-xl font-bold text-ink mb-1">
+                    {hi ? 'आज मन कैसा है?' : "How's your mind today?"}
+                  </p>
+                  <p className="text-sm text-slt mb-5">
+                    {hi ? 'मूड, फोकस और आत्मविश्वास रेट करें' : 'Rate your mood, focus & confidence'}
+                  </p>
+                  <div className="bg-brand-600 rounded-xl py-3 text-center">
+                    <span className="text-white font-bold text-sm">
+                      {hi ? 'चेक-इन करें' : 'Check in now'}
+                    </span>
+                  </div>
+                </div>
+              </Link>
+            )}
           </div>
-          {user?.xp !== undefined && (
-            <div className="relative group">
-              <div className="flex items-center gap-2 bg-brand-500/10 border border-brand-500/20 px-4 py-2 rounded-xl cursor-default">
-                <Zap size={16} className="text-brand-400" />
-                <div className="text-right">
-                  <p className="text-lg font-bold text-ink leading-none">{user.xp}</p>
-                  <p className="text-xs text-slt">MXP</p>
+        </div>
+
+        {/* ── YOUR COACH ─────────────────────────────────────── */}
+        <div className="mb-7">
+          <SectionLabel>{hi ? 'आपका कोच' : 'Your Coach'}</SectionLabel>
+          <div className="px-4">
+            <Link to="/coaching">
+              <div className="bg-dark-800 border border-dark-600 rounded-2xl p-4 flex items-center gap-4 active:scale-[0.99] transition-transform">
+                <div className="w-12 h-12 bg-brand-500 rounded-full flex items-center justify-center text-white font-bold text-lg shrink-0">
+                  A
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-ink">{hi ? 'अर्जुन' : 'Arjun'}</p>
+                  <p className="text-sm text-slt">{hi ? 'मानसिक प्रदर्शन कोच' : 'Mental performance coach'}</p>
+                </div>
+                <div className="bg-brand-600 text-white text-sm font-semibold px-4 py-2 rounded-xl shrink-0">
+                  {hi ? 'चैट' : 'Chat'}
                 </div>
               </div>
-              <div className="absolute bottom-full right-0 mb-2 w-48 bg-dark-700 border border-dark-500 rounded-xl px-3 py-2 text-xs text-slt hidden group-hover:block z-10 pointer-events-none shadow-lg">
-                <p className="font-semibold text-ink mb-0.5">Mental XP</p>
-                <p>Earn points by checking in and talking to Arjun.</p>
+            </Link>
+          </div>
+        </div>
+
+        {/* ── TODAY'S DRILL ───────────────────────────────────── */}
+        {drillState.drillIndex !== null && (() => {
+          const drill  = DRILLS[drillState.drillIndex];
+          const colors = DRILL_TYPE_COLORS[drill.type];
+          const title  = hi ? drill.titleHi       : drill.title;
+          const instr  = hi ? drill.instructionHi : drill.instruction;
+          return (
+            <div className="mb-7">
+              <SectionLabel>{hi ? 'आज का अभ्यास' : "Today's Drill"}</SectionLabel>
+              <div className="px-4">
+                <div className="bg-dark-800 border border-dark-600 rounded-2xl overflow-hidden">
+                  <button
+                    onClick={() => !drillState.completed && setDrillExpanded(s => !s)}
+                    className="w-full flex items-center gap-4 p-4 text-left"
+                  >
+                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl shrink-0 ${colors.badge}`}>
+                      {drill.icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-ink leading-tight">{title}</p>
+                      <p className="text-xs text-slt mt-0.5">⏱ {drill.duration}</p>
+                    </div>
+                    {drillState.completed
+                      ? <CheckCircle2 size={18} className="text-win-500 shrink-0" />
+                      : <span className="text-xs font-bold text-brand-600 shrink-0">
+                          {drillExpanded ? (hi ? 'बंद करें' : 'Close') : (hi ? 'शुरू →' : 'Start →')}
+                        </span>
+                    }
+                  </button>
+                  {drillExpanded && !drillState.completed && (
+                    <div className="px-4 pb-4 border-t border-dark-600 pt-4 animate-fade-in">
+                      <p className="text-sm text-ink leading-relaxed mb-4">{instr}</p>
+                      <button
+                        onClick={completeDrill}
+                        disabled={drillLoading}
+                        className="w-full py-3 rounded-xl bg-win-600 hover:bg-win-700 text-white font-bold text-sm transition-all active:scale-95 disabled:opacity-60"
+                      >
+                        {drillLoading ? '…' : (hi ? 'पूरा किया ✓ +15 MXP' : 'Done ✓  +15 MXP')}
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          )}
-        </div>
+          );
+        })()}
 
-        {/* Mental Fitness Score */}
-        <div className="card mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-semibold text-slt uppercase tracking-wide">
-              {t.dashboard.fitnessTitle}
-            </p>
-            {fitnessLevel && (
-              <span className={`text-xs font-bold uppercase tracking-wide ${fitnessLevel.color}`}>
-                {fitnessLevel.label}
-              </span>
-            )}
-          </div>
-          {fitnessScore !== null ? (
-            <>
-              <div className="flex items-end gap-2 mb-3">
-                <p className={`text-4xl font-bold leading-none ${fitnessLevel.color}`}>{fitnessScore}</p>
-                <p className="text-slt text-sm mb-1">/100</p>
-              </div>
-              <div className="h-2 bg-dark-700 rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all duration-1000 ${fitnessLevel.bar}`}
-                  style={{ width: `${fitnessScore}%` }}
-                />
-              </div>
-              <p className="text-xs text-slt mt-2">{t.dashboard.fitnessBasis}</p>
-            </>
-          ) : (
-            <p className="text-sm text-slt">{t.dashboard.fitnessNoData}</p>
-          )}
-        </div>
-
-        <p className="text-slt text-base mb-6">{t.dashboard.subtitle}</p>
-
-        {/* Feature mission cards */}
-        <div className="grid sm:grid-cols-3 gap-4 mb-8">
-          {FEATURES.map(({ icon: Icon, labelKey, description, to, badge, accent }) => {
-            const card = (
-              <div className={`card card-glow group transition-all h-full border ${accentBorder[accent]} cursor-pointer`}>
-                <Icon size={28} className={`mb-3 ${accentIcon[accent]}`} strokeWidth={1.8} />
-                <h3 className="font-semibold text-ink mb-1">{t.dashboard[labelKey]}</h3>
-                <p className="text-sm text-slt leading-relaxed mb-4">{description}</p>
-                {badge ? (
-                  <span className={`inline-block text-xs font-semibold border px-2.5 py-1 rounded-full ${badge.color}`}>
-                    {badge.label}
-                  </span>
-                ) : (
-                  <span className={`inline-block text-xs font-semibold px-2.5 py-1 rounded-full bg-dark-700 ${accentIcon[accent]} border border-dark-500 group-hover:border-current transition-colors`}>
-                    Open →
-                  </span>
-                )}
-              </div>
-            );
-            return <Link key={labelKey} to={to}>{card}</Link>;
-          })}
-        </div>
-
-        {/* Mental Tools row */}
-        <div className="mb-6">
-          <p className="text-xs font-semibold text-slt uppercase tracking-wide mb-3">
-            {language === 'hi' ? 'मानसिक उपकरण' : 'Mental Tools'}
-          </p>
-          <div className="grid grid-cols-2 gap-3">
-            {TOOLS.map(({ Icon, label, desc, to, color, border }) => (
+        {/* ── TOOLS ──────────────────────────────────────────── */}
+        <div className="mb-7">
+          <SectionLabel>{hi ? 'मानसिक उपकरण' : 'Mental Tools'}</SectionLabel>
+          <div className="px-4 grid grid-cols-4 gap-2">
+            {TOOLS.map(({ Icon, label, to, color }) => (
               <Link key={to} to={to}>
-                <div className={`bg-dark-800 rounded-2xl border ${border} p-4 h-full transition-all active:scale-95`}>
-                  <Icon className={`w-6 h-6 mb-2 ${color}`} />
-                  <p className={`text-sm font-semibold ${color} mb-0.5`}>{label}</p>
-                  <p className="text-xs text-slt leading-snug">{desc}</p>
+                <div className="bg-dark-800 border border-dark-600 rounded-2xl p-3 flex flex-col items-center gap-2 active:scale-95 transition-transform">
+                  <Icon size={22} className={color} />
+                  <span className="text-[11px] font-medium text-slt text-center leading-tight">{label}</span>
                 </div>
               </Link>
             ))}
           </div>
         </div>
 
-        {/* Daily Mental Drill */}
-        {drillState.drillIndex !== null && (() => {
-          const drill = DRILLS[drillState.drillIndex];
-          const colors = DRILL_TYPE_COLORS[drill.type];
-          const drillTitle = language === 'hi' ? drill.titleHi : drill.title;
-          const drillInstruction = language === 'hi' ? drill.instructionHi : drill.instruction;
-          const typeLabel = t.dashboard.drillTypeLabels[drill.type];
-
-          // "Why this drill" — based on latest check-in scores
-          let whyText = null;
-          if (weeklyAvg) {
-            if (drill.type === 'breathing' && weeklyAvg.confidence < 3.5) whyText = language === 'hi' ? 'तनाव कम करने के लिए' : 'To calm pre-performance nerves';
-            else if (drill.type === 'visualization' && weeklyAvg.confidence < 3.5) whyText = language === 'hi' ? 'आत्मविश्वास बढ़ाने के लिए' : 'To rebuild your confidence today';
-            else if (drill.type === 'focus' && weeklyAvg.focus < 3.5) whyText = language === 'hi' ? 'फोकस मजबूत करने के लिए' : 'Your focus has been low — sharpen it';
-            else if (drill.type === 'self-talk' && weeklyAvg.mood < 3.5) whyText = language === 'hi' ? 'मानसिक ऊर्जा के लिए' : 'To shift your mental energy today';
-            else if (drill.type === 'pressure') whyText = language === 'hi' ? 'दबाव के लिए तैयारी' : 'Build your pressure tolerance';
-          }
-
-          return (
-            <div className={`mb-6 rounded-2xl border border-dark-600 overflow-hidden bg-dark-800`}>
-              {/* Type bar */}
-              <div className={`h-1 w-full ${colors.border.replace('border-', 'bg-').replace('/40','').replace('/30','')}`} />
-
-              <div className="p-4">
-                {/* Header row */}
-                <div className="flex items-start justify-between gap-3 mb-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl shrink-0 ${colors.badge}`}>
-                      {drill.icon}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs font-bold text-slt uppercase tracking-wide mb-0.5">
-                        {t.dashboard.drillTitle}
-                      </p>
-                      <p className="font-bold text-ink leading-tight">{drillTitle}</p>
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end gap-1 shrink-0">
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${colors.badge}`}>
-                      {typeLabel}
-                    </span>
-                    <span className="text-xs text-slt">⏱ {drill.duration}</span>
-                  </div>
-                </div>
-
-                {/* Why this drill */}
-                {whyText && !drillState.completed && (
-                  <div className="flex items-center gap-1.5 text-xs text-brand-400 bg-brand-500/10 border border-brand-500/20 rounded-lg px-3 py-1.5 mb-3">
-                    <span>🎯</span>
-                    <span className="font-medium">{language === 'hi' ? 'आज का कारण:' : 'Why today:'} {whyText}</span>
-                  </div>
-                )}
-
-                {/* Drill content */}
-                {drillState.completed ? (
-                  <div className="flex items-center gap-2 text-win-400 text-sm font-semibold bg-win-500/10 rounded-xl px-3 py-2.5">
-                    <CheckCircle2 size={16} className="text-win-400" />
-                    <span>{t.dashboard.drillDone}</span>
-                    <span className="ml-auto text-xs text-win-600">+15 MXP</span>
-                  </div>
-                ) : drillExpanded ? (
-                  <div className="animate-fade-in">
-                    <div className="bg-dark-700 rounded-xl p-3 mb-4">
-                      <p className="text-sm text-ink leading-relaxed">{drillInstruction}</p>
-                    </div>
-                    <button
-                      onClick={completeDrill}
-                      disabled={drillLoading}
-                      className="w-full py-3 rounded-xl bg-win-600 hover:bg-win-700 text-white font-bold text-sm transition-all active:scale-95 disabled:opacity-60 flex items-center justify-center gap-2"
-                    >
-                      {drillLoading
-                        ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> {language === 'hi' ? 'सेव हो रहा है…' : 'Saving…'}</>
-                        : <>{language === 'hi' ? 'पूरा किया ✓ +15 MXP' : 'Done ✓ +15 MXP'}</>}
-                    </button>
-                    <button onClick={() => setDrillExpanded(false)} className="w-full text-xs text-slt hover:text-ink mt-2 py-1">
-                      {language === 'hi' ? 'छुपाएं' : 'Collapse'}
-                    </button>
-                  </div>
-                ) : (
-                  <div>
-                    <p className="text-sm text-slt leading-relaxed mb-3">
-                      {drillInstruction.substring(0, 90)}…
-                    </p>
-                    <button
-                      onClick={() => setDrillExpanded(true)}
-                      className={`text-sm font-bold px-5 py-2.5 rounded-xl transition-all active:scale-95 ${colors.badge} border ${colors.border}`}
-                    >
-                      {t.dashboard.drillStart} →
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })()}
-
-        {/* Achievements */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-semibold text-slt uppercase tracking-wide">
-              {t.dashboard.achievementsTitle}
-            </p>
-            {achievements !== null && (
-              <p className="text-xs text-slt">
-                {t.dashboard.achievementsEarned(earnedKeys.size, ALL_ACHIEVEMENTS.length)}
-              </p>
-            )}
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            {ALL_ACHIEVEMENTS.map(({ key, name, icon, desc }) => {
-              const earned = earnedMap[key];
-              return (
-                <div
-                  key={key}
-                  title={desc}
-                  className={`bg-dark-800 border rounded-2xl p-3 text-center transition-all ${
-                    earned ? 'border-dark-500' : 'border-dark-700 opacity-35'
-                  }`}
-                >
-                  <div className={`text-3xl mb-1.5 ${earned ? '' : 'grayscale'}`}>{icon}</div>
-                  <p className={`text-xs font-semibold leading-tight ${earned ? 'text-ink' : 'text-slt'}`}>
-                    {name}
-                  </p>
-                  {earned && (
-                    <p className="text-xs text-slt mt-0.5">
-                      {new Date(earned.earnedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                    </p>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Trial ended — upgrade banner */}
+        {/* ── UPGRADE BANNERS ────────────────────────────────── */}
         {trialEnded && (
-          <div className="rounded-2xl bg-brand-600 border border-brand-500/50 p-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <p className="font-bold text-white mb-1">🚀 {t.dashboard.upgradePrompt}</p>
-                <p className="text-white text-sm">
-                  {language === 'hi'
-                    ? 'असीमित AI कोचिंग · सभी सुविधाएं · कभी भी रद्द करें'
-                    : 'Unlimited AI coaching · All features · Cancel anytime'}
-                </p>
-              </div>
-              <button className="bg-white text-brand-700 font-bold text-sm px-6 py-2.5 rounded-xl hover:bg-brand-50 transition-colors whitespace-nowrap shrink-0 shadow-lg">
+          <div className="px-4 mb-4">
+            <div className="bg-brand-600 rounded-2xl p-5">
+              <p className="font-bold text-white mb-1">🚀 {t.dashboard.upgradePrompt}</p>
+              <p className="text-white/80 text-sm mb-4">
+                {hi ? 'असीमित AI कोचिंग · सभी सुविधाएं' : 'Unlimited AI coaching · All features'}
+              </p>
+              <button className="bg-white text-brand-700 font-bold text-sm py-3 rounded-xl w-full">
                 {t.dashboard.upgrade}
               </button>
             </div>
           </div>
         )}
 
-        {/* Trial last 3 days — urgent */}
         {!isPremium && !trialEnded && trialDaysRemaining <= 3 && (
-          <div className="card border-fire-500/40 bg-fire-500/10">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="font-semibold text-fire-300 mb-0.5">
+          <div className="px-4 mb-4">
+            <Link to="/account">
+              <div className="bg-dark-800 border border-fire-500/40 rounded-2xl px-4 py-3 flex items-center justify-between">
+                <p className="text-sm font-semibold text-fire-600">
                   ⏰ {trialDaysRemaining === 1
-                    ? (language === 'hi' ? 'ट्रायल का आखिरी दिन' : 'Last day of your free trial')
-                    : (language === 'hi' ? `${trialDaysRemaining} दिन बचे हैं` : `${trialDaysRemaining} days left in trial`)}
+                    ? (hi ? 'ट्रायल का आखिरी दिन' : 'Last day of trial')
+                    : (hi ? `${trialDaysRemaining} दिन बचे` : `${trialDaysRemaining} days left`)}
                 </p>
-                <p className="text-slt text-sm">
-                  {language === 'hi' ? 'अर्जुन से बात करना जारी रखें' : 'Keep coaching with Arjun'}
-                </p>
+                <span className="text-xs font-bold text-brand-600">{hi ? 'अपग्रेड →' : 'Upgrade →'}</span>
               </div>
-              <Link to="/account" className="bg-fire-500 text-white font-semibold text-sm px-4 py-2 rounded-xl hover:bg-fire-600 transition-colors whitespace-nowrap shrink-0">
-                {language === 'hi' ? 'अपग्रेड करें' : 'Upgrade'}
-              </Link>
-            </div>
+            </Link>
           </div>
         )}
 
-        {/* Trial soft nudge (days 4-14) */}
         {!isPremium && !trialEnded && trialDaysRemaining > 3 && (
-          <div className="text-center py-2">
-            <span className="text-xs text-slt">
-              {language === 'hi'
-                ? `🆓 ${trialDaysRemaining} दिन का फ्री ट्रायल चल रहा है`
-                : `🆓 Free trial · ${trialDaysRemaining} days remaining`}
-            </span>
-          </div>
+          <p className="text-center text-xs text-slt pb-2">
+            {hi ? `🆓 ${trialDaysRemaining} दिन का फ्री ट्रायल` : `🆓 Free trial · ${trialDaysRemaining} days left`}
+          </p>
         )}
+
       </main>
     </div>
   );
