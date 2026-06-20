@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 function Section({ title, children }) {
   return (
     <div className="mb-10">
-      <h2 className="text-xl font-bold text-white mb-4">{title}</h2>
-      <div className="text-slate-400 leading-relaxed space-y-3">{children}</div>
+      <h2 className="text-xl font-bold text-ink mb-4">{title}</h2>
+      <div className="text-slt leading-relaxed space-y-3">{children}</div>
     </div>
   );
 }
@@ -12,39 +12,39 @@ function Section({ title, children }) {
 function PrivacyPage() {
   const navigate = useNavigate();
   return (
-    <div className="min-h-screen bg-dark-900 text-white">
+    <div className="min-h-screen bg-dark-900 text-ink">
       <header className="max-w-3xl mx-auto px-4 sm:px-6 py-5 flex items-center gap-4">
         <button onClick={() => navigate('/')} className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center">
             <span className="text-white font-bold text-sm">A</span>
           </div>
-          <span className="font-bold text-white text-lg">Arjun</span>
+          <span className="font-bold text-ink text-lg">Arjun</span>
         </button>
       </header>
 
       <main className="max-w-3xl mx-auto px-4 sm:px-6 py-10 pb-20">
         <div className="mb-10">
-          <h1 className="text-4xl font-extrabold text-white mb-3">Privacy Policy</h1>
-          <p className="text-slate-500 text-sm">Last updated: 19 June 2026</p>
+          <h1 className="text-4xl font-extrabold text-ink mb-3">Privacy Policy</h1>
+          <p className="text-slt text-sm">Last updated: 19 June 2026</p>
         </div>
 
         <div className="bg-dark-800 border border-brand-500/30 rounded-2xl px-5 py-4 mb-10">
-          <p className="text-brand-300 text-sm font-medium">
+          <p className="text-brand-600 text-sm font-medium">
             Plain language version: We collect your name, email, sport info, check-in data, and coaching chats. We use it to personalise Arjun's coaching. We never sell your data. You can delete everything anytime.
           </p>
         </div>
 
         <Section title="1. Who we are">
-          <p>Arjun is an AI mental performance coaching service operated by Prabhanshu Kamal ("we", "us", "our"). Our contact email is <a href="mailto:kamal.prabhanshu@outlook.com" className="text-brand-400 hover:text-brand-300 underline underline-offset-2">kamal.prabhanshu@outlook.com</a>.</p>
-          <p>This Privacy Policy explains how we collect, use, and protect your personal data when you use Arjun at <strong className="text-white">coacharjun.in</strong>.</p>
+          <p>Arjun is an AI mental performance coaching service operated by Prabhanshu Kamal ("we", "us", "our"). Our contact email is <a href="mailto:kamal.prabhanshu@outlook.com" className="text-brand-400 hover:text-brand-700 underline underline-offset-2">kamal.prabhanshu@outlook.com</a>.</p>
+          <p>This Privacy Policy explains how we collect, use, and protect your personal data when you use Arjun at <strong className="text-ink">coacharjun.in</strong>.</p>
         </Section>
 
         <Section title="2. What data we collect">
-          <p><strong className="text-white">Account data:</strong> Your name, email address, and password (stored as a secure hash — we never see your actual password).</p>
-          <p><strong className="text-white">Profile data:</strong> Your sport, competition level, experience level, primary mental challenge, and goals — information you provide during onboarding to personalise coaching.</p>
-          <p><strong className="text-white">Check-in data:</strong> Daily mood, focus, and confidence ratings (1–5 scale) and optional written reflections you submit.</p>
-          <p><strong className="text-white">Coaching conversations:</strong> Messages you exchange with Arjun. These are stored to maintain conversation context and allow Arjun to remember important things about you over time.</p>
-          <p><strong className="text-white">Usage data:</strong> Your login timestamps and app activity (streaks, check-in dates). We do not use third-party analytics.</p>
+          <p><strong className="text-ink">Account data:</strong> Your name, email address, and password (stored as a secure hash — we never see your actual password).</p>
+          <p><strong className="text-ink">Profile data:</strong> Your sport, competition level, experience level, primary mental challenge, and goals — information you provide during onboarding to personalise coaching.</p>
+          <p><strong className="text-ink">Check-in data:</strong> Daily mood, focus, and confidence ratings (1–5 scale) and optional written reflections you submit.</p>
+          <p><strong className="text-ink">Coaching conversations:</strong> Messages you exchange with Arjun. These are stored to maintain conversation context and allow Arjun to remember important things about you over time.</p>
+          <p><strong className="text-ink">Usage data:</strong> Your login timestamps and app activity (streaks, check-in dates). We do not use third-party analytics.</p>
         </Section>
 
         <Section title="3. How we use your data">
@@ -55,17 +55,17 @@ function PrivacyPage() {
             <li>To send you transactional emails (welcome email, password reset)</li>
             <li>To maintain your account and authenticate you securely</li>
           </ul>
-          <p>We do <strong className="text-white">not</strong> use your data for advertising, sell it to third parties, or use it to train AI models.</p>
+          <p>We do <strong className="text-ink">not</strong> use your data for advertising, sell it to third parties, or use it to train AI models.</p>
         </Section>
 
         <Section title="4. AI processing — important disclosure">
-          <p>Arjun's coaching responses are generated by <strong className="text-white">Claude</strong>, an AI model made by <strong className="text-white">Anthropic, PBC</strong> (anthropic.com). When you send a message to Arjun, your message and relevant context from your profile and check-ins are sent to Anthropic's API to generate a response.</p>
-          <p>Anthropic's data processing is governed by their <strong className="text-white">API usage policy</strong>. Anthropic does not use API inputs and outputs to train their models by default.</p>
+          <p>Arjun's coaching responses are generated by <strong className="text-ink">Claude</strong>, an AI model made by <strong className="text-ink">Anthropic, PBC</strong> (anthropic.com). When you send a message to Arjun, your message and relevant context from your profile and check-ins are sent to Anthropic's API to generate a response.</p>
+          <p>Anthropic's data processing is governed by their <strong className="text-ink">API usage policy</strong>. Anthropic does not use API inputs and outputs to train their models by default.</p>
           <p>Your coaching conversations are processed on Anthropic's servers, which may be located outside India.</p>
         </Section>
 
         <Section title="5. Data storage and security">
-          <p>Your data is stored in a PostgreSQL database hosted by <strong className="text-white">Railway</strong> (railway.app), a cloud infrastructure provider. Railway's servers are located in the United States.</p>
+          <p>Your data is stored in a PostgreSQL database hosted by <strong className="text-ink">Railway</strong> (railway.app), a cloud infrastructure provider. Railway's servers are located in the United States.</p>
           <p>We protect your data using:</p>
           <ul className="list-disc list-inside space-y-1 ml-2">
             <li>Encrypted HTTPS connections (TLS) for all data in transit</li>
@@ -77,12 +77,12 @@ function PrivacyPage() {
         <Section title="6. Your rights under India's DPDP Act 2023">
           <p>Under the Digital Personal Data Protection Act, 2023, you have the right to:</p>
           <ul className="list-disc list-inside space-y-2 ml-2">
-            <li><strong className="text-white">Access:</strong> Request a copy of the personal data we hold about you</li>
-            <li><strong className="text-white">Correction:</strong> Ask us to correct inaccurate data</li>
-            <li><strong className="text-white">Erasure:</strong> Delete your account and all associated data at any time from Settings → Account → Delete Account</li>
-            <li><strong className="text-white">Grievance:</strong> Raise a complaint about how we handle your data</li>
+            <li><strong className="text-ink">Access:</strong> Request a copy of the personal data we hold about you</li>
+            <li><strong className="text-ink">Correction:</strong> Ask us to correct inaccurate data</li>
+            <li><strong className="text-ink">Erasure:</strong> Delete your account and all associated data at any time from Settings → Account → Delete Account</li>
+            <li><strong className="text-ink">Grievance:</strong> Raise a complaint about how we handle your data</li>
           </ul>
-          <p>To exercise any of these rights, email us at <a href="mailto:kamal.prabhanshu@outlook.com" className="text-brand-400 hover:text-brand-300 underline underline-offset-2">kamal.prabhanshu@outlook.com</a>. We will respond within 30 days.</p>
+          <p>To exercise any of these rights, email us at <a href="mailto:kamal.prabhanshu@outlook.com" className="text-brand-400 hover:text-brand-700 underline underline-offset-2">kamal.prabhanshu@outlook.com</a>. We will respond within 30 days.</p>
         </Section>
 
         <Section title="7. Data retention">
@@ -91,11 +91,11 @@ function PrivacyPage() {
         </Section>
 
         <Section title="8. Minors">
-          <p>Arjun is available to users aged <strong className="text-white">13 and above</strong>. Users under 18 should have parental awareness before using the service. We do not knowingly collect data from children under 13. If you believe a child under 13 has created an account, contact us immediately.</p>
+          <p>Arjun is available to users aged <strong className="text-ink">13 and above</strong>. Users under 18 should have parental awareness before using the service. We do not knowingly collect data from children under 13. If you believe a child under 13 has created an account, contact us immediately.</p>
         </Section>
 
         <Section title="9. Cookies and local storage">
-          <p>We do not use cookies. We use your browser's <strong className="text-white">localStorage</strong> to store your login token and language preference. This data stays on your device and is not sent to any third party.</p>
+          <p>We do not use cookies. We use your browser's <strong className="text-ink">localStorage</strong> to store your login token and language preference. This data stays on your device and is not sent to any third party.</p>
         </Section>
 
         <Section title="10. Changes to this policy">
@@ -104,19 +104,19 @@ function PrivacyPage() {
 
         <Section title="11. Contact and grievances">
           <p>Data Controller / Grievance Officer:<br />
-          <strong className="text-white">Prabhanshu Kamal</strong><br />
-          Email: <a href="mailto:kamal.prabhanshu@outlook.com" className="text-brand-400 hover:text-brand-300 underline underline-offset-2">kamal.prabhanshu@outlook.com</a><br />
+          <strong className="text-ink">Prabhanshu Kamal</strong><br />
+          Email: <a href="mailto:kamal.prabhanshu@outlook.com" className="text-brand-400 hover:text-brand-700 underline underline-offset-2">kamal.prabhanshu@outlook.com</a><br />
           Response time: within 30 days</p>
         </Section>
       </main>
 
       <footer className="border-t border-dark-700 py-6">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 flex items-center justify-between">
-          <span className="text-xs text-slate-600">© {new Date().getFullYear()} Arjun</span>
+          <span className="text-xs text-slt00">© {new Date().getFullYear()} Arjun</span>
           <div className="flex gap-4">
-            <button onClick={() => navigate('/terms')} className="text-xs text-slate-500 hover:text-slate-300">Terms</button>
-            <button onClick={() => navigate('/refund')} className="text-xs text-slate-500 hover:text-slate-300">Refund</button>
-            <button onClick={() => navigate('/')} className="text-xs text-slate-500 hover:text-slate-300">Home</button>
+            <button onClick={() => navigate('/terms')} className="text-xs text-slt hover:text-ink">Terms</button>
+            <button onClick={() => navigate('/refund')} className="text-xs text-slt hover:text-ink">Refund</button>
+            <button onClick={() => navigate('/')} className="text-xs text-slt hover:text-ink">Home</button>
           </div>
         </div>
       </footer>

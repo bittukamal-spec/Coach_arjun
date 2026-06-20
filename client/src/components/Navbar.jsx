@@ -15,7 +15,7 @@ function Navbar() {
         <div className="flex items-center gap-2">
           <ArjunLogo size={30} />
           <span className="font-bold text-lg tracking-tight">
-            <span className="text-brand-400">A</span><span className="text-white">rjun</span>
+            <span className="text-brand-400">A</span><span className="text-ink">rjun</span>
           </span>
         </div>
 
@@ -23,7 +23,7 @@ function Navbar() {
         <div className="flex items-center gap-3">
           <button
             onClick={toggleLanguage}
-            className="text-sm font-medium text-slate-400 hover:text-brand-400 transition-colors px-3 py-1.5 rounded-lg hover:bg-dark-700"
+            className="text-sm font-medium text-slt hover:text-brand-400 transition-colors px-3 py-1.5 rounded-lg hover:bg-dark-700"
           >
             {t.common.langToggle}
           </button>

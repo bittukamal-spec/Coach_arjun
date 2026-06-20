@@ -65,8 +65,8 @@ function DebriefPage() {
       <div className="min-h-screen bg-dark-900 pb-20">
         <header className="bg-dark-900 border-b border-dark-600 px-4 py-4 sticky top-0 z-10">
           <div className="max-w-lg mx-auto flex items-center justify-between">
-            <Link to="/dashboard" className="text-sm text-slate-400 hover:text-slate-200">{t.backDash}</Link>
-            <p className="font-semibold text-slate-100">{t.title}</p>
+            <Link to="/dashboard" className="text-sm text-slt hover:text-ink">{t.backDash}</Link>
+            <p className="font-semibold text-ink">{t.title}</p>
             <div className="w-20" />
           </div>
         </header>
@@ -74,7 +74,7 @@ function DebriefPage() {
         <main className="max-w-lg mx-auto px-4 py-10 animate-fade-in">
           <div className="text-center mb-8">
             <div className="text-5xl mb-4">🧠</div>
-            <h2 className="text-2xl font-bold text-white mb-2">{t.resultTitle}</h2>
+            <h2 className="text-2xl font-bold text-ink mb-2">{t.resultTitle}</h2>
             <span className="inline-block bg-win-500/20 text-win-400 border border-win-500/30 text-sm font-semibold px-3 py-1 rounded-full">
               {t.resultXp}
             </span>
@@ -88,7 +88,7 @@ function DebriefPage() {
                 </div>
                 <p className="text-xs font-semibold text-brand-400 uppercase tracking-wide">{t.insightLabel}</p>
               </div>
-              <p className="text-slate-200 text-sm leading-relaxed">{result.arjunInsight}</p>
+              <p className="text-ink text-sm leading-relaxed">{result.arjunInsight}</p>
             </div>
           )}
 
@@ -100,8 +100,8 @@ function DebriefPage() {
               { label: t.q3Label, value: answers.nextFocus },
             ].map(({ label, value }) => (
               <div key={label} className="bg-dark-800 border border-dark-600 rounded-2xl px-4 py-3">
-                <p className="text-xs font-semibold text-slate-500 mb-1">{label}</p>
-                <p className="text-sm text-slate-300 leading-relaxed">{value}</p>
+                <p className="text-xs font-semibold text-slt mb-1">{label}</p>
+                <p className="text-sm text-ink leading-relaxed">{value}</p>
               </div>
             ))}
           </div>
@@ -132,14 +132,14 @@ function DebriefPage() {
       <header className="shrink-0 bg-dark-900 border-b border-dark-600 px-4 py-4">
         <div className="max-w-lg mx-auto flex items-center justify-between">
           {step > 0 ? (
-            <button onClick={() => setStep(s => s - 1)} className="text-sm text-slate-400 hover:text-slate-200">
+            <button onClick={() => setStep(s => s - 1)} className="text-sm text-slt hover:text-ink">
               ← Back
             </button>
           ) : (
-            <Link to="/dashboard" className="text-sm text-slate-400 hover:text-slate-200">{t.backDash}</Link>
+            <Link to="/dashboard" className="text-sm text-slt hover:text-ink">{t.backDash}</Link>
           )}
-          <p className="font-semibold text-slate-100">{t.title}</p>
-          <p className="text-xs text-slate-500">{t.stepOf(step + 1, QUESTIONS.length)}</p>
+          <p className="font-semibold text-ink">{t.title}</p>
+          <p className="text-xs text-slt">{t.stepOf(step + 1, QUESTIONS.length)}</p>
         </div>
       </header>
 
@@ -153,10 +153,10 @@ function DebriefPage() {
 
       <main className="flex-1 max-w-lg mx-auto w-full px-4 py-8 animate-fade-in flex flex-col">
         <div className="flex-1">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
+          <p className="text-xs font-semibold text-slt uppercase tracking-wide mb-3">
             {t.stepOf(step + 1, QUESTIONS.length)}
           </p>
-          <h2 className="text-xl font-bold text-white mb-6 leading-snug">
+          <h2 className="text-xl font-bold text-ink mb-6 leading-snug">
             {t[labelKey]}
           </h2>
 
@@ -167,9 +167,9 @@ function DebriefPage() {
             maxLength={q.maxLen}
             rows={q.rows}
             autoFocus
-            className="w-full bg-dark-700 border border-dark-500 text-slate-100 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent placeholder-slate-500 resize-none leading-relaxed"
+            className="w-full bg-dark-700 border border-dark-500 text-ink rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent placeholder-slt resize-none leading-relaxed"
           />
-          <p className="text-xs text-slate-600 text-right mt-1">{currentAnswer.length}/{q.maxLen}</p>
+          <p className="text-xs text-slt text-right mt-1">{currentAnswer.length}/{q.maxLen}</p>
         </div>
 
         {error && (

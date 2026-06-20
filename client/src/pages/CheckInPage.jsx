@@ -68,7 +68,7 @@ function MetricPill({ emoji, label, value, color }) {
     <div className={`flex flex-col items-center gap-1 px-4 py-3 rounded-xl ${color.bg} border border-dark-500`}>
       <span className="text-2xl">{emoji}</span>
       <span className={`text-xs font-semibold ${color.text}`}>{label}</span>
-      <span className="text-xs text-slate-500">{value}/5</span>
+      <span className="text-xs text-slt">{value}/5</span>
     </div>
   );
 }
@@ -87,10 +87,10 @@ function ResultCard({ checkIn, isNew, language, t, xpEarned, newAchievements }) 
       {/* Header */}
       <div className="text-center mb-6">
         <div className="text-5xl mb-3">✅</div>
-        <h2 className="text-xl font-bold text-slate-100 mb-1">
+        <h2 className="text-xl font-bold text-ink mb-1">
           {isNew ? t.savedTitle : t.alreadyTitle}
         </h2>
-        <p className="text-sm text-slate-400">
+        <p className="text-sm text-slt">
           {isNew ? t.savedSubtitle : t.alreadySubtitle}
         </p>
       </div>
@@ -110,7 +110,7 @@ function ResultCard({ checkIn, isNew, language, t, xpEarned, newAchievements }) 
 
       {/* Reflection */}
       {checkIn.reflection && (
-        <div className="bg-dark-700 border border-dark-500 rounded-xl px-4 py-3 mb-3 text-sm text-slate-300 italic">
+        <div className="bg-dark-700 border border-dark-500 rounded-xl px-4 py-3 mb-3 text-sm text-ink italic">
           "{checkIn.reflection}"
         </div>
       )}
@@ -127,13 +127,13 @@ function ResultCard({ checkIn, isNew, language, t, xpEarned, newAchievements }) 
       {(checkIn.energy || checkIn.sleep) && (
         <div className="flex items-center gap-3 mb-4">
           {checkIn.energy && (
-            <div className="flex items-center gap-1.5 bg-dark-700 border border-dark-500 rounded-xl px-3 py-2 text-xs text-slate-300">
+            <div className="flex items-center gap-1.5 bg-dark-700 border border-dark-500 rounded-xl px-3 py-2 text-xs text-ink">
               <span>⚡</span>
               <span>Energy: {checkIn.energy}/5</span>
             </div>
           )}
           {checkIn.sleep && (
-            <div className="flex items-center gap-1.5 bg-dark-700 border border-dark-500 rounded-xl px-3 py-2 text-xs text-slate-300">
+            <div className="flex items-center gap-1.5 bg-dark-700 border border-dark-500 rounded-xl px-3 py-2 text-xs text-ink">
               <span>🌙</span>
               <span>Sleep: {checkIn.sleep.charAt(0).toUpperCase() + checkIn.sleep.slice(1)}</span>
             </div>
@@ -142,7 +142,7 @@ function ResultCard({ checkIn, isNew, language, t, xpEarned, newAchievements }) 
       )}
 
       {/* Insight */}
-      <div className="bg-brand-600/10 border border-brand-600/20 rounded-xl px-4 py-3 mb-6 text-sm text-brand-300 leading-relaxed">
+      <div className="bg-brand-600/10 border border-brand-600/20 rounded-xl px-4 py-3 mb-6 text-sm text-brand-500 leading-relaxed">
         💡 {insight}
       </div>
 
@@ -162,7 +162,7 @@ function ResultCard({ checkIn, isNew, language, t, xpEarned, newAchievements }) 
               <span className="text-2xl">{a.icon}</span>
               <div>
                 <p className="font-semibold text-fire-300 text-sm">Achievement unlocked!</p>
-                <p className="text-white text-sm font-bold">{a.name}</p>
+                <p className="text-ink text-sm font-bold">{a.name}</p>
               </div>
               <span className="ml-auto text-xs font-semibold text-fire-400 bg-fire-500/20 px-2 py-0.5 rounded-full">+{a.xp} XP</span>
             </div>
@@ -283,10 +283,10 @@ function CheckInPage() {
       {/* Header */}
       <header className="bg-dark-900 border-b border-dark-600 px-4 py-4 sticky top-0 z-10">
         <div className="max-w-lg mx-auto flex items-center justify-between">
-          <Link to="/dashboard" className="hidden sm:block text-sm text-slate-400 hover:text-slate-200 transition-colors">
+          <Link to="/dashboard" className="hidden sm:block text-sm text-slt hover:text-ink transition-colors">
             {t.backToDashboard}
           </Link>
-          <p className="font-semibold text-slate-100 text-sm sm:absolute sm:left-1/2 sm:-translate-x-1/2">{t.title}</p>
+          <p className="font-semibold text-ink text-sm sm:absolute sm:left-1/2 sm:-translate-x-1/2">{t.title}</p>
           <span className="text-xs font-semibold text-win-400 bg-win-500/10 border border-win-500/20 px-2 py-1 rounded-full ml-auto sm:ml-0">
             +10 MXP
           </span>
@@ -316,7 +316,7 @@ function CheckInPage() {
         {pageState === 'form' && (
           <div className="animate-fade-in">
             <div className="text-center mb-8">
-              <p className="text-xl font-bold text-white mb-1">
+              <p className="text-xl font-bold text-ink mb-1">
                 {language === 'hi' ? `आज कैसे हैं, ${user?.name?.split(' ')[0]}?` : `How are you today, ${user?.name?.split(' ')[0]}?`}
               </p>
               <p className="text-sm text-slate-500">{t.subtitle}</p>
@@ -330,7 +330,7 @@ function CheckInPage() {
                 <div key={metric.key} className="mb-7">
                   {/* Metric label + selected label */}
                   <div className="flex items-center justify-between mb-3">
-                    <p className="font-semibold text-slate-200">{t[metric.labelKey]}</p>
+                    <p className="font-semibold text-ink">{t[metric.labelKey]}</p>
                     {selectedOption && (
                       <span className={`text-sm font-medium ${metric.color.text} transition-all`}>
                         {t[selectedOption.labelKey]}
@@ -353,7 +353,7 @@ function CheckInPage() {
                           }`}
                         >
                           <span className="text-2xl leading-none">{opt.emoji}</span>
-                          <span className={`text-xs font-medium ${isSelected ? metric.color.text : 'text-slate-500'}`}>
+                          <span className={`text-xs font-medium ${isSelected ? metric.color.text : 'text-slt'}`}>
                             {opt.v}
                           </span>
                         </button>
@@ -367,8 +367,8 @@ function CheckInPage() {
             {/* Reflection */}
             <div className="mb-4">
               <div className="flex items-center justify-between mb-2">
-                <label className="font-semibold text-slate-200 text-sm">{t.reflectionLabel}</label>
-                <span className={`text-xs ${charsLeft < 50 ? 'text-orange-400' : 'text-slate-500'}`}>
+                <label className="font-semibold text-ink text-sm">{t.reflectionLabel}</label>
+                <span className={`text-xs ${charsLeft < 50 ? 'text-orange-400' : 'text-slt'}`}>
                   {t.charsLeft(charsLeft)}
                 </span>
               </div>
@@ -377,14 +377,14 @@ function CheckInPage() {
                 onChange={e => setReflection(e.target.value.slice(0, 500))}
                 placeholder={t.reflectionPlaceholder}
                 rows={3}
-                className="w-full bg-dark-700 border border-dark-500 text-slate-100 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent resize-none placeholder-slate-500"
+                className="w-full bg-dark-700 border border-dark-500 text-ink rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent resize-none placeholder-slt"
               />
             </div>
 
             {/* Gratitude */}
             <div className="mb-5">
               <div className="flex items-center justify-between mb-2">
-                <label className="flex items-center gap-1.5 font-semibold text-slate-200 text-sm">
+                <label className="flex items-center gap-1.5 font-semibold text-ink text-sm">
                   <span>🙏</span> {t.gratitudeLabel}
                 </label>
                 {gratitude.trim() && (
@@ -398,14 +398,14 @@ function CheckInPage() {
                 onChange={e => setGratitude(e.target.value.slice(0, 300))}
                 placeholder={t.gratitudePlaceholder}
                 rows={2}
-                className="w-full bg-dark-700 border border-dark-500 text-slate-100 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-win-500 focus:border-transparent resize-none placeholder-slate-500"
+                className="w-full bg-dark-700 border border-dark-500 text-ink rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-win-500 focus:border-transparent resize-none placeholder-slt"
               />
             </div>
 
             {/* Energy slider */}
             <div className="mb-5">
               <div className="flex items-center justify-between mb-3">
-                <label className="flex items-center gap-1.5 font-semibold text-slate-200 text-sm">
+                <label className="flex items-center gap-1.5 font-semibold text-ink text-sm">
                   <span>⚡</span> {t.energyLabel}
                 </label>
                 <div className="flex items-center gap-1.5">
@@ -434,7 +434,7 @@ function CheckInPage() {
                       }`}
                     >
                       <span className="text-2xl leading-none">{emojis[v - 1]}</span>
-                      <span className={`text-xs font-medium ${isSelected ? 'text-fire-400' : 'text-slate-500'}`}>{v}</span>
+                      <span className={`text-xs font-medium ${isSelected ? 'text-fire-400' : 'text-slt'}`}>{v}</span>
                     </button>
                   );
                 })}
@@ -444,7 +444,7 @@ function CheckInPage() {
             {/* Sleep picker */}
             <div className="mb-6">
               <div className="flex items-center justify-between mb-3">
-                <label className="flex items-center gap-1.5 font-semibold text-slate-200 text-sm">
+                <label className="flex items-center gap-1.5 font-semibold text-ink text-sm">
                   <span>🌙</span> {t.sleepLabel}
                 </label>
                 {sleep && (
@@ -469,7 +469,7 @@ function CheckInPage() {
                       }`}
                     >
                       <span className="text-2xl leading-none">{opt.emoji}</span>
-                      <span className={`text-xs font-medium ${isSelected ? '' : 'text-slate-500'}`}>{opt.label}</span>
+                      <span className={`text-xs font-medium ${isSelected ? '' : 'text-slt'}`}>{opt.label}</span>
                     </button>
                   );
                 })}
@@ -488,7 +488,7 @@ function CheckInPage() {
               onClick={handleSubmit}
               disabled={!canSubmit || submitting}
               className="w-full justify-center py-4 text-base rounded-2xl font-bold text-white transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:scale-100
-                bg-gradient-to-r from-brand-600 to-brand-500 hover:from-brand-700 hover:to-brand-600 shadow-lg shadow-brand-900/40 flex items-center gap-2"
+                bg-brand-500 hover:bg-brand-600 flex items-center gap-2"
             >
               {submitting ? (
                 <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> {t.saving}</>
@@ -498,7 +498,7 @@ function CheckInPage() {
             </button>
 
             {!canSubmit && (
-              <p className="text-xs text-center text-slate-500 mt-3">
+              <p className="text-xs text-center text-slt mt-3">
                 {language === 'hi' ? 'तीनों मेट्रिक्स रेट करें' : 'Rate all three to save your pulse'}
               </p>
             )}

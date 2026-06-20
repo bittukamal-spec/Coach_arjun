@@ -44,7 +44,7 @@ function ForgotPasswordPage() {
           <div className="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center">
             <span className="text-white font-bold text-sm">A</span>
           </div>
-          <span className="font-bold text-white text-lg tracking-tight">Arjun</span>
+          <span className="font-bold text-ink text-lg tracking-tight">Arjun</span>
         </div>
       </header>
 

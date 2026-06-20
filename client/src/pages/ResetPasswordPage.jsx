@@ -17,7 +17,7 @@ function ResetPasswordPage() {
       <div className="min-h-screen bg-dark-900 flex flex-col">
         <header className="max-w-5xl mx-auto px-4 py-5 flex items-center gap-2 w-full">
           <span className="text-2xl">🧠</span>
-          <span className="font-bold text-white text-lg tracking-tight">Arjun</span>
+          <span className="font-bold text-ink text-lg tracking-tight">Arjun</span>
         </header>
         <main className="flex-1 flex items-center justify-center px-4">
           <div className="w-full max-w-sm">
@@ -89,7 +89,7 @@ function ResetPasswordPage() {
       {/* Top bar */}
       <header className="max-w-5xl mx-auto px-4 py-5 flex items-center gap-2 w-full">
         <span className="text-2xl">🧠</span>
-        <span className="font-bold text-white text-lg tracking-tight">Arjun</span>
+        <span className="font-bold text-ink text-lg tracking-tight">Arjun</span>
       </header>
 
       <main className="flex-1 flex items-center justify-center px-4">

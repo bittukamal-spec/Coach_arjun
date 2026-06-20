@@ -53,7 +53,7 @@ function AuthPage() {
           <div className="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center shadow-lg shadow-brand-500/40">
             <span className="text-white font-bold text-sm">A</span>
           </div>
-          <span className="font-bold text-white text-lg tracking-tight">Arjun</span>
+          <span className="font-bold text-ink text-lg tracking-tight">Arjun</span>
         </button>
       </header>
 
@@ -62,10 +62,10 @@ function AuthPage() {
         <div className="w-full max-w-sm">
 
           <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-white mb-1">
+            <h1 className="text-2xl font-bold text-ink mb-1">
               {tab === 'signup' ? 'Create your account' : 'Welcome back'}
             </h1>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-slt">
               {tab === 'signup' ? '14 days free — no card needed' : 'Sign in to continue with Arjun'}
             </p>
           </div>
@@ -83,7 +83,7 @@ function AuthPage() {
                     type="button"
                     onClick={() => { setTab(id); setError(''); }}
                     className={`flex-1 text-sm font-semibold py-2 rounded-lg transition-all ${
-                      tab === id ? 'bg-brand-500 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'
+                      tab === id ? 'bg-brand-500 text-white shadow-sm' : 'text-slt hover:text-ink'
                     }`}
                   >
                     {id === 'signin' ? t.auth.tabSignIn : t.auth.tabSignUp}
@@ -94,7 +94,7 @@ function AuthPage() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 {tab === 'signup' && (
                   <div>
-                    <label className="block text-xs font-semibold text-slate-400 mb-1.5">{t.auth.nameLabel}</label>
+                    <label className="block text-xs font-semibold text-slt mb-1.5">{t.auth.nameLabel}</label>
                     <input
                       type="text" value={name} onChange={e => setName(e.target.value)}
                       placeholder={t.auth.namePlaceholder} required autoComplete="name"
@@ -103,7 +103,7 @@ function AuthPage() {
                   </div>
                 )}
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1.5">{t.auth.emailLabel}</label>
+                  <label className="block text-xs font-semibold text-slt mb-1.5">{t.auth.emailLabel}</label>
                   <input
                     type="email" value={email} onChange={e => setEmail(e.target.value)}
                     placeholder={t.auth.emailPlaceholder} required autoComplete="email"
@@ -142,7 +142,7 @@ function AuthPage() {
               </form>
 
               {tab === 'signup' && (
-                <p className="text-center text-xs text-slate-600 mt-4">
+                <p className="text-center text-xs text-slt mt-4">
                   By signing up you agree to our{' '}
                   <button onClick={() => navigate('/terms')} className="underline hover:text-slate-400 transition-colors">Terms</button>
                   {' '}and{' '}
@@ -152,7 +152,7 @@ function AuthPage() {
             </div>
           </div>
 
-          <p className="text-center text-sm text-slate-500 mt-6">
+          <p className="text-center text-sm text-slt mt-6">
             {tab === 'signup' ? 'Already have an account? ' : "Don't have an account? "}
             <button
               onClick={() => { setTab(tab === 'signup' ? 'signin' : 'signup'); setError(''); }}

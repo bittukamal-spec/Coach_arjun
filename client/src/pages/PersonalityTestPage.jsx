@@ -73,9 +73,9 @@ function PersonalityTestPage() {
     const scores = computeScores();
     const coachingNote = t.coachingNote(scores);
     return (
-      <div className="min-h-screen bg-dark-900 text-white flex flex-col">
+      <div className="min-h-screen bg-dark-900 text-ink flex flex-col">
         <div className="max-w-lg mx-auto w-full px-4 pt-8 pb-28 animate-fade-in">
-          <button onClick={() => setStep('questions')} className="flex items-center gap-2 text-slate-400 hover:text-white mb-8 transition-colors">
+          <button onClick={() => setStep('questions')} className="flex items-center gap-2 text-slt hover:text-ink mb-8 transition-colors">
             <ArrowLeft size={18} />
             <span className="text-sm">{t.backBtn}</span>
           </button>
@@ -84,8 +84,8 @@ function PersonalityTestPage() {
             <div className="w-16 h-16 rounded-2xl bg-brand-500/20 border border-brand-500/30 flex items-center justify-center mx-auto mb-4 text-3xl">
               🧠
             </div>
-            <h1 className="text-2xl font-bold text-white">{t.resultTitle}</h1>
-            <p className="text-slate-400 text-sm mt-2">{t.subtitle}</p>
+            <h1 className="text-2xl font-bold text-ink">{t.resultTitle}</h1>
+            <p className="text-slt text-sm mt-2">{t.subtitle}</p>
           </div>
 
           <div className="space-y-4 mb-8">
@@ -98,17 +98,17 @@ function PersonalityTestPage() {
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <span className="text-xl">{t.traitEmojis[i]}</span>
-                      <span className="font-semibold text-white text-sm">{trait}</span>
+                      <span className="font-semibold text-ink text-sm">{trait}</span>
                     </div>
                     <span className="text-brand-400 font-bold text-sm">{val}/5</span>
                   </div>
                   <div className="w-full bg-dark-600 rounded-full h-2 mb-2">
                     <div
-                      className="h-2 rounded-full bg-gradient-to-r from-brand-600 to-brand-400 transition-all"
+                      className="h-2 rounded-full bg-brand-500 transition-all"
                       style={{ width: `${(val / 5) * 100}%` }}
                     />
                   </div>
-                  <p className="text-xs text-slate-400">{desc}</p>
+                  <p className="text-xs text-slt">{desc}</p>
                 </div>
               );
             })}
@@ -116,7 +116,7 @@ function PersonalityTestPage() {
 
           <div className="bg-brand-500/10 border border-brand-500/20 rounded-2xl p-4 mb-8">
             <p className="text-xs font-semibold text-brand-400 uppercase tracking-wide mb-2">Arjun's coaching note</p>
-            <p className="text-sm text-slate-300 leading-relaxed">{coachingNote}</p>
+            <p className="text-sm text-ink leading-relaxed">{coachingNote}</p>
           </div>
 
           {error && <p className="text-red-400 text-sm mb-4 text-center">{error}</p>}
@@ -136,20 +136,20 @@ function PersonalityTestPage() {
   const progress = ((current) / 10) * 100;
 
   return (
-    <div className="min-h-screen bg-dark-900 text-white flex flex-col">
+    <div className="min-h-screen bg-dark-900 text-ink flex flex-col">
       <div className="max-w-lg mx-auto w-full px-4 pt-8 pb-28 animate-fade-in">
 
-        <button onClick={() => navigate('/account')} className="flex items-center gap-2 text-slate-400 hover:text-white mb-8 transition-colors">
+        <button onClick={() => navigate('/account')} className="flex items-center gap-2 text-slt hover:text-ink mb-8 transition-colors">
           <ArrowLeft size={18} />
           <span className="text-sm">{t.backBtn}</span>
         </button>
 
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">
-            <h1 className="text-xl font-bold text-white">{t.title}</h1>
-            <span className="text-xs text-slate-500 font-medium">{t.questionOf(current + 1, 10)}</span>
+            <h1 className="text-xl font-bold text-ink">{t.title}</h1>
+            <span className="text-xs text-slt font-medium">{t.questionOf(current + 1, 10)}</span>
           </div>
-          <p className="text-sm text-slate-400 mb-4">{t.subtitle}</p>
+          <p className="text-sm text-slt mb-4">{t.subtitle}</p>
           <div className="w-full bg-dark-700 rounded-full h-1.5">
             <div
               className="h-1.5 rounded-full bg-brand-500 transition-all duration-300"
@@ -172,11 +172,11 @@ function PersonalityTestPage() {
               className={`w-full flex items-center gap-4 p-4 rounded-2xl border transition-all active:scale-95 text-left
                 ${answers[current] === i + 1
                   ? 'border-brand-500 bg-brand-500/15 text-white'
-                  : 'border-dark-600 bg-dark-800 text-slate-300 hover:border-brand-600/50 hover:bg-dark-700'
+                  : 'border-dark-600 bg-dark-800 text-ink hover:border-brand-600/50 hover:bg-dark-700'
                 }`}
             >
               <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
-                answers[current] === i + 1 ? 'bg-brand-500 text-white' : 'bg-dark-600 text-slate-500'
+                answers[current] === i + 1 ? 'bg-brand-500 text-white' : 'bg-dark-600 text-slt'
               }`}>
                 {i + 1}
               </span>
@@ -188,7 +188,7 @@ function PersonalityTestPage() {
         {current > 0 && (
           <button
             onClick={() => setCurrent(current - 1)}
-            className="mt-6 text-sm text-slate-500 hover:text-slate-300 transition-colors w-full text-center"
+            className="mt-6 text-sm text-slt hover:text-ink transition-colors w-full text-center"
           >
             ← Previous question
           </button>

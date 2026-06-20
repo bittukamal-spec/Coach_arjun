@@ -72,15 +72,15 @@ function MessageBubble({ message, isStreaming }) {
         className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
           isUser
             ? 'bg-brand-600 text-white rounded-br-sm'
-            : 'bg-dark-800 border border-dark-600 text-slate-200 shadow-sm rounded-bl-sm'
+            : 'bg-dark-800 border border-dark-600 text-ink shadow-sm rounded-bl-sm'
         }`}
       >
         {message.content}
         {isStreaming && (
           <span className="inline-flex ml-1 gap-0.5">
-            <span className="w-1 h-1 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-            <span className="w-1 h-1 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-            <span className="w-1 h-1 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            <span className="w-1 h-1 bg-slt rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+            <span className="w-1 h-1 bg-slt rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+            <span className="w-1 h-1 bg-slt rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
           </span>
         )}
       </div>
@@ -96,9 +96,9 @@ function TypingIndicator() {
       </div>
       <div className="bg-dark-800 border border-dark-600 shadow-sm rounded-2xl rounded-bl-sm px-4 py-3">
         <span className="inline-flex gap-1">
-          <span className="w-2 h-2 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-          <span className="w-2 h-2 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-          <span className="w-2 h-2 bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+          <span className="w-2 h-2 bg-slt rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+          <span className="w-2 h-2 bg-slt rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+          <span className="w-2 h-2 bg-slt rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
         </span>
       </div>
     </div>
@@ -328,13 +328,13 @@ function ChatPage() {
               A
             </div>
             <div className="min-w-0">
-              <p className="font-semibold text-slate-100 text-sm leading-none">{t.title}</p>
+              <p className="font-semibold text-ink text-sm leading-none">{t.title}</p>
               {activeSession ? (
                 <p className="text-xs text-brand-400 leading-none mt-0.5 truncate">
                   {t.sessions[activeSession].icon} {t.sessions[activeSession].title}
                 </p>
               ) : (
-                <p className="text-xs text-slate-500 leading-none mt-0.5">{t.aiLabel}</p>
+                <p className="text-xs text-slt leading-none mt-0.5">{t.aiLabel}</p>
               )}
             </div>
           </div>
@@ -348,7 +348,7 @@ function ChatPage() {
                 Trial ended
               </span>
             ) : (
-              <span className="text-xs font-semibold text-slate-400 bg-dark-700 border border-dark-500 px-2 py-1 rounded-full">
+              <span className="text-xs font-semibold text-slt bg-dark-700 border border-dark-500 px-2 py-1 rounded-full">
                 {t.trialLabel(usage.trialDaysRemaining)}
               </span>
             )}
@@ -358,7 +358,7 @@ function ChatPage() {
 
       {/* ── Session picker bar (always visible) ─────────────────────────── */}
       <div className="shrink-0 border-b border-dark-600 bg-dark-900/80">
-        <p className="text-xs text-slate-600 font-medium px-4 pt-2">
+        <p className="text-xs text-slt font-medium px-4 pt-2">
           {language === 'hi' ? 'विषय चुनें' : 'Choose a focus'}
         </p>
         <div className="overflow-x-auto no-scrollbar">
@@ -374,7 +374,7 @@ function ChatPage() {
                   className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${
                     isActive
                       ? `${activeBg} ${color}`
-                      : 'bg-dark-800 border-dark-600 text-slate-500 hover:border-dark-400 hover:text-slate-300'
+                      : 'bg-dark-800 border-dark-600 text-slt hover:border-dark-400 hover:text-ink'
                   }`}
                 >
                   <span className="text-sm">{def.icon}</span>
@@ -390,14 +390,14 @@ function ChatPage() {
       <div className="shrink-0 px-4 py-1 border-b border-dark-700 text-center">
         <button
           onClick={() => setShowSafety(s => !s)}
-          className="text-[11px] text-slate-600 hover:text-slate-400 transition-colors"
+          className="text-[11px] text-slt hover:text-ink transition-colors"
         >
           ℹ {t.safetyLinkLabel}
         </button>
         {showSafety && (
           <div className="mt-1 mb-1 bg-dark-800 border border-dark-600 rounded-xl px-3 py-2 text-left max-w-2xl mx-auto">
-            <p className="text-xs text-slate-400">{t.safetyNote}</p>
-            <p className="text-xs text-slate-500 mt-1">{t.safetyHelpline}</p>
+            <p className="text-xs text-slt">{t.safetyNote}</p>
+            <p className="text-xs text-slt mt-1">{t.safetyHelpline}</p>
           </div>
         )}
       </div>
@@ -409,7 +409,7 @@ function ChatPage() {
           {/* One-time AI intro banner */}
           {showIntro && (
             <div className="bg-dark-800 border border-brand-500/30 rounded-2xl p-4 animate-fade-in">
-              <p className="font-bold text-white text-sm mb-1">{t.aiIntroTitle}</p>
+              <p className="font-bold text-ink text-sm mb-1">{t.aiIntroTitle}</p>
               <p className="text-xs text-slate-400 leading-relaxed mb-3">{t.aiIntroBody}</p>
               <button
                 onClick={() => { localStorage.setItem('arjun_chat_intro_seen', '1'); setShowIntro(false); }}
@@ -427,8 +427,8 @@ function ChatPage() {
                 A
               </div>
               <div>
-                <p className="font-bold text-slate-100 mb-1">{t.sessionTitle}</p>
-                <p className="text-sm text-slate-500 max-w-xs leading-relaxed">{t.emptySubtitle}</p>
+                <p className="font-bold text-ink mb-1">{t.sessionTitle}</p>
+                <p className="text-sm text-slt max-w-xs leading-relaxed">{t.emptySubtitle}</p>
               </div>
               <p className="text-xs text-brand-500 bg-brand-500/10 border border-brand-500/20 rounded-full px-3 py-1.5">
                 {language === 'hi' ? '👆 ऊपर एक विषय चुनें' : '👆 Select a topic above to begin'}
@@ -440,8 +440,8 @@ function ChatPage() {
           {!hasMessages && activeSession && !waitingForFirst && (
             <div className="animate-fade-in bg-dark-800 border border-dark-600 rounded-2xl p-4 text-sm text-slate-400 text-center">
               <p className="text-2xl mb-2">{t.sessions[activeSession].icon}</p>
-              <p className="font-semibold text-slate-200 mb-0.5">{t.sessions[activeSession].title}</p>
-              <p className="text-xs text-slate-500">{t.sessions[activeSession].desc}</p>
+              <p className="font-semibold text-ink mb-0.5">{t.sessions[activeSession].title}</p>
+              <p className="text-xs text-slt">{t.sessions[activeSession].desc}</p>
             </div>
           )}
 
@@ -457,7 +457,7 @@ function ChatPage() {
                       <button
                         key={reply}
                         onClick={() => sendMessage(reply)}
-                        className="text-xs bg-dark-700 border border-brand-600/40 text-brand-300 px-3 py-1.5 rounded-full hover:bg-brand-600/20 hover:border-brand-500 active:scale-95 transition-all"
+                        className="text-xs bg-dark-700 border border-brand-600/40 text-brand-500 px-3 py-1.5 rounded-full hover:bg-brand-600/20 hover:border-brand-500 active:scale-95 transition-all"
                       >
                         {reply}
                       </button>
@@ -511,7 +511,7 @@ function ChatPage() {
               }
               disabled={atLimit || streaming || needsSession}
               rows={1}
-              className="flex-1 resize-none bg-dark-700 border border-dark-500 text-slate-100 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent placeholder-slate-500 disabled:opacity-50 disabled:cursor-not-allowed max-h-32 overflow-y-auto"
+              className="flex-1 resize-none bg-dark-700 border border-dark-500 text-ink rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent placeholder-slt disabled:opacity-50 disabled:cursor-not-allowed max-h-32 overflow-y-auto"
               style={{ minHeight: '44px' }}
               onInput={e => {
                 e.target.style.height = 'auto';
@@ -535,7 +535,7 @@ function ChatPage() {
             </button>
           </div>
 
-          <p className="text-xs text-slate-600 mt-2 text-center">
+          <p className="text-xs text-slt mt-2 text-center">
             {needsSession
               ? (language === 'hi' ? 'अर्जुन हर सत्र के लिए अलग तरह से कोचिंग देता है' : 'Arjun coaches differently for each topic')
               : 'Enter to send · Shift+Enter for new line'}

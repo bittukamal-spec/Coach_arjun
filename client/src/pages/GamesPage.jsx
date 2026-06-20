@@ -242,9 +242,9 @@ const GAMES = [
 ];
 
 const TYPE_STYLES = {
-  focus:      { badge: 'bg-amber-500/20 text-amber-300',   topBorder: 'border-t-amber-500' },
-  pressure:   { badge: 'bg-red-500/20 text-red-300',       topBorder: 'border-t-red-500'   },
-  confidence: { badge: 'bg-violet-500/20 text-violet-300', topBorder: 'border-t-violet-500' },
+  focus:      { badge: 'bg-amber-500/20 text-amber-700',   topBorder: 'border-t-amber-500' },
+  pressure:   { badge: 'bg-red-500/20 text-red-700',       topBorder: 'border-t-red-500'   },
+  confidence: { badge: 'bg-brand-500/20 text-brand-600',   topBorder: 'border-t-brand-500' },
 };
 
 // ── Utilities ──────────────────────────────────────────────────────────────────
@@ -335,8 +335,8 @@ function ConcentrationGrid({ onDone }) {
 
   if (phase === 'ready') return (
     <div className="text-center py-2">
-      <p className="text-slate-300 text-sm mb-1">Find numbers <span className="text-white font-bold">1 → 25</span> in order.</p>
-      <p className="text-slate-500 text-xs mb-5">They're scrambled. You have 60 seconds.</p>
+      <p className="text-slt text-sm mb-1">Find numbers <span className="text-ink font-bold">1 → 25</span> in order.</p>
+      <p className="text-slt text-xs mb-5">They're scrambled. You have 60 seconds.</p>
       {hi > 0 && <p className="text-xs text-amber-400 mb-4">Your best: {hi}/25</p>}
       <button onClick={() => { doneCalledRef.current = false; setPhase('playing'); }} className="btn-primary">Start →</button>
     </div>
@@ -348,10 +348,10 @@ function ConcentrationGrid({ onDone }) {
     const rating = score >= 22 ? '🏆 Elite' : score >= 17 ? '🔥 Strong' : score >= 12 ? '💪 Good' : '📈 Keep Going';
     return (
       <div className="text-center py-2">
-        <p className="text-4xl font-black text-white mb-1">{score}<span className="text-slate-400 text-xl">/25</span></p>
+        <p className="text-4xl font-black text-ink mb-1">{score}<span className="text-slt text-xl">/25</span></p>
         <p className="text-lg text-amber-400 font-semibold mb-1">{rating}</p>
         {isNewBest && <p className="text-xs text-win-400 mb-1">🎉 New personal best!</p>}
-        <p className="text-xs text-slate-500 mb-5">Elite athletes: 18–22 in 60 seconds</p>
+        <p className="text-xs text-slt mb-5">Elite athletes: 18–22 in 60 seconds</p>
         <button onClick={reset} className="btn-secondary text-sm">Play Again</button>
       </div>
     );
@@ -360,9 +360,9 @@ function ConcentrationGrid({ onDone }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <p className="text-sm text-slate-400">Find: <span className="text-2xl font-black text-amber-400">{nextTarget}</span></p>
-        <p className={`text-sm font-bold tabular-nums ${time <= 10 ? 'text-red-400' : 'text-slate-300'}`}>{time}s</p>
-        <p className="text-sm text-slate-500">{score}/25</p>
+        <p className="text-sm text-slt">Find: <span className="text-2xl font-black text-amber-400">{nextTarget}</span></p>
+        <p className={`text-sm font-bold tabular-nums ${time <= 10 ? 'text-red-400' : 'text-slt'}`}>{time}s</p>
+        <p className="text-sm text-slt">{score}/25</p>
       </div>
       <div className="grid grid-cols-5 gap-1.5">
         {grid.map(num => {
@@ -449,8 +449,8 @@ function StroopFocus({ onDone }) {
       <div className="flex justify-center mb-4">
         <span className="text-4xl font-black text-red-400">BLUE</span>
       </div>
-      <p className="text-slate-300 text-sm mb-1">The word says <span className="font-bold text-white">BLUE</span> but it's written in <span className="font-bold text-red-400">red ink</span>.</p>
-      <p className="text-slate-300 text-sm mb-5">Always tap the <span className="font-bold text-white">ink color</span>, not the word.</p>
+      <p className="text-slt text-sm mb-1">The word says <span className="font-bold text-ink">BLUE</span> but it's written in <span className="font-bold text-red-400">red ink</span>.</p>
+      <p className="text-slt text-sm mb-5">Always tap the <span className="font-bold text-ink">ink color</span>, not the word.</p>
       {hi > 0 && <p className="text-xs text-amber-400 mb-4">Your best: {hi} correct</p>}
       <button onClick={() => { doneRef.current = false; setPhase('playing'); }} className="btn-primary">Start →</button>
     </div>
@@ -462,11 +462,11 @@ function StroopFocus({ onDone }) {
     const rating = pct >= 88 ? '🏆 Elite Control' : pct >= 72 ? '🔥 Strong' : pct >= 58 ? '💪 Good' : '📈 Train This';
     return (
       <div className="text-center py-2">
-        <p className="text-4xl font-black text-white mb-1">{correct}<span className="text-slate-400 text-xl">/{total}</span></p>
-        <p className="text-base text-slate-400 mb-1">{pct}% accuracy</p>
+        <p className="text-4xl font-black text-ink mb-1">{correct}<span className="text-slt text-xl">/{total}</span></p>
+        <p className="text-base text-slt mb-1">{pct}% accuracy</p>
         <p className="text-lg text-amber-400 font-semibold mb-1">{rating}</p>
         {correct >= newHi && hi < correct && <p className="text-xs text-win-400 mb-1">🎉 New best!</p>}
-        <p className="text-xs text-slate-500 mb-5">Target: 85%+ accuracy = elite inhibitory control</p>
+        <p className="text-xs text-slt mb-5">Target: 85%+ accuracy = elite inhibitory control</p>
         <button onClick={reset} className="btn-secondary text-sm">Play Again</button>
       </div>
     );
@@ -475,8 +475,8 @@ function StroopFocus({ onDone }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <p className="text-sm text-slate-500">{correct}/{total} correct</p>
-        <p className={`text-sm font-bold tabular-nums ${time <= 10 ? 'text-red-400' : 'text-slate-300'}`}>{time}s</p>
+        <p className="text-sm text-slt">{correct}/{total} correct</p>
+        <p className={`text-sm font-bold tabular-nums ${time <= 10 ? 'text-red-400' : 'text-slt'}`}>{time}s</p>
       </div>
       <div className={`flex items-center justify-center h-24 mb-6 rounded-2xl border-2 transition-colors duration-150 ${
         feedback === 'ok' ? 'border-win-500/60 bg-win-500/10' :
@@ -569,9 +569,9 @@ function ReactionBall({ onDone, sportProfile }) {
 
   if (phase === 'ready') return (
     <div className="text-center py-2">
-      <p className="text-slate-300 text-sm mb-1">Wait for the circle to turn <span className="text-win-400 font-bold">GREEN</span>.</p>
-      <p className="text-slate-400 text-xs mb-3 leading-relaxed">{sp.reactionContext}</p>
-      <p className="text-slate-500 text-xs mb-5">5 rounds · Don't tap early!</p>
+      <p className="text-slt text-sm mb-1">Wait for the circle to turn <span className="text-win-400 font-bold">GREEN</span>.</p>
+      <p className="text-slt text-xs mb-3 leading-relaxed">{sp.reactionContext}</p>
+      <p className="text-slt text-xs mb-5">5 rounds · Don't tap early!</p>
       {hi > 0 && hi < 9999 && <p className="text-xs text-amber-400 mb-4">Your best: {hi}ms avg</p>}
       <button onClick={() => { doneRef.current = false; beginWait(); }} className="btn-primary">Start →</button>
     </div>
@@ -586,15 +586,15 @@ function ReactionBall({ onDone, sportProfile }) {
       avg < sp.reactionGood + 70 ? '💪 Good' : '📈 Train Daily';
     return (
       <div className="text-center py-2">
-        <p className="text-4xl font-black text-white mb-1">{avg}<span className="text-slate-400 text-xl">ms avg</span></p>
+        <p className="text-4xl font-black text-ink mb-1">{avg}<span className="text-slt text-xl">ms avg</span></p>
         <p className="text-lg text-red-400 font-semibold mb-1">{rating}</p>
         {avg <= newHi && hi > avg && <p className="text-xs text-win-400 mb-1">🎉 New personal best!</p>}
         <div className="flex justify-center gap-2 flex-wrap my-3">
           {times.map((t, i) => (
-            <span key={i} className="text-xs bg-dark-700 px-2 py-1 rounded-lg text-slate-400">R{i+1}: {t}ms</span>
+            <span key={i} className="text-xs bg-dark-700 px-2 py-1 rounded-lg text-slt">R{i+1}: {t}ms</span>
           ))}
         </div>
-        <p className="text-xs text-slate-500 mb-5">{sp.reactionBenchmark}</p>
+        <p className="text-xs text-slt mb-5">{sp.reactionBenchmark}</p>
         <button onClick={reset} className="btn-secondary text-sm">Play Again</button>
       </div>
     );
@@ -602,7 +602,7 @@ function ReactionBall({ onDone, sportProfile }) {
 
   return (
     <div className="flex flex-col items-center py-2">
-      <p className="text-sm text-slate-500 mb-6">Round {round} of 5</p>
+      <p className="text-sm text-slt mb-6">Round {round} of 5</p>
       <button
         onClick={tap}
         className={`w-44 h-44 rounded-full flex items-center justify-center text-xl font-black transition-all duration-100 active:scale-95 select-none ${
@@ -611,11 +611,11 @@ function ReactionBall({ onDone, sportProfile }) {
           'bg-dark-700 border-2 border-dark-500 text-dark-600 cursor-default'
         }`}
       >
-        {phase === 'waiting' && <span className="text-slate-600 text-4xl">●</span>}
+        {phase === 'waiting' && <span className="text-slt text-4xl">●</span>}
         {phase === 'green'   && sp.reactionAction}
         {phase === 'result'  && (early ? '⚡ Early!' : `${lastMs}ms`)}
       </button>
-      {phase === 'waiting' && <p className="text-slate-500 text-sm mt-5">Wait for green…</p>}
+      {phase === 'waiting' && <p className="text-slt text-sm mt-5">Wait for green…</p>}
       {phase === 'green'   && <p className="text-win-400 text-sm mt-5 animate-pulse">Now!</p>}
     </div>
   );
@@ -705,8 +705,8 @@ function ThoughtBuster({ onDone, sportProfile }) {
       <div className="bg-red-950/60 border border-red-800/40 rounded-2xl px-4 py-2 inline-block mb-4">
         <p className="text-red-300 text-sm italic">"What if I fail?"</p>
       </div>
-      <p className="text-slate-300 text-sm mb-1">Negative thoughts will float up. <span className="font-bold text-white">Tap to pop them</span> before they take over.</p>
-      <p className="text-slate-500 text-xs mb-5">45 seconds · Pop as many as you can</p>
+      <p className="text-slt text-sm mb-1">Negative thoughts will float up. <span className="font-bold text-ink">Tap to pop them</span> before they take over.</p>
+      <p className="text-slt text-xs mb-5">45 seconds · Pop as many as you can</p>
       {hi > 0 && <p className="text-xs text-amber-400 mb-4">Your best: {hi} thoughts popped</p>}
       <button onClick={() => { doneRef.current = false; setPhase('playing'); }} className="btn-primary">Start →</button>
     </div>
@@ -717,11 +717,11 @@ function ThoughtBuster({ onDone, sportProfile }) {
     const rating = score >= 25 ? '🏆 Elite Control' : score >= 18 ? '🔥 Strong' : score >= 12 ? '💪 Good' : '📈 Keep Going';
     return (
       <div className="text-center py-2">
-        <p className="text-4xl font-black text-white mb-1">{score}</p>
-        <p className="text-slate-400 text-sm mb-1">thoughts popped</p>
-        <p className="text-lg text-violet-400 font-semibold mb-1">{rating}</p>
+        <p className="text-4xl font-black text-ink mb-1">{score}</p>
+        <p className="text-slt text-sm mb-1">thoughts popped</p>
+        <p className="text-lg text-brand-500 font-semibold mb-1">{rating}</p>
         {score >= newHi && hi < score && <p className="text-xs text-win-400 mb-1">🎉 New best!</p>}
-        <p className="text-xs text-slate-500 mb-5">Each pop is a thought stopped. That's real mental training.</p>
+        <p className="text-xs text-slt mb-5">Each pop is a thought stopped. That's real mental training.</p>
         <button onClick={reset} className="btn-secondary text-sm">Play Again</button>
       </div>
     );
@@ -730,8 +730,8 @@ function ThoughtBuster({ onDone, sportProfile }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <p className="text-sm text-slate-500">{score} popped</p>
-        <p className={`text-sm font-bold tabular-nums ${time <= 10 ? 'text-red-400' : 'text-slate-300'}`}>{time}s</p>
+        <p className="text-sm text-slt">{score} popped</p>
+        <p className={`text-sm font-bold tabular-nums ${time <= 10 ? 'text-red-400' : 'text-slt'}`}>{time}s</p>
       </div>
       <div className="relative bg-dark-900 border border-dark-600 rounded-2xl overflow-hidden" style={{ height: 240 }}>
         {bubbles.map(b => (
@@ -833,7 +833,7 @@ function FocusFilter({ onDone }) {
         <span className="bg-win-500/20 text-win-300 text-xs px-3 py-1 rounded-full font-medium">FOCUS: Breathe · Trust · Here</span>
         <span className="bg-red-500/20 text-red-300 text-xs px-3 py-1 rounded-full font-medium">NOISE: Fail · Panic · Doubt</span>
       </div>
-      <p className="text-slate-300 text-sm mb-5">Press <span className="text-win-400 font-bold">FOCUS ✓</span> or <span className="text-red-400 font-bold">NOISE ✗</span> for each word. Fast.</p>
+      <p className="text-slt text-sm mb-5">Press <span className="text-win-400 font-bold">FOCUS ✓</span> or <span className="text-red-400 font-bold">NOISE ✗</span> for each word. Fast.</p>
       {hi > 0 && <p className="text-xs text-amber-400 mb-4">Your best: {hi} correct</p>}
       <button onClick={() => { doneRef.current = false; setPhase('playing'); }} className="btn-primary">Start →</button>
     </div>
@@ -846,11 +846,11 @@ function FocusFilter({ onDone }) {
     if (correct > newHi) localStorage.setItem('hi_filter', correct);
     return (
       <div className="text-center py-2">
-        <p className="text-4xl font-black text-white mb-1">{correct}<span className="text-slate-400 text-xl">/{answered}</span></p>
-        <p className="text-slate-400 text-sm mb-1">{pct}% accuracy</p>
+        <p className="text-4xl font-black text-ink mb-1">{correct}<span className="text-slt text-xl">/{answered}</span></p>
+        <p className="text-slt text-sm mb-1">{pct}% accuracy</p>
         <p className="text-lg text-amber-400 font-semibold mb-1">{rating}</p>
         {correct > newHi && hi < correct && <p className="text-xs text-win-400 mb-1">🎉 New best!</p>}
-        <p className="text-xs text-slate-500 mb-5">85%+ = elite distraction resistance</p>
+        <p className="text-xs text-slt mb-5">85%+ = elite distraction resistance</p>
         <button onClick={reset} className="btn-secondary text-sm">Play Again</button>
       </div>
     );
@@ -860,14 +860,14 @@ function FocusFilter({ onDone }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <p className="text-sm text-slate-500">{idx + 1}/{queue.length}</p>
-        <p className={`text-sm font-bold tabular-nums ${time <= 10 ? 'text-red-400' : 'text-slate-300'}`}>{time}s</p>
+        <p className="text-sm text-slt">{idx + 1}/{queue.length}</p>
+        <p className={`text-sm font-bold tabular-nums ${time <= 10 ? 'text-red-400' : 'text-slt'}`}>{time}s</p>
       </div>
       <div className={`flex items-center justify-center h-28 mb-5 rounded-2xl border-2 transition-colors duration-150 ${
         feedback === 'ok' ? 'border-win-500/60 bg-win-500/10' :
         feedback === 'no' ? 'border-red-500/60 bg-red-500/10' : 'border-dark-500 bg-dark-700'
       }`}>
-        <p className="text-4xl font-black text-white select-none">{word?.text}</p>
+        <p className="text-4xl font-black text-ink select-none">{word?.text}</p>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <button
@@ -905,17 +905,17 @@ function GameRunner({ gameId, onBack, onDone, xpEarned, sportProfile }) {
 
   return (
     <div className="animate-fade-in">
-      <button onClick={onBack} className="flex items-center gap-1.5 text-slate-400 hover:text-slate-200 text-sm mb-4 transition-colors">
+      <button onClick={onBack} className="flex items-center gap-1.5 text-slt hover:text-ink text-sm mb-4 transition-colors">
         <ArrowLeft size={14} /> Games
       </button>
 
       <div className="flex items-center gap-3 mb-4">
         <span className="text-3xl">{game.icon}</span>
         <div>
-          <h2 className="font-bold text-slate-100 text-base">{game.title}</h2>
+          <h2 className="font-bold text-ink text-base">{game.title}</h2>
           <div className="flex items-center gap-2 mt-0.5">
             <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${style.badge}`}>{game.type}</span>
-            <span className="text-[10px] text-slate-500">{game.duration}</span>
+            <span className="text-[10px] text-slt">{game.duration}</span>
             {sportProfile.label !== 'athlete' && (
               <span className="text-[10px] text-brand-400">· for {sportProfile.label}</span>
             )}
@@ -935,8 +935,8 @@ function GameRunner({ gameId, onBack, onDone, xpEarned, sportProfile }) {
       )}
 
       <div className="bg-dark-800/50 border border-dark-600 rounded-xl px-4 py-3">
-        <p className="text-xs text-slate-500 leading-relaxed">
-          <span className="text-slate-400 font-medium">Why this helps: </span>{tip}
+        <p className="text-xs text-slt leading-relaxed">
+          <span className="text-slt font-medium">Why this helps: </span>{tip}
         </p>
       </div>
     </div>
@@ -984,19 +984,19 @@ function GamesPage() {
       <header className="bg-dark-900 border-b border-dark-600 px-4 py-4 sticky top-0 z-10">
         <div className="max-w-lg mx-auto flex items-center gap-3">
           {activeGame ? (
-            <button onClick={() => setActiveGame(null)} className="text-slate-400 hover:text-slate-200 transition-colors">
+            <button onClick={() => setActiveGame(null)} className="text-slt hover:text-ink transition-colors">
               <ArrowLeft size={20} />
             </button>
           ) : (
-            <Link to="/dashboard" className="text-slate-400 hover:text-slate-200 transition-colors">
+            <Link to="/dashboard" className="text-slt hover:text-ink transition-colors">
               <ArrowLeft size={20} />
             </Link>
           )}
-          <h1 className="font-bold text-slate-100">
+          <h1 className="font-bold text-ink">
             {activeGame ? GAMES.find(g => g.id === activeGame)?.title : 'Mind Booster Games'}
           </h1>
           {!activeGame && (
-            <span className="ml-auto text-xs text-slate-500">+10 MXP per game</span>
+            <span className="ml-auto text-xs text-slt">+10 MXP per game</span>
           )}
         </div>
       </header>
@@ -1013,7 +1013,7 @@ function GamesPage() {
           />
         ) : (
           <>
-            <p className="text-slate-400 text-sm mb-5 leading-relaxed">
+            <p className="text-slt text-sm mb-5 leading-relaxed">
               5 evidence-based mini-games used in sport psychology. Each trains a specific mental skill in under 90 seconds.
             </p>
 
@@ -1032,16 +1032,16 @@ function GamesPage() {
                         <span className="text-3xl">{game.icon}</span>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                            <h3 className="font-bold text-slate-100 text-sm">{language === 'hi' ? game.titleHi : game.title}</h3>
+                            <h3 className="font-bold text-ink text-sm">{language === 'hi' ? game.titleHi : game.title}</h3>
                             {isPlayed && (
                               <span className="text-[10px] text-win-400 font-semibold bg-win-500/10 px-2 py-0.5 rounded-full">✓ +10 MXP</span>
                             )}
                           </div>
-                          <p className="text-xs text-slate-400 mb-1.5">{language === 'hi' ? game.descHi : game.description}</p>
+                          <p className="text-xs text-slt mb-1.5">{language === 'hi' ? game.descHi : game.description}</p>
                           <div className="flex items-center gap-2">
                             <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${style.badge}`}>{game.type}</span>
-                            <span className="text-[10px] text-slate-500">{game.duration}</span>
-                            {hi !== null && <span className="text-[10px] text-slate-600">Best: {hi}{game.id === 'reaction_ball' ? 'ms' : ''}</span>}
+                            <span className="text-[10px] text-slt">{game.duration}</span>
+                            {hi !== null && <span className="text-[10px] text-slt">Best: {hi}{game.id === 'reaction_ball' ? 'ms' : ''}</span>}
                           </div>
                         </div>
                         <button

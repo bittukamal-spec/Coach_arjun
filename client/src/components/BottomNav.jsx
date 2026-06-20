@@ -1,14 +1,14 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, CheckSquare, MessageCircle, Gamepad2, TrendingUp } from 'lucide-react';
+import { Home, ClipboardCheck, MessageCircle, Gamepad2, TrendingUp } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 
 const NAV_ITEMS = [
-  { icon: Home,          labelKey: 'home',     path: '/dashboard' },
-  { icon: CheckSquare,   labelKey: 'checkin',  path: '/checkin'   },
-  { icon: MessageCircle, labelKey: 'coach',    path: '/coaching'  },
-  { icon: Gamepad2,      labelKey: 'games',    path: '/games'     },
-  { icon: TrendingUp,    labelKey: 'progress', path: '/progress'  },
+  { icon: Home,           labelKey: 'home',     path: '/dashboard' },
+  { icon: ClipboardCheck, labelKey: 'checkin',  path: '/checkin'   },
+  { icon: MessageCircle,  labelKey: 'coach',    path: '/coaching'  },
+  { icon: Gamepad2,       labelKey: 'games',    path: '/games'     },
+  { icon: TrendingUp,     labelKey: 'progress', path: '/progress'  },
 ];
 
 function BottomNav() {
@@ -26,7 +26,7 @@ function BottomNav() {
               key={path}
               to={path}
               className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors ${
-                active ? 'text-brand-400' : 'text-slate-500 hover:text-slate-300'
+                active ? 'text-brand-400' : 'text-slt hover:text-ink'
               }`}
             >
               {active && (

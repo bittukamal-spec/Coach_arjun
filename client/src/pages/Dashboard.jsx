@@ -4,7 +4,7 @@ import Navbar from '../components/Navbar';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
-import { MessageCircle, CheckSquare, TrendingUp, Zap } from 'lucide-react';
+import { MessageCircle, CheckSquare, TrendingUp, Zap, Flame, Wind, Trophy, ClipboardList, CheckCircle2 } from 'lucide-react';
 import { DRILLS, DRILL_TYPE_COLORS } from '../data/drills';
 
 const SPORT_ICONS = {
@@ -136,27 +136,27 @@ function Dashboard() {
 
   const TOOLS = [
     {
-      icon: '🌬️',
+      Icon: Wind,
       label: language === 'hi' ? 'श्वास कक्ष' : 'Breathing Room',
       desc: language === 'hi' ? 'दबाव को 2 मिनट में काबू करें' : 'Control nerves in 2 minutes',
       to: '/breathing',
-      color: 'text-violet-400',
-      border: 'border-violet-500/30 hover:border-violet-500/60',
+      color: 'text-brand-500',
+      border: 'border-brand-500/30 hover:border-brand-500/60',
     },
     {
-      icon: '🏆',
+      Icon: Trophy,
       label: language === 'hi' ? 'प्री-मैच रिचुअल' : 'Pre-Match Ritual',
       desc: language === 'hi' ? 'हर बार चोटी की अवस्था में आएं' : 'Enter peak state on command',
       to: '/ritual',
-      color: 'text-amber-400',
-      border: 'border-amber-500/30 hover:border-amber-500/60',
+      color: 'text-fire-500',
+      border: 'border-fire-500/30 hover:border-fire-500/60',
     },
     {
-      icon: '📋',
+      Icon: ClipboardList,
       label: language === 'hi' ? 'पोस्ट-मैच डीब्रीफ' : 'Post-Match Debrief',
       desc: language === 'hi' ? '3 सवाल जो असली सीख देते हैं' : '3 questions that build real learning',
       to: '/debrief',
-      color: 'text-sky-400',
+      color: 'text-sky-600',
       border: 'border-sky-500/30 hover:border-sky-500/60',
     },
   ];
@@ -182,12 +182,12 @@ function Dashboard() {
         {/* Welcome header */}
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-3">
-            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-white text-2xl font-bold flex items-center justify-center shadow-lg ring-2 ring-brand-600/40">
+            <div className="w-14 h-14 rounded-full bg-brand-500 text-white text-2xl font-bold flex items-center justify-center shadow-lg ring-2 ring-brand-600/40">
               {user?.name?.charAt(0)?.toUpperCase()}
             </div>
             <div>
-              <p className="text-slate-500 text-sm">{t.dashboard.welcomeBack}</p>
-              <h1 className="text-2xl font-bold text-white">{user?.name}</h1>
+              <p className="text-slt text-sm">{t.dashboard.welcomeBack}</p>
+              <h1 className="text-2xl font-bold text-ink">{user?.name}</h1>
             </div>
           </div>
 
@@ -201,12 +201,12 @@ function Dashboard() {
               {isPremium ? '⭐ ' + t.dashboard.premiumTier : '🆓 ' + t.dashboard.freeTier}
             </span>
             {user?.sport && (
-              <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full bg-dark-700 text-slate-300 border border-dark-500">
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full bg-dark-700 text-slt border border-dark-500">
                 {SPORT_ICONS[user.sport] || '🏅'} {user.sport.charAt(0).toUpperCase() + user.sport.slice(1)}
               </span>
             )}
             {user?.experienceLevel && (
-              <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full bg-dark-700 text-slate-300 border border-dark-500">
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full bg-dark-700 text-slt border border-dark-500">
                 {user.experienceLevel.charAt(0).toUpperCase() + user.experienceLevel.slice(1)}
               </span>
             )}
@@ -214,12 +214,12 @@ function Dashboard() {
         </div>
 
         {/* Streak + XP HUD strip */}
-        <div className="card mb-6 flex items-center justify-between gap-4 bg-gradient-to-r from-dark-800 to-dark-700 border-fire-600/30">
+        <div className="card mb-6 flex items-center justify-between gap-4 bg-dark-800 border-fire-600/30">
           <div className="flex items-center gap-3">
-            <span className={`text-4xl ${streak > 0 ? 'animate-flame-pulse' : ''}`}>🔥</span>
+            <Flame size={36} className={`${streak > 0 ? 'animate-flame-pulse text-fire-500' : 'text-fire-400'}`} />
             <div>
-              <p className="text-2xl font-bold text-white leading-none">{streak ?? 0}</p>
-              <p className="text-slate-400 text-sm">{language === 'hi' ? 'दिन की लकीर' : 'day streak'}</p>
+              <p className="text-2xl font-bold text-ink leading-none">{streak ?? 0}</p>
+              <p className="text-slt text-sm">{language === 'hi' ? 'दिन की लकीर' : 'day streak'}</p>
             </div>
           </div>
           {user?.xp !== undefined && (
@@ -227,12 +227,12 @@ function Dashboard() {
               <div className="flex items-center gap-2 bg-brand-500/10 border border-brand-500/20 px-4 py-2 rounded-xl cursor-default">
                 <Zap size={16} className="text-brand-400" />
                 <div className="text-right">
-                  <p className="text-lg font-bold text-white leading-none">{user.xp}</p>
-                  <p className="text-xs text-slate-500">MXP</p>
+                  <p className="text-lg font-bold text-ink leading-none">{user.xp}</p>
+                  <p className="text-xs text-slt">MXP</p>
                 </div>
               </div>
-              <div className="absolute bottom-full right-0 mb-2 w-48 bg-dark-700 border border-dark-500 rounded-xl px-3 py-2 text-xs text-slate-300 hidden group-hover:block z-10 pointer-events-none shadow-lg">
-                <p className="font-semibold text-white mb-0.5">Mental XP</p>
+              <div className="absolute bottom-full right-0 mb-2 w-48 bg-dark-700 border border-dark-500 rounded-xl px-3 py-2 text-xs text-slt hidden group-hover:block z-10 pointer-events-none shadow-lg">
+                <p className="font-semibold text-ink mb-0.5">Mental XP</p>
                 <p>Earn points by checking in and talking to Arjun.</p>
               </div>
             </div>
@@ -242,7 +242,7 @@ function Dashboard() {
         {/* Mental Fitness Score */}
         <div className="card mb-6">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+            <p className="text-xs font-semibold text-slt uppercase tracking-wide">
               {t.dashboard.fitnessTitle}
             </p>
             {fitnessLevel && (
@@ -255,7 +255,7 @@ function Dashboard() {
             <>
               <div className="flex items-end gap-2 mb-3">
                 <p className={`text-4xl font-bold leading-none ${fitnessLevel.color}`}>{fitnessScore}</p>
-                <p className="text-slate-600 text-sm mb-1">/100</p>
+                <p className="text-slt text-sm mb-1">/100</p>
               </div>
               <div className="h-2 bg-dark-700 rounded-full overflow-hidden">
                 <div
@@ -263,14 +263,14 @@ function Dashboard() {
                   style={{ width: `${fitnessScore}%` }}
                 />
               </div>
-              <p className="text-xs text-slate-600 mt-2">{t.dashboard.fitnessBasis}</p>
+              <p className="text-xs text-slt mt-2">{t.dashboard.fitnessBasis}</p>
             </>
           ) : (
-            <p className="text-sm text-slate-500">{t.dashboard.fitnessNoData}</p>
+            <p className="text-sm text-slt">{t.dashboard.fitnessNoData}</p>
           )}
         </div>
 
-        <p className="text-slate-400 text-base mb-6">{t.dashboard.subtitle}</p>
+        <p className="text-slt text-base mb-6">{t.dashboard.subtitle}</p>
 
         {/* Feature mission cards */}
         <div className="grid sm:grid-cols-3 gap-4 mb-8">
@@ -278,8 +278,8 @@ function Dashboard() {
             const card = (
               <div className={`card card-glow group transition-all h-full border ${accentBorder[accent]} cursor-pointer`}>
                 <Icon size={28} className={`mb-3 ${accentIcon[accent]}`} strokeWidth={1.8} />
-                <h3 className="font-semibold text-white mb-1">{t.dashboard[labelKey]}</h3>
-                <p className="text-sm text-slate-500 leading-relaxed mb-4">{description}</p>
+                <h3 className="font-semibold text-ink mb-1">{t.dashboard[labelKey]}</h3>
+                <p className="text-sm text-slt leading-relaxed mb-4">{description}</p>
                 {badge ? (
                   <span className={`inline-block text-xs font-semibold border px-2.5 py-1 rounded-full ${badge.color}`}>
                     {badge.label}
@@ -297,16 +297,16 @@ function Dashboard() {
 
         {/* Mental Tools row */}
         <div className="mb-6">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
+          <p className="text-xs font-semibold text-slt uppercase tracking-wide mb-3">
             {language === 'hi' ? 'मानसिक उपकरण' : 'Mental Tools'}
           </p>
           <div className="grid grid-cols-2 gap-3">
-            {TOOLS.map(({ icon, label, desc, to, color, border }) => (
+            {TOOLS.map(({ Icon, label, desc, to, color, border }) => (
               <Link key={to} to={to}>
                 <div className={`bg-dark-800 rounded-2xl border ${border} p-4 h-full transition-all active:scale-95`}>
-                  <span className="text-2xl mb-2 block">{icon}</span>
+                  <Icon className={`w-6 h-6 mb-2 ${color}`} />
                   <p className={`text-sm font-semibold ${color} mb-0.5`}>{label}</p>
-                  <p className="text-xs text-slate-500 leading-snug">{desc}</p>
+                  <p className="text-xs text-slt leading-snug">{desc}</p>
                 </div>
               </Link>
             ))}
@@ -344,17 +344,17 @@ function Dashboard() {
                       {drill.icon}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-0.5">
+                      <p className="text-xs font-bold text-slt uppercase tracking-wide mb-0.5">
                         {t.dashboard.drillTitle}
                       </p>
-                      <p className="font-bold text-white leading-tight">{drillTitle}</p>
+                      <p className="font-bold text-ink leading-tight">{drillTitle}</p>
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-1 shrink-0">
                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${colors.badge}`}>
                       {typeLabel}
                     </span>
-                    <span className="text-xs text-slate-500">⏱ {drill.duration}</span>
+                    <span className="text-xs text-slt">⏱ {drill.duration}</span>
                   </div>
                 </div>
 
@@ -369,14 +369,14 @@ function Dashboard() {
                 {/* Drill content */}
                 {drillState.completed ? (
                   <div className="flex items-center gap-2 text-win-400 text-sm font-semibold bg-win-500/10 rounded-xl px-3 py-2.5">
-                    <span>✅</span>
+                    <CheckCircle2 size={16} className="text-win-400" />
                     <span>{t.dashboard.drillDone}</span>
                     <span className="ml-auto text-xs text-win-600">+15 MXP</span>
                   </div>
                 ) : drillExpanded ? (
                   <div className="animate-fade-in">
                     <div className="bg-dark-700 rounded-xl p-3 mb-4">
-                      <p className="text-sm text-slate-200 leading-relaxed">{drillInstruction}</p>
+                      <p className="text-sm text-ink leading-relaxed">{drillInstruction}</p>
                     </div>
                     <button
                       onClick={completeDrill}
@@ -387,13 +387,13 @@ function Dashboard() {
                         ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> {language === 'hi' ? 'सेव हो रहा है…' : 'Saving…'}</>
                         : <>{language === 'hi' ? 'पूरा किया ✓ +15 MXP' : 'Done ✓ +15 MXP'}</>}
                     </button>
-                    <button onClick={() => setDrillExpanded(false)} className="w-full text-xs text-slate-600 hover:text-slate-400 mt-2 py-1">
+                    <button onClick={() => setDrillExpanded(false)} className="w-full text-xs text-slt hover:text-ink mt-2 py-1">
                       {language === 'hi' ? 'छुपाएं' : 'Collapse'}
                     </button>
                   </div>
                 ) : (
                   <div>
-                    <p className="text-sm text-slate-500 leading-relaxed mb-3">
+                    <p className="text-sm text-slt leading-relaxed mb-3">
                       {drillInstruction.substring(0, 90)}…
                     </p>
                     <button
@@ -412,11 +412,11 @@ function Dashboard() {
         {/* Achievements */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+            <p className="text-xs font-semibold text-slt uppercase tracking-wide">
               {t.dashboard.achievementsTitle}
             </p>
             {achievements !== null && (
-              <p className="text-xs text-slate-600">
+              <p className="text-xs text-slt">
                 {t.dashboard.achievementsEarned(earnedKeys.size, ALL_ACHIEVEMENTS.length)}
               </p>
             )}
@@ -433,11 +433,11 @@ function Dashboard() {
                   }`}
                 >
                   <div className={`text-3xl mb-1.5 ${earned ? '' : 'grayscale'}`}>{icon}</div>
-                  <p className={`text-xs font-semibold leading-tight ${earned ? 'text-white' : 'text-slate-600'}`}>
+                  <p className={`text-xs font-semibold leading-tight ${earned ? 'text-ink' : 'text-slt'}`}>
                     {name}
                   </p>
                   {earned && (
-                    <p className="text-xs text-slate-600 mt-0.5">
+                    <p className="text-xs text-slt mt-0.5">
                       {new Date(earned.earnedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                     </p>
                   )}
@@ -449,11 +449,11 @@ function Dashboard() {
 
         {/* Trial ended — upgrade banner */}
         {trialEnded && (
-          <div className="rounded-2xl bg-gradient-to-r from-brand-600 to-brand-800 border border-brand-500/50 p-6">
+          <div className="rounded-2xl bg-brand-600 border border-brand-500/50 p-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
                 <p className="font-bold text-white mb-1">🚀 {t.dashboard.upgradePrompt}</p>
-                <p className="text-brand-200 text-sm">
+                <p className="text-white text-sm">
                   {language === 'hi'
                     ? 'असीमित AI कोचिंग · सभी सुविधाएं · कभी भी रद्द करें'
                     : 'Unlimited AI coaching · All features · Cancel anytime'}
@@ -476,7 +476,7 @@ function Dashboard() {
                     ? (language === 'hi' ? 'ट्रायल का आखिरी दिन' : 'Last day of your free trial')
                     : (language === 'hi' ? `${trialDaysRemaining} दिन बचे हैं` : `${trialDaysRemaining} days left in trial`)}
                 </p>
-                <p className="text-slate-400 text-sm">
+                <p className="text-slt text-sm">
                   {language === 'hi' ? 'अर्जुन से बात करना जारी रखें' : 'Keep coaching with Arjun'}
                 </p>
               </div>
@@ -490,7 +490,7 @@ function Dashboard() {
         {/* Trial soft nudge (days 4-14) */}
         {!isPremium && !trialEnded && trialDaysRemaining > 3 && (
           <div className="text-center py-2">
-            <span className="text-xs text-slate-600">
+            <span className="text-xs text-slt">
               {language === 'hi'
                 ? `🆓 ${trialDaysRemaining} दिन का फ्री ट्रायल चल रहा है`
                 : `🆓 Free trial · ${trialDaysRemaining} days remaining`}

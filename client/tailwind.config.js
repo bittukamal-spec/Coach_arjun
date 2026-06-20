@@ -4,41 +4,49 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Dark backgrounds
+        // Page backgrounds → light theme
         dark: {
-          900: '#0A0A15',
-          800: '#12122A',
-          700: '#1E1E3F',
-          600: '#2A2A50',
-          500: '#3A3A60',
+          900: '#FFFFFF',   // page bg
+          800: '#EFEDE6',   // surface / cards
+          700: '#E8E6DF',   // input bg
+          600: '#C2CCC6',   // visible border
+          500: '#B0BDB7',   // lighter border
         },
-        // Primary brand — purple (mental focus)
+        // Primary brand — teal (mental performance)
         brand: {
-          50:  '#F5F3FF',
-          100: '#EDE9FE',
-          400: '#A78BFA',
-          500: '#8B5CF6',
-          600: '#7C3AED',
-          700: '#6D28D9',
+          50:  '#F0FAF6',
+          100: '#CBE9DD',
+          200: '#97D4BC',
+          300: '#5BB89A',
+          400: '#2D9575',
+          500: '#0B6E4F',
+          600: '#095E42',
+          700: '#074F38',
         },
-        // Energy — streaks, XP, fire
+        // Action accent — amber (CTAs, streaks)
         fire: {
-          400: '#FBBF24',
-          500: '#F97316',
-          600: '#EA580C',
+          300: '#F5B97A',
+          400: '#EE9041',
+          500: '#E2711D',
+          600: '#C95B0D',
         },
         // Success — achievements, completed
         win: {
-          400: '#34D399',
-          500: '#10B981',
-          600: '#059669',
+          300: '#5BCE85',
+          400: '#35B05E',
+          500: '#18733B',
+          600: '#135E30',
         },
+        // Semantic text tokens
+        ink:   '#15211C',   // primary text
+        slt:   '#41524A',   // secondary text
+        alert: '#B83227',   // errors / alerts
         // Keep calm for backwards compat (charts etc.)
         calm: {
-          50:  '#ECFDF5',
-          100: '#D1FAE5',
-          500: '#10B981',
-          600: '#059669',
+          50:  '#F0FAF6',
+          100: '#CBE9DD',
+          500: '#18733B',
+          600: '#135E30',
         },
       },
       fontFamily: {

@@ -50,7 +50,7 @@ function LandingPage() {
   const taglineLines = t.landing.tagline.split('\n');
 
   return (
-    <div className="min-h-screen bg-dark-900 text-white">
+    <div className="min-h-screen bg-dark-900 text-ink">
 
       {/* ── Nav ── */}
       <header className="max-w-6xl mx-auto px-4 sm:px-6 py-5 flex items-center justify-between">
@@ -58,18 +58,18 @@ function LandingPage() {
           <div className="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center shadow-lg shadow-brand-500/40">
             <span className="text-white font-bold text-sm">A</span>
           </div>
-          <span className="font-bold text-white text-lg tracking-tight">Arjun</span>
+          <span className="font-bold text-ink text-lg tracking-tight">Arjun</span>
         </div>
         <div className="flex items-center gap-3">
           <button
             onClick={toggleLanguage}
-            className="text-sm font-medium text-slate-400 hover:text-brand-400 transition-colors px-3 py-1.5 rounded-lg hover:bg-dark-700 border border-dark-600"
+            className="text-sm font-medium text-slt hover:text-brand-400 transition-colors px-3 py-1.5 rounded-lg hover:bg-dark-700 border border-dark-600"
           >
             {language === 'en' ? 'हिंदी' : 'English'}
           </button>
           <button
             onClick={() => navigate('/auth?tab=signin')}
-            className="text-sm font-medium text-slate-300 hover:text-white transition-colors hidden sm:block"
+            className="text-sm font-medium text-slt hover:text-ink transition-colors hidden sm:block"
           >
             {t.auth.tabSignIn}
           </button>
@@ -91,8 +91,8 @@ function LandingPage() {
           {taglineLines.map((line, i) => (
             <span key={i} className={`block ${
               i === 0
-                ? 'bg-gradient-to-r from-white via-slate-100 to-slate-300 bg-clip-text text-transparent'
-                : 'bg-gradient-to-r from-brand-400 via-brand-300 to-purple-300 bg-clip-text text-transparent'
+                ? 'text-ink'
+                : 'text-brand-500'
             }`}>
               {line}
             </span>
@@ -100,7 +100,7 @@ function LandingPage() {
         </h1>
 
         {/* Subtitle */}
-        <p className="text-lg text-slate-400 leading-relaxed mb-10 max-w-xl mx-auto">
+        <p className="text-lg text-slt leading-relaxed mb-10 max-w-xl mx-auto">
           {t.landing.subtitle}
         </p>
 
@@ -117,7 +117,7 @@ function LandingPage() {
             <div className="flex items-center gap-2 text-win-400 text-sm font-semibold bg-win-500/10 border border-win-500/20 px-5 py-3 rounded-2xl">
               <span>✓</span> App installed on your device
             </div>
-            <p className="text-slate-500 text-sm">Sign in or create your account to get started</p>
+            <p className="text-slt text-sm">Sign in or create your account to get started</p>
             <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs">
               <button
                 onClick={() => navigate('/auth')}
@@ -150,28 +150,28 @@ function LandingPage() {
             {/* Install hint popup */}
             {showHint && (
               <div className="bg-dark-800 border border-dark-500 rounded-2xl px-5 py-4 text-sm text-left max-w-xs w-full">
-                <p className="font-semibold text-white mb-3">How to install:</p>
+                <p className="font-semibold text-ink mb-3">How to install:</p>
                 {isIOS ? (
-                  <ol className="space-y-1.5 list-decimal list-inside text-slate-400">
-                    <li>Open this page in <strong className="text-white">Safari</strong></li>
-                    <li>Tap <strong className="text-white">Share</strong> (box with ↑ arrow)</li>
-                    <li>Tap <strong className="text-white">"Add to Home Screen"</strong></li>
-                    <li>Tap <strong className="text-white">Add</strong></li>
+                  <ol className="space-y-1.5 list-decimal list-inside text-slt">
+                    <li>Open this page in <strong className="text-ink">Safari</strong></li>
+                    <li>Tap <strong className="text-ink">Share</strong> (box with ↑ arrow)</li>
+                    <li>Tap <strong className="text-ink">"Add to Home Screen"</strong></li>
+                    <li>Tap <strong className="text-ink">Add</strong></li>
                   </ol>
                 ) : isAndroid ? (
-                  <ol className="space-y-1.5 list-decimal list-inside text-slate-400">
-                    <li>Tap the <strong className="text-white">⋮ menu</strong> in Chrome</li>
-                    <li>Tap <strong className="text-white">"Add to Home screen"</strong></li>
-                    <li>Tap <strong className="text-white">Add</strong></li>
+                  <ol className="space-y-1.5 list-decimal list-inside text-slt">
+                    <li>Tap the <strong className="text-ink">⋮ menu</strong> in Chrome</li>
+                    <li>Tap <strong className="text-ink">"Add to Home screen"</strong></li>
+                    <li>Tap <strong className="text-ink">Add</strong></li>
                   </ol>
                 ) : (
-                  <ol className="space-y-1.5 list-decimal list-inside text-slate-400">
-                    <li>Look for the <strong className="text-white">install icon</strong> in your browser address bar (↓ with a circle)</li>
-                    <li>Click it and select <strong className="text-white">Install</strong></li>
-                    <li>Or tap <strong className="text-white">⋮ → Install Arjun</strong></li>
+                  <ol className="space-y-1.5 list-decimal list-inside text-slt">
+                    <li>Look for the <strong className="text-ink">install icon</strong> in your browser address bar (↓ with a circle)</li>
+                    <li>Click it and select <strong className="text-ink">Install</strong></li>
+                    <li>Or tap <strong className="text-ink">⋮ → Install Arjun</strong></li>
                   </ol>
                 )}
-                <button onClick={() => setShowHint(false)} className="mt-3 text-xs text-slate-600 hover:text-slate-400">
+                <button onClick={() => setShowHint(false)} className="mt-3 text-xs text-slt hover:text-ink">
                   Close
                 </button>
               </div>
@@ -204,7 +204,7 @@ function LandingPage() {
           ].map(({ val, sub, color }) => (
             <div key={val} className="text-center">
               <p className={`text-sm font-bold ${color}`}>{val}</p>
-              <p className="text-xs text-slate-600">{sub}</p>
+              <p className="text-xs text-slt">{sub}</p>
             </div>
           ))}
         </div>
@@ -215,7 +215,7 @@ function LandingPage() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-14">
             <p className="text-xs font-bold text-brand-400 uppercase tracking-widest mb-3">Simple process</p>
-            <h2 className="text-3xl sm:text-4xl font-bold text-white">{t.landing.howTitle}</h2>
+            <h2 className="text-3xl sm:text-4xl font-bold text-ink">{t.landing.howTitle}</h2>
           </div>
 
           <div className="grid sm:grid-cols-3 gap-8 relative">
@@ -227,8 +227,8 @@ function LandingPage() {
                   <span className="text-2xl mb-0.5">{icon}</span>
                   <span className="text-xs font-bold text-brand-500/60">{num}</span>
                 </div>
-                <h3 className="text-base font-bold text-white mb-2">{t.landing[key]}</h3>
-                <p className="text-sm text-slate-500 leading-relaxed max-w-xs">{t.landing[`${key}Desc`]}</p>
+                <h3 className="text-base font-bold text-ink mb-2">{t.landing[key]}</h3>
+                <p className="text-sm text-slt leading-relaxed max-w-xs">{t.landing[`${key}Desc`]}</p>
               </div>
             ))}
           </div>
@@ -240,15 +240,15 @@ function LandingPage() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-14">
             <p className="text-xs font-bold text-brand-400 uppercase tracking-widest mb-3">Personalized for you</p>
-            <h2 className="text-3xl sm:text-4xl font-bold text-white">{t.landing.personalizeTitle}</h2>
-            <p className="text-slate-400 mt-4 max-w-xl mx-auto text-sm leading-relaxed">{t.landing.personalizeSubtitle}</p>
+            <h2 className="text-3xl sm:text-4xl font-bold text-ink">{t.landing.personalizeTitle}</h2>
+            <p className="text-slt mt-4 max-w-xl mx-auto text-sm leading-relaxed">{t.landing.personalizeSubtitle}</p>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {t.landing.personalizeItems.map((item) => (
               <div key={item.title} className="card card-glow text-center py-6">
                 <div className="text-4xl mb-4">{item.icon}</div>
-                <h3 className="font-bold text-white text-sm mb-2">{item.title}</h3>
-                <p className="text-xs text-slate-500 leading-relaxed">{item.desc}</p>
+                <h3 className="font-bold text-ink text-sm mb-2">{item.title}</h3>
+                <p className="text-xs text-slt leading-relaxed">{item.desc}</p>
               </div>
             ))}
           </div>
@@ -260,15 +260,15 @@ function LandingPage() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-14">
             <p className="text-xs font-bold text-brand-400 uppercase tracking-widest mb-3">What you get</p>
-            <h2 className="text-3xl sm:text-4xl font-bold text-white">{t.landing.allFeaturesTitle}</h2>
-            <p className="text-slate-400 mt-4 max-w-xl mx-auto text-sm">{t.landing.allFeaturesSubtitle}</p>
+            <h2 className="text-3xl sm:text-4xl font-bold text-ink">{t.landing.allFeaturesTitle}</h2>
+            <p className="text-slt mt-4 max-w-xl mx-auto text-sm">{t.landing.allFeaturesSubtitle}</p>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {t.landing.allFeatures.map((feat) => (
               <div key={feat.title} className="card card-glow hover:border-brand-600/40 transition-all">
                 <div className="text-3xl mb-4">{feat.icon}</div>
-                <h3 className="font-bold text-white text-base mb-2">{feat.title}</h3>
-                <p className="text-sm text-slate-500 leading-relaxed">{feat.desc}</p>
+                <h3 className="font-bold text-ink text-base mb-2">{feat.title}</h3>
+                <p className="text-sm text-slt leading-relaxed">{feat.desc}</p>
               </div>
             ))}
           </div>
@@ -280,15 +280,15 @@ function LandingPage() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-14">
             <p className="text-xs font-bold text-brand-400 uppercase tracking-widest mb-3">Science-backed</p>
-            <h2 className="text-3xl sm:text-4xl font-bold text-white">{t.landing.researchTitle}</h2>
-            <p className="text-slate-400 mt-4 max-w-xl mx-auto text-sm">{t.landing.researchSubtitle}</p>
+            <h2 className="text-3xl sm:text-4xl font-bold text-ink">{t.landing.researchTitle}</h2>
+            <p className="text-slt mt-4 max-w-xl mx-auto text-sm">{t.landing.researchSubtitle}</p>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {t.landing.researchFacts.map((fact, i) => (
               <div key={i} className="card border-l-4 border-l-brand-500 hover:border-brand-600/40 transition-all">
                 <p className={`text-3xl font-extrabold mb-2 ${RESEARCH_COLORS[i % RESEARCH_COLORS.length]}`}>{fact.stat}</p>
-                <p className="text-sm text-white font-medium leading-snug mb-3">{fact.desc}</p>
-                <p className="text-[11px] text-slate-600 italic">{fact.source}</p>
+                <p className="text-sm text-ink font-medium leading-snug mb-3">{fact.desc}</p>
+                <p className="text-[11px] text-slt italic">{fact.source}</p>
               </div>
             ))}
           </div>
@@ -298,10 +298,10 @@ function LandingPage() {
       {/* ── Arjun intro quote ── */}
       <section className="py-16 border-t border-dark-700">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center text-white font-bold text-2xl mx-auto mb-6 shadow-xl shadow-brand-500/30">
+          <div className="w-16 h-16 rounded-2xl bg-brand-500 flex items-center justify-center text-white font-bold text-2xl mx-auto mb-6 shadow-xl shadow-brand-500/30">
             A
           </div>
-          <blockquote className="text-xl sm:text-2xl font-semibold text-slate-200 leading-relaxed mb-4">
+          <blockquote className="text-xl sm:text-2xl font-semibold text-ink leading-relaxed mb-4">
             {language === 'hi'
               ? '"मैं तुम्हारे खेल को समझता हूं। तुम्हारे दबाव को समझता हूं। हर बात गोपनीय है।"'
               : '"I understand your sport. I understand your pressure. Everything you share stays between us."'}
@@ -317,14 +317,14 @@ function LandingPage() {
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-12">
             <p className="text-xs font-bold text-brand-400 uppercase tracking-widest mb-3">Pricing</p>
-            <h2 className="text-3xl sm:text-4xl font-bold text-white">{t.landing.pricingTitle}</h2>
+            <h2 className="text-3xl sm:text-4xl font-bold text-ink">{t.landing.pricingTitle}</h2>
           </div>
 
           <div className="grid sm:grid-cols-3 gap-4">
             <div className="card border-dark-500 flex flex-col">
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-3">{t.landing.free}</p>
-              <p className="text-4xl font-extrabold text-white mb-1">₹0</p>
-              <p className="text-sm text-slate-500 mb-6 flex-1">{t.landing.freeDesc}</p>
+              <p className="text-xs font-bold text-slt uppercase tracking-wide mb-3">{t.landing.free}</p>
+              <p className="text-4xl font-extrabold text-ink mb-1">₹0</p>
+              <p className="text-sm text-slt mb-6 flex-1">{t.landing.freeDesc}</p>
               <button onClick={() => navigate('/auth')} className="btn-secondary text-sm py-2.5 justify-center">
                 {language === 'hi' ? 'शुरू करें' : 'Get started'}
               </button>
@@ -335,8 +335,8 @@ function LandingPage() {
                 {language === 'hi' ? 'सबसे लोकप्रिय' : 'MOST POPULAR'}
               </div>
               <p className="text-xs font-bold text-brand-400 uppercase tracking-wide mb-3">Premium</p>
-              <p className="text-4xl font-extrabold text-white mb-1">{t.landing.premium}</p>
-              <p className="text-sm text-slate-400 mb-6 flex-1">{t.landing.premiumDesc}</p>
+              <p className="text-4xl font-extrabold text-ink mb-1">{t.landing.premium}</p>
+              <p className="text-sm text-slt mb-6 flex-1">{t.landing.premiumDesc}</p>
               <button onClick={() => navigate('/auth')} className="btn-primary text-sm py-2.5 justify-center">
                 {language === 'hi' ? 'शुरू करें' : 'Get started'}
               </button>
@@ -344,8 +344,8 @@ function LandingPage() {
 
             <div className="card border-fire-600/40 flex flex-col">
               <p className="text-xs font-bold text-fire-400 uppercase tracking-wide mb-3">Annual</p>
-              <p className="text-4xl font-extrabold text-white mb-1">{t.landing.premiumAnnual}</p>
-              <p className="text-sm text-slate-500 mb-6 flex-1">{t.landing.premiumAnnualDesc}</p>
+              <p className="text-4xl font-extrabold text-ink mb-1">{t.landing.premiumAnnual}</p>
+              <p className="text-sm text-slt mb-6 flex-1">{t.landing.premiumAnnualDesc}</p>
               <button onClick={() => navigate('/auth')} className="btn-secondary text-sm py-2.5 justify-center">
                 {language === 'hi' ? 'शुरू करें' : 'Get started'}
               </button>
@@ -358,8 +358,8 @@ function LandingPage() {
       <section className="py-20 border-t border-dark-700">
         <div className="max-w-xl mx-auto px-4 sm:px-6 text-center">
           <div className="inline-block text-5xl mb-6">🏹</div>
-          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">{t.landing.ctaTitle}</h2>
-          <p className="text-slate-400 mb-8">{t.landing.ctaDesc}</p>
+          <h2 className="text-3xl sm:text-4xl font-bold text-ink mb-4">{t.landing.ctaTitle}</h2>
+          <p className="text-slt mb-8">{t.landing.ctaDesc}</p>
           <button
             onClick={installed ? () => navigate('/auth') : handleInstall}
             className="btn-primary px-10 py-4 text-base"
@@ -376,17 +376,17 @@ function LandingPage() {
             <div className="w-6 h-6 rounded-md bg-brand-500 flex items-center justify-center">
               <span className="text-white font-bold text-xs">A</span>
             </div>
-            <span className="text-sm font-semibold text-slate-400">Arjun</span>
+            <span className="text-sm font-semibold text-slt">Arjun</span>
           </div>
-          <p className="text-xs text-slate-600 text-center">
+          <p className="text-xs text-slt text-center">
             © {new Date().getFullYear()} Arjun · AI Mental Performance Coaching
           </p>
           <div className="flex items-center gap-4">
-            <button onClick={() => navigate('/privacy')} className="text-xs text-slate-600 hover:text-slate-400 transition-colors">Privacy</button>
-            <button onClick={() => navigate('/terms')} className="text-xs text-slate-600 hover:text-slate-400 transition-colors">Terms</button>
-            <button onClick={() => navigate('/refund')} className="text-xs text-slate-600 hover:text-slate-400 transition-colors">Refund</button>
-            <a href="mailto:kamal.prabhanshu@outlook.com" className="text-xs text-slate-600 hover:text-slate-400 transition-colors">Support</a>
-            <button onClick={toggleLanguage} className="text-xs text-slate-600 hover:text-slate-400 transition-colors">
+            <button onClick={() => navigate('/privacy')} className="text-xs text-slt hover:text-ink transition-colors">Privacy</button>
+            <button onClick={() => navigate('/terms')} className="text-xs text-slt hover:text-ink transition-colors">Terms</button>
+            <button onClick={() => navigate('/refund')} className="text-xs text-slt hover:text-ink transition-colors">Refund</button>
+            <a href="mailto:kamal.prabhanshu@outlook.com" className="text-xs text-slt hover:text-ink transition-colors">Support</a>
+            <button onClick={toggleLanguage} className="text-xs text-slt hover:text-ink transition-colors">
               {language === 'en' ? 'हिंदी' : 'English'}
             </button>
           </div>

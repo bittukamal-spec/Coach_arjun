@@ -136,9 +136,9 @@ function OnboardingPage() {
           <div className="w-7 h-7 rounded-lg bg-brand-500 flex items-center justify-center">
             <span className="text-white font-bold text-xs">A</span>
           </div>
-          <span className="font-bold text-white tracking-tight">Arjun</span>
+          <span className="font-bold text-ink tracking-tight">Arjun</span>
         </div>
-        <span className="text-sm text-slate-500">{t.stepOf(step, TOTAL_STEPS)}</span>
+        <span className="text-sm text-slt">{t.stepOf(step, TOTAL_STEPS)}</span>
       </header>
 
       {/* Progress bar */}
@@ -156,8 +156,8 @@ function OnboardingPage() {
           {/* ── Step 1: Sport ── */}
           {step === 1 && (
             <div className="animate-fade-in">
-              <h1 className="text-2xl font-bold text-white mb-1">{t.sportTitle}</h1>
-              <p className="text-slate-400 text-sm mb-6">{t.sportSubtitle}</p>
+              <h1 className="text-2xl font-bold text-ink mb-1">{t.sportTitle}</h1>
+              <p className="text-slt text-sm mb-6">{t.sportSubtitle}</p>
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                 {SPORTS.map(sport => (
                   <button
@@ -168,7 +168,7 @@ function OnboardingPage() {
                     }`}
                   >
                     <span className="text-2xl">{sport.icon}</span>
-                    <span className="text-xs font-medium text-slate-300 text-center leading-tight">
+                    <span className="text-xs font-medium text-slt text-center leading-tight">
                       {language === 'hi' ? sport.hi : sport.en}
                     </span>
                   </button>
@@ -180,8 +180,8 @@ function OnboardingPage() {
           {/* ── Step 2: Competition Level ── */}
           {step === 2 && (
             <div className="animate-fade-in">
-              <h1 className="text-2xl font-bold text-white mb-1">{t.competitionTitle}</h1>
-              <p className="text-slate-400 text-sm mb-6">{t.competitionSubtitle}</p>
+              <h1 className="text-2xl font-bold text-ink mb-1">{t.competitionTitle}</h1>
+              <p className="text-slt text-sm mb-6">{t.competitionSubtitle}</p>
               <div className="flex flex-col gap-3">
                 {COMPETITION_LEVELS.map(level => (
                   <button
@@ -190,7 +190,7 @@ function OnboardingPage() {
                     className={`${btnBase} ${data.competitionLevel === level.value ? btnSelected : btnDefault}`}
                   >
                     <span className="text-2xl">{level.icon}</span>
-                    <span className="font-semibold text-white">
+                    <span className="font-semibold text-ink">
                       {language === 'hi' ? level.hi : level.en}
                     </span>
                     {data.competitionLevel === level.value && (
@@ -205,8 +205,8 @@ function OnboardingPage() {
           {/* ── Step 3: Experience Level ── */}
           {step === 3 && (
             <div className="animate-fade-in">
-              <h1 className="text-2xl font-bold text-white mb-1">{t.levelTitle}</h1>
-              <p className="text-slate-400 text-sm mb-6">{t.levelSubtitle}</p>
+              <h1 className="text-2xl font-bold text-ink mb-1">{t.levelTitle}</h1>
+              <p className="text-slt text-sm mb-6">{t.levelSubtitle}</p>
               <div className="flex flex-col gap-3">
                 {LEVELS.map(level => (
                   <button
@@ -216,8 +216,8 @@ function OnboardingPage() {
                   >
                     <span className="text-2xl">{level.icon}</span>
                     <div>
-                      <p className="font-semibold text-white">{t[level.labelKey]}</p>
-                      <p className="text-xs text-slate-500">{t[level.descKey]}</p>
+                      <p className="font-semibold text-ink">{t[level.labelKey]}</p>
+                      <p className="text-xs text-slt">{t[level.descKey]}</p>
                     </div>
                     {data.experienceLevel === level.value && (
                       <span className="ml-auto text-brand-400 text-lg">✓</span>
@@ -231,8 +231,8 @@ function OnboardingPage() {
           {/* ── Step 4: Biggest Mental Challenge ── */}
           {step === 4 && (
             <div className="animate-fade-in">
-              <h1 className="text-2xl font-bold text-white mb-1">{t.challengeTitle}</h1>
-              <p className="text-slate-400 text-sm mb-6">{t.challengeSubtitle}</p>
+              <h1 className="text-2xl font-bold text-ink mb-1">{t.challengeTitle}</h1>
+              <p className="text-slt text-sm mb-6">{t.challengeSubtitle}</p>
               <div className="flex flex-col gap-3">
                 {CHALLENGES.map(challenge => (
                   <button
@@ -241,7 +241,7 @@ function OnboardingPage() {
                     className={`${btnBase} ${data.primaryChallenge === challenge.value ? btnSelected : btnDefault}`}
                   >
                     <span className="text-2xl">{challenge.icon}</span>
-                    <span className="font-semibold text-white">
+                    <span className="font-semibold text-ink">
                       {language === 'hi' ? challenge.hi : challenge.en}
                     </span>
                     {data.primaryChallenge === challenge.value && (
@@ -256,13 +256,13 @@ function OnboardingPage() {
           {/* ── Step 5: Goals ── */}
           {step === 5 && (
             <div className="animate-fade-in">
-              <h1 className="text-2xl font-bold text-white mb-1">{t.goalsTitle}</h1>
+              <h1 className="text-2xl font-bold text-ink mb-1">{t.goalsTitle}</h1>
               <div className="flex items-center justify-between mb-6">
-                <p className="text-slate-400 text-sm">{t.goalsSubtitle}</p>
+                <p className="text-slt text-sm">{t.goalsSubtitle}</p>
                 <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
                   data.goals.length === 3
                     ? 'bg-brand-500 text-white'
-                    : 'bg-dark-700 text-slate-500'
+                    : 'bg-dark-700 text-slt'
                 }`}>
                   {t.goalsSelected(data.goals.length)}
                 </span>
@@ -285,7 +285,7 @@ function OnboardingPage() {
                       }`}
                     >
                       <span className="text-xl">{goal.icon}</span>
-                      <span className="text-sm font-medium text-slate-200 leading-tight">
+                      <span className="text-sm font-medium text-ink leading-tight">
                         {t[goal.labelKey]}
                       </span>
                     </button>
@@ -307,7 +307,7 @@ function OnboardingPage() {
             {step > 1 ? (
               <button
                 onClick={() => setStep(s => s - 1)}
-                className="text-sm font-medium text-slate-400 hover:text-slate-200 transition-colors"
+                className="text-sm font-medium text-slt hover:text-ink transition-colors"
               >
                 {t.back}
               </button>

@@ -59,20 +59,20 @@ function Builder({ initial, onSave, onCancel, t }) {
     <div className="animate-fade-in">
       {/* Ritual name */}
       <div className="mb-6">
-        <label className="block text-sm font-semibold text-slate-200 mb-2">{t.nameLabel}</label>
+        <label className="block text-sm font-semibold text-ink mb-2">{t.nameLabel}</label>
         <input
           value={name}
           onChange={e => setName(e.target.value)}
           placeholder={t.namePlaceholder}
           maxLength={60}
-          className="w-full bg-dark-700 border border-dark-500 text-slate-100 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent placeholder-slate-500"
+          className="w-full bg-dark-700 border border-dark-500 text-ink rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent placeholder-slt"
         />
       </div>
 
       {/* Steps */}
       <div className="mb-4">
         <div className="flex items-center justify-between mb-3">
-          <p className="text-sm font-semibold text-slate-200">{t.steps || 'Steps'}</p>
+          <p className="text-sm font-semibold text-ink">{t.steps || 'Steps'}</p>
           <p className="text-xs text-slate-500">{t.maxSteps}</p>
         </div>
 
@@ -81,7 +81,7 @@ function Builder({ initial, onSave, onCancel, t }) {
             <div key={i} className="bg-dark-700 border border-dark-500 rounded-2xl p-4">
               {/* Step number + remove */}
               <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                <span className="text-xs font-semibold text-slt uppercase tracking-wide">
                   Step {i + 1}
                 </span>
                 {steps.length > 1 && (
@@ -103,7 +103,7 @@ function Builder({ initial, onSave, onCancel, t }) {
                     className={`flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-xl border transition-all ${
                       step.type === type
                         ? 'bg-brand-500/20 border-brand-500/60 text-brand-300'
-                        : 'bg-dark-800 border-dark-600 text-slate-500 hover:text-slate-300'
+                        : 'bg-dark-800 border-dark-600 text-slt hover:text-ink'
                     }`}
                   >
                     <StepIcon type={type} size="text-sm" />
@@ -118,7 +118,7 @@ function Builder({ initial, onSave, onCancel, t }) {
                 onChange={e => updateStep(i, 'label', e.target.value)}
                 placeholder={t.stepPlaceholders[step.type]}
                 maxLength={120}
-                className="w-full bg-dark-800 border border-dark-600 text-slate-100 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent placeholder-slate-500"
+                className="w-full bg-dark-800 border border-dark-600 text-ink rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent placeholder-slt"
               />
             </div>
           ))}
@@ -127,7 +127,7 @@ function Builder({ initial, onSave, onCancel, t }) {
         {steps.length < 5 && (
           <button
             onClick={addStep}
-            className="mt-3 w-full py-3 border-2 border-dashed border-dark-500 text-slate-500 hover:text-slate-300 hover:border-dark-400 rounded-2xl text-sm font-medium transition-all"
+            className="mt-3 w-full py-3 border-2 border-dashed border-dark-500 text-slt hover:text-ink hover:border-dark-400 rounded-2xl text-sm font-medium transition-all"
           >
             {t.addStep}
           </button>
@@ -179,8 +179,8 @@ function Walkthrough({ steps, t, onFinish }) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center text-center px-8 animate-fade-in">
         <div className="text-6xl mb-6">🏆</div>
-        <h2 className="text-2xl font-bold text-white mb-3">{t.doneTitle}</h2>
-        <p className="text-slate-400 mb-10 max-w-xs">{t.doneSub}</p>
+        <h2 className="text-2xl font-bold text-ink mb-3">{t.doneTitle}</h2>
+        <p className="text-slt mb-10 max-w-xs">{t.doneSub}</p>
         <button onClick={onFinish} className="btn-primary px-10 py-3">
           {t.backDash.replace('←', '').trim()}
         </button>
@@ -199,7 +199,7 @@ function Walkthrough({ steps, t, onFinish }) {
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center px-8 text-center">
-        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-6">
+        <p className="text-xs font-semibold text-slt uppercase tracking-wide mb-6">
           {t.walkthroughOf(stepIdx + 1, steps.length)}
         </p>
 
@@ -207,7 +207,7 @@ function Walkthrough({ steps, t, onFinish }) {
           <StepIcon type={step.type} size="text-4xl" />
         </div>
 
-        <h2 className="text-xl font-bold text-white mb-3 leading-tight max-w-xs">
+        <h2 className="text-xl font-bold text-ink mb-3 leading-tight max-w-xs">
           {step.label}
         </h2>
 
@@ -294,10 +294,10 @@ function RitualPage() {
       <div className="min-h-screen bg-dark-900 flex flex-col pb-20">
         <header className="shrink-0 bg-dark-900 border-b border-dark-600 px-4 py-4">
           <div className="max-w-lg mx-auto flex items-center justify-between">
-            <button onClick={() => setMode('view')} className="text-sm text-slate-400 hover:text-slate-200">
+            <button onClick={() => setMode('view')} className="text-sm text-slt hover:text-ink">
               {t.backDash}
             </button>
-            <p className="font-semibold text-slate-100 text-sm truncate max-w-[160px]">{ritualName}</p>
+            <p className="font-semibold text-ink text-sm truncate max-w-[160px]">{ritualName}</p>
             <div className="w-20" />
           </div>
         </header>
@@ -314,19 +314,19 @@ function RitualPage() {
         <header className="bg-dark-900 border-b border-dark-600 px-4 py-4 sticky top-0 z-10">
           <div className="max-w-lg mx-auto flex items-center justify-between">
             {steps.length > 0 ? (
-              <button onClick={() => setMode('view')} className="text-sm text-slate-400 hover:text-slate-200">
+              <button onClick={() => setMode('view')} className="text-sm text-slt hover:text-ink">
                 ← Back
               </button>
             ) : (
-              <Link to="/dashboard" className="text-sm text-slate-400 hover:text-slate-200">{t.backDash}</Link>
+              <Link to="/dashboard" className="text-sm text-slt hover:text-ink">{t.backDash}</Link>
             )}
-            <p className="font-semibold text-slate-100">{t.title}</p>
+            <p className="font-semibold text-ink">{t.title}</p>
             <div className="w-20" />
           </div>
         </header>
         <main className="max-w-lg mx-auto px-4 py-8">
           <div className="text-center mb-8">
-            <p className="text-sm text-slate-400 max-w-xs mx-auto leading-relaxed">{t.subtitle}</p>
+            <p className="text-sm text-slt max-w-xs mx-auto leading-relaxed">{t.subtitle}</p>
           </div>
           <Builder
             initial={{ name: ritualName, steps }}
@@ -345,8 +345,8 @@ function RitualPage() {
     <div className="min-h-screen bg-dark-900 pb-20">
       <header className="bg-dark-900 border-b border-dark-600 px-4 py-4 sticky top-0 z-10">
         <div className="max-w-lg mx-auto flex items-center justify-between">
-          <Link to="/dashboard" className="text-sm text-slate-400 hover:text-slate-200">{t.backDash}</Link>
-          <p className="font-semibold text-slate-100">{t.title}</p>
+          <Link to="/dashboard" className="text-sm text-slt hover:text-ink">{t.backDash}</Link>
+          <p className="font-semibold text-ink">{t.title}</p>
           <button onClick={() => setMode('build')} className="text-sm text-brand-400 hover:text-brand-300 font-medium">
             {t.editRitual}
           </button>
@@ -364,8 +364,8 @@ function RitualPage() {
         {/* Ritual name */}
         <div className="text-center mb-8">
           <div className="text-5xl mb-3">🏆</div>
-          <h2 className="text-xl font-bold text-white">{ritualName}</h2>
-          <p className="text-xs text-slate-500 mt-1">{steps.length} steps</p>
+          <h2 className="text-xl font-bold text-ink">{ritualName}</h2>
+          <p className="text-xs text-slt mt-1">{steps.length} steps</p>
         </div>
 
         {/* Steps list */}
@@ -373,12 +373,12 @@ function RitualPage() {
           {steps.map((step, i) => (
             <div key={i} className="flex items-center gap-4 bg-dark-800 border border-dark-600 rounded-2xl px-4 py-3.5">
               <div className="w-8 h-8 rounded-full bg-dark-700 border border-dark-500 flex items-center justify-center shrink-0">
-                <span className="text-xs font-bold text-slate-400">{i + 1}</span>
+                <span className="text-xs font-bold text-slt">{i + 1}</span>
               </div>
               <StepIcon type={step.type} size="text-2xl" />
               <div className="min-w-0">
-                <p className="text-sm font-medium text-white leading-tight">{step.label}</p>
-                <p className="text-xs text-slate-500 capitalize mt-0.5">{t.stepTypes[step.type]}</p>
+                <p className="text-sm font-medium text-ink leading-tight">{step.label}</p>
+                <p className="text-xs text-slt capitalize mt-0.5">{t.stepTypes[step.type]}</p>
               </div>
             </div>
           ))}
@@ -391,7 +391,7 @@ function RitualPage() {
         >
           {t.useRitual} →
         </button>
-        <p className="text-xs text-slate-600 text-center">
+        <p className="text-xs text-slt text-center">
           {language === 'hi'
             ? 'मैच से 2-5 मिनट पहले करें'
             : 'Do this 2-5 minutes before your match starts'}

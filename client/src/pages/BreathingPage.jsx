@@ -85,12 +85,12 @@ function TechCard({ tech, t, onSelect }) {
     >
       <div className="flex items-center justify-between mb-2">
         <span className="text-3xl">{tech.icon}</span>
-        <span className="text-xs text-slate-500 bg-dark-700 border border-dark-600 px-2 py-0.5 rounded-full">
+        <span className="text-xs text-slt bg-dark-700 border border-dark-600 px-2 py-0.5 rounded-full">
           {t.duration[tech.key]}
         </span>
       </div>
-      <p className="font-bold text-white mb-0.5">{t[`tech${tech.key === '478' ? '478' : tech.key === 'performance' ? 'Perf' : 'Box'}`]}</p>
-      <p className="text-xs text-slate-400 leading-relaxed">{t[`tech${tech.key === '478' ? '478' : tech.key === 'performance' ? 'Perf' : 'Box'}Desc`]}</p>
+      <p className="font-bold text-ink mb-0.5">{t[`tech${tech.key === '478' ? '478' : tech.key === 'performance' ? 'Perf' : 'Box'}`]}</p>
+      <p className="text-xs text-slt leading-relaxed">{t[`tech${tech.key === '478' ? '478' : tech.key === 'performance' ? 'Perf' : 'Box'}Desc`]}</p>
     </button>
   );
 }
@@ -175,16 +175,16 @@ function BreathingPage() {
       <div className="min-h-screen bg-dark-900 pb-20">
         <header className="bg-dark-900 border-b border-dark-600 px-4 py-4 sticky top-0 z-10">
           <div className="max-w-lg mx-auto flex items-center justify-between">
-            <Link to="/dashboard" className="text-sm text-slate-400 hover:text-slate-200 transition-colors">
+            <Link to="/dashboard" className="text-sm text-slt hover:text-ink transition-colors">
               {t.backDash}
             </Link>
-            <p className="font-semibold text-slate-100">{t.title}</p>
+            <p className="font-semibold text-ink">{t.title}</p>
             <div className="w-20" />
           </div>
         </header>
         <main className="max-w-lg mx-auto px-4 py-8 animate-fade-in">
-          <p className="text-slate-400 text-sm text-center mb-8">{t.subtitle}</p>
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-4">{t.pickTech}</p>
+          <p className="text-slt text-sm text-center mb-8">{t.subtitle}</p>
+          <p className="text-xs font-semibold text-slt uppercase tracking-wide mb-4">{t.pickTech}</p>
           <div className="flex flex-col gap-4">
             {TECHNIQUES.map(tech => (
               <TechCard key={tech.key} tech={tech} t={t} onSelect={k => { setTechKey(k); reset(); }} />
@@ -201,8 +201,8 @@ function BreathingPage() {
     return (
       <div className="min-h-screen bg-dark-900 flex flex-col items-center justify-center px-4 pb-20 animate-fade-in">
         <div className="text-6xl mb-6">🌿</div>
-        <h2 className="text-2xl font-bold text-white mb-2">{t.doneTitle}</h2>
-        <p className="text-slate-400 text-center mb-10 max-w-xs">{t.doneSub}</p>
+        <h2 className="text-2xl font-bold text-ink mb-2">{t.doneTitle}</h2>
+        <p className="text-slt text-center mb-10 max-w-xs">{t.doneSub}</p>
         <div className="flex flex-col gap-3 w-full max-w-xs">
           <button
             onClick={() => { setTechKey(null); reset(); }}
@@ -227,14 +227,14 @@ function BreathingPage() {
         <div className="max-w-lg mx-auto flex items-center justify-between">
           <button
             onClick={() => { setTechKey(null); reset(); }}
-            className="text-sm text-slate-400 hover:text-slate-200 transition-colors"
+            className="text-sm text-slt hover:text-ink transition-colors"
           >
             {t.changeTech}
           </button>
           <p className="font-semibold text-slate-100 text-sm">{techName}</p>
           <button
             onClick={() => setSoundOn(s => !s)}
-            className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
+            className="text-xs text-slt hover:text-ink transition-colors"
           >
             {soundOn ? '🔊' : '🔇'} {soundOn ? t.soundOn : t.soundOff}
           </button>
@@ -257,27 +257,27 @@ function BreathingPage() {
           />
           {/* Main circle */}
           <div
-            className="w-52 h-52 rounded-full bg-gradient-to-br from-brand-500 to-brand-700 flex flex-col items-center justify-center relative z-10"
+            className="w-52 h-52 rounded-full bg-brand-500 flex flex-col items-center justify-center relative z-10"
             style={{
               transform: `scale(${circleScale})`,
               transition: `transform ${transitionDuration}s ease-in-out`,
-              boxShadow: `0 0 ${status === 'running' ? 50 : 20}px rgba(139,92,246,${status === 'running' ? 0.45 : 0.2})`,
+              boxShadow: `0 0 ${status === 'running' ? 50 : 20}px rgba(11,110,79,${status === 'running' ? 0.45 : 0.2})`,
             }}
           >
             {status === 'running' ? (
               <>
                 <span className="text-5xl font-bold text-white leading-none">{count}</span>
-                <span className="text-sm font-medium text-brand-200 mt-1">{phaseLabel}</span>
+                <span className="text-sm font-medium text-white mt-1">{phaseLabel}</span>
               </>
             ) : (
-              <span className="text-4xl font-bold text-brand-200 opacity-60">A</span>
+              <span className="text-4xl font-bold text-white opacity-60">A</span>
             )}
           </div>
         </div>
 
         {/* Round counter */}
         {status === 'running' && (
-          <p className="text-slate-400 text-sm animate-fade-in">
+          <p className="text-slt text-sm animate-fade-in">
             {t.roundOf(cycleNum, tech.totalCycles)}
           </p>
         )}

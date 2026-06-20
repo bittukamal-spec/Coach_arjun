@@ -182,7 +182,7 @@ function AccountPage() {
           <div className="relative flex-shrink-0">
             <div
               onClick={() => fileInputRef.current?.click()}
-              className="w-16 h-16 rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-white text-2xl font-bold flex items-center justify-center ring-2 ring-brand-600/40 cursor-pointer overflow-hidden"
+              className="w-16 h-16 rounded-full bg-brand-500 text-white text-2xl font-bold flex items-center justify-center ring-2 ring-brand-600/40 cursor-pointer overflow-hidden"
             >
               {avatar
                 ? <img src={avatar} alt="avatar" className="w-16 h-16 object-cover" />
@@ -194,7 +194,7 @@ function AccountPage() {
               className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-dark-700 border border-dark-500 flex items-center justify-center hover:bg-dark-600 transition-colors"
               title={t.uploadPhoto}
             >
-              <Camera size={12} className="text-slate-400" />
+              <Camera size={12} className="text-slt" />
             </button>
             <input
               ref={fileInputRef}
@@ -205,13 +205,13 @@ function AccountPage() {
             />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-white">{user?.name}</h1>
-            <p className="text-slate-500 text-sm">{user?.email}</p>
+            <h1 className="text-xl font-bold text-ink">{user?.name}</h1>
+            <p className="text-slt text-sm">{user?.email}</p>
             {user?.sport && (
-              <p className="text-slate-600 text-xs mt-0.5 capitalize">{user.sport}{user?.competitionLevel ? ` · ${COMPETITION_LABELS[user.competitionLevel] || user.competitionLevel}` : ''}</p>
+              <p className="text-slt text-xs mt-0.5 capitalize">{user.sport}{user?.competitionLevel ? ` · ${COMPETITION_LABELS[user.competitionLevel] || user.competitionLevel}` : ''}</p>
             )}
             {memberSince && (
-              <p className="text-slate-600 text-xs mt-0.5">{t.memberSince} {memberSince}</p>
+              <p className="text-slt text-xs mt-0.5">{t.memberSince} {memberSince}</p>
             )}
             {user?.xp !== undefined && (
               <div className="flex items-center gap-1.5 mt-1.5">
@@ -226,14 +226,14 @@ function AccountPage() {
         <section className="mb-6">
           <div className="flex items-center gap-2 mb-3">
             <Shield size={16} className="text-brand-400" />
-            <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wide">{t.subscription}</h2>
+            <h2 className="text-sm font-semibold text-slt uppercase tracking-wide">{t.subscription}</h2>
           </div>
           <div className="card">
             {isPremium ? (
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-semibold text-white">⭐ {t.premiumSince}</p>
-                  <p className="text-slate-500 text-sm">Unlimited coaching with Arjun</p>
+                  <p className="font-semibold text-ink">⭐ {t.premiumSince}</p>
+                  <p className="text-slt text-sm">Unlimited coaching with Arjun</p>
                 </div>
                 <span className="text-xs font-bold bg-fire-500/20 text-fire-400 border border-fire-500/30 px-3 py-1 rounded-full">Active</span>
               </div>
@@ -241,8 +241,8 @@ function AccountPage() {
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <p className="font-semibold text-white">🆓 Free Trial</p>
-                    <p className="text-slate-500 text-sm">
+                    <p className="font-semibold text-ink">🆓 Free Trial</p>
+                    <p className="text-slt text-sm">
                       {trialDaysRemaining === 0
                         ? 'Your trial has ended'
                         : t.trialDaysLeft(trialDaysRemaining)}
@@ -251,12 +251,12 @@ function AccountPage() {
                   {trialDaysRemaining !== null && trialDaysRemaining > 0 && (
                     <div className="w-16 h-16 relative flex-shrink-0">
                       <svg viewBox="0 0 36 36" className="w-16 h-16 -rotate-90">
-                        <circle cx="18" cy="18" r="15.9" fill="none" stroke="#2A2A50" strokeWidth="3" />
-                        <circle cx="18" cy="18" r="15.9" fill="none" stroke="#8B5CF6" strokeWidth="3"
+                        <circle cx="18" cy="18" r="15.9" fill="none" stroke="#C2CCC6" strokeWidth="3" />
+                        <circle cx="18" cy="18" r="15.9" fill="none" stroke="#0B6E4F" strokeWidth="3"
                           strokeDasharray={`${(trialDaysRemaining / TRIAL_DAYS) * 100} 100`}
                           strokeLinecap="round" />
                       </svg>
-                      <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-white">{trialDaysRemaining}d</span>
+                      <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-ink">{trialDaysRemaining}d</span>
                     </div>
                   )}
                 </div>
@@ -272,12 +272,12 @@ function AccountPage() {
         <section className="mb-6">
           <div className="flex items-center gap-2 mb-3">
             <User size={16} className="text-brand-400" />
-            <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wide">{t.editProfile}</h2>
+            <h2 className="text-sm font-semibold text-slt uppercase tracking-wide">{t.editProfile}</h2>
           </div>
           <div className="card space-y-4">
             {/* Name */}
             <div>
-              <label className="text-xs text-slate-500 font-medium block mb-1">{t.nameLabel}</label>
+              <label className="text-xs text-slt font-medium block mb-1">{t.nameLabel}</label>
               <input
                 type="text"
                 value={profileName}
@@ -290,7 +290,7 @@ function AccountPage() {
             {/* Age + Sport row */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-slate-500 font-medium block mb-1">{t.ageLabel}</label>
+                <label className="text-xs text-slt font-medium block mb-1">{t.ageLabel}</label>
                 <input
                   type="number"
                   value={profileAge}
@@ -301,7 +301,7 @@ function AccountPage() {
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-500 font-medium block mb-1">{t.sportLabel}</label>
+                <label className="text-xs text-slt font-medium block mb-1">{t.sportLabel}</label>
                 <input
                   type="text"
                   value={profileSport}
@@ -314,7 +314,7 @@ function AccountPage() {
 
             {/* Position */}
             <div>
-              <label className="text-xs text-slate-500 font-medium block mb-1">{t.positionLabel}</label>
+              <label className="text-xs text-slt font-medium block mb-1">{t.positionLabel}</label>
               <input
                 type="text"
                 value={profilePosition}
@@ -326,14 +326,14 @@ function AccountPage() {
 
             {/* Experience level */}
             <div>
-              <label className="text-xs text-slate-500 font-medium block mb-2">{t.levelLabel}</label>
+              <label className="text-xs text-slt font-medium block mb-2">{t.levelLabel}</label>
               <div className="grid grid-cols-2 gap-2">
                 {EXPERIENCE_LEVELS.map(lv => (
                   <button
                     key={lv}
                     onClick={() => setProfileExperience(lv)}
                     className={`py-2 rounded-xl text-xs font-semibold border transition-all ${
-                      profileExperience === lv ? 'bg-brand-500 text-white border-brand-500' : 'bg-dark-700 text-slate-400 border-dark-500 hover:border-brand-600'
+                      profileExperience === lv ? 'bg-brand-500 text-white border-brand-500' : 'bg-dark-700 text-slt border-dark-500 hover:border-brand-600'
                     }`}
                   >
                     {EXPERIENCE_LABELS[lv]}
@@ -344,14 +344,14 @@ function AccountPage() {
 
             {/* Competition level */}
             <div>
-              <label className="text-xs text-slate-500 font-medium block mb-2">{t.competitionLabel}</label>
+              <label className="text-xs text-slt font-medium block mb-2">{t.competitionLabel}</label>
               <div className="grid grid-cols-2 gap-2">
                 {COMPETITION_LEVELS.map(lv => (
                   <button
                     key={lv}
                     onClick={() => setProfileCompetition(lv)}
                     className={`py-2 rounded-xl text-xs font-semibold border transition-all ${
-                      profileCompetition === lv ? 'bg-brand-500 text-white border-brand-500' : 'bg-dark-700 text-slate-400 border-dark-500 hover:border-brand-600'
+                      profileCompetition === lv ? 'bg-brand-500 text-white border-brand-500' : 'bg-dark-700 text-slt border-dark-500 hover:border-brand-600'
                     }`}
                   >
                     {COMPETITION_LABELS[lv]}
@@ -362,14 +362,14 @@ function AccountPage() {
 
             {/* Goals */}
             <div>
-              <label className="text-xs text-slate-500 font-medium block mb-2">{t.goalsLabel}</label>
+              <label className="text-xs text-slt font-medium block mb-2">{t.goalsLabel}</label>
               <div className="flex flex-wrap gap-2">
                 {GOAL_OPTIONS.map(g => (
                   <button
                     key={g}
                     onClick={() => toggleGoal(g)}
                     className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                      profileGoals.includes(g) ? 'bg-brand-500 text-white border-brand-500' : 'bg-dark-700 text-slate-400 border-dark-500 hover:border-brand-600'
+                      profileGoals.includes(g) ? 'bg-brand-500 text-white border-brand-500' : 'bg-dark-700 text-slt border-dark-500 hover:border-brand-600'
                     }`}
                   >
                     {GOAL_LABELS_MAP[g]}
@@ -380,7 +380,7 @@ function AccountPage() {
 
             {/* Language */}
             <div>
-              <label className="text-xs text-slate-500 font-medium block mb-2">
+              <label className="text-xs text-slt font-medium block mb-2">
                 {language === 'hi' ? 'कोचिंग भाषा' : 'Coaching language'}
               </label>
               <div className="flex gap-3">
@@ -388,7 +388,7 @@ function AccountPage() {
                   onClick={() => handleLanguageChange('en')}
                   disabled={saving}
                   className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
-                    user?.language === 'en' ? 'bg-brand-500 text-white border-brand-500' : 'bg-dark-700 text-slate-400 border-dark-500 hover:border-brand-600'
+                    user?.language === 'en' ? 'bg-brand-500 text-white border-brand-500' : 'bg-dark-700 text-slt border-dark-500 hover:border-brand-600'
                   }`}
                 >
                   English
@@ -397,7 +397,7 @@ function AccountPage() {
                   onClick={() => handleLanguageChange('hi')}
                   disabled={saving}
                   className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
-                    user?.language === 'hi' ? 'bg-brand-500 text-white border-brand-500' : 'bg-dark-700 text-slate-400 border-dark-500 hover:border-brand-600'
+                    user?.language === 'hi' ? 'bg-brand-500 text-white border-brand-500' : 'bg-dark-700 text-slt border-dark-500 hover:border-brand-600'
                   }`}
                 >
                   हिंदी
@@ -423,10 +423,10 @@ function AccountPage() {
         <section className="mb-6">
           <div className="flex items-center gap-2 mb-3">
             <Brain size={16} className="text-brand-400" />
-            <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wide">{t.dnaTitle}</h2>
+            <h2 className="text-sm font-semibold text-slt uppercase tracking-wide">{t.dnaTitle}</h2>
           </div>
           <div className="card">
-            <p className="text-xs text-slate-500 mb-4">{t.dnaSubtitle}</p>
+            <p className="text-xs text-slt mb-4">{t.dnaSubtitle}</p>
             {user?.oceanO != null ? (
               <div className="space-y-3 mb-4">
                 {Object.entries(t.dnaTraits).map(([key, traitName]) => {
@@ -434,12 +434,12 @@ function AccountPage() {
                   return (
                     <div key={key}>
                       <div className="flex justify-between items-center mb-1">
-                        <span className="text-xs text-slate-400 font-medium">{traitName}</span>
+                        <span className="text-xs text-slt font-medium">{traitName}</span>
                         <span className="text-xs text-brand-400 font-bold">{val}/5</span>
                       </div>
                       <div className="w-full bg-dark-600 rounded-full h-1.5">
                         <div
-                          className="h-1.5 rounded-full bg-gradient-to-r from-brand-600 to-brand-400"
+                          className="h-1.5 rounded-full bg-brand-500"
                           style={{ width: `${(val / 5) * 100}%` }}
                         />
                       </div>
@@ -448,7 +448,7 @@ function AccountPage() {
                 })}
               </div>
             ) : (
-              <p className="text-slate-600 text-sm mb-4">
+              <p className="text-slt text-sm mb-4">
                 {language === 'hi' ? 'अभी तक परीक्षण नहीं लिया।' : 'No personality test taken yet.'}
               </p>
             )}
@@ -465,17 +465,17 @@ function AccountPage() {
         <section className="mb-6">
           <div className="flex items-center gap-2 mb-3">
             <Bell size={16} className="text-brand-400" />
-            <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wide">{t.notifications}</h2>
+            <h2 className="text-sm font-semibold text-slt uppercase tracking-wide">{t.notifications}</h2>
           </div>
           <div className="card opacity-60">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium text-white text-sm">{t.whatsappLabel}</p>
-                <p className="text-slate-500 text-xs mt-0.5">{t.whatsappDesc}</p>
+                <p className="font-medium text-ink text-sm">{t.whatsappLabel}</p>
+                <p className="text-slt text-xs mt-0.5">{t.whatsappDesc}</p>
               </div>
-              <ChevronRight size={18} className="text-slate-600" />
+              <ChevronRight size={18} className="text-slt" />
             </div>
-            <p className="text-xs text-slate-600 mt-2">
+            <p className="text-xs text-slt mt-2">
               {language === 'hi' ? 'जल्द आ रहा है' : 'Coming soon'}
             </p>
           </div>
@@ -485,11 +485,11 @@ function AccountPage() {
         <section className="mb-6">
           <div className="flex items-center gap-2 mb-3">
             <Award size={16} className="text-brand-400" />
-            <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wide">
+            <h2 className="text-sm font-semibold text-slt uppercase tracking-wide">
               {language === 'hi' ? 'बैज' : 'Badges'}
             </h2>
             {earnedAchievements && (
-              <span className="text-xs text-slate-600">{earnedAchievements.length}/{ALL_ACHIEVEMENT_KEYS.length}</span>
+              <span className="text-xs text-slt">{earnedAchievements.length}/{ALL_ACHIEVEMENT_KEYS.length}</span>
             )}
           </div>
           <div className="grid grid-cols-3 gap-3">
@@ -506,11 +506,11 @@ function AccountPage() {
                   }`}
                 >
                   <span className="text-3xl">{def.icon}</span>
-                  <p className="text-xs font-semibold text-white leading-tight">{def.name}</p>
+                  <p className="text-xs font-semibold text-ink leading-tight">{def.name}</p>
                   {earned ? (
                     <span className="text-[10px] text-brand-400 font-medium">+{def.xp} XP</span>
                   ) : (
-                    <p className="text-[10px] text-slate-600 leading-tight">{def.desc}</p>
+                    <p className="text-[10px] text-slt leading-tight">{def.desc}</p>
                   )}
                 </div>
               );
@@ -522,12 +522,12 @@ function AccountPage() {
         <section className="mb-6">
           <div className="flex items-center gap-2 mb-3">
             <span className="text-slate-500 text-base">💬</span>
-            <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wide">
+            <h2 className="text-sm font-semibold text-slt uppercase tracking-wide">
               {language === 'hi' ? 'सहायता' : 'Help & Support'}
             </h2>
           </div>
           <div className="card px-4 py-4">
-            <p className="text-sm text-slate-400 mb-2">
+            <p className="text-sm text-slt mb-2">
               {language === 'hi'
                 ? 'कोई सवाल या समस्या है? हम यहाँ हैं।'
                 : 'Have a question or billing issue? We\'re here.'}
@@ -546,7 +546,7 @@ function AccountPage() {
         <section className="mb-6">
           <div className="flex items-center gap-2 mb-3">
             <Shield size={16} className="text-slate-500" />
-            <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wide">{t.dangerZone}</h2>
+            <h2 className="text-sm font-semibold text-slt uppercase tracking-wide">{t.dangerZone}</h2>
           </div>
           <div className="card space-y-1">
             <button
@@ -554,7 +554,7 @@ function AccountPage() {
               className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-dark-700 transition-colors text-left"
             >
               <LogOut size={18} className="text-slate-400 flex-shrink-0" />
-              <span className="text-slate-300 text-sm font-medium">{t.signOut}</span>
+              <span className="text-ink text-sm font-medium">{t.signOut}</span>
             </button>
             <div className="border-t border-dark-600" />
             <button
@@ -576,9 +576,9 @@ function AccountPage() {
               <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center flex-shrink-0">
                 <Trash2 size={20} className="text-red-400" />
               </div>
-              <h3 className="font-bold text-white">{t.deleteConfirmTitle}</h3>
+              <h3 className="font-bold text-ink">{t.deleteConfirmTitle}</h3>
             </div>
-            <p className="text-slate-400 text-sm mb-5">{t.deleteConfirmDesc}</p>
+            <p className="text-slt text-sm mb-5">{t.deleteConfirmDesc}</p>
             <input
               type="text"
               value={deleteConfirm}
