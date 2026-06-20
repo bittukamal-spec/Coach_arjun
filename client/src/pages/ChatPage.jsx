@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
+import { ChevronDown } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
@@ -7,12 +8,12 @@ import { apiFetch } from '../api';
 // ─── Session definitions ───────────────────────────────────────────────────────
 
 const SESSIONS = [
-  { key: 'match_prep',      color: 'text-violet-400', activeBg: 'bg-violet-500/15 border-violet-500/60' },
-  { key: 'post_match',      color: 'text-blue-400',   activeBg: 'bg-blue-500/15 border-blue-500/60'   },
-  { key: 'build_focus',     color: 'text-orange-400', activeBg: 'bg-orange-500/15 border-orange-500/60' },
-  { key: 'confidence',      color: 'text-brand-400',  activeBg: 'bg-brand-500/15 border-brand-500/60' },
-  { key: 'handle_pressure', color: 'text-red-400',    activeBg: 'bg-red-500/15 border-red-500/60'     },
-  { key: 'open',            color: 'text-win-400',    activeBg: 'bg-win-500/15 border-win-500/60'     },
+  { key: 'match_prep',      color: 'text-violet-700', activeBg: 'bg-violet-500/15 border-violet-500/60' },
+  { key: 'post_match',      color: 'text-blue-700',   activeBg: 'bg-blue-500/15 border-blue-500/60'   },
+  { key: 'build_focus',     color: 'text-orange-700', activeBg: 'bg-orange-500/15 border-orange-500/60' },
+  { key: 'confidence',      color: 'text-brand-600',  activeBg: 'bg-brand-500/15 border-brand-500/60' },
+  { key: 'handle_pressure', color: 'text-red-700',    activeBg: 'bg-red-500/15 border-red-500/60'     },
+  { key: 'open',            color: 'text-win-500',    activeBg: 'bg-win-500/15 border-win-500/60'     },
 ];
 
 // Reliable hardcoded initial chips per session (shown after Arjun's first reply)
@@ -62,22 +63,17 @@ function extractSuggestions(text) {
 function MessageBubble({ message, isStreaming }) {
   const isUser = message.role === 'user';
   return (
-    <div className={`flex gap-3 ${isUser ? 'flex-row-reverse' : 'flex-row'} items-end`}>
-      {!isUser && (
-        <div className="w-8 h-8 rounded-full bg-brand-600 text-white flex items-center justify-center text-sm font-bold shrink-0 mb-1">
-          A
-        </div>
-      )}
+    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div
-        className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
+        className={`max-w-[82%] px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap break-words ${
           isUser
-            ? 'bg-brand-600 text-white rounded-br-sm'
-            : 'bg-dark-800 border border-dark-600 text-ink shadow-sm rounded-bl-sm'
+            ? 'bg-brand-600 text-white rounded-2xl rounded-br-md'
+            : 'bg-dark-800 border border-dark-600 text-ink shadow-sm rounded-2xl rounded-bl-md'
         }`}
       >
         {message.content}
         {isStreaming && (
-          <span className="inline-flex ml-1 gap-0.5">
+          <span className="inline-flex ml-1 gap-0.5 align-middle">
             <span className="w-1 h-1 bg-slt rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
             <span className="w-1 h-1 bg-slt rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
             <span className="w-1 h-1 bg-slt rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
@@ -90,11 +86,8 @@ function MessageBubble({ message, isStreaming }) {
 
 function TypingIndicator() {
   return (
-    <div className="flex gap-3 items-end">
-      <div className="w-8 h-8 rounded-full bg-brand-600 text-white flex items-center justify-center text-sm font-bold shrink-0">
-        A
-      </div>
-      <div className="bg-dark-800 border border-dark-600 shadow-sm rounded-2xl rounded-bl-sm px-4 py-3">
+    <div className="flex justify-start">
+      <div className="bg-dark-800 border border-dark-600 shadow-sm rounded-2xl rounded-bl-md px-4 py-3">
         <span className="inline-flex gap-1">
           <span className="w-2 h-2 bg-slt rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
           <span className="w-2 h-2 bg-slt rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
@@ -123,6 +116,7 @@ function ChatPage() {
   const [activeSession, setActiveSession]   = useState(null);
   const [showIntro, setShowIntro]           = useState(() => !localStorage.getItem('arjun_chat_intro_seen'));
   const [showSafety, setShowSafety]         = useState(false);
+  const [showSessionPicker, setShowSessionPicker] = useState(false);
 
   const bottomRef          = useRef(null);
   const inputRef           = useRef(null);
@@ -330,7 +324,7 @@ function ChatPage() {
             <div className="min-w-0">
               <p className="font-semibold text-ink text-sm leading-none">{t.title}</p>
               {activeSession ? (
-                <p className="text-xs text-brand-400 leading-none mt-0.5 truncate">
+                <p className="text-xs text-brand-600 leading-none mt-0.5 truncate">
                   {t.sessions[activeSession].icon} {t.sessions[activeSession].title}
                 </p>
               ) : (
@@ -356,46 +350,68 @@ function ChatPage() {
         </div>
       </header>
 
-      {/* ── Session picker bar (always visible) ─────────────────────────── */}
-      <div className="shrink-0 border-b border-dark-600 bg-dark-900/80">
-        <p className="text-xs text-slt font-medium px-4 pt-2">
-          {language === 'hi' ? 'विषय चुनें' : 'Choose a focus'}
-        </p>
-        <div className="overflow-x-auto no-scrollbar">
-          <div className="flex gap-2 px-4 py-2 max-w-2xl mx-auto w-max min-w-full">
-            {SESSIONS.map(({ key, color, activeBg }) => {
-              const def = t.sessions[key];
-              const isActive = activeSession === key;
-              return (
-                <button
-                  key={key}
-                  onClick={() => handleSessionSelect(key)}
-                  disabled={atLimit || streaming}
-                  className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed ${
-                    isActive
-                      ? `${activeBg} ${color}`
-                      : 'bg-dark-800 border-dark-600 text-slt hover:border-dark-400 hover:text-ink'
-                  }`}
-                >
-                  <span className="text-sm">{def.icon}</span>
-                  <span className="whitespace-nowrap">{def.title}</span>
-                </button>
-              );
-            })}
-          </div>
+      {/* ── Topic + Safety bar ──────────────────────────────────────────── */}
+      <div className="shrink-0 border-b border-dark-600 bg-dark-900 px-4 py-2 relative">
+        <div className="max-w-2xl mx-auto flex items-center gap-2">
+          <button
+            onClick={() => setShowSessionPicker(s => !s)}
+            disabled={atLimit || streaming}
+            className={`flex-1 flex items-center gap-2 text-xs font-medium rounded-xl border px-3 py-1.5 transition-colors disabled:opacity-40 min-w-0 ${
+              activeSession
+                ? 'bg-dark-800 border-dark-600 text-ink'
+                : 'bg-dark-800 border-dark-500 text-slt'
+            }`}
+          >
+            {activeSession ? (
+              <>
+                <span className="shrink-0">{t.sessions[activeSession].icon}</span>
+                <span className="truncate">{t.sessions[activeSession].title}</span>
+              </>
+            ) : (
+              <span className="truncate">{language === 'hi' ? 'विषय चुनें…' : 'Choose a focus…'}</span>
+            )}
+            <ChevronDown size={13} className={`ml-auto shrink-0 transition-transform ${showSessionPicker ? 'rotate-180' : ''}`} />
+          </button>
+          <button
+            onClick={() => setShowSafety(s => !s)}
+            className="shrink-0 text-[13px] text-slt hover:text-ink transition-colors px-2 py-1.5"
+            aria-label="Safety info"
+          >
+            ℹ
+          </button>
         </div>
-      </div>
 
-      {/* ── Safety signpost ─────────────────────────────────────────────── */}
-      <div className="shrink-0 px-4 py-1 border-b border-dark-700 text-center">
-        <button
-          onClick={() => setShowSafety(s => !s)}
-          className="text-[11px] text-slt hover:text-ink transition-colors"
-        >
-          ℹ {t.safetyLinkLabel}
-        </button>
+        {showSessionPicker && (
+          <>
+            <div className="fixed inset-0 z-10" onClick={() => setShowSessionPicker(false)} />
+            <div className="absolute left-4 right-4 top-full mt-1 z-20 bg-dark-800 border border-dark-600 rounded-xl shadow-lg overflow-hidden">
+              {SESSIONS.map(({ key, color }) => {
+                const def = t.sessions[key];
+                const isActive = activeSession === key;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => { handleSessionSelect(key); setShowSessionPicker(false); }}
+                    disabled={atLimit || streaming}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-dark-700 transition-colors disabled:opacity-40 ${
+                      isActive ? 'bg-dark-700' : ''
+                    }`}
+                  >
+                    <span className="text-base shrink-0">{def.icon}</span>
+                    <div className="min-w-0 flex-1">
+                      <p className={`text-sm font-medium ${isActive ? color : 'text-ink'}`}>{def.title}</p>
+                      <p className="text-xs text-slt truncate">{def.desc}</p>
+                    </div>
+                    {isActive && <span className="ml-auto text-brand-600 shrink-0 text-sm">✓</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
+
         {showSafety && (
-          <div className="mt-1 mb-1 bg-dark-800 border border-dark-600 rounded-xl px-3 py-2 text-left max-w-2xl mx-auto">
+          <div className="mt-2 bg-dark-800 border border-dark-600 rounded-xl px-3 py-2 max-w-2xl mx-auto">
             <p className="text-xs text-slt">{t.safetyNote}</p>
             <p className="text-xs text-slt mt-1">{t.safetyHelpline}</p>
           </div>
@@ -404,16 +420,16 @@ function ChatPage() {
 
       {/* ── Messages area ───────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto px-4 py-6">
-        <div className="max-w-2xl mx-auto flex flex-col gap-4">
+        <div className="max-w-2xl mx-auto flex flex-col gap-3">
 
           {/* One-time AI intro banner */}
           {showIntro && (
             <div className="bg-dark-800 border border-brand-500/30 rounded-2xl p-4 animate-fade-in">
               <p className="font-bold text-ink text-sm mb-1">{t.aiIntroTitle}</p>
-              <p className="text-xs text-slate-400 leading-relaxed mb-3">{t.aiIntroBody}</p>
+              <p className="text-xs text-slt leading-relaxed mb-3">{t.aiIntroBody}</p>
               <button
                 onClick={() => { localStorage.setItem('arjun_chat_intro_seen', '1'); setShowIntro(false); }}
-                className="text-xs font-semibold text-brand-400 bg-brand-500/10 border border-brand-500/20 px-3 py-1.5 rounded-full hover:bg-brand-500/20 transition-colors"
+                className="text-xs font-semibold text-brand-600 bg-brand-500/10 border border-brand-500/20 px-3 py-1.5 rounded-full hover:bg-brand-500/20 transition-colors"
               >
                 {t.aiIntroDismiss}
               </button>
@@ -423,7 +439,7 @@ function ChatPage() {
           {/* No session selected yet */}
           {!hasMessages && !activeSession && !waitingForFirst && (
             <div className="flex flex-col items-center text-center py-10 gap-3 animate-fade-in">
-              <div className="w-16 h-16 rounded-full bg-brand-600/20 border-2 border-brand-600/30 flex items-center justify-center text-2xl font-bold text-brand-400">
+              <div className="w-16 h-16 rounded-full bg-brand-600/20 border-2 border-brand-600/30 flex items-center justify-center text-2xl font-bold text-brand-600">
                 A
               </div>
               <div>
@@ -438,7 +454,7 @@ function ChatPage() {
 
           {/* Session selected, no messages yet — show context card */}
           {!hasMessages && activeSession && !waitingForFirst && (
-            <div className="animate-fade-in bg-dark-800 border border-dark-600 rounded-2xl p-4 text-sm text-slate-400 text-center">
+            <div className="animate-fade-in bg-dark-800 border border-dark-600 rounded-2xl p-4 text-sm text-slt text-center">
               <p className="text-2xl mb-2">{t.sessions[activeSession].icon}</p>
               <p className="font-semibold text-ink mb-0.5">{t.sessions[activeSession].title}</p>
               <p className="text-xs text-slt">{t.sessions[activeSession].desc}</p>
@@ -452,7 +468,7 @@ function ChatPage() {
               <div key={msg.id} className="flex flex-col gap-2">
                 <MessageBubble message={msg} isStreaming={msg.streaming} />
                 {isLastArjun && !msg.streaming && quickReplies.length > 0 && (
-                  <div className="flex flex-wrap gap-2 ml-11">
+                  <div className="flex flex-wrap gap-2">
                     {quickReplies.map(reply => (
                       <button
                         key={reply}
