@@ -65,7 +65,7 @@ function MessageBubble({ message, isStreaming }) {
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div
-        className={`max-w-[82%] px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap break-words ${
+        className={`max-w-[92%] px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap break-words ${
           isUser
             ? 'bg-brand-600 text-white rounded-2xl rounded-br-md'
             : 'bg-dark-800 border border-dark-600 text-ink shadow-sm rounded-2xl rounded-bl-md'
@@ -419,7 +419,7 @@ function ChatPage() {
       </div>
 
       {/* ── Messages area ───────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto px-4 py-6">
+      <div className="flex-1 overflow-y-auto px-2 py-4">
         <div className="max-w-2xl mx-auto flex flex-col gap-3">
 
           {/* One-time AI intro banner */}
@@ -551,11 +551,11 @@ function ChatPage() {
             </button>
           </div>
 
-          <p className="text-xs text-slt mt-2 text-center">
-            {needsSession
-              ? (language === 'hi' ? 'अर्जुन हर सत्र के लिए अलग तरह से कोचिंग देता है' : 'Arjun coaches differently for each topic')
-              : 'Enter to send · Shift+Enter for new line'}
-          </p>
+          {needsSession && (
+            <p className="text-xs text-slt mt-2 text-center">
+              {language === 'hi' ? 'अर्जुन हर सत्र के लिए अलग तरह से कोचिंग देता है' : 'Arjun coaches differently for each topic'}
+            </p>
+          )}
         </div>
       </div>
     </div>
