@@ -12,16 +12,16 @@ export default {
           600: '#C2CCC6',   // visible border
           500: '#B0BDB7',   // lighter border
         },
-        // Primary brand — teal (mental performance)
+        // Primary brand — deep blue (mental performance)
         brand: {
-          50:  '#F0FAF6',
-          100: '#CBE9DD',
-          200: '#97D4BC',
-          300: '#5BB89A',
-          400: '#2D9575',
-          500: '#0B6E4F',
-          600: '#095E42',
-          700: '#074F38',
+          50:  '#EFF6FF',
+          100: '#DBEAFE',
+          200: '#BFDBFE',
+          300: '#6FA5D4',
+          400: '#3A7FC1',
+          500: '#185FA5',
+          600: '#0C447C',
+          700: '#0A3866',
         },
         // Action accent — amber (CTAs, streaks)
         fire: {

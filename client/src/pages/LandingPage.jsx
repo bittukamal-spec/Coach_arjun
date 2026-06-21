@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Zap, BarChart2, MessageCircle as MessageIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
@@ -8,9 +9,9 @@ const SPORTS = ['🏏', '⚽', '🏸', '🏃', '🤼', '🥊', '🏑', '🎾', '
 const RESEARCH_COLORS = ['text-brand-400', 'text-win-400', 'text-fire-400', 'text-purple-400', 'text-cyan-400', 'text-amber-400'];
 
 const STEPS = [
-  { num: '01', icon: '⚡', key: 'step1' },
-  { num: '02', icon: '📊', key: 'step2' },
-  { num: '03', icon: '💬', key: 'step3' },
+  { num: '01', Icon: Zap,          key: 'step1' },
+  { num: '02', Icon: BarChart2,    key: 'step2' },
+  { num: '03', Icon: MessageIcon,  key: 'step3' },
 ];
 
 function LandingPage() {
@@ -219,12 +220,12 @@ function LandingPage() {
           </div>
 
           <div className="grid sm:grid-cols-3 gap-8 relative">
-            <div className="hidden sm:block absolute top-10 left-[calc(16.67%+1rem)] right-[calc(16.67%+1rem)] h-px bg-gradient-to-r from-brand-500/30 via-brand-500/60 to-brand-500/30 pointer-events-none" />
+            <div className="hidden sm:block absolute top-10 left-[calc(16.67%+1rem)] right-[calc(16.67%+1rem)] h-px bg-brand-500/40 pointer-events-none" />
 
-            {STEPS.map(({ num, icon, key }) => (
+            {STEPS.map(({ num, Icon, key }) => (
               <div key={key} className="flex flex-col items-center text-center relative">
                 <div className="w-20 h-20 rounded-2xl bg-brand-500/15 border-2 border-brand-500/40 flex flex-col items-center justify-center mb-5 relative z-10">
-                  <span className="text-2xl mb-0.5">{icon}</span>
+                  <Icon size={24} className="text-brand-500 mb-0.5" />
                   <span className="text-xs font-bold text-brand-500/60">{num}</span>
                 </div>
                 <h3 className="text-base font-bold text-ink mb-2">{t.landing[key]}</h3>

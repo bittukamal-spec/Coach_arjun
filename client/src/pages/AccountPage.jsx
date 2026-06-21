@@ -4,7 +4,7 @@ import Navbar from '../components/Navbar';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
-import { LogOut, Trash2, ChevronRight, Shield, Bell, User, Zap, Award, Camera, Brain } from 'lucide-react';
+import { LogOut, Trash2, ChevronRight, Shield, Bell, User, Zap, Award, Camera, Brain, Star, MessageCircle, Mail } from 'lucide-react';
 import { ACHIEVEMENTS, ALL_ACHIEVEMENT_KEYS } from '../data/achievements';
 
 const EXPERIENCE_LEVELS = ['beginner', 'amateur', 'competitive', 'professional'];
@@ -232,7 +232,7 @@ function AccountPage() {
             {isPremium ? (
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-semibold text-ink">⭐ {t.premiumSince}</p>
+                  <p className="font-semibold text-ink flex items-center gap-1.5"><Star size={14} className="text-fire-500" /> {t.premiumSince}</p>
                   <p className="text-slt text-sm">Unlimited coaching with Arjun</p>
                 </div>
                 <span className="text-xs font-bold bg-fire-500/20 text-fire-400 border border-fire-500/30 px-3 py-1 rounded-full">Active</span>
@@ -252,7 +252,7 @@ function AccountPage() {
                     <div className="w-16 h-16 relative flex-shrink-0">
                       <svg viewBox="0 0 36 36" className="w-16 h-16 -rotate-90">
                         <circle cx="18" cy="18" r="15.9" fill="none" stroke="#C2CCC6" strokeWidth="3" />
-                        <circle cx="18" cy="18" r="15.9" fill="none" stroke="#0B6E4F" strokeWidth="3"
+                        <circle cx="18" cy="18" r="15.9" fill="none" stroke="#185FA5" strokeWidth="3"
                           strokeDasharray={`${(trialDaysRemaining / TRIAL_DAYS) * 100} 100`}
                           strokeLinecap="round" />
                       </svg>
@@ -521,7 +521,7 @@ function AccountPage() {
         {/* Help & Support */}
         <section className="mb-6">
           <div className="flex items-center gap-2 mb-3">
-            <span className="text-slate-500 text-base">💬</span>
+            <MessageCircle size={16} className="text-slt" />
             <h2 className="text-sm font-semibold text-slt uppercase tracking-wide">
               {language === 'hi' ? 'सहायता' : 'Help & Support'}
             </h2>
@@ -536,7 +536,7 @@ function AccountPage() {
               href="mailto:kamal.prabhanshu@outlook.com"
               className="inline-flex items-center gap-2 text-sm font-semibold text-brand-400 hover:text-brand-300 transition-colors"
             >
-              <span>✉</span>
+              <Mail size={14} />
               kamal.prabhanshu@outlook.com
             </a>
           </div>
@@ -545,7 +545,7 @@ function AccountPage() {
         {/* Account actions */}
         <section className="mb-6">
           <div className="flex items-center gap-2 mb-3">
-            <Shield size={16} className="text-slate-500" />
+            <Shield size={16} className="text-slt" />
             <h2 className="text-sm font-semibold text-slt uppercase tracking-wide">{t.dangerZone}</h2>
           </div>
           <div className="card space-y-1">
@@ -553,7 +553,7 @@ function AccountPage() {
               onClick={logout}
               className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-dark-700 transition-colors text-left"
             >
-              <LogOut size={18} className="text-slate-400 flex-shrink-0" />
+              <LogOut size={18} className="text-slt flex-shrink-0" />
               <span className="text-ink text-sm font-medium">{t.signOut}</span>
             </button>
             <div className="border-t border-dark-600" />

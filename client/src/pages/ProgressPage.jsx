@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, Flame } from 'lucide-react';
 import { apiFetch } from '../api';
 import {
   ResponsiveContainer,
@@ -18,8 +18,8 @@ import { translations } from '../i18n/translations';
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const METRIC_CONFIG = [
-  { key: 'mood',       color: '#0B6E4F', barClass: 'bg-brand-600', labelKey: 'mood'       },
-  { key: 'focus',      color: '#2D9575', barClass: 'bg-sky-500',   labelKey: 'focus'      },
+  { key: 'mood',       color: '#185FA5', barClass: 'bg-brand-600', labelKey: 'mood'       },
+  { key: 'focus',      color: '#3A7FC1', barClass: 'bg-sky-500',   labelKey: 'focus'      },
   { key: 'confidence', color: '#E2711D', barClass: 'bg-fire-500',  labelKey: 'confidence' },
 ];
 
@@ -115,7 +115,7 @@ function ProgressPage() {
             <div className="flex gap-3">
               <div className="flex-1 bg-dark-800 border border-dark-600 rounded-2xl px-4 py-4 text-center">
                 <p className="text-3xl font-black text-ink leading-none mb-1">{data.streak}</p>
-                <p className="text-[11px] font-semibold text-slt uppercase tracking-wide">🔥 {t.streak}</p>
+                <p className="text-[11px] font-semibold text-slt uppercase tracking-wide flex items-center justify-center gap-1"><Flame size={11} className="text-fire-500" /> {t.streak}</p>
               </div>
               <div className="flex-1 bg-dark-800 border border-dark-600 rounded-2xl px-4 py-4 text-center">
                 <p className="text-3xl font-black text-ink leading-none mb-1">{data.totalCheckIns}</p>

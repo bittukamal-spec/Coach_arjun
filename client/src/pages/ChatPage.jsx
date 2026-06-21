@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Star } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
@@ -334,8 +334,8 @@ function ChatPage() {
           </div>
           <div className="shrink-0">
             {usage.isPremium ? (
-              <span className="text-xs font-semibold text-amber-400 bg-amber-950/40 border border-amber-700/40 px-2 py-1 rounded-full">
-                ⭐ {t.usagePremium}
+              <span className="text-xs font-semibold text-fire-500 bg-fire-500/10 border border-fire-500/30 px-2 py-1 rounded-full inline-flex items-center gap-1">
+                <Star size={11} className="shrink-0" /> {t.usagePremium}
               </span>
             ) : atLimit ? (
               <span className="text-xs font-semibold text-red-400 bg-red-950/30 border border-red-800/30 px-2 py-1 rounded-full">

@@ -112,7 +112,7 @@ function AuthPage() {
                 </div>
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-xs font-semibold text-slate-400">{t.auth.passwordLabel}</label>
+                    <label className="block text-xs font-semibold text-slt">{t.auth.passwordLabel}</label>
                     {tab === 'signin' && (
                       <button type="button" onClick={() => navigate('/forgot-password')}
                         className="text-xs text-brand-400 hover:text-brand-300 font-medium">
@@ -144,9 +144,9 @@ function AuthPage() {
               {tab === 'signup' && (
                 <p className="text-center text-xs text-slt mt-4">
                   By signing up you agree to our{' '}
-                  <button onClick={() => navigate('/terms')} className="underline hover:text-slate-400 transition-colors">Terms</button>
+                  <button onClick={() => navigate('/terms')} className="underline hover:text-slt transition-colors">Terms</button>
                   {' '}and{' '}
-                  <button onClick={() => navigate('/privacy')} className="underline hover:text-slate-400 transition-colors">Privacy Policy</button>
+                  <button onClick={() => navigate('/privacy')} className="underline hover:text-slt transition-colors">Privacy Policy</button>
                 </p>
               )}
             </div>

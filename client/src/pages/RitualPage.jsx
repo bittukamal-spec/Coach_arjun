@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
+import { Trophy, Wind, MessageCircle, Target, Dumbbell, Pencil } from 'lucide-react';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -10,9 +11,17 @@ const STEP_TYPES = ['breathe', 'cue', 'visualize', 'physical', 'custom'];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function StepIcon({ type, size = 'text-xl' }) {
-  const icons = { breathe: '🌬️', cue: '💬', visualize: '🎯', physical: '💪', custom: '✏️' };
-  return <span className={size}>{icons[type] || '✏️'}</span>;
+const STEP_ICON_MAP = {
+  breathe:   Wind,
+  cue:       MessageCircle,
+  visualize: Target,
+  physical:  Dumbbell,
+  custom:    Pencil,
+};
+
+function StepIcon({ type, size = 20 }) {
+  const Icon = STEP_ICON_MAP[type] || Pencil;
+  return <Icon size={size} className="text-slt" />;
 }
 
 // ── Builder sub-component ─────────────────────────────────────────────────────
@@ -73,7 +82,7 @@ function Builder({ initial, onSave, onCancel, t }) {
       <div className="mb-4">
         <div className="flex items-center justify-between mb-3">
           <p className="text-sm font-semibold text-ink">{t.steps || 'Steps'}</p>
-          <p className="text-xs text-slate-500">{t.maxSteps}</p>
+          <p className="text-xs text-slt">{t.maxSteps}</p>
         </div>
 
         <div className="flex flex-col gap-3">
@@ -106,7 +115,7 @@ function Builder({ initial, onSave, onCancel, t }) {
                         : 'bg-dark-800 border-dark-600 text-slt hover:text-ink'
                     }`}
                   >
-                    <StepIcon type={type} size="text-sm" />
+                    <StepIcon type={type} size={14} />
                     <span>{t.stepTypes[type]}</span>
                   </button>
                 ))}
@@ -178,7 +187,7 @@ function Walkthrough({ steps, t, onFinish }) {
   if (done) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center text-center px-8 animate-fade-in">
-        <div className="text-6xl mb-6">🏆</div>
+        <div className="mb-6"><Trophy size={56} className="text-fire-500 mx-auto" /></div>
         <h2 className="text-2xl font-bold text-ink mb-3">{t.doneTitle}</h2>
         <p className="text-slt mb-10 max-w-xs">{t.doneSub}</p>
         <button onClick={onFinish} className="btn-primary px-10 py-3">
@@ -204,7 +213,7 @@ function Walkthrough({ steps, t, onFinish }) {
         </p>
 
         <div className="w-24 h-24 rounded-full bg-brand-500/15 border-2 border-brand-500/40 flex items-center justify-center mb-6">
-          <StepIcon type={step.type} size="text-4xl" />
+          <StepIcon type={step.type} size={36} />
         </div>
 
         <h2 className="text-xl font-bold text-ink mb-3 leading-tight max-w-xs">
@@ -363,7 +372,7 @@ function RitualPage() {
 
         {/* Ritual name */}
         <div className="text-center mb-8">
-          <div className="text-5xl mb-3">🏆</div>
+          <div className="mb-3"><Trophy size={44} className="text-fire-500 mx-auto" /></div>
           <h2 className="text-xl font-bold text-ink">{ritualName}</h2>
           <p className="text-xs text-slt mt-1">{steps.length} steps</p>
         </div>
@@ -375,7 +384,7 @@ function RitualPage() {
               <div className="w-8 h-8 rounded-full bg-dark-700 border border-dark-500 flex items-center justify-center shrink-0">
                 <span className="text-xs font-bold text-slt">{i + 1}</span>
               </div>
-              <StepIcon type={step.type} size="text-2xl" />
+              <StepIcon type={step.type} size={24} />
               <div className="min-w-0">
                 <p className="text-sm font-medium text-ink leading-tight">{step.label}</p>
                 <p className="text-xs text-slt capitalize mt-0.5">{t.stepTypes[step.type]}</p>

@@ -4,15 +4,16 @@
 
 /* Design tokens */
 :root {
-  --color-primary:  #0B6E4F;
-  --color-action:   #E2711D;
-  --color-ink:      #15211C;
-  --color-slate:    #41524A;
-  --color-bg:       #FFFFFF;
-  --color-surface:  #EFEDE6;
-  --color-border:   #C2CCC6;
-  --color-success:  #18733B;
-  --color-alert:    #B83227;
+  --color-primary:      #185FA5;
+  --color-primary-dark: #0C447C;
+  --color-action:       #E2711D;
+  --color-ink:          #15211C;
+  --color-slate:        #41524A;
+  --color-bg:           #FFFFFF;
+  --color-surface:      #EFEDE6;
+  --color-border:       #C2CCC6;
+  --color-success:      #18733B;
+  --color-alert:        #B83227;
 }
 
 @layer utilities {

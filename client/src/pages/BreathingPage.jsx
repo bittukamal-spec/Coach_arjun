@@ -231,7 +231,7 @@ function BreathingPage() {
           >
             {t.changeTech}
           </button>
-          <p className="font-semibold text-slate-100 text-sm">{techName}</p>
+          <p className="font-semibold text-ink text-sm">{techName}</p>
           <button
             onClick={() => setSoundOn(s => !s)}
             className="text-xs text-slt hover:text-ink transition-colors"
@@ -299,7 +299,7 @@ function BreathingPage() {
         {/* Start button */}
         {status === 'idle' && (
           <div className="text-center animate-fade-in">
-            <p className="text-slate-400 text-sm mb-6">{t.duration[techKey]}</p>
+            <p className="text-slt text-sm mb-6">{t.duration[techKey]}</p>
             <button
               onClick={startSession}
               className="btn-primary px-12 py-4 text-base"
