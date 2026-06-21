@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { ChevronLeft } from 'lucide-react';
 import { apiFetch } from '../api';
 import {
   ResponsiveContainer,
@@ -17,43 +18,22 @@ import { translations } from '../i18n/translations';
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const METRIC_CONFIG = [
-  { key: 'mood',       color: '#0B6E4F', labelKey: 'mood' },
-  { key: 'focus',      color: '#2D9575', labelKey: 'focus' },
-  { key: 'confidence', color: '#E2711D', labelKey: 'confidence' },
+  { key: 'mood',       color: '#0B6E4F', barClass: 'bg-brand-600', labelKey: 'mood'       },
+  { key: 'focus',      color: '#2D9575', barClass: 'bg-sky-500',   labelKey: 'focus'      },
+  { key: 'confidence', color: '#E2711D', barClass: 'bg-fire-500',  labelKey: 'confidence' },
 ];
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function StatCard({ icon, value, label, trend, trendLabel }) {
-  const trendColor =
-    trend === null  ? 'text-slt' :
-    trend > 0.05   ? 'text-win-400' :
-    trend < -0.05  ? 'text-red-400'   : 'text-slt';
-
-  const trendArrow =
-    trend === null  ? '—' :
-    trend > 0.05   ? '↑' :
-    trend < -0.05  ? '↓' : '→';
-
+function SectionLabel({ children }) {
   return (
-    <div className="card flex flex-col gap-1">
-      <div className="flex items-center gap-2 mb-1">
-        <span className="text-xl">{icon}</span>
-        <span className="text-xs font-medium text-slt uppercase tracking-wide">{label}</span>
-      </div>
-      <p className="text-3xl font-bold text-ink leading-none">
-        {value ?? <span className="text-dark-600 text-xl">—</span>}
-      </p>
-      {trendLabel !== undefined && (
-        <p className={`text-xs font-medium mt-1 ${trendColor}`}>
-          {trendArrow} {trend !== null ? `${Math.abs(trend).toFixed(1)} ${trendLabel}` : trendLabel}
-        </p>
-      )}
-    </div>
+    <p className="text-[11px] font-bold text-slt uppercase tracking-widest mb-3">
+      {children}
+    </p>
   );
 }
 
-function CustomTooltip({ active, payload, label, t }) {
+function CustomTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
   return (
     <div className="bg-dark-700 border border-dark-500 shadow-xl rounded-2xl px-4 py-3 text-sm min-w-[140px]">
@@ -77,10 +57,10 @@ function ProgressPage() {
   const { token, language } = useAuth();
   const t = translations[language].progress;
 
-  const [data, setData]     = useState(null);
-  const [days, setDays]     = useState(7);
+  const [data, setData]       = useState(null);
+  const [days, setDays]       = useState(7);
   const [loading, setLoading] = useState(true);
-  const [error, setError]   = useState('');
+  const [error, setError]     = useState('');
 
   useEffect(() => {
     setLoading(true);
@@ -102,18 +82,18 @@ function ProgressPage() {
 
   return (
     <div className="min-h-screen bg-dark-900">
-      {/* Header */}
+
+      {/* ── Header ── */}
       <header className="bg-dark-900 border-b border-dark-600 px-4 py-4 sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <Link to="/dashboard" className="text-sm text-slt hover:text-ink transition-colors">
-            {t.backToDashboard}
+        <div className="max-w-lg mx-auto flex items-center gap-2">
+          <Link to="/dashboard" className="p-1 -ml-1 text-slt hover:text-ink transition-colors">
+            <ChevronLeft size={20} />
           </Link>
-          <p className="font-semibold text-ink">{t.title}</p>
-          <div className="w-20" /> {/* spacer to centre the title */}
+          <p className="font-bold text-ink">{t.title}</p>
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 py-8 pb-20">
+      <main className="max-w-lg mx-auto px-4 py-6 pb-24">
 
         {/* Loading */}
         {loading && (
@@ -129,73 +109,30 @@ function ProgressPage() {
 
         {/* Content */}
         {!loading && !error && data && (
-          <div className="animate-fade-in space-y-6">
+          <div className="animate-fade-in space-y-7">
 
-            {/* ── Top stat row: streak + total ── */}
-            <div className="grid grid-cols-2 gap-4">
-              <StatCard
-                icon="🔥"
-                value={data.streak}
-                label={t.streak}
-              />
-              <StatCard
-                icon="📊"
-                value={data.totalCheckIns}
-                label={t.totalCheckIns}
-              />
-            </div>
-
-            {/* ── Weekly average cards ── */}
-            <div>
-              <p className="text-xs font-semibold text-slt uppercase tracking-wide mb-3">
-                {t.weeklyAvg}
-              </p>
-              <div className="grid grid-cols-3 gap-3">
-                {METRIC_CONFIG.map(({ key, color, labelKey }) => {
-                  const curr = data.weeklyAvg[key];
-                  const prev = data.prevWeekAvg[key];
-                  const diff = trendDiff(curr, prev);
-                  return (
-                    <div
-                      key={key}
-                      className="card py-4 flex flex-col items-center text-center gap-1"
-                      style={{ borderTopColor: color, borderTopWidth: '3px' }}
-                    >
-                      <p className="text-xs font-medium text-slt uppercase tracking-wide">
-                        {t[labelKey]}
-                      </p>
-                      <p className="text-2xl font-bold text-ink">
-                        {curr ?? <span className="text-dark-500 text-lg">—</span>}
-                        {curr && <span className="text-xs font-normal text-slt">/5</span>}
-                      </p>
-                      {/* Trend */}
-                      {diff !== null && (
-                        <p className={`text-xs font-medium ${
-                          diff > 0.05 ? 'text-win-400' : diff < -0.05 ? 'text-red-400' : 'text-slt'
-                        }`}>
-                          {diff > 0.05 ? `↑ +${diff}` : diff < -0.05 ? `↓ ${diff}` : `→ ${t.same}`}
-                        </p>
-                      )}
-                      {diff === null && prev === null && curr !== null && (
-                        <p className="text-xs text-slt">new</p>
-                      )}
-                    </div>
-                  );
-                })}
+            {/* ── Stats row ── */}
+            <div className="flex gap-3">
+              <div className="flex-1 bg-dark-800 border border-dark-600 rounded-2xl px-4 py-4 text-center">
+                <p className="text-3xl font-black text-ink leading-none mb-1">{data.streak}</p>
+                <p className="text-[11px] font-semibold text-slt uppercase tracking-wide">🔥 {t.streak}</p>
               </div>
-              <p className="text-xs text-slate-500 text-center mt-2">{t.vsLastWeek}</p>
+              <div className="flex-1 bg-dark-800 border border-dark-600 rounded-2xl px-4 py-4 text-center">
+                <p className="text-3xl font-black text-ink leading-none mb-1">{data.totalCheckIns}</p>
+                <p className="text-[11px] font-semibold text-slt uppercase tracking-wide">📊 {t.totalCheckIns}</p>
+              </div>
             </div>
 
             {/* ── Period toggle ── */}
-            <div className="flex gap-2 justify-center">
+            <div className="flex bg-dark-800 border border-dark-600 rounded-2xl p-1 gap-1">
               {[7, 30].map(d => (
                 <button
                   key={d}
                   onClick={() => setDays(d)}
-                  className={`px-5 py-2 rounded-xl text-sm font-semibold transition-all ${
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                     days === d
-                      ? 'bg-brand-600 text-white shadow-sm'
-                      : 'bg-dark-700 text-slt border border-dark-500 hover:border-brand-500'
+                      ? 'bg-brand-600 text-white'
+                      : 'text-slt hover:text-ink'
                   }`}
                 >
                   {d === 7 ? t.days7 : t.days30}
@@ -203,60 +140,103 @@ function ProgressPage() {
               ))}
             </div>
 
+            {/* ── Weekly averages ── */}
+            <div>
+              <SectionLabel>{t.weeklyAvg}</SectionLabel>
+              <div className="bg-dark-800 border border-dark-600 rounded-2xl p-4 space-y-4">
+                {METRIC_CONFIG.map(({ key, barClass, labelKey }) => {
+                  const curr = data.weeklyAvg[key];
+                  const prev = data.prevWeekAvg[key];
+                  const diff = trendDiff(curr, prev);
+                  return (
+                    <div key={key}>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-sm font-medium text-ink">{t[labelKey]}</span>
+                        <div className="flex items-center gap-2">
+                          {diff !== null && (
+                            <span className={`text-xs font-semibold ${
+                              diff > 0.05 ? 'text-win-500' : diff < -0.05 ? 'text-red-400' : 'text-slt'
+                            }`}>
+                              {diff > 0.05 ? `↑ +${diff}` : diff < -0.05 ? `↓ ${diff}` : `→ ${t.same}`}
+                            </span>
+                          )}
+                          <span className="text-sm font-bold text-ink">
+                            {curr !== null ? `${curr}/5` : <span className="text-slt text-xs">—</span>}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="h-2 bg-dark-700 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${barClass} transition-all duration-500`}
+                          style={{ width: curr !== null ? `${(curr / 5) * 100}%` : '0%' }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+                <p className="text-[11px] text-slt text-center pt-1">{t.vsLastWeek}</p>
+              </div>
+            </div>
+
             {/* ── Chart or empty state ── */}
-            {hasEnoughData ? (
-              <div className="card">
-                <p className="text-sm font-semibold text-ink mb-4">{t.chartTitle}</p>
-                <ResponsiveContainer width="100%" height={260}>
-                  <LineChart data={data.chartData} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#C2CCC6" />
-                    <XAxis
-                      dataKey="date"
-                      tick={{ fontSize: 11, fill: '#41524A' }}
-                      tickLine={false}
-                      axisLine={false}
-                      interval="preserveStartEnd"
-                    />
-                    <YAxis
-                      domain={[1, 5]}
-                      ticks={[1, 2, 3, 4, 5]}
-                      tick={{ fontSize: 11, fill: '#41524A' }}
-                      tickLine={false}
-                      axisLine={false}
-                    />
-                    <Tooltip content={<CustomTooltip t={t} />} />
-                    <Legend
-                      iconType="circle"
-                      iconSize={8}
-                      wrapperStyle={{ fontSize: 12, paddingTop: 12 }}
-                      formatter={(value) => t[value] || value}
-                    />
-                    {METRIC_CONFIG.map(({ key, color, labelKey }) => (
-                      <Line
-                        key={key}
-                        type="monotone"
-                        dataKey={key}
-                        name={labelKey}
-                        stroke={color}
-                        strokeWidth={2.5}
-                        dot={{ r: 4, fill: color, strokeWidth: 0 }}
-                        activeDot={{ r: 6, fill: color }}
-                        connectNulls={false}
+            <div>
+              <SectionLabel>{t.chartTitle}</SectionLabel>
+              {hasEnoughData ? (
+                <div className="bg-dark-800 border border-dark-600 rounded-2xl p-4">
+                  <ResponsiveContainer width="100%" height={240}>
+                    <LineChart data={data.chartData} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#2D3B36" />
+                      <XAxis
+                        dataKey="date"
+                        tick={{ fontSize: 11, fill: '#41524A' }}
+                        tickLine={false}
+                        axisLine={false}
+                        interval="preserveStartEnd"
                       />
-                    ))}
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            ) : (
-              <div className="card text-center py-12">
-                <div className="text-4xl mb-4">📈</div>
-                <h3 className="font-semibold text-slate-100 mb-2">{t.noData}</h3>
-                <p className="text-sm text-slt mb-6 max-w-xs mx-auto">{t.noDataSub}</p>
-                <Link to="/checkin" className="btn-primary justify-center">
-                  {t.startCheckin}
-                </Link>
-              </div>
-            )}
+                      <YAxis
+                        domain={[1, 5]}
+                        ticks={[1, 2, 3, 4, 5]}
+                        tick={{ fontSize: 11, fill: '#41524A' }}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend
+                        iconType="circle"
+                        iconSize={8}
+                        wrapperStyle={{ fontSize: 12, paddingTop: 12 }}
+                        formatter={(value) => t[value] || value}
+                      />
+                      {METRIC_CONFIG.map(({ key, color, labelKey }) => (
+                        <Line
+                          key={key}
+                          type="monotone"
+                          dataKey={key}
+                          name={labelKey}
+                          stroke={color}
+                          strokeWidth={2.5}
+                          dot={{ r: 4, fill: color, strokeWidth: 0 }}
+                          activeDot={{ r: 6, fill: color }}
+                          connectNulls={false}
+                        />
+                      ))}
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div className="bg-dark-800 border border-dark-600 rounded-2xl px-5 py-12 text-center">
+                  <div className="text-4xl mb-4">📈</div>
+                  <h3 className="font-semibold text-ink mb-2">{t.noData}</h3>
+                  <p className="text-sm text-slt mb-6 max-w-xs mx-auto">{t.noDataSub}</p>
+                  <Link
+                    to="/checkin"
+                    className="inline-block bg-brand-600 text-white font-bold text-sm py-3 px-6 rounded-xl active:scale-95 transition-transform"
+                  >
+                    {t.startCheckin}
+                  </Link>
+                </div>
+              )}
+            </div>
 
           </div>
         )}

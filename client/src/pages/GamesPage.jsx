@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Zap } from 'lucide-react';
+import { ChevronLeft, Zap } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiFetch } from '../api';
 
@@ -376,7 +376,7 @@ function ConcentrationGrid({ onDone }) {
               className={`h-12 rounded-xl text-sm font-bold transition-all active:scale-95 select-none ${
                 isFnd    ? 'bg-win-500/20 text-win-400/50 border border-win-500/20 cursor-default' :
                 isFlash  ? 'bg-red-500/30 text-red-300 border border-red-500/50 scale-95' :
-                           'bg-dark-700 border border-dark-500 text-slate-200 hover:border-amber-500/40 hover:bg-dark-600'
+                           'bg-dark-700 border border-dark-500 text-ink hover:border-amber-500/40 hover:bg-dark-600'
               }`}
             >
               {isFnd ? '✓' : num}
@@ -754,7 +754,7 @@ function ThoughtBuster({ onDone, sportProfile }) {
           </span>
         ))}
         {bubbles.length === 0 && phase === 'playing' && (
-          <div className="flex items-center justify-center h-full text-slate-700 text-xs">Incoming…</div>
+          <div className="flex items-center justify-center h-full text-dark-500 text-xs">Incoming…</div>
         )}
       </div>
     </div>
@@ -897,7 +897,7 @@ const GAME_COMPONENTS = {
   focus_filter:       FocusFilter,
 };
 
-function GameRunner({ gameId, onBack, onDone, xpEarned, sportProfile }) {
+function GameRunner({ gameId, onBack, onDone, xpEarned, sportProfile, language }) {
   const game = GAMES.find(g => g.id === gameId);
   const GameComponent = GAME_COMPONENTS[gameId];
   const style = TYPE_STYLES[game.type];
@@ -905,8 +905,8 @@ function GameRunner({ gameId, onBack, onDone, xpEarned, sportProfile }) {
 
   return (
     <div className="animate-fade-in">
-      <button onClick={onBack} className="flex items-center gap-1.5 text-slt hover:text-ink text-sm mb-4 transition-colors">
-        <ArrowLeft size={14} /> Games
+      <button onClick={onBack} className="flex items-center gap-1 text-slt hover:text-ink text-sm mb-4 transition-colors">
+        <ChevronLeft size={16} /> {language === 'hi' ? 'गेम्स' : 'Games'}
       </button>
 
       <div className="flex items-center gap-3 mb-4">
@@ -982,21 +982,23 @@ function GamesPage() {
   return (
     <div className="min-h-screen bg-dark-900 pb-20">
       <header className="bg-dark-900 border-b border-dark-600 px-4 py-4 sticky top-0 z-10">
-        <div className="max-w-lg mx-auto flex items-center gap-3">
+        <div className="max-w-lg mx-auto flex items-center gap-2">
           {activeGame ? (
-            <button onClick={() => setActiveGame(null)} className="text-slt hover:text-ink transition-colors">
-              <ArrowLeft size={20} />
+            <button onClick={() => setActiveGame(null)} className="p-1 -ml-1 text-slt hover:text-ink transition-colors">
+              <ChevronLeft size={20} />
             </button>
           ) : (
-            <Link to="/dashboard" className="text-slt hover:text-ink transition-colors">
-              <ArrowLeft size={20} />
+            <Link to="/dashboard" className="p-1 -ml-1 text-slt hover:text-ink transition-colors">
+              <ChevronLeft size={20} />
             </Link>
           )}
           <h1 className="font-bold text-ink">
-            {activeGame ? GAMES.find(g => g.id === activeGame)?.title : 'Mind Booster Games'}
+            {activeGame
+              ? (language === 'hi' ? GAMES.find(g => g.id === activeGame)?.titleHi : GAMES.find(g => g.id === activeGame)?.title)
+              : (language === 'hi' ? 'माइंड बूस्टर गेम्स' : 'Mind Booster Games')}
           </h1>
           {!activeGame && (
-            <span className="ml-auto text-xs text-slt">+10 MXP per game</span>
+            <span className="ml-auto text-xs text-slt">+10 MXP</span>
           )}
         </div>
       </header>
@@ -1010,52 +1012,77 @@ function GamesPage() {
             onDone={(score) => handleDone(activeGame, score)}
             xpEarned={xpMap[activeGame]}
             sportProfile={sportProfile}
+            language={language}
           />
         ) : (
           <>
-            <p className="text-slt text-sm mb-5 leading-relaxed">
-              5 evidence-based mini-games used in sport psychology. Each trains a specific mental skill in under 90 seconds.
+            <p className="text-slt text-sm mb-6 leading-relaxed">
+              {language === 'hi'
+                ? '5 मिनी-गेम्स जो स्पोर्ट साइकोलॉजी में उपयोग होते हैं। हर गेम 90 सेकंड में एक मानसिक कौशल को प्रशिक्षित करता है।'
+                : '5 evidence-based mini-games used in sport psychology. Each trains a specific mental skill in under 90 seconds.'}
             </p>
 
-            <div className="space-y-3">
-              {GAMES.map(game => {
-                const style = TYPE_STYLES[game.type];
-                const isPlayed = played.has(game.id);
-                const hi = getHighScore(game.id);
-                return (
-                  <div
-                    key={game.id}
-                    className={`bg-dark-800 rounded-2xl overflow-hidden border border-dark-600 border-t-2 ${style.topBorder}`}
-                  >
-                    <div className="p-4">
-                      <div className="flex items-center gap-3">
-                        <span className="text-3xl">{game.icon}</span>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                            <h3 className="font-bold text-ink text-sm">{language === 'hi' ? game.titleHi : game.title}</h3>
-                            {isPlayed && (
-                              <span className="text-[10px] text-win-400 font-semibold bg-win-500/10 px-2 py-0.5 rounded-full">✓ +10 MXP</span>
-                            )}
-                          </div>
-                          <p className="text-xs text-slt mb-1.5">{language === 'hi' ? game.descHi : game.description}</p>
-                          <div className="flex items-center gap-2">
-                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${style.badge}`}>{game.type}</span>
-                            <span className="text-[10px] text-slt">{game.duration}</span>
-                            {hi !== null && <span className="text-[10px] text-slt">Best: {hi}{game.id === 'reaction_ball' ? 'ms' : ''}</span>}
+            {/* Group games by type */}
+            {['focus', 'pressure', 'confidence'].map(type => {
+              const typeGames = GAMES.filter(g => g.type === type);
+              if (!typeGames.length) return null;
+              const style = TYPE_STYLES[type];
+              const sectionLabel = type === 'focus'
+                ? (language === 'hi' ? 'फोकस गेम्स' : 'Focus Games')
+                : type === 'pressure'
+                ? (language === 'hi' ? 'प्रेशर गेम्स' : 'Pressure Games')
+                : (language === 'hi' ? 'कॉन्फिडेंस गेम्स' : 'Confidence Games');
+              return (
+                <div key={type} className="mb-6">
+                  <p className="text-[11px] font-bold text-slt uppercase tracking-widest mb-3">{sectionLabel}</p>
+                  <div className="space-y-3">
+                    {typeGames.map(game => {
+                      const isPlayed = played.has(game.id);
+                      const hi = getHighScore(game.id);
+                      return (
+                        <div
+                          key={game.id}
+                          className={`bg-dark-800 rounded-2xl overflow-hidden border border-dark-600 border-t-2 ${style.topBorder}`}
+                        >
+                          <div className="p-4">
+                            <div className="flex items-start gap-3">
+                              <span className="text-2xl mt-0.5 shrink-0">{game.icon}</span>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                                  <h3 className="font-bold text-ink text-sm leading-tight">
+                                    {language === 'hi' ? game.titleHi : game.title}
+                                  </h3>
+                                  {isPlayed && (
+                                    <span className="text-[10px] text-win-500 font-semibold bg-win-500/10 px-2 py-0.5 rounded-full">✓ +10 MXP</span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-slt mb-2 leading-snug">
+                                  {language === 'hi' ? game.descHi : game.description}
+                                </p>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-[10px] text-slt">⏱ {game.duration}</span>
+                                  {hi !== null && (
+                                    <span className="text-[10px] text-slt">
+                                      · {language === 'hi' ? 'बेस्ट' : 'Best'}: {hi}{game.id === 'reaction_ball' ? '' : ''}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => setActiveGame(game.id)}
+                                className="shrink-0 text-xs font-bold bg-brand-600 hover:bg-brand-500 text-white px-4 py-2.5 rounded-xl transition-all active:scale-95 mt-0.5"
+                              >
+                                {language === 'hi' ? 'खेलें' : 'Play'}
+                              </button>
+                            </div>
                           </div>
                         </div>
-                        <button
-                          onClick={() => setActiveGame(game.id)}
-                          className="shrink-0 text-xs font-bold bg-brand-600 hover:bg-brand-500 text-white px-4 py-2.5 rounded-xl transition-all active:scale-95"
-                        >
-                          Play
-                        </button>
-                      </div>
-                    </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
-            </div>
+                </div>
+              );
+            })}
           </>
         )}
       </main>
