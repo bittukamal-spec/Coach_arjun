@@ -132,7 +132,7 @@ function OnboardingPage() {
       }
       const { user } = await res.json();
       updateUser(user);
-      navigate('/dashboard', { replace: true });
+      navigate('/mental-game-profile', { replace: true });
     } catch (err) {
       setError(err.message);
       setSubmitting(false);

@@ -11,6 +11,7 @@ const drillRoutes       = require('./routes/drills');
 const ritualRoutes      = require('./routes/ritual');
 const debriefRoutes     = require('./routes/debrief');
 const gamesRoutes       = require('./routes/games');
+const profileIntroRoutes = require('./routes/profileIntro');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -28,7 +29,8 @@ app.use('/api/achievements', achievementRoutes);
 app.use('/api/drills',       drillRoutes);
 app.use('/api/ritual',       ritualRoutes);
 app.use('/api/debrief',      debriefRoutes);
-app.use('/api/games',        gamesRoutes);
+app.use('/api/games',         gamesRoutes);
+app.use('/api/profile-intro', profileIntroRoutes);
 
 // Health check — useful to confirm the server is running
 app.get('/api/health', (_req, res) => {

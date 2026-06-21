@@ -18,7 +18,7 @@ const SAFE_SELECT = {
   competitionLevel: true, primaryChallenge: true, pressureResponse: true, position: true,
   xp: true, createdAt: true,
   oceanO: true, oceanC: true, oceanE: true, oceanA: true, oceanN: true,
-  age: true,
+  age: true, profileIntro: true,
 };
 
 function makeToken(user) {

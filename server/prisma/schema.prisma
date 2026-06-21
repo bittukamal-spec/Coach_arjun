@@ -57,6 +57,9 @@ model User {
   oceanA        Int?   // Agreeableness
   oceanN        Int?   // Neuroticism
 
+  // Mental Game Profile intro (AI-generated, cached after onboarding)
+  profileIntro  String?
+
   // Demographics
   age           Int?   // age in years
 

@@ -13,6 +13,7 @@ import ProgressPage from './pages/ProgressPage';
 import AccountPage from './pages/AccountPage';
 import BreathingPage from './pages/BreathingPage';
 import RitualPage from './pages/RitualPage';
+import MentalGameProfilePage from './pages/MentalGameProfilePage';
 import DebriefPage from './pages/DebriefPage';
 import GamesPage from './pages/GamesPage';
 import PersonalityTestPage from './pages/PersonalityTestPage';
@@ -54,6 +55,16 @@ function App() {
         element={
           <ProtectedRoute requireOnboarding={false}>
             <OnboardingPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Mental Game Profile — logged in AND onboarded, shown once after onboarding */}
+      <Route
+        path="/mental-game-profile"
+        element={
+          <ProtectedRoute requireOnboarding={true}>
+            <MentalGameProfilePage />
           </ProtectedRoute>
         }
       />

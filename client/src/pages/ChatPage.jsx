@@ -124,6 +124,7 @@ function ChatPage() {
   const fullStreamText     = useRef('');
   const arjunMsgCountRef   = useRef(0);  // counts Arjun messages in current session
   const pendingSessionRef  = useRef(location.state?.sessionType ?? null);
+  const prefillMsgRef      = useRef(location.state?.prefillMsg ?? null);
 
   // ── Load on mount ─────────────────────────────────────────────────────────
 
@@ -131,6 +132,10 @@ function ChatPage() {
     async function init() {
       await Promise.all([fetchMessages(), fetchUsage()]);
       setLoading(false);
+      if (prefillMsgRef.current) {
+        setInput(prefillMsgRef.current);
+        prefillMsgRef.current = null;
+      }
     }
     init();
   }, []);

@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
-import { LogOut, Trash2, ChevronRight, Shield, Bell, User, Zap, Award, Camera, Brain, Star, MessageCircle, Mail } from 'lucide-react';
+import { LogOut, Trash2, ChevronRight, Shield, Bell, User, Zap, Award, Camera, Brain, Star, MessageCircle, Mail, Sparkles } from 'lucide-react';
 import { ACHIEVEMENTS, ALL_ACHIEVEMENT_KEYS } from '../data/achievements';
 
 const EXPERIENCE_LEVELS = ['beginner', 'amateur', 'competitive', 'professional'];
@@ -460,6 +460,32 @@ function AccountPage() {
             </button>
           </div>
         </section>
+
+        {/* Mental Game Profile link */}
+        {user?.profileIntro && (
+          <section className="mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles size={16} className="text-brand-400" />
+              <h2 className="text-sm font-semibold text-slt uppercase tracking-wide">
+                {language === 'hi' ? 'मानसिक खेल प्रोफाइल' : 'Mental Game Profile'}
+              </h2>
+            </div>
+            <Link
+              to="/mental-game-profile"
+              className="card flex items-center justify-between hover:border-brand-500/40 transition-colors"
+            >
+              <div>
+                <p className="text-sm font-semibold text-ink mb-0.5">
+                  {language === 'hi' ? 'आपका शुरुआती प्रोफाइल' : 'Your starting profile'}
+                </p>
+                <p className="text-xs text-slt">
+                  {language === 'hi' ? 'अर्जुन का पहला आकलन देखें' : 'See Arjun\'s first read on you'}
+                </p>
+              </div>
+              <ChevronRight size={18} className="text-slt shrink-0" />
+            </Link>
+          </section>
+        )}
 
         {/* WhatsApp reminders placeholder */}
         <section className="mb-6">

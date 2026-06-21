@@ -26,6 +26,22 @@ export function AuthProvider({ children }) {
         const userLang = data.user.language || 'en';
         setLanguage(userLang);
         localStorage.setItem('mg_language', userLang);
+
+        // Silently generate profileIntro for users who completed onboarding but don't have one yet
+        if (data.user.onboardingDone && !data.user.profileIntro) {
+          apiFetch('/api/profile-intro', {
+            headers: { Authorization: `Bearer ${activeToken}` },
+          })
+            .then(r => r.ok ? r.json() : null)
+            .then(introData => {
+              if (introData?.intro) {
+                const updated = { ...data.user, profileIntro: introData.intro };
+                setUser(updated);
+                localStorage.setItem('mg_user', JSON.stringify(updated));
+              }
+            })
+            .catch(() => {});
+        }
       } else if (res.status === 401 || res.status === 403) {
         // Token genuinely rejected by server — clear everything
         localStorage.removeItem('mg_token');
