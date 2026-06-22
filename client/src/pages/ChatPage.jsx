@@ -68,11 +68,11 @@ const STARTERS = [
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
-function timeAgo(dateStr) {
+function timeAgo(dateStr, t) {
   const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24));
-  if (diff === 0) return 'today';
-  if (diff === 1) return 'yesterday';
-  return `${diff} days ago`;
+  if (diff === 0) return t.timeAgoToday;
+  if (diff === 1) return t.timeAgoYesterday;
+  return t.timeAgoDays(diff);
 }
 
 function extractSuggestions(text) {
@@ -92,7 +92,7 @@ function SessionDivider({ sessionKey, date, t }) {
     <div className="flex items-center gap-2 my-1 animate-fade-in">
       <div className="flex-1 h-px bg-dark-600" />
       <span className="text-[11px] text-slt whitespace-nowrap">
-        {def.icon} {def.title} · {timeAgo(date)}
+        {def.icon} {def.title} · {timeAgo(date, t)}
       </span>
       <div className="flex-1 h-px bg-dark-600" />
     </div>
@@ -137,6 +137,20 @@ function TypingIndicator() {
   );
 }
 
+function SummaryBubble({ summary, label }) {
+  const sentences = summary.split(/(?<=\.)\s+/).filter(Boolean);
+  return (
+    <div className="flex flex-col gap-1 animate-fade-in">
+      <p className="text-[11px] uppercase tracking-widest text-slt font-medium px-1">{label}</p>
+      <div className="max-w-[92%] px-4 py-3 rounded-2xl rounded-bl-md border-l-[3px] border-brand-600 bg-[#EFEDE6]">
+        <p className="text-sm leading-relaxed text-dark-900 whitespace-pre-wrap">
+          {sentences.join('\n\n')}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 function ChatPage() {
@@ -160,6 +174,7 @@ function ChatPage() {
   const [showStartScreen, setShowStartScreen]     = useState(false);
   const [recentSessions, setRecentSessions]       = useState([]);
   const [summarising, setSummarising]             = useState(false);
+  const [sessionSummary, setSessionSummary]       = useState(null);
 
   const bottomRef               = useRef(null);
   const inputRef                = useRef(null);
@@ -200,6 +215,7 @@ function ChatPage() {
           if (sess?.sessionType && sess.sessionType !== 'general') {
             setActiveSession(sess.sessionType);
           }
+          if (sess?.summary) setSessionSummary(sess.summary);
           await fetchSessionMessages(pendingId);
           sessionLoaded = true;
         } else {
@@ -213,6 +229,7 @@ function ChatPage() {
             if (activeToday.sessionType && activeToday.sessionType !== 'general') {
               setActiveSession(activeToday.sessionType);
             }
+            if (activeToday.summary) setSessionSummary(activeToday.summary);
             await fetchSessionMessages(activeToday.id);
             sessionLoaded = true;
           }
@@ -245,6 +262,14 @@ function ChatPage() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, waitingForFirst]);
 
+  // ── Persist messages (with tags) to sessionStorage on every change ────────
+
+  useEffect(() => {
+    if (chatSessionId && messages.length > 0) {
+      sessionStorage.setItem(`arjun_chat_messages_${chatSessionId}`, JSON.stringify(messages));
+    }
+  }, [messages, chatSessionId]);
+
   // ── Auto-start when navigated from check-in (location.state.sessionType) ─
 
   useEffect(() => {
@@ -266,6 +291,12 @@ function ChatPage() {
   // ── API helpers ───────────────────────────────────────────────────────────
 
   async function fetchSessionMessages(id) {
+    // Load from cache immediately so tags survive navigation
+    const cached = sessionStorage.getItem(`arjun_chat_messages_${id}`);
+    if (cached) {
+      try { setMessages(JSON.parse(cached)); } catch { /* ignore */ }
+    }
+    // Fetch from DB in background to sync
     try {
       const res = await apiFetch(`/api/sessions/${id}/messages`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -287,12 +318,14 @@ function ChatPage() {
     const id = data.session.id;
     setChatSessionId(id);
     setShowStartScreen(false);
+    setSessionSummary(null);
     return id;
   }
 
   async function endSession() {
     if (!chatSessionId || summarising) return;
     setSummarising(true);
+    sessionStorage.removeItem(`arjun_chat_messages_${chatSessionId}`);
     await apiFetch(`/api/sessions/${chatSessionId}/end`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
@@ -453,15 +486,13 @@ function ChatPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-4rem)] sm:h-dvh bg-dark-900">
+    <div className="flex flex-col h-dvh bg-dark-900">
 
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <header className="shrink-0 bg-dark-900 border-b border-dark-600 px-4 py-3 relative">
         <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
-            <div className="w-8 h-8 rounded-full bg-brand-600 text-white flex items-center justify-center text-sm font-bold shrink-0">
-              A
-            </div>
+            <img src="/arjun-source.svg" className="w-7 h-7 object-contain shrink-0" alt="Arjun" />
             <div className="min-w-0">
               <p className="font-semibold text-ink text-sm leading-none">{t.title}</p>
               {activeSession ? (
@@ -601,6 +632,14 @@ function ChatPage() {
             </div>
           )}
 
+          {/* Session summary — shown when loading an existing session that has been summarised */}
+          {!showStartScreen && sessionSummary && (
+            <SummaryBubble
+              summary={sessionSummary}
+              label={translations[language].sessionHistory.sessionSummaryLabel}
+            />
+          )}
+
           {/* Message list */}
           {!showStartScreen && messages.map((msg, i) => {
             const prevMsg = messages[i - 1];
@@ -683,7 +722,7 @@ function ChatPage() {
               onKeyDown={handleKeyDown}
               placeholder={
                 atLimit ? '🔒 ' + t.limitReached
-                : !hasMessages ? (language === 'hi' ? 'या यहाँ टाइप करें…' : 'Or type what\'s on your mind…')
+                : !hasMessages ? t.emptyInputHint
                 : t.placeholder
               }
               disabled={atLimit || streaming}

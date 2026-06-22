@@ -16,6 +16,8 @@ function BottomNav() {
   const { language } = useAuth();
   const t = translations[language].nav;
 
+  if (pathname.startsWith('/coaching') || pathname.startsWith('/sessions')) return null;
+
   return (
     <nav className="fixed bottom-0 inset-x-0 z-50 sm:hidden bg-dark-800/95 backdrop-blur-md border-t border-dark-600">
       <div className="flex items-stretch h-16 px-1">

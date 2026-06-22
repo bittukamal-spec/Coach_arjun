@@ -231,4 +231,25 @@ router.patch('/:id', authenticate, async (req, res) => {
   }
 });
 
+// ── DELETE /:id — delete session and its messages ─────────────────────────
+
+router.delete('/:id', authenticate, async (req, res) => {
+  try {
+    const session = await prisma.chatSession.findUnique({
+      where: { id: req.params.id },
+      select: { userId: true },
+    });
+    if (!session || session.userId !== req.userId) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+    // Message→ChatSession has no onDelete:Cascade — delete messages explicitly
+    await prisma.message.deleteMany({ where: { chatSessionId: req.params.id } });
+    await prisma.chatSession.delete({ where: { id: req.params.id } });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('session delete error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 module.exports = router;

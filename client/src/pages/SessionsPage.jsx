@@ -1,12 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Trash2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
 import Navbar from '../components/Navbar';
 
-// Map session types to emojis from chat.sessions
 const SESSION_ICONS = {
   general:         '💬',
   match_prep:      '🧘',
@@ -21,28 +20,31 @@ const SESSION_ICONS = {
 };
 
 function formatDate(dateStr) {
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  return new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 export default function SessionsPage() {
   const { token, language } = useAuth();
   const t  = translations[language].sessionHistory;
-  const tc = translations[language].chat;
   const navigate = useNavigate();
 
-  const [sessions,  setSessions]  = useState([]);
-  const [loading,   setLoading]   = useState(true);
-  const [selected,  setSelected]  = useState(null); // null = list, object = detail
-  const [detailMsgs, setDetailMsgs] = useState([]);
+  const [sessions,      setSessions]      = useState([]);
+  const [loading,       setLoading]       = useState(true);
+  const [selected,      setSelected]      = useState(null);
+  const [detailMsgs,    setDetailMsgs]    = useState([]);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [deleteTarget,  setDeleteTarget]  = useState(null); // { id, title, isActive }
+  const [toast,         setToast]         = useState(null);
+
+  const showToast = useCallback((msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2500);
+  }, []);
 
   useEffect(() => {
     async function fetchSessions() {
       try {
-        const res = await apiFetch('/api/sessions', {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await apiFetch('/api/sessions', { headers: { Authorization: `Bearer ${token}` } });
         if (res.ok) {
           const data = await res.json();
           setSessions(data.sessions || []);
@@ -69,7 +71,6 @@ export default function SessionsPage() {
   }
 
   async function continueSession(session) {
-    // Re-activate if ended
     if (session.status === 'ended') {
       await apiFetch(`/api/sessions/${session.id}`, {
         method: 'PATCH',
@@ -80,16 +81,42 @@ export default function SessionsPage() {
     navigate('/coaching', { state: { chatSessionId: session.id, sessionType: session.sessionType } });
   }
 
+  function handleDeleteClick(e, session) {
+    e.stopPropagation();
+    if (session.status === 'active') {
+      showToast(t.deleteActive);
+      return;
+    }
+    setDeleteTarget({ id: session.id, title: session.title || t.sessionTypes[session.sessionType] || session.sessionType });
+  }
+
+  async function handleDeleteConfirm() {
+    if (!deleteTarget) return;
+    const id = deleteTarget.id;
+    setDeleteTarget(null);
+    setSessions(prev => prev.filter(s => s.id !== id));
+    try {
+      await apiFetch(`/api/sessions/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    } catch { /* already removed from UI */ }
+    showToast(t.deleted);
+  }
+
   // ── Detail view ────────────────────────────────────────────────────────────
 
   if (selected) {
-    const icon = SESSION_ICONS[selected.sessionType] || '💬';
+    const icon     = SESSION_ICONS[selected.sessionType] || '💬';
     const typeName = t.sessionTypes[selected.sessionType] || selected.sessionType;
+    const sentences = selected.summary
+      ? selected.summary.split(/(?<=\.)\s+/).filter(Boolean)
+      : [];
+
     return (
       <div className="min-h-screen bg-dark-900">
         <Navbar />
         <main className="max-w-lg mx-auto pt-20 pb-28 px-4">
-          {/* Back */}
           <button
             onClick={() => { setSelected(null); setDetailMsgs([]); }}
             className="flex items-center gap-1 text-sm text-slt hover:text-ink transition-colors mb-4"
@@ -97,13 +124,10 @@ export default function SessionsPage() {
             ← {t.title}
           </button>
 
-          {/* Session header */}
           <div className="mb-4">
             <div className="flex items-center gap-2 mb-1">
               <span className="text-xl">{icon}</span>
-              <h1 className="text-base font-semibold text-ink">
-                {selected.title || typeName}
-              </h1>
+              <h1 className="text-base font-semibold text-ink">{selected.title || typeName}</h1>
               {selected.status === 'active' && (
                 <span className="text-xs bg-win-500/15 text-win-500 border border-win-500/30 px-2 py-0.5 rounded-full">{t.active}</span>
               )}
@@ -111,14 +135,18 @@ export default function SessionsPage() {
             <p className="text-xs text-slt">{formatDate(selected.createdAt)}</p>
           </div>
 
-          {/* Summary */}
+          {/* Summary — distinct visual treatment */}
           {selected.summary && (
-            <div className="bg-dark-800 border border-dark-600 rounded-2xl px-4 py-3 mb-4">
-              <p className="text-sm text-ink leading-relaxed">{selected.summary}</p>
+            <div className="mb-5">
+              <p className="text-[11px] uppercase tracking-widest text-slt font-medium px-1 mb-1">{t.sessionSummaryLabel}</p>
+              <div className="px-4 py-3 rounded-2xl rounded-bl-md border-l-[3px] border-brand-600 bg-[#EFEDE6]">
+                <p className="text-sm leading-relaxed text-dark-900 whitespace-pre-wrap">
+                  {sentences.join('\n\n')}
+                </p>
+              </div>
             </div>
           )}
 
-          {/* Messages */}
           <div className="flex flex-col gap-3 mb-6">
             {detailLoading ? (
               <div className="flex justify-center py-8">
@@ -140,7 +168,6 @@ export default function SessionsPage() {
             })}
           </div>
 
-          {/* Continue button */}
           <button
             onClick={() => continueSession(selected)}
             className="w-full py-3.5 rounded-2xl bg-brand-600 text-white font-semibold text-sm hover:bg-brand-700 transition-colors active:scale-[0.98]"
@@ -188,9 +215,7 @@ export default function SessionsPage() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 mb-0.5">
-                      <p className="text-sm font-medium text-ink truncate">
-                        {session.title || typeName}
-                      </p>
+                      <p className="text-sm font-medium text-ink truncate">{session.title || typeName}</p>
                       {isActive && (
                         <span className="text-[10px] bg-win-500/15 text-win-500 border border-win-500/30 px-1.5 py-0.5 rounded-full shrink-0">{t.active}</span>
                       )}
@@ -204,6 +229,13 @@ export default function SessionsPage() {
                       <p className="text-[10px] text-dark-500 mt-0.5">{formatDate(session.createdAt)}</p>
                     )}
                   </div>
+                  <button
+                    onClick={(e) => handleDeleteClick(e, session)}
+                    className="p-1.5 text-dark-500 hover:text-red-400 transition-colors rounded-lg shrink-0"
+                    aria-label={t.deleteSession}
+                  >
+                    <Trash2 size={15} />
+                  </button>
                   <ChevronRight size={16} className="text-dark-500 shrink-0" />
                 </button>
               );
@@ -211,6 +243,43 @@ export default function SessionsPage() {
           </div>
         )}
       </main>
+
+      {/* ── Delete confirmation sheet ──────────────────────────────────────── */}
+      {deleteTarget && (
+        <>
+          <div
+            className="fixed inset-0 z-50 bg-black/60"
+            onClick={() => setDeleteTarget(null)}
+          />
+          <div className="fixed bottom-0 inset-x-0 z-50 bg-dark-800 border-t border-dark-600 rounded-t-2xl px-5 py-6 animate-fade-in">
+            <p className="text-base font-semibold text-ink mb-1">{t.deleteConfirm}</p>
+            <p className="text-xs text-slt mb-5 truncate">{deleteTarget.title}</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                className="flex-1 py-3 rounded-2xl border border-dark-500 text-ink text-sm font-medium hover:bg-dark-700 transition-colors"
+              >
+                {t.deleteCancel}
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                className="flex-1 py-3 rounded-2xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors active:scale-[0.98]"
+              >
+                {t.deleteConfirmBtn}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ── Toast ──────────────────────────────────────────────────────────── */}
+      {toast && (
+        <div className="fixed bottom-6 inset-x-0 flex justify-center z-60 pointer-events-none animate-fade-in">
+          <div className="bg-dark-700 border border-dark-500 text-ink text-sm px-5 py-2.5 rounded-full shadow-lg">
+            {toast}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

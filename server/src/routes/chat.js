@@ -127,8 +127,8 @@ function buildSystemPrompt(user, checkIns = [], memories = [], sessionType = nul
 
   const langInstruction =
     user.language === 'hi'
-      ? 'Respond in Hindi using Devanagari script. You may use common English sports terms that Indian athletes regularly use (e.g. "focus", "confidence", "performance", sport-specific terms).'
-      : 'Respond in English. You may occasionally weave in culturally resonant Hindi phrases (like "जय हो" or sport-specific terms) where it feels natural.';
+      ? 'CRITICAL: Respond ONLY in Hindi (Devanagari script). Never switch to English unless the athlete writes in English first. This rule applies to ALL text including [SUGGEST:] quick-reply tags. You may use common English sports terms Indian athletes regularly use (e.g. "focus", "confidence", "performance").'
+      : 'CRITICAL: Respond ONLY in English. Never switch to Hindi unless the athlete writes in Hindi first. This rule applies to ALL text including [SUGGEST:] quick-reply tags. You may occasionally weave in a culturally resonant Hindi phrase (like "जय हो") where it feels truly natural, but the sentence itself must be English.';
 
   // ── Check-in summary ──────────────────────────────────────────────────────
   let checkInSection;
