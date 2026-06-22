@@ -263,6 +263,10 @@ Adapt ALL advice and coaching style to match this personality. High N = calm fir
 
   const extraSections = [patternSection, oceanSection].filter(Boolean).join('\n\n');
 
+  const actionBridgeSection = (extra.arjunMsgCount ?? 0) >= 4
+    ? `\n\n## Natural Action Offer\nYou are ${extra.arjunMsgCount} responses into this session. If you feel you have addressed the athlete's main concern, naturally offer ONE specific next step they can try right now — for example a 2-minute breathing exercise, building a pre-match routine together, or a quick visualisation drill. Keep it to one casual sentence such as "Want to try a quick breathing exercise right now?" Only offer this once — if you have already suggested a next action in this session, do not repeat it.`
+    : '';
+
   return `You are Arjun — a mental performance coach who specialises in sports psychology for Indian athletes. You are warm, direct, and feel like a trusted older brother who truly understands the pressures of Indian sports culture.
 
 ## Athlete Profile
@@ -277,12 +281,13 @@ Adapt ALL advice and coaching style to match this personality. High N = calm fir
 
 ## Coaching Style
 - Be warm, direct, and encouraging — a trusted coach, not a therapist
-- Keep responses concise and practical: 2–4 short paragraphs maximum
+- Keep replies **short and scannable**: 2–3 sentences maximum per response. No walls of text. Break into short paragraphs if needed.
+- Ask **at most ONE follow-up question** per reply — never stack multiple questions in the same message.
+- Maintain a warm, direct coach tone — conversational, not clinical — across all session types.
 - Use evidence-based techniques: visualisation, self-talk, breathing regulation, process goals, confidence routines
 - Acknowledge Indian sports realities: family pressure, limited mental health awareness, academic-sports balance, financial constraints
 - Use the athlete's name occasionally to personalise the conversation
 - End most responses with one concrete, actionable step or a 2-minute mental exercise
-- Ask a follow-up question to understand the athlete's situation more deeply
 - If today's check-in scores are available (see "TODAY's scores" in the mental state section), reference specific numbers early in the conversation — never ignore a score of 3 or below (e.g. "I see your confidence is at 2/5 today — what's been going on?")
 - When your question has a limited set of likely answers (e.g. "is it training or matches?", "which sport?", "how long ago?", "yes or no?"), you MUST end your message with a new line: [SUGGEST: option1 | option2 | option3]. Keep each option SHORT (2-5 words), max 4 options. For open-ended, reflective, or emotional questions ("how do you feel about…", "what does that mean to you…"), do NOT include [SUGGEST].
 
@@ -299,7 +304,7 @@ ${sessionSection ? sessionSection + '\n\n' : ''}${checkInSection}
 
 ${activitySection}${debriefSection ? '\n\n' + debriefSection : ''}
 
-${memorySection}${extraSections ? '\n\n' + extraSections : ''}`;
+${memorySection}${extraSections ? '\n\n' + extraSections : ''}${actionBridgeSection}`;
 }
 
 // ── Background memory extraction ──────────────────────────────────────────
@@ -364,7 +369,7 @@ router.get('/messages', authenticate, async (req, res) => {
       where: { userId: req.userId },
       orderBy: { createdAt: 'asc' },
       take: 50,
-      select: { id: true, role: true, content: true, createdAt: true },
+      select: { id: true, role: true, content: true, sessionType: true, createdAt: true },
     });
     res.json({ messages });
   } catch {
@@ -406,7 +411,7 @@ router.post('/message', authenticate, checkFreeLimit, async (req, res) => {
     });
   }
 
-  const { content, sessionType = null } = req.body;
+  const { content, sessionType = null, arjunMsgCount = 0 } = req.body;
   if (!content || typeof content !== 'string' || content.trim().length === 0) {
     return res.status(400).json({ error: 'Message content is required' });
   }
@@ -485,7 +490,7 @@ router.post('/message', authenticate, checkFreeLimit, async (req, res) => {
     // Save the user's message (skip invisible session-start markers)
     if (!isSessionStart) {
       await prisma.message.create({
-        data: { userId: req.userId, role: 'user', content: content.trim() },
+        data: { userId: req.userId, role: 'user', content: content.trim(), sessionType: sessionType || null },
       });
     }
 
@@ -502,7 +507,8 @@ router.post('/message', authenticate, checkFreeLimit, async (req, res) => {
       content: m.content,
     }));
 
-    // For session starts, append a clean opening for Claude (not saved to DB)
+    // For session starts: clear prior conversation context so each new session begins clean.
+    // Long-term memory and check-in data still flow through buildSystemPrompt as always.
     if (isSessionStart) {
       const SESSION_LABELS = {
         match_prep: 'an upcoming match',
@@ -514,6 +520,7 @@ router.post('/message', authenticate, checkFreeLimit, async (req, res) => {
         post_checkin: 'my daily check-in results and how I\'m doing today',
       };
       const label = SESSION_LABELS[sessionType] || 'mental performance coaching';
+      conversationHistory.length = 0;
       conversationHistory.push({ role: 'user', content: `I want to talk about ${label}.` });
     }
 
@@ -529,7 +536,7 @@ router.post('/message', authenticate, checkFreeLimit, async (req, res) => {
     const stream = anthropic.messages.stream({
       model: process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001',
       max_tokens: 800,
-      system: buildSystemPrompt(user, recentCheckIns, memories, sessionType, { recentDebriefs, todayDrill, achievementCount, recentDrills, gameSessions, ritual }),
+      system: buildSystemPrompt(user, recentCheckIns, memories, sessionType, { recentDebriefs, todayDrill, achievementCount, recentDrills, gameSessions, ritual, arjunMsgCount }),
       messages: conversationHistory,
     });
 
@@ -542,7 +549,7 @@ router.post('/message', authenticate, checkFreeLimit, async (req, res) => {
 
     // Save the complete assistant response
     const assistantMsg = await prisma.message.create({
-      data: { userId: req.userId, role: 'assistant', content: fullText },
+      data: { userId: req.userId, role: 'assistant', content: fullText, sessionType: sessionType || null },
     });
 
     res.write(`data: ${JSON.stringify({ t: 'end', id: assistantMsg.id })}\n\n`);

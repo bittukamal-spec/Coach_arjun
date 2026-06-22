@@ -48,7 +48,23 @@ const INITIAL_CHIPS = {
   },
 };
 
+// ─── Starter cards ────────────────────────────────────────────────────────────
+
+const STARTERS = [
+  { key: 'match_prep',      icon: '🧘' },
+  { key: 'post_match',      icon: '🔄' },
+  { key: 'handle_pressure', icon: '😤' },
+  { key: 'open',            icon: '💬' },
+];
+
 // ─── Helpers ───────────────────────────────────────────────────────────────────
+
+function timeAgo(dateStr) {
+  const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24));
+  if (diff === 0) return 'today';
+  if (diff === 1) return 'yesterday';
+  return `${diff} days ago`;
+}
 
 function extractSuggestions(text) {
   const match = text.match(/\[SUGGEST:\s*([^\]]+)\]/);
@@ -59,6 +75,20 @@ function extractSuggestions(text) {
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
+
+function SessionDivider({ sessionKey, date, t }) {
+  const def = t.sessions[sessionKey];
+  if (!def) return null;
+  return (
+    <div className="flex items-center gap-2 my-1 animate-fade-in">
+      <div className="flex-1 h-px bg-dark-600" />
+      <span className="text-[11px] text-slt whitespace-nowrap">
+        {def.icon} {def.title} · {timeAgo(date)}
+      </span>
+      <div className="flex-1 h-px bg-dark-600" />
+    </div>
+  );
+}
 
 function MessageBubble({ message, isStreaming }) {
   const isUser = message.role === 'user';
@@ -114,7 +144,6 @@ function ChatPage() {
   const [usage, setUsage]                   = useState({ isPremium: false, trialDaysRemaining: 14 });
   const [quickReplies, setQuickReplies]     = useState([]);
   const [activeSession, setActiveSession]   = useState(null);
-  const [showIntro, setShowIntro]           = useState(() => !localStorage.getItem('arjun_chat_intro_seen'));
   const [showSafety, setShowSafety]         = useState(false);
   const [showSessionPicker, setShowSessionPicker] = useState(false);
 
@@ -208,7 +237,7 @@ function ChatPage() {
       const res = await apiFetch('/api/chat/message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ content: trimmed, sessionType }),
+        body: JSON.stringify({ content: trimmed, sessionType, arjunMsgCount: arjunMsgCountRef.current }),
       });
 
       if (!res.ok) {
@@ -427,50 +456,40 @@ function ChatPage() {
       <div className="flex-1 overflow-y-auto px-2 py-4">
         <div className="max-w-2xl mx-auto flex flex-col gap-3">
 
-          {/* One-time AI intro banner */}
-          {showIntro && (
-            <div className="bg-dark-800 border border-brand-500/30 rounded-2xl p-4 animate-fade-in">
-              <p className="font-bold text-ink text-sm mb-1">{t.aiIntroTitle}</p>
-              <p className="text-xs text-slt leading-relaxed mb-3">{t.aiIntroBody}</p>
-              <button
-                onClick={() => { localStorage.setItem('arjun_chat_intro_seen', '1'); setShowIntro(false); }}
-                className="text-xs font-semibold text-brand-600 bg-brand-500/10 border border-brand-500/20 px-3 py-1.5 rounded-full hover:bg-brand-500/20 transition-colors"
-              >
-                {t.aiIntroDismiss}
-              </button>
+          {/* Arjun welcome bubble — shown when chat is empty */}
+          {!hasMessages && !waitingForFirst && (
+            <div className="flex justify-start animate-fade-in">
+              <div className="max-w-[92%] px-3.5 py-2.5 text-sm leading-relaxed bg-dark-800 border border-dark-600 text-ink shadow-sm rounded-2xl rounded-bl-md">
+                {t.arjunWelcome}
+              </div>
             </div>
           )}
 
-          {/* No session selected yet */}
+          {/* Starter cards — shown when chat is empty and no session chosen */}
           {!hasMessages && !activeSession && !waitingForFirst && (
-            <div className="flex flex-col items-center text-center py-10 gap-3 animate-fade-in">
-              <div className="w-16 h-16 rounded-full bg-brand-600/20 border-2 border-brand-600/30 flex items-center justify-center text-2xl font-bold text-brand-600">
-                A
-              </div>
-              <div>
-                <p className="font-bold text-ink mb-1">{t.sessionTitle}</p>
-                <p className="text-sm text-slt max-w-xs leading-relaxed">{t.emptySubtitle}</p>
-              </div>
-              <p className="text-xs text-brand-500 bg-brand-500/10 border border-brand-500/20 rounded-full px-3 py-1.5">
-                {language === 'hi' ? '👆 ऊपर एक विषय चुनें' : '👆 Select a topic above to begin'}
-              </p>
-            </div>
-          )}
-
-          {/* Session selected, no messages yet — show context card */}
-          {!hasMessages && activeSession && !waitingForFirst && (
-            <div className="animate-fade-in bg-dark-800 border border-dark-600 rounded-2xl p-4 text-sm text-slt text-center">
-              <p className="text-2xl mb-2">{t.sessions[activeSession].icon}</p>
-              <p className="font-semibold text-ink mb-0.5">{t.sessions[activeSession].title}</p>
-              <p className="text-xs text-slt">{t.sessions[activeSession].desc}</p>
+            <div className="grid grid-cols-2 gap-2 mt-1 animate-fade-in">
+              {STARTERS.map(({ key, icon }) => (
+                <button
+                  key={key}
+                  onClick={() => handleSessionSelect(key)}
+                  disabled={atLimit || streaming}
+                  className="flex items-center gap-2 bg-dark-800 border border-dark-600 hover:border-brand-500/50 hover:bg-dark-700 active:scale-95 rounded-2xl px-3 py-3 text-left transition-all disabled:opacity-40"
+                >
+                  <span className="text-lg shrink-0">{icon}</span>
+                  <span className="text-sm font-medium text-ink leading-tight">{t.starters[key]}</span>
+                </button>
+              ))}
             </div>
           )}
 
           {/* Message list */}
-          {messages.map(msg => {
+          {messages.map((msg, i) => {
             const isLastArjun = msg.role === 'assistant' && msg.id === lastArjunMsgId;
+            const prevMsg = messages[i - 1];
+            const showDivider = msg.sessionType && msg.sessionType !== prevMsg?.sessionType && i > 0;
             return (
               <div key={msg.id} className="flex flex-col gap-2">
+                {showDivider && <SessionDivider sessionKey={msg.sessionType} date={msg.createdAt} t={t} />}
                 <MessageBubble message={msg} isStreaming={msg.streaming} />
                 {isLastArjun && !msg.streaming && quickReplies.length > 0 && (
                   <div className="flex flex-wrap gap-2">
@@ -527,10 +546,10 @@ function ChatPage() {
               onKeyDown={handleKeyDown}
               placeholder={
                 atLimit ? '🔒 ' + t.limitReached
-                : needsSession ? (language === 'hi' ? 'पहले ऊपर से एक विषय चुनें…' : 'Select a topic above to start…')
+                : !hasMessages ? (language === 'hi' ? 'या यहाँ टाइप करें…' : 'Or type what\'s on your mind…')
                 : t.placeholder
               }
-              disabled={atLimit || streaming || needsSession}
+              disabled={atLimit || streaming}
               rows={1}
               className="flex-1 resize-none bg-dark-700 border border-dark-500 text-ink rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent placeholder-slt disabled:opacity-50 disabled:cursor-not-allowed max-h-32 overflow-y-auto"
               style={{ minHeight: '44px' }}
@@ -541,7 +560,7 @@ function ChatPage() {
             />
             <button
               onClick={() => sendMessage()}
-              disabled={!input.trim() || streaming || atLimit || needsSession}
+              disabled={!input.trim() || streaming || atLimit}
               className="w-11 h-11 bg-brand-600 text-white rounded-2xl flex items-center justify-center hover:bg-brand-700 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:scale-100 shrink-0"
               aria-label={t.send}
             >
@@ -556,11 +575,6 @@ function ChatPage() {
             </button>
           </div>
 
-          {needsSession && (
-            <p className="text-xs text-slt mt-2 text-center">
-              {language === 'hi' ? 'अर्जुन हर सत्र के लिए अलग तरह से कोचिंग देता है' : 'Arjun coaches differently for each topic'}
-            </p>
-          )}
         </div>
       </div>
     </div>

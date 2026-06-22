@@ -91,12 +91,13 @@ model CheckIn {
 }
 
 model Message {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role      String   // "user" | "assistant"
-  content   String
-  createdAt DateTime @default(now())
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role        String   // "user" | "assistant"
+  content     String
+  sessionType String?  // "match_prep" | "post_match" | "build_focus" | "confidence" | "handle_pressure" | "open" | "post_checkin"
+  createdAt   DateTime @default(now())
 }
 
 model UserMemory {
