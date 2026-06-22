@@ -616,4 +616,55 @@ router.post('/message', authenticate, checkFreeLimit, async (req, res) => {
   }
 });
 
+// ── Wizard reframe endpoint ────────────────────────────────────────────────
+// Single non-streaming call used by the guided wizard flows.
+// Returns { text: string, cueWord: string|null }
+
+router.post('/wizard', authenticate, async (req, res) => {
+  const { wizardType, feeling, situation, language = 'en' } = req.body;
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.userId },
+      select: { sport: true, oceanN: true, ritualSteps: true, language: true },
+    });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    // Extract cue word from ritual steps (type === 'cue')
+    let cueWord = null;
+    try {
+      const steps = JSON.parse(user.ritualSteps || '[]');
+      const cueStep = steps.find(s => s.type === 'cue');
+      if (cueStep?.label) cueWord = cueStep.label;
+    } catch {}
+
+    const lang = user.language || language;
+    const sport = user.sport || 'sport';
+    const langNote = lang === 'hi' ? ' Respond in Hindi.' : '';
+
+    let systemPrompt, maxTokens;
+    if (wizardType === 'pressure_reset') {
+      systemPrompt = `You are Arjun, a mental performance coach. In 1–2 sentences maximum, reframe the athlete's feeling as a sign of readiness, not weakness. Be direct and warm. No lists. No questions. Feeling: ${feeling}. Sport: ${sport}.${langNote} Output only the reframe text.`;
+      maxTokens = 80;
+    } else if (wizardType === 'setback_reset') {
+      systemPrompt = `You are Arjun, a mental performance coach. In 2–3 sentences maximum: first fully acknowledge what happened and validate the feeling (do NOT rush to positivity or silver linings), then name ONE specific thing in the athlete's control next time. Be warm, direct, real. No lists. No questions. Situation: ${situation}. Feeling: ${feeling}. Sport: ${sport}.${langNote} Output only the response text.`;
+      maxTokens = 120;
+    } else {
+      return res.status(400).json({ error: 'Invalid wizardType' });
+    }
+
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const message = await anthropic.messages.create({
+      model: process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001',
+      max_tokens: maxTokens,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: 'Generate the response.' }],
+    });
+
+    res.json({ text: message.content[0].text, cueWord });
+  } catch (err) {
+    console.error('wizard error:', err);
+    res.status(500).json({ error: 'Wizard call failed' });
+  }
+});
+
 module.exports = router;

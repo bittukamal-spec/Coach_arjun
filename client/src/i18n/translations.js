@@ -228,6 +228,55 @@ export const translations = {
       setbackSubtitle:  'Process it. Reset. Move forward.',
       breathingLink:    'Need to breathe first?',
     },
+    wizard: {
+      // Wizard A — feelings
+      feelingQuestion: 'How are you feeling right now?',
+      feelings: {
+        nervous:    'Nervous',
+        anxious:    'Anxious',
+        distracted: 'Distracted',
+        blank:      'Blank',
+        excited:    'Excited but tense',
+      },
+      // Wizard A — breathing
+      breathingIntro: "Let's slow this down. 60 seconds of box breathing.",
+      breathingDone:  'Done',
+      breatheIn:  'Breathe in',
+      hold:       'Hold',
+      breatheOut: 'Breathe out',
+      // Wizard A — cue word
+      cueArjunLine:       'Your word. Say it now.',
+      cueOwnLabel:        'Or type your own:',
+      cueInputPlaceholder:'Your word…',
+      // Wizard A — send-off
+      sendOff:  "You've prepared. You're ready. Now go and trust yourself.",
+      letsGo:   "Let's go",
+      talkMore: 'Talk more with Arjun →',
+      // Wizard B — situation
+      situationQuestion: "I'm here. What happened?",
+      situations: {
+        bad_performance: 'Bad performance',
+        key_mistake:     'Key mistake',
+        lost_match:      'Lost the match',
+        let_team_down:   'Let the team down',
+        dropped:         'Got dropped / benched',
+      },
+      // Wizard B — setback feelings
+      setbackFeelingQuestion: 'And how are you feeling right now?',
+      setbackFeelings: {
+        frustrated: 'Frustrated',
+        ashamed:    'Ashamed',
+        angry:      'Angry',
+        deflated:   'Deflated',
+        numb:       'Numb',
+      },
+      // Wizard B — forward
+      compassionMessage: "Every great player has had a day like this. What matters is what you do next.",
+      readyToMoveOn:     "I'm ready to move on",
+      // Shared
+      next:     'Next →',
+      fallback: "That feeling is real. And it means you care — which is exactly what great athletes feel.",
+    },
     checkin: {
       title: 'Daily Pulse',
       subtitle: 'How are you doing today?',
@@ -697,6 +746,47 @@ export const translations = {
       setbackLabel:     'वापसी करो',
       setbackSubtitle:  'समझो। रीसेट करो। आगे बढ़ो।',
       breathingLink:    'पहले सांस लेनी है?',
+    },
+    wizard: {
+      feelingQuestion: 'अभी आप कैसा महसूस कर रहे हैं?',
+      feelings: {
+        nervous:    'नर्वस',
+        anxious:    'बेचैन',
+        distracted: 'ध्यान भटका',
+        blank:      'खाली मन',
+        excited:    'उत्साहित पर तनाव',
+      },
+      breathingIntro: 'चलो थोड़ा शांत हो जाते हैं। 60 सेकंड की बॉक्स ब्रीदिंग।',
+      breathingDone:  'हो गया',
+      breatheIn:  'सांस लो',
+      hold:       'रोको',
+      breatheOut: 'सांस छोड़ो',
+      cueArjunLine:        'तुम्हारा शब्द। अभी बोलो।',
+      cueOwnLabel:         'या खुद लिखो:',
+      cueInputPlaceholder: 'तुम्हारा शब्द…',
+      sendOff:  'तुमने तैयारी कर ली है। तुम तैयार हो। अब जाओ और खुद पर भरोसा करो।',
+      letsGo:   'चलो खेलते हैं',
+      talkMore: 'अर्जुन से और बात करें →',
+      situationQuestion: 'मैं यहाँ हूं। क्या हुआ?',
+      situations: {
+        bad_performance: 'खराब प्रदर्शन',
+        key_mistake:     'बड़ी गलती',
+        lost_match:      'मैच हारे',
+        let_team_down:   'टीम को निराश किया',
+        dropped:         'बाहर कर दिए गए',
+      },
+      setbackFeelingQuestion: 'और अभी कैसा महसूस हो रहा है?',
+      setbackFeelings: {
+        frustrated: 'निराश',
+        ashamed:    'शर्मिंदा',
+        angry:      'गुस्सा',
+        deflated:   'हताश',
+        numb:       'सुन्न',
+      },
+      compassionMessage: 'हर महान खिलाड़ी का ऐसा एक दिन होता है। मायने यह रखता है कि तुम आगे क्या करते हो।',
+      readyToMoveOn:     'मैं आगे बढ़ने के लिए तैयार हूं',
+      next:     'आगे →',
+      fallback: 'यह एहसास असली है। और इसका मतलब है कि तुम परवाह करते हो — जो हर बड़े एथलीट को होता है।',
     },
     checkin: {
       title: 'आज का हाल',
