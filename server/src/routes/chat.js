@@ -410,8 +410,12 @@ Rules:
 
 router.get('/messages', authenticate, async (req, res) => {
   try {
+    const { sessionId } = req.query;
+    const where = sessionId
+      ? { userId: req.userId, chatSessionId: sessionId }
+      : { userId: req.userId };
     const messages = await prisma.message.findMany({
-      where: { userId: req.userId },
+      where,
       orderBy: { createdAt: 'asc' },
       take: 50,
       select: { id: true, role: true, content: true, sessionType: true, createdAt: true },
@@ -456,7 +460,7 @@ router.post('/message', authenticate, checkFreeLimit, async (req, res) => {
     });
   }
 
-  const { content, sessionType = null, arjunMsgCount = 0, replyStyle = null } = req.body;
+  const { content, sessionType = null, arjunMsgCount = 0, replyStyle = null, chatSessionId = null } = req.body;
   if (!content || typeof content !== 'string' || content.trim().length === 0) {
     return res.status(400).json({ error: 'Message content is required' });
   }
@@ -535,13 +539,16 @@ router.post('/message', authenticate, checkFreeLimit, async (req, res) => {
     // Save the user's message (skip invisible session-start markers)
     if (!isSessionStart) {
       await prisma.message.create({
-        data: { userId: req.userId, role: 'user', content: content.trim(), sessionType: sessionType || null },
+        data: { userId: req.userId, role: 'user', content: content.trim(), sessionType: sessionType || null, chatSessionId: chatSessionId || null },
       });
     }
 
     // Fetch recent history to provide context to Claude
+    const historyWhere = chatSessionId
+      ? { userId: req.userId, chatSessionId }
+      : { userId: req.userId };
     const history = await prisma.message.findMany({
-      where: { userId: req.userId },
+      where: historyWhere,
       orderBy: { createdAt: 'desc' },
       take: MAX_HISTORY,
       select: { role: true, content: true },
@@ -596,7 +603,7 @@ router.post('/message', authenticate, checkFreeLimit, async (req, res) => {
 
     // Save the complete assistant response
     const assistantMsg = await prisma.message.create({
-      data: { userId: req.userId, role: 'assistant', content: fullText, sessionType: sessionType || null },
+      data: { userId: req.userId, role: 'assistant', content: fullText, sessionType: sessionType || null, chatSessionId: chatSessionId || null },
     });
 
     res.write(`data: ${JSON.stringify({ t: 'end', id: assistantMsg.id })}\n\n`);

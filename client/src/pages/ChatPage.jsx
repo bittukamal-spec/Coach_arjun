@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ChevronDown, Compass, Info } from 'lucide-react';
+import { ChevronDown, Compass, History, Info } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
@@ -145,39 +145,93 @@ function ChatPage() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [messages, setMessages]             = useState([]);
-  const [input, setInput]                   = useState('');
-  const [loading, setLoading]               = useState(true);
-  const [streaming, setStreaming]           = useState(false);
-  const [waitingForFirst, setWaitingForFirst] = useState(false);
-  const [error, setError]                   = useState('');
-  const [usage, setUsage]                   = useState({ isPremium: false, trialDaysRemaining: 14 });
-  const [replyStyle, setReplyStyle]         = useState(() => localStorage.getItem('arjun_reply_style') || 'thoughtful');
-  const [activeSession, setActiveSession]   = useState(null);
-  const [showSafety, setShowSafety]         = useState(false);
+  const [messages, setMessages]                   = useState([]);
+  const [input, setInput]                         = useState('');
+  const [loading, setLoading]                     = useState(true);
+  const [streaming, setStreaming]                 = useState(false);
+  const [waitingForFirst, setWaitingForFirst]     = useState(false);
+  const [error, setError]                         = useState('');
+  const [usage, setUsage]                         = useState({ isPremium: false, trialDaysRemaining: 14 });
+  const [replyStyle, setReplyStyle]               = useState(() => localStorage.getItem('arjun_reply_style') || 'thoughtful');
+  const [activeSession, setActiveSession]         = useState(null);
+  const [showSafety, setShowSafety]               = useState(false);
   const [showSessionPicker, setShowSessionPicker] = useState(false);
+  const [chatSessionId, setChatSessionId]         = useState(null);
+  const [showStartScreen, setShowStartScreen]     = useState(false);
+  const [recentSessions, setRecentSessions]       = useState([]);
+  const [summarising, setSummarising]             = useState(false);
 
-  const bottomRef          = useRef(null);
-  const inputRef           = useRef(null);
-  const streamIdRef        = useRef(null);
-  const fullStreamText     = useRef('');
-  const arjunMsgCountRef   = useRef(0);  // counts Arjun messages in current session
-  const pendingSessionRef  = useRef(location.state?.sessionType ?? null);
-  const prefillMsgRef      = useRef(location.state?.prefillMsg ?? null);
+  const bottomRef               = useRef(null);
+  const inputRef                = useRef(null);
+  const streamIdRef             = useRef(null);
+  const fullStreamText          = useRef('');
+  const arjunMsgCountRef        = useRef(0);
+  const pendingSessionRef       = useRef(location.state?.sessionType ?? null);
+  const prefillMsgRef           = useRef(location.state?.prefillMsg ?? null);
+  const pendingChatSessionIdRef = useRef(location.state?.chatSessionId ?? null);
 
   // ── Load on mount ─────────────────────────────────────────────────────────
 
   useEffect(() => {
     async function init() {
-      await Promise.all([fetchMessages(), fetchUsage()]);
+      // Fire-and-forget: end sessions from previous days
+      apiFetch('/api/sessions/end-stale', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      }).catch(() => {});
+
+      const [sessionsRes, usageRes] = await Promise.all([
+        apiFetch('/api/sessions',    { headers: { Authorization: `Bearer ${token}` } }),
+        apiFetch('/api/chat/usage',  { headers: { Authorization: `Bearer ${token}` } }),
+      ]);
+
+      if (usageRes.ok) setUsage(await usageRes.json());
+
+      let sessionLoaded = false;
+      if (sessionsRes.ok) {
+        const { sessions } = await sessionsRes.json();
+        setRecentSessions(sessions);
+
+        const pendingId = pendingChatSessionIdRef.current;
+        if (pendingId) {
+          pendingChatSessionIdRef.current = null;
+          setChatSessionId(pendingId);
+          const sess = sessions.find(s => s.id === pendingId);
+          if (sess?.sessionType && sess.sessionType !== 'general') {
+            setActiveSession(sess.sessionType);
+          }
+          await fetchSessionMessages(pendingId);
+          sessionLoaded = true;
+        } else {
+          const todayStart = new Date();
+          todayStart.setUTCHours(0, 0, 0, 0);
+          const activeToday = sessions.find(
+            s => s.status === 'active' && new Date(s.createdAt) >= todayStart
+          );
+          if (activeToday) {
+            setChatSessionId(activeToday.id);
+            if (activeToday.sessionType && activeToday.sessionType !== 'general') {
+              setActiveSession(activeToday.sessionType);
+            }
+            await fetchSessionMessages(activeToday.id);
+            sessionLoaded = true;
+          }
+        }
+      }
+
+      if (!sessionLoaded) {
+        setShowStartScreen(true);
+      }
+
       setLoading(false);
+
       if (prefillMsgRef.current) {
         setInput(prefillMsgRef.current);
         prefillMsgRef.current = null;
       }
     }
     init();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Persist reply style ───────────────────────────────────────────────────
 
@@ -191,7 +245,7 @@ function ChatPage() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, waitingForFirst]);
 
-  // ── Auto-start when navigated from check-in (location.state) ─────────────
+  // ── Auto-start when navigated from check-in (location.state.sessionType) ─
 
   useEffect(() => {
     if (!loading && pendingSessionRef.current) {
@@ -199,43 +253,81 @@ function ChatPage() {
       pendingSessionRef.current = null;
       arjunMsgCountRef.current = 0;
       setActiveSession(key);
-      if (messages.length === 0) {
+      if (!chatSessionId) {
+        createSession(key).then(id => {
+          sendMessage(`__SESSION:${key}__`, key, id);
+        });
+      } else if (messages.length === 0) {
         sendMessage(`__SESSION:${key}__`, key);
       }
     }
-  }, [loading, messages.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [loading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── API helpers ───────────────────────────────────────────────────────────
 
-  async function fetchMessages() {
+  async function fetchSessionMessages(id) {
     try {
-      const res = await apiFetch('/api/chat/messages', {
+      const res = await apiFetch(`/api/sessions/${id}/messages`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
         const data = await res.json();
-        setMessages(data.messages);
+        setMessages(data.messages || []);
       }
     } catch { /* ignore */ }
   }
 
-  async function fetchUsage() {
-    try {
-      const res = await apiFetch('/api/chat/usage', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) setUsage(await res.json());
-    } catch { /* ignore */ }
+  async function createSession(type = 'general') {
+    const res = await apiFetch('/api/sessions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ sessionType: type }),
+    });
+    const data = await res.json();
+    const id = data.session.id;
+    setChatSessionId(id);
+    setShowStartScreen(false);
+    return id;
+  }
+
+  async function endSession() {
+    if (!chatSessionId || summarising) return;
+    setSummarising(true);
+    await apiFetch(`/api/sessions/${chatSessionId}/end`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    }).catch(() => {});
+    setSummarising(false);
+    navigate('/sessions');
+  }
+
+  async function handleContinueYesterday() {
+    const recent = recentSessions.find(s => s.status === 'ended');
+    if (!recent) return;
+    const res = await apiFetch(`/api/sessions/${recent.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ status: 'active' }),
+    });
+    if (res.ok) {
+      setChatSessionId(recent.id);
+      setShowStartScreen(false);
+      if (recent.sessionType && recent.sessionType !== 'general') {
+        setActiveSession(recent.sessionType);
+      }
+      await fetchSessionMessages(recent.id);
+    }
   }
 
   // ── Send message ──────────────────────────────────────────────────────────
 
-  const sendMessage = useCallback(async (overrideContent = null, forceSessionType = undefined) => {
+  const sendMessage = useCallback(async (overrideContent = null, forceSessionType = undefined, overrideChatSessionId = undefined) => {
     const trimmed = (overrideContent != null ? overrideContent : input).trim();
     if (!trimmed || streaming) return;
 
     const isSessionStart = trimmed.startsWith('__SESSION:');
     const sessionType = forceSessionType !== undefined ? forceSessionType : activeSession;
+    const sessionIdToUse = overrideChatSessionId !== undefined ? overrideChatSessionId : chatSessionId;
 
     if (!overrideContent) setInput('');
     setError('');
@@ -252,7 +344,7 @@ function ChatPage() {
       const res = await apiFetch('/api/chat/message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ content: trimmed, sessionType, arjunMsgCount: arjunMsgCountRef.current, replyStyle }),
+        body: JSON.stringify({ content: trimmed, sessionType, arjunMsgCount: arjunMsgCountRef.current, replyStyle, chatSessionId: sessionIdToUse }),
       });
 
       if (!res.ok) {
@@ -317,18 +409,21 @@ function ChatPage() {
       streamIdRef.current = null;
       inputRef.current?.focus();
     }
-  }, [input, streaming, token, t.errorRetry, activeSession, language, replyStyle]);
+  }, [input, streaming, token, t.errorRetry, activeSession, language, replyStyle, chatSessionId]);
 
-  // ── Session selection (always-visible picker) ─────────────────────────────
+  // ── Session selection ─────────────────────────────────────────────────────
 
-  function handleSessionSelect(key) {
+  async function handleSessionSelect(key) {
     if (streaming) return;
     if (activeSession === key) return;
     arjunMsgCountRef.current = 0;
     setActiveSession(key);
-    // Auto-start the session if no messages yet
+    let sessionId = chatSessionId;
+    if (!sessionId) {
+      sessionId = await createSession(key);
+    }
     if (messages.length === 0) {
-      sendMessage(`__SESSION:${key}__`, key);
+      sendMessage(`__SESSION:${key}__`, key, sessionId);
     }
   }
 
@@ -343,8 +438,9 @@ function ChatPage() {
 
   // ── Derived state ─────────────────────────────────────────────────────────
 
-  const atLimit = !usage.isPremium && usage.trialDaysRemaining === 0;
-  const hasMessages = messages.length > 0;
+  const atLimit          = !usage.isPremium && usage.trialDaysRemaining === 0;
+  const hasMessages      = messages.length > 0;
+  const hasEndedSessions = recentSessions.some(s => s.status === 'ended');
 
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -378,6 +474,22 @@ function ChatPage() {
             </div>
           </div>
           <div className="flex items-center gap-1 shrink-0">
+            {chatSessionId && !showStartScreen && (
+              <button
+                onClick={endSession}
+                disabled={summarising || streaming}
+                className="text-xs text-slt hover:text-ink transition-colors px-2 py-1.5 rounded-lg hover:bg-dark-700 disabled:opacity-40"
+              >
+                {summarising ? t.summarising : t.endSession}
+              </button>
+            )}
+            <button
+              onClick={() => navigate('/sessions')}
+              className="p-1.5 text-slt hover:text-ink transition-colors rounded-lg hover:bg-dark-700"
+              aria-label={t.sessionHistory}
+            >
+              <History size={16} />
+            </button>
             <button
               onClick={() => setShowSafety(s => !s)}
               className="p-1.5 text-slt hover:text-ink transition-colors rounded-lg hover:bg-dark-700"
@@ -444,7 +556,7 @@ function ChatPage() {
       <div className="flex-1 overflow-y-auto px-2 py-4">
         <div className="max-w-2xl mx-auto flex flex-col gap-3">
 
-          {/* Arjun welcome bubble — shown when chat is empty */}
+          {/* Arjun welcome bubble — shown on start screen or empty session */}
           {!hasMessages && !waitingForFirst && (
             <div className="flex justify-start animate-fade-in">
               <div className="max-w-[92%] px-3.5 py-2.5 text-sm leading-relaxed bg-dark-800 border border-dark-600 text-ink shadow-sm rounded-2xl rounded-bl-md">
@@ -453,25 +565,44 @@ function ChatPage() {
             </div>
           )}
 
-          {/* Starter cards — shown when chat is empty and no session chosen */}
-          {!hasMessages && !activeSession && !waitingForFirst && (
-            <div className="grid grid-cols-2 gap-2 mt-1 animate-fade-in">
-              {STARTERS.map(({ key, icon, to }) => (
+          {/* Start screen — shown when no session is loaded yet */}
+          {showStartScreen && !waitingForFirst && (
+            <div className="flex flex-col gap-3 mt-2 animate-fade-in">
+              {hasEndedSessions && (
                 <button
-                  key={key}
-                  onClick={() => to ? navigate(to) : handleSessionSelect(key)}
-                  disabled={!to && (atLimit || streaming)}
-                  className="flex items-center gap-2 bg-dark-800 border border-dark-600 hover:border-brand-500/50 hover:bg-dark-700 active:scale-95 rounded-2xl px-3 py-3 text-left transition-all disabled:opacity-40"
+                  onClick={handleContinueYesterday}
+                  disabled={atLimit}
+                  className="flex items-center gap-3 bg-dark-800 border border-dark-600 hover:border-brand-500/50 hover:bg-dark-700 active:scale-[0.98] rounded-2xl p-4 text-left transition-all disabled:opacity-40"
                 >
-                  <span className="text-lg shrink-0">{icon}</span>
-                  <span className="text-sm font-medium text-ink leading-tight">{t.starters[key]}</span>
+                  <History size={18} className="text-brand-400 shrink-0" />
+                  <span className="text-sm font-medium text-ink">{t.continueYesterday}</span>
                 </button>
-              ))}
+              )}
+              <button
+                onClick={() => createSession('general')}
+                disabled={atLimit}
+                className="w-full py-3 rounded-2xl bg-brand-600 text-white font-semibold text-sm hover:bg-brand-700 transition-colors active:scale-[0.98] disabled:opacity-40"
+              >
+                {t.startFresh}
+              </button>
+              <div className="grid grid-cols-2 gap-2 mt-1">
+                {STARTERS.map(({ key, icon, to }) => (
+                  <button
+                    key={key}
+                    onClick={() => to ? navigate(to) : handleSessionSelect(key)}
+                    disabled={!to && (atLimit || streaming)}
+                    className="flex items-center gap-2 bg-dark-800 border border-dark-600 hover:border-brand-500/50 hover:bg-dark-700 active:scale-95 rounded-2xl px-3 py-3 text-left transition-all disabled:opacity-40"
+                  >
+                    <span className="text-lg shrink-0">{icon}</span>
+                    <span className="text-sm font-medium text-ink leading-tight">{t.starters[key]}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
           {/* Message list */}
-          {messages.map((msg, i) => {
+          {!showStartScreen && messages.map((msg, i) => {
             const prevMsg = messages[i - 1];
             const showDivider = msg.sessionType && msg.sessionType !== prevMsg?.sessionType && i > 0;
             return (

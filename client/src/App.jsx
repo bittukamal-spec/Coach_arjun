@@ -18,6 +18,7 @@ import DebriefPage from './pages/DebriefPage';
 import GamesPage from './pages/GamesPage';
 import PersonalityTestPage from './pages/PersonalityTestPage';
 import PressureResetPage from './pages/PressureResetPage';
+import SessionsPage from './pages/SessionsPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -122,6 +123,15 @@ function App() {
         element={
           <ProtectedRoute requireOnboarding={true}>
             <BreathingPage />
+            <BottomNav />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/sessions"
+        element={
+          <ProtectedRoute requireOnboarding={true}>
+            <SessionsPage />
             <BottomNav />
           </ProtectedRoute>
         }

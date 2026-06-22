@@ -12,6 +12,7 @@ const ritualRoutes      = require('./routes/ritual');
 const debriefRoutes     = require('./routes/debrief');
 const gamesRoutes       = require('./routes/games');
 const profileIntroRoutes = require('./routes/profileIntro');
+const sessionsRoutes    = require('./routes/sessions');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -31,6 +32,7 @@ app.use('/api/ritual',       ritualRoutes);
 app.use('/api/debrief',      debriefRoutes);
 app.use('/api/games',         gamesRoutes);
 app.use('/api/profile-intro', profileIntroRoutes);
+app.use('/api/sessions',      sessionsRoutes);
 
 // Health check — useful to confirm the server is running
 app.get('/api/health', (_req, res) => {

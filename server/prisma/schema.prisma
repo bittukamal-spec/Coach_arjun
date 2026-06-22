@@ -71,6 +71,7 @@ model User {
   drillCompletions DrillCompletion[]
   debriefs         Debrief[]
   gameSessions     GameSession[]
+  chatSessions     ChatSession[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -91,13 +92,15 @@ model CheckIn {
 }
 
 model Message {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role        String   // "user" | "assistant"
-  content     String
-  sessionType String?  // "match_prep" | "post_match" | "build_focus" | "confidence" | "handle_pressure" | "open" | "post_checkin"
-  createdAt   DateTime @default(now())
+  id            String       @id @default(cuid())
+  userId        String
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role          String       // "user" | "assistant"
+  content       String
+  sessionType   String?      // "match_prep" | "post_match" | "build_focus" | "confidence" | "handle_pressure" | "open" | "post_checkin"
+  chatSessionId String?
+  chatSession   ChatSession? @relation(fields: [chatSessionId], references: [id])
+  createdAt     DateTime     @default(now())
 }
 
 model UserMemory {
@@ -149,6 +152,19 @@ model GameSession {
   gameType    String   // "grid" | "stroop" | "reaction" | "thought" | "filter"
   score       Int
   completedAt DateTime @default(now())
+}
+
+model ChatSession {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionType String    @default("general")
+  title       String?
+  summary     String?
+  status      String    @default("active") // "active" | "ended"
+  createdAt   DateTime  @default(now())
+  endedAt     DateTime?
+  messages    Message[]
 }
 
 model PasswordResetToken {
