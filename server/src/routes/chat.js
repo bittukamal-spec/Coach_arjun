@@ -40,6 +40,13 @@ const PRESSURE_LABELS = {
   unaware:         'Has not developed any coping strategy yet',
 };
 
+const STYLE_INSTRUCTIONS = {
+  short:      'Keep responses very brief — 1–2 sentences. Answer directly, no padding.',
+  honest:     'Be direct and unfiltered — say what needs to be said without softening.',
+  thoughtful: 'Give a reflective, nuanced response. Slightly longer is fine when it serves the athlete.',
+  motivating: 'Be energetic and encouraging — raise their spirits and fire them up.',
+};
+
 // ── Middleware: block free users whose 14-day trial has ended ─────────────
 
 async function checkFreeLimit(req, res, next) {
@@ -102,7 +109,7 @@ Be warm and curious. Ask one natural follow-up question per response.`,
 // ── Helper: build personalised system prompt ─────────────────────────────
 
 function buildSystemPrompt(user, checkIns = [], memories = [], sessionType = null, extra = {}) {
-  const { recentDebriefs = [], todayDrill = null, achievementCount = 0, recentDrills = [], gameSessions = [], ritual = null } = extra;
+  const { recentDebriefs = [], todayDrill = null, achievementCount = 0, recentDrills = [], gameSessions = [], ritual = null, replyStyle = null } = extra;
   const goals = JSON.parse(user.goals || '[]').map(g => GOAL_LABELS[g] || g);
   const goalsText = goals.length ? goals.join(', ') : 'general mental performance';
 
@@ -254,7 +261,20 @@ No recent check-ins — the athlete hasn't tracked their mental state yet.`;
 - Extraversion: ${user.oceanE}/5 — ${oceanDescriptions.E}
 - Agreeableness: ${user.oceanA}/5 — ${oceanDescriptions.A}
 - Neuroticism: ${user.oceanN}/5 — ${oceanDescriptions.N}
-Adapt ALL advice and coaching style to match this personality. High N = calm first, then advise. Low E = avoid "talk to teammates" advice. High C = give structured 3-step plans.`;
+Adapt ALL advice and coaching style to match this personality. High N = calm first, then advise. Low E = avoid "talk to teammates" advice. High C = give structured 3-step plans.
+
+## Profile Active Use
+This profile is re-fetched on every message — treat it as live truth, not a fixed snapshot.
+Shape HOW you respond (framing, tone, structure), not just WHAT you say:
+- High O (4–5): exploratory, reflective framing; introduce new mental frameworks
+- High C (4–5): structured, step-by-step plans; measurable commitments
+- High E (4–5): social/crowd framing; team energy angles
+- Low E (1–2): internal strategies only; never "talk to your teammates"
+- High N (4–5): calm and ground FIRST — never add to anxiety
+- Low N (1–2): can challenge more directly; less hand-holding needed
+- High A (4–5): "we" framing; collaborative tone
+- Low A (1–2): frame advice as their own idea; independent-minded approach
+Do NOT mention that you are reading a profile — let it silently shape your response.`;
   }
 
   const sessionSection = sessionType && SESSION_INSTRUCTIONS[sessionType]
@@ -266,6 +286,19 @@ Adapt ALL advice and coaching style to match this personality. High N = calm fir
   const actionBridgeSection = (extra.arjunMsgCount ?? 0) >= 4
     ? `\n\n## Natural Action Offer\nYou are ${extra.arjunMsgCount} responses into this session. If you feel you have addressed the athlete's main concern, naturally offer ONE specific next step they can try right now — for example a 2-minute breathing exercise, building a pre-match routine together, or a quick visualisation drill. Keep it to one casual sentence such as "Want to try a quick breathing exercise right now?" Only offer this once — if you have already suggested a next action in this session, do not repeat it.`
     : '';
+
+  const styleSection = replyStyle && STYLE_INSTRUCTIONS[replyStyle]
+    ? `\n\n## Response Style\nThe user has selected "${replyStyle}" mode. ${STYLE_INSTRUCTIONS[replyStyle]}`
+    : '';
+
+  const toolAwarenessSection = `\n\n## In-App Tools (mention naturally, once per session)
+When genuinely relevant, mention these in plain conversational language — no buttons or links needed.
+- Breathing exercise: for anxiety, nerves, or overwhelm before a match
+- Daily drill: for building a mental habit or consistent training
+- Daily Pulse check-in: if they seem to have skipped today's log
+- Post-match Debrief: after a match or tough training day
+- Progress chart: when they doubt their growth or ask about improvement
+Say it as a coach would: "There's a breathing exercise on the home screen" or "Your progress chart tracks this."`;
 
   return `You are Arjun — a mental performance coach who specialises in sports psychology for Indian athletes. You are warm, direct, and feel like a trusted older brother who truly understands the pressures of Indian sports culture.
 
@@ -289,7 +322,7 @@ Adapt ALL advice and coaching style to match this personality. High N = calm fir
 - Use the athlete's name occasionally to personalise the conversation
 - End most responses with one concrete, actionable step or a 2-minute mental exercise
 - If today's check-in scores are available (see "TODAY's scores" in the mental state section), reference specific numbers early in the conversation — never ignore a score of 3 or below (e.g. "I see your confidence is at 2/5 today — what's been going on?")
-- When your question has a limited set of likely answers (e.g. "is it training or matches?", "which sport?", "how long ago?", "yes or no?"), you MUST end your message with a new line: [SUGGEST: option1 | option2 | option3]. Keep each option SHORT (2-5 words), max 4 options. For open-ended, reflective, or emotional questions ("how do you feel about…", "what does that mean to you…"), do NOT include [SUGGEST].
+- Always end your message with a new line: [SUGGEST: option1 | option2 | option3] containing 2–3 short follow-up suggestions (3–6 words each). For limited-choice questions the options are the likely answers; for open-ended replies they are natural next directions the athlete might want to explore. Max 3 options.
 
 ## Boundaries
 - You are a performance coach, not a doctor or clinical therapist
@@ -304,7 +337,7 @@ ${sessionSection ? sessionSection + '\n\n' : ''}${checkInSection}
 
 ${activitySection}${debriefSection ? '\n\n' + debriefSection : ''}
 
-${memorySection}${extraSections ? '\n\n' + extraSections : ''}${actionBridgeSection}`;
+${memorySection}${extraSections ? '\n\n' + extraSections : ''}${actionBridgeSection}${styleSection}${toolAwarenessSection}`;
 }
 
 // ── Background memory extraction ──────────────────────────────────────────
@@ -411,7 +444,7 @@ router.post('/message', authenticate, checkFreeLimit, async (req, res) => {
     });
   }
 
-  const { content, sessionType = null, arjunMsgCount = 0 } = req.body;
+  const { content, sessionType = null, arjunMsgCount = 0, replyStyle = null } = req.body;
   if (!content || typeof content !== 'string' || content.trim().length === 0) {
     return res.status(400).json({ error: 'Message content is required' });
   }
@@ -536,7 +569,7 @@ router.post('/message', authenticate, checkFreeLimit, async (req, res) => {
     const stream = anthropic.messages.stream({
       model: process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001',
       max_tokens: 800,
-      system: buildSystemPrompt(user, recentCheckIns, memories, sessionType, { recentDebriefs, todayDrill, achievementCount, recentDrills, gameSessions, ritual, arjunMsgCount }),
+      system: buildSystemPrompt(user, recentCheckIns, memories, sessionType, { recentDebriefs, todayDrill, achievementCount, recentDrills, gameSessions, ritual, arjunMsgCount, replyStyle }),
       messages: conversationHistory,
     });
 

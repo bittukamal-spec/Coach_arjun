@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
-import { ChevronDown, Star } from 'lucide-react';
+import { ChevronDown, Compass, Info } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
@@ -142,7 +142,7 @@ function ChatPage() {
   const [waitingForFirst, setWaitingForFirst] = useState(false);
   const [error, setError]                   = useState('');
   const [usage, setUsage]                   = useState({ isPremium: false, trialDaysRemaining: 14 });
-  const [quickReplies, setQuickReplies]     = useState([]);
+  const [replyStyle, setReplyStyle]         = useState(() => localStorage.getItem('arjun_reply_style') || 'thoughtful');
   const [activeSession, setActiveSession]   = useState(null);
   const [showSafety, setShowSafety]         = useState(false);
   const [showSessionPicker, setShowSessionPicker] = useState(false);
@@ -168,6 +168,12 @@ function ChatPage() {
     }
     init();
   }, []);
+
+  // ── Persist reply style ───────────────────────────────────────────────────
+
+  useEffect(() => {
+    localStorage.setItem('arjun_reply_style', replyStyle);
+  }, [replyStyle]);
 
   // ── Auto-scroll ───────────────────────────────────────────────────────────
 
@@ -223,7 +229,6 @@ function ChatPage() {
 
     if (!overrideContent) setInput('');
     setError('');
-    setQuickReplies([]);
 
     if (!isSessionStart) {
       setMessages(prev => [...prev, { id: 'user-' + Date.now(), role: 'user', content: trimmed }]);
@@ -237,7 +242,7 @@ function ChatPage() {
       const res = await apiFetch('/api/chat/message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ content: trimmed, sessionType, arjunMsgCount: arjunMsgCountRef.current }),
+        body: JSON.stringify({ content: trimmed, sessionType, arjunMsgCount: arjunMsgCountRef.current, replyStyle }),
       });
 
       if (!res.ok) {
@@ -274,18 +279,17 @@ function ChatPage() {
               );
             } else if (data.t === 'end') {
               const { clean, suggestions } = extractSuggestions(fullStreamText.current);
-              setMessages(prev =>
-                prev.map(m => m.id === streamId ? { ...m, content: clean, id: data.id, streaming: false } : m)
-              );
-              fullStreamText.current = '';
-
-              // Show chips: prefer AI-generated [SUGGEST:] tags, fall back to hardcoded initial chips
               arjunMsgCountRef.current += 1;
               const isFirstReply = arjunMsgCountRef.current === 1 && sessionType;
               const chips = suggestions.length > 0
                 ? suggestions
                 : (isFirstReply ? (INITIAL_CHIPS[sessionType]?.[language] ?? []) : []);
-              setQuickReplies(chips);
+              setMessages(prev =>
+                prev.map(m => m.id === streamId
+                  ? { ...m, content: clean, id: data.id, streaming: false, ...(chips.length > 0 ? { tags: chips } : {}) }
+                  : m)
+              );
+              fullStreamText.current = '';
             } else if (data.t === 'error') {
               setMessages(prev => prev.filter(m => m.id !== streamId));
               setError(data.message || t.errorRetry);
@@ -303,14 +307,13 @@ function ChatPage() {
       streamIdRef.current = null;
       inputRef.current?.focus();
     }
-  }, [input, streaming, token, t.errorRetry, activeSession, language]);
+  }, [input, streaming, token, t.errorRetry, activeSession, language, replyStyle]);
 
   // ── Session selection (always-visible picker) ─────────────────────────────
 
   function handleSessionSelect(key) {
     if (streaming) return;
     if (activeSession === key) return;
-    setQuickReplies([]);
     arjunMsgCountRef.current = 0;
     setActiveSession(key);
     // Auto-start the session if no messages yet
@@ -332,8 +335,6 @@ function ChatPage() {
 
   const atLimit = !usage.isPremium && usage.trialDaysRemaining === 0;
   const hasMessages = messages.length > 0;
-  const lastArjunMsgId = [...messages].reverse().find(m => m.role === 'assistant')?.id;
-  const needsSession = !activeSession && !hasMessages;
 
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -349,7 +350,7 @@ function ChatPage() {
     <div className="flex flex-col h-[calc(100dvh-4rem)] sm:h-dvh bg-dark-900">
 
       {/* ── Header ──────────────────────────────────────────────────────── */}
-      <header className="shrink-0 bg-dark-900 border-b border-dark-600 px-4 py-3">
+      <header className="shrink-0 bg-dark-900 border-b border-dark-600 px-4 py-3 relative">
         <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
             <div className="w-8 h-8 rounded-full bg-brand-600 text-white flex items-center justify-center text-sm font-bold shrink-0">
@@ -366,59 +367,36 @@ function ChatPage() {
               )}
             </div>
           </div>
-          <div className="shrink-0">
-            {usage.isPremium ? (
-              <span className="text-xs font-semibold text-fire-500 bg-fire-500/10 border border-fire-500/30 px-2 py-1 rounded-full inline-flex items-center gap-1">
-                <Star size={11} className="shrink-0" /> {t.usagePremium}
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              onClick={() => setShowSafety(s => !s)}
+              className="p-1.5 text-slt hover:text-ink transition-colors rounded-lg hover:bg-dark-700"
+              aria-label="Safety info"
+            >
+              <Info size={16} />
+            </button>
+            <button
+              onClick={() => setShowSessionPicker(s => !s)}
+              disabled={atLimit || streaming}
+              className={`flex items-center gap-1.5 text-xs font-medium rounded-xl border px-2.5 py-1.5 transition-colors disabled:opacity-40 ${
+                activeSession
+                  ? 'bg-dark-700 border-dark-500 text-ink'
+                  : 'bg-dark-800 border-dark-600 text-slt hover:text-ink hover:bg-dark-700'
+              }`}
+            >
+              <Compass size={13} className="shrink-0" />
+              <span className="hidden sm:inline truncate max-w-[90px]">
+                {activeSession ? t.sessions[activeSession].title : t.chooseFocus}
               </span>
-            ) : atLimit ? (
-              <span className="text-xs font-semibold text-red-400 bg-red-950/30 border border-red-800/30 px-2 py-1 rounded-full">
-                Trial ended
-              </span>
-            ) : (
-              <span className="text-xs font-semibold text-slt bg-dark-700 border border-dark-500 px-2 py-1 rounded-full">
-                {t.trialLabel(usage.trialDaysRemaining)}
-              </span>
-            )}
+              <ChevronDown size={11} className={`shrink-0 transition-transform ${showSessionPicker ? 'rotate-180' : ''}`} />
+            </button>
           </div>
-        </div>
-      </header>
-
-      {/* ── Topic + Safety bar ──────────────────────────────────────────── */}
-      <div className="shrink-0 border-b border-dark-600 bg-dark-900 px-4 py-2 relative">
-        <div className="max-w-2xl mx-auto flex items-center gap-2">
-          <button
-            onClick={() => setShowSessionPicker(s => !s)}
-            disabled={atLimit || streaming}
-            className={`flex-1 flex items-center gap-2 text-xs font-medium rounded-xl border px-3 py-1.5 transition-colors disabled:opacity-40 min-w-0 ${
-              activeSession
-                ? 'bg-dark-800 border-dark-600 text-ink'
-                : 'bg-dark-800 border-dark-500 text-slt'
-            }`}
-          >
-            {activeSession ? (
-              <>
-                <span className="shrink-0">{t.sessions[activeSession].icon}</span>
-                <span className="truncate">{t.sessions[activeSession].title}</span>
-              </>
-            ) : (
-              <span className="truncate">{language === 'hi' ? 'विषय चुनें…' : 'Choose a focus…'}</span>
-            )}
-            <ChevronDown size={13} className={`ml-auto shrink-0 transition-transform ${showSessionPicker ? 'rotate-180' : ''}`} />
-          </button>
-          <button
-            onClick={() => setShowSafety(s => !s)}
-            className="shrink-0 text-[13px] text-slt hover:text-ink transition-colors px-2 py-1.5"
-            aria-label="Safety info"
-          >
-            ℹ
-          </button>
         </div>
 
         {showSessionPicker && (
           <>
             <div className="fixed inset-0 z-10" onClick={() => setShowSessionPicker(false)} />
-            <div className="absolute left-4 right-4 top-full mt-1 z-20 bg-dark-800 border border-dark-600 rounded-xl shadow-lg overflow-hidden">
+            <div className="absolute right-4 top-full mt-1 z-20 bg-dark-800 border border-dark-600 rounded-xl shadow-lg overflow-hidden w-56">
               {SESSIONS.map(({ key, color }) => {
                 const def = t.sessions[key];
                 const isActive = activeSession === key;
@@ -445,12 +423,12 @@ function ChatPage() {
         )}
 
         {showSafety && (
-          <div className="mt-2 bg-dark-800 border border-dark-600 rounded-xl px-3 py-2 max-w-2xl mx-auto">
+          <div className="absolute left-4 right-4 top-full mt-1 z-20 bg-dark-800 border border-dark-600 rounded-xl px-3 py-2 shadow-lg">
             <p className="text-xs text-slt">{t.safetyNote}</p>
             <p className="text-xs text-slt mt-1">{t.safetyHelpline}</p>
           </div>
         )}
-      </div>
+      </header>
 
       {/* ── Messages area ───────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto px-2 py-4">
@@ -484,16 +462,15 @@ function ChatPage() {
 
           {/* Message list */}
           {messages.map((msg, i) => {
-            const isLastArjun = msg.role === 'assistant' && msg.id === lastArjunMsgId;
             const prevMsg = messages[i - 1];
             const showDivider = msg.sessionType && msg.sessionType !== prevMsg?.sessionType && i > 0;
             return (
               <div key={msg.id} className="flex flex-col gap-2">
                 {showDivider && <SessionDivider sessionKey={msg.sessionType} date={msg.createdAt} t={t} />}
                 <MessageBubble message={msg} isStreaming={msg.streaming} />
-                {isLastArjun && !msg.streaming && quickReplies.length > 0 && (
+                {msg.role === 'assistant' && !msg.streaming && msg.tags?.length > 0 && (
                   <div className="flex flex-wrap gap-2">
-                    {quickReplies.map(reply => (
+                    {msg.tags.map(reply => (
                       <button
                         key={reply}
                         onClick={() => sendMessage(reply)}
@@ -535,6 +512,25 @@ function ChatPage() {
               <button className="text-xs font-semibold text-white bg-brand-600 hover:bg-brand-700 px-4 py-2 rounded-xl transition-colors whitespace-nowrap">
                 {t.upgrade}
               </button>
+            </div>
+          )}
+
+          {!atLimit && (
+            <div className="flex items-center gap-1.5 mb-2 overflow-x-auto pb-0.5">
+              <span className="text-xs text-slt shrink-0">{t.styleLabel}:</span>
+              {['short', 'honest', 'thoughtful', 'motivating'].map(style => (
+                <button
+                  key={style}
+                  onClick={() => setReplyStyle(style)}
+                  className={`text-xs px-2.5 py-1 rounded-full border transition-all shrink-0 ${
+                    replyStyle === style
+                      ? 'bg-brand-500/15 border-brand-500/50 text-brand-400'
+                      : 'bg-dark-700 border-dark-600 text-slt hover:text-ink hover:bg-dark-600'
+                  }`}
+                >
+                  {t.replyStyles[style]}
+                </button>
+              ))}
             </div>
           )}
 
