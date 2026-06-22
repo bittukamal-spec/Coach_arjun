@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ChevronDown, Compass, Info } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
@@ -13,6 +13,8 @@ const SESSIONS = [
   { key: 'build_focus',     color: 'text-orange-700', activeBg: 'bg-orange-500/15 border-orange-500/60' },
   { key: 'confidence',      color: 'text-brand-600',  activeBg: 'bg-brand-500/15 border-brand-500/60' },
   { key: 'handle_pressure', color: 'text-red-700',    activeBg: 'bg-red-500/15 border-red-500/60'     },
+  { key: 'pressure_reset',  color: 'text-brand-600',  activeBg: 'bg-brand-500/15 border-brand-500/60' },
+  { key: 'setback_reset',   color: 'text-fire-600',   activeBg: 'bg-fire-500/15 border-fire-500/60'   },
   { key: 'open',            color: 'text-win-500',    activeBg: 'bg-win-500/15 border-win-500/60'     },
 ];
 
@@ -46,13 +48,20 @@ const INITIAL_CHIPS = {
     en: ['Tell me more', 'What should I focus on?', 'Felt this before', "It's getting better"],
     hi: ['और बताइए', 'किस पर ध्यान दूं?', 'पहले भी हुआ', 'बेहतर हो रहा है'],
   },
+  pressure_reset: {
+    en: ['Feeling nervous', 'My stomach is tight', "Can't focus", 'Heart is racing'],
+    hi: ['नर्वस हूं', 'पेट में घबराहट', 'ध्यान नहीं लग रहा', 'दिल तेज़ धड़क रहा'],
+  },
+  setback_reset: {
+    en: ['Made a big mistake', 'We lost badly', 'Feel like giving up', "I let everyone down"],
+    hi: ['बड़ी गलती हुई', 'बुरी हार हुई', 'छोड़ने का मन है', 'सबको निराश किया'],
+  },
 };
 
 // ─── Starter cards ────────────────────────────────────────────────────────────
 
 const STARTERS = [
-  { key: 'match_prep',      icon: '🧘' },
-  { key: 'post_match',      icon: '🔄' },
+  { key: 'pressure_reset',  icon: '⚡', to: '/reset' }, // navigates to toolkit page
   { key: 'handle_pressure', icon: '😤' },
   { key: 'open',            icon: '💬' },
 ];
@@ -134,6 +143,7 @@ function ChatPage() {
   const { token, language } = useAuth();
   const t = translations[language].chat;
   const location = useLocation();
+  const navigate = useNavigate();
 
   const [messages, setMessages]             = useState([]);
   const [input, setInput]                   = useState('');
@@ -446,11 +456,11 @@ function ChatPage() {
           {/* Starter cards — shown when chat is empty and no session chosen */}
           {!hasMessages && !activeSession && !waitingForFirst && (
             <div className="grid grid-cols-2 gap-2 mt-1 animate-fade-in">
-              {STARTERS.map(({ key, icon }) => (
+              {STARTERS.map(({ key, icon, to }) => (
                 <button
                   key={key}
-                  onClick={() => handleSessionSelect(key)}
-                  disabled={atLimit || streaming}
+                  onClick={() => to ? navigate(to) : handleSessionSelect(key)}
+                  disabled={!to && (atLimit || streaming)}
                   className="flex items-center gap-2 bg-dark-800 border border-dark-600 hover:border-brand-500/50 hover:bg-dark-700 active:scale-95 rounded-2xl px-3 py-3 text-left transition-all disabled:opacity-40"
                 >
                   <span className="text-lg shrink-0">{icon}</span>

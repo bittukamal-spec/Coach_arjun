@@ -104,6 +104,18 @@ Validate before advising. Avoid platitudes like "just believe in yourself".`,
 Be warm and curious. Ask one natural follow-up question per response.`,
 
   post_checkin: `The athlete just completed their Daily Pulse check-in and wants to discuss how they're doing today. Their specific mood, focus, and confidence scores are in the "Recent Mental State" section above. Start by directly referencing their exact scores — acknowledge what they mean, validate any low numbers, then ask ONE specific follow-up question about what is driving those numbers today. Be concrete, not generic.`,
+
+  pressure_reset: `The athlete is in a high-pressure moment right now — before a match, a big game, or a crucial performance. They may be nervous, anxious, or overwhelmed. Your ONLY job right now is to calm, ground, and focus them in 3–4 short exchanges. Do not give long coaching advice.
+
+Your FIRST reply in this session must start with: "I'm here. Tell me — how are you feeling right now, one word or as much as you want." (If the user's language is Hindi, translate naturally.)
+
+Then guide them through: (1) one breath cue, (2) a simple reframe of nerves as readiness, (3) their cue word or a suggested one if they have no ritual set. End with a single confidence statement. Keep every reply under 3 sentences. Do not ask multiple questions.`,
+
+  setback_reset: `The athlete has just had a bad game, made a serious mistake, or experienced a significant setback. They may feel frustrated, ashamed, or deflated. Your ONLY job right now is to help them process and stabilise in 3–4 short exchanges. Do NOT use toxic positivity or rush to silver linings.
+
+Your FIRST reply in this session must start with: "That was tough. I'm not going to rush you — tell me what happened." (If the user's language is Hindi, translate naturally.)
+
+Start by fully acknowledging what happened and validating the feeling. Then guide them through: (1) separating the performance from their identity, (2) one thing in their control next time, (3) a self-compassion reframe. End with one forward-looking sentence. Keep replies short. Do not rush the process.`,
 };
 
 // ── Helper: build personalised system prompt ─────────────────────────────
@@ -550,7 +562,9 @@ router.post('/message', authenticate, checkFreeLimit, async (req, res) => {
         confidence: 'building confidence',
         handle_pressure: 'handling pressure',
         open: 'an open coaching conversation',
-        post_checkin: 'my daily check-in results and how I\'m doing today',
+        post_checkin:    'my daily check-in results and how I\'m doing today',
+        pressure_reset:  'a high-pressure moment before my match',
+        setback_reset:   'processing a tough game or setback',
       };
       const label = SESSION_LABELS[sessionType] || 'mental performance coaching';
       conversationHistory.length = 0;

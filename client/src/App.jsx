@@ -17,6 +17,7 @@ import MentalGameProfilePage from './pages/MentalGameProfilePage';
 import DebriefPage from './pages/DebriefPage';
 import GamesPage from './pages/GamesPage';
 import PersonalityTestPage from './pages/PersonalityTestPage';
+import PressureResetPage from './pages/PressureResetPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -121,6 +122,15 @@ function App() {
         element={
           <ProtectedRoute requireOnboarding={true}>
             <BreathingPage />
+            <BottomNav />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/reset"
+        element={
+          <ProtectedRoute requireOnboarding={true}>
+            <PressureResetPage />
             <BottomNav />
           </ProtectedRoute>
         }

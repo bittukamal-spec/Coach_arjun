@@ -78,10 +78,11 @@ function Dashboard() {
     : (hi ? 'शुभ संध्या' : 'Good evening');
 
   const TOOLS = [
-    { Icon: Wind,          label: hi ? 'श्वास'      : 'Breathing',  to: '/breathing', color: 'text-brand-600' },
-    { Icon: Trophy,        label: hi ? 'रिचुअल'    : 'Ritual',     to: '/ritual',    color: 'text-fire-600'  },
-    { Icon: ClipboardList, label: hi ? 'डीब्रीफ'    : 'Debrief',    to: '/debrief',   color: 'text-sky-600'   },
-    { Icon: Gamepad2,      label: hi ? 'गेम्स'     : 'Games',      to: '/games',     color: 'text-violet-600'},
+    { Icon: Wind,          label: hi ? 'श्वास'         : 'Breathing',      to: '/breathing', color: 'text-brand-600' },
+    { Icon: Zap,           label: hi ? 'प्रेशर रीसेट' : 'Pressure reset', to: '/reset',     color: 'text-fire-600'  },
+    { Icon: Trophy,        label: hi ? 'रिचुअल'       : 'Ritual',         to: '/ritual',    color: 'text-amber-600' },
+    { Icon: ClipboardList, label: hi ? 'डीब्रीफ'       : 'Debrief',        to: '/debrief',   color: 'text-sky-600'   },
+    { Icon: Gamepad2,      label: hi ? 'गेम्स'        : 'Games',          to: '/games',     color: 'text-violet-600'},
   ];
 
   return (
@@ -243,12 +244,12 @@ function Dashboard() {
         {/* ── TOOLS ──────────────────────────────────────────── */}
         <div className="mb-7">
           <SectionLabel>{hi ? 'मानसिक उपकरण' : 'Mental Tools'}</SectionLabel>
-          <div className="px-4 grid grid-cols-4 gap-2">
+          <div className="px-4 grid grid-cols-5 gap-2">
             {TOOLS.map(({ Icon, label, to, color }) => (
               <Link key={to} to={to}>
-                <div className="bg-dark-800 border border-dark-600 rounded-2xl p-3 flex flex-col items-center gap-2 active:scale-95 transition-transform">
-                  <Icon size={22} className={color} />
-                  <span className="text-[11px] font-medium text-slt text-center leading-tight">{label}</span>
+                <div className="bg-dark-800 border border-dark-600 rounded-2xl p-2.5 flex flex-col items-center gap-2 active:scale-95 transition-transform">
+                  <Icon size={20} className={color} />
+                  <span className="text-[10px] font-medium text-slt text-center leading-tight">{label}</span>
                 </div>
               </Link>
             ))}
