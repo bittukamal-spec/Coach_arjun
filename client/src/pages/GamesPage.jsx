@@ -505,9 +505,9 @@ function StroopFocus({ onDone }) {
 // Multi-level Go/No-Go: Classic (5r) → Athlete (7r + distractors) → Elite (10r + No-Go)
 
 const REACTION_LEVELS = {
-  1: { rounds: 5,  minWait: 1200, maxWait: 3500, label: 'Classic', sub: '5 rounds',                        noGo: false, distractor: false },
-  2: { rounds: 7,  minWait: 700,  maxWait: 2200, label: 'Athlete', sub: '7 rounds · visual distractors',   noGo: false, distractor: true  },
-  3: { rounds: 10, minWait: 350,  maxWait: 1500, label: 'Elite',   sub: '10 rounds · No-Go trials',        noGo: true,  distractor: false  },
+  1: { rounds: 5,  minWait: 1200, maxWait: 3500, label: 'Easy',   sub: '5 rounds',                        noGo: false, distractor: false },
+  2: { rounds: 7,  minWait: 700,  maxWait: 2200, label: 'Medium', sub: '7 rounds · visual distractors',   noGo: false, distractor: true  },
+  3: { rounds: 10, minWait: 350,  maxWait: 1500, label: 'Hard',   sub: '10 rounds · No-Go trials',        noGo: true,  distractor: false  },
 };
 function rxHiKey(lvl)       { return lvl === 1 ? 'hi_reaction' : `hi_reaction_${lvl}`; }
 function getRxBest(lvl)     { return parseInt(localStorage.getItem(rxHiKey(lvl)) || '9999'); }
@@ -518,7 +518,7 @@ function ReactionBall({ onDone, sportProfile }) {
 
   function computeUnlocked() {
     const h = getRxBest(1);
-    return h <= sp.reactionElite ? 3 : h <= sp.reactionGood ? 2 : 1;
+    return h <= 320 ? 3 : h <= 450 ? 2 : 1;
   }
 
   const [difficulty,   setDifficulty]   = useState(1);
@@ -636,7 +636,6 @@ function ReactionBall({ onDone, sportProfile }) {
   // ── Level select ──
   if (phase === 'select') return (
     <div className="py-2">
-      <p className="text-center text-slt text-xs mb-4 leading-relaxed">{sp.reactionContext}</p>
       <div className="space-y-2">
         {[1, 2, 3].map(lvl => {
           const c  = REACTION_LEVELS[lvl];
@@ -667,7 +666,7 @@ function ReactionBall({ onDone, sportProfile }) {
         })}
       </div>
       <p className="text-center text-xs text-slt mt-3 leading-relaxed">
-        Beat the reaction threshold to unlock harder levels.
+        Easy best &lt;450ms → Medium · &lt;320ms → Hard
       </p>
     </div>
   );
