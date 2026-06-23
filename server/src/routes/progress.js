@@ -24,6 +24,21 @@ function formatChartDate(date) {
   return new Date(date).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
 }
 
+// Mental Fitness Score (0–100)
+// streak (25) + consistency/14d (25) + mental state avg (30) + achievements (20)
+function calcFitnessScore(streak, last14Count, weeklyAvgData, achievementsCount) {
+  const streakPts      = Math.min(streak / 14, 1) * 25;
+  const consistencyPts = (Math.min(last14Count, 14) / 14) * 25;
+  const avgM           = weeklyAvgData.mood;
+  const avgF           = weeklyAvgData.focus;
+  const avgC           = weeklyAvgData.confidence;
+  const mentalPts      = (avgM !== null && avgF !== null && avgC !== null)
+    ? (((avgM + avgF + avgC) / 3 - 1) / 4) * 30
+    : 0;
+  const achievePts     = (Math.min(achievementsCount, 9) / 9) * 20;
+  return Math.round(streakPts + consistencyPts + mentalPts + achievePts);
+}
+
 // Streak = consecutive days (today or yesterday counts as day-1 so evening
 // check-in users don't lose their streak during the day).
 function calculateStreak(checkIns) {
@@ -59,7 +74,7 @@ router.get('/summary', authenticate, async (req, res) => {
   const days = [7, 30].includes(parseInt(req.query.days)) ? parseInt(req.query.days) : 7;
 
   try {
-    const [periodCheckIns, allCheckIns, thisWeekCheckIns, prevWeekCheckIns, totalCheckIns, user] =
+    const [periodCheckIns, allCheckIns, thisWeekCheckIns, prevWeekCheckIns, totalCheckIns, user, last14Count, achievementsCount] =
       await Promise.all([
         // Chart data for selected period (exclude freeze entries)
         prisma.checkIn.findMany({
@@ -87,6 +102,10 @@ router.get('/summary', authenticate, async (req, res) => {
         prisma.checkIn.count({ where: { userId: req.userId, type: { not: 'freeze' } } }),
         // User for freeze count
         prisma.user.findUnique({ where: { id: req.userId }, select: { streakFreezeCount: true } }),
+        // Last 14 days real check-ins (for fitness consistency score)
+        prisma.checkIn.count({ where: { userId: req.userId, createdAt: { gte: daysAgo(14) }, type: { not: 'freeze' } } }),
+        // Achievements earned (for fitness score)
+        prisma.userAchievement.count({ where: { userId: req.userId } }),
       ]);
 
     const chartData = periodCheckIns.map(c => ({
@@ -96,17 +115,21 @@ router.get('/summary', authenticate, async (req, res) => {
       confidence: c.confidence,
     }));
 
+    const streak    = calculateStreak(allCheckIns);
+    const weeklyAvg = {
+      mood:       avg(thisWeekCheckIns, 'mood'),
+      focus:      avg(thisWeekCheckIns, 'focus'),
+      confidence: avg(thisWeekCheckIns, 'confidence'),
+    };
+
     res.json({
       chartData,
       days,
-      streak:         calculateStreak(allCheckIns),
+      streak,
       totalCheckIns,
       freezeCount:    user?.streakFreezeCount ?? 0,
-      weeklyAvg: {
-        mood:       avg(thisWeekCheckIns, 'mood'),
-        focus:      avg(thisWeekCheckIns, 'focus'),
-        confidence: avg(thisWeekCheckIns, 'confidence'),
-      },
+      fitnessScore:   calcFitnessScore(streak, last14Count, weeklyAvg, achievementsCount),
+      weeklyAvg,
       prevWeekAvg: {
         mood:       avg(prevWeekCheckIns, 'mood'),
         focus:      avg(prevWeekCheckIns, 'focus'),

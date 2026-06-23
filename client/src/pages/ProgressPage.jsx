@@ -111,6 +111,51 @@ function ProgressPage() {
         {!loading && !error && data && (
           <div className="animate-fade-in space-y-7">
 
+            {/* ── Mental Fitness Score ── */}
+            {data.fitnessScore !== undefined && (() => {
+              const s     = data.fitnessScore;
+              const label = t.fitnessLabel(s);
+              const color =
+                s >= 90 ? 'text-amber-400' :
+                s >= 75 ? 'text-win-400'   :
+                s >= 60 ? 'text-brand-400' :
+                s >= 40 ? 'text-sky-400'   : 'text-slt';
+              const ring =
+                s >= 90 ? 'border-amber-400/40' :
+                s >= 75 ? 'border-win-500/40'   :
+                s >= 60 ? 'border-brand-500/40' :
+                s >= 40 ? 'border-sky-500/40'   : 'border-dark-500';
+              const pct = s;
+              return (
+                <div className={`bg-dark-800 border ${ring} rounded-2xl p-5 flex items-center gap-5`}>
+                  <div className="relative w-20 h-20 shrink-0">
+                    <svg className="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
+                      <circle cx="40" cy="40" r="34" fill="none" stroke="#1e2d27" strokeWidth="8" />
+                      <circle
+                        cx="40" cy="40" r="34" fill="none"
+                        stroke="currentColor"
+                        strokeWidth="8"
+                        strokeLinecap="round"
+                        strokeDasharray={`${2 * Math.PI * 34}`}
+                        strokeDashoffset={`${2 * Math.PI * 34 * (1 - pct / 100)}`}
+                        className={`transition-all duration-700 ${color}`}
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className={`text-2xl font-black leading-none ${color}`}>{s}</span>
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] font-bold text-slt uppercase tracking-widest mb-0.5">{t.fitnessScore}</p>
+                    <p className={`text-xl font-black ${color} leading-tight`}>{label}</p>
+                    <p className="text-xs text-slt mt-1 leading-relaxed">
+                      Streak · Consistency · Mental state · Achievements
+                    </p>
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* ── Stats row ── */}
             <div className="flex gap-3">
               <div className="flex-1 bg-dark-800 border border-dark-600 rounded-2xl px-4 py-4 text-center">

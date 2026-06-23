@@ -41,6 +41,7 @@ function Dashboard() {
 
   const [freezeCount,       setFreezeCount]      = useState(null);
   const [totalCheckIns,     setTotalCheckIns]     = useState(0);
+  const [fitnessScore,      setFitnessScore]      = useState(null);
   const [showFreezeConfirm, setShowFreezeConfirm] = useState(false);
   const [freezeLoading,     setFreezeLoading]     = useState(false);
   const [missedDismissed,   setMissedDismissed]   = useState(
@@ -59,6 +60,7 @@ function Dashboard() {
         setStreak(data?.streak ?? 0);
         setFreezeCount(data?.freezeCount ?? 0);
         setTotalCheckIns(data?.totalCheckIns ?? 0);
+        if (data?.fitnessScore !== undefined) setFitnessScore(data.fitnessScore);
       })
       .catch(() => {});
 
@@ -154,6 +156,24 @@ function Dashboard() {
                 <Zap size={13} className="text-brand-500" />
                 <span className="text-xs font-bold text-ink">{user.xp}</span>
               </div>
+            )}
+            {fitnessScore !== null && (
+              <Link to="/progress">
+                <div className={`flex items-center gap-1.5 border px-3 py-1.5 rounded-full ${
+                  fitnessScore >= 90 ? 'bg-amber-500/10 border-amber-500/30' :
+                  fitnessScore >= 75 ? 'bg-win-500/10 border-win-500/30'     :
+                  fitnessScore >= 60 ? 'bg-brand-500/10 border-brand-500/30' :
+                  'bg-dark-800 border-dark-600'
+                }`}>
+                  <span className={`text-xs font-black ${
+                    fitnessScore >= 90 ? 'text-amber-400' :
+                    fitnessScore >= 75 ? 'text-win-400'   :
+                    fitnessScore >= 60 ? 'text-brand-400' :
+                    'text-slt'
+                  }`}>{fitnessScore}</span>
+                  <span className="text-[10px] text-slt">MF</span>
+                </div>
+              </Link>
             )}
           </div>
         </div>
