@@ -35,14 +35,58 @@ function getShareQuote(streak, score, hi) {
   return hi ? 'हर चैंपियन पहले दिन से शुरू हुआ।' : 'Every champion started on day one.';
 }
 
-// ─── ShareCard (inline styles — required for reliable canvas capture) ─────────
+// ─── Achievement metadata (mirrors server) ────────────────────────────────────
 
-function ShareCard({ cardRef, user, fitnessScore, streak, xp, language }) {
-  const hi    = language === 'hi';
-  const score = fitnessScore ?? 0;
-  const sport = user?.sport
+const ACH_META = {
+  first_checkin: { icon: '🌱', name: 'First Step'     },
+  streak_3:      { icon: '🏅', name: 'Rookie Mind'    },
+  streak_7:      { icon: '🔥', name: 'Mental Athlete' },
+  streak_14:     { icon: '⚡', name: 'Zone Master'    },
+  streak_30:     { icon: '🏆', name: 'Elite Mindset'  },
+  comeback:      { icon: '💪', name: 'Comeback'       },
+  reflector:     { icon: '🧠', name: 'Deep Thinker'   },
+  perfect_week:  { icon: '🛡️', name: 'Perfect Week'  },
+  chat_10:       { icon: '💬', name: 'In the Zone'    },
+};
+
+// ─── Personalized description ─────────────────────────────────────────────────
+
+function getPersonalDesc(user, streak, score, achievementKeys, hi) {
+  const sport  = user?.sport || 'sport';
+  const cap    = sport.charAt(0).toUpperCase() + sport.slice(1);
+  const count  = achievementKeys.length;
+
+  if (streak >= 30) return hi
+    ? `30 दिन की मानसिक ट्रेनिंग — ${cap} में एलीट मानसिकता।`
+    : `30 days of mental training — elite mindset in ${cap}.`;
+  if (streak >= 14) return hi
+    ? `${streak} दिन लगातार। ${cap} के लिए असली मानसिक बढ़त।`
+    : `${streak} days straight. Building a real mental edge in ${cap}.`;
+  if (streak >= 7) return hi
+    ? `एक हफ्ता मानसिक ट्रेनिंग पूरी। ${cap} में फोकस और आत्मविश्वास बढ़ रहा है।`
+    : `One week of mental training done. Focus and confidence growing in ${cap}.`;
+  if (count >= 5) return hi
+    ? `${count} उपलब्धियां हासिल कीं। ${cap} में मानसिक ट्रेनिंग काम कर रही है।`
+    : `${count} achievements earned. Mental training is paying off in ${cap}.`;
+  if (score >= 60) return hi
+    ? `${cap} में मानसिक प्रदर्शन पर काम जारी है।`
+    : `Actively building mental performance skills in ${cap}.`;
+  return hi
+    ? `${cap} में मानसिक ट्रेनिंग की शुरुआत — हर कदम मायने रखता है।`
+    : `Starting the mental training journey in ${cap}. Every step counts.`;
+}
+
+// ─── ShareCard (inline styles only — required for reliable canvas capture) ────
+
+function ShareCard({ cardRef, user, fitnessScore, streak, xp, achievements, language }) {
+  const hi           = language === 'hi';
+  const score        = fitnessScore ?? 0;
+  const sport        = user?.sport
     ? user.sport.charAt(0).toUpperCase() + user.sport.slice(1)
     : 'Athlete';
+  const expLevel     = user?.experienceLevel
+    ? user.experienceLevel.charAt(0).toUpperCase() + user.experienceLevel.slice(1)
+    : null;
   const label =
     score >= 90 ? (hi ? 'एलीट'        : 'Elite')          :
     score >= 75 ? (hi ? 'तेज़'         : 'Sharp')          :
@@ -54,78 +98,100 @@ function ShareCard({ cardRef, user, fitnessScore, streak, xp, language }) {
     score >= 75 ? '#10b981' :
     score >= 60 ? '#3b82f6' :
     score >= 40 ? '#38bdf8' : '#6b7280';
-  const quote = getShareQuote(streak, score, hi);
+  const quote       = getShareQuote(streak, score, hi);
+  const desc        = getPersonalDesc(user, streak, score, achievements, hi);
   const circumference = 2 * Math.PI * 54;
-  const dash = circumference * (score / 100);
+  const dash          = circumference * (score / 100);
+  const earnedAchs    = achievements.map(k => ACH_META[k]).filter(Boolean);
 
   return (
     <div ref={cardRef} style={{
       width: 390, background: '#0d1f18',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-      padding: '36px 32px 32px',
+      padding: '28px 28px 24px',
       display: 'flex', flexDirection: 'column', alignItems: 'center',
-      gap: 0,
     }}>
-      {/* Header */}
-      <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 30, height: 30, borderRadius: 8, background: '#185fa5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🧠</div>
-          <span style={{ color: '#e8f5ee', fontWeight: 700, fontSize: 16, letterSpacing: '-0.3px' }}>MindGame</span>
+      {/* Header — personal, not brand */}
+      <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <div>
+          <p style={{ color: '#e8f5ee', fontSize: 20, fontWeight: 900, letterSpacing: '-0.5px', lineHeight: 1 }}>
+            {user?.name || 'Athlete'}
+          </p>
+          <p style={{ color: '#4a7c6a', fontSize: 12, fontWeight: 600, marginTop: 3 }}>
+            {sport}{expLevel ? ` · ${expLevel}` : ''}
+          </p>
         </div>
-        <span style={{ color: '#4a7c6a', fontSize: 12, fontWeight: 600, background: '#1a3028', padding: '4px 10px', borderRadius: 20 }}>{sport}</span>
+        <div style={{ textAlign: 'right' }}>
+          <p style={{ color: '#4a7c6a', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Mental Fitness</p>
+          <p style={{ color: ringColor, fontSize: 11, fontWeight: 700, marginTop: 1 }}>{label}</p>
+        </div>
       </div>
 
-      {/* Name */}
-      <p style={{ color: '#8aab9a', fontSize: 13, fontWeight: 600, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-        {user?.name || 'Athlete'}
-      </p>
-
       {/* Circular score */}
-      <div style={{ position: 'relative', width: 148, height: 148, margin: '8px 0 12px' }}>
-        <svg width="148" height="148" viewBox="0 0 148 148" style={{ transform: 'rotate(-90deg)' }}>
-          <circle cx="74" cy="74" r="54" fill="none" stroke="#1a3028" strokeWidth="12" />
-          <circle
-            cx="74" cy="74" r="54" fill="none"
-            stroke={ringColor} strokeWidth="12" strokeLinecap="round"
+      <div style={{ position: 'relative', width: 140, height: 140, margin: '4px 0 10px' }}>
+        <svg width="140" height="140" viewBox="0 0 148 148" style={{ transform: 'rotate(-90deg)' }}>
+          <circle cx="74" cy="74" r="54" fill="none" stroke="#1a3028" strokeWidth="11" />
+          <circle cx="74" cy="74" r="54" fill="none"
+            stroke={ringColor} strokeWidth="11" strokeLinecap="round"
             strokeDasharray={`${dash} ${circumference}`}
           />
         </svg>
         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-          <span style={{ color: '#e8f5ee', fontSize: 38, fontWeight: 900, lineHeight: 1 }}>{score}</span>
-          <span style={{ color: '#4a7c6a', fontSize: 11, fontWeight: 600, marginTop: 2 }}>/100</span>
+          <span style={{ color: '#e8f5ee', fontSize: 40, fontWeight: 900, lineHeight: 1 }}>{score}</span>
+          <span style={{ color: '#4a7c6a', fontSize: 10, fontWeight: 600, marginTop: 2 }}>/100</span>
         </div>
       </div>
 
-      {/* Label */}
-      <p style={{ color: ringColor, fontSize: 22, fontWeight: 800, marginBottom: 20, letterSpacing: '-0.5px' }}>{label}</p>
-
-      {/* Stats row */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 24, width: '100%', justifyContent: 'center' }}>
-        <div style={{ background: '#1a3028', borderRadius: 14, padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 7 }}>
-          <span style={{ fontSize: 16 }}>🔥</span>
-          <span style={{ color: '#e8f5ee', fontSize: 18, fontWeight: 800 }}>{streak ?? 0}</span>
-          <span style={{ color: '#4a7c6a', fontSize: 11, fontWeight: 600 }}>{hi ? 'दिन' : 'day streak'}</span>
+      {/* Stats */}
+      <div style={{ display: 'flex', gap: 10, marginBottom: 18, width: '100%', justifyContent: 'center' }}>
+        <div style={{ background: '#1a3028', borderRadius: 12, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 14 }}>🔥</span>
+          <span style={{ color: '#e8f5ee', fontSize: 16, fontWeight: 800 }}>{streak ?? 0}</span>
+          <span style={{ color: '#4a7c6a', fontSize: 10, fontWeight: 600 }}>{hi ? 'दिन' : 'day streak'}</span>
         </div>
         {xp !== undefined && (
-          <div style={{ background: '#1a3028', borderRadius: 14, padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 7 }}>
-            <span style={{ fontSize: 16 }}>⚡</span>
-            <span style={{ color: '#e8f5ee', fontSize: 18, fontWeight: 800 }}>{xp}</span>
-            <span style={{ color: '#4a7c6a', fontSize: 11, fontWeight: 600 }}>MXP</span>
+          <div style={{ background: '#1a3028', borderRadius: 12, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 14 }}>⚡</span>
+            <span style={{ color: '#e8f5ee', fontSize: 16, fontWeight: 800 }}>{xp}</span>
+            <span style={{ color: '#4a7c6a', fontSize: 10, fontWeight: 600 }}>MXP</span>
           </div>
         )}
       </div>
 
-      {/* Divider */}
-      <div style={{ width: '100%', height: 1, background: '#1a3028', marginBottom: 20 }} />
+      {/* Personalized description */}
+      <div style={{ width: '100%', background: '#1a3028', borderRadius: 14, padding: '12px 16px', marginBottom: 16 }}>
+        <p style={{ color: '#8aab9a', fontSize: 13, fontWeight: 500, lineHeight: 1.55, textAlign: 'center', margin: 0 }}>
+          {desc}
+        </p>
+      </div>
+
+      {/* Badges */}
+      {earnedAchs.length > 0 && (
+        <div style={{ width: '100%', marginBottom: 16 }}>
+          <p style={{ color: '#4a7c6a', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', textAlign: 'center', marginBottom: 10 }}>
+            {hi ? 'उपलब्धियां' : 'Achievements'} · {earnedAchs.length}
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
+            {earnedAchs.map((a, i) => (
+              <div key={i} style={{ background: '#1a3028', borderRadius: 10, padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span style={{ fontSize: 14 }}>{a.icon}</span>
+                <span style={{ color: '#8aab9a', fontSize: 11, fontWeight: 600 }}>{a.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Quote */}
-      <p style={{ color: '#8aab9a', fontSize: 14, fontWeight: 500, textAlign: 'center', lineHeight: 1.6, marginBottom: 28, padding: '0 8px' }}>
-        "{quote}"
-      </p>
+      <div style={{ width: '100%', borderTop: '1px solid #1a3028', paddingTop: 14, marginBottom: 14 }}>
+        <p style={{ color: '#4a7c6a', fontSize: 12, fontWeight: 500, textAlign: 'center', lineHeight: 1.6, margin: 0, fontStyle: 'italic' }}>
+          "{quote}"
+        </p>
+      </div>
 
       {/* Footer */}
-      <p style={{ color: '#2d5040', fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-        mindgame.app · mental performance coaching
+      <p style={{ color: '#243d30', fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+        🧠 MindGame · Mental Performance Coaching
       </p>
     </div>
   );
@@ -133,11 +199,11 @@ function ShareCard({ cardRef, user, fitnessScore, streak, xp, language }) {
 
 // ─── Share modal ──────────────────────────────────────────────────────────────
 
-function ShareModal({ onClose, user, fitnessScore, streak, xp, language }) {
+function ShareModal({ onClose, user, fitnessScore, streak, xp, achievements, language }) {
   const t         = translations[language].progress;
   const cardRef   = useRef(null);
-  const [busy,    setBusy]    = useState(false);
-  const [imgUrl,  setImgUrl]  = useState(null);
+  const [busy,    setBusy]   = useState(false);
+  const [imgUrl,  setImgUrl] = useState(null);
 
   async function generate() {
     if (!cardRef.current || busy) return;
@@ -162,7 +228,6 @@ function ShareModal({ onClose, user, fitnessScore, streak, xp, language }) {
         return;
       }
     } catch { /* fall through to download */ }
-    // Fallback: trigger download
     const a = document.createElement('a');
     a.href = imgUrl;
     a.download = 'mindgame-progress.png';
@@ -172,31 +237,42 @@ function ShareModal({ onClose, user, fitnessScore, streak, xp, language }) {
   return (
     <>
       <div className="fixed inset-0 z-50 bg-black/70" onClick={onClose} />
-      <div className="fixed inset-x-0 bottom-0 z-50 bg-dark-800 border-t border-dark-600 rounded-t-2xl px-4 pt-5 pb-8 animate-fade-in">
-        <div className="flex items-center justify-between mb-4">
+      <div
+        className="fixed inset-x-0 bottom-0 z-50 bg-dark-800 border-t border-dark-600 rounded-t-2xl animate-fade-in"
+        style={{ maxHeight: '88vh', display: 'flex', flexDirection: 'column' }}
+      >
+        {/* Header — fixed */}
+        <div className="flex items-center justify-between px-4 pt-5 pb-3 shrink-0">
           <p className="font-bold text-ink text-sm">{t.shareBtn}</p>
           <button onClick={onClose} className="text-slt hover:text-ink text-xl leading-none">×</button>
         </div>
 
-        {/* Card preview */}
-        <div className="overflow-hidden rounded-2xl mb-4 flex justify-center bg-dark-900">
-          <div style={{ transform: 'scale(0.82)', transformOrigin: 'top center', marginBottom: -54 }}>
-            <ShareCard
-              cardRef={cardRef}
-              user={user} fitnessScore={fitnessScore}
-              streak={streak} xp={xp} language={language}
-            />
+        {/* Scrollable card preview */}
+        <div className="overflow-y-auto flex-1 px-4">
+          <div className="overflow-hidden rounded-2xl flex justify-center bg-dark-900 mb-1">
+            <div style={{ transform: 'scale(0.78)', transformOrigin: 'top center', marginBottom: -68 }}>
+              <ShareCard
+                cardRef={cardRef}
+                user={user} fitnessScore={fitnessScore}
+                streak={streak} xp={xp}
+                achievements={achievements}
+                language={language}
+              />
+            </div>
           </div>
         </div>
 
-        <button
-          onClick={handleShare}
-          disabled={busy || !imgUrl}
-          className="w-full py-3.5 rounded-2xl bg-brand-600 text-white font-bold text-sm disabled:opacity-50 transition-opacity flex items-center justify-center gap-2"
-        >
-          <Share2 size={15} />
-          {busy ? t.shareGenerating : t.shareSave}
-        </button>
+        {/* Button — always pinned at bottom */}
+        <div className="px-4 pt-3 pb-8 shrink-0">
+          <button
+            onClick={handleShare}
+            disabled={busy || !imgUrl}
+            className="w-full py-3.5 rounded-2xl bg-brand-600 text-white font-bold text-sm disabled:opacity-50 transition-opacity flex items-center justify-center gap-2"
+          >
+            <Share2 size={15} />
+            {busy ? t.shareGenerating : t.shareSave}
+          </button>
+        </div>
       </div>
     </>
   );
@@ -483,6 +559,7 @@ function ProgressPage() {
           fitnessScore={data.fitnessScore}
           streak={data.streak}
           xp={user?.xp}
+          achievements={data.achievements || []}
           language={language}
         />
       )}
