@@ -37,7 +37,7 @@ async function checkCheckInAchievements(userId) {
     prisma.checkIn.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
-      select: { createdAt: true, reflection: true },
+      select: { createdAt: true, reflection: true, type: true },
     }),
     prisma.userAchievement.findMany({
       where: { userId },
@@ -49,12 +49,22 @@ async function checkCheckInAchievements(userId) {
   const toAward = [];
 
   // ── first_checkin ──────────────────────────────────────────────────────
-  if (!earned.has('first_checkin') && checkIns.length === 1) {
+  const realCheckIns = checkIns.filter(c => c.type !== 'freeze');
+  if (!earned.has('first_checkin') && realCheckIns.length === 1) {
     toAward.push('first_checkin');
   }
 
   // ── streak achievements ────────────────────────────────────────────────
   const streak = calculateStreak(checkIns);
+
+  // Award a freeze every 7-day streak milestone (capped at 2)
+  if (streak > 0 && streak % 7 === 0) {
+    await prisma.user.updateMany({
+      where: { id: userId, streakFreezeCount: { lt: 2 } },
+      data: { streakFreezeCount: { increment: 1 } },
+    });
+  }
+
   for (const [key, required] of [['streak_3', 3], ['streak_7', 7], ['streak_14', 14], ['streak_30', 30]]) {
     if (!earned.has(key) && streak >= required) {
       toAward.push(key);

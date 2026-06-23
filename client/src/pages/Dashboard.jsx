@@ -4,7 +4,7 @@ import Navbar from '../components/Navbar';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
-import { Flame, Zap, CheckCircle2, Wind, Trophy, ClipboardList, Gamepad2 } from 'lucide-react';
+import { Flame, Zap, CheckCircle2, Wind, Trophy, ClipboardList, Gamepad2, Snowflake } from 'lucide-react';
 import { DRILLS, DRILL_TYPE_COLORS } from '../data/drills';
 
 const TRIAL_DAYS = 14;
@@ -39,6 +39,14 @@ function Dashboard() {
   const [drillExpanded, setDrillExpanded] = useState(false);
   const [drillLoading, setDrillLoading]   = useState(false);
 
+  const [freezeCount,       setFreezeCount]      = useState(null);
+  const [totalCheckIns,     setTotalCheckIns]     = useState(0);
+  const [showFreezeConfirm, setShowFreezeConfirm] = useState(false);
+  const [freezeLoading,     setFreezeLoading]     = useState(false);
+  const [missedDismissed,   setMissedDismissed]   = useState(
+    () => localStorage.getItem('arjun_missed_dismissed') === new Date().toISOString().slice(0, 10)
+  );
+
   useEffect(() => {
     apiFetch('/api/checkin/today', { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : null)
@@ -47,7 +55,11 @@ function Dashboard() {
 
     apiFetch('/api/progress/summary?days=7', { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : null)
-      .then(data => setStreak(data?.streak ?? 0))
+      .then(data => {
+        setStreak(data?.streak ?? 0);
+        setFreezeCount(data?.freezeCount ?? 0);
+        setTotalCheckIns(data?.totalCheckIns ?? 0);
+      })
       .catch(() => {});
 
     apiFetch('/api/drills/today', { headers: { Authorization: `Bearer ${token}` } })
@@ -70,12 +82,42 @@ function Dashboard() {
     }
   }
 
+  async function useFreeze() {
+    setFreezeLoading(true);
+    try {
+      const res = await apiFetch('/api/streaks/freeze', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setStreak(data.streak);
+        setFreezeCount(data.freezeCount);
+        setShowFreezeConfirm(false);
+        const today = new Date().toISOString().slice(0, 10);
+        localStorage.setItem('arjun_missed_dismissed', today);
+        setMissedDismissed(true);
+      }
+    } finally {
+      setFreezeLoading(false);
+    }
+  }
+
+  function dismissMissed() {
+    localStorage.setItem('arjun_missed_dismissed', new Date().toISOString().slice(0, 10));
+    setMissedDismissed(true);
+  }
+
   const hour = new Date().getHours();
   const greeting = hour < 12
     ? (hi ? 'सुप्रभात' : 'Good morning')
     : hour < 17
     ? (hi ? 'नमस्ते' : 'Good afternoon')
     : (hi ? 'शुभ संध्या' : 'Good evening');
+
+  const ts = translations[language].streak;
+  const missedYesterday = streak === 0 && todayCheckIn === false && totalCheckIns > 0;
+  const showDayOne      = (streak ?? 0) <= 1 && todayCheckIn !== null;
 
   const TOOLS = [
     { Icon: Wind,          label: hi ? 'श्वास'         : 'Breathing',      to: '/breathing', color: 'text-brand-600' },
@@ -172,6 +214,59 @@ function Dashboard() {
             )}
           </div>
         </div>
+
+        {/* ── TRAINING STREAK ───────────────────────────────────── */}
+        {streak !== null && (
+          <div className="mb-7">
+            <SectionLabel>{hi ? 'ट्रेनिंग स्ट्रीक' : 'Training Streak'}</SectionLabel>
+            <div className="px-4">
+              <div className="bg-dark-800 border border-dark-600 rounded-2xl p-5">
+
+                {missedYesterday && !missedDismissed && (
+                  <div className="flex items-start justify-between gap-2 mb-4 bg-fire-500/10 border border-fire-500/20 rounded-xl px-3 py-2.5">
+                    <p className="text-xs text-fire-600 leading-relaxed flex-1">
+                      {freezeCount > 0 ? ts.missedWithFreeze : ts.missedNoFreeze}
+                    </p>
+                    <button onClick={dismissMissed} className="text-slt hover:text-ink shrink-0 text-base leading-none ml-1">×</button>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2 mb-1">
+                  <Flame size={20} className={streak > 0 ? 'text-fire-500' : 'text-slt'} />
+                  <span className="text-3xl font-black text-ink leading-none">{streak}</span>
+                  <span className="text-sm font-medium text-slt ml-1">
+                    {hi ? 'दिन की ट्रेनिंग स्ट्रीक' : 'day training streak'}
+                  </span>
+                </div>
+                <p className="text-xs text-slt mb-1">{ts.consecutiveDays}</p>
+
+                {showDayOne && (
+                  <p className="text-xs text-brand-600 font-medium mb-1">{ts.dayOne}</p>
+                )}
+
+                {todayCheckIn === false && freezeCount !== null && (
+                  <div className="flex items-center gap-2 mt-3 pt-3 border-t border-dark-600">
+                    <Snowflake size={14} className={freezeCount > 0 ? 'text-sky-400' : 'text-dark-500'} />
+                    {freezeCount > 0 ? (
+                      <>
+                        <span className="text-xs text-slt flex-1">{ts.freezeAvailable(freezeCount)}</span>
+                        <button
+                          onClick={() => setShowFreezeConfirm(true)}
+                          className="text-xs font-semibold text-brand-600 hover:text-brand-500 transition-colors"
+                        >
+                          {ts.useFreezeBtn}
+                        </button>
+                      </>
+                    ) : (
+                      <span className="text-xs text-dark-500">{ts.freezeEmpty}</span>
+                    )}
+                  </div>
+                )}
+
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ── YOUR COACH ─────────────────────────────────────── */}
         <div className="mb-7">
@@ -290,6 +385,30 @@ function Dashboard() {
           <p className="text-center text-xs text-slt pb-2">
             {hi ? `🆓 ${trialDaysRemaining} दिन का फ्री ट्रायल` : `🆓 Free trial · ${trialDaysRemaining} days left`}
           </p>
+        )}
+
+        {showFreezeConfirm && (
+          <>
+            <div className="fixed inset-0 z-50 bg-black/60" onClick={() => setShowFreezeConfirm(false)} />
+            <div className="fixed bottom-0 inset-x-0 z-50 bg-dark-800 border-t border-dark-600 rounded-t-2xl px-5 py-6 animate-fade-in">
+              <p className="text-base font-semibold text-ink mb-5">{ts.freezeConfirm(freezeCount)}</p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowFreezeConfirm(false)}
+                  className="flex-1 py-3 rounded-2xl border border-dark-500 text-ink text-sm font-medium hover:bg-dark-700 transition-colors"
+                >
+                  {hi ? 'रद्द करें' : 'Cancel'}
+                </button>
+                <button
+                  onClick={useFreeze}
+                  disabled={freezeLoading}
+                  className="flex-1 py-3 rounded-2xl bg-brand-600 text-white text-sm font-semibold hover:bg-brand-700 transition-colors disabled:opacity-60"
+                >
+                  {freezeLoading ? '…' : ts.useFreezeBtn}
+                </button>
+              </div>
+            </div>
+          </>
         )}
 
       </main>

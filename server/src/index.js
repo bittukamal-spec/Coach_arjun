@@ -33,6 +33,7 @@ app.use('/api/debrief',      debriefRoutes);
 app.use('/api/games',         gamesRoutes);
 app.use('/api/profile-intro', profileIntroRoutes);
 app.use('/api/sessions',      sessionsRoutes);
+app.use('/api/streaks',       require('./routes/streaks'));
 
 // Health check — useful to confirm the server is running
 app.get('/api/health', (_req, res) => {
