@@ -502,121 +502,302 @@ function StroopFocus({ onDone }) {
 }
 
 // ── GAME 3: Reaction Ball ──────────────────────────────────────────────────────
-// Go/No-Go paradigm — tap on green, wait through the anticipation phase
+// Multi-level Go/No-Go: Classic (5r) → Athlete (7r + distractors) → Elite (10r + No-Go)
+
+const REACTION_LEVELS = {
+  1: { rounds: 5,  minWait: 1200, maxWait: 3500, label: 'Classic', sub: '5 rounds',                        noGo: false, distractor: false },
+  2: { rounds: 7,  minWait: 700,  maxWait: 2200, label: 'Athlete', sub: '7 rounds · visual distractors',   noGo: false, distractor: true  },
+  3: { rounds: 10, minWait: 350,  maxWait: 1500, label: 'Elite',   sub: '10 rounds · No-Go trials',        noGo: true,  distractor: false  },
+};
+function rxHiKey(lvl)       { return lvl === 1 ? 'hi_reaction' : `hi_reaction_${lvl}`; }
+function getRxBest(lvl)     { return parseInt(localStorage.getItem(rxHiKey(lvl)) || '9999'); }
+function saveRxBest(lvl, v) { if (v < getRxBest(lvl)) localStorage.setItem(rxHiKey(lvl), v); }
 
 function ReactionBall({ onDone, sportProfile }) {
   const sp = sportProfile;
-  const [phase, setPhase]   = useState('ready'); // ready|waiting|green|result|done
-  const [round, setRound]   = useState(1);
-  const [times, setTimes]   = useState([]);
-  const [lastMs, setLastMs] = useState(null);
-  const [early, setEarly]   = useState(false);
+
+  function computeUnlocked() {
+    const h = getRxBest(1);
+    return h <= sp.reactionElite ? 3 : h <= sp.reactionGood ? 2 : 1;
+  }
+
+  const [difficulty,   setDifficulty]   = useState(1);
+  const [phase,        setPhase]        = useState('select');
+  const [round,        setRound]        = useState(1);
+  const [times,        setTimes]        = useState([]);
+  const [trialResult,  setTrialResult]  = useState(null);
+  const [lastMs,       setLastMs]       = useState(null);
+  const [noGoErrors,   setNoGoErrors]   = useState(0);
+  const [noGoOks,      setNoGoOks]      = useState(0);
+  const [prevBest,     setPrevBest]     = useState(9999);
+  const [prevUnlocked, setPrevUnlocked] = useState(() => computeUnlocked());
+
   const waitRef  = useRef(null);
+  const nogoRef  = useRef(null);
   const startRef = useRef(null);
   const doneRef  = useRef(false);
-
-  function beginWait() {
-    setPhase('waiting');
-    setEarly(false);
-    setLastMs(null);
-    const delay = 1500 + Math.random() * 2500;
-    waitRef.current = setTimeout(() => setPhase('green'), delay);
-  }
+  const timesRef = useRef([]);
+  const diffRef  = useRef(1);
 
   useEffect(() => {
     if (phase === 'green') startRef.current = performance.now();
   }, [phase]);
 
-  useEffect(() => () => clearTimeout(waitRef.current), []);
+  useEffect(() => () => {
+    clearTimeout(waitRef.current);
+    clearTimeout(nogoRef.current);
+  }, []);
+
+  function beginWait() {
+    const c = REACTION_LEVELS[diffRef.current];
+    setPhase('waiting');
+    setTrialResult(null);
+    setLastMs(null);
+    const isNoGo = c.noGo && Math.random() < 0.30;
+    const delay  = c.minWait + Math.random() * (c.maxWait - c.minWait);
+    waitRef.current = setTimeout(() => {
+      if (isNoGo) {
+        setPhase('nogo');
+        nogoRef.current = setTimeout(() => {
+          setNoGoOks(n => n + 1);
+          setTrialResult('nogo_ok');
+          setPhase('result');
+          setTimeout(beginWait, 800);
+        }, 1000);
+      } else if (c.distractor && Math.random() < 0.40) {
+        setPhase('distractor');
+        waitRef.current = setTimeout(() => setPhase('green'), 200 + Math.random() * 200);
+      } else {
+        setPhase('green');
+      }
+    }, delay);
+  }
 
   function tap() {
-    if (phase === 'waiting') {
-      clearTimeout(waitRef.current);
-      setEarly(true);
+    if (phase === 'nogo') {
+      clearTimeout(nogoRef.current);
+      setNoGoErrors(e => e + 1);
+      setTrialResult('nogo_err');
       setPhase('result');
-      setTimeout(beginWait, 1600);
+      setTimeout(beginWait, 1300);
+      return;
+    }
+    if (phase === 'waiting' || phase === 'distractor') {
+      clearTimeout(waitRef.current);
+      setTrialResult('early');
+      setPhase('result');
+      setTimeout(beginWait, 1500);
       return;
     }
     if (phase !== 'green') return;
     const ms = Math.round(performance.now() - startRef.current);
     setLastMs(ms);
-    const newTimes = [...times, ms];
+    const newTimes = [...timesRef.current, ms];
+    timesRef.current = newTimes;
     setTimes(newTimes);
+    setTrialResult('go');
     setPhase('result');
-    if (round >= 5) {
+    const lvl    = diffRef.current;
+    const rounds = REACTION_LEVELS[lvl].rounds;
+    if (newTimes.length >= rounds) {
       if (doneRef.current) return;
       doneRef.current = true;
       const avg = Math.round(newTimes.reduce((a, b) => a + b, 0) / newTimes.length);
-      const hi = parseInt(localStorage.getItem('hi_reaction') || '9999');
-      if (avg < hi) localStorage.setItem('hi_reaction', avg);
+      saveRxBest(lvl, avg);
+      setRound(r => r + 1);
       setTimeout(() => { setPhase('done'); onDone(avg); }, 1200);
     } else {
-      setTimeout(() => { setRound(r => r + 1); beginWait(); }, 1200);
+      setRound(r => r + 1);
+      setTimeout(beginWait, 1000);
     }
   }
 
-  function reset() {
-    doneRef.current = false;
+  function startGame(lvl) {
+    doneRef.current  = false;
     clearTimeout(waitRef.current);
+    clearTimeout(nogoRef.current);
+    timesRef.current = [];
+    diffRef.current  = lvl;
+    setDifficulty(lvl);
+    setPrevBest(getRxBest(lvl));
+    setPrevUnlocked(computeUnlocked());
     setPhase('ready');
     setRound(1);
     setTimes([]);
+    setTrialResult(null);
     setLastMs(null);
-    setEarly(false);
+    setNoGoErrors(0);
+    setNoGoOks(0);
   }
 
-  const hi = parseInt(localStorage.getItem('hi_reaction') || '0');
+  const cfg      = REACTION_LEVELS[difficulty];
+  const unlocked = computeUnlocked();
 
-  if (phase === 'ready') return (
-    <div className="text-center py-2">
-      <p className="text-slt text-sm mb-1">Wait for the circle to turn <span className="text-win-400 font-bold">GREEN</span>.</p>
-      <p className="text-slt text-xs mb-3 leading-relaxed">{sp.reactionContext}</p>
-      <p className="text-slt text-xs mb-5">5 rounds · Don't tap early!</p>
-      {hi > 0 && hi < 9999 && <p className="text-xs text-amber-400 mb-4">Your best: {hi}ms avg</p>}
-      <button onClick={() => { doneRef.current = false; beginWait(); }} className="btn-primary">Start →</button>
+  // ── Level select ──
+  if (phase === 'select') return (
+    <div className="py-2">
+      <p className="text-center text-slt text-xs mb-4 leading-relaxed">{sp.reactionContext}</p>
+      <div className="space-y-2">
+        {[1, 2, 3].map(lvl => {
+          const c  = REACTION_LEVELS[lvl];
+          const ok = lvl <= unlocked;
+          const b  = getRxBest(lvl);
+          return (
+            <button
+              key={lvl}
+              onClick={() => ok && startGame(lvl)}
+              disabled={!ok}
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl border transition-all ${
+                ok
+                  ? 'bg-dark-700 border-dark-500 active:scale-[0.99] cursor-pointer'
+                  : 'bg-dark-800 border-dark-700 opacity-40 cursor-not-allowed'
+              }`}
+            >
+              <div className="text-left">
+                <p className="text-sm font-bold text-ink">{c.label}</p>
+                <p className="text-xs text-slt">{c.sub}</p>
+              </div>
+              <div className="text-right shrink-0 ml-2">
+                {!ok  && <span className="text-xs text-slt">🔒</span>}
+                {ok && b < 9999 && <span className="text-xs text-amber-400">{b}ms best</span>}
+                {ok && b === 9999 && <span className="text-xs font-semibold text-brand-600">Play →</span>}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+      <p className="text-center text-xs text-slt mt-3 leading-relaxed">
+        Beat the reaction threshold to unlock harder levels.
+      </p>
     </div>
   );
 
+  // ── Ready ──
+  if (phase === 'ready') return (
+    <div className="text-center py-2">
+      <p className="text-sm font-bold text-ink mb-2">{cfg.label} Mode</p>
+      {cfg.distractor && <p className="text-xs text-amber-400 mb-1.5">⚠ Amber flash = Don't tap!</p>}
+      {cfg.noGo && <p className="text-xs text-red-400 mb-1.5">✕ Red circle = Don't tap!</p>}
+      <p className="text-xs text-slt mb-5">{cfg.rounds} rounds · Tap only when GREEN</p>
+      <button onClick={() => beginWait()} className="btn-primary">Start →</button>
+    </div>
+  );
+
+  // ── Done ──
   if (phase === 'done') {
-    const newHi = parseInt(localStorage.getItem('hi_reaction') || '9999');
-    const avg = Math.round(times.reduce((a, b) => a + b, 0) / times.length);
+    const avg         = Math.round(times.reduce((a, b) => a + b, 0) / times.length);
+    const isNewBest   = avg < prevBest;
+    const newUnlocked = computeUnlocked();
+    const justUnlocked = newUnlocked > prevUnlocked;
     const rating =
-      avg < sp.reactionElite ? `🏆 ${sp.reactionEliteLabel}` :
-      avg < sp.reactionGood  ? '🔥 Strong' :
-      avg < sp.reactionGood + 70 ? '💪 Good' : '📈 Train Daily';
+      avg < sp.reactionElite         ? `🏆 ${sp.reactionEliteLabel}` :
+      avg < sp.reactionGood          ? '🔥 Strong' :
+      avg < sp.reactionGood + 70     ? '💪 Good' : '📈 Train Daily';
+    const stdDev = times.length > 1
+      ? Math.round(Math.sqrt(times.reduce((s, t) => s + (t - avg) ** 2, 0) / times.length))
+      : null;
+    const noGoTotal = noGoOks + noGoErrors;
     return (
       <div className="text-center py-2">
-        <p className="text-4xl font-black text-ink mb-1">{avg}<span className="text-slt text-xl">ms avg</span></p>
-        <p className="text-lg text-red-400 font-semibold mb-1">{rating}</p>
-        {avg <= newHi && hi > avg && <p className="text-xs text-win-400 mb-1">🎉 New personal best!</p>}
-        <div className="flex justify-center gap-2 flex-wrap my-3">
+        <p className="text-4xl font-black text-ink mb-1">
+          {avg}<span className="text-slt text-xl">ms avg</span>
+        </p>
+        <p className="text-lg font-semibold mb-1">{rating}</p>
+        {isNewBest   && <p className="text-xs text-win-400 mb-1">🎉 New personal best!</p>}
+        {justUnlocked && (
+          <p className="text-xs text-brand-500 font-semibold mb-1">
+            🔓 {REACTION_LEVELS[newUnlocked].label} level unlocked!
+          </p>
+        )}
+        {stdDev !== null && (
+          <p className="text-xs text-slt mb-2">Consistency: ±{stdDev}ms</p>
+        )}
+        <div className="flex justify-center gap-1.5 flex-wrap my-3">
           {times.map((t, i) => (
-            <span key={i} className="text-xs bg-dark-700 px-2 py-1 rounded-lg text-slt">R{i+1}: {t}ms</span>
+            <span
+              key={i}
+              className={`text-xs px-2 py-1 rounded-lg ${
+                t < sp.reactionElite ? 'bg-win-500/20 text-win-400' :
+                t < sp.reactionGood  ? 'bg-amber-500/20 text-amber-400' :
+                'bg-dark-700 text-slt'
+              }`}
+            >
+              {t}ms
+            </span>
           ))}
         </div>
+        {cfg.noGo && noGoTotal > 0 && (
+          <p className="text-xs text-slt mb-2">
+            No-Go control: {noGoOks}/{noGoTotal} correct
+          </p>
+        )}
         <p className="text-xs text-slt mb-5">{sp.reactionBenchmark}</p>
-        <button onClick={reset} className="btn-secondary text-sm">Play Again</button>
+        <div className="flex gap-3 justify-center">
+          <button onClick={() => setPhase('select')} className="btn-secondary text-sm px-4">
+            ← Levels
+          </button>
+          <button onClick={() => startGame(difficulty)} className="btn-primary text-sm px-4">
+            Play Again
+          </button>
+        </div>
       </div>
     );
   }
 
+  // ── Playing ──
   return (
     <div className="flex flex-col items-center py-2">
-      <p className="text-sm text-slt mb-6">Round {round} of 5</p>
+      <div className="flex gap-1.5 mb-4">
+        {Array.from({ length: cfg.rounds }, (_, i) => (
+          <div
+            key={i}
+            className={`w-2 h-2 rounded-full transition-all ${
+              i < times.length ? 'bg-win-500' : 'bg-dark-600'
+            }`}
+          />
+        ))}
+      </div>
+      <p className="text-sm text-slt mb-4">
+        Round {round} of {cfg.rounds}
+        {cfg.noGo && noGoErrors > 0 && (
+          <span className="text-red-400 ml-2">·  {noGoErrors} error{noGoErrors > 1 ? 's' : ''}</span>
+        )}
+      </p>
       <button
         onClick={tap}
         className={`w-44 h-44 rounded-full flex items-center justify-center text-xl font-black transition-all duration-100 active:scale-95 select-none ${
-          phase === 'green'  ? 'bg-win-500 shadow-[0_0_50px_rgba(16,185,129,0.5)] text-white scale-110' :
-          phase === 'result' ? (early ? 'bg-red-900/60 text-red-300 border-2 border-red-500/30' : 'bg-dark-700 border-2 border-win-500/40 text-win-400') :
-          'bg-dark-700 border-2 border-dark-500 text-dark-600 cursor-default'
+          phase === 'green'
+            ? 'bg-win-500 shadow-[0_0_50px_rgba(16,185,129,0.5)] text-white scale-110'
+          : phase === 'nogo'
+            ? 'bg-red-600 shadow-[0_0_40px_rgba(239,68,68,0.35)] text-white'
+          : phase === 'distractor'
+            ? 'bg-amber-500 shadow-[0_0_30px_rgba(245,158,11,0.35)] text-white'
+          : (trialResult === 'early' || trialResult === 'nogo_err')
+            ? 'bg-red-900/60 border-2 border-red-500/30 text-red-300'
+          : phase === 'result'
+            ? 'bg-dark-700 border-2 border-win-500/40 text-win-400'
+          : 'bg-dark-700 border-2 border-dark-500 text-dark-600'
         }`}
       >
-        {phase === 'waiting' && <span className="text-slt text-4xl">●</span>}
-        {phase === 'green'   && sp.reactionAction}
-        {phase === 'result'  && (early ? '⚡ Early!' : `${lastMs}ms`)}
+        {phase === 'waiting'                               && <span className="text-slt text-5xl select-none">●</span>}
+        {phase === 'distractor'                            && <span className="text-5xl select-none">●</span>}
+        {phase === 'nogo'                                  && <span className="text-4xl select-none">✕</span>}
+        {phase === 'green'                                 && <span className="font-black">{sp.reactionAction}</span>}
+        {phase === 'result' && trialResult === 'go'        && <span className="text-2xl">{lastMs}ms</span>}
+        {phase === 'result' && trialResult === 'nogo_ok'   && <span className="text-2xl">✓</span>}
+        {phase === 'result' && trialResult === 'early'     && <span className="text-2xl">⚡</span>}
+        {phase === 'result' && trialResult === 'nogo_err'  && <span className="text-2xl">❌</span>}
       </button>
-      {phase === 'waiting' && <p className="text-slt text-sm mt-5">Wait for green…</p>}
-      {phase === 'green'   && <p className="text-win-400 text-sm mt-5 animate-pulse">Now!</p>}
+      <div className="h-8 mt-4 flex items-center justify-center">
+        {phase === 'waiting'                                && <p className="text-slt text-sm">Wait for green…</p>}
+        {phase === 'distractor'                             && <p className="text-amber-400 text-sm font-semibold">Don't tap!</p>}
+        {phase === 'nogo'                                   && <p className="text-red-400 text-sm font-bold">HOLD — No-Go!</p>}
+        {phase === 'green'                                  && <p className="text-win-400 text-sm animate-pulse font-semibold">Tap now!</p>}
+        {phase === 'result' && trialResult === 'go'         && <p className="text-win-400 text-xs">{lastMs}ms</p>}
+        {phase === 'result' && trialResult === 'nogo_ok'    && <p className="text-win-400 text-xs">Good self-control!</p>}
+        {phase === 'result' && trialResult === 'early'      && <p className="text-red-400 text-xs">Too early</p>}
+        {phase === 'result' && trialResult === 'nogo_err'   && <p className="text-red-400 text-xs">Should have held!</p>}
+      </div>
     </div>
   );
 }
@@ -1091,18 +1272,23 @@ function GamesPage() {
 }
 
 function getHighScore(gameId) {
+  if (gameId === 'reaction_ball') {
+    const best = Math.min(
+      parseInt(localStorage.getItem('hi_reaction')   || '9999'),
+      parseInt(localStorage.getItem('hi_reaction_2') || '9999'),
+      parseInt(localStorage.getItem('hi_reaction_3') || '9999'),
+    );
+    return best < 9999 ? `${best}ms avg` : null;
+  }
   const keys = {
     concentration_grid: 'hi_grid',
     stroop_focus:       'hi_stroop',
-    reaction_ball:      'hi_reaction',
     thought_buster:     'hi_thought',
     focus_filter:       'hi_filter',
   };
   const raw = localStorage.getItem(keys[gameId]);
   if (!raw) return null;
-  const v = parseInt(raw);
-  if (gameId === 'reaction_ball') return v === 9999 ? null : `${v}ms avg`;
-  return v;
+  return parseInt(raw);
 }
 
 export default GamesPage;
