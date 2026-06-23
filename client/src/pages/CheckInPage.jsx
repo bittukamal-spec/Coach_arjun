@@ -6,6 +6,15 @@ import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
 import { Zap } from 'lucide-react';
 
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const STREAK_IDENTITY = {
+  streak_3:  'badge3',
+  streak_7:  'badge7',
+  streak_14: 'badge14',
+  streak_30: 'badge30',
+};
+
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
 const METRICS = [
@@ -198,6 +207,9 @@ function CheckInPage() {
                   <div>
                     <p className="font-semibold text-fire-600 text-sm">Achievement unlocked!</p>
                     <p className="text-ink text-sm font-bold">{a.name}</p>
+                    {STREAK_IDENTITY[a.key] && (
+                      <p className="text-xs text-slt mt-0.5">{translations[language].streak[STREAK_IDENTITY[a.key]]}</p>
+                    )}
                   </div>
                 </div>
               ))}

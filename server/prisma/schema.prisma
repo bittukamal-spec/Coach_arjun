@@ -48,7 +48,9 @@ model User {
   reminderOptIn Boolean  @default(false)
 
   // Gamification
-  xp            Int      @default(0)
+  xp                  Int       @default(0)
+  streakFreezeCount   Int       @default(1)
+  lastFreezeUsedAt    DateTime?
 
   // OCEAN Big Five personality (1–5 scale, null = not taken yet)
   oceanO        Int?   // Openness
@@ -88,6 +90,7 @@ model CheckIn {
   sleep       String?  // "poor" | "ok" | "great"
   reflection  String?  // optional free-text, max 500 chars
   gratitude   String?  // optional: one win from today, max 300 chars
+  type        String   @default("checkin")   // "checkin" | "freeze"
   createdAt   DateTime @default(now())
 }
 

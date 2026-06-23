@@ -59,32 +59,34 @@ router.get('/summary', authenticate, async (req, res) => {
   const days = [7, 30].includes(parseInt(req.query.days)) ? parseInt(req.query.days) : 7;
 
   try {
-    const [periodCheckIns, allCheckIns, thisWeekCheckIns, prevWeekCheckIns, totalCheckIns] =
+    const [periodCheckIns, allCheckIns, thisWeekCheckIns, prevWeekCheckIns, totalCheckIns, user] =
       await Promise.all([
-        // Chart data for selected period
+        // Chart data for selected period (exclude freeze entries)
         prisma.checkIn.findMany({
-          where: { userId: req.userId, createdAt: { gte: daysAgo(days) } },
+          where: { userId: req.userId, createdAt: { gte: daysAgo(days) }, type: { not: 'freeze' } },
           orderBy: { createdAt: 'asc' },
           select: { mood: true, focus: true, confidence: true, createdAt: true },
         }),
-        // All check-ins for streak calculation
+        // All check-ins for streak calculation (includes freeze entries)
         prisma.checkIn.findMany({
           where: { userId: req.userId },
           orderBy: { createdAt: 'desc' },
           select: { createdAt: true },
         }),
-        // This week for averages
+        // This week for averages (exclude freeze entries)
         prisma.checkIn.findMany({
-          where: { userId: req.userId, createdAt: { gte: daysAgo(7) } },
+          where: { userId: req.userId, createdAt: { gte: daysAgo(7) }, type: { not: 'freeze' } },
           select: { mood: true, focus: true, confidence: true },
         }),
-        // Previous week for trend comparison
+        // Previous week for trend comparison (exclude freeze entries)
         prisma.checkIn.findMany({
-          where: { userId: req.userId, createdAt: { gte: daysAgo(14), lt: daysAgo(7) } },
+          where: { userId: req.userId, createdAt: { gte: daysAgo(14), lt: daysAgo(7) }, type: { not: 'freeze' } },
           select: { mood: true, focus: true, confidence: true },
         }),
-        // Total ever
-        prisma.checkIn.count({ where: { userId: req.userId } }),
+        // Total ever (exclude freeze entries)
+        prisma.checkIn.count({ where: { userId: req.userId, type: { not: 'freeze' } } }),
+        // User for freeze count
+        prisma.user.findUnique({ where: { id: req.userId }, select: { streakFreezeCount: true } }),
       ]);
 
     const chartData = periodCheckIns.map(c => ({
@@ -99,6 +101,7 @@ router.get('/summary', authenticate, async (req, res) => {
       days,
       streak:         calculateStreak(allCheckIns),
       totalCheckIns,
+      freezeCount:    user?.streakFreezeCount ?? 0,
       weeklyAvg: {
         mood:       avg(thisWeekCheckIns, 'mood'),
         focus:      avg(thisWeekCheckIns, 'focus'),
