@@ -403,6 +403,11 @@ export const translations = {
       noDataSub: 'Complete at least 2 daily check-ins to see your trend charts.',
       startCheckin: 'Start a Check-in →',
       tooltipLabel: (v) => `${v}/5`,
+      shareBtn: 'Share Progress Card',
+      shareTitle: 'My Mental Fitness',
+      shareGenerating: 'Generating…',
+      shareSave: 'Save Image',
+      shareClose: 'Close',
     },
     streak: {
       consecutiveDays:  'consecutive days of mental training',
@@ -954,6 +959,11 @@ export const translations = {
       noDataSub: 'ट्रेंड चार्ट देखने के लिए कम से कम 2 दैनिक चेक-इन करें।',
       startCheckin: 'चेक-इन शुरू करें →',
       tooltipLabel: (v) => `${v}/5`,
+      shareBtn: 'प्रगति कार्ड शेयर करें',
+      shareTitle: 'मेरी मानसिक फिटनेस',
+      shareGenerating: 'बन रहा है…',
+      shareSave: 'इमेज सेव करें',
+      shareClose: 'बंद करें',
     },
     streak: {
       consecutiveDays:  'लगातार मानसिक ट्रेनिंग के दिन',
