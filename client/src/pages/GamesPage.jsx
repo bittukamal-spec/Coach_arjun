@@ -215,7 +215,7 @@ const GAMES = [
     duration: '5 rounds',
     description: 'Tap as fast as you can when the ball appears.',
     descHi: 'बॉल दिखते ही जितनी जल्दी हो सके टैप करें।',
-    getTip: (sp) => `${sp.reactionContext} Reaction speed is trainable — 3 weeks of practice can cut 30–50ms.`,
+    getTip: () => 'Reaction speed is trainable — 3 weeks of daily practice can cut 30–50ms off your average.',
   },
   {
     id: 'thought_buster',
@@ -657,7 +657,11 @@ function ReactionBall({ onDone, sportProfile }) {
                 <p className="text-xs text-slt">{c.sub}</p>
               </div>
               <div className="text-right shrink-0 ml-2">
-                {!ok  && <span className="text-xs text-slt">🔒</span>}
+                {!ok && (
+                  <span className="text-xs text-slt text-right leading-snug">
+                    🔒 Easy best<br />&lt;{lvl === 2 ? '450' : '320'}ms
+                  </span>
+                )}
                 {ok && b < 9999 && <span className="text-xs text-amber-400">{b}ms best</span>}
                 {ok && b === 9999 && <span className="text-xs font-semibold text-brand-600">Play →</span>}
               </div>
@@ -666,7 +670,7 @@ function ReactionBall({ onDone, sportProfile }) {
         })}
       </div>
       <p className="text-center text-xs text-slt mt-3 leading-relaxed">
-        Easy best &lt;450ms → Medium · &lt;320ms → Hard
+        Get your Easy average below 450ms to unlock Medium, below 320ms for Hard.
       </p>
     </div>
   );
