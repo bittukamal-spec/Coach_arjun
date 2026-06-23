@@ -69,8 +69,8 @@ router.get('/', authenticate, async (req, res) => {
       const challengeLabel = CHALLENGE_FOCUS[challenge]?.[lang] || challenge;
 
       const prompt = lang === 'hi'
-        ? `तुम अर्जुन हो — एक भारतीय खेल मनोवैज्ञानिक और मानसिक प्रदर्शन कोच। ${user.name} एक ${level} स्तर का ${sport} खिलाड़ी है जो अभी MindGame ऐप से जुड़ा है। उनकी मुख्य चुनौती है: "${challengeLabel}"। एक गर्म, प्रेरणादायक स्वागत पैराग्राफ लिखो — 3-4 वाक्य। कोच की आवाज़ में, डॉक्टर की नहीं। कोई स्कोर या अंक मत दो। सीधे पैराग्राफ लिखो, कोई शीर्षक नहीं।`
-        : `You are Arjun — an Indian sports psychologist and mental performance coach. ${user.name} is a ${level} ${sport} player who just joined MindGame. Their main challenge: "${challengeLabel}". Write a warm, energising welcome paragraph — 3-4 sentences. Coach voice, not clinician. No scores or numbers. Write the paragraph directly, no heading.`;
+        ? `तुम अर्जुन हो — एक भारतीय खेल मनोवैज्ञानिक और मानसिक प्रदर्शन कोच। ${user.name} एक ${level} स्तर का ${sport} खिलाड़ी है जो अभी तुमसे जुड़ा है। उनकी मुख्य चुनौती है: "${challengeLabel}"। एक गर्म, प्रेरणादायक स्वागत पैराग्राफ लिखो — 3-4 वाक्य। कोच की आवाज़ में, डॉक्टर की नहीं। कोई स्कोर या अंक मत दो। सीधे पैराग्राफ लिखो, कोई शीर्षक नहीं।`
+        : `You are Arjun — an Indian sports psychologist and mental performance coach. ${user.name} is a ${level} ${sport} player who just started working with you. Their main challenge: "${challengeLabel}". Write a warm, energising welcome paragraph — 3-4 sentences. Coach voice, not clinician. No scores or numbers. Write the paragraph directly, no heading.`;
 
       const response = await anthropic.messages.create({
         model: process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001',

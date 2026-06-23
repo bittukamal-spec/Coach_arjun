@@ -41,5 +41,5 @@ app.get('/api/health', (_req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`\n🧠 MindGame server running → http://localhost:${PORT}\n`);
+  console.log(`\n🧠 Arjun server running → http://localhost:${PORT}\n`);
 });

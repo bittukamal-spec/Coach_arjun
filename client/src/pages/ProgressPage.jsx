@@ -223,7 +223,7 @@ function ShareModal({ onClose, user, fitnessScore, streak, xp, achievements, lan
     if (!imgUrl) return;
     try {
       const blob = await (await fetch(imgUrl)).blob();
-      const file = new File([blob], 'mindgame-progress.png', { type: 'image/png' });
+      const file = new File([blob], 'arjun-progress.png', { type: 'image/png' });
       if (navigator.canShare?.({ files: [file] })) {
         await navigator.share({ files: [file], title: t.shareTitle });
         return;
@@ -231,7 +231,7 @@ function ShareModal({ onClose, user, fitnessScore, streak, xp, achievements, lan
     } catch { /* fall through to download */ }
     const a = document.createElement('a');
     a.href = imgUrl;
-    a.download = 'mindgame-progress.png';
+    a.download = 'arjun-progress.png';
     a.click();
   }
 

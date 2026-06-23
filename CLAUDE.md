@@ -1,4 +1,4 @@
-# MindGame / Arjun — CLAUDE.md
+# Arjun — CLAUDE.md
 
 AI assistant reference file. Read this at the start of every session.
 
@@ -6,7 +6,7 @@ AI assistant reference file. Read this at the start of every session.
 
 ## 1. WHAT THIS APP IS
 
-**MindGame** is an AI mental performance coaching app for young Indian athletes (14–25). The AI coach is named **Arjun**, powered by the Claude API. Think sports psychologist in your pocket — not therapy. Solo non-technical founder. India market. ₹299/month. The product URL is `coacharjun.in`.
+**Arjun** is an AI mental performance coaching app for young Indian athletes (14–25). Powered by the Claude API. Think sports psychologist in your pocket — not therapy. Solo non-technical founder. India market. ₹299/month. Product URL: `coacharjun.in`.
 
 ---
 
