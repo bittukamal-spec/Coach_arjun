@@ -42,6 +42,7 @@ function Dashboard() {
   const [freezeCount,       setFreezeCount]      = useState(null);
   const [totalCheckIns,     setTotalCheckIns]     = useState(0);
   const [fitnessScore,      setFitnessScore]      = useState(null);
+  const [infoPopup,         setInfoPopup]         = useState(null); // 'streak'|'xp'|'fitness'
   const [showFreezeConfirm, setShowFreezeConfirm] = useState(false);
   const [freezeLoading,     setFreezeLoading]     = useState(false);
   const [missedDismissed,   setMissedDismissed]   = useState(
@@ -136,8 +137,9 @@ function Dashboard() {
       <main className="max-w-lg mx-auto pt-20 pb-24 animate-fade-in">
 
         {/* ── Profile header ─────────────────────────────────── */}
-        <div className="flex items-center justify-between px-4 py-5">
-          <div className="flex items-center gap-3">
+        <div className="px-4 pt-5 pb-4">
+          {/* Row 1 — avatar + greeting */}
+          <div className="flex items-center gap-3 mb-3">
             <div className="w-11 h-11 rounded-full bg-brand-500 text-white font-bold text-lg flex items-center justify-center shrink-0">
               {user?.name?.charAt(0)?.toUpperCase()}
             </div>
@@ -146,34 +148,46 @@ function Dashboard() {
               <p className="text-base font-bold text-ink leading-tight">{user?.name}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 bg-dark-800 border border-dark-600 px-3 py-1.5 rounded-full">
+
+          {/* Row 2 — stat pills */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => setInfoPopup('streak')}
+              className="flex items-center gap-1.5 bg-dark-800 border border-dark-600 px-3 py-1.5 rounded-full active:scale-95 transition-transform"
+            >
               <Flame size={13} className={streak > 0 ? 'text-fire-500' : 'text-slt'} />
               <span className="text-xs font-bold text-ink">{streak ?? 0}</span>
-            </div>
+              <span className="text-[10px] text-slt">{hi ? 'स्ट्रीक' : 'streak'}</span>
+            </button>
+
             {user?.xp !== undefined && (
-              <div className="flex items-center gap-1.5 bg-dark-800 border border-dark-600 px-3 py-1.5 rounded-full">
+              <button
+                onClick={() => setInfoPopup('xp')}
+                className="flex items-center gap-1.5 bg-dark-800 border border-dark-600 px-3 py-1.5 rounded-full active:scale-95 transition-transform"
+              >
                 <Zap size={13} className="text-brand-500" />
                 <span className="text-xs font-bold text-ink">{user.xp}</span>
-              </div>
+                <span className="text-[10px] text-slt">MXP</span>
+              </button>
             )}
+
             {fitnessScore !== null && (
-              <Link to="/progress">
-                <div className={`flex items-center gap-1.5 border px-3 py-1.5 rounded-full ${
+              <button
+                onClick={() => setInfoPopup('fitness')}
+                className={`flex items-center gap-1.5 border px-3 py-1.5 rounded-full active:scale-95 transition-transform ${
                   fitnessScore >= 90 ? 'bg-amber-500/10 border-amber-500/30' :
                   fitnessScore >= 75 ? 'bg-win-500/10 border-win-500/30'     :
                   fitnessScore >= 60 ? 'bg-brand-500/10 border-brand-500/30' :
                   'bg-dark-800 border-dark-600'
-                }`}>
-                  <span className={`text-xs font-black ${
-                    fitnessScore >= 90 ? 'text-amber-400' :
-                    fitnessScore >= 75 ? 'text-win-400'   :
-                    fitnessScore >= 60 ? 'text-brand-400' :
-                    'text-slt'
-                  }`}>{fitnessScore}</span>
-                  <span className="text-[10px] text-slt">MF</span>
-                </div>
-              </Link>
+                }`}
+              >
+                <span className={`text-xs font-black ${
+                  fitnessScore >= 90 ? 'text-amber-400' :
+                  fitnessScore >= 75 ? 'text-win-400'   :
+                  fitnessScore >= 60 ? 'text-brand-400' : 'text-slt'
+                }`}>{fitnessScore}</span>
+                <span className="text-[10px] text-slt">{hi ? 'मानसिक फिटनेस' : 'Mental Fitness'}</span>
+              </button>
             )}
           </div>
         </div>
@@ -405,6 +419,108 @@ function Dashboard() {
           <p className="text-center text-xs text-slt pb-2">
             {hi ? `🆓 ${trialDaysRemaining} दिन का फ्री ट्रायल` : `🆓 Free trial · ${trialDaysRemaining} days left`}
           </p>
+        )}
+
+        {/* ── INFO POPUP SHEET ───────────────────────────────── */}
+        {infoPopup && (
+          <>
+            <div className="fixed inset-0 z-50 bg-black/60" onClick={() => setInfoPopup(null)} />
+            <div className="fixed bottom-0 inset-x-0 z-50 bg-dark-800 border-t border-dark-600 rounded-t-2xl px-5 py-6 animate-fade-in">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-base font-bold text-ink">
+                  {infoPopup === 'streak'  && (hi ? 'ट्रेनिंग स्ट्रीक' : 'Training Streak')}
+                  {infoPopup === 'xp'      && (hi ? 'मानसिक XP (MXP)' : 'Mental XP (MXP)')}
+                  {infoPopup === 'fitness' && (hi ? 'मानसिक फिटनेस स्कोर' : 'Mental Fitness Score')}
+                </h3>
+                <button onClick={() => setInfoPopup(null)} className="text-slt hover:text-ink text-xl leading-none">×</button>
+              </div>
+
+              {infoPopup === 'streak' && (
+                <div className="space-y-3">
+                  <p className="text-sm text-ink leading-relaxed">
+                    {hi
+                      ? 'लगातार कितने दिनों से मानसिक ट्रेनिंग हो रही है — यही स्ट्रीक है।'
+                      : 'Your streak counts consecutive days of mental training — daily check-ins keep it alive.'}
+                  </p>
+                  <div className="bg-dark-700 rounded-xl px-4 py-3 space-y-1.5">
+                    {[
+                      [hi ? '3 दिन' : '3 days', hi ? 'आदत बन रही है' : 'Habit forming'],
+                      [hi ? '7 दिन' : '7 days',  hi ? 'एक हफ्ते की अनुशासन' : 'One week of discipline'],
+                      [hi ? '14 दिन' : '14 days', hi ? 'दिमाग मजबूत हो रहा है' : 'Mind getting stronger'],
+                      [hi ? '30 दिन' : '30 days', hi ? 'चैंपियन की ट्रेनिंग' : "Champion's training"],
+                    ].map(([days, label]) => (
+                      <div key={days} className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-fire-500">{days}</span>
+                        <span className="text-xs text-slt">{label}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-slt leading-relaxed">
+                    {hi
+                      ? '❄️ स्ट्रीक फ्रीज: अगर कल मिस हो गया तो फ्रीज से स्ट्रीक बचाएं। हर 7 दिन पर नया फ्रीज मिलता है।'
+                      : '❄️ Streak Freeze: missed yesterday? Use a freeze to save your streak. Earn a new freeze every 7 days.'}
+                  </p>
+                </div>
+              )}
+
+              {infoPopup === 'xp' && (
+                <div className="space-y-3">
+                  <p className="text-sm text-ink leading-relaxed">
+                    {hi
+                      ? 'MXP (मानसिक XP) आपकी मानसिक मेहनत का माप है। जितना काम, उतने पॉइंट।'
+                      : 'MXP (Mental XP) measures your mental training effort. More work = more points.'}
+                  </p>
+                  <div className="bg-dark-700 rounded-xl px-4 py-3 space-y-1.5">
+                    {[
+                      [hi ? 'दैनिक चेक-इन' : 'Daily check-in',    '+10 MXP'],
+                      [hi ? 'रिफ्लेक्शन'  : 'With reflection',    '+5 MXP'],
+                      [hi ? 'अभ्यास पूरा' : "Today's drill",       '+15 MXP'],
+                      [hi ? 'अर्जुन से चैट' : 'Chat with Arjun',   '+5 MXP'],
+                    ].map(([action, pts]) => (
+                      <div key={action} className="flex items-center justify-between">
+                        <span className="text-xs text-slt">{action}</span>
+                        <span className="text-xs font-bold text-brand-500">{pts}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {infoPopup === 'fitness' && (
+                <div className="space-y-3">
+                  <p className="text-sm text-ink leading-relaxed">
+                    {hi
+                      ? 'मानसिक फिटनेस स्कोर 0–100 के बीच होता है। यह 4 चीज़ों से बनता है:'
+                      : 'Your Mental Fitness Score is 0–100, built from 4 components:'}
+                  </p>
+                  <div className="bg-dark-700 rounded-xl px-4 py-3 space-y-2">
+                    {[
+                      [hi ? 'स्ट्रीक'         : 'Streak',        '25pts', hi ? '14 दिन स्ट्रीक = 25' : '14-day streak = 25'],
+                      [hi ? 'नियमितता'        : 'Consistency',   '25pts', hi ? 'पिछले 14 दिन में चेक-इन' : 'Check-ins in last 14 days'],
+                      [hi ? 'मानसिक अवस्था'   : 'Mental State',  '30pts', hi ? 'साप्ताहिक मूड/फोकस/विश्वास' : 'Weekly mood/focus/confidence'],
+                      [hi ? 'उपलब्धियां'      : 'Achievements',  '20pts', hi ? '9 बैज = 20 पॉइंट' : '9 badges = full 20 points'],
+                    ].map(([name, pts, desc]) => (
+                      <div key={name} className="flex items-start gap-3">
+                        <span className="text-xs font-black text-brand-500 w-10 shrink-0 pt-0.5">{pts}</span>
+                        <div>
+                          <p className="text-xs font-semibold text-ink">{name}</p>
+                          <p className="text-[11px] text-slt">{desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    {[[hi ? 'चैंपियन' : 'Champion', '90+', 'text-amber-400'], [hi ? 'बढ़िया' : 'Strong', '75+', 'text-win-400'], [hi ? 'ठीक है' : 'Building', '60+', 'text-brand-400'], [hi ? 'शुरुआत' : 'Starting', '<60', 'text-slt']].map(([label, range, color]) => (
+                      <span key={label} className="text-[11px] bg-dark-700 px-2.5 py-1 rounded-full">
+                        <span className={`font-bold ${color}`}>{range}</span>
+                        <span className="text-slt ml-1">{label}</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
         )}
 
         {showFreezeConfirm && (
