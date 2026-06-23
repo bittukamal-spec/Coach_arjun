@@ -190,9 +190,10 @@ function ShareCard({ cardRef, user, fitnessScore, streak, xp, achievements, lang
       </div>
 
       {/* Footer */}
-      <p style={{ color: '#243d30', fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-        🧠 MindGame · Mental Performance Coaching
-      </p>
+      <div style={{ textAlign: 'center' }}>
+        <p style={{ color: '#4a7c6a', fontSize: 12, fontWeight: 700, letterSpacing: '0.04em', margin: 0 }}>coacharjun.in</p>
+        <p style={{ color: '#243d30', fontSize: 10, fontWeight: 600, letterSpacing: '0.04em', marginTop: 2 }}>personal mental coaching</p>
+      </div>
     </div>
   );
 }
@@ -236,34 +237,30 @@ function ShareModal({ onClose, user, fitnessScore, streak, xp, achievements, lan
 
   return (
     <>
-      <div className="fixed inset-0 z-50 bg-black/70" onClick={onClose} />
-      <div
-        className="fixed inset-x-0 bottom-0 z-50 bg-dark-800 border-t border-dark-600 rounded-t-2xl animate-fade-in"
-        style={{ maxHeight: '88vh', display: 'flex', flexDirection: 'column' }}
-      >
-        {/* Header — fixed */}
-        <div className="flex items-center justify-between px-4 pt-5 pb-3 shrink-0">
+      <div className="fixed inset-0 z-[100] bg-black/70" onClick={onClose} />
+      <div className="fixed inset-x-0 bottom-0 z-[100] bg-dark-800 border-t border-dark-600 rounded-t-2xl animate-fade-in">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 pt-5 pb-3 border-b border-dark-700">
           <p className="font-bold text-ink text-sm">{t.shareBtn}</p>
           <button onClick={onClose} className="text-slt hover:text-ink text-xl leading-none">×</button>
         </div>
 
-        {/* Scrollable card preview */}
-        <div className="overflow-y-auto flex-1 px-4">
-          <div className="overflow-hidden rounded-2xl flex justify-center bg-dark-900 mb-1">
-            <div style={{ transform: 'scale(0.78)', transformOrigin: 'top center', marginBottom: -68 }}>
-              <ShareCard
-                cardRef={cardRef}
-                user={user} fitnessScore={fitnessScore}
-                streak={streak} xp={xp}
-                achievements={achievements}
-                language={language}
-              />
-            </div>
+        {/* Card preview — scrollable, capped height, card centred */}
+        <div style={{ maxHeight: '58vh', overflowY: 'auto', overflowX: 'hidden', padding: '12px 16px 4px' }}>
+          <div style={{ width: 390, margin: '0 auto' }}>
+            <ShareCard
+              cardRef={cardRef}
+              user={user} fitnessScore={fitnessScore}
+              streak={streak} xp={xp}
+              achievements={achievements}
+              language={language}
+            />
           </div>
         </div>
 
-        {/* Button — always pinned at bottom */}
-        <div className="px-4 pt-3 pb-8 shrink-0">
+        {/* Share button — always visible, never inside the scroll area */}
+        <div className="px-4 pt-3 pb-8">
           <button
             onClick={handleShare}
             disabled={busy || !imgUrl}
