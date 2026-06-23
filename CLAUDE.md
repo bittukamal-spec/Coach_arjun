@@ -1,233 +1,213 @@
-# MindGame — CLAUDE.md
+# MindGame / Arjun — CLAUDE.md
 
 AI assistant reference file. Read this at the start of every session.
 
-## What This App Is
+---
 
-**MindGame** is an AI mental performance coaching app for Indian athletes. The AI coach is named **Arjun**. It's not therapy — it's performance psychology (like having a sports psychologist in your pocket for ₹299/month).
+## 1. WHAT THIS APP IS
 
-Target users: Indian athletes aged 16–30 (cricket, football, badminton, wrestling, etc.)
-
-**Core value**: Arjun knows your sport, your mental challenges, your recent check-in data, and your long-term patterns. Every conversation is personalised.
+**MindGame** is an AI mental performance coaching app for young Indian athletes (14–25). The AI coach is named **Arjun**, powered by the Claude API. Think sports psychologist in your pocket — not therapy. Solo non-technical founder. India market. ₹299/month. The product URL is `coacharjun.in`.
 
 ---
 
-## Tech Stack
+## 2. TECH STACK
 
-| Layer | Technology | Hosting |
-|---|---|---|
-| Frontend | React + Vite + Tailwind CSS | Vercel |
-| Backend | Node.js + Express | Railway |
-| Database | PostgreSQL | Railway (managed) |
-| AI | Claude Haiku (`claude-haiku-4-5-20251001`) | Anthropic API |
-| Email | Resend | resend.com |
-| Auth | JWT (bcrypt passwords, no OAuth) | — |
+| Layer | Technology |
+|---|---|
+| Frontend | React 18 + Vite + Tailwind CSS (Lucide React icons, Recharts charts) |
+| Backend | Node.js + Express 4 |
+| Database | PostgreSQL via Prisma ORM (`@prisma/client` 5.7) |
+| AI | Claude API (`@anthropic-ai/sdk` 0.104). Model: `process.env.ANTHROPIC_MODEL \|\| 'claude-haiku-4-5-20251001'`. Configurable via env var — no code change needed to swap model. |
+| Email | Resend (`resend` 4.8) |
+| Payments | Razorpay — **integration pending**. API keys not yet obtained. |
+| PWA | `vite-plugin-pwa` 1.3 — installed and configured. |
+| Auth | JWT (`jsonwebtoken`) + bcrypt passwords. No OAuth. |
 
-**Live URLs**: Check Railway dashboard and Vercel dashboard for current URLs.
+**Live URLs:** Check Railway dashboard (server) and Vercel dashboard (client) — not stored in codebase.
 
----
+**Local dev:**
+```bash
+# Backend (port 5000)
+cd server && npm install && npm run dev
 
-## Project Structure
+# Frontend (port 5173)
+cd client && npm install && npm run dev
 
-```
-AI-mental-coach-/
-├── CLAUDE.md              ← You are here
-├── client/                ← React frontend (deployed to Vercel)
-│   ├── src/
-│   │   ├── pages/         ← One file per route
-│   │   ├── components/    ← Shared UI (Navbar, etc.)
-│   │   ├── contexts/      ← AuthContext (user, token, language)
-│   │   ├── i18n/          ← translations.js (ALL UI text, en + hi)
-│   │   └── api.js         ← apiFetch() helper (base URL auto-detect)
-│   └── vite.config.js
-└── server/                ← Express backend (deployed to Railway)
-    ├── src/
-    │   ├── index.js       ← Entry point + middleware setup
-    │   ├── routes/
-    │   │   ├── auth.js    ← Register, login, onboarding, password reset
-    │   │   ├── chat.js    ← AI chat with streaming SSE + memory
-    │   │   ├── checkin.js ← Daily check-in (mood/focus/confidence)
-    │   │   └── progress.js← Streak + chart data
-    │   ├── services/
-    │   │   └── email.js   ← Resend email (welcome + password reset)
-    │   └── middleware/
-    │       └── authenticate.js ← JWT verification middleware
-    └── prisma/
-        └── schema.prisma  ← Database schema
+# DB browser
+cd server && npx prisma studio
 ```
 
 ---
 
-## Key Files — What Does What
+## 3. GIT
 
-### `server/src/routes/chat.js`
-- **`buildSystemPrompt()`** — Arjun's brain. Assembles the AI system prompt from user profile + recent check-ins + long-term memory. Edit this to change how Arjun behaves.
-- **`checkFreeLimit()`** — Middleware that blocks chat for users whose 14-day trial has ended (or who aren't premium).
-- **`extractAndStoreMemories()`** — Runs every 5 messages, extracts long-term facts about the athlete using Claude Haiku.
-- Trial logic: `TRIAL_DAYS = 14`. Free users get 14 days from `user.trialStarted`. After that, they must upgrade.
-
-### `server/src/routes/auth.js`
-- **`SAFE_SELECT`** — Defines exactly which user fields are sent to the frontend. Never return `password`.
-- **`/register`** — Creates user, sets `trialStarted = new Date()`, sends welcome email.
-- **`/me/onboarding`** — Saves 5-step onboarding data (sport, competition level, experience, challenge, goals).
-
-### `server/src/routes/checkin.js`
-- Check-ins are **always unlimited** (no weekly limit). One per UTC day maximum.
-- `GET /today` — Returns today's check-in (or null).
-- `POST /` — Creates check-in (mood 1-5, focus 1-5, confidence 1-5, optional reflection).
-
-### `client/src/i18n/translations.js`
-- **ALL UI text** lives here. Never hardcode strings in components.
-- Two keys: `en` and `hi`. Both must be updated together.
-- Access in components: `const t = translations[language].section;`
-
-### `client/src/contexts/AuthContext.jsx`
-- Provides: `{ user, token, language, login, logout, updateUser }`
-- `user` object includes: `id, email, name, tier, trialStarted, sport, experienceLevel, goals, onboardingDone, competitionLevel, primaryChallenge, language`
-- `tier` is `"free"` or `"premium"`. `trialStarted` is the trial start DateTime.
+- **Working branch:** `claude/mindgame-setup-auth-m3cxg6`
+- **Remote:** `bittukamal-spec/AI-mental-coach-` (GitHub)
+- **Rule:** Always commit to the working branch above. Never push to `main` directly.
+- **Deploy:** Push to branch → Railway auto-deploys server, Vercel auto-deploys client.
+- **Schema changes:** `prisma db push` runs automatically on server start (`npm start`).
 
 ---
 
-## Database Schema (Key Models)
+## 4. KEY FILES
 
-```prisma
-User {
-  id, email, name, password (bcrypt hash)
-  tier          String  @default("free")      // "free" | "premium"
-  trialStarted  DateTime?                      // set on register; 14-day trial
-  language      String  @default("en")        // "en" | "hi"
-  // Onboarding:
-  sport, experienceLevel, competitionLevel
-  primaryChallenge, pressureResponse, goals   // goals = JSON array
-  onboardingDone Boolean @default(false)
-}
-
-CheckIn { userId, mood, focus, confidence, reflection, createdAt }
-Message { userId, role ("user"|"assistant"), content, createdAt }
-UserMemory { userId, memKey, value, source }   // long-term memory
-PasswordResetToken { userId, token, expiresAt, used }
-```
-
-**Important**: The server runs `prisma db push` on startup. Any schema change you commit will be applied to the Railway PostgreSQL on the next deploy. This is safe for additive changes (new nullable columns). For breaking changes, consult the team.
+| File | Purpose |
+|---|---|
+| `server/src/routes/chat.js:123` | `buildSystemPrompt()` — Arjun's brain. Assembles full AI context from user profile, check-ins, memories, session type. **Most complex file. Never change data sources without understanding full impact.** |
+| `client/src/i18n/translations.js` | Every user-facing string in EN + HI. **All new strings must be added here in both languages.** Access via `translations[language].section`. |
+| `server/prisma/schema.prisma` | DB models. **All changes must be additive only — never drop or rename existing columns.** |
+| `client/src/App.jsx` | All frontend routes. Protected routes use `<ProtectedRoute>` + `<BottomNav />`. |
+| `server/src/routes/auth.js:14` | `SAFE_SELECT` — controls which user fields are returned to frontend. Never expose `password`. Never add a sensitive field without thinking twice. |
+| `server/src/index.js` | Express entry point. All route registrations here. |
+| `server/src/services/gamification.js` | XP awards, achievement checks, `calculateStreak()`. |
+| `client/src/api.js` | `apiFetch(path, init)` — fetch wrapper with base URL auto-detection. Use this everywhere instead of raw `fetch`. |
+| `client/src/contexts/AuthContext.jsx` | Provides `{ user, token, language, login, logout, updateUser }` to all components. |
 
 ---
 
-## Pricing Model
+## 5. ENV VARS
+
+All defined in `server/.env.example`. Copy to `server/.env` for local dev.
+
+| Variable | Description |
+|---|---|
+| `DATABASE_URL` | PostgreSQL connection string (Railway provides this in prod) |
+| `ANTHROPIC_API_KEY` | Claude AI key — get from console.anthropic.com |
+| `ANTHROPIC_MODEL` | Model override. Default: `claude-haiku-4-5-20251001`. Change here, redeploy — no code change needed. |
+| `JWT_SECRET` | Long random string (64+ chars) used to sign login tokens. Never change in production. |
+| `CLIENT_URL` | Frontend URL — used for CORS allow-list and password reset email links |
+| `PORT` | Server port (default `5000`) |
+| `RESEND_API_KEY` | Resend transactional email key |
+| `RESEND_FROM_EMAIL` | From address for emails — must be verified on resend.com |
+| `TWILIO_ACCOUNT_SID` | Twilio WhatsApp sandbox SID (optional, Sprint 2) |
+| `TWILIO_AUTH_TOKEN` | Twilio auth token |
+| `TWILIO_WHATSAPP_NUMBER` | Twilio WhatsApp sender (sandbox: `whatsapp:+14155238886`) |
+| `META_WHATSAPP_TOKEN` | Meta Cloud API token — production WhatsApp alternative |
+| `META_WHATSAPP_PHONE_ID` | Meta Cloud API phone ID |
+| `SENTRY_DSN` | Sentry error monitoring DSN (not yet integrated in code) |
+| `POSTHOG_KEY` | PostHog analytics key (not yet integrated in code) |
+
+> **Note:** `SENTRY_DSN` and `POSTHOG_KEY` are in `.env.example` but SDK integration code has not been added yet.
+
+---
+
+## 6. HOW TO ADD A NEW PAGE (frontend)
+
+1. Create `client/src/pages/NewPage.jsx`
+2. Import it in `client/src/App.jsx` and add a `<Route>`:
+   ```jsx
+   import NewPage from './pages/NewPage';
+   // Inside <Routes>:
+   <Route path="/new" element={
+     <ProtectedRoute requireOnboarding={true}>
+       <NewPage />
+       <BottomNav />
+     </ProtectedRoute>
+   } />
+   ```
+   Omit `<BottomNav />` for full-screen flows (e.g. onboarding, personality test).
+3. Add all new user-facing strings to `client/src/i18n/translations.js` in both `en` and `hi`.
+
+---
+
+## 7. HOW TO ADD AN API ROUTE (backend)
+
+1. Create `server/src/routes/newRoute.js`:
+   ```js
+   const express = require('express');
+   const { PrismaClient } = require('@prisma/client');
+   const authenticate = require('../middleware/authenticate');
+   const router = express.Router();
+   const prisma = new PrismaClient();
+
+   router.get('/', authenticate, async (req, res) => {
+     // req.userId is set by authenticate middleware
+     res.json({ ok: true });
+   });
+
+   module.exports = router;
+   ```
+2. Register it in `server/src/index.js`:
+   ```js
+   app.use('/api/new', require('./routes/newRoute'));
+   ```
+3. Call it from the frontend using `apiFetch('/api/new', { headers: { Authorization: \`Bearer \${token}\` } })`.
+
+---
+
+## 8. CORE RULES (always follow)
+
+- **Never touch** `calculateStreak()`, payment/freemium gating logic, or `buildSystemPrompt()` data sources without explicit instruction.
+- **Every new user-facing string** goes in `translations.js` in **both** `en` and `hi`. No hardcoded English strings in JSX.
+- **All schema changes are additive only.** Never drop or rename existing columns.
+- **Run `npm run build` in `client/` and confirm zero errors** before reporting a task done.
+- **List changed files + one-line summaries** when reporting back.
+- **Search/grep before reading full files** — preserve context window.
+- Use `apiFetch` not raw `fetch`. Use `SAFE_SELECT` in every user query. Add `authenticate` on every protected route.
+
+---
+
+## 9. CURRENT STATE — WHAT'S BUILT
+
+| Feature | Status |
+|---|---|
+| Auth | Register, login, JWT, password reset (email via Resend), language toggle (EN/HI) |
+| Onboarding | 5-step wizard (sport → level → challenge → pressure → goals) + Mental Game Profile results screen (AI-generated, cached) |
+| Daily check-in | Mood / Focus / Confidence (1–5), optional reflection + gratitude. One per UTC day. Always unlimited. |
+| AI coaching (Arjun) | Chat with session types, reply style selector, focus dropdown, session history, session summaries, delete sessions. Free 14-day trial → premium only. |
+| Progress | Streak tracking, 7/30-day chart, weekly averages vs prev week, Mental Fitness Score (0–100), shareable progress card (PNG via `html-to-image`) |
+| Streak freeze | Freeze mechanic — use a freeze to backdate a check-in to yesterday. Earn 1 freeze per 7-day milestone (capped at 2). |
+| Gamification | Mental XP (MXP), 9 achievement badges, Daily Drill (rotates by day), drill completions tracked |
+| Mental tools | Breathing page, Pressure Reset wizard (5-step), Pre-match ritual builder, Post-match debrief |
+| Games | Reaction Ball (3 difficulty levels + No-Go), Stroop, Focus Grid, Thought Filter, Mental Reset |
+| Personality test | OCEAN Big Five (stored on User model) |
+| Dashboard | Greeting + stat pills (streak / MXP / fitness score) with tappable info sheets, Today check-in card, Training Streak card (with freeze UI), Coach card, Today's Drill, Mental Tools grid |
+| Compliance | Privacy policy, Terms, Refund policy, AI disclosure, safety signpost |
+| PWA | Installed — add to home screen supported |
+
+---
+
+## 10. WHAT'S PENDING
+
+- **Razorpay payment integration** — API keys pending approval. Paywall logic exists (`checkFreeLimit()` in `chat.js`), payment button is a placeholder.
+- **WhatsApp reminders** — phone collection UI + daily 8:30 PM IST cron if no check-in. Twilio/Meta env vars ready.
+- **PostHog analytics** — env var ready, SDK not integrated.
+- **Sentry error monitoring** — env var ready, SDK not integrated.
+- **Parent/coach progress snapshot** — planned, not started.
+- **Fear of injury + patience content** — planned, not started.
+- **Weekly Sunday insight email from Arjun** — not built.
+
+---
+
+## 11. PRICING
 
 | Tier | Access | Price |
 |---|---|---|
 | Free trial | Full access for 14 days from registration | ₹0 |
 | Premium monthly | Unlimited forever | ₹299/month |
-| Premium annual | Unlimited forever | ₹1999/year (44% off) |
-| Academy (B2B) | 20 athletes | ₹2999/month (future) |
+| Premium annual | Unlimited forever | ₹1,999/year |
 
-**Check-ins**: Always unlimited (no paywall).  
-**Chat with Arjun**: Unlimited for 14 days, then premium only.
-
----
-
-## Development Setup
-
-### Backend (server/)
-```bash
-cd server
-cp .env.example .env    # fill in your values
-npm install
-npm run dev             # nodemon on port 5000
-```
-
-### Frontend (client/)
-```bash
-cd client
-npm install
-npm run dev             # Vite on port 5173
-```
-
-### Database
-```bash
-cd server
-npx prisma studio       # visual DB browser at localhost:5555
-npx prisma db push      # sync schema to DB (safe for additive changes)
-```
+- **Check-ins:** Always unlimited — no paywall, ever.
+- **Chat with Arjun:** Free for 14 days (`TRIAL_DAYS = 14` in `chat.js`), then premium only. Trial gate lives in `checkFreeLimit()` middleware in `chat.js`.
+- **Payment processor:** Razorpay (integration pending — no code yet).
 
 ---
 
-## Git / Deployment
+## 12. DB MODELS (quick reference)
 
-- **Branch**: Always work on `claude/mindgame-setup-auth-m3cxg6`
-- **Deploy**: Push to this branch → Railway auto-deploys server, Vercel auto-deploys client
-- **No PRs needed** for solo development — push directly to the branch
-
-```bash
-git add -p              # review changes before staging
-git commit -m "feat: description of what you built"
-git push -u origin claude/mindgame-setup-auth-m3cxg6
-```
-
----
-
-## How to Add a New Page (Frontend)
-
-1. Create `client/src/pages/NewPage.jsx`
-2. Add route in `client/src/App.jsx` (or wherever routes are defined): `<Route path="/new" element={<NewPage />} />`
-3. Add any new translation strings to **both** `en` and `hi` in `translations.js`
-
-## How to Add a New API Route (Backend)
-
-1. Create `server/src/routes/newRoute.js`
-2. In `server/src/index.js`, add: `app.use('/api/new', require('./routes/newRoute'));`
-3. Add `authenticate` middleware to protect the route: `router.get('/', authenticate, handler)`
+| Model | Key fields |
+|---|---|
+| `User` | id, email, name, tier, trialStarted, language, sport, experienceLevel, goals (JSON), xp, streakFreezeCount, lastFreezeUsedAt, OCEAN fields, profileIntro |
+| `CheckIn` | userId, mood, focus, confidence, energy, sleep, reflection, gratitude, type ("checkin"\|"freeze") |
+| `Message` | userId, role, content, sessionType, chatSessionId |
+| `ChatSession` | userId, sessionType, title, summary, status ("active"\|"ended") |
+| `UserMemory` | userId, memKey, value, source — unique per (userId, memKey) |
+| `UserAchievement` | userId, key — unique per (userId, key) |
+| `Debrief` | userId, wentWell, doDifferently, nextFocus, arjunInsight |
+| `GameSession` | userId, gameType, score |
+| `DrillCompletion` | userId, drillIndex, completedAt |
+| `PasswordResetToken` | userId, token, expiresAt, used |
 
 ---
 
-## Environment Variables
-
-### Railway (server)
-All listed in `server/.env.example`. Critical ones:
-- `DATABASE_URL` — PostgreSQL connection string (Railway provides this)
-- `ANTHROPIC_API_KEY` — Claude AI (console.anthropic.com)
-- `JWT_SECRET` — long random string (never change in production)
-- `CLIENT_URL` — Vercel frontend URL (for CORS + email links)
-- `RESEND_API_KEY` + `RESEND_FROM_EMAIL` — transactional email
-
-### Vercel (client)
-- `VITE_API_URL` — Railway backend URL (e.g. `https://mindgame-server.railway.app`)
-
----
-
-## Planned Features (Next Sprints)
-
-**Sprint 2 (WhatsApp + Retention)**:
-- WhatsApp phone number collection (after first check-in)
-- Daily reminder cron (8:30 PM IST if no check-in)
-- Weekly Sunday insight email from Arjun
-- PWA setup (add to home screen)
-
-**Sprint 3 (Gamification)**:
-- Mental XP (MXP) system
-- Achievement badges (12 defined)
-- Mental Fitness Score (0-100)
-- Streak freeze (premium perk)
-
-**Sprint 4 (Deep Product)**:
-- Guided breathing exercise page
-- Pre-match ritual builder
-- Shareable progress card
-
-**Sprint 5 (Payments)**:
-- Razorpay subscription integration
-- Admin dashboard
-
----
-
-## Common Issues
-
-**"AI coaching is not configured"**: `ANTHROPIC_API_KEY` is missing from Railway env vars.
-
-**"Server error" on login**: Check Railway logs. Usually a DB connection issue.
-
-**Emails not sending**: `RESEND_API_KEY` missing or `RESEND_FROM_EMAIL` not verified on resend.com.
-
-**Schema changes not applying**: The `prisma db push` in the start script handles this. If it fails, check Railway deploy logs.
-
-**onboarding redirect loop**: User has `onboardingDone: false` → app redirects to `/onboarding`. Complete onboarding or manually set `onboardingDone = true` in DB via Prisma Studio.
+*Keep this file accurate. Update it when new features ship or key files move.*
