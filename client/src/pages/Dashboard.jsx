@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
@@ -84,6 +84,7 @@ function SectionLabel({ children }) {
 }
 
 function Dashboard() {
+  const navigate = useNavigate();
   const { user, token, language } = useAuth();
   const t  = translations[language];
   const td = t.dashboard;
@@ -401,7 +402,7 @@ function Dashboard() {
                   <p className="text-white/80 text-sm mb-4">
                     {hi ? 'असीमित AI कोचिंग · सभी सुविधाएं' : 'Unlimited AI coaching · All features'}
                   </p>
-                  <button className="bg-white text-brand-700 font-bold text-sm py-3 rounded-xl w-full">
+                  <button onClick={() => navigate('/pricing')} className="bg-white text-brand-700 font-bold text-sm py-3 rounded-xl w-full">
                     {td.upgrade}
                   </button>
                 </div>
@@ -503,7 +504,7 @@ function Dashboard() {
                   <p className="text-white/80 text-sm mb-4">
                     {hi ? 'असीमित AI कोचिंग · सभी सुविधाएं' : 'Unlimited AI coaching · All features'}
                   </p>
-                  <button className="bg-white text-brand-700 font-bold text-sm py-3 rounded-xl w-full">
+                  <button onClick={() => navigate('/pricing')} className="bg-white text-brand-700 font-bold text-sm py-3 rounded-xl w-full">
                     {td.upgrade}
                   </button>
                 </div>
@@ -782,7 +783,7 @@ function Dashboard() {
                   <p className="text-white/80 text-sm mb-4">
                     {hi ? 'असीमित AI कोचिंग · सभी सुविधाएं' : 'Unlimited AI coaching · All features'}
                   </p>
-                  <button className="bg-white text-brand-700 font-bold text-sm py-3 rounded-xl w-full">
+                  <button onClick={() => navigate('/pricing')} className="bg-white text-brand-700 font-bold text-sm py-3 rounded-xl w-full">
                     {td.upgrade}
                   </button>
                 </div>

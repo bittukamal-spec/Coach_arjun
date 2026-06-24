@@ -19,6 +19,7 @@ const SAFE_SELECT = {
   xp: true, createdAt: true,
   oceanO: true, oceanC: true, oceanE: true, oceanA: true, oceanN: true,
   age: true, profileIntro: true,
+  subscriptionPlanType: true, subscriptionStartDate: true,
 };
 
 function makeToken(user) {

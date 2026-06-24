@@ -29,12 +29,19 @@ function getTrialDaysRemaining(user) {
 
 function AccountPage() {
   const { user, token, language, logout, updateUser } = useAuth();
-  const t = translations[language].account;
+  const t  = translations[language].account;
+  const tp = translations[language].pricing;
+  const hi = language === 'hi';
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
 
   const isPremium = user?.tier === 'premium';
   const trialDaysRemaining = getTrialDaysRemaining(user);
+
+  // Subscription management state
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [cancelLoading,     setCancelLoading]     = useState(false);
+  const [cancelSuccess,     setCancelSuccess]     = useState(false);
 
   // Language toggle
   const [saving, setSaving] = useState(false);
@@ -61,6 +68,24 @@ function AccountPage() {
   const [deleteConfirm, setDeleteConfirm] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+
+  async function cancelSubscription() {
+    setCancelLoading(true);
+    try {
+      const res = await apiFetch('/api/payments/cancel', {
+        method:  'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        setCancelSuccess(true);
+        setShowCancelConfirm(false);
+      }
+    } catch {
+      // fail silently — keep dialog open
+    } finally {
+      setCancelLoading(false);
+    }
+  }
 
   function handlePhotoUpload(e) {
     const file = e.target.files?.[0];
@@ -230,12 +255,35 @@ function AccountPage() {
           </div>
           <div className="card">
             {isPremium ? (
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-semibold text-ink flex items-center gap-1.5"><Star size={14} className="text-fire-500" /> {t.premiumSince}</p>
-                  <p className="text-slt text-sm">Unlimited coaching with Arjun</p>
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <p className="font-semibold text-ink flex items-center gap-1.5">
+                      <Star size={14} className="text-fire-500" /> {t.premiumSince}
+                    </p>
+                    {user?.subscriptionPlanType && (
+                      <p className="text-slt text-sm">
+                        {user.subscriptionPlanType === 'yearly' ? tp.planYearly : tp.planMonthly}
+                      </p>
+                    )}
+                    {user?.subscriptionStartDate && (
+                      <p className="text-slt text-xs mt-0.5">
+                        {tp.activeSince} {new Date(user.subscriptionStartDate).toLocaleDateString(hi ? 'hi-IN' : 'en-IN', { month: 'short', year: 'numeric' })}
+                      </p>
+                    )}
+                  </div>
+                  <span className="text-xs font-bold bg-fire-500/20 text-fire-400 border border-fire-500/30 px-3 py-1 rounded-full">Active</span>
                 </div>
-                <span className="text-xs font-bold bg-fire-500/20 text-fire-400 border border-fire-500/30 px-3 py-1 rounded-full">Active</span>
+                {cancelSuccess ? (
+                  <p className="text-sm text-win-400 text-center py-2">{tp.cancelSuccess}</p>
+                ) : (
+                  <button
+                    onClick={() => setShowCancelConfirm(true)}
+                    className="w-full py-2.5 rounded-xl border border-dark-500 bg-dark-700 hover:bg-dark-600 text-slt text-xs font-semibold transition-colors"
+                  >
+                    {tp.cancelSub}
+                  </button>
+                )}
               </div>
             ) : (
               <div>
@@ -260,7 +308,7 @@ function AccountPage() {
                     </div>
                   )}
                 </div>
-                <button className="btn-primary w-full">
+                <button onClick={() => navigate('/pricing')} className="btn-primary w-full">
                   {t.upgradeBtn} — ₹299/mo
                 </button>
               </div>
@@ -593,6 +641,34 @@ function AccountPage() {
           </div>
         </section>
       </main>
+
+      {/* Cancel subscription confirmation */}
+      {showCancelConfirm && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm px-4 pb-4 sm:pb-0">
+          <div className="bg-dark-800 border border-dark-500 rounded-2xl p-6 w-full max-w-md animate-slide-up">
+            <h3 className="font-bold text-ink mb-3">{tp.cancelSub}</h3>
+            <p className="text-slt text-sm mb-6">{tp.cancelConfirm}</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowCancelConfirm(false)}
+                disabled={cancelLoading}
+                className="flex-1 btn-secondary"
+              >
+                {hi ? 'वापस' : 'Keep Plan'}
+              </button>
+              <button
+                onClick={cancelSubscription}
+                disabled={cancelLoading}
+                className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-dark-700 border border-dark-500 hover:bg-dark-600 text-ink font-semibold rounded-xl transition-all disabled:opacity-50"
+              >
+                {cancelLoading
+                  ? (hi ? 'रद्द हो रहा है…' : 'Cancelling…')
+                  : (hi ? 'हाँ, रद्द करें' : 'Yes, Cancel')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Delete account modal */}
       {showDeleteModal && (

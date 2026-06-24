@@ -689,7 +689,7 @@ function ChatPage() {
               <p className="text-sm text-amber-400 flex-1">
                 🔒 {t.limitReached} {t.upgradePrompt}.
               </p>
-              <button className="text-xs font-semibold text-white bg-brand-600 hover:bg-brand-700 px-4 py-2 rounded-xl transition-colors whitespace-nowrap">
+              <button onClick={() => navigate('/pricing')} className="text-xs font-semibold text-white bg-brand-600 hover:bg-brand-700 px-4 py-2 rounded-xl transition-colors whitespace-nowrap">
                 {t.upgrade}
               </button>
             </div>

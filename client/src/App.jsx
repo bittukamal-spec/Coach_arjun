@@ -21,6 +21,8 @@ import PressureResetPage from './pages/PressureResetPage';
 import SessionsPage from './pages/SessionsPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
+import PricingPage from './pages/PricingPage';
+import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import BottomNav from './components/BottomNav';
 import { translations } from './i18n/translations';
@@ -177,6 +179,24 @@ function App() {
         element={
           <ProtectedRoute requireOnboarding={true}>
             <PersonalityTestPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Payment flows — no BottomNav */}
+      <Route
+        path="/pricing"
+        element={
+          <ProtectedRoute requireOnboarding={true}>
+            <PricingPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/payment-success"
+        element={
+          <ProtectedRoute requireOnboarding={true}>
+            <PaymentSuccessPage />
           </ProtectedRoute>
         }
       />

@@ -17,6 +17,11 @@ const sessionsRoutes    = require('./routes/sessions');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Webhook must receive the raw Buffer for HMAC signature verification.
+// Register path-specific raw-body middleware BEFORE the global express.json()
+// so the stream is not pre-consumed on this path.
+app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
+
 app.use(express.json());
 
 app.use(cors({ origin: true, credentials: true }));
@@ -34,6 +39,7 @@ app.use('/api/games',         gamesRoutes);
 app.use('/api/profile-intro', profileIntroRoutes);
 app.use('/api/sessions',      sessionsRoutes);
 app.use('/api/streaks',       require('./routes/streaks'));
+app.use('/api/payments',      require('./routes/payments'));
 
 // Health check — useful to confirm the server is running
 app.get('/api/health', (_req, res) => {

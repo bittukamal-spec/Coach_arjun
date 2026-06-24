@@ -47,6 +47,13 @@ model User {
   phone         String?           // "+917012345678"
   reminderOptIn Boolean  @default(false)
 
+  // Razorpay subscription
+  razorpaySubscriptionId  String?
+  razorpayCustomerId      String?
+  subscriptionPlanType    String?   // "monthly" | "yearly"
+  subscriptionStartDate   DateTime?
+  subscriptionEndDate     DateTime?
+
   // Gamification
   xp                  Int       @default(0)
   streakFreezeCount   Int       @default(1)
