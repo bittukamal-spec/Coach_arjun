@@ -172,9 +172,9 @@ const DEFAULT_SPORT_PROFILE = {
     "I can't handle this pressure",
   ],
   gridTip: 'Used by elite teams worldwide to train selective attention and scanning speed.',
-  stroopTip: 'Trains inhibitory control — blocking distractions to stay focused under pressure.',
-  thoughtTip: 'Based on Thought Stopping — a CBT technique used by sport psychologists worldwide.',
-  filterTip: 'Trains selective attention and distraction resistance — crucial under competition pressure.',
+  stroopTip: 'Helps you block out distractions and stay locked in — like ignoring crowd noise when you\'re batting.',
+  thoughtTip: 'Helps you catch negative thoughts and switch them off — like a fielder reading the ball early.',
+  filterTip: 'Trains you to stay focused on what matters, even when there\'s noise and pressure around you.',
 };
 
 function getSportProfile(sport) {
@@ -226,7 +226,7 @@ const GAMES = [
     duration: '45 sec',
     description: 'Pop negative thoughts before they take over.',
     descHi: 'नकारात्मक विचारों को उनके हावी होने से पहले पॉप करें।',
-    getTip: (sp) => `${sp.thoughtTip} Based on CBT Thought Stopping — a proven sport psychology technique.`,
+    getTip: (sp) => sp.thoughtTip,
   },
   {
     id: 'focus_filter',
@@ -466,7 +466,7 @@ function StroopFocus({ onDone }) {
         <p className="text-base text-slt mb-1">{pct}% accuracy</p>
         <p className="text-lg text-amber-400 font-semibold mb-1">{rating}</p>
         {correct >= newHi && hi < correct && <p className="text-xs text-win-400 mb-1">🎉 New best!</p>}
-        <p className="text-xs text-slt mb-5">Target: 85%+ accuracy = elite inhibitory control</p>
+        <p className="text-xs text-slt mb-5">Target: 85%+ = focus that holds under pressure</p>
         <button onClick={reset} className="btn-secondary text-sm">Play Again</button>
       </div>
     );
