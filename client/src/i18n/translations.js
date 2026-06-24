@@ -176,6 +176,10 @@ export const translations = {
       situAfterSub:     'Reflection, confidence rebuild, learning',
       situDailySub:     'Motivation, discipline, mental toughness',
       thisWeek:         'This week',
+      trialDaysLeftHome: (n) => `${n} day${n === 1 ? '' : 's'} left in your free trial`,
+      unlockPremium:    'Unlock unlimited coaching with Arjun Premium',
+      upgradeNowBtn:    'Upgrade — ₹299/mo',
+      trialEndedHome:   'Your free trial has ended',
     },
     onboarding: {
       stepOf: (s, t) => `Step ${s} of ${t}`,
@@ -857,6 +861,10 @@ export const translations = {
       situAfterSub:     'प्रतिबिंब, आत्मविश्वास वापसी',
       situDailySub:     'प्रेरणा, अनुशासन, दृढ़ता',
       thisWeek:         'इस हफ्ते',
+      trialDaysLeftHome: (n) => `आपके फ्री ट्रायल में ${n} दिन बचे हैं`,
+      unlockPremium:    'अर्जुन प्रीमियम के साथ असीमित कोचिंग अनलॉक करें',
+      upgradeNowBtn:    'अपग्रेड — ₹299/माह',
+      trialEndedHome:   'आपका फ्री ट्रायल समाप्त हो गया है',
     },
     onboarding: {
       stepOf: (s, t) => `चरण ${s} / ${t}`,

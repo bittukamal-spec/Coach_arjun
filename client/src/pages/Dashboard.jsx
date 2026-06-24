@@ -6,7 +6,7 @@ import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
 import {
   Flame, Zap, CheckCircle2, Snowflake, ChevronRight,
-  Target, TrendingUp, Sun, Wind, RotateCcw, Trophy, ClipboardList, Gamepad2,
+  Target, TrendingUp, Sun, Wind, RotateCcw, Trophy, ClipboardList, Gamepad2, Crown,
 } from 'lucide-react';
 import { DRILLS } from '../data/drills';
 
@@ -273,6 +273,37 @@ export default function Dashboard() {
                 )}
               </div>
             </div>
+
+            {/* ── TRIAL CTA BANNER ───────────────────────────────────────────── */}
+            {!isPremium && trialDaysRemaining != null && (
+              <div className={`mb-5 rounded-2xl p-4 flex items-center justify-between gap-3 border ${
+                trialEnded
+                  ? 'bg-amber-50 border-amber-400'
+                  : 'bg-dark-800 border-dark-600'
+              }`}>
+                <div className="flex items-center gap-3 min-w-0">
+                  <Crown size={18} className={trialEnded ? 'text-amber-500 shrink-0' : 'text-brand-500 shrink-0'} />
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-ink leading-tight">
+                      {trialEnded ? td.trialEndedHome : td.trialDaysLeftHome(trialDaysRemaining)}
+                    </p>
+                    {!trialEnded && (
+                      <p className="text-xs text-slt leading-tight mt-0.5 truncate">{td.unlockPremium}</p>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => navigate('/pricing')}
+                  className={`shrink-0 text-xs font-bold px-3 py-2 rounded-xl transition-colors ${
+                    trialEnded
+                      ? 'bg-amber-500 hover:bg-amber-600 text-white'
+                      : 'bg-brand-600 hover:bg-brand-700 text-white'
+                  }`}
+                >
+                  {td.upgradeNowBtn}
+                </button>
+              </div>
+            )}
 
             {/* ── CHECK-IN CARD ───────────────────────────────────────────────── */}
             <div className="mb-5">

@@ -105,44 +105,47 @@ export default function PricingPage() {
       <main className="max-w-lg mx-auto px-4 pb-16 animate-fade-in">
 
         {/* Plan cards */}
-        <div className="grid grid-cols-2 gap-3 mb-8 mt-2">
+        <div className="space-y-3 mb-8 mt-2">
 
           {/* Yearly — highlighted */}
-          <div className="bg-brand-600/10 border-2 border-brand-500 rounded-2xl p-4 flex flex-col relative overflow-hidden">
+          <div className="bg-white border-2 border-brand-500 rounded-2xl p-5 relative overflow-hidden">
             {/* Best value badge */}
-            <span className="absolute top-0 left-0 right-0 text-center text-[10px] font-bold text-white bg-brand-600 py-1">
+            <span className="inline-flex items-center bg-amber-100 text-amber-700 text-[10px] font-bold px-2.5 py-1 rounded-full mb-3">
               {t.bestValue} · {t.save590}
             </span>
-            <div className="mt-5">
-              <p className="text-xs font-bold text-brand-400 uppercase tracking-wide mb-1">{t.yearly}</p>
-              <p className="text-2xl font-black text-ink leading-none mb-0.5">{t.yearlyPrice}</p>
-              <p className="text-[11px] text-brand-400 font-semibold">{t.monthlyEquiv} · {t.twoMonthsFree}</p>
-              <p className="text-[10px] text-slt mt-1">{t.billedYearly}</p>
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                <p className="text-xs font-bold text-brand-500 uppercase tracking-wide mb-1">{t.yearly}</p>
+                <p className="text-3xl font-black text-ink leading-none mb-1">{t.yearlyPrice}</p>
+                <p className="text-xs text-brand-600 font-semibold">{t.monthlyEquiv} · {t.twoMonthsFree}</p>
+                <p className="text-[11px] text-slt mt-0.5">{t.billedYearly}</p>
+              </div>
+              <button
+                onClick={() => handleSubscribe('yearly')}
+                disabled={!!loadingPlan}
+                className="shrink-0 px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-sm font-bold transition-colors disabled:opacity-60"
+              >
+                {loadingPlan === 'yearly' ? t.loading : t.startYearly}
+              </button>
             </div>
-            <button
-              onClick={() => handleSubscribe('yearly')}
-              disabled={!!loadingPlan}
-              className="mt-4 w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold transition-colors disabled:opacity-60"
-            >
-              {loadingPlan === 'yearly' ? t.loading : t.startYearly}
-            </button>
           </div>
 
           {/* Monthly */}
-          <div className="bg-dark-800 border border-dark-600 rounded-2xl p-4 flex flex-col">
-            <div>
-              <p className="text-xs font-bold text-slt uppercase tracking-wide mb-1">{t.monthly}</p>
-              <p className="text-2xl font-black text-ink leading-none mb-0.5">{t.monthlyPrice}</p>
-              <p className="text-[11px] text-slt">&nbsp;</p>
-              <p className="text-[10px] text-slt mt-1">{t.billedMonthly}</p>
+          <div className="bg-dark-800 border border-dark-600 rounded-2xl p-5">
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                <p className="text-xs font-bold text-slt uppercase tracking-wide mb-1">{t.monthly}</p>
+                <p className="text-3xl font-black text-ink leading-none mb-1">{t.monthlyPrice}</p>
+                <p className="text-xs text-slt">{t.billedMonthly}</p>
+              </div>
+              <button
+                onClick={() => handleSubscribe('monthly')}
+                disabled={!!loadingPlan}
+                className="shrink-0 px-5 py-2.5 rounded-xl bg-dark-700 border border-dark-500 hover:bg-dark-600 text-ink text-sm font-bold transition-colors disabled:opacity-60"
+              >
+                {loadingPlan === 'monthly' ? t.loading : t.startMonthly}
+              </button>
             </div>
-            <button
-              onClick={() => handleSubscribe('monthly')}
-              disabled={!!loadingPlan}
-              className="mt-4 w-full py-2.5 rounded-xl bg-dark-700 border border-dark-500 hover:bg-dark-600 text-ink text-xs font-bold transition-colors disabled:opacity-60"
-            >
-              {loadingPlan === 'monthly' ? t.loading : t.startMonthly}
-            </button>
           </div>
 
         </div>
