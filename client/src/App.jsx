@@ -14,6 +14,7 @@ import AccountPage from './pages/AccountPage';
 import BreathingPage from './pages/BreathingPage';
 import RitualPage from './pages/RitualPage';
 import MentalGameProfilePage from './pages/MentalGameProfilePage';
+import TrainPage from './pages/TrainPage';
 import DebriefPage from './pages/DebriefPage';
 import GamesPage from './pages/GamesPage';
 import PersonalityTestPage from './pages/PersonalityTestPage';
@@ -197,6 +198,16 @@ function App() {
         element={
           <ProtectedRoute requireOnboarding={true}>
             <PaymentSuccessPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/train"
+        element={
+          <ProtectedRoute requireOnboarding={true}>
+            <TrainPage />
+            <BottomNav />
           </ProtectedRoute>
         }
       />
