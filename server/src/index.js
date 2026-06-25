@@ -37,9 +37,10 @@ app.use('/api/ritual',       ritualRoutes);
 app.use('/api/debrief',      debriefRoutes);
 app.use('/api/games',         gamesRoutes);
 app.use('/api/profile-intro', profileIntroRoutes);
-app.use('/api/sessions',      sessionsRoutes);
-app.use('/api/streaks',       require('./routes/streaks'));
-app.use('/api/payments',      require('./routes/payments'));
+app.use('/api/sessions',        sessionsRoutes);
+app.use('/api/streaks',         require('./routes/streaks'));
+app.use('/api/payments',        require('./routes/payments'));
+app.use('/api/mental-fitness',  require('./routes/mentalFitness'));
 
 // Health check — useful to confirm the server is running
 app.get('/api/health', (_req, res) => {

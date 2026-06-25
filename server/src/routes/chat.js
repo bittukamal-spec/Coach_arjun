@@ -121,7 +121,7 @@ Start by fully acknowledging what happened and validating the feeling. Then guid
 // ── Helper: build personalised system prompt ─────────────────────────────
 
 function buildSystemPrompt(user, checkIns = [], memories = [], sessionType = null, extra = {}) {
-  const { recentDebriefs = [], todayDrill = null, achievementCount = 0, recentDrills = [], gameSessions = [], ritual = null, replyStyle = null } = extra;
+  const { recentDebriefs = [], todayDrill = null, achievementCount = 0, recentDrills = [], gameSessions = [], ritual = null, replyStyle = null, mfsEntry = null } = extra;
   const goals = JSON.parse(user.goals || '[]').map(g => GOAL_LABELS[g] || g);
   const goalsText = goals.length ? goals.join(', ') : 'general mental performance';
 
@@ -303,6 +303,11 @@ Do NOT mention that you are reading a profile — let it silently shape your res
     ? `\n\n## Response Style\nThe user has selected "${replyStyle}" mode. ${STYLE_INSTRUCTIONS[replyStyle]}`
     : '';
 
+  // ── Mental Fitness Check-in (today's 6-dim entry) ───────────────────────
+  const mfsSection = mfsEntry
+    ? `\n\n## Today's Mental Fitness Check-in (1–5 scale)\nFocus: ${mfsEntry.focus}/5 | Confidence: ${mfsEntry.confidence}/5 | Drive: ${mfsEntry.drive}/5 | Calm: ${mfsEntry.calm}/5 | Self-talk: ${mfsEntry.selftalk}/5 | Bounce-back: ${mfsEntry.bounce}/5\nFactor these scores into your coaching tone. Low scores (≤2) on any dimension are important signals — acknowledge them naturally if relevant.`
+    : '';
+
   const toolAwarenessSection = `\n\n## In-App Tools (mention naturally, once per session)
 When genuinely relevant, mention these in plain conversational language — no buttons or links needed.
 - Breathing exercise: for anxiety, nerves, or overwhelm before a match
@@ -312,7 +317,7 @@ When genuinely relevant, mention these in plain conversational language — no b
 - Progress chart: when they doubt their growth or ask about improvement
 Say it as a coach would: "There's a breathing exercise on the home screen" or "Your progress chart tracks this."`;
 
-  return `You are Arjun — a mental performance coach who specialises in sports psychology for Indian athletes. You are warm, direct, and feel like a trusted older brother who truly understands the pressures of Indian sports culture.
+  return `You are Arjun — a mental performance coach who specialises in sports psychology for Indian athletes. You are warm, direct, and feel like a trusted older brother who truly understands the pressures of Indian sports culture.${mfsSection}
 
 ## Athlete Profile
 - **Name:** ${user.name}
@@ -536,6 +541,14 @@ router.post('/message', authenticate, checkFreeLimit, async (req, res) => {
     // Fetch ritual steps
     const ritual = user.ritualSteps ? { ritualSteps: user.ritualSteps } : null;
 
+    // Fetch today's mental fitness entry (IST date)
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const todayIST = new Date(Date.now() + istOffset).toISOString().slice(0, 10);
+    const mfsEntry = await prisma.mentalFitnessEntry.findUnique({
+      where: { userId_date: { userId: req.userId, date: todayIST } },
+      select: { focus: true, confidence: true, drive: true, calm: true, selftalk: true, bounce: true },
+    }).catch(() => null);
+
     // Save the user's message (skip invisible session-start markers)
     if (!isSessionStart) {
       await prisma.message.create({
@@ -590,7 +603,7 @@ router.post('/message', authenticate, checkFreeLimit, async (req, res) => {
     const stream = anthropic.messages.stream({
       model: process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001',
       max_tokens: 800,
-      system: buildSystemPrompt(user, recentCheckIns, memories, sessionType, { recentDebriefs, todayDrill, achievementCount, recentDrills, gameSessions, ritual, arjunMsgCount, replyStyle }),
+      system: buildSystemPrompt(user, recentCheckIns, memories, sessionType, { recentDebriefs, todayDrill, achievementCount, recentDrills, gameSessions, ritual, arjunMsgCount, replyStyle, mfsEntry }),
       messages: conversationHistory,
     });
 

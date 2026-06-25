@@ -37,6 +37,7 @@ export default function Dashboard() {
   const t  = translations[language];
   const td = t.dashboard;
   const ts = t.streak;
+  const mf = t.mentalFitness;
   const hi = language === 'hi';
 
   const isPremium          = user?.tier === 'premium';
@@ -45,6 +46,7 @@ export default function Dashboard() {
 
   // ── state ──────────────────────────────────────────────────────────────────
   const [todayCheckIn,      setTodayCheckIn]      = useState(null);
+  const [mfsEntry,          setMfsEntry]          = useState(null);
   const [streak,            setStreak]            = useState(null);
   const [drillState,        setDrillState]        = useState({ drillIndex: null, completed: false });
   const [drillExpanded,     setDrillExpanded]     = useState(false);
@@ -85,6 +87,11 @@ export default function Dashboard() {
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data) setDrillState(data); })
       .catch(() => {});
+
+    apiFetch('/api/mental-fitness/today', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => setMfsEntry(data?.entry || false))
+      .catch(() => setMfsEntry(false));
   }, [token]);
 
   // ── handlers ───────────────────────────────────────────────────────────────
@@ -340,6 +347,45 @@ export default function Dashboard() {
                     </div>
                     <div className="bg-brand-500 text-white text-xs font-bold px-3 py-2 rounded-xl whitespace-nowrap ml-3 shrink-0">
                       {td.checkinCta}
+                    </div>
+                  </div>
+                </Link>
+              )}
+            </div>
+
+            {/* ── MENTAL FITNESS CARD ─────────────────────────────────────────── */}
+            <div className="mb-5">
+              {mfsEntry === null ? (
+                <div className="h-16 bg-dark-800 rounded-2xl animate-pulse border border-dark-600" />
+              ) : mfsEntry ? (
+                <div className="bg-white border border-dark-600 rounded-2xl p-4 shadow-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-semibold text-ink">{mf.card.doneTitle}</p>
+                    <CheckCircle2 size={15} className="text-win-500 shrink-0" />
+                  </div>
+                  <div className="flex gap-1.5 flex-wrap mb-2">
+                    {['focus','confidence','drive','calm','selftalk','bounce'].map(d => (
+                      <span key={d} className="text-xs bg-brand-50 text-brand-700 px-2 py-0.5 rounded-full font-semibold">
+                        {mfsEntry[d]}/5
+                        <span className="ml-0.5 text-slt font-normal">
+                          {mf.dims[d]}
+                        </span>
+                      </span>
+                    ))}
+                  </div>
+                  {mfsEntry.arjunResponse && (
+                    <p className="text-xs leading-relaxed" style={{ color: '#C05A10' }}>{mfsEntry.arjunResponse}</p>
+                  )}
+                </div>
+              ) : (
+                <Link to="/mental-fitness">
+                  <div className="bg-white border border-dark-600 rounded-2xl p-4 flex items-center justify-between active:scale-[0.99] transition-transform shadow-sm">
+                    <div>
+                      <p className="font-semibold text-ink text-sm">{mf.card.notDoneTitle}</p>
+                      <p className="text-xs text-slt mt-0.5">{mf.card.notDoneSub}</p>
+                    </div>
+                    <div className="bg-brand-500 text-white text-xs font-bold px-3 py-2 rounded-xl whitespace-nowrap ml-3 shrink-0">
+                      {mf.card.notDoneBtn}
                     </div>
                   </div>
                 </Link>

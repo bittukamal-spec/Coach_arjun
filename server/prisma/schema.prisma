@@ -72,15 +72,16 @@ model User {
   // Demographics
   age           Int?   // age in years
 
-  messages         Message[]
-  checkIns         CheckIn[]
-  memories         UserMemory[]
-  passwordResets   PasswordResetToken[]
-  achievements     UserAchievement[]
-  drillCompletions DrillCompletion[]
-  debriefs         Debrief[]
-  gameSessions     GameSession[]
-  chatSessions     ChatSession[]
+  messages               Message[]
+  checkIns               CheckIn[]
+  memories               UserMemory[]
+  passwordResets         PasswordResetToken[]
+  achievements           UserAchievement[]
+  drillCompletions       DrillCompletion[]
+  debriefs               Debrief[]
+  gameSessions           GameSession[]
+  chatSessions           ChatSession[]
+  mentalFitnessEntries   MentalFitnessEntry[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -185,4 +186,21 @@ model PasswordResetToken {
   expiresAt DateTime
   used      Boolean  @default(false)
   createdAt DateTime @default(now())
+}
+
+model MentalFitnessEntry {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date           String   // "YYYY-MM-DD" IST — avoids UTC midnight bug
+  focus          Int      // 1–5
+  confidence     Int      // 1–5
+  drive          Int      // 1–5
+  calm           Int      // 1–5
+  selftalk       Int      // 1–5
+  bounce         Int      // 1–5
+  arjunResponse  String?  // AI-generated 1-liner, nullable
+  createdAt      DateTime @default(now())
+
+  @@unique([userId, date])
 }

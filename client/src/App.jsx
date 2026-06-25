@@ -24,6 +24,7 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import PricingPage from './pages/PricingPage';
 import PaymentSuccessPage from './pages/PaymentSuccessPage';
+import MentalFitnessCheckin from './pages/MentalFitnessCheckin';
 import ProtectedRoute from './components/ProtectedRoute';
 import BottomNav from './components/BottomNav';
 import { translations } from './i18n/translations';
@@ -180,6 +181,16 @@ function App() {
         element={
           <ProtectedRoute requireOnboarding={true}>
             <PersonalityTestPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Mental Fitness check-in — full screen, no BottomNav */}
+      <Route
+        path="/mental-fitness"
+        element={
+          <ProtectedRoute requireOnboarding={true}>
+            <MentalFitnessCheckin />
           </ProtectedRoute>
         }
       />
