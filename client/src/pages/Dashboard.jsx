@@ -518,7 +518,7 @@ export default function Dashboard() {
 
               {/* Talk to Arjun secondary */}
               <button
-                onClick={() => { setShowMfsReport(false); navigate('/coaching', { state: { sessionType: 'post_checkin' } }); }}
+                onClick={() => { setShowMfsReport(false); navigate('/coaching', { state: { sessionType: 'post_checkin', newSession: true, arjunReport: mfsEntry?.arjunResponse } }); }}
                 className="w-full py-3.5 rounded-xl font-bold text-sm border border-dark-600 text-slt active:scale-[0.98] transition-transform"
               >
                 {hi ? 'अर्जुन से बात करो' : 'Talk to Arjun'}

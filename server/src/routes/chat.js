@@ -121,7 +121,7 @@ Start by fully acknowledging what happened and validating the feeling. Then guid
 // ── Helper: build personalised system prompt ─────────────────────────────
 
 function buildSystemPrompt(user, checkIns = [], memories = [], sessionType = null, extra = {}) {
-  const { recentDebriefs = [], todayDrill = null, achievementCount = 0, recentDrills = [], gameSessions = [], ritual = null, replyStyle = null, mfsEntry = null, mfsHistory = [] } = extra;
+  const { recentDebriefs = [], todayDrill = null, achievementCount = 0, recentDrills = [], gameSessions = [], ritual = null, replyStyle = null, mfsEntry = null, mfsHistory = [], mfsReport = null } = extra;
   const goals = JSON.parse(user.goals || '[]').map(g => GOAL_LABELS[g] || g);
   const goalsText = goals.length ? goals.join(', ') : 'general mental performance';
 
@@ -328,17 +328,18 @@ Do NOT mention that you are reading a profile — let it silently shape your res
       }
     }
 
-    mfsSection = `\n\n## Today's Mental Fitness Check-in (1–5 scale)\n- TODAY: ${todayLine}${historyLine}\nFactor these scores into your coaching tone. Low scores (≤2) on any dimension are important signals — acknowledge them naturally if relevant. If a dimension is trending down, treat it as a priority.`;
+    mfsSection = `\n\n## Today's Mental Fitness Check-in (1–5 scale)\n- TODAY: ${todayLine}${historyLine}\nFactor these scores into your coaching tone. Low scores (≤2) on any dimension are important signals — acknowledge them naturally if relevant. If a dimension is trending down, treat it as a priority.${mfsReport ? `\n- Arjun's personalised report shown to athlete just now: "${mfsReport}" — build on this naturally and directly, do not repeat it verbatim.` : ''}`;
   }
 
-  const toolAwarenessSection = `\n\n## In-App Tools (mention naturally, once per session)
-When genuinely relevant, mention these in plain conversational language — no buttons or links needed.
-- Breathing exercise: for anxiety, nerves, or overwhelm before a match
-- Daily drill: for building a mental habit or consistent training
-- Daily Pulse check-in: if they seem to have skipped today's log
-- Post-match Debrief: after a match or tough training day
-- Progress chart: when they doubt their growth or ask about improvement
-Say it as a coach would: "There's a breathing exercise on the home screen" or "Your progress chart tracks this."`;
+  const toolAwarenessSection = `\n\n## In-App Tools (recommend via [APP:] tag)
+When it's genuinely useful, recommend ONE specific in-app tool at the very END of your message using this exact format on its own line: [APP: tool_key]
+Available tool keys and when to use them:
+- breathing → athlete is nervous, anxious, overwhelmed, or can't settle before a match
+- reset → needs a pressure reset flow, feeling overwhelmed before a big moment
+- ritual → wants to build a match-day routine or pre-match process
+- debrief → just had a match, wants to process a result or reflect on what went well
+- games → wants to improve focus, attention, or mental sharpness through practice
+Only include [APP: tool_key] when the conversation genuinely points to that tool — not every message. Max ONE per message. Do NOT mention the tool in your text — let the tag do the work silently. The UI will display a "Try it now" button for the athlete.`;
 
   return `You are Arjun — a mental performance coach who specialises in sports psychology for Indian athletes. You are warm, direct, and feel like a trusted older brother who truly understands the pressures of Indian sports culture.${mfsSection}
 
@@ -488,7 +489,7 @@ router.post('/message', authenticate, checkFreeLimit, async (req, res) => {
     });
   }
 
-  const { content, sessionType = null, arjunMsgCount = 0, replyStyle = null, chatSessionId = null } = req.body;
+  const { content, sessionType = null, arjunMsgCount = 0, replyStyle = null, chatSessionId = null, arjunReport = null } = req.body;
   if (!content || typeof content !== 'string' || content.trim().length === 0) {
     return res.status(400).json({ error: 'Message content is required' });
   }
@@ -629,7 +630,7 @@ router.post('/message', authenticate, checkFreeLimit, async (req, res) => {
     const stream = anthropic.messages.stream({
       model: process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001',
       max_tokens: 800,
-      system: buildSystemPrompt(user, recentCheckIns, memories, sessionType, { recentDebriefs, todayDrill, achievementCount, recentDrills, gameSessions, ritual, arjunMsgCount, replyStyle, mfsEntry, mfsHistory }),
+      system: buildSystemPrompt(user, recentCheckIns, memories, sessionType, { recentDebriefs, todayDrill, achievementCount, recentDrills, gameSessions, ritual, arjunMsgCount, replyStyle, mfsEntry, mfsHistory, mfsReport: arjunReport }),
       messages: conversationHistory,
     });
 

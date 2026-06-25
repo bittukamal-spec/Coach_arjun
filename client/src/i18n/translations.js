@@ -741,11 +741,12 @@ export const translations = {
       },
       toolRec: {
         sectionLabel: 'Recommendations',
-        breathing:    { title: 'Breathing',      desc: 'Calm down in 2 minutes' },
-        games:        { title: 'Focus Games',    desc: 'Train your attention' },
-        coaching:     { title: 'Talk to Arjun',  desc: 'Get personal coaching' },
-        reset:        { title: 'Pressure Reset', desc: 'Reset and move forward' },
-        debrief:      { title: 'Match Review',   desc: 'Reflect and improve' },
+        breathing:    { title: 'Breathing',         desc: 'Calm down in 2 minutes' },
+        games:        { title: 'Focus Games',        desc: 'Train your attention' },
+        coaching:     { title: 'Talk to Arjun',      desc: 'Get personal coaching' },
+        reset:        { title: 'Pressure Reset',     desc: 'Reset and move forward' },
+        debrief:      { title: 'Match Review',       desc: 'Reflect and improve' },
+        ritual:       { title: 'Pre-match routine',  desc: 'Build your match-day ritual' },
       },
     },
     common: {
@@ -1465,6 +1466,7 @@ export const translations = {
         coaching:     { title: 'अर्जुन से बात करो',  desc: 'कोचिंग पाओ' },
         reset:        { title: 'प्रेशर रीसेट',       desc: 'रीसेट करो और आगे बढ़ो' },
         debrief:      { title: 'मैच समीक्षा',        desc: 'सोचो और सुधरो' },
+        ritual:       { title: 'मैच रूटीन',          desc: 'अपनी मैच-डे दिनचर्या बनाओ' },
       },
     },
     common: {
