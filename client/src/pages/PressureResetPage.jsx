@@ -1,11 +1,96 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Target, RotateCcw } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
 import Navbar from '../components/Navbar';
-import BoxBreather from '../components/BoxBreather';
+import BreathingCircle from '../components/BreathingCircle';
+
+// ── BoxBreathStep: 4 cycles of box breathing for wizard step 2 ───────────────
+
+const BOX_PHASES = [
+  { key: 'breatheIn',  duration: 4, scale: 1.45 },
+  { key: 'hold',       duration: 4, scale: 1.45 },
+  { key: 'breatheOut', duration: 4, scale: 1.0  },
+  { key: 'hold',       duration: 4, scale: 1.0  },
+];
+const BOX_TOTAL_CYCLES = 4;
+
+function BoxBreathStep({ onComplete, t }) {
+  const [phaseIdx,  setPhaseIdx]  = useState(0);
+  const [count,     setCount]     = useState(BOX_PHASES[0].duration);
+  const [cycleNum,  setCycleNum]  = useState(1);
+  const [canSkip,   setCanSkip]   = useState(false);
+
+  const ctxRef = useRef(null);
+  function playTone(type) {
+    try {
+      if (!ctxRef.current || ctxRef.current.state === 'closed') ctxRef.current = new AudioContext();
+      const ctx = ctxRef.current;
+      if (ctx.state === 'suspended') ctx.resume();
+      const osc = ctx.createOscillator(); const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.value = type === 'in' ? 528 : type === 'out' ? 396 : 440;
+      gain.gain.setValueAtTime(0.12, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.7);
+      osc.start(); osc.stop(ctx.currentTime + 0.7);
+    } catch {}
+  }
+
+  useEffect(() => {
+    const id = setTimeout(() => {
+      if (count > 1) { setCount(c => c - 1); return; }
+
+      const nextIdx  = (phaseIdx + 1) % BOX_PHASES.length;
+      const wrapping = nextIdx === 0;
+
+      if (wrapping) {
+        const next = cycleNum + 1;
+        if (next > BOX_TOTAL_CYCLES) { onComplete(); return; }
+        setCycleNum(next);
+        if (next === 2) setCanSkip(true);
+      }
+
+      setPhaseIdx(nextIdx);
+      setCount(BOX_PHASES[nextIdx].duration);
+      const k = BOX_PHASES[nextIdx].key;
+      playTone(k === 'breatheIn' ? 'in' : k === 'breatheOut' ? 'out' : 'hold');
+    }, 1000);
+    return () => clearTimeout(id);
+  }, [count, phaseIdx, cycleNum]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const current    = BOX_PHASES[phaseIdx];
+  const phaseLabel = t[current.key];
+
+  return (
+    <div className="flex flex-col items-center gap-6">
+      <div className="relative flex items-center justify-center">
+        <div
+          className="absolute rounded-full bg-brand-500/10"
+          style={{ width: '220px', height: '220px', transform: `scale(${current.scale * 0.95})`, transition: `transform ${current.duration}s ease-in-out` }}
+        />
+        <div
+          className="w-40 h-40 rounded-full bg-brand-500 flex flex-col items-center justify-center relative z-10"
+          style={{ transform: `scale(${current.scale})`, transition: `transform ${current.duration}s ease-in-out`, boxShadow: '0 0 40px rgba(11,110,79,0.4)' }}
+        >
+          <span className="text-4xl font-bold text-white leading-none">{count}</span>
+          <span className="text-xs font-medium text-white mt-1">{phaseLabel}</span>
+        </div>
+      </div>
+
+      {canSkip && (
+        <button
+          onClick={onComplete}
+          className="self-center px-5 py-2.5 rounded-full bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors active:scale-95 animate-fade-in"
+        >
+          {t.breathingDone || 'Done'}
+        </button>
+      )}
+    </div>
+  );
+}
 
 const CUE_SUGGESTIONS = {
   nervous:    'READY',
@@ -156,7 +241,7 @@ export default function PressureResetPage() {
           return (
             <div className="flex flex-col gap-6">
               <ArjunBubble>{tw.breathingIntro}</ArjunBubble>
-              <BoxBreather onComplete={next} t={tw} />
+              <BoxBreathStep onComplete={next} t={tw} />
             </div>
           );
 
