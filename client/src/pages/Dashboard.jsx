@@ -279,21 +279,19 @@ export default function Dashboard() {
               <div className="bg-white border border-dark-600 rounded-2xl p-4 shadow-sm">
                 <p className="font-semibold text-ink mb-0.5">{td.coachCardTitle}</p>
                 <p className="text-xs text-slt mb-3">{td.coachCardSub}</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { label: td.quickBefore,   type: 'match_prep'    },
-                    { label: td.quickMistake,  type: 'setback_reset' },
-                    { label: td.quickConf,     type: 'confidence'    },
-                    { label: td.quickOpen,     type: 'general'       },
-                  ].map(({ label, type }) => (
-                    <button
-                      key={type}
-                      onClick={() => navigate('/coaching', { state: { sessionType: type } })}
-                      className="py-2.5 px-3 bg-brand-50 border border-brand-100 rounded-xl text-xs font-semibold text-brand-700 text-center hover:bg-brand-100 active:scale-95 transition-all"
-                    >
-                      {label}
-                    </button>
-                  ))}
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={() => navigate('/coaching', { state: { newSession: true } })}
+                    className="w-full py-2.5 px-3 bg-brand-600 text-white rounded-xl text-sm font-semibold text-center active:scale-[0.98] transition-transform"
+                  >
+                    {td.startNewSession}
+                  </button>
+                  <button
+                    onClick={() => navigate('/sessions')}
+                    className="w-full py-2.5 px-3 bg-brand-50 border border-brand-100 rounded-xl text-xs font-semibold text-brand-700 text-center hover:bg-brand-100 active:scale-95 transition-all"
+                  >
+                    {td.viewPastSessions}
+                  </button>
                 </div>
               </div>
             </div>
@@ -498,7 +496,13 @@ export default function Dashboard() {
               {/* Tool recommendation */}
               <p className="text-[11px] font-bold text-slt uppercase tracking-widest mb-2.5">{t.mentalFitness.toolRec.sectionLabel}</p>
               <button
-                onClick={() => { setShowMfsReport(false); navigate(rec.to, rec.state ? { state: rec.state } : undefined); }}
+                onClick={() => {
+                  setShowMfsReport(false);
+                  const navState = rec.toolKey === 'coaching'
+                    ? { state: { ...(rec.state || {}), newSession: true } }
+                    : rec.state ? { state: rec.state } : undefined;
+                  navigate(rec.to, navState);
+                }}
                 className="w-full flex items-center gap-3 p-3.5 rounded-xl border-2 active:scale-[0.98] transition-transform mb-3"
                 style={{ borderColor: '#185FA5' }}
               >

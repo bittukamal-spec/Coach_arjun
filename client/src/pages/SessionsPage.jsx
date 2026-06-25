@@ -185,7 +185,16 @@ export default function SessionsPage() {
     <div className="min-h-screen bg-dark-900">
       <Navbar />
       <main className="max-w-lg mx-auto pt-20 pb-28 px-4 animate-fade-in">
-        <h1 className="text-xl font-bold text-ink mb-4">{t.title}</h1>
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-xl font-bold text-ink">{t.title}</h1>
+        </div>
+
+        <button
+          onClick={() => navigate('/coaching', { state: { newSession: true } })}
+          className="w-full mb-5 py-3.5 rounded-2xl bg-brand-600 text-white font-semibold text-sm active:scale-[0.98] transition-transform"
+        >
+          + {t.startNew}
+        </button>
 
         {loading ? (
           <div className="flex justify-center py-12">

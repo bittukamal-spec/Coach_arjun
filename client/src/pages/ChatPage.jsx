@@ -184,6 +184,7 @@ function ChatPage() {
   const pendingSessionRef       = useRef(location.state?.sessionType ?? null);
   const prefillMsgRef           = useRef(location.state?.prefillMsg ?? null);
   const pendingChatSessionIdRef = useRef(location.state?.chatSessionId ?? null);
+  const forceNewSessionRef      = useRef(location.state?.newSession ?? false);
 
   // ── Load on mount ─────────────────────────────────────────────────────────
 
@@ -218,7 +219,7 @@ function ChatPage() {
           if (sess?.summary) setSessionSummary(sess.summary);
           await fetchSessionMessages(pendingId);
           sessionLoaded = true;
-        } else {
+        } else if (!forceNewSessionRef.current) {
           const todayStart = new Date();
           todayStart.setUTCHours(0, 0, 0, 0);
           const activeToday = sessions.find(
