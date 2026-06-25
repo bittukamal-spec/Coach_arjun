@@ -125,11 +125,36 @@ export default function Dashboard() {
   const missedYesterday = streak === 0 && mfsEntry === false && totalCheckIns > 0;
 
   const TOOLS = [
-    { Icon: Wind,          label: hi ? 'श्वास'         : 'Breathing',      to: '/breathing' },
-    { Icon: RotateCcw,     label: hi ? 'प्रेशर रीसेट' : 'Pressure Reset', to: '/reset'     },
-    { Icon: Trophy,        label: hi ? 'रिचुअल'       : 'Ritual',         to: '/ritual'    },
-    { Icon: ClipboardList, label: hi ? 'डीब्रीफ'       : 'Debrief',        to: '/debrief'   },
-    { Icon: Gamepad2,      label: hi ? 'गेम्स'        : 'Games',          to: '/games'     },
+    {
+      Icon: Wind,
+      label: hi ? 'तुरंत शांत हो जाओ'               : 'Calm down fast',
+      desc:  hi ? 'मैच से पहले 2 मिनट में नर्वस दूर करो' : 'Settle nerves in 2 minutes before a match',
+      to: '/breathing',
+    },
+    {
+      Icon: RotateCcw,
+      label: hi ? 'मैच से पहले रीसेट'              : 'Before your match',
+      desc:  hi ? 'घबराहट हो तो यहाँ आओ, खुद को तैयार करो' : 'Feel calm and ready when nerves hit',
+      to: '/reset',
+    },
+    {
+      Icon: Trophy,
+      label: hi ? 'मैच रूटीन'                     : 'Match routine',
+      desc:  hi ? 'अपने मैच-डे के खुद के कदम बनाओ'       : 'Build your own pre-match steps',
+      to: '/ritual',
+    },
+    {
+      Icon: ClipboardList,
+      label: hi ? 'मैच के बाद'                    : 'After the match',
+      desc:  hi ? 'क्या सही रहा — अगली बार क्या बदलें'    : 'What went well — what to fix next time',
+      to: '/debrief',
+    },
+    {
+      Icon: Gamepad2,
+      label: hi ? 'फोकस गेम्स'                    : 'Focus games',
+      desc:  hi ? 'ध्यान को एक ताकत की तरह ट्रेन करो'     : 'Train your attention like a muscle',
+      to: '/games',
+    },
   ];
 
   // ── render ─────────────────────────────────────────────────────────────────
@@ -298,16 +323,22 @@ export default function Dashboard() {
 
             {/* ── MENTAL TOOLS ────────────────────────────────────────────────── */}
             <div className="mb-5">
-              <SectionLabel>{hi ? 'मानसिक टूल' : 'Mental Tools'}</SectionLabel>
-              <div className="grid grid-cols-5 gap-2">
-                {TOOLS.map(({ Icon, label, to }) => (
+              <SectionLabel>{hi ? 'अभी क्या करें' : 'What to do right now'}</SectionLabel>
+              <div className="flex flex-col gap-2">
+                {TOOLS.map(({ Icon, label, desc, to }) => (
                   <button
                     key={to}
                     onClick={() => navigate(to)}
-                    className="flex flex-col items-center gap-1.5 bg-white border border-dark-600 rounded-2xl py-3 px-1 active:scale-95 transition-transform shadow-sm"
+                    className="flex items-center gap-3 bg-white border border-dark-600 hover:border-brand-500/40 hover:bg-dark-800 rounded-2xl px-4 py-3.5 text-left active:scale-[0.98] transition-all shadow-sm"
                   >
-                    <Icon size={18} className="text-brand-500" />
-                    <p className="text-[10px] text-slt text-center leading-tight">{label}</p>
+                    <div className="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center shrink-0">
+                      <Icon size={18} className="text-brand-500" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-ink leading-snug">{label}</p>
+                      <p className="text-xs text-slt leading-snug mt-0.5">{desc}</p>
+                    </div>
+                    <ChevronRight size={16} className="text-dark-500 shrink-0" />
                   </button>
                 ))}
               </div>
