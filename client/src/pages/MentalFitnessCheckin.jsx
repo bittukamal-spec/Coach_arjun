@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Zap, X } from 'lucide-react';
+import { Zap, X, ChevronLeft, ChevronRight, Wind, Gamepad2, MessageCircle, ClipboardList, RotateCcw } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
-import { ChevronLeft } from 'lucide-react';
 
 const MFS_DIMS = ['focus', 'confidence', 'drive', 'calm', 'selftalk', 'bounce'];
 const MFS_EMOJIS = {
@@ -26,6 +25,22 @@ function calcAvg(data) {
   const keys = ['mood', ...MFS_DIMS].filter(k => data[k] != null);
   if (!keys.length) return null;
   return (keys.reduce((s, k) => s + data[k], 0) / keys.length).toFixed(1);
+}
+
+const TOOL_MAP = {
+  calm:       { toolKey: 'breathing', to: '/breathing',  state: null,                              Icon: Wind          },
+  focus:      { toolKey: 'games',     to: '/games',      state: null,                              Icon: Gamepad2      },
+  confidence: { toolKey: 'coaching',  to: '/coaching',   state: { sessionType: 'confidence' },     Icon: MessageCircle },
+  drive:      { toolKey: 'coaching',  to: '/coaching',   state: { sessionType: 'general' },        Icon: MessageCircle },
+  selftalk:   { toolKey: 'debrief',   to: '/debrief',    state: null,                              Icon: ClipboardList },
+  bounce:     { toolKey: 'reset',     to: '/reset',      state: null,                              Icon: RotateCcw     },
+  mood:       { toolKey: 'coaching',  to: '/coaching',   state: { sessionType: 'post_checkin' },   Icon: MessageCircle },
+};
+
+function getRecommendedTool(entry) {
+  const dims = ['calm', 'focus', 'confidence', 'drive', 'selftalk', 'bounce', 'mood'];
+  const sorted = dims.filter(d => entry[d] != null).sort((a, b) => entry[a] - entry[b]);
+  return TOOL_MAP[sorted[0]] || TOOL_MAP.mood;
 }
 
 export default function MentalFitnessCheckin() {
@@ -332,36 +347,63 @@ export default function MentalFitnessCheckin() {
       </div>
 
       {/* Arjun's report popup */}
-      {showReport && entry?.arjunResponse && (
-        <>
-          <div className="fixed inset-0 z-50 bg-black/40" onClick={() => setShowReport(false)} />
-          <div className="fixed bottom-0 inset-x-0 z-50 bg-white rounded-t-2xl px-5 py-6 animate-fade-in shadow-xl max-h-[80vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <span className="text-xl">🧠</span>
-                <p className="font-bold text-ink">{hi ? 'अर्जुन की रिपोर्ट' : "Arjun's report"}</p>
+      {showReport && entry?.arjunResponse && (() => {
+        const rec = getRecommendedTool(entry);
+        const toolInfo = mf.toolRec[rec.toolKey];
+        return (
+          <>
+            <div className="fixed inset-0 z-50 bg-black/40" onClick={() => setShowReport(false)} />
+            <div className="fixed bottom-0 inset-x-0 z-50 bg-white rounded-t-2xl px-5 pt-5 pb-8 animate-fade-in shadow-xl max-h-[85vh] overflow-y-auto">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-base" style={{ backgroundColor: '#EFF6FF' }}>🧠</div>
+                  <div>
+                    <p className="font-bold text-ink text-sm">{hi ? 'अर्जुन की रिपोर्ट' : "Arjun's report"}</p>
+                    {avgPct !== null && <p className="text-xs text-slt">{avgPct}/100 {mf.avgLabel}</p>}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowReport(false)}
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-slt"
+                >
+                  <X size={16} />
+                </button>
               </div>
-              <button onClick={() => setShowReport(false)} className="text-slt hover:text-ink text-xl leading-none">
-                <X size={20} />
+
+              {/* Report text */}
+              <div className="bg-gray-50 rounded-xl p-4 mb-5">
+                <p className="text-sm text-ink leading-relaxed">{entry.arjunResponse}</p>
+              </div>
+
+              {/* Tool recommendation */}
+              <p className="text-[11px] font-bold text-slt uppercase tracking-widest mb-2.5">{mf.toolRec.sectionLabel}</p>
+              <button
+                onClick={() => { setShowReport(false); navigate(rec.to, rec.state ? { state: rec.state } : undefined); }}
+                className="w-full flex items-center gap-3 p-3.5 rounded-xl border-2 active:scale-[0.98] transition-transform mb-3"
+                style={{ borderColor: '#185FA5' }}
+              >
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: '#EFF6FF' }}>
+                  <rec.Icon size={18} style={{ color: '#185FA5' }} />
+                </div>
+                <div className="text-left flex-1">
+                  <p className="font-semibold text-ink text-sm">{toolInfo.title}</p>
+                  <p className="text-xs text-slt">{toolInfo.desc}</p>
+                </div>
+                <ChevronRight size={16} style={{ color: '#185FA5' }} />
+              </button>
+
+              {/* Talk to Arjun secondary */}
+              <button
+                onClick={() => { setShowReport(false); navigate('/coaching', { state: { sessionType: 'post_checkin' } }); }}
+                className="w-full py-3.5 rounded-xl font-bold text-sm border border-gray-200 text-slt active:scale-[0.98] transition-transform"
+              >
+                {mf.talkToArjun}
               </button>
             </div>
-            {avgPct !== null && (
-              <div className="flex items-center gap-2 mb-4">
-                <span className="text-2xl font-black" style={{ color: '#185FA5' }}>{avgPct}/100</span>
-                <span className="text-xs text-slt">{mf.avgLabel}</span>
-              </div>
-            )}
-            <p className="text-sm text-ink leading-relaxed">{entry.arjunResponse}</p>
-            <button
-              onClick={() => { setShowReport(false); navigate('/coaching', { state: { sessionType: 'post_checkin' } }); }}
-              className="mt-5 w-full py-3.5 rounded-xl text-white font-bold text-sm"
-              style={{ backgroundColor: '#185FA5' }}
-            >
-              {mf.talkToArjun}
-            </button>
-          </div>
-        </>
-      )}
+          </>
+        );
+      })()}
     </div>
   );
 }

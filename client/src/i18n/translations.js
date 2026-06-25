@@ -740,6 +740,14 @@ export const translations = {
         notDoneBtn:   'Check in',
         doneTitle:    'Today\'s check-in ✓',
       },
+      toolRec: {
+        sectionLabel: 'Try this now',
+        breathing:    { title: 'Breathing',      desc: 'Calm down in 2 minutes' },
+        games:        { title: 'Focus Games',    desc: 'Train your attention' },
+        coaching:     { title: 'Talk to Arjun',  desc: 'Get personal coaching' },
+        reset:        { title: 'Pressure Reset', desc: 'Reset and move forward' },
+        debrief:      { title: 'Match Review',   desc: 'Reflect and improve' },
+      },
     },
     common: {
       loading: 'Loading…',
@@ -1451,6 +1459,14 @@ export const translations = {
         notDoneSub:   'मूड · फोकस · मानसिकता · 60 सेकंड।',
         notDoneBtn:   'चेक-इन करें',
         doneTitle:    'आज का चेक-इन ✓',
+      },
+      toolRec: {
+        sectionLabel: 'अभी यह करो',
+        breathing:    { title: 'श्वास व्यायाम',      desc: '2 मिनट में शांत हो जाओ' },
+        games:        { title: 'फोकस गेम्स',         desc: 'ध्यान लगाना सीखो' },
+        coaching:     { title: 'अर्जुन से बात करो',  desc: 'कोचिंग पाओ' },
+        reset:        { title: 'प्रेशर रीसेट',       desc: 'रीसेट करो और आगे बढ़ो' },
+        debrief:      { title: 'मैच समीक्षा',        desc: 'सोचो और सुधरो' },
       },
     },
     common: {

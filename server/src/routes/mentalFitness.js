@@ -66,10 +66,10 @@ router.post('/', authenticate, async (req, res) => {
 
       const msg = await anthropic.messages.create({
         model: process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001',
-        max_tokens: 200,
+        max_tokens: 220,
         messages: [{
           role: 'user',
-          content: `You are Arjun, a direct and warm sports coach for a young Indian ${sport} athlete. Write a 3–4 sentence personal report based on their mental fitness scores today. Structure it as: (1) acknowledge what the numbers show — name the one strongest and one weakest dimension specifically, (2) explain briefly what that pattern means for their game today, (3) give ONE concrete action they can do in the next hour to improve their weakest area. Be specific to the numbers, not generic. No bullet points. No praise padding. Address them directly as "you".${langNote}
+          content: `You are Arjun, a direct and warm sports coach for a young Indian ${sport} athlete. Write a 3–4 sentence personal report based on their mental fitness scores today. Structure it as: (1) acknowledge what the numbers show — name the one strongest and one weakest dimension specifically, (2) explain briefly what that pattern means for their game today, (3) end with a single sentence recommending ONE of these in-app tools based on their weakest area: "Try the Breathing exercise" (low calm), "Open Focus Games" (low focus), "Use Pressure Reset" (low bounce-back or drive), "Do a Match Review" (low self-talk), or "Talk to me" (low confidence or mood). Be specific to the numbers, not generic. No bullet points. No praise padding. Address them directly as "you".${langNote}
 
 Today's scores — Mood: ${scores.mood}/5, Focus: ${scores.focus}/5, Confidence: ${scores.confidence}/5, Drive: ${scores.drive}/5, Calm: ${scores.calm}/5, Self-talk: ${scores.selftalk}/5, Bounce-back: ${scores.bounce}/5.`,
         }],

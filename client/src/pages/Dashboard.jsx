@@ -6,11 +6,27 @@ import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
 import {
   Flame, Zap, CheckCircle2, Snowflake, ChevronRight,
-  Target, TrendingUp, Sun, Wind, RotateCcw, Trophy, ClipboardList, Gamepad2, Crown, X,
+  Target, TrendingUp, Sun, Wind, RotateCcw, Trophy, ClipboardList, Gamepad2, Crown, X, MessageCircle,
 } from 'lucide-react';
 import { DRILLS } from '../data/drills';
 
 const TRIAL_DAYS = 14;
+
+const TOOL_MAP = {
+  calm:       { toolKey: 'breathing', to: '/breathing', state: null,                            Icon: Wind          },
+  focus:      { toolKey: 'games',     to: '/games',     state: null,                            Icon: Gamepad2      },
+  confidence: { toolKey: 'coaching',  to: '/coaching',  state: { sessionType: 'confidence' },   Icon: MessageCircle },
+  drive:      { toolKey: 'coaching',  to: '/coaching',  state: { sessionType: 'general' },      Icon: MessageCircle },
+  selftalk:   { toolKey: 'debrief',   to: '/debrief',   state: null,                            Icon: ClipboardList },
+  bounce:     { toolKey: 'reset',     to: '/reset',     state: null,                            Icon: RotateCcw     },
+  mood:       { toolKey: 'coaching',  to: '/coaching',  state: { sessionType: 'post_checkin' }, Icon: MessageCircle },
+};
+
+function getRecommendedTool(entry) {
+  const dims = ['calm', 'focus', 'confidence', 'drive', 'selftalk', 'bounce', 'mood'];
+  const sorted = dims.filter(d => entry[d] != null).sort((a, b) => entry[a] - entry[b]);
+  return TOOL_MAP[sorted[0]] || TOOL_MAP.mood;
+}
 
 function getTrialDaysRemaining(user) {
   if (user?.tier === 'premium') return null;
@@ -555,30 +571,60 @@ export default function Dashboard() {
       )}
 
       {/* ── MFS REPORT SHEET ─────────────────────────────────────────────────── */}
-      {showMfsReport && mfsEntry?.arjunResponse && (
-        <>
-          <div className="fixed inset-0 z-50 bg-black/40" onClick={() => setShowMfsReport(false)} />
-          <div className="fixed bottom-0 inset-x-0 z-50 bg-white rounded-t-2xl px-5 py-6 animate-fade-in shadow-xl max-h-[80vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <span className="text-xl">🧠</span>
-                <p className="font-bold text-ink">{hi ? 'अर्जुन की रिपोर्ट' : "Arjun's report"}</p>
+      {showMfsReport && mfsEntry?.arjunResponse && (() => {
+        const rec = getRecommendedTool(mfsEntry);
+        const toolInfo = t.mentalFitness.toolRec[rec.toolKey];
+        return (
+          <>
+            <div className="fixed inset-0 z-50 bg-black/40" onClick={() => setShowMfsReport(false)} />
+            <div className="fixed bottom-0 inset-x-0 z-50 bg-white rounded-t-2xl px-5 pt-5 pb-8 animate-fade-in shadow-xl max-h-[85vh] overflow-y-auto">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-base" style={{ backgroundColor: '#EFF6FF' }}>🧠</div>
+                  <p className="font-bold text-ink text-sm">{hi ? 'अर्जुन की रिपोर्ट' : "Arjun's report"}</p>
+                </div>
+                <button
+                  onClick={() => setShowMfsReport(false)}
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-slt"
+                >
+                  <X size={16} />
+                </button>
               </div>
-              <button onClick={() => setShowMfsReport(false)} className="text-slt hover:text-ink">
-                <X size={20} />
+
+              {/* Report text */}
+              <div className="bg-gray-50 rounded-xl p-4 mb-5">
+                <p className="text-sm text-ink leading-relaxed">{mfsEntry.arjunResponse}</p>
+              </div>
+
+              {/* Tool recommendation */}
+              <p className="text-[11px] font-bold text-slt uppercase tracking-widest mb-2.5">{t.mentalFitness.toolRec.sectionLabel}</p>
+              <button
+                onClick={() => { setShowMfsReport(false); navigate(rec.to, rec.state ? { state: rec.state } : undefined); }}
+                className="w-full flex items-center gap-3 p-3.5 rounded-xl border-2 active:scale-[0.98] transition-transform mb-3"
+                style={{ borderColor: '#185FA5' }}
+              >
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: '#EFF6FF' }}>
+                  <rec.Icon size={18} style={{ color: '#185FA5' }} />
+                </div>
+                <div className="text-left flex-1">
+                  <p className="font-semibold text-ink text-sm">{toolInfo.title}</p>
+                  <p className="text-xs text-slt">{toolInfo.desc}</p>
+                </div>
+                <ChevronRight size={16} style={{ color: '#185FA5' }} />
+              </button>
+
+              {/* Talk to Arjun secondary */}
+              <button
+                onClick={() => { setShowMfsReport(false); navigate('/coaching', { state: { sessionType: 'post_checkin' } }); }}
+                className="w-full py-3.5 rounded-xl font-bold text-sm border border-dark-600 text-slt active:scale-[0.98] transition-transform"
+              >
+                {hi ? 'अर्जुन से बात करो' : 'Talk to Arjun'}
               </button>
             </div>
-            <p className="text-sm text-ink leading-relaxed mb-5">{mfsEntry.arjunResponse}</p>
-            <button
-              onClick={() => { setShowMfsReport(false); navigate('/coaching', { state: { sessionType: 'post_checkin' } }); }}
-              className="w-full py-3.5 rounded-xl text-white font-bold text-sm"
-              style={{ backgroundColor: '#185FA5' }}
-            >
-              {hi ? 'अर्जुन से बात करो' : 'Talk to Arjun'}
-            </button>
-          </div>
-        </>
-      )}
+          </>
+        );
+      })()}
 
       {/* ── FREEZE CONFIRM SHEET ─────────────────────────────────────────────── */}
       {showFreezeConfirm && (
