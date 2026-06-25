@@ -189,19 +189,18 @@ router.post('/:id/end', authenticate, async (req, res) => {
       data: { status: 'ended', endedAt: new Date() },
     });
 
-    // Generate summary asynchronously
-    generateSessionSummary(req.params.id)
-      .then(summary => {
-        if (summary) {
-          return prisma.chatSession.update({
-            where: { id: req.params.id },
-            data: { summary },
-          });
-        }
-      })
-      .catch(err => console.error('summary error:', err));
+    // Generate summary synchronously so it's ready when user lands on sessions page
+    let summary = null;
+    try {
+      summary = await generateSessionSummary(req.params.id);
+      if (summary) {
+        await prisma.chatSession.update({ where: { id: req.params.id }, data: { summary } });
+      }
+    } catch (err) {
+      console.error('summary error:', err);
+    }
 
-    res.json({ session: updated });
+    res.json({ session: { ...updated, summary } });
   } catch (err) {
     console.error('session end error:', err);
     res.status(500).json({ error: 'Server error' });

@@ -135,15 +135,28 @@ export default function SessionsPage() {
             <p className="text-xs text-slt">{formatDate(selected.createdAt)}</p>
           </div>
 
-          {/* Summary — distinct visual treatment */}
+          {/* Continue button — at the top */}
+          <button
+            onClick={() => continueSession(selected)}
+            className="w-full mb-5 py-3.5 rounded-2xl bg-brand-600 text-white font-semibold text-sm hover:bg-brand-700 transition-colors active:scale-[0.98]"
+          >
+            {t.continueSession}
+          </button>
+
+          {/* Summary — distinct card treatment */}
           {selected.summary && (
-            <div className="mb-5">
-              <p className="text-[11px] uppercase tracking-widest text-slt font-medium px-1 mb-1">{t.sessionSummaryLabel}</p>
-              <div className="px-4 py-3 rounded-2xl rounded-bl-md border-l-[3px] border-brand-600 bg-[#EFEDE6]">
-                <p className="text-sm leading-relaxed text-dark-900 whitespace-pre-wrap">
-                  {sentences.join('\n\n')}
-                </p>
+            <div className="mb-5 rounded-2xl bg-brand-50 border border-brand-200 p-4 shadow-sm">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-4 h-4 rounded-full bg-brand-500 flex items-center justify-center shrink-0">
+                  <svg viewBox="0 0 10 10" className="w-2.5 h-2.5">
+                    <path d="M1.5 5L3.5 7.5L8.5 2.5" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+                <p className="text-[10px] uppercase tracking-widest text-brand-600 font-bold">{t.sessionSummaryLabel}</p>
               </div>
+              <p className="text-sm leading-relaxed text-ink whitespace-pre-wrap">
+                {sentences.join('\n\n')}
+              </p>
             </div>
           )}
 
@@ -159,7 +172,7 @@ export default function SessionsPage() {
                   <div className={`max-w-[88%] px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap break-words ${
                     isUser
                       ? 'bg-brand-600 text-white rounded-2xl rounded-br-md'
-                      : 'bg-dark-800 border border-dark-600 text-ink shadow-sm rounded-2xl rounded-bl-md'
+                      : 'bg-white border border-brand-100 text-ink shadow-sm rounded-2xl rounded-bl-md'
                   }`}>
                     {msg.content}
                   </div>
@@ -167,13 +180,6 @@ export default function SessionsPage() {
               );
             })}
           </div>
-
-          <button
-            onClick={() => continueSession(selected)}
-            className="w-full py-3.5 rounded-2xl bg-brand-600 text-white font-semibold text-sm hover:bg-brand-700 transition-colors active:scale-[0.98]"
-          >
-            {t.continueSession}
-          </button>
         </main>
       </div>
     );

@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ChevronDown, Compass, History, Info } from 'lucide-react';
+import { Compass, Info, SlidersHorizontal } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
+import { ArjunLogo } from '../components/ArjunLogo';
 
 // ─── Session definitions ───────────────────────────────────────────────────────
 
@@ -107,7 +108,7 @@ function MessageBubble({ message, isStreaming }) {
         className={`max-w-[92%] px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap break-words ${
           isUser
             ? 'bg-brand-600 text-white rounded-2xl rounded-br-md'
-            : 'bg-dark-800 border border-dark-600 text-ink shadow-sm rounded-2xl rounded-bl-md'
+            : 'bg-white border border-brand-100 text-ink shadow-sm rounded-2xl rounded-bl-md'
         }`}
       >
         {message.content}
@@ -126,7 +127,7 @@ function MessageBubble({ message, isStreaming }) {
 function TypingIndicator() {
   return (
     <div className="flex justify-start">
-      <div className="bg-dark-800 border border-dark-600 shadow-sm rounded-2xl rounded-bl-md px-4 py-3">
+      <div className="bg-white border border-brand-100 shadow-sm rounded-2xl rounded-bl-md px-4 py-3">
         <span className="inline-flex gap-1">
           <span className="w-2 h-2 bg-slt rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
           <span className="w-2 h-2 bg-slt rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
@@ -140,10 +141,17 @@ function TypingIndicator() {
 function SummaryBubble({ summary, label }) {
   const sentences = summary.split(/(?<=\.)\s+/).filter(Boolean);
   return (
-    <div className="flex flex-col gap-1 animate-fade-in">
-      <p className="text-[11px] uppercase tracking-widest text-slt font-medium px-1">{label}</p>
-      <div className="max-w-[92%] px-4 py-3 rounded-2xl rounded-bl-md border-l-[3px] border-brand-600 bg-[#EFEDE6]">
-        <p className="text-sm leading-relaxed text-dark-900 whitespace-pre-wrap">
+    <div className="animate-fade-in mb-1">
+      <div className="rounded-2xl bg-brand-50 border border-brand-200 p-4 shadow-sm">
+        <div className="flex items-center gap-2 mb-2">
+          <div className="w-4 h-4 rounded-full bg-brand-500 flex items-center justify-center shrink-0">
+            <svg viewBox="0 0 10 10" className="w-2.5 h-2.5">
+              <path d="M1.5 5L3.5 7.5L8.5 2.5" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+          <p className="text-[10px] uppercase tracking-widest text-brand-600 font-bold">{label}</p>
+        </div>
+        <p className="text-sm leading-relaxed text-ink whitespace-pre-wrap">
           {sentences.join('\n\n')}
         </p>
       </div>
@@ -170,6 +178,7 @@ function ChatPage() {
   const [activeSession, setActiveSession]         = useState(null);
   const [showSafety, setShowSafety]               = useState(false);
   const [showSessionPicker, setShowSessionPicker] = useState(false);
+  const [showStylePicker, setShowStylePicker]     = useState(false);
   const [chatSessionId, setChatSessionId]         = useState(null);
   const [showStartScreen, setShowStartScreen]     = useState(false);
   const [recentSessions, setRecentSessions]       = useState([]);
@@ -239,7 +248,12 @@ function ChatPage() {
       }
 
       if (!sessionLoaded) {
-        setShowStartScreen(true);
+        if (forceNewSessionRef.current) {
+          // Auto-start a general session immediately — skip the start screen
+          pendingSessionRef.current = 'general';
+        } else {
+          setShowStartScreen(true);
+        }
       }
 
       setLoading(false);
@@ -271,6 +285,16 @@ function ChatPage() {
       sessionStorage.setItem(`arjun_chat_messages_${chatSessionId}`, JSON.stringify(messages));
     }
   }, [messages, chatSessionId]);
+
+  // ── Intercept mobile back — always go to /sessions ────────────────────────
+
+  useEffect(() => {
+    const handlePop = () => {
+      navigate('/sessions', { replace: true });
+    };
+    window.addEventListener('popstate', handlePop);
+    return () => window.removeEventListener('popstate', handlePop);
+  }, [navigate]);
 
   // ── Auto-start when navigated from check-in (location.state.sessionType) ─
 
@@ -504,16 +528,10 @@ function ChatPage() {
       <header className="shrink-0 bg-dark-900 border-b border-dark-600 px-4 py-3 relative">
         <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
-            <img src="/arjun-source.svg" className="w-7 h-7 object-contain shrink-0" alt="Arjun" />
+            <ArjunLogo size={28} />
             <div className="min-w-0">
               <p className="font-semibold text-ink text-sm leading-none">{t.title}</p>
-              {activeSession && t.sessions[activeSession] ? (
-                <p className="text-xs text-brand-600 leading-none mt-0.5 truncate">
-                  {t.sessions[activeSession].icon} {t.sessions[activeSession].title}
-                </p>
-              ) : (
-                <p className="text-xs text-slt leading-none mt-0.5">{t.aiLabel}</p>
-              )}
+              <p className="text-xs text-slt leading-none mt-0.5">{t.aiLabel}</p>
             </div>
           </div>
           <div className="flex items-center gap-1 shrink-0">
@@ -527,65 +545,14 @@ function ChatPage() {
               </button>
             )}
             <button
-              onClick={() => navigate('/sessions')}
-              className="p-1.5 text-slt hover:text-ink transition-colors rounded-lg hover:bg-dark-700"
-              aria-label={t.sessionHistory}
-            >
-              <History size={16} />
-            </button>
-            <button
               onClick={() => setShowSafety(s => !s)}
               className="p-1.5 text-slt hover:text-ink transition-colors rounded-lg hover:bg-dark-700"
               aria-label="Safety info"
             >
               <Info size={16} />
             </button>
-            <button
-              onClick={() => setShowSessionPicker(s => !s)}
-              disabled={atLimit || streaming}
-              className={`flex items-center gap-1.5 text-xs font-medium rounded-xl border px-2.5 py-1.5 transition-colors disabled:opacity-40 ${
-                activeSession
-                  ? 'bg-dark-700 border-dark-500 text-ink'
-                  : 'bg-dark-800 border-dark-600 text-slt hover:text-ink hover:bg-dark-700'
-              }`}
-            >
-              <Compass size={13} className="shrink-0" />
-              <span className="hidden sm:inline truncate max-w-[90px]">
-                {activeSession ? t.sessions[activeSession].title : t.chooseFocus}
-              </span>
-              <ChevronDown size={11} className={`shrink-0 transition-transform ${showSessionPicker ? 'rotate-180' : ''}`} />
-            </button>
           </div>
         </div>
-
-        {showSessionPicker && (
-          <>
-            <div className="fixed inset-0 z-10" onClick={() => setShowSessionPicker(false)} />
-            <div className="absolute right-4 top-full mt-1 z-20 bg-dark-800 border border-dark-600 rounded-xl shadow-lg overflow-hidden w-56">
-              {SESSIONS.map(({ key, color }) => {
-                const def = t.sessions[key];
-                const isActive = activeSession === key;
-                return (
-                  <button
-                    key={key}
-                    onClick={() => { handleSessionSelect(key); setShowSessionPicker(false); }}
-                    disabled={atLimit || streaming}
-                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-dark-700 transition-colors disabled:opacity-40 ${
-                      isActive ? 'bg-dark-700' : ''
-                    }`}
-                  >
-                    <span className="text-base shrink-0">{def.icon}</span>
-                    <div className="min-w-0 flex-1">
-                      <p className={`text-sm font-medium ${isActive ? color : 'text-ink'}`}>{def.title}</p>
-                      <p className="text-xs text-slt truncate">{def.desc}</p>
-                    </div>
-                    {isActive && <span className="ml-auto text-brand-600 shrink-0 text-sm">✓</span>}
-                  </button>
-                );
-              })}
-            </div>
-          </>
-        )}
 
         {showSafety && (
           <div className="absolute left-4 right-4 top-full mt-1 z-20 bg-dark-800 border border-dark-600 rounded-xl px-3 py-2 shadow-lg">
@@ -602,13 +569,13 @@ function ChatPage() {
           {/* Arjun welcome bubble — shown on start screen or empty session */}
           {!hasMessages && !waitingForFirst && (
             <div className="flex justify-start animate-fade-in">
-              <div className="max-w-[92%] px-3.5 py-2.5 text-sm leading-relaxed bg-dark-800 border border-dark-600 text-ink shadow-sm rounded-2xl rounded-bl-md">
+              <div className="max-w-[92%] px-3.5 py-2.5 text-sm leading-relaxed bg-white border border-brand-100 text-ink shadow-sm rounded-2xl rounded-bl-md">
                 {t.arjunWelcome}
               </div>
             </div>
           )}
 
-          {/* Start screen — shown when no session is loaded yet */}
+          {/* Start screen — shown when no session is loaded yet and not auto-starting */}
           {showStartScreen && !waitingForFirst && (
             <div className="flex flex-col gap-3 mt-2 animate-fade-in">
               {hasEndedSessions && (
@@ -617,7 +584,7 @@ function ChatPage() {
                   disabled={atLimit}
                   className="flex items-center gap-3 bg-dark-800 border border-dark-600 hover:border-brand-500/50 hover:bg-dark-700 active:scale-[0.98] rounded-2xl p-4 text-left transition-all disabled:opacity-40"
                 >
-                  <History size={18} className="text-brand-400 shrink-0" />
+                  <span className="text-lg shrink-0">🕐</span>
                   <span className="text-sm font-medium text-ink">{t.continueYesterday}</span>
                 </button>
               )}
@@ -695,34 +662,68 @@ function ChatPage() {
 
       {/* ── Input area ──────────────────────────────────────────────────── */}
       <div className="shrink-0 bg-dark-900 border-t border-dark-600 px-4 py-3">
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-2xl mx-auto relative">
+
+          {/* ── Session picker dropdown ─────────────────────────── */}
+          {showSessionPicker && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setShowSessionPicker(false)} />
+              <div className="absolute bottom-full mb-2 right-0 z-20 bg-dark-800 border border-dark-600 rounded-xl shadow-lg overflow-hidden w-60 max-h-72 overflow-y-auto">
+                {SESSIONS.map(({ key, color }) => {
+                  const def = t.sessions[key];
+                  const isActive = activeSession === key;
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => { handleSessionSelect(key); setShowSessionPicker(false); }}
+                      disabled={atLimit || streaming}
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-dark-700 transition-colors disabled:opacity-40 ${
+                        isActive ? 'bg-dark-700' : ''
+                      }`}
+                    >
+                      <span className="text-base shrink-0">{def.icon}</span>
+                      <div className="min-w-0 flex-1">
+                        <p className={`text-sm font-medium ${isActive ? color : 'text-ink'}`}>{def.title}</p>
+                        <p className="text-xs text-slt truncate">{def.desc}</p>
+                      </div>
+                      {isActive && <span className="ml-auto text-brand-600 shrink-0 text-sm">✓</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {/* ── Style picker dropdown ─────────────────────────────── */}
+          {showStylePicker && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setShowStylePicker(false)} />
+              <div className="absolute bottom-full mb-2 right-0 z-20 bg-dark-800 border border-dark-600 rounded-xl shadow-lg overflow-hidden w-44">
+                <p className="text-[11px] uppercase tracking-widest text-slt font-medium px-4 pt-3 pb-1">{t.styleLabel}</p>
+                {['short', 'honest', 'thoughtful', 'motivating'].map(style => (
+                  <button
+                    key={style}
+                    onClick={() => { setReplyStyle(style); setShowStylePicker(false); }}
+                    className={`w-full flex items-center justify-between px-4 py-2.5 text-sm text-left hover:bg-dark-700 transition-colors ${
+                      replyStyle === style ? 'text-brand-600 font-medium bg-brand-50' : 'text-ink'
+                    }`}
+                  >
+                    {t.replyStyles[style]}
+                    {replyStyle === style && <span className="text-brand-600 text-xs">✓</span>}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+
           {atLimit && (
-            <div className="mb-3 flex flex-col sm:flex-row sm:items-center gap-2 bg-amber-950/30 border border-amber-800/30 rounded-2xl px-4 py-3">
-              <p className="text-sm text-amber-400 flex-1">
+            <div className="mb-3 flex flex-col sm:flex-row sm:items-center gap-2 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3">
+              <p className="text-sm text-amber-700 flex-1">
                 🔒 {t.limitReached} {t.upgradePrompt}.
               </p>
               <button onClick={() => navigate('/pricing')} className="text-xs font-semibold text-white bg-brand-600 hover:bg-brand-700 px-4 py-2 rounded-xl transition-colors whitespace-nowrap">
                 {t.upgrade}
               </button>
-            </div>
-          )}
-
-          {!atLimit && (
-            <div className="flex items-center gap-1.5 mb-2 overflow-x-auto pb-0.5">
-              <span className="text-xs text-slt shrink-0">{t.styleLabel}:</span>
-              {['short', 'honest', 'thoughtful', 'motivating'].map(style => (
-                <button
-                  key={style}
-                  onClick={() => setReplyStyle(style)}
-                  className={`text-xs px-2.5 py-1 rounded-full border transition-all shrink-0 ${
-                    replyStyle === style
-                      ? 'bg-brand-500/15 border-brand-500/50 text-brand-400'
-                      : 'bg-dark-700 border-dark-600 text-slt hover:text-ink hover:bg-dark-600'
-                  }`}
-                >
-                  {t.replyStyles[style]}
-                </button>
-              ))}
             </div>
           )}
 
@@ -746,6 +747,28 @@ function ChatPage() {
                 e.target.style.height = Math.min(e.target.scrollHeight, 128) + 'px';
               }}
             />
+            {/* Style + Focus icon buttons */}
+            <div className="flex gap-1 self-end pb-0.5">
+              <button
+                onClick={() => { setShowStylePicker(s => !s); setShowSessionPicker(false); }}
+                title={t.styleLabel}
+                className={`p-2 rounded-xl transition-colors ${
+                  showStylePicker ? 'bg-brand-100 text-brand-600' : 'text-slt hover:text-ink hover:bg-dark-700'
+                }`}
+              >
+                <SlidersHorizontal size={16} />
+              </button>
+              <button
+                onClick={() => { setShowSessionPicker(s => !s); setShowStylePicker(false); }}
+                disabled={atLimit || streaming}
+                title={t.chooseFocus}
+                className={`p-2 rounded-xl transition-colors disabled:opacity-40 ${
+                  showSessionPicker || activeSession ? 'bg-brand-100 text-brand-600' : 'text-slt hover:text-ink hover:bg-dark-700'
+                }`}
+              >
+                <Compass size={16} />
+              </button>
+            </div>
             <button
               onClick={() => sendMessage()}
               disabled={!input.trim() || streaming || atLimit}

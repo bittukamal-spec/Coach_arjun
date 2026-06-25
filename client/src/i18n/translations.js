@@ -233,7 +233,7 @@ export const translations = {
       title: 'Arjun',
       subtitle: 'Your coach for matches and mindset',
       aiLabel: 'Your coach',
-      arjunWelcome: 'Hey, I\'m Arjun 👋 — your AI coach. Match nerves, can\'t focus, had a rough game, or just need someone to talk to — I\'m always here. What\'s going on today?',
+      arjunWelcome: 'Hey, I\'m Arjun 👋 — your mental coach for cricket and sport. Match nerves, focus, pressure, confidence — I\'m always here. What\'s going on today?',
       starters: {
         pressure_reset:  'Nervous before a match →',
         handle_pressure: 'Feeling nervous',
@@ -975,7 +975,7 @@ export const translations = {
       title: 'अर्जुन',
       subtitle: 'आपका कोच — मैच और मानसिकता के लिए',
       aiLabel: 'आपका कोच',
-      arjunWelcome: 'नमस्ते 👋 मैं अर्जुन हूं — आपका AI कोच। मैच की घबराहट, फोकस, दबाव, मुश्किल खेल — जो भी हो, मैं हमेशा यहाँ हूं। आज क्या हो रहा है?',
+      arjunWelcome: 'नमस्ते 👋 मैं अर्जुन हूं — आपका मेंटल कोच। मैच की घबराहट, फोकस, दबाव, आत्मविश्वास — मैं हमेशा यहाँ हूं। आज क्या हो रहा है?',
       starters: {
         pressure_reset:  'मैच से पहले घबराहट →',
         handle_pressure: 'नर्वस हूं',
