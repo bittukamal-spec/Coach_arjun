@@ -707,6 +707,16 @@ export const translations = {
       alreadyDone: 'Already checked in today',
       moodQuestion: "How's your mood today?",
       moodCardLabel: 'Mood',
+      likertLabels: {
+        focus:      { low: 'Scattered',  high: 'Locked in'  },
+        confidence: { low: 'Doubting',   high: 'Certain'    },
+        drive:      { low: 'Flat',       high: 'Fired up'   },
+        calm:       { low: 'Anxious',    high: 'Very calm'  },
+        selftalk:   { low: 'Harsh',      high: 'Very kind'  },
+        bounce:     { low: 'Stuck',      high: 'Bounced fast' },
+      },
+      avgLabel: 'Overall',
+      viewReport: "Arjun's report →",
       dims: {
         mood:       'Mood',
         focus:      'Focus',
@@ -1409,6 +1419,16 @@ export const translations = {
       alreadyDone: 'आज का चेक-इन हो गया',
       moodQuestion: 'आज का मूड कैसा है?',
       moodCardLabel: 'मूड',
+      likertLabels: {
+        focus:      { low: 'बिखरा',        high: 'पूरा फोकस'    },
+        confidence: { low: 'संशय में',      high: 'पूरा भरोसा'   },
+        drive:      { low: 'कोई जोश नहीं',  high: 'पूरा जोश'     },
+        calm:       { low: 'घबराहट',        high: 'बिल्कुल शांत' },
+        selftalk:   { low: 'बहुत कठोर',     high: 'बहुत दयालु'   },
+        bounce:     { low: 'बिल्कुल अटका',  high: 'जल्दी उबरा'   },
+      },
+      avgLabel: 'कुल स्कोर',
+      viewReport: 'अर्जुन की रिपोर्ट →',
       dims: {
         mood:       'मूड',
         focus:      'फोकस',

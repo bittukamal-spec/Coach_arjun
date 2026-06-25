@@ -121,7 +121,7 @@ Start by fully acknowledging what happened and validating the feeling. Then guid
 // ── Helper: build personalised system prompt ─────────────────────────────
 
 function buildSystemPrompt(user, checkIns = [], memories = [], sessionType = null, extra = {}) {
-  const { recentDebriefs = [], todayDrill = null, achievementCount = 0, recentDrills = [], gameSessions = [], ritual = null, replyStyle = null, mfsEntry = null } = extra;
+  const { recentDebriefs = [], todayDrill = null, achievementCount = 0, recentDrills = [], gameSessions = [], ritual = null, replyStyle = null, mfsEntry = null, mfsHistory = [] } = extra;
   const goals = JSON.parse(user.goals || '[]').map(g => GOAL_LABELS[g] || g);
   const goalsText = goals.length ? goals.join(', ') : 'general mental performance';
 
@@ -303,10 +303,33 @@ Do NOT mention that you are reading a profile — let it silently shape your res
     ? `\n\n## Response Style\nThe user has selected "${replyStyle}" mode. ${STYLE_INSTRUCTIONS[replyStyle]}`
     : '';
 
-  // ── Mental Fitness Check-in (today's 6-dim entry) ───────────────────────
-  const mfsSection = mfsEntry
-    ? `\n\n## Today's Mental Fitness Check-in (1–5 scale)\nFocus: ${mfsEntry.focus}/5 | Confidence: ${mfsEntry.confidence}/5 | Drive: ${mfsEntry.drive}/5 | Calm: ${mfsEntry.calm}/5 | Self-talk: ${mfsEntry.selftalk}/5 | Bounce-back: ${mfsEntry.bounce}/5\nFactor these scores into your coaching tone. Low scores (≤2) on any dimension are important signals — acknowledge them naturally if relevant.`
-    : '';
+  // ── Mental Fitness Check-in (today + last 7 entries history) ───────────
+  let mfsSection = '';
+  if (mfsEntry) {
+    const dims = ['focus', 'confidence', 'drive', 'calm', 'selftalk', 'bounce'];
+    const todayLine = `Focus: ${mfsEntry.focus}/5 | Confidence: ${mfsEntry.confidence}/5 | Drive: ${mfsEntry.drive}/5 | Calm: ${mfsEntry.calm}/5 | Self-talk: ${mfsEntry.selftalk}/5 | Bounce-back: ${mfsEntry.bounce}/5`;
+
+    let historyLine = '';
+    if (mfsHistory.length >= 2) {
+      // Per-dimension 7-day averages (excludes today)
+      const hist = mfsHistory.filter(e => e !== mfsEntry);
+      if (hist.length > 0) {
+        const avgDim = d => (hist.reduce((s, e) => s + (e[d] || 0), 0) / hist.length).toFixed(1);
+        const weekAvgs = dims.map(d => `${d.charAt(0).toUpperCase() + d.slice(1)}: ${avgDim(d)}`).join(' | ');
+
+        // Trend: compare today vs 7-day avg for each dim
+        const improving = dims.filter(d => mfsEntry[d] - parseFloat(avgDim(d)) > 0.5).map(d => d);
+        const declining = dims.filter(d => parseFloat(avgDim(d)) - mfsEntry[d] > 0.5).map(d => d);
+        const trendNote = improving.length || declining.length
+          ? ` Trending up: ${improving.length ? improving.join(', ') : 'none'}. Trending down: ${declining.length ? declining.join(', ') : 'none'}.`
+          : ' Scores stable vs recent week.';
+
+        historyLine = `\n- 7-day averages (last ${hist.length} check-ins): ${weekAvgs}.${trendNote}`;
+      }
+    }
+
+    mfsSection = `\n\n## Today's Mental Fitness Check-in (1–5 scale)\n- TODAY: ${todayLine}${historyLine}\nFactor these scores into your coaching tone. Low scores (≤2) on any dimension are important signals — acknowledge them naturally if relevant. If a dimension is trending down, treat it as a priority.`;
+  }
 
   const toolAwarenessSection = `\n\n## In-App Tools (mention naturally, once per session)
 When genuinely relevant, mention these in plain conversational language — no buttons or links needed.
@@ -541,13 +564,16 @@ router.post('/message', authenticate, checkFreeLimit, async (req, res) => {
     // Fetch ritual steps
     const ritual = user.ritualSteps ? { ritualSteps: user.ritualSteps } : null;
 
-    // Fetch today's mental fitness entry (IST date)
+    // Fetch today's mental fitness entry + last 7 for history (IST date)
     const istOffset = 5.5 * 60 * 60 * 1000;
     const todayIST = new Date(Date.now() + istOffset).toISOString().slice(0, 10);
-    const mfsEntry = await prisma.mentalFitnessEntry.findUnique({
-      where: { userId_date: { userId: req.userId, date: todayIST } },
-      select: { focus: true, confidence: true, drive: true, calm: true, selftalk: true, bounce: true },
-    }).catch(() => null);
+    const mfsHistory = await prisma.mentalFitnessEntry.findMany({
+      where: { userId: req.userId },
+      orderBy: { date: 'desc' },
+      take: 7,
+      select: { date: true, mood: true, focus: true, confidence: true, drive: true, calm: true, selftalk: true, bounce: true },
+    }).catch(() => []);
+    const mfsEntry = mfsHistory.find(e => e.date === todayIST) || null;
 
     // Save the user's message (skip invisible session-start markers)
     if (!isSessionStart) {
@@ -603,7 +629,7 @@ router.post('/message', authenticate, checkFreeLimit, async (req, res) => {
     const stream = anthropic.messages.stream({
       model: process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001',
       max_tokens: 800,
-      system: buildSystemPrompt(user, recentCheckIns, memories, sessionType, { recentDebriefs, todayDrill, achievementCount, recentDrills, gameSessions, ritual, arjunMsgCount, replyStyle, mfsEntry }),
+      system: buildSystemPrompt(user, recentCheckIns, memories, sessionType, { recentDebriefs, todayDrill, achievementCount, recentDrills, gameSessions, ritual, arjunMsgCount, replyStyle, mfsEntry, mfsHistory }),
       messages: conversationHistory,
     });
 

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Zap } from 'lucide-react';
+import { Zap, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
@@ -20,8 +20,13 @@ const MOOD_OPTIONS = [
   { v: 5, emoji: '😄', labelKey: 'mood5' },
 ];
 
-// step 0 = intro, step 1 = mood, steps 2–7 = MFS dims, step 8 = submitting, step 9 = result
-const TOTAL_QUESTIONS = 7; // 1 mood + 6 dims
+const TOTAL_QUESTIONS = 7;
+
+function calcAvg(data) {
+  const keys = ['mood', ...MFS_DIMS].filter(k => data[k] != null);
+  if (!keys.length) return null;
+  return (keys.reduce((s, k) => s + data[k], 0) / keys.length).toFixed(1);
+}
 
 export default function MentalFitnessCheckin() {
   const navigate = useNavigate();
@@ -37,8 +42,9 @@ export default function MentalFitnessCheckin() {
   const [xpEarned, setXpEarned]       = useState(null);
   const [newAchievements, setNewAchievements] = useState([]);
   const [submitError, setSubmitError] = useState(null);
+  const [showReport, setShowReport]   = useState(false);
 
-  const dimIndex = step - 2; // 0–5 for MFS dims (step 2–7)
+  const dimIndex = step - 2;
   const currentDim = MFS_DIMS[dimIndex];
 
   async function submit(finalScores) {
@@ -68,7 +74,7 @@ export default function MentalFitnessCheckin() {
 
   function selectMood(val) {
     setScores(prev => ({ ...prev, mood: val }));
-    setStep(2); // jump to first MFS dim
+    setStep(2);
   }
 
   function selectDim(val) {
@@ -83,8 +89,7 @@ export default function MentalFitnessCheckin() {
 
   function goBack() {
     if (step === 0) navigate(-1);
-    else if (step === 1) setStep(0);
-    else if (step >= 2 && step <= 7) setStep(step - 1);
+    else if (step <= 7) setStep(step - 1);
   }
 
   const progressPct = step >= 1 && step <= 7 ? (step / TOTAL_QUESTIONS) * 100 : 0;
@@ -137,10 +142,7 @@ export default function MentalFitnessCheckin() {
             <ChevronLeft size={22} />
           </button>
           <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all duration-300"
-              style={{ width: `${progressPct}%`, backgroundColor: '#185FA5' }}
-            />
+            <div className="h-full rounded-full transition-all duration-300" style={{ width: `${progressPct}%`, backgroundColor: '#185FA5' }} />
           </div>
           <span className="text-xs text-slt shrink-0">1/{TOTAL_QUESTIONS}</span>
         </div>
@@ -174,9 +176,9 @@ export default function MentalFitnessCheckin() {
     );
   }
 
-  // ── MFS dimension cards (steps 2–7) ───────────────────────────────────────
+  // ── MFS Likert cards (steps 2–7) ───────────────────────────────────────────
   if (step >= 2 && step <= 7) {
-    const questionNumber = step; // 2–7 = questions 2–7
+    const labels = mf.likertLabels[currentDim];
     return (
       <div className="min-h-screen bg-white flex flex-col">
         <div className="px-4 pt-12 pb-4 flex items-center gap-3">
@@ -184,41 +186,42 @@ export default function MentalFitnessCheckin() {
             <ChevronLeft size={22} />
           </button>
           <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all duration-300"
-              style={{ width: `${progressPct}%`, backgroundColor: '#185FA5' }}
-            />
+            <div className="h-full rounded-full transition-all duration-300" style={{ width: `${progressPct}%`, backgroundColor: '#185FA5' }} />
           </div>
-          <span className="text-xs text-slt shrink-0">{questionNumber}/{TOTAL_QUESTIONS}</span>
+          <span className="text-xs text-slt shrink-0">{step}/{TOTAL_QUESTIONS}</span>
         </div>
 
-        <div className="flex-1 flex flex-col items-center justify-center px-6 py-8">
+        <div className="flex-1 flex flex-col items-center justify-center px-8 py-8">
           <div className="text-5xl mb-5">{MFS_EMOJIS[currentDim]}</div>
           <p className="text-2xl font-black text-ink text-center mb-2">{mf.dims[currentDim]}</p>
-          <p className="text-sm text-slt text-center mb-10 leading-relaxed">{mf.questions[currentDim]}</p>
+          <p className="text-sm text-slt text-center mb-12 leading-relaxed">{mf.questions[currentDim]}</p>
 
-          <div className="flex gap-3 w-full max-w-xs justify-center">
-            {[1, 2, 3, 4, 5].map((val) => {
-              const selected = scores[currentDim] === val;
-              return (
-                <button
-                  key={val}
-                  onClick={() => selectDim(val)}
-                  className="flex-1 aspect-square rounded-xl text-lg font-black border-2 transition-all active:scale-95"
-                  style={{
-                    borderColor: selected ? '#185FA5' : '#E5E7EB',
-                    backgroundColor: selected ? '#185FA5' : 'white',
-                    color: selected ? 'white' : '#374151',
-                  }}
-                >
-                  {val}
-                </button>
-              );
-            })}
-          </div>
-          <div className="flex justify-between w-full max-w-xs mt-2 px-1">
-            <span className="text-[10px] text-slt">{hi ? 'कम' : 'Low'}</span>
-            <span className="text-[10px] text-slt">{hi ? 'ज़्यादा' : 'High'}</span>
+          {/* Likert scale — 5 circles, no numbers */}
+          <div className="w-full max-w-xs">
+            <div className="flex justify-between items-center">
+              {[1, 2, 3, 4, 5].map(val => {
+                const selected = scores[currentDim] === val;
+                return (
+                  <button
+                    key={val}
+                    onClick={() => selectDim(val)}
+                    className="w-12 h-12 rounded-full border-2 transition-all active:scale-95 flex items-center justify-center"
+                    style={{
+                      borderColor: selected ? '#185FA5' : '#D1D5DB',
+                      backgroundColor: selected ? '#185FA5' : 'white',
+                    }}
+                  >
+                    {selected && (
+                      <div className="w-4 h-4 rounded-full bg-white opacity-70" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex justify-between mt-3 px-1">
+              <span className="text-[11px] text-slt">{labels.low}</span>
+              <span className="text-[11px] text-slt">{labels.high}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -239,60 +242,55 @@ export default function MentalFitnessCheckin() {
   }
 
   // ── Result (step 9) ────────────────────────────────────────────────────────
-  const allScores = entry || scores;
-  const mfsScore = entry
-    ? Math.round(MFS_DIMS.reduce((s, k) => s + (entry[k] || 0), 0) / MFS_DIMS.length * 20)
-    : null;
+  const displayEntry = entry || {};
+  const avg = entry ? calcAvg(entry) : null;
+  const avgPct = avg ? Math.round((parseFloat(avg) / 5) * 100) : null;
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <div className="px-4 pt-12 pb-4">
         <p className="text-xl font-black text-ink mb-1">
-          {submitError
-            ? (hi ? 'कुछ गलत हो गया' : 'Something went wrong')
-            : (hi ? 'चेक-इन हो गया ✓' : 'Done ✓')}
+          {submitError ? (hi ? 'कुछ गलत हो गया' : 'Something went wrong') : (hi ? 'चेक-इन हो गया ✓' : 'Done ✓')}
         </p>
         {submitError && <p className="text-sm text-red-500 mt-1">{submitError}</p>}
       </div>
 
       {!submitError && (
         <div className="px-4 space-y-4">
-          {/* Mood */}
+          {/* Average score — prominent */}
+          {avgPct !== null && (
+            <div className="rounded-2xl p-5 flex items-center justify-between" style={{ backgroundColor: '#185FA5' }}>
+              <div>
+                <p className="text-xs text-white/70 mb-1">{mf.avgLabel}</p>
+                <p className="text-4xl font-black text-white">{avgPct}<span className="text-lg font-normal opacity-70">/100</span></p>
+              </div>
+              <p className="text-5xl">🧠</p>
+            </div>
+          )}
+
+          {/* Mood row */}
           <div className="bg-gray-50 rounded-xl p-3 flex items-center gap-3">
             <span className="text-2xl">
-              {MOOD_OPTIONS.find(o => o.v === (entry?.mood ?? allScores.mood))?.emoji ?? '😐'}
+              {MOOD_OPTIONS.find(o => o.v === displayEntry.mood)?.emoji ?? '😐'}
             </span>
             <div>
               <p className="text-xs text-slt">{mf.dims.mood}</p>
-              <p className="text-base font-black" style={{ color: '#185FA5' }}>{entry?.mood ?? allScores.mood}/5</p>
+              <p className="text-base font-black" style={{ color: '#185FA5' }}>{displayEntry.mood}/5</p>
             </div>
           </div>
 
-          {/* 6 MFS chips */}
+          {/* 6 MFS dims grid */}
           <div className="grid grid-cols-3 gap-2">
             {MFS_DIMS.map(d => (
               <div key={d} className="bg-gray-50 rounded-xl p-3 text-center">
                 <p className="text-xl">{MFS_EMOJIS[d]}</p>
                 <p className="text-[11px] text-slt mt-0.5 leading-tight">{mf.dims[d]}</p>
                 <p className="text-xl font-black mt-1" style={{ color: '#185FA5' }}>
-                  {entry?.[d] ?? allScores[d]}<span className="text-xs font-normal text-slt">/5</span>
+                  {displayEntry[d]}<span className="text-xs font-normal text-slt">/5</span>
                 </p>
               </div>
             ))}
           </div>
-
-          {/* Composite MFS score */}
-          {mfsScore !== null && (
-            <div className="bg-gray-50 rounded-xl p-4 flex items-center justify-between">
-              <div>
-                <p className="text-xs text-slt mb-1">{hi ? 'आज का मानसिक स्कोर' : "Today's mental score"}</p>
-                <p className="text-3xl font-black" style={{ color: '#185FA5' }}>
-                  {mfsScore}<span className="text-sm font-normal text-slt">/100</span>
-                </p>
-              </div>
-              <p className="text-4xl">🧠</p>
-            </div>
-          )}
 
           {/* XP earned */}
           {xpEarned > 0 && (
@@ -302,12 +300,16 @@ export default function MentalFitnessCheckin() {
             </div>
           )}
 
-          {/* Arjun's coaching line */}
+          {/* Arjun's report — open popup */}
           {entry?.arjunResponse && (
-            <div className="rounded-xl p-4 border-2" style={{ borderColor: '#E2711D' }}>
-              <p className="text-xs font-bold mb-1.5" style={{ color: '#E2711D' }}>Arjun</p>
-              <p className="text-sm text-ink leading-relaxed">{entry.arjunResponse}</p>
-            </div>
+            <button
+              onClick={() => setShowReport(true)}
+              className="w-full text-left rounded-xl p-4 border-2 active:scale-[0.98] transition-transform"
+              style={{ borderColor: '#E2711D' }}
+            >
+              <p className="text-xs font-bold mb-1" style={{ color: '#E2711D' }}>Arjun</p>
+              <p className="text-sm text-slt">{hi ? 'रिपोर्ट देखें →' : 'View your report →'}</p>
+            </button>
           )}
         </div>
       )}
@@ -328,6 +330,38 @@ export default function MentalFitnessCheckin() {
           {mf.doneBtn}
         </button>
       </div>
+
+      {/* Arjun's report popup */}
+      {showReport && entry?.arjunResponse && (
+        <>
+          <div className="fixed inset-0 z-50 bg-black/40" onClick={() => setShowReport(false)} />
+          <div className="fixed bottom-0 inset-x-0 z-50 bg-white rounded-t-2xl px-5 py-6 animate-fade-in shadow-xl max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🧠</span>
+                <p className="font-bold text-ink">{hi ? 'अर्जुन की रिपोर्ट' : "Arjun's report"}</p>
+              </div>
+              <button onClick={() => setShowReport(false)} className="text-slt hover:text-ink text-xl leading-none">
+                <X size={20} />
+              </button>
+            </div>
+            {avgPct !== null && (
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-2xl font-black" style={{ color: '#185FA5' }}>{avgPct}/100</span>
+                <span className="text-xs text-slt">{mf.avgLabel}</span>
+              </div>
+            )}
+            <p className="text-sm text-ink leading-relaxed">{entry.arjunResponse}</p>
+            <button
+              onClick={() => { setShowReport(false); navigate('/coaching', { state: { sessionType: 'post_checkin' } }); }}
+              className="mt-5 w-full py-3.5 rounded-xl text-white font-bold text-sm"
+              style={{ backgroundColor: '#185FA5' }}
+            >
+              {mf.talkToArjun}
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

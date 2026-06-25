@@ -6,7 +6,7 @@ import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
 import {
   Flame, Zap, CheckCircle2, Snowflake, ChevronRight,
-  Target, TrendingUp, Sun, Wind, RotateCcw, Trophy, ClipboardList, Gamepad2, Crown,
+  Target, TrendingUp, Sun, Wind, RotateCcw, Trophy, ClipboardList, Gamepad2, Crown, X,
 } from 'lucide-react';
 import { DRILLS } from '../data/drills';
 
@@ -53,6 +53,7 @@ export default function Dashboard() {
   const [fitnessScore,      setFitnessScore]      = useState(null);
   const [weeklyAvg,         setWeeklyAvg]         = useState(null);
   const [infoPopup,         setInfoPopup]         = useState(null);
+  const [showMfsReport,     setShowMfsReport]     = useState(false);
   const [showFreezeConfirm, setShowFreezeConfirm] = useState(false);
   const [freezeLoading,     setFreezeLoading]     = useState(false);
   const [loaded,            setLoaded]            = useState(false);
@@ -324,7 +325,13 @@ export default function Dashboard() {
                     ))}
                   </div>
                   {mfsEntry.arjunResponse && (
-                    <p className="text-xs leading-relaxed" style={{ color: '#C05A10' }}>{mfsEntry.arjunResponse}</p>
+                    <button
+                      onClick={() => setShowMfsReport(true)}
+                      className="text-xs font-semibold mt-1"
+                      style={{ color: '#E2711D' }}
+                    >
+                      {hi ? 'अर्जुन की रिपोर्ट देखें →' : "Arjun's report →"}
+                    </button>
                   )}
                 </div>
               ) : (
@@ -543,6 +550,32 @@ export default function Dashboard() {
                 </p>
               </div>
             )}
+          </div>
+        </>
+      )}
+
+      {/* ── MFS REPORT SHEET ─────────────────────────────────────────────────── */}
+      {showMfsReport && mfsEntry?.arjunResponse && (
+        <>
+          <div className="fixed inset-0 z-50 bg-black/40" onClick={() => setShowMfsReport(false)} />
+          <div className="fixed bottom-0 inset-x-0 z-50 bg-white rounded-t-2xl px-5 py-6 animate-fade-in shadow-xl max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🧠</span>
+                <p className="font-bold text-ink">{hi ? 'अर्जुन की रिपोर्ट' : "Arjun's report"}</p>
+              </div>
+              <button onClick={() => setShowMfsReport(false)} className="text-slt hover:text-ink">
+                <X size={20} />
+              </button>
+            </div>
+            <p className="text-sm text-ink leading-relaxed mb-5">{mfsEntry.arjunResponse}</p>
+            <button
+              onClick={() => { setShowMfsReport(false); navigate('/coaching', { state: { sessionType: 'post_checkin' } }); }}
+              className="w-full py-3.5 rounded-xl text-white font-bold text-sm"
+              style={{ backgroundColor: '#185FA5' }}
+            >
+              {hi ? 'अर्जुन से बात करो' : 'Talk to Arjun'}
+            </button>
           </div>
         </>
       )}

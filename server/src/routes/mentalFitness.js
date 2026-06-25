@@ -61,17 +61,17 @@ router.post('/', authenticate, async (req, res) => {
 
     if (process.env.ANTHROPIC_API_KEY) {
       const sport = user?.sport || 'sport';
-      const langNote = user?.language === 'hi' ? ' Respond in Hindi.' : '';
+      const langNote = user?.language === 'hi' ? ' Respond in Hindi (Devanagari script).' : '';
       const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
       const msg = await anthropic.messages.create({
         model: process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001',
-        max_tokens: 80,
+        max_tokens: 200,
         messages: [{
           role: 'user',
-          content: `You are Arjun, a direct sports coach. ONE sentence max 15 words. No generic praise. Address what the numbers show.
+          content: `You are Arjun, a direct and warm sports coach for a young Indian ${sport} athlete. Write a 3–4 sentence personal report based on their mental fitness scores today. Structure it as: (1) acknowledge what the numbers show — name the one strongest and one weakest dimension specifically, (2) explain briefly what that pattern means for their game today, (3) give ONE concrete action they can do in the next hour to improve their weakest area. Be specific to the numbers, not generic. No bullet points. No praise padding. Address them directly as "you".${langNote}
 
-Mood: ${scores.mood}/5, focus: ${scores.focus}/5, confidence: ${scores.confidence}/5, drive: ${scores.drive}/5, calm: ${scores.calm}/5, self-talk: ${scores.selftalk}/5, bounce-back: ${scores.bounce}/5. Sport: ${sport}.${langNote}`,
+Today's scores — Mood: ${scores.mood}/5, Focus: ${scores.focus}/5, Confidence: ${scores.confidence}/5, Drive: ${scores.drive}/5, Calm: ${scores.calm}/5, Self-talk: ${scores.selftalk}/5, Bounce-back: ${scores.bounce}/5.`,
         }],
       });
       arjunResponse = msg.content[0]?.text?.trim() || null;
