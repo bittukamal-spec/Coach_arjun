@@ -211,6 +211,7 @@ function ChatPage() {
         const pendingId = pendingChatSessionIdRef.current;
         if (pendingId) {
           pendingChatSessionIdRef.current = null;
+          pendingSessionRef.current = null; // don't auto-start a new greeting on an existing session
           setChatSessionId(pendingId);
           const sess = sessions.find(s => s.id === pendingId);
           if (sess?.sessionType && sess.sessionType !== 'general') {
@@ -496,7 +497,7 @@ function ChatPage() {
             <img src="/arjun-source.svg" className="w-7 h-7 object-contain shrink-0" alt="Arjun" />
             <div className="min-w-0">
               <p className="font-semibold text-ink text-sm leading-none">{t.title}</p>
-              {activeSession ? (
+              {activeSession && t.sessions[activeSession] ? (
                 <p className="text-xs text-brand-600 leading-none mt-0.5 truncate">
                   {t.sessions[activeSession].icon} {t.sessions[activeSession].title}
                 </p>
