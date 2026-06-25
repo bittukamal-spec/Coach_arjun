@@ -193,6 +193,7 @@ model MentalFitnessEntry {
   userId         String
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   date           String   // "YYYY-MM-DD" IST — avoids UTC midnight bug
+  mood           Int?     // 1–5 (mood card, optional for back-compat)
   focus          Int      // 1–5
   confidence     Int      // 1–5
   drive          Int      // 1–5

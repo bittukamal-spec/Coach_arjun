@@ -94,15 +94,7 @@ function App() {
           </ProtectedRoute>
         }
       />
-      <Route
-        path="/checkin"
-        element={
-          <ProtectedRoute requireOnboarding={true}>
-            <CheckInPage />
-            <BottomNav />
-          </ProtectedRoute>
-        }
-      />
+      <Route path="/checkin" element={<Navigate to="/mental-fitness" replace />} />
       <Route
         path="/progress"
         element={

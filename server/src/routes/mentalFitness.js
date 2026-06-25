@@ -2,26 +2,38 @@ const express = require('express');
 const Anthropic = require('@anthropic-ai/sdk');
 const { PrismaClient } = require('@prisma/client');
 const authenticate = require('../middleware/authenticate');
+const { awardXP, checkCheckInAchievements } = require('../services/gamification');
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
-// IST date as "YYYY-MM-DD" — adds UTC+5:30 offset before slicing ISO string
+// IST date as "YYYY-MM-DD"
 function getTodayIST() {
-  const now = new Date();
   const istOffset = 5.5 * 60 * 60 * 1000;
-  return new Date(now.getTime() + istOffset).toISOString().slice(0, 10);
+  return new Date(Date.now() + istOffset).toISOString().slice(0, 10);
 }
 
-const DIMS = ['focus', 'confidence', 'drive', 'calm', 'selftalk', 'bounce'];
+function startOfTodayUTC() {
+  const d = new Date();
+  d.setUTCHours(0, 0, 0, 0);
+  return d;
+}
 
-// POST /api/mental-fitness — submit today's entry + generate Arjun's response
+const MFS_DIMS = ['focus', 'confidence', 'drive', 'calm', 'selftalk', 'bounce'];
+
+// POST /api/mental-fitness — submit combined check-in + MFS
 router.post('/', authenticate, async (req, res) => {
   const raw = req.body;
 
-  // Validate all 6 dimensions
-  const scores = {};
-  for (const key of DIMS) {
+  // Validate mood (1–5)
+  const mood = parseInt(raw.mood, 10);
+  if (!Number.isInteger(mood) || mood < 1 || mood > 5) {
+    return res.status(400).json({ error: 'mood must be an integer between 1 and 5' });
+  }
+
+  // Validate MFS dimensions (1–5)
+  const scores = { mood };
+  for (const key of MFS_DIMS) {
     const n = parseInt(raw[key], 10);
     if (!Number.isInteger(n) || n < 1 || n > 5) {
       return res.status(400).json({ error: `${key} must be an integer between 1 and 5` });
@@ -31,7 +43,7 @@ router.post('/', authenticate, async (req, res) => {
 
   const date = getTodayIST();
 
-  // One per day
+  // One per day (IST)
   const existing = await prisma.mentalFitnessEntry.findUnique({
     where: { userId_date: { userId: req.userId, date } },
   });
@@ -39,7 +51,7 @@ router.post('/', authenticate, async (req, res) => {
     return res.status(409).json({ error: 'Already checked in today', entry: existing });
   }
 
-  // Generate Arjun's 1-line response
+  // Generate Arjun's 1-line coaching response
   let arjunResponse = null;
   try {
     const user = await prisma.user.findUnique({
@@ -57,28 +69,62 @@ router.post('/', authenticate, async (req, res) => {
         max_tokens: 80,
         messages: [{
           role: 'user',
-          content: `You are Arjun, a direct sports coach. Reply in ONE sentence (max 15 words). No generic praise. Address what the numbers actually show.
+          content: `You are Arjun, a direct sports coach. ONE sentence max 15 words. No generic praise. Address what the numbers show.
 
-Player's mental check-in today — focus: ${scores.focus}/5, confidence: ${scores.confidence}/5, drive: ${scores.drive}/5, calm: ${scores.calm}/5, self-talk: ${scores.selftalk}/5, bounce-back: ${scores.bounce}/5. Their sport: ${sport}. Give one sharp coaching line.${langNote}`,
+Mood: ${scores.mood}/5, focus: ${scores.focus}/5, confidence: ${scores.confidence}/5, drive: ${scores.drive}/5, calm: ${scores.calm}/5, self-talk: ${scores.selftalk}/5, bounce-back: ${scores.bounce}/5. Sport: ${sport}.${langNote}`,
         }],
       });
       arjunResponse = msg.content[0]?.text?.trim() || null;
     }
   } catch {
-    // Non-critical — save entry without response
+    // Non-critical
   }
 
   try {
+    // Save MentalFitnessEntry
     const entry = await prisma.mentalFitnessEntry.create({
       data: {
         userId: req.userId,
         date,
-        ...scores,
+        mood: scores.mood,
+        focus: scores.focus,
+        confidence: scores.confidence,
+        drive: scores.drive,
+        calm: scores.calm,
+        selftalk: scores.selftalk,
+        bounce: scores.bounce,
         arjunResponse,
       },
     });
-    res.json({ entry });
-  } catch {
+
+    // Dual-write to CheckIn (skip if already exists on this UTC day)
+    const existingCheckIn = await prisma.checkIn.findFirst({
+      where: { userId: req.userId, createdAt: { gte: startOfTodayUTC() } },
+    });
+    let xpEarned = 0;
+    let newAchievements = [];
+    let totalXp = null;
+    if (!existingCheckIn) {
+      await prisma.checkIn.create({
+        data: {
+          userId: req.userId,
+          mood: scores.mood,
+          focus: scores.focus,
+          confidence: scores.confidence,
+        },
+      });
+      xpEarned = 10;
+      const [xpResult, achievements] = await Promise.all([
+        awardXP(req.userId, xpEarned),
+        checkCheckInAchievements(req.userId),
+      ]);
+      totalXp = xpResult.xp;
+      newAchievements = achievements;
+    }
+
+    res.json({ entry, xpEarned, xp: totalXp, newAchievements });
+  } catch (err) {
+    console.error('[mental-fitness] save error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });

@@ -28,8 +28,6 @@ function SectionLabel({ children }) {
   );
 }
 
-const DIM_LABELS    = { mood: 'Mood', focus: 'Focus', confidence: 'Confidence' };
-const DIM_LABELS_HI = { mood: 'मूड', focus: 'फोकस', confidence: 'आत्मविश्वास' };
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -45,7 +43,6 @@ export default function Dashboard() {
   const trialEnded         = !isPremium && trialDaysRemaining === 0;
 
   // ── state ──────────────────────────────────────────────────────────────────
-  const [todayCheckIn,      setTodayCheckIn]      = useState(null);
   const [mfsEntry,          setMfsEntry]          = useState(null);
   const [streak,            setStreak]            = useState(null);
   const [drillState,        setDrillState]        = useState({ drillIndex: null, completed: false });
@@ -65,11 +62,6 @@ export default function Dashboard() {
 
   // ── data fetch ─────────────────────────────────────────────────────────────
   useEffect(() => {
-    apiFetch('/api/checkin/today', { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.ok ? r.json() : null)
-      .then(data => setTodayCheckIn(data?.checkIn || false))
-      .catch(() => setTodayCheckIn(false));
-
     apiFetch('/api/progress/summary?days=7', { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
@@ -136,7 +128,7 @@ export default function Dashboard() {
   }
 
   // ── derived ────────────────────────────────────────────────────────────────
-  const missedYesterday = streak === 0 && todayCheckIn === false && totalCheckIns > 0;
+  const missedYesterday = streak === 0 && mfsEntry === false && totalCheckIns > 0;
   const drill           = drillState.drillIndex !== null ? DRILLS[drillState.drillIndex] : null;
 
   const TOOLS = [
@@ -312,65 +304,23 @@ export default function Dashboard() {
               </div>
             )}
 
-            {/* ── CHECK-IN CARD ───────────────────────────────────────────────── */}
-            <div className="mb-5">
-              {todayCheckIn === null ? (
-                <div className="h-20 bg-dark-800 rounded-2xl animate-pulse border border-dark-600" />
-              ) : todayCheckIn ? (
-                <div className="bg-white border border-dark-600 rounded-2xl p-4 shadow-sm">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <CheckCircle2 size={15} className="text-win-500 shrink-0" />
-                    <p className="text-sm font-semibold text-win-600">{td.checkinDoneTitle}</p>
-                  </div>
-                  <p className="text-xs text-slt mb-2">
-                    {td.checkinDoneSub(todayCheckIn.mood, todayCheckIn.focus, todayCheckIn.confidence)}
-                  </p>
-                  {['mood', 'focus', 'confidence'].some(k => todayCheckIn[k] < 3) && (
-                    <p className="text-xs text-fire-600 mb-2">
-                      {td.checkinLow(
-                        (hi ? DIM_LABELS_HI : DIM_LABELS)[
-                          ['mood', 'focus', 'confidence'].sort((a, b) => todayCheckIn[a] - todayCheckIn[b])[0]
-                        ]
-                      )}
-                    </p>
-                  )}
-                  <Link to="/progress" className="text-xs font-semibold text-brand-600">
-                    {td.viewInsight}
-                  </Link>
-                </div>
-              ) : (
-                <Link to="/checkin">
-                  <div className="bg-white border border-dark-600 rounded-2xl p-4 flex items-center justify-between active:scale-[0.99] transition-transform shadow-sm">
-                    <div>
-                      <p className="font-semibold text-ink text-sm">{td.quickCheckin}</p>
-                      <p className="text-xs text-slt mt-0.5">{td.quickCheckinSub}</p>
-                    </div>
-                    <div className="bg-brand-500 text-white text-xs font-bold px-3 py-2 rounded-xl whitespace-nowrap ml-3 shrink-0">
-                      {td.checkinCta}
-                    </div>
-                  </div>
-                </Link>
-              )}
-            </div>
-
-            {/* ── MENTAL FITNESS CARD ─────────────────────────────────────────── */}
+            {/* ── DAILY CHECK-IN / MENTAL FITNESS CARD ───────────────────────── */}
             <div className="mb-5">
               {mfsEntry === null ? (
                 <div className="h-16 bg-dark-800 rounded-2xl animate-pulse border border-dark-600" />
               ) : mfsEntry ? (
                 <div className="bg-white border border-dark-600 rounded-2xl p-4 shadow-sm">
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-semibold text-ink">{mf.card.doneTitle}</p>
+                    <p className="text-sm font-semibold text-win-600">{mf.card.doneTitle}</p>
                     <CheckCircle2 size={15} className="text-win-500 shrink-0" />
                   </div>
                   <div className="flex gap-1.5 flex-wrap mb-2">
-                    {['focus','confidence','drive','calm','selftalk','bounce'].map(d => (
-                      <span key={d} className="text-xs bg-brand-50 text-brand-700 px-2 py-0.5 rounded-full font-semibold">
-                        {mfsEntry[d]}/5
-                        <span className="ml-0.5 text-slt font-normal">
-                          {mf.dims[d]}
+                    {['mood','focus','confidence','drive','calm','selftalk','bounce'].map(d => (
+                      mfsEntry[d] != null && (
+                        <span key={d} className="text-xs bg-brand-50 text-brand-700 px-2 py-0.5 rounded-full font-semibold">
+                          {mf.dims[d]} {mfsEntry[d]}
                         </span>
-                      </span>
+                      )
                     ))}
                   </div>
                   {mfsEntry.arjunResponse && (
