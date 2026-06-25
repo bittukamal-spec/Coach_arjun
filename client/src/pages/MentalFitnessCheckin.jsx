@@ -352,8 +352,8 @@ export default function MentalFitnessCheckin() {
         const toolInfo = mf.toolRec[rec.toolKey];
         return (
           <>
-            <div className="fixed inset-0 z-50 bg-black/40" onClick={() => setShowReport(false)} />
-            <div className="fixed bottom-0 inset-x-0 z-50 bg-white rounded-t-2xl px-5 pt-5 pb-8 animate-fade-in shadow-xl max-h-[85vh] overflow-y-auto">
+            <div className="fixed inset-0 z-[60] bg-black/40" onClick={() => setShowReport(false)} />
+            <div className="fixed bottom-0 inset-x-0 z-[60] bg-white rounded-t-2xl px-5 pt-5 pb-12 animate-fade-in shadow-xl max-h-[85vh] overflow-y-auto">
               {/* Header */}
               <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-2.5">

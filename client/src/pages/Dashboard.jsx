@@ -479,8 +479,8 @@ export default function Dashboard() {
       {/* ── INFO POPUP SHEET ─────────────────────────────────────────────────── */}
       {infoPopup && (
         <>
-          <div className="fixed inset-0 z-50 bg-black/40" onClick={() => setInfoPopup(null)} />
-          <div className="fixed bottom-0 inset-x-0 z-50 bg-white border-t border-dark-600 rounded-t-2xl px-5 py-6 animate-fade-in shadow-xl">
+          <div className="fixed inset-0 z-[60] bg-black/40" onClick={() => setInfoPopup(null)} />
+          <div className="fixed bottom-0 inset-x-0 z-[60] bg-white border-t border-dark-600 rounded-t-2xl px-5 pt-6 pb-12 animate-fade-in shadow-xl">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base font-bold text-ink">
                 {infoPopup === 'streak'  && (hi ? 'ट्रेनिंग स्ट्रीक'     : 'Training Streak')}
@@ -576,8 +576,8 @@ export default function Dashboard() {
         const toolInfo = t.mentalFitness.toolRec[rec.toolKey];
         return (
           <>
-            <div className="fixed inset-0 z-50 bg-black/40" onClick={() => setShowMfsReport(false)} />
-            <div className="fixed bottom-0 inset-x-0 z-50 bg-white rounded-t-2xl px-5 pt-5 pb-8 animate-fade-in shadow-xl max-h-[85vh] overflow-y-auto">
+            <div className="fixed inset-0 z-[60] bg-black/40" onClick={() => setShowMfsReport(false)} />
+            <div className="fixed bottom-0 inset-x-0 z-[60] bg-white rounded-t-2xl px-5 pt-5 pb-12 animate-fade-in shadow-xl max-h-[85vh] overflow-y-auto">
               {/* Header */}
               <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-2.5">
@@ -629,8 +629,8 @@ export default function Dashboard() {
       {/* ── FREEZE CONFIRM SHEET ─────────────────────────────────────────────── */}
       {showFreezeConfirm && (
         <>
-          <div className="fixed inset-0 z-50 bg-black/40" onClick={() => setShowFreezeConfirm(false)} />
-          <div className="fixed bottom-0 inset-x-0 z-50 bg-white border-t border-dark-600 rounded-t-2xl px-5 py-6 animate-fade-in shadow-xl">
+          <div className="fixed inset-0 z-[60] bg-black/40" onClick={() => setShowFreezeConfirm(false)} />
+          <div className="fixed bottom-0 inset-x-0 z-[60] bg-white border-t border-dark-600 rounded-t-2xl px-5 pt-6 pb-12 animate-fade-in shadow-xl">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center">
                 <Snowflake size={20} className="text-sky-500" />

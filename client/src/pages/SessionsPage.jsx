@@ -248,10 +248,10 @@ export default function SessionsPage() {
       {deleteTarget && (
         <>
           <div
-            className="fixed inset-0 z-50 bg-black/60"
+            className="fixed inset-0 z-[60] bg-black/60"
             onClick={() => setDeleteTarget(null)}
           />
-          <div className="fixed bottom-0 inset-x-0 z-50 bg-dark-800 border-t border-dark-600 rounded-t-2xl px-5 py-6 animate-fade-in">
+          <div className="fixed bottom-0 inset-x-0 z-[60] bg-dark-800 border-t border-dark-600 rounded-t-2xl px-5 pt-6 pb-12 animate-fade-in">
             <p className="text-base font-semibold text-ink mb-1">{t.deleteConfirm}</p>
             <p className="text-xs text-slt mb-5 truncate">{deleteTarget.title}</p>
             <div className="flex gap-3">

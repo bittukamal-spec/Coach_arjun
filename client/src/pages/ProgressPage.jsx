@@ -260,7 +260,7 @@ function ShareModal({ onClose, user, fitnessScore, streak, xp, achievements, lan
         </div>
 
         {/* Share button — always visible, never inside the scroll area */}
-        <div className="px-4 pt-3 pb-8">
+        <div className="px-4 pt-3 pb-12">
           <button
             onClick={handleShare}
             disabled={busy || !imgUrl}
