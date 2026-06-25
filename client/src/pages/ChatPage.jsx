@@ -305,7 +305,17 @@ function ChatPage() {
       });
       if (res.ok) {
         const data = await res.json();
-        setMessages(data.messages || []);
+        const msgs = data.messages || [];
+        let lastAsstIdx = -1;
+        for (let i = msgs.length - 1; i >= 0; i--) {
+          if (msgs[i].role === 'assistant') { lastAsstIdx = i; break; }
+        }
+        const processed = msgs.map((msg, i) => {
+          if (msg.role !== 'assistant') return msg;
+          const { clean, suggestions } = extractSuggestions(msg.content);
+          return { ...msg, content: clean, tags: i === lastAsstIdx ? suggestions : [] };
+        });
+        setMessages(processed);
       }
     } catch { /* ignore */ }
   }
