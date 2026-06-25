@@ -61,7 +61,7 @@ export default function Dashboard() {
   // ── state ──────────────────────────────────────────────────────────────────
   const [mfsEntry,          setMfsEntry]          = useState(null);
   const [streak,            setStreak]            = useState(null);
-  const [drillState,        setDrillState]        = useState({ drillIndex: null, completed: false });
+  const [drillState,        setDrillState]        = useState({ drillIndex: null, completed: false, recommended: false });
   const [drillExpanded,     setDrillExpanded]     = useState(false);
   const [drillLoading,      setDrillLoading]      = useState(false);
   const [freezeCount,       setFreezeCount]       = useState(null);
@@ -251,7 +251,7 @@ export default function Dashboard() {
                       {hi ? drill.titleHi : drill.title}
                     </p>
                     <p className="text-white/75 text-sm mb-4">
-                      {td.drillHeroMeta(drill.duration)}
+                      {td.drillHeroMeta(drill.duration, drillState.recommended)}
                     </p>
 
                     {drillState.completed ? (
