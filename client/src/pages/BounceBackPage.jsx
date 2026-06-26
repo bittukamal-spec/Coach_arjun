@@ -1,368 +1,555 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X } from 'lucide-react';
+import { Heart, Shield } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
-import BreathingCircle from '../components/BreathingCircle';
 
-const BOX_PHASES = [
-  { key: 'breatheIn',  duration: 4, scale: 1.45 },
-  { key: 'hold1',      duration: 4, scale: 1.45 },
-  { key: 'breatheOut', duration: 4, scale: 1.0  },
-  { key: 'hold2',      duration: 4, scale: 1.0  },
+// Breathing: inhale 3s / exhale 5s — 4 rounds (~32s total)
+const BREATH_IN  = 3;
+const BREATH_OUT = 5;
+const BREATH_ROUNDS = 4;
+
+// English keys sent to API (not translated)
+const S1_KEYS = [
+  'I made a mistake', 'I played badly', 'We lost',
+  'Coach criticised me', 'Parent criticised me', 'I got dropped / benched',
+  'Injury scare', 'People will judge me', "I feel I'm wasting time", 'Something else',
 ];
-const BREATH_CYCLES = 3;
+const S2_KEYS = [
+  'The mistake itself', "Coach's reaction", "Parent's reaction",
+  'Losing my place', 'What teammates will think', "I'm not good enough",
+  "Fear it'll happen again", "I don't know",
+];
+const S5_KEYS = [
+  'Next ball / point / rep', 'Body language', 'Warm-up', 'Talk to coach',
+  'Recovery', 'Train harder tomorrow', 'Sleep / food / rest', 'Ask for help',
+];
+
+// Colours (all via inline style — not in Tailwind config)
+const C = {
+  bg:     '#F7F3EA',
+  navy:   '#172033',
+  amber:  '#D98B2B',
+  teal:   '#2E7D6B',
+  danger: '#C0392B',
+  muted:  '#64748B',
+  card:   '#FFFFFF',
+  selBg:  '#FEF9F0',
+  border: '#E5E0D8',
+  blue:   '#185FA5',
+  blueFill: '#E8F0FE',
+};
+const SHADOW = '0 2px 8px rgba(0,0,0,0.08)';
+
+function haptic(ms = 50) { try { navigator.vibrate(ms); } catch {} }
 
 function playTone(freq) {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.type = 'sine';
-    osc.frequency.value = freq;
-    gain.gain.setValueAtTime(0.10, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.6);
+    const osc = ctx.createOscillator(); const g = ctx.createGain();
+    osc.connect(g); g.connect(ctx.destination);
+    osc.type = 'sine'; osc.frequency.value = freq;
+    g.gain.setValueAtTime(0.07, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+    osc.start(); osc.stop(ctx.currentTime + 0.5);
   } catch {}
 }
 
+// ── Reusable tap card ──────────────────────────────────────────────────────
+
+function TapCard({ label, selected, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        background: selected ? C.selBg : C.card,
+        borderLeft: `4px solid ${selected ? C.amber : 'transparent'}`,
+        boxShadow: SHADOW,
+        minHeight: 56,
+        textAlign: 'left',
+      }}
+      className="w-full rounded-2xl px-4 py-3.5 transition-transform duration-[120ms] active:scale-[0.97]"
+    >
+      <span style={{ color: selected ? C.amber : C.navy, fontSize: 17, fontWeight: 500 }}>
+        {label}
+      </span>
+    </button>
+  );
+}
+
+// ── Component ──────────────────────────────────────────────────────────────
+
 export default function BounceBackPage() {
-  const navigate = useNavigate();
+  const navigate   = useNavigate();
   const { token, language } = useAuth();
   const t = translations[language]?.bounceBack || translations.en.bounceBack;
 
-  // step: 'step1' | 'step2' | 'step3' | 'step4'
-  const [step, setStep] = useState('step1');
-  const [includesBreathing, setIncludesBreathing] = useState(false);
+  // Screen state machine
+  const [screen, setScreen] = useState('step1');
 
-  // Step 1
-  const [situation, setSituation] = useState(null);
-  const [intensity, setIntensity] = useState(null);
+  // Collected data
+  const [situation,    setSituation]    = useState('');
+  const [stuckOn,      setStuckOn]      = useState('');
+  const [intensity,    setIntensity]    = useState(null);
+  const [controlChoice, setControlChoice] = useState('');
+  const [controlText,  setControlText]  = useState('');
 
-  // Step 2 — breathing
-  const [breathStatus, setBreathStatus] = useState('idle'); // idle|countdown|running|done
-  const [phaseIdx, setPhaseIdx] = useState(0);
-  const [phaseCount, setPhaseCount] = useState(BOX_PHASES[0].duration);
-  const [cycleCount, setCycleCount] = useState(0);
-  const [countdownNum, setCountdownNum] = useState(3);
-  const [canSkip, setCanSkip] = useState(false);
+  // Breathing
+  const [breathPhase,  setBreathPhase]  = useState('idle'); // idle|in|out
+  const [breathCount,  setBreathCount]  = useState(BREATH_IN);
+  const [breathRound,  setBreathRound]  = useState(1);
+  const [breathDone,   setBreathDone]   = useState(false);
   const timerRef = useRef(null);
 
-  // Step 3 — reframe
-  const [reframeText, setReframeText] = useState(null);
-  const [reframeLoading, setReframeLoading] = useState(false);
+  // Done screen
+  const [arjunText,   setArjunText]   = useState(null);
+  const [arjunLoading, setArjunLoading] = useState(false);
+  const [xpEarned,    setXpEarned]    = useState(null);
 
-  // Step 4
-  const [controlInput, setControlInput] = useState('');
-  const [finishing, setFinishing] = useState(false);
+  // ── Cleanup on unmount ─────────────────────────────────────────────────
+
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
+
+  // ── Breathing engine (only runs on step4) ──────────────────────────────
 
   useEffect(() => {
-    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  }, []);
+    if (screen !== 'step4') return;
+    let cancelled = false;
+    setBreathDone(false);
+    setBreathPhase('idle');
 
-  const situations = [
-    { key: 'Played really badly',  label: t.sit_played_badly },
-    { key: 'Made a big mistake',   label: t.sit_big_mistake  },
-    { key: 'We lost',              label: t.sit_we_lost      },
-    { key: 'Let the team down',    label: t.sit_let_down     },
-    { key: 'Something else',       label: t.sit_other        },
-  ];
+    function startPhase(phase, round) {
+      if (cancelled) return;
+      const dur = phase === 'in' ? BREATH_IN : BREATH_OUT;
+      haptic();
+      playTone(phase === 'in' ? 440 : 330);
+      setBreathPhase(phase);
+      setBreathCount(dur);
+      setBreathRound(round);
 
-  async function fetchReframe(sit, intens) {
-    setReframeLoading(true);
+      let remaining = dur;
+      function tick() {
+        if (cancelled) return;
+        remaining--;
+        if (remaining <= 0) {
+          if (phase === 'in') {
+            startPhase('out', round);
+          } else {
+            const next = round + 1;
+            if (next > BREATH_ROUNDS) {
+              setBreathDone(true);
+            } else {
+              startPhase('in', next);
+            }
+          }
+        } else {
+          setBreathCount(remaining);
+          timerRef.current = setTimeout(tick, 1000);
+        }
+      }
+      timerRef.current = setTimeout(tick, 1000);
+    }
+
+    // Brief pause so circle renders at idle (scale 1.0) before animating
+    const initId = setTimeout(() => startPhase('in', 1), 400);
+    return () => {
+      cancelled = true;
+      clearTimeout(initId);
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [screen]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Auto-advance from breathing done ───────────────────────────────────
+
+  useEffect(() => {
+    if (!breathDone) return;
+    const id = setTimeout(() => setScreen('step5'), 1500);
+    return () => clearTimeout(id);
+  }, [breathDone]);
+
+  // ── API call (triggered at step 5 selection) ───────────────────────────
+
+  async function fetchArjun(choice) {
+    setControlChoice(choice);
+    setArjunLoading(true);
+    setScreen('done');
     try {
       const res = await apiFetch('/api/chat/wizard', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ wizardType: 'bounce_back', situation: sit, intensity: intens, language }),
+        body: JSON.stringify({
+          wizardType: 'bounce_back',
+          situation,
+          stuckOn,
+          intensity,
+          intensityLabel: t.intLabels[intensity - 1],
+          controlChoice: choice,
+          language,
+        }),
       });
       const data = await res.json();
-      setReframeText(data.text || null);
+      setArjunText(data.text || t.doneFallback);
+      if (data.xpEarned) setXpEarned(data.xpEarned);
     } catch {
-      setReframeText(null);
+      setArjunText(t.doneFallback);
     } finally {
-      setReframeLoading(false);
+      setArjunLoading(false);
     }
   }
 
-  function handleStep1Next() {
-    if (!situation || !intensity) return;
-    const willBreathe = intensity >= 4;
-    setIncludesBreathing(willBreathe);
-    fetchReframe(situation, intensity);
-    if (willBreathe) {
-      setStep('step2');
-      startBreathingCountdown();
-    } else {
-      setStep('step3');
-    }
+  function handleTextSubmit(e) {
+    e.preventDefault();
+    if (!controlText.trim()) return;
+    fetchArjun(controlText.trim());
   }
 
-  // ── Breathing ──────────────────────────────────────────────────────────────
-
-  function startBreathingCountdown() {
-    setBreathStatus('countdown');
-    setCountdownNum(3);
-    let count = 3;
-    function tick() {
-      count--;
-      if (count <= 0) {
-        setBreathStatus('running');
-        startPhase(0, 0);
-      } else {
-        setCountdownNum(count);
-        timerRef.current = setTimeout(tick, 1000);
-      }
-    }
-    timerRef.current = setTimeout(tick, 1000);
+  function restart() {
+    setSituation(''); setStuckOn(''); setIntensity(null);
+    setControlChoice(''); setControlText('');
+    setArjunText(null); setXpEarned(null);
+    setBreathPhase('idle'); setBreathDone(false);
+    setScreen('step1');
   }
 
-  function startPhase(pIdx, cycles) {
-    const phase = BOX_PHASES[pIdx];
-    const freqs = [528, 440, 396, 440];
-    playTone(freqs[pIdx] || 440);
-    setPhaseIdx(pIdx);
-    setPhaseCount(phase.duration);
-    if (cycles >= 1) setCanSkip(true);
-    setCycleCount(cycles);
+  // ── Step number for progress display ──────────────────────────────────
 
-    let remaining = phase.duration;
-    function tick() {
-      remaining--;
-      setPhaseCount(remaining);
-      if (remaining <= 0) {
-        const nextPIdx = (pIdx + 1) % BOX_PHASES.length;
-        const nextCycles = nextPIdx === 0 ? cycles + 1 : cycles;
-        if (nextCycles >= BREATH_CYCLES) {
-          setBreathStatus('done');
-          return;
-        }
-        startPhase(nextPIdx, nextCycles);
-      } else {
-        timerRef.current = setTimeout(tick, 1000);
-      }
-    }
-    timerRef.current = setTimeout(tick, 1000);
-  }
+  const stepNums = { step1: 1, step2: 2, step3: 3, step4: 4, step5: 5 };
+  const stepNum  = stepNums[screen] ?? null;
 
-  function skipBreathing() {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    setBreathStatus('done');
-  }
+  // ── Breathing circle scale ─────────────────────────────────────────────
 
-  // ── Finish ─────────────────────────────────────────────────────────────────
+  const bScale = breathPhase === 'in' ? 1.35 : 1.0;
+  const bDur   = breathPhase === 'in' ? BREATH_IN : BREATH_OUT;
+  const bBorder = breathPhase === 'in' ? C.amber : C.blue;
 
-  function handleFinish() {
-    if (!controlInput.trim() || finishing) return;
-    setFinishing(true);
-    navigate('/train');
-  }
-
-  // ── Step indicator ─────────────────────────────────────────────────────────
-
-  const allSteps = ['step1', ...(includesBreathing ? ['step2'] : []), 'step3', 'step4'];
-  const currentIdx = allSteps.indexOf(step);
-
-  const currentPhase = BOX_PHASES[phaseIdx];
-  const phaseLabels = {
-    breatheIn:  t.breathIn,
-    hold1:      t.hold,
-    breatheOut: t.breathOut,
-    hold2:      t.hold,
-  };
+  // ── Render ─────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 pt-safe pt-5 pb-2">
-        <h1 className="text-base font-bold text-dark-900">{t.pageTitle}</h1>
-        <button onClick={() => navigate('/train')} className="text-dark-400 p-1 -mr-1">
-          <X size={20} />
+    <div className="min-h-screen flex flex-col" style={{ background: C.bg }}>
+
+      {/* ── Top bar ─────────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between px-5 pt-safe pt-5 pb-3 shrink-0">
+        <span style={{ color: C.muted, fontSize: 14 }}>
+          {stepNum ? `Step ${stepNum} ${t.stepOf} 5` : ''}
+        </span>
+        <button
+          onClick={() => navigate('/train')}
+          style={{ color: C.muted, fontSize: 14 }}
+          className="py-1 px-2"
+        >
+          {t.exitLabel}
         </button>
       </div>
 
-      {/* Step dots */}
-      <div className="flex justify-center gap-2 pb-4">
-        {allSteps.map((s, i) => (
-          <div
-            key={s}
-            className={`w-2 h-2 rounded-full transition-colors ${
-              i === currentIdx ? 'bg-brand-500' : i < currentIdx ? 'bg-brand-200' : 'bg-dark-200'
-            }`}
-          />
-        ))}
-      </div>
+      {/* ── Scrollable content ──────────────────────────────────────── */}
+      <div className="flex-1 px-5 overflow-y-auto pb-10">
 
-      {/* Content */}
-      <div className="flex-1 px-4 overflow-y-auto pb-32">
-
-        {/* ── STEP 1 ─────────────────────────────────────────────────────── */}
-        {step === 'step1' && (
-          <div className="flex flex-col gap-5">
-            <div className="bg-blue-50 border-l-4 border-brand-500 rounded-r-2xl px-4 py-3">
-              <p className="text-sm text-dark-800">{t.arjunStep1}</p>
+        {/* ═══════════ STEP 1 — What hit you? ═══════════════════════ */}
+        {screen === 'step1' && (
+          <div className="flex flex-col gap-3 animate-fade-in">
+            <div className="mb-1">
+              <h1 style={{ color: C.navy, fontSize: 24, fontWeight: 600, lineHeight: 1.3 }} className="mb-1">
+                {t.step1Title}
+              </h1>
+              <p style={{ color: C.muted, fontSize: 15 }}>{t.step1Sub}</p>
             </div>
-
-            <div>
-              <p className="text-xs font-semibold text-dark-500 uppercase tracking-wide mb-2.5">
-                {t.situationLabel}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {situations.map(({ key, label }) => (
-                  <button
-                    key={key}
-                    onClick={() => setSituation(key)}
-                    className={`px-3.5 py-2 rounded-xl text-sm border transition-colors ${
-                      situation === key
-                        ? 'bg-brand-500 text-white border-brand-500'
-                        : 'bg-white text-dark-700 border-dark-300 hover:border-brand-400'
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {situation && (
-              <div>
-                <p className="text-xs font-semibold text-dark-500 uppercase tracking-wide mb-2.5">
-                  {t.intensityLabel}
-                </p>
-                <div className="flex gap-2">
-                  {[1, 2, 3, 4, 5].map((n) => (
-                    <button
-                      key={n}
-                      onClick={() => setIntensity(n)}
-                      className={`flex-1 py-2.5 rounded-xl text-sm font-bold border transition-colors ${
-                        intensity === n
-                          ? 'bg-brand-500 text-white border-brand-500'
-                          : 'bg-white text-dark-700 border-dark-300 hover:border-brand-400'
-                      }`}
-                    >
-                      {n}
-                    </button>
-                  ))}
-                </div>
-                <div className="flex justify-between mt-1.5 px-0.5">
-                  <span className="text-xs text-dark-400">{t.intensityLow}</span>
-                  <span className="text-xs text-dark-400">{t.intensityHigh}</span>
-                </div>
-              </div>
-            )}
+            {S1_KEYS.map((key, i) => (
+              <TapCard
+                key={key}
+                label={t.s1[i]}
+                selected={situation === key}
+                onClick={() => {
+                  setSituation(key);
+                  haptic();
+                  setTimeout(() => setScreen('step2'), 150);
+                }}
+              />
+            ))}
           </div>
         )}
 
-        {/* ── STEP 2 — Breathing ─────────────────────────────────────────── */}
-        {step === 'step2' && (
-          <div className="flex flex-col items-center gap-5">
-            <div className="bg-blue-50 border-l-4 border-brand-500 rounded-r-2xl px-4 py-3 w-full">
-              <p className="text-sm text-dark-800">{t.arjunStep2}</p>
+        {/* ═══════════ STEP 2 — Mind stuck on ═══════════════════════ */}
+        {screen === 'step2' && (
+          <div className="flex flex-col gap-3 animate-fade-in">
+            <div className="mb-1">
+              <h1 style={{ color: C.navy, fontSize: 24, fontWeight: 600, lineHeight: 1.3 }} className="mb-1">
+                {t.step2Title}
+              </h1>
+              <p style={{ color: C.muted, fontSize: 15 }}>{t.step2Sub}</p>
             </div>
-            <p className="text-xs text-dark-400 uppercase tracking-wide">{t.breathingSubtitle}</p>
+            {S2_KEYS.map((key, i) => (
+              <TapCard
+                key={key}
+                label={t.s2[i]}
+                selected={stuckOn === key}
+                onClick={() => {
+                  setStuckOn(key);
+                  haptic();
+                  setTimeout(() => setScreen('step3'), 150);
+                }}
+              />
+            ))}
+          </div>
+        )}
 
-            {breathStatus !== 'done' ? (
+        {/* ═══════════ STEP 3 — Intensity ════════════════════════════ */}
+        {screen === 'step3' && (
+          <div className="flex flex-col gap-3 animate-fade-in">
+            <div className="mb-1">
+              <h1 style={{ color: C.navy, fontSize: 24, fontWeight: 600, lineHeight: 1.3 }} className="mb-1">
+                {t.step3Title}
+              </h1>
+              <p style={{ color: C.muted, fontSize: 15 }}>{t.step3Sub}</p>
+            </div>
+            {[1, 2, 3, 4, 5].map((n) => (
+              <button
+                key={n}
+                onClick={() => {
+                  setIntensity(n);
+                  haptic();
+                  setTimeout(() => setScreen(n === 5 ? 'safety' : 'step4'), 150);
+                }}
+                style={{
+                  background: intensity === n ? C.amber : C.card,
+                  color: intensity === n ? '#FFFFFF' : C.navy,
+                  boxShadow: SHADOW,
+                  minHeight: 56,
+                  borderLeft: `4px solid ${n === 5 ? C.danger : intensity === n ? C.amber : 'transparent'}`,
+                  textAlign: 'left',
+                }}
+                className="w-full rounded-2xl px-4 py-3.5 transition-all duration-[120ms] active:scale-[0.97]"
+              >
+                <span style={{ fontSize: 17, fontWeight: 700 }}>{n}</span>
+                <span style={{ fontSize: 17, fontWeight: 400, marginLeft: 12 }}>{t.intLabels[n - 1]}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* ═══════════ SAFETY SCREEN ══════════════════════════════════ */}
+        {screen === 'safety' && (
+          <div className="flex flex-col gap-5 animate-fade-in">
+            <div className="flex flex-col items-center gap-4 py-8">
+              <Heart size={36} color={C.teal} />
+              <h1 style={{ color: C.navy, fontSize: 22, fontWeight: 600, textAlign: 'center', lineHeight: 1.3 }}>
+                {t.safetyTitle}
+              </h1>
+              <p style={{ color: C.muted, fontSize: 16, textAlign: 'center', lineHeight: 1.6, maxWidth: 300 }}>
+                {t.safetySub}
+              </p>
+            </div>
+            <button
+              onClick={() => setScreen('step4')}
+              style={{ background: C.teal, minHeight: 56 }}
+              className="w-full rounded-2xl py-4 text-white font-semibold text-[17px] active:scale-[0.97] transition-transform duration-[120ms]"
+            >
+              {t.safetyOk}
+            </button>
+            <button
+              onClick={() => setScreen('help')}
+              style={{ color: C.danger, minHeight: 56, fontSize: 17, fontWeight: 600 }}
+              className="w-full py-4 text-center active:scale-[0.97] transition-transform duration-[120ms]"
+            >
+              {t.safetyNeed}
+            </button>
+          </div>
+        )}
+
+        {/* ═══════════ HELP SCREEN ════════════════════════════════════ */}
+        {screen === 'help' && (
+          <div className="flex flex-col gap-5 animate-fade-in">
+            <div
+              className="rounded-2xl p-5"
+              style={{ background: C.card, boxShadow: SHADOW, borderLeft: `4px solid ${C.teal}` }}
+            >
+              <h2 style={{ color: C.navy, fontSize: 20, fontWeight: 600, marginBottom: 12 }}>
+                {t.helpTitle}
+              </h2>
+              <p style={{ color: C.muted, fontSize: 16, lineHeight: 1.6, marginBottom: 16 }}>
+                {t.helpBody}
+              </p>
+              <p style={{ color: C.navy, fontSize: 16, fontWeight: 500, marginBottom: 6 }}>
+                {t.helpIcall}
+              </p>
+              <p style={{ color: C.danger, fontSize: 16, fontWeight: 600 }}>
+                {t.helpEmergency}
+              </p>
+            </div>
+            <button
+              onClick={() => setScreen('safety')}
+              style={{ color: C.muted, fontSize: 15 }}
+              className="text-center py-3"
+            >
+              {t.helpBack}
+            </button>
+          </div>
+        )}
+
+        {/* ═══════════ STEP 4 — Breathing ════════════════════════════ */}
+        {screen === 'step4' && (
+          <div className="flex flex-col items-center gap-5 animate-fade-in">
+            <p style={{ color: C.navy, fontSize: 17, fontWeight: 500, lineHeight: 1.6, alignSelf: 'stretch' }}>
+              {t.step4Line}
+            </p>
+            <p style={{ color: C.muted, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              {t.step4Sub}
+            </p>
+
+            {!breathDone ? (
               <>
-                <BreathingCircle
-                  phase={breathStatus === 'running' ? currentPhase : null}
-                  count={phaseCount}
-                  status={breathStatus}
-                  countdownNum={countdownNum}
-                  phaseLabel={breathStatus === 'running' ? phaseLabels[currentPhase.key] : null}
-                />
-                {breathStatus === 'running' && canSkip && (
-                  <button onClick={skipBreathing} className="text-sm text-dark-400 underline mt-2">
-                    {t.skipBtn}
-                  </button>
+                {/* Breathing circle */}
+                <div style={{ width: 160, height: 160, position: 'relative', margin: '16px 0' }}>
+                  <div
+                    style={{
+                      width: 140, height: 140,
+                      borderRadius: '50%',
+                      background: C.blueFill,
+                      border: `2px solid ${bBorder}`,
+                      transform: `scale(${bScale})`,
+                      transition: `transform ${bDur}s ease-in-out, border-color 0.4s ease`,
+                      display: 'flex', flexDirection: 'column',
+                      alignItems: 'center', justifyContent: 'center',
+                      position: 'absolute', top: 10, left: 10,
+                    }}
+                    className="motion-reduce:transition-none"
+                  >
+                    <span style={{ fontSize: 36, fontWeight: 700, color: C.navy, lineHeight: 1 }}>
+                      {breathPhase === 'idle' ? '' : breathCount}
+                    </span>
+                    <span style={{ fontSize: 13, color: C.muted, marginTop: 4 }}>
+                      {breathPhase === 'in' ? t.breathIn : breathPhase === 'out' ? t.breathOut : ''}
+                    </span>
+                  </div>
+                </div>
+
+                {breathPhase !== 'idle' && (
+                  <p style={{ color: C.muted, fontSize: 14 }}>
+                    {t.breathRound} {breathRound} {t.breathOf} {BREATH_ROUNDS}
+                  </p>
                 )}
               </>
             ) : (
-              <div className="flex flex-col items-center gap-2 py-10">
-                <p className="text-base font-semibold text-dark-800">{t.breathDone}</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ── STEP 3 — Arjun reframe ─────────────────────────────────────── */}
-        {step === 'step3' && (
-          <div className="flex flex-col gap-4">
-            {reframeLoading ? (
-              <div className="flex flex-col items-center gap-3 py-12">
-                <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
-                <p className="text-sm text-dark-500">{t.arjunLoading}</p>
-              </div>
-            ) : (
-              <div className="bg-blue-50 border-l-4 border-brand-500 rounded-r-2xl px-4 py-3">
-                <p className="text-sm text-dark-800">
-                  {reframeText || "That was a tough one. You showed up, and that already matters. Now look forward — focus on what you can control."}
+              <div className="flex flex-col items-center gap-3 py-8 animate-fade-in">
+                <p style={{ color: C.teal, fontSize: 17, fontWeight: 500, textAlign: 'center', lineHeight: 1.6 }}>
+                  {t.breathDoneMsg}
                 </p>
               </div>
             )}
           </div>
         )}
 
-        {/* ── STEP 4 — Control shift ─────────────────────────────────────── */}
-        {step === 'step4' && (
-          <div className="flex flex-col gap-4">
-            <div className="bg-blue-50 border-l-4 border-brand-500 rounded-r-2xl px-4 py-3">
-              <p className="text-sm text-dark-800">{t.arjunStep4}</p>
+        {/* ═══════════ STEP 5 — One controllable ═════════════════════ */}
+        {screen === 'step5' && (
+          <div className="flex flex-col gap-3 animate-fade-in">
+            <div className="mb-1">
+              <h1 style={{ color: C.navy, fontSize: 24, fontWeight: 600, lineHeight: 1.3 }} className="mb-1">
+                {t.step5Title}
+              </h1>
+              <p style={{ color: C.muted, fontSize: 15 }}>{t.step5Sub}</p>
             </div>
-            <textarea
-              value={controlInput}
-              onChange={(e) => setControlInput(e.target.value)}
-              placeholder={t.controlPlaceholder}
-              rows={3}
-              className="w-full border border-dark-200 rounded-xl px-3.5 py-2.5 text-sm text-dark-900 placeholder-dark-400 focus:outline-none focus:border-brand-500 resize-none"
-              autoFocus
-            />
+            {S5_KEYS.map((key, i) => (
+              <TapCard
+                key={key}
+                label={t.s5[i]}
+                selected={controlChoice === key}
+                onClick={() => fetchArjun(key)}
+              />
+            ))}
+            {/* Optional text input */}
+            <form onSubmit={handleTextSubmit} className="mt-1 flex flex-col gap-3">
+              <input
+                type="text"
+                value={controlText}
+                onChange={(e) => setControlText(e.target.value)}
+                placeholder={t.step5Placeholder}
+                style={{
+                  background: C.card, color: C.navy, fontSize: 16,
+                  border: `1px solid ${C.border}`, borderRadius: 16,
+                  padding: '14px 16px', outline: 'none', width: '100%',
+                }}
+              />
+              {controlText.trim() && (
+                <button
+                  type="submit"
+                  style={{ background: C.amber, minHeight: 56 }}
+                  className="w-full rounded-2xl py-3.5 text-white font-semibold text-[17px] active:scale-[0.97] transition-transform duration-[120ms]"
+                >
+                  {t.step5Next}
+                </button>
+              )}
+            </form>
           </div>
         )}
-      </div>
 
-      {/* Bottom button */}
-      <div className="fixed bottom-0 left-0 right-0 px-4 pb-8 pt-3 bg-white border-t border-dark-100">
-        {step === 'step1' && (
-          <button
-            onClick={handleStep1Next}
-            disabled={!situation || !intensity}
-            className="w-full py-3.5 rounded-2xl font-semibold text-sm bg-brand-500 text-white disabled:opacity-40 transition-opacity active:scale-[0.98]"
-          >
-            {t.nextBtn}
-          </button>
+        {/* ═══════════ DONE — Arjun's response ═══════════════════════ */}
+        {screen === 'done' && (
+          <div className="flex flex-col gap-5 animate-fade-in">
+            {arjunLoading ? (
+              <div className="flex flex-col items-center gap-5 py-16">
+                <Shield size={32} color={C.blue} />
+                <div className="flex gap-2">
+                  {[0, 1, 2].map((i) => (
+                    <div
+                      key={i}
+                      style={{ background: C.blue, width: 8, height: 8, borderRadius: '50%', animationDelay: `${i * 0.2}s` }}
+                      className="animate-bounce"
+                    />
+                  ))}
+                </div>
+                <p style={{ color: C.muted, fontSize: 15 }}>{t.doneLoading}</p>
+              </div>
+            ) : (
+              <>
+                {/* Arjun response card */}
+                <div
+                  className="rounded-2xl p-5"
+                  style={{ background: C.card, boxShadow: SHADOW, borderLeft: `4px solid ${C.teal}` }}
+                >
+                  <p style={{ color: C.muted, fontSize: 13, marginBottom: 10 }}>{t.doneArjunLabel}</p>
+                  <p style={{ color: C.navy, fontSize: 17, lineHeight: 1.65 }}>
+                    {arjunText || t.doneFallback}
+                  </p>
+                </div>
+
+                {/* XP badge */}
+                {xpEarned && (
+                  <div className="flex justify-center">
+                    <span
+                      style={{
+                        background: C.selBg, color: C.amber,
+                        border: `1px solid ${C.amber}`,
+                        fontSize: 14, fontWeight: 600,
+                        borderRadius: 999, padding: '6px 16px',
+                      }}
+                    >
+                      {t.doneXp}
+                    </span>
+                  </div>
+                )}
+
+                {/* CTAs */}
+                <div className="flex flex-col gap-3 mt-1">
+                  <button
+                    onClick={() => navigate('/train')}
+                    style={{ background: C.amber, minHeight: 56 }}
+                    className="w-full rounded-2xl py-4 text-white font-semibold text-[17px] active:scale-[0.97] transition-transform duration-[120ms]"
+                  >
+                    {t.doneBack}
+                  </button>
+                  <button
+                    onClick={restart}
+                    style={{ color: C.muted, fontSize: 15, minHeight: 44 }}
+                    className="w-full text-center py-2"
+                  >
+                    {t.doneRestart}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         )}
 
-        {step === 'step2' && breathStatus === 'done' && (
-          <button
-            onClick={() => setStep('step3')}
-            className="w-full py-3.5 rounded-2xl font-semibold text-sm bg-brand-500 text-white active:scale-[0.98]"
-          >
-            {t.nextBtn}
-          </button>
-        )}
-
-        {step === 'step3' && !reframeLoading && (
-          <button
-            onClick={() => setStep('step4')}
-            className="w-full py-3.5 rounded-2xl font-semibold text-sm bg-brand-500 text-white active:scale-[0.98]"
-          >
-            {t.nextBtn}
-          </button>
-        )}
-
-        {step === 'step4' && (
-          <button
-            onClick={handleFinish}
-            disabled={!controlInput.trim() || finishing}
-            className="w-full py-3.5 rounded-2xl font-semibold text-sm bg-brand-500 text-white disabled:opacity-40 transition-opacity active:scale-[0.98]"
-          >
-            {finishing ? '…' : t.finishBtn}
-          </button>
-        )}
       </div>
     </div>
   );

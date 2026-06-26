@@ -668,7 +668,7 @@ router.post('/message', authenticate, checkFreeLimit, async (req, res) => {
 // Returns { text: string, cueWord: string|null }
 
 router.post('/wizard', authenticate, async (req, res) => {
-  const { wizardType, feeling, situation, language = 'en', whatHappened, intensity } = req.body;
+  const { wizardType, feeling, situation, language = 'en', whatHappened, intensity, stuckOn, intensityLabel, controlChoice } = req.body;
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
@@ -697,18 +697,41 @@ router.post('/wizard', authenticate, async (req, res) => {
       maxTokens = 120;
     } else if (wizardType === 'bounce_back') {
       const intensityNum = parseInt(intensity) || 3;
-      const intensityDesc = intensityNum >= 4 ? `deeply (intensity ${intensityNum}/5)` : `somewhat (intensity ${intensityNum}/5)`;
+      const intDesc = intensityLabel || ['Manageable', 'Irritated', 'Heavy', 'Very intense', 'Losing control'][intensityNum - 1] || 'Heavy';
       const oceanN = user.oceanN ?? 3;
       const oceanO = user.oceanO ?? 3;
       const pressureCtx = oceanN >= 4
-        ? 'This athlete tends to be emotionally sensitive to setbacks — they need full acknowledgment before any forward focus.'
+        ? 'This athlete is emotionally sensitive — they need full acknowledgment before any forward focus. Do not rush them.'
         : oceanN <= 2
-        ? 'This athlete is emotionally resilient — they are ready to be challenged to think forward quickly.'
+        ? 'This athlete is resilient — they can handle a direct challenge and move forward quickly.'
         : '';
-      const openCtx = oceanO >= 4 ? 'They are open to reframing and new perspectives.' : '';
-      systemPrompt = `You are Arjun, a mental performance coach for Indian athletes. An athlete just had a tough ${sport} game or setback. What happened: "${situation || 'bad game'}". They are sitting with it ${intensityDesc}. ${pressureCtx} ${openCtx}
-In exactly 2–3 sentences: (1) acknowledge what happened with full validation — no positivity spin, no silver linings; (2) name ONE concrete action they can take in the next hour to reset their head. Be warm, direct, and specific to ${sport}. No lists. No questions.${langNote} Output only the response text.`;
-      maxTokens = 140;
+      const openCtx = oceanO >= 4 ? 'They respond well to reframing and new angles.' : '';
+      systemPrompt = `You are Arjun, a mental performance coach for Indian athletes aged 14–25.
+
+An athlete just used the Bounce Back tool. Here is what they shared:
+• What happened: "${situation || 'a bad game'}"
+• Mind stuck on: "${stuckOn || 'the moment'}"
+• Intensity: ${intensityNum}/5 — "${intDesc}"
+• One thing they will control next: "${controlChoice || 'their next action'}"
+• Sport: ${sport}
+${pressureCtx} ${openCtx}
+
+Write a short coaching response in this exact structure (as flowing prose, no labels or numbers):
+1. Name their pain directly — acknowledge it was hard. No fluff.
+2. Separate the mistake from their identity. Use language like: "Mistake ko data bana, identity mat bana" or "One bad moment is not your level."
+3. Give one specific useful lesson from THIS exact situation.
+4. Give one immediate action — concrete, doable in the next 10 minutes.
+5. End with a 3–5 word cue phrase they can repeat.
+
+Rules:
+- Under 80 words total
+- NEVER say: "you've got this", "stay positive", "everything happens for a reason", "be kind to yourself", "I understand how you feel"
+- No therapy language, no clinical terms, no toxic positivity
+- Tone: strong, calm, direct — Indian performance coach talking to a 14–17 year old athlete
+- ${lang === 'hi' ? 'Write in Hinglish (natural Hindi-English mix — conversational, not formal Hindi).' : 'Write in English. You may use 1–2 natural Hinglish phrases.'}
+- Address the athlete directly as "you" or "tu" (match the language register)
+- Output only the coaching response — no labels, no numbers, no prefix`;
+      maxTokens = 160;
     } else {
       return res.status(400).json({ error: 'Invalid wizardType' });
     }
