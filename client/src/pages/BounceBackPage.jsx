@@ -96,6 +96,7 @@ export default function BounceBackPage() {
   const [controlText,  setControlText]  = useState('');
 
   // Breathing
+  const [breathStarted, setBreathStarted] = useState(false);
   const [breathPhase,  setBreathPhase]  = useState('idle'); // idle|in|out
   const [breathCount,  setBreathCount]  = useState(BREATH_IN);
   const [breathRound,  setBreathRound]  = useState(1);
@@ -114,7 +115,7 @@ export default function BounceBackPage() {
   // ── Breathing engine (only runs on step4) ──────────────────────────────
 
   useEffect(() => {
-    if (screen !== 'step4') return;
+    if (screen !== 'step4' || !breathStarted) return;
     let cancelled = false;
     setBreathDone(false);
     setBreathPhase('idle');
@@ -158,7 +159,7 @@ export default function BounceBackPage() {
       clearTimeout(initId);
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [screen]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [screen, breathStarted]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Auto-advance from breathing done ───────────────────────────────────
 
@@ -208,7 +209,7 @@ export default function BounceBackPage() {
     setSituation(''); setStuckOn(''); setIntensity(null);
     setControlChoice(''); setControlText('');
     setArjunText(null); setXpEarned(null);
-    setBreathPhase('idle'); setBreathDone(false);
+    setBreathStarted(false); setBreathPhase('idle'); setBreathDone(false);
     setScreen('step1');
   }
 
@@ -387,19 +388,46 @@ export default function BounceBackPage() {
         )}
 
         {/* ═══════════ STEP 4 — Breathing ════════════════════════════ */}
-        {screen === 'step4' && (
-          <div className="flex flex-col items-center gap-5 animate-fade-in">
-            <p style={{ color: C.navy, fontSize: 17, fontWeight: 500, lineHeight: 1.6, alignSelf: 'stretch' }}>
+        {screen === 'step4' && !breathStarted && (
+          <div className="flex flex-col gap-5 animate-fade-in">
+            {/* Arjun coaching line */}
+            <p style={{ color: C.navy, fontSize: 17, fontWeight: 500, lineHeight: 1.6 }}>
               {t.step4Line}
             </p>
-            <p style={{ color: C.muted, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              {t.step4Sub}
-            </p>
 
+            {/* Cue card */}
+            <div
+              className="rounded-2xl p-5 flex flex-col gap-3"
+              style={{ background: C.card, boxShadow: SHADOW }}
+            >
+              <p style={{ color: C.muted, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                {t.step4Sub}
+              </p>
+              {(t.step4Cues || []).map((cue, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: C.teal, flexShrink: 0 }} />
+                  <p style={{ color: C.navy, fontSize: 16 }}>{cue}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Start button */}
+            <button
+              onClick={() => setBreathStarted(true)}
+              style={{ background: C.amber, minHeight: 56, marginTop: 8 }}
+              className="w-full rounded-2xl py-4 text-white font-semibold text-[17px] active:scale-[0.97] transition-transform duration-[120ms]"
+            >
+              {t.step4StartBtn}
+            </button>
+          </div>
+        )}
+
+        {screen === 'step4' && breathStarted && (
+          <div className="flex flex-col items-center gap-5 animate-fade-in">
             {!breathDone ? (
               <>
                 {/* Breathing circle */}
-                <div style={{ width: 160, height: 160, position: 'relative', margin: '16px 0' }}>
+                <div style={{ width: 160, height: 160, position: 'relative', margin: '24px 0' }}>
                   <div
                     style={{
                       width: 140, height: 140,
@@ -430,7 +458,7 @@ export default function BounceBackPage() {
                 )}
               </>
             ) : (
-              <div className="flex flex-col items-center gap-3 py-8 animate-fade-in">
+              <div className="flex flex-col items-center gap-3 py-12 animate-fade-in">
                 <p style={{ color: C.teal, fontSize: 17, fontWeight: 500, textAlign: 'center', lineHeight: 1.6 }}>
                   {t.breathDoneMsg}
                 </p>

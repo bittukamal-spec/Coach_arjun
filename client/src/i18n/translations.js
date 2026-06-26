@@ -850,6 +850,8 @@ export const translations = {
       // Step 4 — breathing
       step4Line: 'Control the body first. Then we handle the mind.',
       step4Sub: '4 rounds · 3 sec in · 5 sec out',
+      step4Cues: ['Drop your shoulders', 'Unclench your jaw', 'Feel your feet on the ground'],
+      step4StartBtn: 'Start breathing',
       breathIn: 'Breathe in',
       breathOut: 'Breathe out',
       breathRound: 'Round',
@@ -1694,6 +1696,8 @@ export const translations = {
       // Step 4 — breathing
       step4Line: 'Pehle body control. Phir mind ka kaam.',
       step4Sub: '4 round · 3 sec andar · 5 sec bahar',
+      step4Cues: ['Kaandhon ko dhila karo', 'Jawline relax karo', 'Paon zameen pe feel karo'],
+      step4StartBtn: 'Shuru karo',
       breathIn: 'Saans lo',
       breathOut: 'Chhaado',
       breathRound: 'Round',
