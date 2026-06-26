@@ -413,6 +413,39 @@ export const translations = {
       goAgain: 'Go again',
       backTrain: '← Training',
       soundOn: 'Sound On', soundOff: 'Sound Off',
+      info: {
+        name:    { nerves: 'Match Breathing', reset: 'Quick Reset', winddown: 'Wind Down' },
+        benefit: {
+          nerves:   'Calms your nerves without making you slow.',
+          reset:    'Stops a panic spiral in 90 seconds.',
+          winddown: 'Switches your body from stress mode to rest mode.',
+        },
+        arjun: {
+          nerves:   "Used by Navy SEALs and elite athletes before high-pressure moments. Your heart rate drops, your head clears. Takes 2 minutes.",
+          reset:    "When pressure spikes mid-match, your exhale is the brake pedal. Longer out than in — that's the whole secret. 90 seconds.",
+          winddown: "The long exhale tells your nervous system the threat is over. Do this after a hard match or before sleep. 2.5 minutes.",
+        },
+        steps: {
+          nerves:   [
+            'Breathe in through your nose — 4 counts',
+            'Hold — 4 counts',
+            'Breathe out through your mouth — 4 counts',
+            'Hold — 4 counts',
+          ],
+          reset:    [
+            'Breathe in through your nose — 2 counts',
+            'Breathe out slowly through your mouth — 4 counts',
+          ],
+          winddown: [
+            'Breathe in through your nose — 4 counts',
+            'Hold — 7 counts',
+            'Breathe out completely through your mouth — 8 counts',
+          ],
+        },
+        repeat: { nerves: 'Repeat 5 times', reset: 'Repeat 6 times', winddown: 'Repeat 4 times' },
+        start: 'Start',
+        back:  '← Choose a different one',
+      },
       pickTech: 'Choose a technique',
       techBox: 'Box Breathing', techBoxDesc: 'Used by elite athletes for daily calm and focus',
       tech478: '4-7-8 Calm Down', tech478Desc: 'Activates the stress off-switch in 2 minutes',
@@ -1151,6 +1184,39 @@ export const translations = {
       goAgain: 'फिर करो',
       backTrain: '← ट्रेनिंग',
       soundOn: 'आवाज़ चालू', soundOff: 'आवाज़ बंद',
+      info: {
+        name:    { nerves: 'मैच ब्रीदिंग', reset: 'क्विक रीसेट', winddown: 'वाइंड डाउन' },
+        benefit: {
+          nerves:   'घबराहट कम करता है — बिना धीमा किए।',
+          reset:    '90 सेकंड में पैनिक रोको।',
+          winddown: 'शरीर को तनाव से आराम मोड में लाता है।',
+        },
+        arjun: {
+          nerves:   'नेवी सील्स और एलीट खिलाड़ी हाई-प्रेशर पलों से पहले यही करते हैं। दिल की धड़कन धीमी होती है, दिमाग साफ होता है। 2 मिनट।',
+          reset:    'जब मैच के बीच दबाव बढ़े, सांस बाहर निकालना ब्रेक है। बाहर ज़्यादा, अंदर कम — बस यही राज़ है। 90 सेकंड।',
+          winddown: 'लंबी सांस बाहर निकालने से दिमाग को लगता है खतरा टल गया। मुश्किल मैच के बाद या सोने से पहले करो। 2.5 मिनट।',
+        },
+        steps: {
+          nerves:   [
+            'नाक से सांस लो — 4 काउंट',
+            'रोको — 4 काउंट',
+            'मुंह से सांस छोड़ो — 4 काउंट',
+            'रोको — 4 काउंट',
+          ],
+          reset:    [
+            'नाक से सांस लो — 2 काउंट',
+            'मुंह से धीरे सांस बाहर छोड़ो — 4 काउंट',
+          ],
+          winddown: [
+            'नाक से सांस लो — 4 काउंट',
+            'रोको — 7 काउंट',
+            'मुंह से पूरी सांस बाहर छोड़ो — 8 काउंट',
+          ],
+        },
+        repeat: { nerves: '5 बार दोहराओ', reset: '6 बार दोहराओ', winddown: '4 बार दोहराओ' },
+        start: 'शुरू करो',
+        back:  '← कोई और चुनो',
+      },
       pickTech: 'तकनीक चुनें',
       techBox: 'बॉक्स ब्रीदिंग', techBoxDesc: 'रोज़ाना शांत रहने के लिए',
       tech478: '4-7-8 शांति', tech478Desc: '2 मिनट में तनाव बंद करें',
