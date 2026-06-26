@@ -668,11 +668,11 @@ router.post('/message', authenticate, checkFreeLimit, async (req, res) => {
 // Returns { text: string, cueWord: string|null }
 
 router.post('/wizard', authenticate, async (req, res) => {
-  const { wizardType, feeling, situation, language = 'en' } = req.body;
+  const { wizardType, feeling, situation, language = 'en', whatHappened, intensity } = req.body;
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
-      select: { sport: true, oceanN: true, ritualSteps: true, language: true },
+      select: { sport: true, oceanO: true, oceanC: true, oceanE: true, oceanA: true, oceanN: true, ritualSteps: true, language: true },
     });
     if (!user) return res.status(404).json({ error: 'User not found' });
 
@@ -695,6 +695,20 @@ router.post('/wizard', authenticate, async (req, res) => {
     } else if (wizardType === 'setback_reset') {
       systemPrompt = `You are Arjun, a mental performance coach. In 2–3 sentences maximum: first fully acknowledge what happened and validate the feeling (do NOT rush to positivity or silver linings), then name ONE specific thing in the athlete's control next time. Be warm, direct, real. No lists. No questions. Situation: ${situation}. Feeling: ${feeling}. Sport: ${sport}.${langNote} Output only the response text.`;
       maxTokens = 120;
+    } else if (wizardType === 'bounce_back') {
+      const intensityNum = parseInt(intensity) || 3;
+      const intensityDesc = intensityNum >= 4 ? `deeply (intensity ${intensityNum}/5)` : `somewhat (intensity ${intensityNum}/5)`;
+      const oceanN = user.oceanN ?? 3;
+      const oceanO = user.oceanO ?? 3;
+      const pressureCtx = oceanN >= 4
+        ? 'This athlete tends to be emotionally sensitive to setbacks — they need full acknowledgment before any forward focus.'
+        : oceanN <= 2
+        ? 'This athlete is emotionally resilient — they are ready to be challenged to think forward quickly.'
+        : '';
+      const openCtx = oceanO >= 4 ? 'They are open to reframing and new perspectives.' : '';
+      systemPrompt = `You are Arjun, a mental performance coach for Indian athletes. An athlete just had a tough ${sport} game or setback. What happened: "${situation || 'bad game'}". They are sitting with it ${intensityDesc}. ${pressureCtx} ${openCtx}
+In exactly 2–3 sentences: (1) acknowledge what happened with full validation — no positivity spin, no silver linings; (2) name ONE concrete action they can take in the next hour to reset their head. Be warm, direct, and specific to ${sport}. No lists. No questions.${langNote} Output only the response text.`;
+      maxTokens = 140;
     } else {
       return res.status(400).json({ error: 'Invalid wizardType' });
     }
@@ -707,7 +721,16 @@ router.post('/wizard', authenticate, async (req, res) => {
       messages: [{ role: 'user', content: 'Generate the response.' }],
     });
 
-    res.json({ text: message.content[0].text, cueWord });
+    let xpEarned = null, xpTotal = null;
+    if (wizardType === 'bounce_back') {
+      const BOUNCE_XP = 15;
+      await prisma.user.update({ where: { id: req.userId }, data: { xp: { increment: BOUNCE_XP } } });
+      const updated = await prisma.user.findUnique({ where: { id: req.userId }, select: { xp: true } });
+      xpEarned = BOUNCE_XP;
+      xpTotal = updated.xp;
+    }
+
+    res.json({ text: message.content[0].text, cueWord, xpEarned, xp: xpTotal });
   } catch (err) {
     console.error('wizard error:', err);
     res.status(500).json({ error: 'Wizard call failed' });

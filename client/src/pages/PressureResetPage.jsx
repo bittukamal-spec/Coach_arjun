@@ -415,7 +415,7 @@ export default function PressureResetPage() {
             </button>
 
             <button
-              onClick={() => startWizard('setback_reset')}
+              onClick={() => navigate('/bounce-back')}
               className="flex items-center gap-4 bg-dark-800 border border-dark-600 hover:border-fire-500/50 hover:bg-dark-700 active:scale-[0.98] rounded-2xl p-5 text-left transition-all"
             >
               <div className="w-12 h-12 rounded-xl bg-fire-500/15 flex items-center justify-center shrink-0">

@@ -19,6 +19,7 @@ import DebriefPage from './pages/DebriefPage';
 import GamesPage from './pages/GamesPage';
 import PersonalityTestPage from './pages/PersonalityTestPage';
 import PressureResetPage from './pages/PressureResetPage';
+import BounceBackPage from './pages/BounceBackPage';
 import SessionsPage from './pages/SessionsPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
@@ -138,6 +139,14 @@ function App() {
           <ProtectedRoute requireOnboarding={true}>
             <PressureResetPage />
             <BottomNav />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/bounce-back"
+        element={
+          <ProtectedRoute requireOnboarding={true}>
+            <BounceBackPage />
           </ProtectedRoute>
         }
       />
