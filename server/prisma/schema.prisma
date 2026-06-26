@@ -69,6 +69,13 @@ model User {
   // Mental Game Profile intro (AI-generated, cached after onboarding)
   profileIntro  String?
 
+  // Before You Play — saved cue word
+  cueWord         String?
+  cueLanguage     String?
+  cueArousalState String?   // "calm_down" | "lock_in" | "fire_up"
+  cueEventType    String?   // "before_match"
+  cueUpdatedAt    DateTime?
+
   // Demographics
   age           Int?   // age in years
 

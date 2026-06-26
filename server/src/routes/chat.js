@@ -732,6 +732,15 @@ Rules:
 - Address the athlete directly as "you" or "tu" (match the language register)
 - Output only the coaching response — no labels, no numbers, no prefix`;
       maxTokens = 160;
+    } else if (wizardType === 'cue_word') {
+      const { arousal, firstFocus } = req.body;
+      const arousalDesc = {
+        calm_down: 'calming down — they are nervous or anxious',
+        lock_in:   'locking in focus — they are distracted or scattered',
+        fire_up:   'firing up — they are flat or low on energy',
+      }[arousal] || 'getting ready';
+      systemPrompt = `You are Arjun, a mental performance coach. Generate exactly 5 short power words for an athlete who needs to focus on ${arousalDesc} before their ${sport} match. Their chosen match focus: "${firstFocus || 'performing well'}". Rules: Each word must be 1–2 words MAX, ALL CAPS, short and punchy (e.g. SHARP, READY, HERE, LOCK, TRUST). Output a valid JSON array only — exactly like this example: ["SHARP","READY","HERE","LOCK","TRUST"]. No other text, no explanation.`;
+      maxTokens = 60;
     } else {
       return res.status(400).json({ error: 'Invalid wizardType' });
     }
@@ -743,6 +752,19 @@ Rules:
       system: systemPrompt,
       messages: [{ role: 'user', content: 'Generate the response.' }],
     });
+
+    // For cue_word: parse the JSON array response
+    if (wizardType === 'cue_word') {
+      try {
+        const raw = message.content[0].text.trim();
+        const words = JSON.parse(raw);
+        if (Array.isArray(words)) {
+          return res.json({ words: words.slice(0, 5) });
+        }
+      } catch {}
+      // Fallback if parse fails
+      return res.json({ words: ['SHARP', 'READY', 'HERE', 'LOCK', 'TRUST'] });
+    }
 
     let xpEarned = null, xpTotal = null;
     if (wizardType === 'bounce_back') {

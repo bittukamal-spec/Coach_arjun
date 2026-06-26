@@ -20,6 +20,7 @@ import GamesPage from './pages/GamesPage';
 import PersonalityTestPage from './pages/PersonalityTestPage';
 import PressureResetPage from './pages/PressureResetPage';
 import BounceBackPage from './pages/BounceBackPage';
+import BeforeYouPlayPage from './pages/BeforeYouPlayPage';
 import SessionsPage from './pages/SessionsPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
@@ -147,6 +148,14 @@ function App() {
         element={
           <ProtectedRoute requireOnboarding={true}>
             <BounceBackPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/before-you-play"
+        element={
+          <ProtectedRoute requireOnboarding={true}>
+            <BeforeYouPlayPage />
           </ProtectedRoute>
         }
       />
