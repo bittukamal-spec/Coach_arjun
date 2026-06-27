@@ -194,7 +194,7 @@ export default function DebriefPage() {
             ) : (
               <button onClick={() => navigate('/train')} className="text-sm text-slt hover:text-ink">✕</button>
             )}
-            <p className="font-semibold text-ink">{hi ? 'मैच की समीक्षा' : 'Match review'}</p>
+            <p className="font-semibold text-ink">{hi ? 'मैच / ट्रेनिंग के बाद' : 'After Match / Training'}</p>
             {step != null ? (
               <p className="text-xs text-slt">{step}/{totalScreens}</p>
             ) : (
@@ -216,7 +216,7 @@ export default function DebriefPage() {
         <header className="bg-dark-900 border-b border-dark-600 px-4 py-4 sticky top-0 z-10">
           <div className="max-w-lg mx-auto flex items-center justify-between">
             <button onClick={() => navigate('/train')} className="text-sm text-slt hover:text-ink">✕</button>
-            <p className="font-semibold text-ink">{hi ? 'मैच की समीक्षा' : 'Match review'}</p>
+            <p className="font-semibold text-ink">{hi ? 'मैच / ट्रेनिंग के बाद' : 'After Match / Training'}</p>
             <div className="w-10" />
           </div>
         </header>
@@ -458,7 +458,7 @@ export default function DebriefPage() {
         <header className="bg-dark-900 border-b border-dark-600 px-4 py-4 sticky top-0 z-10">
           <div className="max-w-lg mx-auto flex items-center justify-between">
             <div className="w-10" />
-            <p className="font-semibold text-ink">{hi ? 'मैच की समीक्षा' : 'Match review'}</p>
+            <p className="font-semibold text-ink">{hi ? 'मैच / ट्रेनिंग के बाद' : 'After Match / Training'}</p>
             <div className="w-10" />
           </div>
         </header>

@@ -668,7 +668,7 @@ export const translations = {
       goToAccount: 'View My Profile',
     },
     debrief: {
-      title: 'Match review',
+      title: 'After Match / Training',
       subtitle: '3 questions that help you learn from every game and come back stronger',
       backDash: '← Dashboard',
       stepOf: (n, t) => `Question ${n} of ${t}`,
@@ -686,7 +686,7 @@ export const translations = {
       insightLabel: 'Arjun\'s coaching note',
       talkToArjun: 'Talk to Arjun about this →',
       backBtn: 'Back to Dashboard',
-      historyTitle: 'Past match reviews',
+      historyTitle: 'Past reviews',
       noHistory: 'No match reviews yet.',
     },
     atm: {
@@ -1621,7 +1621,7 @@ export const translations = {
       goToAccount: 'प्रोफाइल देखें',
     },
     debrief: {
-      title: 'मैच की समीक्षा',
+      title: 'मैच / ट्रेनिंग के बाद',
       subtitle: '3 सवाल जो हर मैच से सीखने में मदद करते हैं',
       backDash: '← डैशबोर्ड',
       stepOf: (n, t) => `सवाल ${n} / ${t}`,
@@ -1639,7 +1639,7 @@ export const translations = {
       insightLabel: 'अर्जुन का कोचिंग नोट',
       talkToArjun: 'इस बारे में अर्जुन से बात करें →',
       backBtn: 'डैशबोर्ड पर वापस',
-      historyTitle: 'पिछले मैच की समीक्षाएं',
+      historyTitle: 'पिछले reviews',
       noHistory: 'अभी तक कोई मैच समीक्षा नहीं।',
     },
     atm: {
