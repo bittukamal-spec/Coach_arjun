@@ -248,18 +248,17 @@ function ChatPage() {
           await fetchSessionMessages(pendingId);
           sessionLoaded = true;
         } else if (!forceNewSessionRef.current) {
-          const todayStart = new Date();
-          todayStart.setUTCHours(0, 0, 0, 0);
-          const activeToday = sessions.find(
-            s => s.status === 'active' && new Date(s.createdAt) >= todayStart
-          );
-          if (activeToday) {
-            setChatSessionId(activeToday.id);
-            if (activeToday.sessionType && activeToday.sessionType !== 'general') {
-              setActiveSession(activeToday.sessionType);
+          // Resume the most recent unended session (regardless of when it was created).
+          // end-stale auto-closes sessions from previous days; if the user didn't
+          // explicitly end today's session, we pick it back up.
+          const existingActive = sessions.find(s => s.status === 'active');
+          if (existingActive) {
+            setChatSessionId(existingActive.id);
+            if (existingActive.sessionType && existingActive.sessionType !== 'general') {
+              setActiveSession(existingActive.sessionType);
             }
-            if (activeToday.summary) setSessionSummary(activeToday.summary);
-            await fetchSessionMessages(activeToday.id);
+            if (existingActive.summary) setSessionSummary(existingActive.summary);
+            await fetchSessionMessages(existingActive.id);
             sessionLoaded = true;
           }
         }
@@ -314,21 +313,26 @@ function ChatPage() {
     return () => window.removeEventListener('popstate', handlePop);
   }, [navigate]);
 
-  // ── Auto-start when navigated from check-in (location.state.sessionType) ─
+  // ── Auto-start when navigated from another page with a sessionType ────────
+  // If there is already an active session loaded, resume it — don't inject a new
+  // greeting on top of existing messages. Only start fresh when there is no session.
 
   useEffect(() => {
     if (!loading && pendingSessionRef.current) {
       const key = pendingSessionRef.current;
       pendingSessionRef.current = null;
-      arjunMsgCountRef.current = 0;
-      setActiveSession(key);
+
       if (!chatSessionId) {
+        // No active session — start a brand new one with the incoming session type
+        arjunMsgCountRef.current = 0;
+        setActiveSession(key);
         createSession(key).then(id => {
           sendMessage(`__SESSION:${key}__`, key, id);
         });
-      } else if (messages.length === 0) {
-        sendMessage(`__SESSION:${key}__`, key);
       }
+      // If there IS an active session, just resume it silently.
+      // The session type label stays as whatever the existing session is.
+      // Arjun already has debrief context via buildSystemPrompt (reads last 2 debriefs).
     }
   }, [loading]); // eslint-disable-line react-hooks/exhaustive-deps
 

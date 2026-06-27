@@ -93,6 +93,7 @@ export default function DebriefPage() {
   const [result,         setResult]         = useState(null);
   const [showXp,         setShowXp]         = useState(false);
   const [historyOpen,    setHistoryOpen]    = useState(false);
+  const [expandedEntry,  setExpandedEntry]  = useState(null);
   const [apiError,       setApiError]       = useState('');
 
   const submitCalled = useRef(false);
@@ -492,25 +493,28 @@ export default function DebriefPage() {
 
               {/* XP badge */}
               {showXp && (
-                <div className="flex justify-center mb-6 animate-fade-in">
+                <div className="flex justify-center mb-5 animate-fade-in">
                   <span className="inline-flex items-center gap-2 bg-win-500/20 text-win-400 border border-win-500/30 text-sm font-bold px-4 py-1.5 rounded-full">
                     ⚡ {xpLabel}
                   </span>
                 </div>
               )}
 
-              {/* Arjun's insight */}
+              {/* Arjun's review */}
               {result.insight && (
                 <div className="bg-dark-800 border border-brand-500/30 rounded-2xl p-5 mb-4">
                   <div className="flex items-center gap-2 mb-3">
                     <div className="w-8 h-8 rounded-full bg-brand-500/20 border border-brand-500/40 flex items-center justify-center text-sm">🏹</div>
-                    <p className="text-xs font-semibold text-brand-400 uppercase tracking-wide">Arjun</p>
+                    <div>
+                      <p className="text-xs font-semibold text-brand-400 uppercase tracking-wide">Arjun's review</p>
+                      <p className="text-[10px] text-slt">{eventType} · {resultType}</p>
+                    </div>
                   </div>
                   <p className="text-sm text-ink leading-relaxed">{result.insight}</p>
                 </div>
               )}
 
-              {/* Pattern card (full mode only, when pattern exists) */}
+              {/* Pattern card */}
               {result.pattern && (
                 <div className="bg-amber-950/30 border border-amber-500/30 rounded-2xl px-4 py-3 mb-4">
                   <p className="text-xs font-semibold text-amber-400 mb-1">{t.done.pattern.label}</p>
@@ -518,13 +522,13 @@ export default function DebriefPage() {
                 </div>
               )}
 
-              {/* Next focus summary */}
-              <div className="bg-dark-800 border border-dark-600 rounded-2xl px-4 py-3 mb-4">
+              {/* Next focus */}
+              <div className="bg-dark-800 border border-dark-600 rounded-2xl px-4 py-3 mb-5">
                 <p className="text-xs text-slt mb-1">{hi ? 'अगली बार फोकस:' : 'Next focus:'}</p>
                 <p className="text-base font-bold text-ink">{nextFocus}</p>
               </div>
 
-              {/* Past reviews */}
+              {/* Past reviews — collapsible with full insight on tap */}
               {result.recentEntries?.length > 0 && (
                 <div className="mb-6">
                   <button
@@ -538,12 +542,31 @@ export default function DebriefPage() {
                   {historyOpen && (
                     <div className="flex flex-col gap-2 animate-fade-in">
                       {result.recentEntries.map(entry => (
-                        <div key={entry.id} className="bg-dark-800 border border-dark-600 rounded-2xl px-4 py-3">
-                          <div className="flex items-center justify-between mb-1">
-                            <p className="text-xs text-slt">{entry.eventType || 'Review'}</p>
-                            <p className="text-xs text-slt">{new Date(entry.createdAt).toLocaleDateString()}</p>
-                          </div>
-                          <p className="text-sm text-ink truncate">{entry.wentWell}</p>
+                        <div key={entry.id}>
+                          <button
+                            onClick={() => setExpandedEntry(expandedEntry === entry.id ? null : entry.id)}
+                            className="w-full bg-dark-800 border border-dark-600 rounded-2xl px-4 py-3 text-left hover:border-dark-500 transition-colors"
+                          >
+                            <div className="flex items-center justify-between mb-1">
+                              <p className="text-xs font-medium text-slt">{entry.eventType || 'Review'} · {entry.resultType || ''}</p>
+                              <p className="text-xs text-slt">{new Date(entry.createdAt).toLocaleDateString()}</p>
+                            </div>
+                            <p className="text-sm text-ink">{hi ? 'अगला फोकस:' : 'Next focus:'} <span className="font-medium">{entry.nextFocus}</span></p>
+                            {entry.arjunInsight && (
+                              <p className="text-xs text-slt mt-1 line-clamp-1">{entry.arjunInsight}</p>
+                            )}
+                          </button>
+
+                          {/* Expanded: full arjun review */}
+                          {expandedEntry === entry.id && entry.arjunInsight && (
+                            <div className="mt-1 bg-dark-800 border border-brand-500/20 rounded-2xl px-4 py-3 animate-fade-in">
+                              <div className="flex items-center gap-1.5 mb-2">
+                                <span className="text-xs">🏹</span>
+                                <p className="text-xs font-semibold text-brand-400 uppercase tracking-wide">Arjun's review</p>
+                              </div>
+                              <p className="text-sm text-ink leading-relaxed">{entry.arjunInsight}</p>
+                            </div>
+                          )}
                         </div>
                       ))}
                       <button onClick={() => navigate('/sessions')} className="text-xs text-brand-400 text-right mt-1">
@@ -557,7 +580,7 @@ export default function DebriefPage() {
               {/* CTAs */}
               <div className="flex flex-col gap-3">
                 <button
-                  onClick={() => navigate('/coaching', { state: { sessionType: 'post_match' } })}
+                  onClick={() => navigate('/coaching', { state: { sessionType: 'post_match', arjunReport: result.insight || undefined } })}
                   className="btn-primary justify-center"
                 >
                   {t.done.secondary}

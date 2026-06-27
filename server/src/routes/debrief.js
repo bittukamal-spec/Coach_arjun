@@ -13,38 +13,61 @@ const XP_LEGACY = 10;
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
-function buildInsightPrompt(data, user, prevChanges) {
-  const { eventType, resultType, wentWellChips, wentWellText, wouldChange, wouldChangeText, nextFocus, mode } = data;
+function buildInsightPrompt(data, user, prevChanges, recentCheckIns) {
+  const { eventType, resultType, wentWellChips, wentWellText, wouldChange, wouldChangeText, nextFocus } = data;
   const name  = user.name?.split(' ')[0] || 'athlete';
-  const sport = user.sport || 'their sport';
-  const lang  = user.language === 'hi' ? 'Hindi (Hinglish-friendly)' : 'English';
+  const sport = user.sport ? user.sport.charAt(0).toUpperCase() + user.sport.slice(1) : 'sport';
+  const lang  = user.language === 'hi' ? 'Hindi (Hinglish-friendly, mix Hindi + common English sports terms)' : 'English';
 
   const wentWellSummary = [wentWellChips?.join(', '), wentWellText].filter(Boolean).join(' — ');
   const wouldChangeSummary = [wouldChange, wouldChangeText].filter(Boolean).join(' — ');
 
-  const patternBlock = prevChanges?.length >= 3
-    ? `\nRecurring theme across last 3 sessions (wouldChange): ${prevChanges.join(' / ')}`
+  // Check-in context
+  let checkInNote = '';
+  if (recentCheckIns?.length > 0) {
+    const latest = recentCheckIns[0];
+    const daysAgo = Math.floor((Date.now() - new Date(latest.createdAt).getTime()) / 86400000);
+    if (daysAgo <= 1) {
+      checkInNote = `\nMental state check-in: mood ${latest.mood}/5 | focus ${latest.focus}/5 | confidence ${latest.confidence}/5`;
+    }
+  }
+
+  // OCEAN coaching tone hints
+  const toneNotes = [];
+  if (user.oceanN >= 4) toneNotes.push('calm and validate first — they are anxiety-prone');
+  if (user.oceanN <= 2) toneNotes.push('can be direct and challenge them — emotionally stable');
+  if (user.oceanC >= 4) toneNotes.push('give a concrete structured action — they respond to step-by-step plans');
+  if (user.oceanE <= 2) toneNotes.push('keep advice internal/solo — avoid team-facing suggestions');
+  const toneNote = toneNotes.length ? `\nCoaching tone: ${toneNotes.join('; ')}.` : '';
+
+  // Cue word
+  const cueNote = user.cueWord
+    ? `\nCue word: "${user.cueWord}" — reference it naturally as their mental trigger for next time.`
     : '';
 
-  return `You are Arjun, an AI mental performance coach for young Indian athletes.
+  // Recurring pattern
+  const patternBlock = prevChanges?.length >= 3
+    ? `\nRecurring theme across last 3 sessions (keeps saying needs changing): ${prevChanges.join(' / ')}`
+    : '';
 
-Athlete: ${name}. Sport: ${sport}. Language: ${lang}.
-Event: ${eventType || 'practice'}. Result: ${resultType || 'unknown'}.
-What they kept: ${wentWellSummary || 'not specified'}.
-What they'd change: ${wouldChangeSummary || 'not specified'}.
-Next focus: ${nextFocus || 'not specified'}.${patternBlock}
+  // Experience + level
+  const levelNote = user.experienceLevel ? `\nLevel: ${user.experienceLevel}.` : '';
 
-Return a JSON object with exactly two keys:
+  return `You are Arjun, a mental performance coach for Indian athletes. Write a personalised post-event review.
+
+Athlete: ${name}. Sport: ${sport}.${levelNote} Language: ${lang}.
+Event: ${eventType || 'session'}. Result: ${resultType || 'unspecified'}.
+What worked: ${wentWellSummary || 'not specified'}.
+What to change: ${wouldChangeSummary || 'not specified'}.
+Next training focus: ${nextFocus}.${checkInNote}${cueNote}${toneNote}${patternBlock}
+
+Return JSON:
 {
-  "insight": "<2–3 direct sentences, coach tone, use their name, reference their sport and result>",
-  "pattern": ${prevChanges?.length >= 3 ? '"<one short sentence calling out the recurring theme, or null>"' : 'null'}
+  "insight": "<Write 4–5 sentences as Arjun's coaching review. Structure: (1) Acknowledge the result honestly — don't rush past a bad one or oversell a good one. (2) Name one specific thing they did well and explain WHY it matters in ${sport}. (3) Address the change area directly — give a sport-specific observation, not a generic tip. (4) If they have a cue word, weave it in naturally as a reminder for next time. (5) Close by framing their next focus (${nextFocus}) as a concrete training commitment. Use ${name}'s name once. Sound like a coach who watched the match, not an app. No corporate wellness language.>",
+  "pattern": ${prevChanges?.length >= 3 ? '"<One sentence naming the recurring theme across sessions, or null if no clear pattern>"' : 'null'}
 }
 
-Rules:
-- insight: Validate their self-awareness, name one specific lesson, end with one concrete action.
-- pattern: Only non-null when prevChanges shows a clear recurring theme. Keep it under 15 words.
-- Write in ${lang}. Be direct, not generic. No corporate wellness language.
-- Return ONLY valid JSON. No markdown, no preamble.`;
+Rules: ${lang} only. Sound like a trusted older brother who knows the sport. Return ONLY valid JSON. No markdown, no preamble.`;
 }
 
 // ── POST /api/debrief ─────────────────────────────────────────────────────────
@@ -104,10 +127,21 @@ router.post('/', authenticate, async (req, res) => {
   const xpAmount = mode === 'full' ? XP_FULL : XP_QUICK;
 
   // Fetch user profile for AI context
-  const user = await prisma.user.findUnique({
-    where: { id: req.userId },
-    select: { name: true, sport: true, language: true, oceanN: true, experienceLevel: true },
-  });
+  const [user, recentCheckIns] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: req.userId },
+      select: {
+        name: true, sport: true, language: true, experienceLevel: true,
+        cueWord: true, oceanO: true, oceanC: true, oceanE: true, oceanA: true, oceanN: true,
+      },
+    }),
+    prisma.checkIn.findMany({
+      where: { userId: req.userId },
+      orderBy: { createdAt: 'desc' },
+      take: 1,
+      select: { mood: true, focus: true, confidence: true, createdAt: true },
+    }),
+  ]);
 
   // Query last 3 debriefs for pattern detection
   const prevDebriefs = await prisma.debrief.findMany({
@@ -128,6 +162,7 @@ router.post('/', authenticate, async (req, res) => {
       { eventType, resultType, wentWellChips, wentWellText, wouldChange, wouldChangeText, nextFocus, mode },
       user || {},
       prevChanges,
+      recentCheckIns,
     );
     const msg = await anthropic.messages.create({
       model: process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001',
@@ -174,7 +209,7 @@ router.post('/', authenticate, async (req, res) => {
       where: { userId: req.userId, id: { not: debrief.id } },
       orderBy: { createdAt: 'desc' },
       take: 3,
-      select: { id: true, eventType: true, resultType: true, wentWell: true, nextFocus: true, createdAt: true, mode: true },
+      select: { id: true, eventType: true, resultType: true, wentWell: true, nextFocus: true, arjunInsight: true, createdAt: true, mode: true },
     });
 
     return res.json({ insight, pattern, debrief, xp: updatedUser.xp, xpEarned: xpAmount, recentEntries });
