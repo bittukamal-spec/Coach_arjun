@@ -12,34 +12,6 @@ const AROUSAL_COLORS = {
   fire_up:   { accent: '#D98B2B', light: 'rgba(217,139,43,0.12)', label: 'amber' },
 };
 
-// ── Breathing config per arousal ──────────────────────────────────────────────
-const BREATH_CONFIG = {
-  calm_down: {
-    phases: [
-      { label: 'in',   dur: 4, scale: 1.45 },
-      { label: 'hold', dur: 7, scale: 1.45 },
-      { label: 'out',  dur: 8, scale: 1.0  },
-    ],
-    rounds: 3,
-  },
-  lock_in: {
-    phases: [
-      { label: 'in',   dur: 4, scale: 1.45 },
-      { label: 'hold', dur: 4, scale: 1.45 },
-      { label: 'out',  dur: 4, scale: 1.0  },
-      { label: 'hold', dur: 4, scale: 1.0  },
-    ],
-    rounds: 4,
-  },
-  fire_up: {
-    phases: [
-      { label: 'in',  dur: 4, scale: 1.45 },
-      { label: 'out', dur: 4, scale: 1.0  },
-    ],
-    rounds: 4,
-  },
-};
-
 // ── Sport-specific Step 3 focus options ───────────────────────────────────────
 const FOCUS_OPTIONS = {
   cricket:   ['First ball', 'Footwork', 'Calling', 'Reading the ball', 'Body language'],
@@ -84,8 +56,25 @@ const DEFAULT_VIZ = [
   "You know what to do. Go do it.",
 ];
 
-// ── Shared sub-components ─────────────────────────────────────────────────────
+// ── Burst game constants ──────────────────────────────────────────────────────
+const BURST_TOTAL = 20;
 
+// ── Pure util: pick a random burst circle position ───────────────────────────
+function getNextBurstPos(rect, prevPos) {
+  const margin = 50;
+  const minDist = 80;
+  for (let i = 0; i < 20; i++) {
+    const x = margin + Math.random() * (rect.width  - margin * 2);
+    const y = margin + Math.random() * (rect.height - margin * 2);
+    if (!prevPos) return { x, y };
+    const dx = x - prevPos.x;
+    const dy = y - prevPos.y;
+    if (Math.sqrt(dx * dx + dy * dy) >= minDist) return { x, y };
+  }
+  return { x: rect.width / 2, y: rect.height / 2 };
+}
+
+// ── Shared sub-components ─────────────────────────────────────────────────────
 function ArjunBubble({ children }) {
   return (
     <div className="flex gap-2 items-start">
@@ -100,13 +89,11 @@ function ArjunBubble({ children }) {
 }
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
-
 export default function BeforeYouPlayPage() {
   const { language, token, user } = useAuth();
   const tb = translations[language].byp;
   const hi = language === 'hi';
   const navigate = useNavigate();
-
   const sport = user?.sport || 'default';
 
   // ── Screen state machine ──────────────────────────────────────────────────
@@ -115,16 +102,42 @@ export default function BeforeYouPlayPage() {
   // Step 1
   const [arousal, setArousal] = useState(null);
 
-  // Step 2 breathing
-  const [breathStarted,  setBreathStarted]  = useState(false);
-  const [breathPhase,    setBreathPhase]    = useState('idle');
-  const [breathScale,    setBreathScale]    = useState(1.0);
-  const [breathPhaseDur, setBreathPhaseDur] = useState(1);
-  const [breathCount,    setBreathCount]    = useState(0);
-  const [breathRound,    setBreathRound]    = useState(1);
-  const [breathDone,     setBreathDone]     = useState(false);
-  const timerRef = useRef(null);
-  const ctxRef   = useRef(null);
+  // Step 2 game lifecycle: null | 'playing' | 'arjun'
+  const [gamePhase, setGamePhase] = useState(null);
+
+  // Game A — Steady (calm_down) ─────────────────────────────────────────────
+  const [steadyActive,   setSteadyActive]   = useState(false);
+  const [steadyCount,    setSteadyCount]    = useState(10);
+  const [steadyFlash,    setSteadyFlash]    = useState(false);
+  const [steadyAgain,    setSteadyAgain]    = useState(false);
+  const [steadyComplete, setSteadyComplete] = useState(false);
+  const steadyStartPosRef   = useRef(null);
+  const steadyTimerRef      = useRef(null);
+  const steadyRemainingRef  = useRef(10);
+  const steadyActiveRef     = useRef(false);
+  const steadyCompleteRef   = useRef(false);
+
+  // Game B — Burst (fire_up) ────────────────────────────────────────────────
+  const [burstScore,    setBurstScore]    = useState(0);
+  const [burstPos,      setBurstPos]      = useState({ x: 0, y: 0 });
+  const [burstComplete, setBurstComplete] = useState(false);
+  const burstPrevPosRef = useRef(null);
+  const burstAreaRef    = useRef(null);
+
+  // Game C — Track (lock_in) ────────────────────────────────────────────────
+  const [trackOnTarget,  setTrackOnTarget]  = useState(false);
+  const [trackProgress,  setTrackProgress]  = useState(0);
+  const [trackComplete,  setTrackComplete]  = useState(false);
+  const [reducedMotion]  = useState(() =>
+    typeof window !== 'undefined' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  );
+  const trackContainerRef = useRef(null);
+  const trackCircleRef    = useRef(null);
+  const trackRafRef       = useRef(null);
+  const trackStartTimeRef = useRef(null);
+  const trackFingerPosRef = useRef(null);
+  const trackOnTargetRef  = useRef(false);
 
   // Step 3
   const [firstFocus, setFirstFocus] = useState(null);
@@ -138,94 +151,245 @@ export default function BeforeYouPlayPage() {
   // Done
   const [xpEarned, setXpEarned] = useState(null);
 
-  // ── Audio + haptic ────────────────────────────────────────────────────────
-  function playTone(freq) {
-    try {
-      if (!ctxRef.current || ctxRef.current.state === 'closed') ctxRef.current = new AudioContext();
-      const ctx = ctxRef.current;
-      if (ctx.state === 'suspended') ctx.resume();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type = 'sine';
-      osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0.1, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.6);
-    } catch {}
+  // ── Haptic ────────────────────────────────────────────────────────────────
+  function haptic(pattern) {
+    try { if (navigator.vibrate) navigator.vibrate(pattern || 40); } catch {}
   }
 
-  function haptic() {
-    try { if (navigator.vibrate) navigator.vibrate(40); } catch {}
-  }
-
-  // ── Breathing engine ──────────────────────────────────────────────────────
+  // ── gamePhase 'arjun' → advance to step3 after 2s ────────────────────────
   useEffect(() => {
-    if (screen !== 'step2' || !breathStarted || !arousal) return;
-    let cancelled = false;
-    setBreathDone(false);
-    setBreathPhase('idle');
-    setBreathScale(1.0);
+    if (gamePhase !== 'arjun') return;
+    const id = setTimeout(() => setScreen('step3'), 2000);
+    return () => clearTimeout(id);
+  }, [gamePhase]);
 
-    const { phases, rounds } = BREATH_CONFIG[arousal];
+  // ── Reset all game state when step2 is entered ───────────────────────────
+  useEffect(() => {
+    if (screen !== 'step2') return;
+    setGamePhase('playing');
+    // Steady
+    setSteadyActive(false);
+    setSteadyCount(10);
+    setSteadyAgain(false);
+    setSteadyFlash(false);
+    setSteadyComplete(false);
+    steadyRemainingRef.current  = 10;
+    steadyActiveRef.current     = false;
+    steadyCompleteRef.current   = false;
+    clearTimeout(steadyTimerRef.current);
+    // Burst
+    setBurstScore(0);
+    setBurstComplete(false);
+    setBurstPos({ x: 0, y: 0 });
+    burstPrevPosRef.current = null;
+    // Track
+    setTrackOnTarget(false);
+    setTrackProgress(0);
+    setTrackComplete(false);
+    trackStartTimeRef.current = null;
+    trackFingerPosRef.current = null;
+    trackOnTargetRef.current  = false;
+  }, [screen]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    function startPhase(phaseIdx, round) {
-      if (cancelled) return;
-      const phase = phases[phaseIdx];
-      haptic();
-      const freq = phase.label === 'in' ? 528 : phase.label === 'out' ? 396 : 440;
-      playTone(freq);
-      setBreathPhase(phase.label);
-      setBreathScale(phase.scale);
-      setBreathPhaseDur(phase.dur);
-      setBreathCount(phase.dur);
-      setBreathRound(round);
+  // ── Burst: place initial circle after layout ──────────────────────────────
+  useEffect(() => {
+    if (screen !== 'step2' || arousal !== 'fire_up') return;
+    const id = setTimeout(() => {
+      if (!burstAreaRef.current) return;
+      const rect = burstAreaRef.current.getBoundingClientRect();
+      if (rect.width === 0) return;
+      const pos = getNextBurstPos(rect, null);
+      setBurstPos(pos);
+      burstPrevPosRef.current = pos;
+    }, 50);
+    return () => clearTimeout(id);
+  }, [screen, arousal]); // eslint-disable-line react-hooks/exhaustive-deps
 
-      let remaining = phase.dur;
-      function tick() {
-        if (cancelled) return;
-        remaining--;
-        if (remaining <= 0) {
-          const nextIdx = phaseIdx + 1;
-          if (nextIdx >= phases.length) {
-            const nextRound = round + 1;
-            if (nextRound > rounds) {
-              setBreathDone(true);
-            } else {
-              startPhase(0, nextRound);
-            }
-          } else {
-            startPhase(nextIdx, round);
-          }
+  // ── Track: non-passive touchmove (needed for e.preventDefault) ───────────
+  useEffect(() => {
+    if (screen !== 'step2' || arousal !== 'lock_in') return;
+    const el = trackContainerRef.current;
+    if (!el) return;
+    function onMove(e) {
+      e.preventDefault();
+      if (e.touches.length > 0)
+        trackFingerPosRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }
+    el.addEventListener('touchmove', onMove, { passive: false });
+    return () => el.removeEventListener('touchmove', onMove);
+  }, [screen, arousal]);
+
+  // ── Track: requestAnimationFrame Lissajous loop ───────────────────────────
+  useEffect(() => {
+    if (screen !== 'step2' || arousal !== 'lock_in' || gamePhase !== 'playing') return;
+    let active = true;
+    const BASE_PERIOD = 8; // seconds per x-axis cycle
+
+    function loop(ts) {
+      if (!active) return;
+      if (!trackStartTimeRef.current) trackStartTimeRef.current = ts;
+      const elapsed = ts - trackStartTimeRef.current;
+      const t = elapsed / 1000;
+
+      const container = trackContainerRef.current;
+      if (container) {
+        const rect = container.getBoundingClientRect();
+        const w = rect.width  || 280;
+        const h = rect.height || 280;
+        const cx = w / 2, cy = h / 2;
+        const ampX = w * 0.35;
+        const ampY = h * 0.30;
+
+        let x, y;
+        if (reducedMotion) {
+          x = cx + ampX * Math.sin((2 * Math.PI * t) / BASE_PERIOD);
+          y = cy;
         } else {
-          setBreathCount(remaining);
-          timerRef.current = setTimeout(tick, 1000);
+          x = cx + ampX * Math.sin((2 * Math.PI * t) / BASE_PERIOD);
+          y = cy + ampY * Math.sin((2 * Math.PI * 1.3 * t) / BASE_PERIOD + Math.PI / 2);
+        }
+
+        // Move circle via DOM — bypasses React for position updates
+        if (trackCircleRef.current) {
+          trackCircleRef.current.style.left = `${x - 24}px`;
+          trackCircleRef.current.style.top  = `${y - 24}px`;
+        }
+
+        // On-target detection
+        const fp = trackFingerPosRef.current;
+        if (fp) {
+          const dx = fp.x - (rect.left + x);
+          const dy = fp.y - (rect.top  + y);
+          const onTarget = Math.sqrt(dx * dx + dy * dy) < 36;
+          if (onTarget !== trackOnTargetRef.current) {
+            trackOnTargetRef.current = onTarget;
+            setTrackOnTarget(onTarget);
+          }
+        } else if (trackOnTargetRef.current) {
+          trackOnTargetRef.current = false;
+          setTrackOnTarget(false);
         }
       }
-      timerRef.current = setTimeout(tick, 1000);
+
+      const progress = Math.min(elapsed / 20000, 1);
+      setTrackProgress(progress);
+
+      if (progress >= 1) {
+        setTrackComplete(true);
+        setGamePhase('arjun');
+        haptic([50, 50, 100]);
+        return;
+      }
+      trackRafRef.current = requestAnimationFrame(loop);
     }
 
-    const initId = setTimeout(() => startPhase(0, 1), 400);
+    trackRafRef.current = requestAnimationFrame(loop);
     return () => {
-      cancelled = true;
-      clearTimeout(initId);
-      if (timerRef.current) clearTimeout(timerRef.current);
+      active = false;
+      if (trackRafRef.current) cancelAnimationFrame(trackRafRef.current);
+      trackStartTimeRef.current = null;
     };
-  }, [screen, breathStarted, arousal]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [screen, arousal, gamePhase, reducedMotion]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Auto-advance from breathing to step3
+  // ── Steady: global listeners while finger is down ─────────────────────────
   useEffect(() => {
-    if (!breathDone) return;
-    const id = setTimeout(() => setScreen('step3'), 1200);
-    return () => clearTimeout(id);
-  }, [breathDone]);
+    if (!steadyActive || steadyComplete) return;
+
+    function handleMove(e) {
+      if (!steadyActiveRef.current || steadyCompleteRef.current) return;
+      e.preventDefault();
+      const pt = e.touches ? e.touches[0] : e;
+      const dx = pt.clientX - steadyStartPosRef.current.x;
+      const dy = pt.clientY - steadyStartPosRef.current.y;
+      if (Math.sqrt(dx * dx + dy * dy) > 8) {
+        clearTimeout(steadyTimerRef.current);
+        steadyRemainingRef.current = 10;
+        setSteadyCount(10);
+        setSteadyAgain(true);
+        setSteadyFlash(true);
+        setTimeout(() => setSteadyFlash(false), 200);
+        steadyStartPosRef.current = { x: pt.clientX, y: pt.clientY };
+        startSteadyCountdown();
+      }
+    }
+
+    function handleEnd() {
+      if (steadyCompleteRef.current) return;
+      steadyActiveRef.current = false;
+      setSteadyActive(false);
+      clearTimeout(steadyTimerRef.current);
+      steadyRemainingRef.current = 10;
+      setSteadyCount(10);
+    }
+
+    window.addEventListener('touchmove', handleMove, { passive: false });
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('touchend',  handleEnd);
+    window.addEventListener('mouseup',   handleEnd);
+    return () => {
+      window.removeEventListener('touchmove', handleMove);
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('touchend',  handleEnd);
+      window.removeEventListener('mouseup',   handleEnd);
+    };
+  }, [steadyActive, steadyComplete]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Steady helpers ────────────────────────────────────────────────────────
+  function startSteadyCountdown() {
+    clearTimeout(steadyTimerRef.current);
+    function tick() {
+      if (!steadyActiveRef.current || steadyCompleteRef.current) return;
+      steadyRemainingRef.current--;
+      if (steadyRemainingRef.current <= 0) {
+        steadyCompleteRef.current = true;
+        setSteadyComplete(true);
+        haptic([100, 50, 100]);
+        setGamePhase('arjun');
+      } else {
+        setSteadyCount(steadyRemainingRef.current);
+        steadyTimerRef.current = setTimeout(tick, 1000);
+      }
+    }
+    steadyTimerRef.current = setTimeout(tick, 1000);
+  }
+
+  function onSteadyPress(e) {
+    if (steadyCompleteRef.current) return;
+    e.preventDefault();
+    const pt = e.touches ? e.touches[0] : e;
+    steadyStartPosRef.current  = { x: pt.clientX, y: pt.clientY };
+    steadyActiveRef.current    = true;
+    setSteadyActive(true);
+    setSteadyAgain(false);
+    steadyRemainingRef.current = 10;
+    setSteadyCount(10);
+    startSteadyCountdown();
+  }
+
+  // ── Burst helper ──────────────────────────────────────────────────────────
+  function onBurstTap(e) {
+    e.stopPropagation();
+    if (burstComplete) return;
+    haptic();
+    const newScore = burstScore + 1;
+    setBurstScore(newScore);
+    if (newScore >= BURST_TOTAL) {
+      setBurstComplete(true);
+      haptic([50, 30, 50, 30, 100]);
+      setGamePhase('arjun');
+      return;
+    }
+    if (burstAreaRef.current) {
+      const rect = burstAreaRef.current.getBoundingClientRect();
+      const nextPos = getNextBurstPos(rect, burstPrevPosRef.current);
+      burstPrevPosRef.current = nextPos;
+      setBurstPos(nextPos);
+    }
+  }
 
   // ── Step 5 — fetch AI cue word options ───────────────────────────────────
   useEffect(() => {
     if (screen !== 'step5' || !arousal) return;
-    // Show fallbacks immediately so screen is never blank
     const fb = (cueFallbacks[sport] || cueFallbacks.default)[arousal] || cueFallbacks.default.lock_in;
     setCueOptions(fb);
     setArjunLoading(true);
@@ -258,23 +422,11 @@ export default function BeforeYouPlayPage() {
   }
 
   // ── Derived values ────────────────────────────────────────────────────────
-  const colors = arousal ? AROUSAL_COLORS[arousal] : AROUSAL_COLORS.calm_down;
-  const totalRounds = arousal ? BREATH_CONFIG[arousal].rounds : 4;
-
-  const phaseLabel =
-    breathPhase === 'in'   ? (hi ? 'सांस लो'    : 'Breathe in')  :
-    breathPhase === 'out'  ? (hi ? 'सांस छोड़ो' : 'Breathe out') :
-    breathPhase === 'hold' ? (hi ? 'रोको'       : 'Hold')         : '';
-
-  const step2ArjunLine =
-    arousal === 'calm_down' ? tb.step2CalmArjun :
-    arousal === 'lock_in'   ? tb.step2LockArjun :
-    tb.step2FireArjun;
-
+  const colors      = arousal ? AROUSAL_COLORS[arousal] : AROUSAL_COLORS.calm_down;
   const focusOptions = FOCUS_OPTIONS[sport] || DEFAULT_FOCUS;
-  const vizLines = VIZ_SCRIPTS[sport] || DEFAULT_VIZ;
-
-  const stepNums = { entry: 0, step1: 1, step2: 2, step3: 3, step4: 4, step5: 5, done: 5 };
+  const vizLines    = VIZ_SCRIPTS[sport] || DEFAULT_VIZ;
+  const stepNums    = { entry: 0, step1: 1, step2: 2, step3: 3, step4: 4, step5: 5, done: 5 };
+  const s2          = tb.step2;
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -349,89 +501,215 @@ export default function BeforeYouPlayPage() {
             </div>
           )}
 
-          {/* ── STEP 2 — Breathing ───────────────────────────────────── */}
-          {screen === 'step2' && (
+          {/* ── STEP 2 — GAME A: Steady (calm_down) ──────────────────── */}
+          {screen === 'step2' && arousal === 'calm_down' && (
             <div className="flex flex-col gap-6">
-              <ArjunBubble>{step2ArjunLine}</ArjunBubble>
-
-              {/* Intro — shown before breathStarted */}
-              {!breathStarted && (
-                <div className="flex flex-col gap-4">
-                  <div
-                    className="rounded-2xl p-4 border"
-                    style={{ background: colors.light, borderColor: colors.accent + '40' }}
-                  >
-                    <ul className="flex flex-col gap-2">
-                      {tb.step2Cues.map((cue, i) => (
-                        <li key={i} className="flex items-center gap-2 text-sm text-ink">
-                          <span style={{ color: colors.accent }}>·</span> {cue}
-                        </li>
-                      ))}
-                    </ul>
-                    <p className="text-xs text-slt mt-3">
-                      {arousal === 'calm_down'
-                        ? (hi ? '4 सेकंड अंदर · 7 रोको · 8 बाहर — 3 राउंड' : '4 in · 7 hold · 8 out — 3 rounds')
-                        : arousal === 'lock_in'
-                        ? (hi ? '4-4-4-4 box — 4 राउंड' : '4-4-4-4 box — 4 rounds')
-                        : (hi ? '4 अंदर · 4 बाहर — 4 राउंड' : '4 in · 4 out — 4 rounds')}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setBreathStarted(true)}
-                    className="self-start px-6 py-3 rounded-2xl text-white font-semibold active:scale-95 transition-transform"
-                    style={{ background: colors.accent }}
-                  >
-                    {tb.step2StartBtn}
-                  </button>
-                </div>
-              )}
-
-              {/* Breathing circle */}
-              {breathStarted && (
-                <div className="flex flex-col items-center gap-6 py-4">
-                  <div className="relative flex items-center justify-center">
-                    {/* Outer ring */}
+              {gamePhase === 'arjun' ? (
+                <ArjunBubble>{s2.calm.arjun}</ArjunBubble>
+              ) : (
+                <>
+                  <p className="text-lg font-bold text-ink">{s2.calm.label}</p>
+                  <p className="text-sm text-slt">{s2.calm.instruction}</p>
+                  <div className="flex flex-col items-center gap-4 py-8">
                     <div
-                      className="absolute rounded-full"
+                      onTouchStart={onSteadyPress}
+                      onMouseDown={onSteadyPress}
+                      className="rounded-full flex items-center justify-center"
                       style={{
-                        width: '220px', height: '220px',
-                        background: colors.light,
-                        transform: `scale(${breathScale * 0.92})`,
-                        transition: `transform ${breathPhaseDur}s ease-in-out`,
-                      }}
-                    />
-                    {/* Inner circle */}
-                    <div
-                      className="w-40 h-40 rounded-full flex flex-col items-center justify-center relative z-10"
-                      style={{
-                        background: colors.accent,
-                        transform: `scale(${breathScale})`,
-                        transition: `transform ${breathPhaseDur}s ease-in-out`,
-                        boxShadow: `0 0 40px ${colors.accent}60`,
+                        width: '100px',
+                        height: '100px',
+                        background: steadyComplete
+                          ? colors.accent
+                          : steadyActive
+                          ? `${colors.accent}cc`
+                          : colors.light,
+                        border: `3px solid ${colors.accent}`,
+                        boxShadow: steadyFlash
+                          ? `0 0 0 24px ${colors.accent}25, 0 0 40px ${colors.accent}40`
+                          : steadyActive
+                          ? `0 0 20px ${colors.accent}40`
+                          : 'none',
+                        cursor: 'pointer',
+                        transition: 'background 0.2s, box-shadow 0.15s',
+                        WebkitUserSelect: 'none',
+                        userSelect: 'none',
+                        WebkitTapHighlightColor: 'transparent',
                       }}
                     >
-                      {breathDone ? (
-                        <span className="text-3xl">✓</span>
+                      {steadyComplete ? (
+                        <span className="text-white text-3xl">✓</span>
+                      ) : steadyActive ? (
+                        <span className="text-3xl font-bold text-white tabular-nums">{steadyCount}</span>
                       ) : (
-                        <>
-                          <span className="text-4xl font-bold text-white leading-none">{breathCount}</span>
-                          <span className="text-xs font-medium text-white mt-1">{phaseLabel}</span>
-                        </>
+                        <span
+                          className="text-[11px] text-center leading-tight px-3"
+                          style={{ color: colors.accent }}
+                        >
+                          {s2.calm.touch}
+                        </span>
                       )}
                     </div>
+                    {steadyAgain && !steadyComplete && (
+                      <p className="text-xs animate-fade-in" style={{ color: colors.accent }}>
+                        {s2.calm.again}
+                      </p>
+                    )}
                   </div>
+                </>
+              )}
+            </div>
+          )}
 
-                  {/* Round counter */}
-                  {!breathDone && (
-                    <p className="text-xs text-slt">
-                      {hi ? `राउंड ${breathRound} / ${totalRounds}` : `Round ${breathRound} / ${totalRounds}`}
-                    </p>
-                  )}
+          {/* ── STEP 2 — GAME B: Burst (fire_up) ─────────────────────── */}
+          {screen === 'step2' && arousal === 'fire_up' && (
+            <div className="flex flex-col gap-4">
+              {gamePhase === 'arjun' ? (
+                <ArjunBubble>{s2.fire.arjun}</ArjunBubble>
+              ) : (
+                <>
+                  <p className="text-lg font-bold text-ink">{s2.fire.label}</p>
+                  <p className="text-sm text-slt">{s2.fire.instruction}</p>
+                  {/* Progress strip */}
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-slt tabular-nums shrink-0">
+                      {burstScore} / {BURST_TOTAL}
+                    </span>
+                    <div className="flex-1 h-1 bg-dark-700 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${(burstScore / BURST_TOTAL) * 100}%`,
+                          background: colors.accent,
+                          transition: 'width 0.08s',
+                        }}
+                      />
+                    </div>
+                  </div>
+                  {/* Game area */}
+                  <style>{`@keyframes scaleIn{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}`}</style>
+                  <div
+                    ref={burstAreaRef}
+                    className="relative w-full"
+                    style={{ height: '320px' }}
+                  >
+                    {!burstComplete && burstPos.x > 0 && (
+                      <button
+                        key={burstScore}
+                        onTouchStart={e => { e.preventDefault(); onBurstTap(e); }}
+                        onClick={onBurstTap}
+                        className="absolute rounded-full"
+                        style={{
+                          width: '72px',
+                          height: '72px',
+                          left: `${burstPos.x - 36}px`,
+                          top:  `${burstPos.y - 36}px`,
+                          background: colors.accent,
+                          animation: 'scaleIn 0.12s ease-out forwards',
+                          boxShadow: `0 0 20px ${colors.accent}60`,
+                          WebkitTapHighlightColor: 'transparent',
+                        }}
+                      />
+                    )}
+                    {burstComplete && (
+                      <div className="absolute inset-0 flex items-center justify-center animate-fade-in">
+                        <span className="text-2xl font-bold" style={{ color: colors.accent }}>
+                          {s2.fire.on}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
 
-                  {breathDone && (
-                    <p className="text-sm text-slt text-center animate-fade-in">{tb.step2DoneMsg}</p>
-                  )}
-                </div>
+          {/* ── STEP 2 — GAME C: Track (lock_in) ─────────────────────── */}
+          {screen === 'step2' && arousal === 'lock_in' && (
+            <div className="flex flex-col gap-4">
+              {gamePhase === 'arjun' ? (
+                <ArjunBubble>{s2.lock.arjun}</ArjunBubble>
+              ) : (
+                <>
+                  <p className="text-lg font-bold text-ink">{s2.lock.label}</p>
+                  <p className="text-sm text-slt">{s2.lock.instruction}</p>
+                  {/* Progress bar */}
+                  <div className="w-full h-1.5 bg-dark-700 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${trackProgress * 100}%`,
+                        background: colors.accent,
+                      }}
+                    />
+                  </div>
+                  {/* Game area */}
+                  <div
+                    ref={trackContainerRef}
+                    className="relative w-full select-none"
+                    style={{ height: '280px', touchAction: 'none', cursor: 'crosshair' }}
+                    onTouchStart={e => {
+                      if (e.touches.length > 0)
+                        trackFingerPosRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                    }}
+                    onTouchEnd={() => {
+                      trackFingerPosRef.current = null;
+                      if (trackOnTargetRef.current) {
+                        trackOnTargetRef.current = false;
+                        setTrackOnTarget(false);
+                      }
+                    }}
+                    onMouseDown={e => {
+                      trackFingerPosRef.current = { x: e.clientX, y: e.clientY };
+                    }}
+                    onMouseMove={e => {
+                      if (e.buttons > 0) {
+                        trackFingerPosRef.current = { x: e.clientX, y: e.clientY };
+                      } else {
+                        trackFingerPosRef.current = null;
+                        if (trackOnTargetRef.current) {
+                          trackOnTargetRef.current = false;
+                          setTrackOnTarget(false);
+                        }
+                      }
+                    }}
+                    onMouseUp={() => {
+                      trackFingerPosRef.current = null;
+                      if (trackOnTargetRef.current) {
+                        trackOnTargetRef.current = false;
+                        setTrackOnTarget(false);
+                      }
+                    }}
+                    onMouseLeave={() => {
+                      trackFingerPosRef.current = null;
+                      if (trackOnTargetRef.current) {
+                        trackOnTargetRef.current = false;
+                        setTrackOnTarget(false);
+                      }
+                    }}
+                  >
+                    <div
+                      ref={trackCircleRef}
+                      className="absolute rounded-full pointer-events-none"
+                      style={{
+                        width: '48px',
+                        height: '48px',
+                        left: 'calc(50% - 24px)',
+                        top:  'calc(50% - 24px)',
+                        background: trackOnTarget ? colors.accent : 'transparent',
+                        border: `3px solid ${colors.accent}`,
+                        boxShadow: trackOnTarget
+                          ? `0 0 24px ${colors.accent}90`
+                          : `0 0 8px  ${colors.accent}30`,
+                        transition: 'background 0.1s, box-shadow 0.1s',
+                      }}
+                    />
+                    {trackComplete && (
+                      <div className="absolute inset-0 flex items-center justify-center animate-fade-in">
+                        <span className="text-2xl font-bold" style={{ color: colors.accent }}>✓</span>
+                      </div>
+                    )}
+                  </div>
+                </>
               )}
             </div>
           )}

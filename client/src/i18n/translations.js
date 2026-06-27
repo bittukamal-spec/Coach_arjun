@@ -892,13 +892,26 @@ export const translations = {
       lockInSub:   'Scattered or blank',
       fireUp:      'Fire Up',
       fireUpSub:   'Flat or low energy',
-      // Step 2 — breathing intro
-      step2CalmArjun: "You're tight. Let's slow the body down first.",
-      step2LockArjun: "Let's sharpen your focus. Box breathing — 4-4-4-4.",
-      step2FireArjun: "Let's wake the body up. Strong breathing — in and out.",
-      step2Cues:   ['Drop your shoulders', 'Unclench your jaw', 'Feel your feet on the ground'],
-      step2StartBtn: 'Start breathing',
-      step2DoneMsg:  "Body's reset. Head's clearer now.",
+      step2: {
+        calm: {
+          label:       "Still your body. Still your mind.",
+          instruction: "Hold your finger on the circle. Keep it still.",
+          touch:       "Touch to start",
+          again:       "Again. Slower.",
+          arjun:       "That stillness is your match state. Carry it in.",
+        },
+        fire: {
+          label:       "Switch on.",
+          instruction: "Tap every circle as fast as you can.",
+          on:          "Switched on.",
+          arjun:       "That's your activation. First action on the field — same energy.",
+        },
+        lock: {
+          label:       "Follow it. Nothing else.",
+          instruction: "Keep your finger on the moving circle.",
+          arjun:       "That focus. One thing at a time. Take it in with you.",
+        },
+      },
       // Step 3
       step3Arjun:  'One thing to focus on first — pick it.',
       // Step 4 — visualization
@@ -1772,12 +1785,26 @@ export const translations = {
       lockInSub:   'Bhatkaav ya khaalapan',
       fireUp:      'Josh lao',
       fireUpSub:   'Thaka hua ya kam josh',
-      step2CalmArjun: 'Tanaav hai. Pehle sharir ko dheema karo.',
-      step2LockArjun: 'Focus tez karte hain. Box breathing — 4-4-4-4.',
-      step2FireArjun: 'Sharir ko jagaate hain. Dum bhar ke — andar aur bahar.',
-      step2Cues:   ['Kandhe dheelay karo', 'Jabda kholo', 'Zameen par paer mehsoos karo'],
-      step2StartBtn: 'Saans lena shuru karo',
-      step2DoneMsg:  'Sharir reset. Dimaag thoda saaf hai ab.',
+      step2: {
+        calm: {
+          label:       'Body ko rokho. Dimaag ko rokho.',
+          instruction: 'Circle pe ungali rakho. Hilne mat do.',
+          touch:       'Shuru karne ke liye touch karo',
+          again:       'Phir. Dheere.',
+          arjun:       'Woh stillness hi tumhara match state hai. Saath le jao.',
+        },
+        fire: {
+          label:       'Switch on.',
+          instruction: 'Jitni tez ho sake, circle tap karo.',
+          on:          'On ho gaye.',
+          arjun:       'Yeh hai tumhari activation. Pehla action field pe — same energy.',
+        },
+        lock: {
+          label:       'Bas isko follow karo.',
+          instruction: 'Circle ke saath ungali chalao.',
+          arjun:       'Woh focus. Ek cheez ek time. Saath le jao.',
+        },
+      },
       step3Arjun:  'Shuruat mein ek cheez par focus — isko chuno.',
       step4Arjun:  '10 second aankhein band karo. Yeh dekho:',
       step4Confirm: 'Maine dekh liya ✓',
