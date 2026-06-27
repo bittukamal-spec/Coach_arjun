@@ -166,14 +166,19 @@ router.post('/', authenticate, async (req, res) => {
     );
     const msg = await anthropic.messages.create({
       model: process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001',
-      max_tokens: 300,
+      max_tokens: 600,
       messages: [{ role: 'user', content: prompt }],
     });
     const raw = msg.content[0]?.text?.trim() || '{}';
-    const parsed = JSON.parse(raw);
-    insight = parsed.insight || null;
-    pattern = parsed.pattern || null;
-  } catch { /* insight optional */ }
+    // Strip markdown code fences Claude sometimes wraps around JSON
+    const cleaned = raw.replace(/^```(?:json)?\s*\n?|\n?```\s*$/gm, '').trim();
+    const parsed = JSON.parse(cleaned);
+    insight = typeof parsed.insight === 'string' ? parsed.insight.trim() : null;
+    pattern = typeof parsed.pattern === 'string' ? parsed.pattern.trim() : null;
+  } catch (e) {
+    console.error('[debrief] AI parse error:', e?.message);
+    /* insight optional — continue without it */
+  }
 
   try {
     const [debrief] = await prisma.$transaction([
