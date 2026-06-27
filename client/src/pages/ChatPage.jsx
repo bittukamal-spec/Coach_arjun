@@ -638,29 +638,42 @@ function ChatPage() {
           )}
 
           {/* Message list */}
-          {!showStartScreen && messages.map((msg, i) => {
-            const prevMsg = messages[i - 1];
-            const showDivider = msg.sessionType && msg.sessionType !== prevMsg?.sessionType && i > 0;
-            return (
-              <div key={msg.id} className="flex flex-col gap-2">
-                {showDivider && <SessionDivider sessionKey={msg.sessionType} date={msg.createdAt} t={t} />}
-                <MessageBubble message={msg} isStreaming={msg.streaming} />
-                {msg.role === 'assistant' && !msg.streaming && msg.tags?.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {msg.tags.map(reply => (
-                      <button
-                        key={reply}
-                        onClick={() => sendMessage(reply)}
-                        className="text-xs bg-dark-700 border border-brand-600/40 text-brand-500 px-3 py-1.5 rounded-full hover:bg-brand-600/20 hover:border-brand-500 active:scale-95 transition-all"
-                      >
-                        {reply}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+          {!showStartScreen && (() => {
+            const lastAsstIdx = messages.reduce((acc, m, i) => m.role === 'assistant' && !m.streaming ? i : acc, -1);
+            const elseLabel = language === 'hi' ? 'Kuch aur…' : 'Something else…';
+            return messages.map((msg, i) => {
+              const prevMsg = messages[i - 1];
+              const showDivider = msg.sessionType && msg.sessionType !== prevMsg?.sessionType && i > 0;
+              const isLastAsst = i === lastAsstIdx && !streaming;
+              return (
+                <div key={msg.id} className="flex flex-col gap-2">
+                  {showDivider && <SessionDivider sessionKey={msg.sessionType} date={msg.createdAt} t={t} />}
+                  <MessageBubble message={msg} isStreaming={msg.streaming} />
+                  {msg.role === 'assistant' && !msg.streaming && (msg.tags?.length > 0 || isLastAsst) && (
+                    <div className="flex flex-wrap gap-2">
+                      {msg.tags?.map(reply => (
+                        <button
+                          key={reply}
+                          onClick={() => sendMessage(reply)}
+                          className="text-xs bg-dark-700 border border-brand-600/40 text-brand-500 px-3 py-1.5 rounded-full hover:bg-brand-600/20 hover:border-brand-500 active:scale-95 transition-all"
+                        >
+                          {reply}
+                        </button>
+                      ))}
+                      {isLastAsst && (
+                        <button
+                          onClick={() => inputRef.current?.focus()}
+                          className="text-xs bg-transparent border border-dashed border-dark-500 text-slt px-3 py-1.5 rounded-full hover:border-brand-400 hover:text-brand-400 active:scale-95 transition-all"
+                        >
+                          {elseLabel}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            });
+          })()}
 
           {/* Typing indicator */}
           {waitingForFirst && <TypingIndicator />}
