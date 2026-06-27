@@ -336,7 +336,7 @@ Do NOT mention that you are reading a profile — let it silently shape your res
   // (e.g. After Match / Training review). Always surface it here so Arjun can
   // reference it even if they skipped today's MFS check-in.
   const fromToolSection = mfsReport && !mfsEntry
-    ? `\n\n## Athlete just came from the Match Review tool\nArjun's coaching review just shown to them:\n"${mfsReport}"\nIMPORTANT: Do NOT ask what happened, the result, or basic match questions — the athlete already answered all of that in their review above. Open by referencing ONE specific thing from the review (something they did well or their next focus), validate it with a sport-specific observation, and ask ONE deeper follow-up question. Reference their review naturally as if you watched the match with them.`
+    ? `\n\n## Athlete just came from a mental training tool\nContext to reference:\n"${mfsReport}"\nIMPORTANT: Open by directly referencing ONE specific detail from this context — not generically. Do NOT ask basic match or session questions — the context above already tells you the situation. Ask ONE focused follow-up question to deepen the coaching.`
     : '';
 
   return `You are Arjun — a mental performance coach who specialises in sports psychology for Indian athletes. You are warm, direct, and feel like a trusted older brother who truly understands the pressures of Indian sports culture.${mfsSection}${fromToolSection}
@@ -739,6 +739,67 @@ Rules:
       }[arousal] || 'getting ready';
       systemPrompt = `You are Arjun, a mental performance coach. Generate exactly 5 short power words for an athlete who needs to focus on ${arousalDesc} before their ${sport} match. Their chosen match focus: "${firstFocus || 'performing well'}". Rules: Each word must be 1–2 words MAX, ALL CAPS, short and punchy (e.g. SHARP, READY, HERE, LOCK, TRUST). Output a valid JSON array only — exactly like this example: ["SHARP","READY","HERE","LOCK","TRUST"]. No other text, no explanation.`;
       maxTokens = 60;
+    } else if (wizardType === 'visualization') {
+      const { specificMoment, currentState, setupType, cueWord: cw, userName, oceanProfile } = req.body;
+      const effectiveCue = cw || 'Next action';
+      const stateDesc = {
+        nervous: 'nervous and needs calming',
+        overthinking: 'overthinking and needs to slow down',
+        flat: 'flat/low energy and needs activating',
+        confident: 'confident and ready',
+        uncertain: 'uncertain but calm',
+      }[currentState] || 'ready';
+      const langNote = lang === 'hi'
+        ? 'Hinglish — natural Hindi mixed with common sports English. NOT formal Hindi.'
+        : 'English — direct, simple, present tense.';
+
+      systemPrompt = `You are Arjun, a strong, calm Indian performance coach. Generate a guided visualization script for a young Indian athlete.
+
+Return ONLY valid JSON. No markdown. No text outside the JSON object. Exact format:
+{"lines":["line1","line2","","line3","CUE: ${effectiveCue}"],"totalDurationSeconds":150,"cueWordLine":12}
+
+ATHLETE CONTEXT:
+- Name: ${userName || 'athlete'}
+- Sport: ${sport}
+- Moment to rehearse: ${specificMoment}
+- Current mental state: ${stateDesc}
+- Cue word: "${effectiveCue}"
+- Language: ${langNote}
+
+SCRIPT RULES:
+- Total lines: 35–50 (including empty string pauses)
+- Total duration: 120–180 seconds when auto-played
+- Perspective: second-person ("you see", "you feel", "your hands")
+- Tense: present tense throughout
+- Max 10 words per line — short lines create natural pacing rhythm
+- Empty strings "" = pauses between sections
+- CUE word line format exactly: "CUE: ${effectiveCue}"
+- Do NOT use: "imagine", "visualize", "meditation", "positive", "believe in yourself", spiritual language, outcome predictions
+
+CONTENT SEQUENCE (follow exactly):
+1. Intro (3 lines): this is a mental rep, not relaxation
+2. Body check (3 lines): feet, hands, breath — physical anchors
+3. Environment (3 lines): what they see and hear arriving at the venue
+4. First action (4 lines): sport-specific, sensory, process-focused
+5. Clean execution (3 lines): rhythm, feel of doing it well
+6. Pressure moment (3 lines): something tests them — beaten, missed, crowd, coach watching
+7. Response (3 lines): one breath, body tall, back to process
+8. Cue word: exactly "CUE: ${effectiveCue}" on its own line
+9. Return to action (3 lines): reset, next action, same process
+10. Close (2 lines): eyes open, ready to act
+
+SPORT CUSTOMIZATION for ${sport}:
+- Cricket: crease, bat grip, bowler, watch ball early, pitch, field
+- Football: pitch, first touch, scan, press, body position, pass
+- Badminton: court, split step, shuttle, racket, footwork, net
+- Swimming: blocks, water, stroke rhythm, breathing, wall, turns
+- Boxing: ring, guard, footwork, first combination, distance
+- Default: use generic athletic environment
+
+70% execution focus. 30% handling pressure.
+cueWordLine in the JSON response = the array index of the "CUE: ${effectiveCue}" line.`;
+
+      maxTokens = 800;
     } else {
       return res.status(400).json({ error: 'Invalid wizardType' });
     }
@@ -762,6 +823,29 @@ Rules:
       } catch {}
       // Fallback if parse fails
       return res.json({ words: ['SHARP', 'READY', 'HERE', 'LOCK', 'TRUST'] });
+    }
+
+    if (wizardType === 'visualization') {
+      try {
+        const raw = message.content[0].text.trim();
+        const cleaned = raw.replace(/^```(?:json)?\s*\n?|\n?```\s*$/gm, '').trim();
+        const parsed = JSON.parse(cleaned);
+        if (!Array.isArray(parsed.lines) || parsed.lines.length === 0) throw new Error('invalid');
+        // Award XP
+        const VIZ_XP = 15;
+        await prisma.user.update({ where: { id: req.userId }, data: { xp: { increment: VIZ_XP } } });
+        const updated = await prisma.user.findUnique({ where: { id: req.userId }, select: { xp: true } });
+        return res.json({
+          lines: parsed.lines,
+          totalDurationSeconds: parsed.totalDurationSeconds || 150,
+          cueWordLine: parsed.cueWordLine ?? -1,
+          xpEarned: VIZ_XP,
+          xp: updated.xp,
+        });
+      } catch (e) {
+        console.error('[viz] JSON parse error:', e?.message, message.content[0]?.text?.slice(0, 200));
+        return res.status(422).json({ error: 'Script parse failed' });
+      }
     }
 
     let xpEarned = null, xpTotal = null;

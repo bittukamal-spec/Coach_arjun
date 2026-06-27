@@ -2,7 +2,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
-import { Target, Zap, TrendingUp, Sun, Wind, RotateCcw, Trophy, ClipboardList, Gamepad2, ChevronRight } from 'lucide-react';
+import { Target, Zap, TrendingUp, Sun, Wind, RotateCcw, Trophy, ClipboardList, Gamepad2, ChevronRight, Eye } from 'lucide-react';
 
 export default function TrainPage() {
   const navigate = useNavigate();
@@ -92,6 +92,25 @@ export default function TrainPage() {
             </Link>
           ))}
         </div>
+
+        {/* Prepare your mind */}
+        <p className="text-[11px] font-bold text-slt uppercase tracking-widest mb-3">
+          {hi ? 'मन तैयार करो' : 'Prepare your mind'}
+        </p>
+        <Link to="/visualization">
+          <div className="bg-white border border-dark-600 rounded-2xl p-4 flex items-center justify-between active:scale-[0.99] transition-transform shadow-sm hover:shadow-md mb-8">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
+                <Eye size={20} className="text-[#185FA5]" />
+              </div>
+              <div>
+                <p className="font-semibold text-ink text-sm">{hi ? 'विज़ुअलाइज़ेशन' : 'Visualization'}</p>
+                <p className="text-xs text-slt">{hi ? 'मैच से पहले mental rep' : 'Mental rep before your match'}</p>
+              </div>
+            </div>
+            <ChevronRight size={18} className="text-slt shrink-0" />
+          </div>
+        </Link>
 
         {/* Focus Games */}
         <p className="text-[11px] font-bold text-slt uppercase tracking-widest mb-3">

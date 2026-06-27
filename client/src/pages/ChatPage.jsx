@@ -196,6 +196,7 @@ function ChatPage() {
   const pendingChatSessionIdRef = useRef(location.state?.chatSessionId ?? null);
   const forceNewSessionRef      = useRef(location.state?.newSession ?? false);
   const arjunReportRef          = useRef(location.state?.arjunReport ?? null);
+  const bridgeMsgRef            = useRef(location.state?.bridgeMsg ?? null);
 
   // ── Load on mount ─────────────────────────────────────────────────────────
 
@@ -306,9 +307,9 @@ function ChatPage() {
       const key = pendingSessionRef.current;
       pendingSessionRef.current = null;
 
-      const bridge = language === 'hi'
+      const bridge = bridgeMsgRef.current || (language === 'hi'
         ? 'मैंने अभी अपना मैच रिव्यू किया। इस पर बात करें।'
-        : 'I just finished my match review. Can we talk about it?';
+        : 'I just finished my match review. Can we talk about it?');
 
       if (!chatSessionId) {
         arjunMsgCountRef.current = 0;

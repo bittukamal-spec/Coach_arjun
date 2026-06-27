@@ -27,6 +27,7 @@ import ResetPasswordPage from './pages/ResetPasswordPage';
 import PricingPage from './pages/PricingPage';
 import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import MentalFitnessCheckin from './pages/MentalFitnessCheckin';
+import VisualizationPage from './pages/VisualizationPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import BottomNav from './components/BottomNav';
 import { translations } from './i18n/translations';
@@ -228,6 +229,15 @@ function App() {
           <ProtectedRoute requireOnboarding={true}>
             <TrainPage />
             <BottomNav />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/visualization"
+        element={
+          <ProtectedRoute requireOnboarding={true}>
+            <VisualizationPage />
           </ProtectedRoute>
         }
       />
