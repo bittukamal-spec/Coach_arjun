@@ -13,13 +13,15 @@ function hasSelfAbuse(text) {
 }
 
 // ── Chip component ────────────────────────────────────────────────────────────
-function Chip({ label, selected, onClick, fullWidth }) {
+function Chip({ label, selected, onClick, fullWidth, disabled }) {
   return (
     <button
       onClick={onClick}
+      disabled={disabled}
       className={[
         'rounded-2xl px-4 py-2.5 text-sm font-medium border transition-colors text-left',
         fullWidth ? 'w-full' : '',
+        disabled && !selected ? 'opacity-40 cursor-not-allowed' : '',
         selected
           ? 'bg-brand-500 border-brand-500 text-white'
           : 'bg-dark-800 border-dark-600 text-ink hover:border-brand-400',
@@ -78,31 +80,49 @@ export default function DebriefPage() {
   const navigate = useNavigate();
 
   // ── State ─────────────────────────────────────────────────────────────────
-  const [screen,         setScreen]         = useState('entry');  // 'entry'|'s1'|'s2'|'s3'|'s4'|'s5'|'done'
-  const [mode,           setMode]           = useState(null);     // 'quick'|'full'
-  const [eventType,      setEventType]      = useState(null);
-  const [resultType,     setResultType]     = useState(null);
-  const [wentWellChips,  setWentWellChips]  = useState([]);
-  const [wentWellText,   setWentWellText]   = useState('');
-  const [wouldChange,    setWouldChange]    = useState(null);
-  const [wouldChangeText,setWouldChangeText]= useState('');
-  const [selfAbuse,      setSelfAbuse]      = useState(false);
-  const [nextFocus,      setNextFocus]      = useState(null);
-  const [cueWordFeedback,setCueWordFeedback]= useState(null);
-  const [submitting,     setSubmitting]     = useState(false);
-  const [result,         setResult]         = useState(null);
-  const [showXp,         setShowXp]         = useState(false);
-  const [historyOpen,    setHistoryOpen]    = useState(false);
-  const [sheetEntry,     setSheetEntry]     = useState(null); // entry object for bottom-sheet popup
-  const [apiError,       setApiError]       = useState('');
+  const [screen,          setScreen]          = useState('entry');  // 'entry'|'s1'|'s2'|'s3'|'s4'|'s5'|'done'
+  const [mode,            setMode]            = useState(null);     // 'quick'|'full'
+  const [eventType,       setEventType]       = useState(null);
+  const [resultType,      setResultType]      = useState(null);
+  const [wentWellChips,   setWentWellChips]   = useState([]);
+  const [wentWellText,    setWentWellText]    = useState('');
+  const [wouldChange,     setWouldChange]     = useState([]);       // multi-select array (max 3)
+  const [wouldChangeText, setWouldChangeText] = useState('');
+  const [selfAbuse,       setSelfAbuse]       = useState(false);
+  const [nextFocus,       setNextFocus]       = useState(null);
+  const [cueWordFeedback, setCueWordFeedback] = useState(null);
+  const [submitting,      setSubmitting]      = useState(false);
+  const [result,          setResult]          = useState(null);
+  const [showXp,          setShowXp]          = useState(false);
+  const [historyOpen,     setHistoryOpen]     = useState(false);
+  const [sheetEntry,      setSheetEntry]      = useState(null);     // entry for bottom-sheet popup
+  const [apiError,        setApiError]        = useState('');
+  const [todayDebrief,    setTodayDebrief]    = useState(null);     // today's existing review (if any)
+  const [loadingToday,    setLoadingToday]    = useState(true);
 
   const submitCalled = useRef(false);
+
+  // ── Check for today's debrief on mount ────────────────────────────────────
+  useEffect(() => {
+    async function checkToday() {
+      try {
+        const res = await apiFetch('/api/debrief', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.todayDebrief) setTodayDebrief(data.todayDebrief);
+        }
+      } catch { /* ignore */ }
+      setLoadingToday(false);
+    }
+    checkToday();
+  }, [token]);
 
   // ── Derived ───────────────────────────────────────────────────────────────
   const showCueScreen = mode === 'full' && !!user?.cueWord;
   const totalScreens  = showCueScreen ? 6 : 5;
-
-  const screenIndex = { entry: 0, s1: 1, s2: 2, s3: 3, s4: 4, s5: 5, done: totalScreens }[screen] ?? 0;
+  const screenIndex   = { entry: 0, s1: 1, s2: 2, s3: 3, s4: 4, s5: 5, done: totalScreens }[screen] ?? 0;
 
   // ── Auto-advance s1 when both chips picked ────────────────────────────────
   useEffect(() => {
@@ -139,7 +159,7 @@ export default function DebriefPage() {
         resultType,
         wentWellChips,
         wentWellText:    wentWellText.trim() || undefined,
-        wouldChange,
+        wouldChange:     wouldChange.join(' / '),   // join multi-select array
         wouldChangeText: wouldChangeText.trim() || undefined,
         nextFocus,
         cueWordFeedback: cueWordFeedback || undefined,
@@ -149,6 +169,18 @@ export default function DebriefPage() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(payload),
       });
+      if (res.status === 409) {
+        // Already done today — fetch the existing review and show it
+        const data = await res.json();
+        setApiError('');
+        const getRes = await apiFetch('/api/debrief', { headers: { Authorization: `Bearer ${token}` } });
+        if (getRes.ok) {
+          const getData = await getRes.json();
+          if (getData.todayDebrief) setTodayDebrief(getData.todayDebrief);
+        }
+        setScreen('entry');
+        return;
+      }
       if (!res.ok) { setApiError('Could not save. Try again.'); return; }
       const data = await res.json();
       setResult(data);
@@ -169,19 +201,37 @@ export default function DebriefPage() {
 
   // ── goBack helper ─────────────────────────────────────────────────────────
   function goBack() {
-    if (screen === 's1') { setScreen('entry'); }
-    else if (screen === 's2') { setScreen('s1'); }
-    else if (screen === 's3') { setScreen('s2'); }
-    else if (screen === 's4') { setScreen('s3'); }
-    else if (screen === 's5') { setNextFocus(null); setScreen('s4'); }
-    else if (screen === 'done') { /* shouldn't happen — disable back on done */ }
+    if (screen === 's1') {
+      setScreen('entry');
+    } else if (screen === 's2') {
+      // Reset s1 selections so auto-advance doesn't fire on return
+      setEventType(null);
+      setResultType(null);
+      setScreen('s1');
+    } else if (screen === 's3') {
+      setScreen('s2');
+    } else if (screen === 's4') {
+      setScreen('s3');
+    } else if (screen === 's5') {
+      setNextFocus(null);
+      setScreen('s4');
+    }
   }
 
-  // ── Toggle wentWell chip ──────────────────────────────────────────────────
+  // ── Toggle wentWell chip (unlimited) ─────────────────────────────────────
   function toggleWentWell(chip) {
     setWentWellChips(prev =>
       prev.includes(chip) ? prev.filter(c => c !== chip) : [...prev, chip]
     );
+  }
+
+  // ── Toggle wouldChange chip (max 3) ───────────────────────────────────────
+  function toggleWouldChange(chip) {
+    setWouldChange(prev => {
+      if (prev.includes(chip)) return prev.filter(c => c !== chip);
+      if (prev.length >= 3) return prev;
+      return [...prev, chip];
+    });
   }
 
   // ── Screen header ─────────────────────────────────────────────────────────
@@ -212,6 +262,85 @@ export default function DebriefPage() {
   // ENTRY SCREEN
   // ═══════════════════════════════════════════════════════════════════════════
   if (screen === 'entry') {
+    const ad = t.entry.alreadyDone;
+
+    // Loading state while checking today's debrief
+    if (loadingToday) {
+      return (
+        <div className="min-h-screen bg-dark-900 flex items-center justify-center">
+          <LoadingDots />
+        </div>
+      );
+    }
+
+    // Already done today — show existing review
+    if (todayDebrief) {
+      return (
+        <div className="min-h-screen bg-dark-900 flex flex-col pb-6">
+          <header className="bg-dark-900 border-b border-dark-600 px-4 py-4 sticky top-0 z-10">
+            <div className="max-w-lg mx-auto flex items-center justify-between">
+              <button onClick={() => navigate('/train')} className="text-sm text-slt hover:text-ink">✕</button>
+              <p className="font-semibold text-ink">{hi ? 'मैच / ट्रेनिंग के बाद' : 'After Match / Training'}</p>
+              <div className="w-10" />
+            </div>
+          </header>
+
+          <main className="flex-1 max-w-lg mx-auto w-full px-4 py-10">
+            {/* Done badge */}
+            <div className="text-center mb-8">
+              <div className="text-5xl mb-4">✅</div>
+              <h2 className="text-xl font-bold text-ink mb-1">{ad.title}</h2>
+              <p className="text-sm text-slt">{ad.sub}</p>
+            </div>
+
+            {/* Today's Arjun review */}
+            {todayDebrief.arjunInsight && (
+              <div className="bg-dark-800 border border-brand-500/30 rounded-2xl p-5 mb-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-8 h-8 rounded-full bg-brand-500/20 border border-brand-500/40 flex items-center justify-center text-sm">🏹</div>
+                  <div>
+                    <p className="text-xs font-semibold text-brand-400 uppercase tracking-wide">{hi ? "अर्जुन का रिव्यू" : "Arjun's review"}</p>
+                    {todayDebrief.eventType && (
+                      <p className="text-[10px] text-slt">{todayDebrief.eventType}{todayDebrief.resultType ? ` · ${todayDebrief.resultType}` : ''}</p>
+                    )}
+                  </div>
+                </div>
+                <p className="text-sm text-ink leading-relaxed">{todayDebrief.arjunInsight}</p>
+              </div>
+            )}
+
+            {/* Next focus */}
+            {todayDebrief.nextFocus && (
+              <div className="bg-dark-800 border border-dark-600 rounded-2xl px-4 py-3 mb-6">
+                <p className="text-xs text-slt mb-1">{hi ? 'अगली बार फोकस:' : 'Next focus:'}</p>
+                <p className="text-base font-bold text-ink">{todayDebrief.nextFocus}</p>
+              </div>
+            )}
+
+            {/* CTAs */}
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => navigate('/coaching', {
+                  state: {
+                    sessionType: 'post_match',
+                    newSession: true,
+                    arjunReport: todayDebrief.arjunInsight || undefined,
+                  },
+                })}
+                className="btn-primary justify-center"
+              >
+                {ad.cta}
+              </button>
+              <button onClick={() => navigate('/train')} className="btn-secondary justify-center">
+                {ad.back}
+              </button>
+            </div>
+          </main>
+        </div>
+      );
+    }
+
+    // Normal entry — pick mode
     return (
       <div className="min-h-screen bg-dark-900 flex flex-col pb-6">
         <header className="bg-dark-900 border-b border-dark-600 px-4 py-4 sticky top-0 z-10">
@@ -324,21 +453,36 @@ export default function DebriefPage() {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // SCREEN 3 — What would you change
+  // SCREEN 3 — What would you change (multi-select, max 3)
   // ═══════════════════════════════════════════════════════════════════════════
   if (screen === 's3') {
-    const canNext = !!wouldChange;
+    const canNext = wouldChange.length > 0;
+    const atMax   = wouldChange.length >= 3;
     return (
       <div className="min-h-screen bg-dark-900 flex flex-col pb-6">
         <Header showBack step={3} />
         <main className="flex-1 max-w-lg mx-auto w-full px-4 py-6 flex flex-col overflow-y-auto">
           <div className="flex-1">
             <h2 className="text-lg font-bold text-ink mb-1">{t.screen3.prompt}</h2>
-            <p className="text-sm text-slt mb-5">{t.screen3.sub}</p>
+            <div className="flex items-center gap-2 mb-5">
+              <p className="text-sm text-slt">{t.screen3.sub}</p>
+              {atMax && (
+                <span className="text-xs bg-brand-500/20 text-brand-400 border border-brand-500/30 px-2 py-0.5 rounded-full shrink-0">
+                  {hi ? 'अधिकतम' : 'Max 3'}
+                </span>
+              )}
+            </div>
 
             <div className="flex flex-col gap-2 mb-5">
               {t.screen3.chips.map(chip => (
-                <Chip key={chip} label={chip} selected={wouldChange === chip} onClick={() => setWouldChange(chip)} fullWidth />
+                <Chip
+                  key={chip}
+                  label={chip}
+                  selected={wouldChange.includes(chip)}
+                  onClick={() => toggleWouldChange(chip)}
+                  disabled={atMax && !wouldChange.includes(chip)}
+                  fullWidth
+                />
               ))}
             </div>
 

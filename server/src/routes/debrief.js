@@ -119,6 +119,16 @@ router.post('/', authenticate, async (req, res) => {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
+  // Once-per-day guard — only one structured review allowed per UTC day
+  const todayStart = new Date();
+  todayStart.setUTCHours(0, 0, 0, 0);
+  const existingToday = await prisma.debrief.findFirst({
+    where: { userId: req.userId, createdAt: { gte: todayStart } },
+  });
+  if (existingToday) {
+    return res.status(409).json({ error: 'Already done today', alreadyDone: true });
+  }
+
   // Build legacy required fields from structured data
   const wentWellLegacy     = [wentWellChips.join(', '), wentWellText].filter(Boolean).join(' — ');
   const doDifferentlyLegacy = [wouldChange, wouldChangeText].filter(Boolean).join(' — ');
@@ -227,12 +237,21 @@ router.post('/', authenticate, async (req, res) => {
 
 router.get('/', authenticate, async (req, res) => {
   try {
-    const debriefs = await prisma.debrief.findMany({
-      where: { userId: req.userId },
-      orderBy: { createdAt: 'desc' },
-      take: 5,
-    });
-    res.json({ debriefs });
+    const todayStart = new Date();
+    todayStart.setUTCHours(0, 0, 0, 0);
+    const [debriefs, todayDebrief] = await Promise.all([
+      prisma.debrief.findMany({
+        where: { userId: req.userId },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+      }),
+      prisma.debrief.findFirst({
+        where: { userId: req.userId, createdAt: { gte: todayStart } },
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, eventType: true, resultType: true, arjunInsight: true, nextFocus: true, createdAt: true, mode: true },
+      }),
+    ]);
+    res.json({ debriefs, todayDebrief: todayDebrief || null });
   } catch {
     res.status(500).json({ error: 'Server error' });
   }

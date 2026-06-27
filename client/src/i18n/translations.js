@@ -694,6 +694,12 @@ export const translations = {
         prompt: 'How much time do you have?',
         quick: { title: 'Quick review', sub: '60 seconds. Tap only.' },
         full:  { title: 'Full review',  sub: '3–5 minutes. More detail.' },
+        alreadyDone: {
+          title: "You've already reviewed today ✓",
+          sub: 'Come back tomorrow for your next review.',
+          cta: 'Talk this through with Arjun →',
+          back: 'Back to training',
+        },
       },
       screen1: {
         promptA: 'What did you just finish?',
@@ -709,7 +715,7 @@ export const translations = {
       },
       screen3: {
         prompt: 'What would you change next time?',
-        sub: 'One clear change is enough.',
+        sub: 'Pick up to 3.',
         chips: ['Start sharper', 'Stay calmer', 'Better decisions', 'Better technique', 'More communication', 'More aggressive', 'More patient', 'Handle pressure better', 'Something else'],
         placeholder: 'What specifically? (optional)',
         selfAbuse: { warning: "Don't label yourself. Be specific — what needs training?" },
@@ -1647,6 +1653,12 @@ export const translations = {
         prompt: 'Kitna time hai?',
         quick: { title: 'Quick review', sub: 'Sirf tap. 60 seconds.' },
         full:  { title: 'Full review',  sub: 'Zyada detail. 3–5 minutes.' },
+        alreadyDone: {
+          title: 'Aaj ka review ho gaya ✓',
+          sub: 'Kal wapas aana agla review karne ke liye.',
+          cta: 'Arjun se baat karo →',
+          back: 'Wapas training pe',
+        },
       },
       screen1: {
         promptA: 'Abhi kya finish kiya?',
@@ -1662,7 +1674,7 @@ export const translations = {
       },
       screen3: {
         prompt: 'Agli baar kya alag karoge?',
-        sub: 'Ek clear change kaafi hai.',
+        sub: 'Teen tak choose karo.',
         chips: ['Tez start', 'Zyada calm', 'Better decisions', 'Better technique', 'Zyada baat karo', 'Zyada aggressive', 'Zyada patient', 'Pressure better handle karo', 'Kuch aur'],
         placeholder: 'Exactly kya? (optional)',
         selfAbuse: { warning: 'Label mat laga apne aap ko. Specific bolo — kya train karna hai?' },
