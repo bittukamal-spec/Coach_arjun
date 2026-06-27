@@ -580,7 +580,12 @@ export default function DebriefPage() {
               {/* CTAs */}
               <div className="flex flex-col gap-3">
                 <button
-                  onClick={() => navigate('/coaching', { state: { sessionType: 'post_match', arjunReport: result.insight || undefined } })}
+                  onClick={() => navigate('/coaching', {
+                    state: {
+                      sessionType: 'post_match',
+                      arjunReport: result.insight || undefined,
+                    },
+                  })}
                   className="btn-primary justify-center"
                 >
                   {t.done.secondary}

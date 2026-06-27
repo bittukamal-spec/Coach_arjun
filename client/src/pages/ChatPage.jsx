@@ -322,17 +322,29 @@ function ChatPage() {
       const key = pendingSessionRef.current;
       pendingSessionRef.current = null;
 
+      const bridge = language === 'hi'
+        ? 'मैंने अभी अपना मैच रिव्यू किया। इस पर बात करें।'
+        : 'I just finished my match review. Can we talk about it?';
+
       if (!chatSessionId) {
-        // No active session — start a brand new one with the incoming session type
         arjunMsgCountRef.current = 0;
         setActiveSession(key);
-        createSession(key).then(id => {
-          sendMessage(`__SESSION:${key}__`, key, id);
-        });
+        if (arjunReportRef.current) {
+          // New session, coming from debrief — send the bridge message directly.
+          // Arjun's system prompt has the full review context (fromToolSection).
+          // Don't send __SESSION:post_match__ since it tells Arjun to ask basic
+          // questions the user already answered in the review.
+          createSession(key).then(id => sendMessage(bridge, key, id));
+        } else {
+          // New session, no tool context — normal session start
+          createSession(key).then(id => sendMessage(`__SESSION:${key}__`, key, id));
+        }
+      } else if (arjunReportRef.current) {
+        // Existing active session + debrief context — auto-send bridge message
+        // so Arjun picks up the context immediately.
+        setTimeout(() => sendMessage(bridge), 400);
       }
-      // If there IS an active session, just resume it silently.
-      // The session type label stays as whatever the existing session is.
-      // Arjun already has debrief context via buildSystemPrompt (reads last 2 debriefs).
+      // Otherwise (existing session, no tool context): resume silently.
     }
   }, [loading]); // eslint-disable-line react-hooks/exhaustive-deps
 

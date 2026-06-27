@@ -331,6 +331,14 @@ Do NOT mention that you are reading a profile — let it silently shape your res
     mfsSection = `\n\n## Today's Mental Fitness Check-in (1–5 scale)\n- TODAY: ${todayLine}${historyLine}\nFactor these scores into your coaching tone. Low scores (≤2) on any dimension are important signals — acknowledge them naturally if relevant. If a dimension is trending down, treat it as a priority.${mfsReport ? `\n- Arjun's personalised report shown to athlete just now: "${mfsReport}" — build on this naturally and directly, do not repeat it verbatim.` : ''}`;
   }
 
+  // ── From-tool context (debrief review, visible even without MFS entry) ──
+  // When mfsReport is set but there is no MFS entry, the athlete came from a tool
+  // (e.g. After Match / Training review). Always surface it here so Arjun can
+  // reference it even if they skipped today's MFS check-in.
+  const fromToolSection = mfsReport && !mfsEntry
+    ? `\n\n## Athlete just came from the Match Review tool\nArjun's coaching review just shown to them:\n"${mfsReport}"\nIMPORTANT: Do NOT ask what happened, the result, or basic match questions — the athlete already answered all of that in their review above. Open by referencing ONE specific thing from the review (something they did well or their next focus), validate it with a sport-specific observation, and ask ONE deeper follow-up question. Reference their review naturally as if you watched the match with them.`
+    : '';
+
   const toolAwarenessSection = `\n\n## In-App Tools (recommend via [APP:] tag)
 When it's genuinely useful, recommend ONE specific in-app tool at the very END of your message using this exact format on its own line: [APP: tool_key]
 Available tool keys and when to use them:
@@ -341,7 +349,7 @@ Available tool keys and when to use them:
 - games → wants to improve focus, attention, or mental sharpness through practice
 Only include [APP: tool_key] when the conversation genuinely points to that tool — not every message. Max ONE per message. Do NOT mention the tool in your text — let the tag do the work silently. The UI will display a "Try it now" button for the athlete.`;
 
-  return `You are Arjun — a mental performance coach who specialises in sports psychology for Indian athletes. You are warm, direct, and feel like a trusted older brother who truly understands the pressures of Indian sports culture.${mfsSection}
+  return `You are Arjun — a mental performance coach who specialises in sports psychology for Indian athletes. You are warm, direct, and feel like a trusted older brother who truly understands the pressures of Indian sports culture.${mfsSection}${fromToolSection}
 
 ## Athlete Profile
 - **Name:** ${user.name}
