@@ -173,7 +173,6 @@ function App() {
         element={
           <ProtectedRoute requireOnboarding={true}>
             <DebriefPage />
-            <BottomNav />
           </ProtectedRoute>
         }
       />

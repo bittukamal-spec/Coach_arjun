@@ -156,10 +156,21 @@ model Debrief {
   id             String   @id @default(cuid())
   userId         String
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  wentWell       String   // max 500 chars
-  doDifferently  String   // max 500 chars
-  nextFocus      String   // max 300 chars
+  wentWell       String   // max 500 chars (legacy text; new flow populates from chips)
+  doDifferently  String   // max 500 chars (legacy text; new flow populates from wouldChange chip)
+  nextFocus      String   // max 300 chars (chip label or free text)
   arjunInsight   String?  // AI-generated coaching insight
+  // ── Structured fields added for quick/full mode rebuild ───────────────────
+  mode            String?  // "quick" | "full"
+  eventType       String?  // "Match" | "Tournament" | "Trial / Selection" | etc.
+  resultType      String?  // one of the result chip labels
+  wentWellChips   String?  // JSON array of chip labels e.g. '["Effort","Focus"]'
+  wentWellText    String?  // optional typed text (full mode only, max 80 chars)
+  wouldChange     String?  // single chip label from Screen 3
+  wouldChangeText String?  // optional typed text (full mode only, max 80 chars)
+  cueWordFeedback String?  // "helped" | "forgot" | "no_help"
+  sport           String?  // snapshot of user.sport at time of debrief
+  xpAwarded       Int?     // 15 quick / 20 full (legacy entries = 10)
   createdAt      DateTime @default(now())
 }
 
