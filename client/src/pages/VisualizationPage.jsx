@@ -445,6 +445,7 @@ export default function VisualizationPage() {
     const lines = script?.lines || [];
     const currentLine = lines[lineIndex] || '';
     const isCueLine = currentLine.startsWith('CUE:');
+    const displayLine = isCueLine ? currentLine.replace(/^CUE:\s*/, '') : currentLine;
     const isEmpty = !currentLine.trim();
 
     const handleTapArea = () => {
@@ -550,7 +551,7 @@ export default function VisualizationPage() {
                       marginBottom: 16,
                     }}
                   >
-                    {line}
+                    {line.startsWith('CUE:') ? line.replace(/^CUE:\s*/, '') : line}
                   </p>
                 ) : (
                   <div key={idx} style={{ height: 24 }} />
@@ -572,7 +573,7 @@ export default function VisualizationPage() {
                 lineHeight: 1.6,
               }}
             >
-              {currentLine}
+              {displayLine}
             </p>
           )}
 
