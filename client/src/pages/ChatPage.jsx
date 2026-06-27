@@ -84,22 +84,6 @@ function extractSuggestions(text) {
   return { clean, suggestions };
 }
 
-function extractAppTool(text) {
-  const match = text.match(/\[APP:\s*([^\]]+)\]/);
-  if (!match) return { clean: text, appTool: null };
-  const appTool = match[1].trim();
-  const clean = text.replace(/\n?\[APP:[^\]]+\]/, '').trimEnd();
-  return { clean, appTool };
-}
-
-const APP_TOOL_NAV = {
-  breathing: '/breathing',
-  reset:     '/reset',
-  ritual:    '/ritual',
-  debrief:   '/debrief',
-  games:     '/games',
-  checkin:   '/checkin',
-};
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -370,9 +354,8 @@ function ChatPage() {
         }
         const processed = msgs.map((msg, i) => {
           if (msg.role !== 'assistant') return msg;
-          const { clean: cleanSuggest, suggestions } = extractSuggestions(msg.content);
-          const { clean, appTool } = extractAppTool(cleanSuggest);
-          return { ...msg, content: clean, tags: i === lastAsstIdx ? suggestions : [], ...(appTool ? { appTool } : {}) };
+          const { clean, suggestions } = extractSuggestions(msg.content);
+          return { ...msg, content: clean, tags: i === lastAsstIdx ? suggestions : [] };
         });
         setMessages(processed);
       }
@@ -484,8 +467,7 @@ function ChatPage() {
                 prev.map(m => m.id === streamId ? { ...m, content: m.content + data.c } : m)
               );
             } else if (data.t === 'end') {
-              const { clean: cleanSuggest, suggestions } = extractSuggestions(fullStreamText.current);
-              const { clean, appTool } = extractAppTool(cleanSuggest);
+              const { clean, suggestions } = extractSuggestions(fullStreamText.current);
               arjunMsgCountRef.current += 1;
               const isFirstReply = arjunMsgCountRef.current === 1 && sessionType;
               const chips = suggestions.length > 0
@@ -493,7 +475,7 @@ function ChatPage() {
                 : (isFirstReply ? (INITIAL_CHIPS[sessionType]?.[language] ?? []) : []);
               setMessages(prev =>
                 prev.map(m => m.id === streamId
-                  ? { ...m, content: clean, id: data.id, streaming: false, ...(chips.length > 0 ? { tags: chips } : {}), ...(appTool ? { appTool } : {}) }
+                  ? { ...m, content: clean, id: data.id, streaming: false, ...(chips.length > 0 ? { tags: chips } : {}) }
                   : m)
               );
               fullStreamText.current = '';
@@ -674,16 +656,6 @@ function ChatPage() {
                         {reply}
                       </button>
                     ))}
-                  </div>
-                )}
-                {msg.role === 'assistant' && !msg.streaming && msg.appTool && APP_TOOL_NAV[msg.appTool] && (
-                  <div className="flex justify-start">
-                    <button
-                      onClick={() => navigate(APP_TOOL_NAV[msg.appTool])}
-                      className="flex items-center gap-2 text-xs font-semibold text-brand-600 bg-brand-50 border border-brand-200 px-4 py-2.5 rounded-xl hover:bg-brand-100 active:scale-95 transition-all"
-                    >
-                      <span>Try it now →</span>
-                    </button>
                   </div>
                 )}
               </div>

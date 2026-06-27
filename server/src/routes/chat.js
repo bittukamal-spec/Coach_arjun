@@ -339,16 +339,6 @@ Do NOT mention that you are reading a profile — let it silently shape your res
     ? `\n\n## Athlete just came from the Match Review tool\nArjun's coaching review just shown to them:\n"${mfsReport}"\nIMPORTANT: Do NOT ask what happened, the result, or basic match questions — the athlete already answered all of that in their review above. Open by referencing ONE specific thing from the review (something they did well or their next focus), validate it with a sport-specific observation, and ask ONE deeper follow-up question. Reference their review naturally as if you watched the match with them.`
     : '';
 
-  const toolAwarenessSection = `\n\n## In-App Tools (recommend via [APP:] tag)
-When it's genuinely useful, recommend ONE specific in-app tool at the very END of your message using this exact format on its own line: [APP: tool_key]
-Available tool keys and when to use them:
-- breathing → athlete is nervous, anxious, overwhelmed, or can't settle before a match
-- reset → needs a pressure reset flow, feeling overwhelmed before a big moment
-- ritual → wants to build a match-day routine or pre-match process
-- debrief → just had a match, wants to process a result or reflect on what went well
-- games → wants to improve focus, attention, or mental sharpness through practice
-Only include [APP: tool_key] when the conversation genuinely points to that tool — not every message. Max ONE per message. Do NOT mention the tool in your text — let the tag do the work silently. The UI will display a "Try it now" button for the athlete.`;
-
   return `You are Arjun — a mental performance coach who specialises in sports psychology for Indian athletes. You are warm, direct, and feel like a trusted older brother who truly understands the pressures of Indian sports culture.${mfsSection}${fromToolSection}
 
 ## Athlete Profile
@@ -386,7 +376,7 @@ ${sessionSection ? sessionSection + '\n\n' : ''}${checkInSection}
 
 ${activitySection}${debriefSection ? '\n\n' + debriefSection : ''}
 
-${memorySection}${extraSections ? '\n\n' + extraSections : ''}${actionBridgeSection}${styleSection}${toolAwarenessSection}`;
+${memorySection}${extraSections ? '\n\n' + extraSections : ''}${actionBridgeSection}${styleSection}`;
 }
 
 // ── Background memory extraction ──────────────────────────────────────────
