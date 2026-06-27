@@ -510,14 +510,30 @@ export default function BeforeYouPlayPage() {
                 <>
                   <p className="text-lg font-bold text-ink">{s2.calm.label}</p>
                   <p className="text-sm text-slt">{s2.calm.instruction}</p>
-                  <div className="flex flex-col items-center gap-4 py-8">
+                  <div className="flex flex-col items-center gap-3 py-4">
+                    {/* Countdown above the circle — always visible even with finger on it */}
+                    <div className="h-20 flex flex-col items-center justify-center">
+                      {steadyComplete ? (
+                        <span className="text-5xl" style={{ color: colors.accent }}>✓</span>
+                      ) : steadyActive ? (
+                        <span className="text-6xl font-bold tabular-nums leading-none" style={{ color: colors.accent }}>
+                          {steadyCount}
+                        </span>
+                      ) : (
+                        <span className="text-sm text-slt text-center">{s2.calm.touch}</span>
+                      )}
+                      {steadyAgain && !steadyComplete && (
+                        <p className="text-xs mt-1" style={{ color: colors.accent }}>{s2.calm.again}</p>
+                      )}
+                    </div>
+                    {/* Circle — touch target only, no text inside */}
                     <div
                       onTouchStart={onSteadyPress}
                       onMouseDown={onSteadyPress}
-                      className="rounded-full flex items-center justify-center"
+                      className="rounded-full"
                       style={{
-                        width: '100px',
-                        height: '100px',
+                        width: '150px',
+                        height: '150px',
                         background: steadyComplete
                           ? colors.accent
                           : steadyActive
@@ -525,9 +541,9 @@ export default function BeforeYouPlayPage() {
                           : colors.light,
                         border: `3px solid ${colors.accent}`,
                         boxShadow: steadyFlash
-                          ? `0 0 0 24px ${colors.accent}25, 0 0 40px ${colors.accent}40`
+                          ? `0 0 0 30px ${colors.accent}20, 0 0 50px ${colors.accent}40`
                           : steadyActive
-                          ? `0 0 20px ${colors.accent}40`
+                          ? `0 0 24px ${colors.accent}50`
                           : 'none',
                         cursor: 'pointer',
                         transition: 'background 0.2s, box-shadow 0.15s',
@@ -535,25 +551,7 @@ export default function BeforeYouPlayPage() {
                         userSelect: 'none',
                         WebkitTapHighlightColor: 'transparent',
                       }}
-                    >
-                      {steadyComplete ? (
-                        <span className="text-white text-3xl">✓</span>
-                      ) : steadyActive ? (
-                        <span className="text-3xl font-bold text-white tabular-nums">{steadyCount}</span>
-                      ) : (
-                        <span
-                          className="text-[11px] text-center leading-tight px-3"
-                          style={{ color: colors.accent }}
-                        >
-                          {s2.calm.touch}
-                        </span>
-                      )}
-                    </div>
-                    {steadyAgain && !steadyComplete && (
-                      <p className="text-xs animate-fade-in" style={{ color: colors.accent }}>
-                        {s2.calm.again}
-                      </p>
-                    )}
+                    />
                   </div>
                 </>
               )}
