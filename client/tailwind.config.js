@@ -4,53 +4,100 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Page backgrounds → light theme
+        // ── Dark athletic theme ────────────────────────────────────────────────
+        // These map the existing `dark-*` tokens to the new dark navy palette.
+        // All redesigned screens use bg-dark-900 for page, bg-dark-400/300 for cards.
         dark: {
-          900: '#FFFFFF',   // page bg
-          800: '#EFEDE6',   // surface / cards
-          700: '#E8E6DF',   // input bg
-          600: '#C2CCC6',   // visible border
-          500: '#B0BDB7',   // lighter border
+          900: '#07131F', // page background
+          800: '#0B1B2A', // surface / section bg
+          700: '#102538', // elevated surface / inputs
+          600: '#2B4157', // border
+          500: '#1F3448', // soft border
+          400: '#132334', // card
+          300: '#1B3044', // card muted / alternate card
+          200: '#22384F', // hover states
+          100: '#2E4D69', // active/selected
         },
-        // Primary brand — deep blue (mental performance)
+
+        // Primary brand — deep blue
         brand: {
-          50:  '#EFF6FF',
-          100: '#DBEAFE',
-          200: '#BFDBFE',
-          300: '#6FA5D4',
-          400: '#3A7FC1',
-          500: '#185FA5',
-          600: '#0C447C',
-          700: '#0A3866',
+          50:  '#0D2A4A', // dark active bg (tab pills, icon bg)
+          100: '#0F3357', // dark subtle accent
+          200: '#1A4E80', // medium dark blue
+          300: '#2A72B5', // medium blue
+          400: '#1F85D0', // bright blue (links, highlights)
+          500: '#1769AA', // primary action
+          600: '#0C4D85', // pressed
+          700: '#083869', // darkest brand
         },
-        // Action accent — amber (CTAs, streaks)
+
+        // Amber / saffron — streaks, XP, fire
         fire: {
-          300: '#F5B97A',
-          400: '#EE9041',
-          500: '#E2711D',
-          600: '#C95B0D',
+          300: '#FAD08A',
+          400: '#F59E0B',
+          500: '#F29B38',
+          600: '#D97F1E',
         },
-        // Success — achievements, completed
+        saffron: {
+          300: '#FAD08A',
+          400: '#F5A62E',
+          500: '#F29B38',
+          600: '#D97F1E',
+        },
+
+        // Teal — check-ins, calm, recovery
+        teal: {
+          300: '#7AE8E0',
+          400: '#4ADDD2',
+          500: '#22D3C5',
+          600: '#18B0A5',
+        },
+
+        // Purple — visualization, mental skills
+        purple: {
+          300: '#C4B5FD',
+          400: '#A78BFA',
+          500: '#8B5CF6',
+          600: '#7C3AED',
+        },
+
+        // Green — success, streaks done, achievements
         win: {
-          300: '#5BCE85',
-          400: '#35B05E',
-          500: '#18733B',
-          600: '#135E30',
+          300: '#4ADE80',
+          400: '#22C55E',
+          500: '#16A34A',
+          600: '#15803D',
         },
+
         // Semantic text tokens
-        ink:   '#15211C',   // primary text
-        slt:   '#41524A',   // secondary text
-        alert: '#B83227',   // errors / alerts
-        // Keep calm for backwards compat (charts etc.)
+        ink:   '#F8FAFC', // primary text (light on dark)
+        slt:   '#AAB7C4', // secondary text
+        muted: '#7E8A99', // muted text
+        alert: '#EF4444', // errors
+        success: '#22C55E',
+
+        // Bright blue accent (active states, glow)
+        navy: {
+          bright: '#19A7FF',
+          glow:   '#1769AA',
+        },
+
+        // Backwards compat
         calm: {
-          50:  '#F0FAF6',
-          100: '#CBE9DD',
-          500: '#18733B',
-          600: '#135E30',
+          50:  '#0B2A20',
+          100: '#0F3827',
+          500: '#16A34A',
+          600: '#15803D',
         },
       },
       fontFamily: {
         sans: ['Poppins', 'system-ui', 'sans-serif'],
+      },
+      boxShadow: {
+        'glow-brand': '0 0 20px rgba(23, 105, 170, 0.35)',
+        'glow-saffron': '0 0 20px rgba(242, 155, 56, 0.3)',
+        'glow-teal': '0 0 20px rgba(34, 211, 197, 0.3)',
+        'card': '0 2px 12px rgba(0,0,0,0.4)',
       },
       animation: {
         'fade-in':      'fadeIn 0.4s ease-out',
@@ -58,6 +105,7 @@ export default {
         'flame-pulse':  'flamePulse 2s ease-in-out infinite',
         'xp-float':     'xpFloat 1s ease-out forwards',
         'slide-up':     'slideUp 0.3s ease-out',
+        'pulse-slow':   'pulse 3s ease-in-out infinite',
       },
       keyframes: {
         fadeIn: {

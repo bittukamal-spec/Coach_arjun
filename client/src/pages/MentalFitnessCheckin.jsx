@@ -112,22 +112,22 @@ export default function MentalFitnessCheckin() {
   // ── Intro ──────────────────────────────────────────────────────────────────
   if (step === 0) {
     return (
-      <div className="min-h-screen bg-white flex flex-col">
+      <div className="min-h-screen bg-dark-900 flex flex-col">
         <div className="px-4 pt-12 pb-6">
-          <button onClick={() => navigate(-1)} className="text-gray-400 mb-8 flex items-center">
+          <button onClick={() => navigate(-1)} className="text-muted mb-8 flex items-center">
             <ChevronLeft size={22} />
           </button>
           <p className="text-2xl font-black text-ink leading-tight mb-3">{mf.title}</p>
           <p className="text-sm text-slt leading-relaxed">{mf.subtitle}</p>
 
           <div className="mt-8 space-y-2">
-            <div className="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-3">
+            <div className="flex items-center gap-3 bg-dark-700 border border-dark-600 rounded-xl px-4 py-3">
               <span className="text-xl">😊</span>
               <span className="text-sm font-semibold text-ink">{mf.dims.mood}</span>
               <span className="text-xs text-slt ml-auto">{mf.moodCardLabel}</span>
             </div>
             {MFS_DIMS.map(d => (
-              <div key={d} className="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-3">
+              <div key={d} className="flex items-center gap-3 bg-dark-700 border border-dark-600 rounded-xl px-4 py-3">
                 <span className="text-xl">{MFS_EMOJIS[d]}</span>
                 <span className="text-sm font-semibold text-ink">{mf.dims[d]}</span>
               </div>
@@ -151,12 +151,12 @@ export default function MentalFitnessCheckin() {
   // ── Mood card (step 1) ─────────────────────────────────────────────────────
   if (step === 1) {
     return (
-      <div className="min-h-screen bg-white flex flex-col">
+      <div className="min-h-screen bg-dark-900 flex flex-col">
         <div className="px-4 pt-12 pb-4 flex items-center gap-3">
-          <button onClick={goBack} className="text-gray-400 shrink-0">
+          <button onClick={goBack} className="text-muted shrink-0">
             <ChevronLeft size={22} />
           </button>
-          <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+          <div className="flex-1 h-1.5 bg-dark-600 rounded-full overflow-hidden">
             <div className="h-full rounded-full transition-all duration-300" style={{ width: `${progressPct}%`, backgroundColor: '#185FA5' }} />
           </div>
           <span className="text-xs text-slt shrink-0">1/{TOTAL_QUESTIONS}</span>
@@ -175,8 +175,8 @@ export default function MentalFitnessCheckin() {
                   onClick={() => selectMood(opt.v)}
                   className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl border-2 text-left transition-all active:scale-[0.98]"
                   style={{
-                    borderColor: selected ? '#185FA5' : '#E5E7EB',
-                    backgroundColor: selected ? '#EFF6FF' : 'white',
+                    borderColor: selected ? '#185FA5' : 'rgb(var(--color-dark-600))',
+                    backgroundColor: selected ? 'rgba(24,95,165,0.15)' : 'rgb(var(--color-dark-700))',
                   }}
                 >
                   <span className="text-3xl shrink-0">{opt.emoji}</span>
@@ -195,12 +195,12 @@ export default function MentalFitnessCheckin() {
   if (step >= 2 && step <= 7) {
     const labels = mf.likertLabels[currentDim];
     return (
-      <div className="min-h-screen bg-white flex flex-col">
+      <div className="min-h-screen bg-dark-900 flex flex-col">
         <div className="px-4 pt-12 pb-4 flex items-center gap-3">
-          <button onClick={goBack} className="text-gray-400 shrink-0">
+          <button onClick={goBack} className="text-muted shrink-0">
             <ChevronLeft size={22} />
           </button>
-          <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+          <div className="flex-1 h-1.5 bg-dark-600 rounded-full overflow-hidden">
             <div className="h-full rounded-full transition-all duration-300" style={{ width: `${progressPct}%`, backgroundColor: '#185FA5' }} />
           </div>
           <span className="text-xs text-slt shrink-0">{step}/{TOTAL_QUESTIONS}</span>
@@ -222,8 +222,8 @@ export default function MentalFitnessCheckin() {
                     onClick={() => selectDim(val)}
                     className="w-12 h-12 rounded-full border-2 transition-all active:scale-95 flex items-center justify-center"
                     style={{
-                      borderColor: selected ? '#185FA5' : '#D1D5DB',
-                      backgroundColor: selected ? '#185FA5' : 'white',
+                      borderColor: selected ? '#185FA5' : 'rgb(var(--color-dark-600))',
+                      backgroundColor: selected ? '#185FA5' : 'rgb(var(--color-dark-700))',
                     }}
                   >
                     {selected && (
@@ -246,7 +246,7 @@ export default function MentalFitnessCheckin() {
   // ── Submitting (step 8) ────────────────────────────────────────────────────
   if (step === 8) {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-5">
+      <div className="min-h-screen bg-dark-900 flex flex-col items-center justify-center gap-5">
         <div
           className="w-10 h-10 rounded-full border-4 border-t-transparent animate-spin"
           style={{ borderColor: '#185FA5', borderTopColor: 'transparent' }}
@@ -262,7 +262,7 @@ export default function MentalFitnessCheckin() {
   const avgPct = avg ? Math.round((parseFloat(avg) / 5) * 100) : null;
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-dark-900 flex flex-col">
       <div className="px-4 pt-12 pb-4">
         <p className="text-xl font-black text-ink mb-1">
           {submitError ? (hi ? 'कुछ गलत हो गया' : 'Something went wrong') : (hi ? 'चेक-इन हो गया ✓' : 'Done ✓')}
@@ -284,7 +284,7 @@ export default function MentalFitnessCheckin() {
           )}
 
           {/* Mood row */}
-          <div className="bg-gray-50 rounded-xl p-3 flex items-center gap-3">
+          <div className="bg-dark-700 border border-dark-600 rounded-xl p-3 flex items-center gap-3">
             <span className="text-2xl">
               {MOOD_OPTIONS.find(o => o.v === displayEntry.mood)?.emoji ?? '😐'}
             </span>
@@ -297,7 +297,7 @@ export default function MentalFitnessCheckin() {
           {/* 6 MFS dims grid */}
           <div className="grid grid-cols-3 gap-2">
             {MFS_DIMS.map(d => (
-              <div key={d} className="bg-gray-50 rounded-xl p-3 text-center">
+              <div key={d} className="bg-dark-700 border border-dark-600 rounded-xl p-3 text-center">
                 <p className="text-xl">{MFS_EMOJIS[d]}</p>
                 <p className="text-[11px] text-slt mt-0.5 leading-tight">{mf.dims[d]}</p>
                 <p className="text-xl font-black mt-1" style={{ color: '#185FA5' }}>
@@ -311,7 +311,7 @@ export default function MentalFitnessCheckin() {
           {xpEarned > 0 && (
             <div className="flex items-center gap-2 justify-center py-1">
               <Zap size={15} className="text-brand-500" />
-              <span className="text-sm font-semibold text-brand-600">+{xpEarned} MXP</span>
+              <span className="text-sm font-semibold text-brand-300">+{xpEarned} MXP</span>
             </div>
           )}
 
@@ -340,7 +340,7 @@ export default function MentalFitnessCheckin() {
         </button>
         <button
           onClick={() => navigate('/dashboard')}
-          className="w-full py-3.5 rounded-2xl border border-gray-200 text-slt font-semibold text-sm active:scale-[0.98] transition-transform"
+          className="w-full py-3.5 rounded-2xl border border-dark-600 text-slt font-semibold text-sm active:scale-[0.98] transition-transform"
         >
           {mf.doneBtn}
         </button>
@@ -352,12 +352,12 @@ export default function MentalFitnessCheckin() {
         const toolInfo = mf.toolRec[rec.toolKey];
         return (
           <>
-            <div className="fixed inset-0 z-[60] bg-black/40" onClick={() => setShowReport(false)} />
-            <div className="fixed bottom-0 inset-x-0 z-[60] bg-white rounded-t-2xl px-5 pt-5 pb-12 animate-fade-in shadow-xl max-h-[85vh] overflow-y-auto">
+            <div className="fixed inset-0 z-[60] bg-black/60" onClick={() => setShowReport(false)} />
+            <div className="fixed bottom-0 inset-x-0 z-[60] bg-dark-800 border-t border-dark-600 rounded-t-2xl px-5 pt-5 pb-12 animate-fade-in shadow-xl max-h-[85vh] overflow-y-auto">
               {/* Header */}
               <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-base" style={{ backgroundColor: '#EFF6FF' }}>🧠</div>
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-base bg-dark-700">🧠</div>
                   <div>
                     <p className="font-bold text-ink text-sm">{hi ? 'अर्जुन की रिपोर्ट' : "Arjun's report"}</p>
                     {avgPct !== null && <p className="text-xs text-slt">{avgPct}/100 {mf.avgLabel}</p>}
@@ -365,14 +365,14 @@ export default function MentalFitnessCheckin() {
                 </div>
                 <button
                   onClick={() => setShowReport(false)}
-                  className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-slt"
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-dark-600 text-slt"
                 >
                   <X size={16} />
                 </button>
               </div>
 
               {/* Report text */}
-              <div className="bg-gray-50 rounded-xl p-4 mb-5">
+              <div className="bg-dark-700 border border-dark-600 rounded-xl p-4 mb-5">
                 <p className="text-sm text-ink leading-relaxed">{entry.arjunResponse}</p>
               </div>
 
@@ -383,7 +383,7 @@ export default function MentalFitnessCheckin() {
                 className="w-full flex items-center gap-3 p-3.5 rounded-xl border-2 active:scale-[0.98] transition-transform mb-3"
                 style={{ borderColor: '#185FA5' }}
               >
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: '#EFF6FF' }}>
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-dark-700">
                   <rec.Icon size={18} style={{ color: '#185FA5' }} />
                 </div>
                 <div className="text-left flex-1">
@@ -396,7 +396,7 @@ export default function MentalFitnessCheckin() {
               {/* Talk to Arjun secondary */}
               <button
                 onClick={() => { setShowReport(false); navigate('/coaching', { state: { sessionType: 'post_checkin', newSession: true, arjunReport: entry?.arjunResponse } }); }}
-                className="w-full py-3.5 rounded-xl font-bold text-sm border border-gray-200 text-slt active:scale-[0.98] transition-transform"
+                className="w-full py-3.5 rounded-xl font-bold text-sm border border-dark-600 text-slt active:scale-[0.98] transition-transform"
               >
                 {mf.talkToArjun}
               </button>

@@ -299,8 +299,8 @@ function AccountPage() {
                   {trialDaysRemaining !== null && trialDaysRemaining > 0 && (
                     <div className="w-16 h-16 relative flex-shrink-0">
                       <svg viewBox="0 0 36 36" className="w-16 h-16 -rotate-90">
-                        <circle cx="18" cy="18" r="15.9" fill="none" stroke="#C2CCC6" strokeWidth="3" />
-                        <circle cx="18" cy="18" r="15.9" fill="none" stroke="#185FA5" strokeWidth="3"
+                        <circle cx="18" cy="18" r="15.9" fill="none" stroke="#2B4157" strokeWidth="3" />
+                        <circle cx="18" cy="18" r="15.9" fill="none" stroke="#1769AA" strokeWidth="3"
                           strokeDasharray={`${(trialDaysRemaining / TRIAL_DAYS) * 100} 100`}
                           strokeLinecap="round" />
                       </svg>

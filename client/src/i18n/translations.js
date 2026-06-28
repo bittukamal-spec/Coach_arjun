@@ -233,7 +233,7 @@ export const translations = {
       title: 'Arjun',
       subtitle: 'Your coach for matches and mindset',
       aiLabel: 'Your coach',
-      arjunWelcome: 'Hey, I\'m Arjun 👋 — your mental coach for cricket and sport. Match nerves, focus, pressure, confidence — I\'m always here. What\'s going on today?',
+      arjunWelcome: 'Hey, I\'m Arjun 👋 — your AI coach. Match nerves, can\'t focus, had a rough game, or just need someone to talk to — I\'m always here. What\'s going on today?',
       starters: {
         pressure_reset:  'Nervous before a match →',
         handle_pressure: 'Feeling nervous',
@@ -248,7 +248,7 @@ export const translations = {
         motivating: 'Motivating',
       },
       safetyLinkLabel: 'Not a crisis service — helplines',
-      safetyNote: 'Arjun is a coaching tool, not a medical or crisis service. If you are in distress, please contact a professional.',
+      safetyNote: 'Arjun is a coaching tool, not a medical or crisis service. If you\'re in distress, please contact a professional.',
       safetyHelpline: 'India helpline — iCall (TISS): 9152987821',
       placeholder: 'What\'s on your mind?',
       send: 'Send',
@@ -668,7 +668,7 @@ export const translations = {
       goToAccount: 'View My Profile',
     },
     debrief: {
-      title: 'After Match / Training',
+      title: 'Match review',
       subtitle: '3 questions that help you learn from every game and come back stronger',
       backDash: '← Dashboard',
       stepOf: (n, t) => `Question ${n} of ${t}`,
@@ -686,7 +686,7 @@ export const translations = {
       insightLabel: 'Arjun\'s coaching note',
       talkToArjun: 'Talk to Arjun about this →',
       backBtn: 'Back to Dashboard',
-      historyTitle: 'Past reviews',
+      historyTitle: 'Past match reviews',
       noHistory: 'No match reviews yet.',
     },
     atm: {
@@ -860,10 +860,10 @@ export const translations = {
       },
     },
     sessionHistory: {
-      title:            'Past sessions',
+      title:            'Past conversations',
       messages:         (n) => `${n} message${n === 1 ? '' : 's'}`,
       active:           'Active',
-      noSessions:       'No sessions yet — tap Start a new session to talk to Arjun.',
+      noSessions:       'No conversations yet — tap Coach to start talking to Arjun.',
       startNew:         'Start a new session',
       continueSession:  'Continue this session',
       sessionSummaryLabel: 'What we covered',
@@ -1299,7 +1299,7 @@ export const translations = {
       title: 'अर्जुन',
       subtitle: 'आपका कोच — मैच और मानसिकता के लिए',
       aiLabel: 'आपका कोच',
-      arjunWelcome: 'नमस्ते 👋 मैं अर्जुन हूं — आपका मेंटल कोच। मैच की घबराहट, फोकस, दबाव, आत्मविश्वास — मैं हमेशा यहाँ हूं। आज क्या हो रहा है?',
+      arjunWelcome: 'नमस्ते 👋 मैं अर्जुन हूं — आपका AI कोच। मैच की घबराहट, फोकस, दबाव, मुश्किल खेल — जो भी हो, मैं हमेशा यहाँ हूं। आज क्या हो रहा है?',
       starters: {
         pressure_reset:  'मैच से पहले घबराहट →',
         handle_pressure: 'नर्वस हूं',
@@ -1711,7 +1711,7 @@ export const translations = {
       goToAccount: 'प्रोफाइल देखें',
     },
     debrief: {
-      title: 'मैच / ट्रेनिंग के बाद',
+      title: 'मैच की समीक्षा',
       subtitle: '3 सवाल जो हर मैच से सीखने में मदद करते हैं',
       backDash: '← डैशबोर्ड',
       stepOf: (n, t) => `सवाल ${n} / ${t}`,
@@ -1729,7 +1729,7 @@ export const translations = {
       insightLabel: 'अर्जुन का कोचिंग नोट',
       talkToArjun: 'इस बारे में अर्जुन से बात करें →',
       backBtn: 'डैशबोर्ड पर वापस',
-      historyTitle: 'पिछले reviews',
+      historyTitle: 'पिछले मैच की समीक्षाएं',
       noHistory: 'अभी तक कोई मैच समीक्षा नहीं।',
     },
     atm: {
@@ -1903,10 +1903,10 @@ export const translations = {
       },
     },
     sessionHistory: {
-      title:            'पिछले सेशन',
+      title:            'पिछली बातें',
       messages:         (n) => `${n} संदेश`,
       active:           'सक्रिय',
-      noSessions:       'अभी कोई सेशन नहीं — नया सेशन शुरू करें।',
+      noSessions:       'अभी कोई बातचीत नहीं — Coach दबाएं और अर्जुन से बात शुरू करें।',
       startNew:         'नया सेशन शुरू करें',
       continueSession:  'यह सत्र जारी रखें',
       sessionSummaryLabel: 'क्या बात हुई',

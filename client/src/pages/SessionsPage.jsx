@@ -145,14 +145,14 @@ export default function SessionsPage() {
 
           {/* Summary — distinct card treatment */}
           {selected.summary && (
-            <div className="mb-5 rounded-2xl bg-brand-50 border border-brand-200 p-4 shadow-sm">
+            <div className="mb-5 rounded-2xl bg-dark-400 border border-dark-600 p-4">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-4 h-4 rounded-full bg-brand-500 flex items-center justify-center shrink-0">
                   <svg viewBox="0 0 10 10" className="w-2.5 h-2.5">
                     <path d="M1.5 5L3.5 7.5L8.5 2.5" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </div>
-                <p className="text-[10px] uppercase tracking-widest text-brand-600 font-bold">{t.sessionSummaryLabel}</p>
+                <p className="text-[10px] uppercase tracking-widest text-brand-400 font-bold">{t.sessionSummaryLabel}</p>
               </div>
               <p className="text-sm leading-relaxed text-ink whitespace-pre-wrap">
                 {sentences.join('\n\n')}
@@ -172,7 +172,7 @@ export default function SessionsPage() {
                   <div className={`max-w-[88%] px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap break-words ${
                     isUser
                       ? 'bg-brand-600 text-white rounded-2xl rounded-br-md'
-                      : 'bg-white border border-brand-100 text-ink shadow-sm rounded-2xl rounded-bl-md'
+                      : 'bg-dark-700 border border-dark-600 text-ink rounded-2xl rounded-bl-md'
                   }`}>
                     {msg.content}
                   </div>

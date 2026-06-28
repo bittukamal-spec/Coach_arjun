@@ -35,12 +35,12 @@ function Chip({ label, selected, onClick, fullWidth, disabled }) {
 // ── Arjun speech bubble ───────────────────────────────────────────────────────
 function ArjunBubble({ children }) {
   return (
-    <div className="bg-white border-l-4 border-brand-500 rounded-2xl px-4 py-3 mb-5">
+    <div className="bg-dark-800 border-l-4 border-brand-500 rounded-2xl px-4 py-3 mb-5">
       <div className="flex items-center gap-2 mb-1">
         <span className="text-base">🏹</span>
-        <p className="text-xs font-semibold text-brand-600 uppercase tracking-wide">Arjun</p>
+        <p className="text-xs font-semibold text-brand-400 uppercase tracking-wide">Arjun</p>
       </div>
-      <p className="text-sm text-gray-800 leading-relaxed">{children}</p>
+      <p className="text-sm text-ink leading-relaxed">{children}</p>
     </div>
   );
 }
@@ -736,47 +736,47 @@ export default function DebriefPage() {
               onClick={() => setSheetEntry(null)}
             >
               <div
-                className="w-full max-w-lg mx-auto bg-white rounded-t-3xl p-5 pb-8 max-h-[85vh] overflow-y-auto"
+                className="w-full max-w-lg mx-auto bg-dark-800 border-t border-dark-600 rounded-t-3xl p-5 pb-8 max-h-[85vh] overflow-y-auto"
                 onClick={e => e.stopPropagation()}
               >
                 {/* Handle bar */}
-                <div className="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-4" />
+                <div className="w-10 h-1 bg-dark-600 rounded-full mx-auto mb-4" />
 
                 {/* Header */}
                 <div className="flex items-start justify-between mb-4">
                   <div>
-                    <p className="font-bold text-gray-900 text-base">{sheetEntry.eventType || 'Review'}</p>
-                    <p className="text-sm text-gray-500">{sheetEntry.resultType} · {new Date(sheetEntry.createdAt).toLocaleDateString()}</p>
+                    <p className="font-bold text-ink text-base">{sheetEntry.eventType || 'Review'}</p>
+                    <p className="text-sm text-slt">{sheetEntry.resultType} · {new Date(sheetEntry.createdAt).toLocaleDateString()}</p>
                   </div>
-                  <button onClick={() => setSheetEntry(null)} className="text-gray-400 text-xl leading-none">✕</button>
+                  <button onClick={() => setSheetEntry(null)} className="text-muted text-xl leading-none">✕</button>
                 </div>
 
                 {/* Arjun's review */}
                 {sheetEntry.arjunInsight ? (
-                  <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-4">
+                  <div className="bg-dark-700 border border-brand-500/30 rounded-2xl p-4 mb-4">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-base">🏹</span>
-                      <p className="text-xs font-bold text-blue-700 uppercase tracking-wide">Arjun's review</p>
+                      <p className="text-xs font-bold text-brand-400 uppercase tracking-wide">Arjun's review</p>
                     </div>
-                    <p className="text-sm text-gray-800 leading-relaxed">{sheetEntry.arjunInsight}</p>
+                    <p className="text-sm text-ink leading-relaxed">{sheetEntry.arjunInsight}</p>
                   </div>
                 ) : (
-                  <div className="bg-gray-100 rounded-2xl p-4 mb-4">
-                    <p className="text-sm text-gray-500">{hi ? 'इस रिव्यू के लिए कोई रिपोर्ट नहीं है।' : 'No Arjun review for this entry.'}</p>
+                  <div className="bg-dark-700 rounded-2xl p-4 mb-4">
+                    <p className="text-sm text-slt">{hi ? 'इस रिव्यू के लिए कोई रिपोर्ट नहीं है।' : 'No Arjun review for this entry.'}</p>
                   </div>
                 )}
 
                 {/* Next focus */}
-                <div className="bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 mb-3">
-                  <p className="text-xs text-gray-500 mb-0.5">{hi ? 'अगला फोकस' : 'Next focus'}</p>
-                  <p className="font-bold text-gray-900">{sheetEntry.nextFocus}</p>
+                <div className="bg-dark-700 border border-dark-600 rounded-2xl px-4 py-3 mb-3">
+                  <p className="text-xs text-slt mb-0.5">{hi ? 'अगला फोकस' : 'Next focus'}</p>
+                  <p className="font-bold text-ink">{sheetEntry.nextFocus}</p>
                 </div>
 
                 {/* What went well */}
                 {sheetEntry.wentWell && (
-                  <div className="bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3">
-                    <p className="text-xs text-gray-500 mb-0.5">{hi ? 'क्या काम आया' : 'What worked'}</p>
-                    <p className="text-sm text-gray-800">{sheetEntry.wentWell}</p>
+                  <div className="bg-dark-700 border border-dark-600 rounded-2xl px-4 py-3">
+                    <p className="text-xs text-slt mb-0.5">{hi ? 'क्या काम आया' : 'What worked'}</p>
+                    <p className="text-sm text-ink">{sheetEntry.wentWell}</p>
                   </div>
                 )}
               </div>

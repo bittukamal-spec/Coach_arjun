@@ -492,10 +492,10 @@ function ProgressPage() {
                 <div className="bg-dark-800 border border-dark-600 rounded-2xl p-4">
                   <ResponsiveContainer width="100%" height={240}>
                     <LineChart data={data.chartData} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#2D3B36" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#2B4157" />
                       <XAxis
                         dataKey="date"
-                        tick={{ fontSize: 11, fill: '#41524A' }}
+                        tick={{ fontSize: 11, fill: '#7E8A99' }}
                         tickLine={false}
                         axisLine={false}
                         interval="preserveStartEnd"
@@ -503,7 +503,7 @@ function ProgressPage() {
                       <YAxis
                         domain={[1, 5]}
                         ticks={[1, 2, 3, 4, 5]}
-                        tick={{ fontSize: 11, fill: '#41524A' }}
+                        tick={{ fontSize: 11, fill: '#7E8A99' }}
                         tickLine={false}
                         axisLine={false}
                       />
@@ -511,7 +511,7 @@ function ProgressPage() {
                       <Legend
                         iconType="circle"
                         iconSize={8}
-                        wrapperStyle={{ fontSize: 12, paddingTop: 12 }}
+                        wrapperStyle={{ fontSize: 12, paddingTop: 12, color: '#AAB7C4' }}
                         formatter={(value) => t[value] || value}
                       />
                       {METRIC_CONFIG.map(({ key, color, labelKey }) => (

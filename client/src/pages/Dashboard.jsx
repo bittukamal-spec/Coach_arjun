@@ -7,6 +7,7 @@ import { apiFetch } from '../api';
 import {
   Flame, Zap, CheckCircle2, Snowflake, ChevronRight,
   Wind, RotateCcw, Trophy, ClipboardList, Gamepad2, Crown, X, MessageCircle,
+  Play, Eye, Target, Shield,
 } from 'lucide-react';
 
 const TRIAL_DAYS = 14;
@@ -43,6 +44,23 @@ function SectionLabel({ children }) {
   );
 }
 
+function QuickTool({ icon: Icon, iconBg, iconColor, title, desc, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="card p-3.5 text-left active:scale-95 transition-transform flex flex-col gap-2.5 hover:border-dark-500"
+    >
+      <div className={`w-9 h-9 rounded-full ${iconBg} flex items-center justify-center shrink-0`}>
+        <Icon size={16} className={iconColor} />
+      </div>
+      <div className="flex-1">
+        <p className="text-sm font-semibold text-ink leading-tight">{title}</p>
+        <p className="text-[11px] text-slt leading-snug mt-0.5">{desc}</p>
+      </div>
+      <ChevronRight size={14} className="text-muted self-end" />
+    </button>
+  );
+}
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -72,6 +90,8 @@ export default function Dashboard() {
   const [missedDismissed,   setMissedDismissed]   = useState(
     () => localStorage.getItem('arjun_missed_dismissed') === new Date().toISOString().slice(0, 10)
   );
+
+  const savedCueWord = localStorage.getItem(`arjun_cue_word_${user?.id}`) || '';
 
   // ── data fetch ─────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -123,39 +143,8 @@ export default function Dashboard() {
 
   // ── derived ────────────────────────────────────────────────────────────────
   const missedYesterday = streak === 0 && mfsEntry === false && totalCheckIns > 0;
-
-  const TOOLS = [
-    {
-      Icon: Wind,
-      label: hi ? 'तुरंत शांत हो जाओ'               : 'Calm down fast',
-      desc:  hi ? 'मैच से पहले 2 मिनट में नर्वस दूर करो' : 'Settle nerves in 2 minutes before a match',
-      to: '/breathing',
-    },
-    {
-      Icon: RotateCcw,
-      label: hi ? 'मैच से पहले रीसेट'              : 'Before your match',
-      desc:  hi ? 'घबराहट हो तो यहाँ आओ, खुद को तैयार करो' : 'Feel calm and ready when nerves hit',
-      to: '/reset',
-    },
-    {
-      Icon: Trophy,
-      label: hi ? 'मैच रूटीन'                     : 'Match routine',
-      desc:  hi ? 'अपने मैच-डे के खुद के कदम बनाओ'       : 'Build your own pre-match steps',
-      to: '/ritual',
-    },
-    {
-      Icon: ClipboardList,
-      label: hi ? 'मैच के बाद'                    : 'After the match',
-      desc:  hi ? 'क्या सही रहा — अगली बार क्या बदलें'    : 'What went well — what to fix next time',
-      to: '/debrief',
-    },
-    {
-      Icon: Gamepad2,
-      label: hi ? 'फोकस गेम्स'                    : 'Focus games',
-      desc:  hi ? 'ध्यान को एक ताकत की तरह ट्रेन करो'     : 'Train your attention like a muscle',
-      to: '/games',
-    },
-  ];
+  const sport = user?.sport ? user.sport.charAt(0).toUpperCase() + user.sport.slice(1) : 'Sport';
+  const firstName = (user?.name || '').split(' ')[0] || (hi ? 'एथलीट' : 'Athlete');
 
   // ── render ─────────────────────────────────────────────────────────────────
   return (
@@ -176,17 +165,21 @@ export default function Dashboard() {
         {loaded && (
           <>
             {/* ── HERO GREETING ──────────────────────────────────────────────── */}
-            <div className="pt-4 mb-6">
+            <div className="pt-4 mb-5">
               <p className="text-2xl font-black text-ink leading-tight">
-                {td.homeHero(user?.name ?? '')}
+                {hi ? `तैयार, ${firstName}?` : `Ready, ${firstName}?`}
               </p>
-              <p className="text-sm text-slt mt-1 leading-relaxed">{td.homeSubtitle}</p>
+              <p className="text-sm text-slt mt-1">
+                {hi
+                  ? 'एक छोटा मानसिक अभ्यास आज तुम्हारी परफॉर्मेंस बेहतर कर सकता है।'
+                  : 'One short mental drill today can sharpen your performance.'}
+              </p>
 
               {/* Stat chips */}
               <div className="flex gap-2 mt-4 flex-wrap">
                 <button
                   onClick={() => setInfoPopup('streak')}
-                  className="flex items-center gap-1.5 bg-white border border-dark-600 shadow-sm px-3 py-1.5 rounded-full active:scale-95 transition-transform"
+                  className="stat-pill active:scale-95 transition-transform"
                 >
                   <Flame size={13} className={streak > 0 ? 'text-fire-500' : 'text-slt'} />
                   <span className="text-xs font-bold text-ink">{streak ?? 0}</span>
@@ -196,7 +189,7 @@ export default function Dashboard() {
                 {user?.xp !== undefined && (
                   <button
                     onClick={() => setInfoPopup('xp')}
-                    className="flex items-center gap-1.5 bg-white border border-dark-600 shadow-sm px-3 py-1.5 rounded-full active:scale-95 transition-transform"
+                    className="stat-pill active:scale-95 transition-transform"
                   >
                     <Zap size={13} className="text-fire-400" />
                     <span className="text-xs font-bold text-ink">{user.xp}</span>
@@ -207,13 +200,17 @@ export default function Dashboard() {
                 {fitnessScore !== null && (
                   <button
                     onClick={() => setInfoPopup('fitness')}
-                    className="flex items-center gap-1.5 bg-white border border-dark-600 shadow-sm px-3 py-1.5 rounded-full active:scale-95 transition-transform"
+                    className="stat-pill active:scale-95 transition-transform"
                   >
+                    <Target size={13} className={
+                      fitnessScore >= 75 ? 'text-win-400' :
+                      fitnessScore >= 60 ? 'text-brand-400' : 'text-slt'
+                    } />
                     <span className={`text-xs font-black ${
-                      fitnessScore >= 75 ? 'text-win-500' :
-                      fitnessScore >= 60 ? 'text-brand-500' : 'text-slt'
+                      fitnessScore >= 75 ? 'text-win-400' :
+                      fitnessScore >= 60 ? 'text-brand-400' : 'text-slt'
                     }`}>{fitnessScore}</span>
-                    <span className="text-[10px] text-slt">{hi ? 'फिटनेस' : 'Fitness'}</span>
+                    <span className="text-[10px] text-slt">{hi ? 'स्कोर' : 'score'}</span>
                   </button>
                 )}
               </div>
@@ -221,14 +218,14 @@ export default function Dashboard() {
               {/* Missed-yesterday warning */}
               {missedYesterday && !missedDismissed && (
                 <div className="mt-3 bg-fire-300/10 border border-fire-300/30 rounded-xl px-3 py-2.5 flex items-start justify-between gap-2">
-                  <p className="text-xs text-fire-600 leading-relaxed flex-1">
+                  <p className="text-xs text-fire-400 leading-relaxed flex-1">
                     {freezeCount > 0 ? ts.missedWithFreeze : ts.missedNoFreeze}
                   </p>
                   <div className="flex items-center gap-2 shrink-0">
                     {freezeCount > 0 && (
                       <button
                         onClick={() => setShowFreezeConfirm(true)}
-                        className="text-xs font-semibold text-brand-600"
+                        className="text-xs font-semibold text-brand-400"
                       >
                         <Snowflake size={13} className="inline mr-0.5 text-sky-400" />
                         {ts.useFreezeBtn}
@@ -244,121 +241,194 @@ export default function Dashboard() {
             {!isPremium && trialDaysRemaining != null && (
               <div className="mb-4 flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-dark-800 border border-dark-600">
                 <div className="flex items-center gap-2 min-w-0">
-                  <Crown size={13} className={trialEnded ? 'text-amber-500 shrink-0' : 'text-brand-500 shrink-0'} />
+                  <Crown size={13} className={trialEnded ? 'text-saffron-400 shrink-0' : 'text-brand-400 shrink-0'} />
                   <p className="text-xs text-slt truncate">
                     {trialEnded ? td.trialEndedHome : td.trialDaysLeftHome(trialDaysRemaining)}
                   </p>
                 </div>
-                <button onClick={() => navigate('/pricing')} className="shrink-0 text-xs font-bold text-brand-500 whitespace-nowrap">
+                <button onClick={() => navigate('/pricing')} className="shrink-0 text-xs font-bold text-brand-400 whitespace-nowrap">
                   {td.upgradeNowBtn} →
                 </button>
               </div>
             )}
 
-            {/* ── DAILY CHECK-IN / MENTAL FITNESS CARD ───────────────────────── */}
-            <div className="mb-5">
+            {/* ── TODAY'S WORKOUT HERO CARD ──────────────────────────────────── */}
+            <div className="mb-6">
+              <SectionLabel>{hi ? 'आज का वर्कआउट' : "Today's Workout"}</SectionLabel>
+
+              {/* Loading check-in state */}
               {mfsEntry === null ? (
-                <div className="h-16 bg-dark-800 rounded-2xl animate-pulse border border-dark-600" />
+                <div className="h-44 bg-dark-800 rounded-2xl animate-pulse border border-dark-600" />
               ) : mfsEntry ? (
-                <div className="bg-white border border-dark-600 rounded-2xl p-4 shadow-sm">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-semibold text-win-600">{mf.card.doneTitle}</p>
-                    <CheckCircle2 size={15} className="text-win-500 shrink-0" />
+                /* ── CHECK-IN DONE ── show report + top tools */
+                <div className="card overflow-hidden">
+                  {/* Done header */}
+                  <div className="px-4 pt-4 pb-3 flex items-center justify-between border-b border-dark-600">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 size={16} className="text-win-400 shrink-0" />
+                      <p className="text-sm font-semibold text-win-400">{mf.card.doneTitle}</p>
+                    </div>
+                    {mfsEntry.arjunResponse && (
+                      <button
+                        onClick={() => setShowMfsReport(true)}
+                        className="text-xs font-bold text-saffron-400"
+                      >
+                        {hi ? 'रिपोर्ट →' : 'Report →'}
+                      </button>
+                    )}
                   </div>
-                  <div className="flex gap-1.5 flex-wrap mb-2">
+                  {/* Scores row */}
+                  <div className="px-4 py-3 flex gap-1.5 flex-wrap">
                     {['mood','focus','confidence','drive','calm','selftalk','bounce'].map(d => (
                       mfsEntry[d] != null && (
-                        <span key={d} className="text-xs bg-brand-50 text-brand-700 px-2 py-0.5 rounded-full font-semibold">
+                        <span key={d} className="text-xs bg-brand-50 text-brand-300 px-2 py-0.5 rounded-full font-semibold">
                           {mf.dims[d]} {mfsEntry[d]}
                         </span>
                       )
                     ))}
                   </div>
-                  {mfsEntry.arjunResponse && (
+                  {/* Next action */}
+                  <div className="px-4 pb-4">
+                    <p className="text-[11px] text-slt mb-2">{hi ? 'अगला कदम:' : 'Next up:'}</p>
                     <button
-                      onClick={() => setShowMfsReport(true)}
-                      className="text-xs font-semibold mt-1"
-                      style={{ color: '#E2711D' }}
+                      onClick={() => navigate('/coaching', { state: { newSession: true } })}
+                      className="w-full py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-bold active:scale-[0.98] transition-all"
                     >
-                      {hi ? 'अर्जुन की रिपोर्ट देखें →' : "Arjun's report →"}
+                      {hi ? 'अर्जुन से बात करो' : 'Talk to Arjun'}
                     </button>
-                  )}
+                  </div>
                 </div>
               ) : (
-                <Link to="/mental-fitness">
-                  <div className="bg-white border border-dark-600 rounded-2xl p-4 flex items-center justify-between active:scale-[0.99] transition-transform shadow-sm">
-                    <div>
-                      <p className="font-semibold text-ink text-sm">{mf.card.notDoneTitle}</p>
-                      <p className="text-xs text-slt mt-0.5">{mf.card.notDoneSub}</p>
-                    </div>
-                    <div className="bg-brand-500 text-white text-xs font-bold px-3 py-2 rounded-xl whitespace-nowrap ml-3 shrink-0">
-                      {mf.card.notDoneBtn}
-                    </div>
+                /* ── CHECK-IN NOT DONE ── hero workout card */
+                <div
+                  className="relative rounded-2xl overflow-hidden border border-dark-600"
+                  style={{ background: 'linear-gradient(135deg, #0F2D45 0%, #132334 60%, #0B1B2A 100%)' }}
+                >
+                  {/* Decorative arc */}
+                  <div className="absolute top-0 right-0 w-40 h-40 opacity-10 pointer-events-none">
+                    <svg viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="160" cy="0" r="120" stroke="#19A7FF" strokeWidth="1.5" />
+                      <circle cx="160" cy="0" r="80" stroke="#1769AA" strokeWidth="1" />
+                    </svg>
                   </div>
-                </Link>
+                  {/* Sport tag */}
+                  <div className="px-4 pt-4">
+                    <span className="inline-flex items-center gap-1.5 bg-brand-500/20 text-brand-300 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wide border border-brand-500/30">
+                      {hi ? 'अनुशंसित' : 'Recommended'} · {sport}
+                    </span>
+                  </div>
+                  {/* Title */}
+                  <div className="px-4 pt-2 pb-1">
+                    <p className="text-xl font-black text-ink leading-tight">
+                      {hi ? 'मानसिक वर्कआउट' : 'Mental Workout'}
+                    </p>
+                    <p className="text-xs text-slt mt-0.5">
+                      {hi ? 'आज के लिए तैयार किया गया' : `Personalised for your ${sport.toLowerCase()}`}
+                    </p>
+                  </div>
+                  {/* Drill list */}
+                  <div className="px-4 py-3 space-y-1.5">
+                    {[
+                      { label: hi ? 'दैनिक चेक-इन'      : 'Daily Check-in',   time: '60s'  },
+                      { label: hi ? 'मैच से पहले रीसेट'  : 'Before You Play',  time: '5min' },
+                      { label: hi ? 'विज़ुअलाइज़ेशन'    : 'Visualization',    time: '4min' },
+                    ].map(({ label, time }) => (
+                      <div key={label} className="flex items-center gap-2">
+                        <div className="w-1 h-1 rounded-full bg-brand-400 shrink-0" />
+                        <span className="text-xs text-slt">{label}</span>
+                        <span className="text-[10px] text-muted ml-auto">— {time}</span>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Start button */}
+                  <div className="px-4 pb-4">
+                    <button
+                      onClick={() => navigate('/mental-fitness')}
+                      className="w-full flex items-center justify-center gap-2 py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-bold active:scale-[0.98] transition-all shadow-glow-brand"
+                    >
+                      <Play size={15} className="fill-white" />
+                      {hi ? 'शुरू करें' : 'Start'}
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
 
-            {/* ── AI COACH CARD ───────────────────────────────────────────────── */}
-            <div className="mb-5">
-              <div className="bg-white border border-dark-600 rounded-2xl p-4 shadow-sm">
-                <p className="font-semibold text-ink mb-0.5">{td.coachCardTitle}</p>
-                <p className="text-xs text-slt mb-3">{td.coachCardSub}</p>
-                <div className="flex flex-col gap-2">
-                  <button
-                    onClick={() => navigate('/coaching', { state: { newSession: true } })}
-                    className="w-full py-2.5 px-3 bg-brand-600 text-white rounded-xl text-sm font-semibold text-center active:scale-[0.98] transition-transform"
-                  >
-                    {td.startNewSession}
-                  </button>
-                  <button
-                    onClick={() => navigate('/sessions')}
-                    className="w-full py-2.5 px-3 bg-brand-50 border border-brand-100 rounded-xl text-xs font-semibold text-brand-700 text-center hover:bg-brand-100 active:scale-95 transition-all"
-                  >
-                    {td.viewPastSessions}
-                  </button>
-                </div>
+            {/* ── QUICK TOOLS 2×2 ────────────────────────────────────────────── */}
+            <div className="mb-6">
+              <SectionLabel>{hi ? 'त्वरित टूल' : 'Quick Tools'}</SectionLabel>
+              <div className="grid grid-cols-2 gap-3">
+                <QuickTool
+                  icon={RotateCcw}
+                  iconBg="bg-brand-50"
+                  iconColor="text-brand-400"
+                  title={hi ? 'मैच से पहले'    : 'Before You Play'}
+                  desc={hi  ? 'फोकस और तैयारी' : 'Get focused and mentally ready.'}
+                  onClick={() => navigate('/reset')}
+                />
+                <QuickTool
+                  icon={Shield}
+                  iconBg="bg-teal-500/15"
+                  iconColor="text-teal-400"
+                  title={hi ? 'वापसी करो'    : 'Bounce Back'}
+                  desc={hi  ? 'रीसेट और आगे बढ़ो' : 'Reset, refocus and stay in control.'}
+                  onClick={() => navigate('/reset')}
+                />
+                <QuickTool
+                  icon={ClipboardList}
+                  iconBg="bg-saffron-500/15"
+                  iconColor="text-saffron-400"
+                  title={hi ? 'मैच के बाद'   : 'After the Match'}
+                  desc={hi  ? 'सोचो, सीखो'    : 'Reflect, learn and improve.'}
+                  onClick={() => navigate('/debrief')}
+                />
+                <QuickTool
+                  icon={MessageCircle}
+                  iconBg="bg-purple-500/15"
+                  iconColor="text-purple-400"
+                  title={hi ? 'अर्जुन से बात' : 'Talk to Arjun'}
+                  desc={hi  ? 'तुम्हारा AI कोच' : 'Your AI coach is here.'}
+                  onClick={() => navigate('/coaching', { state: { newSession: true } })}
+                />
               </div>
             </div>
 
-            {/* ── MENTAL TOOLS ────────────────────────────────────────────────── */}
-            <div className="mb-5">
-              <SectionLabel>{hi ? 'अभी क्या करें' : 'What to do right now'}</SectionLabel>
-              <div className="flex flex-col gap-2">
-                {TOOLS.map(({ Icon, label, desc, to }) => (
+            {/* ── MATCH DAY ──────────────────────────────────────────────────── */}
+            {(savedCueWord || totalCheckIns > 0) && (
+              <div className="mb-6">
+                <SectionLabel>{hi ? 'मैच डे' : 'Match Day'}</SectionLabel>
+                <div className="card p-4">
+                  <p className="text-[10px] text-muted uppercase tracking-widest mb-1">
+                    {hi ? 'तुम्हारा क्यू वर्ड' : 'Your cue word'}
+                  </p>
+                  <p className="text-2xl font-black text-navy-bright tracking-wider mb-3">
+                    {savedCueWord || (hi ? 'अभी बनाओ' : 'SET IT UP')}
+                  </p>
                   <button
-                    key={to}
-                    onClick={() => navigate(to)}
-                    className="flex items-center gap-3 bg-white border border-dark-600 hover:border-brand-500/40 hover:bg-dark-800 rounded-2xl px-4 py-3.5 text-left active:scale-[0.98] transition-all shadow-sm"
+                    onClick={() => navigate('/ritual')}
+                    className="w-full py-2.5 bg-dark-700 border border-dark-600 hover:bg-dark-600 text-ink rounded-xl text-sm font-semibold active:scale-[0.98] transition-all"
                   >
-                    <div className="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center shrink-0">
-                      <Icon size={18} className="text-brand-500" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-ink leading-snug">{label}</p>
-                      <p className="text-xs text-slt leading-snug mt-0.5">{desc}</p>
-                    </div>
-                    <ChevronRight size={16} className="text-dark-500 shrink-0" />
+                    {hi ? 'मेरा रूटीन खोलें' : 'Open My Routine'}
                   </button>
-                ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* ── PROGRESS PREVIEW ────────────────────────────────────────────── */}
             {weeklyAvg && (weeklyAvg.mood !== null || weeklyAvg.focus !== null) && (
-              <div className="mb-5">
+              <div className="mb-6">
                 <div className="flex items-center justify-between mb-3">
                   <SectionLabel>{td.thisWeek}</SectionLabel>
-                  <Link to="/progress" className="text-xs font-semibold text-brand-600 -mt-3">
+                  <Link to="/progress" className="text-xs font-semibold text-brand-400 -mt-3">
                     {td.viewFullProgress} <ChevronRight size={11} className="inline" />
                   </Link>
                 </div>
-                <div className="bg-white border border-dark-600 rounded-2xl p-4 shadow-sm">
+                <div className="card p-4">
                   <div className="grid grid-cols-3 gap-3 text-center">
                     {[
-                      { key: 'mood',       label: hi ? 'मूड'          : 'Mood',       color: 'text-brand-500' },
-                      { key: 'focus',      label: hi ? 'फोकस'        : 'Focus',      color: 'text-sky-500'   },
-                      { key: 'confidence', label: hi ? 'आत्म.'        : 'Conf',       color: 'text-win-500'   },
+                      { key: 'mood',       label: hi ? 'मूड'   : 'Mood',  color: 'text-brand-400' },
+                      { key: 'focus',      label: hi ? 'फोकस'  : 'Focus', color: 'text-sky-400'   },
+                      { key: 'confidence', label: hi ? 'आत्म.' : 'Conf',  color: 'text-win-400'   },
                     ].map(({ key, label, color }) => (
                       <div key={key}>
                         <p className={`text-2xl font-black ${color}`}>{weeklyAvg[key] ?? '–'}</p>
@@ -370,6 +440,28 @@ export default function Dashboard() {
               </div>
             )}
 
+            {/* ── AI COACH CARD ───────────────────────────────────────────────── */}
+            <div className="mb-6">
+              <div className="card p-4">
+                <p className="font-semibold text-ink mb-0.5">{td.coachCardTitle}</p>
+                <p className="text-xs text-slt mb-3">{td.coachCardSub}</p>
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={() => navigate('/coaching', { state: { newSession: true } })}
+                    className="w-full py-2.5 px-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-semibold text-center active:scale-[0.98] transition-all"
+                  >
+                    {td.startNewSession}
+                  </button>
+                  <button
+                    onClick={() => navigate('/sessions')}
+                    className="w-full py-2.5 px-3 bg-dark-700 border border-dark-600 rounded-xl text-xs font-semibold text-slt text-center hover:bg-dark-600 active:scale-95 transition-all"
+                  >
+                    {td.viewPastSessions}
+                  </button>
+                </div>
+              </div>
+            </div>
+
             {/* ── UPGRADE BANNERS ─────────────────────────────────────────────── */}
             {trialEnded && (
               <div className="mb-4 bg-brand-600 rounded-2xl p-5">
@@ -379,7 +471,7 @@ export default function Dashboard() {
                 </p>
                 <button
                   onClick={() => navigate('/pricing')}
-                  className="bg-white text-brand-700 font-bold text-sm py-3 rounded-xl w-full"
+                  className="bg-white text-brand-600 font-bold text-sm py-3 rounded-xl w-full"
                 >
                   {td.upgrade}
                 </button>
@@ -388,13 +480,13 @@ export default function Dashboard() {
             {!isPremium && !trialEnded && trialDaysRemaining != null && trialDaysRemaining <= 3 && (
               <div className="mb-4">
                 <Link to="/account">
-                  <div className="bg-white border border-fire-400/40 rounded-2xl px-4 py-3 flex items-center justify-between shadow-sm">
-                    <p className="text-sm font-semibold text-fire-600">
+                  <div className="bg-dark-400 border border-fire-400/40 rounded-2xl px-4 py-3 flex items-center justify-between">
+                    <p className="text-sm font-semibold text-saffron-400">
                       ⏰ {trialDaysRemaining === 1
                         ? (hi ? 'ट्रायल का आखिरी दिन' : 'Last day of trial')
                         : (hi ? `${trialDaysRemaining} दिन बचे` : `${trialDaysRemaining} days left`)}
                     </p>
-                    <span className="text-xs font-bold text-brand-600">{hi ? 'अपग्रेड →' : 'Upgrade →'}</span>
+                    <span className="text-xs font-bold text-brand-400">{hi ? 'अपग्रेड →' : 'Upgrade →'}</span>
                   </div>
                 </Link>
               </div>
@@ -407,7 +499,7 @@ export default function Dashboard() {
       {infoPopup && (
         <>
           <div className="fixed inset-0 z-[60] bg-black/40" onClick={() => setInfoPopup(null)} />
-          <div className="fixed bottom-0 inset-x-0 z-[60] bg-white border-t border-dark-600 rounded-t-2xl px-5 pt-6 pb-12 animate-fade-in shadow-xl">
+          <div className="fixed bottom-0 inset-x-0 z-[60] bg-dark-800 border-t border-dark-600 rounded-t-2xl px-5 pt-6 pb-12 animate-fade-in shadow-xl">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base font-bold text-ink">
                 {infoPopup === 'streak'  && (hi ? 'ट्रेनिंग स्ट्रीक'     : 'Training Streak')}
@@ -424,7 +516,7 @@ export default function Dashboard() {
                     ? 'लगातार कितने दिनों से मानसिक ट्रेनिंग हो रही है — यही स्ट्रीक है।'
                     : 'Your streak counts consecutive days of mental training — daily check-ins keep it alive.'}
                 </p>
-                <div className="bg-dark-800 rounded-xl px-4 py-3 space-y-1.5">
+                <div className="bg-dark-700 rounded-xl px-4 py-3 space-y-1.5">
                   {[
                     [hi ? '3 दिन'  : '3 days',  hi ? 'आदत बन रही है'          : 'Habit forming'],
                     [hi ? '7 दिन'  : '7 days',  hi ? 'एक हफ्ते की अनुशासन'   : 'One week of discipline'],
@@ -452,7 +544,7 @@ export default function Dashboard() {
                     ? 'मानसिक XP (MXP) आपकी मानसिक ट्रेनिंग की मेहनत को दर्शाता है।'
                     : 'Mental XP (MXP) tracks the effort you put into your mental training.'}
                 </p>
-                <div className="bg-dark-800 rounded-xl px-4 py-3 space-y-1.5">
+                <div className="bg-dark-700 rounded-xl px-4 py-3 space-y-1.5">
                   {[
                     [hi ? 'दैनिक चेक-इन'  : 'Daily check-in',   '+10 MXP'],
                     [hi ? 'आज का अभ्यास'  : 'Daily drill done',  '+15 MXP'],
@@ -461,7 +553,7 @@ export default function Dashboard() {
                   ].map(([action, xp]) => (
                     <div key={action} className="flex items-center justify-between">
                       <span className="text-xs text-slt">{action}</span>
-                      <span className="text-xs font-bold text-brand-500">{xp}</span>
+                      <span className="text-xs font-bold text-brand-400">{xp}</span>
                     </div>
                   ))}
                 </div>
@@ -475,15 +567,15 @@ export default function Dashboard() {
                     ? 'मानसिक फिटनेस स्कोर पिछले 7 दिनों के मूड, फोकस और आत्मविश्वास के औसत पर आधारित है।'
                     : 'Mental Fitness Score is based on your average mood, focus, and confidence over the last 7 days.'}
                 </p>
-                <div className="bg-dark-800 rounded-xl px-4 py-3 space-y-1.5">
+                <div className="bg-dark-700 rounded-xl px-4 py-3 space-y-1.5">
                   {[
-                    ['90–100', hi ? 'चैंपियन मोड'     : 'Champion mode'],
-                    ['75–89',  hi ? 'मज़बूत'           : 'Strong'],
-                    ['60–74',  hi ? 'बन रहा है'        : 'Building'],
-                    ['< 60',   hi ? 'ध्यान चाहिए'     : 'Needs work'],
+                    ['90–100', hi ? 'चैंपियन मोड'  : 'Champion mode'],
+                    ['75–89',  hi ? 'मज़बूत'        : 'Strong'],
+                    ['60–74',  hi ? 'बन रहा है'     : 'Building'],
+                    ['< 60',   hi ? 'ध्यान चाहिए'  : 'Needs work'],
                   ].map(([range, label]) => (
                     <div key={range} className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-brand-500">{range}</span>
+                      <span className="text-xs font-bold text-brand-400">{range}</span>
                       <span className="text-xs text-slt">{label}</span>
                     </div>
                   ))}
@@ -504,23 +596,23 @@ export default function Dashboard() {
         return (
           <>
             <div className="fixed inset-0 z-[60] bg-black/40" onClick={() => setShowMfsReport(false)} />
-            <div className="fixed bottom-0 inset-x-0 z-[60] bg-white rounded-t-2xl px-5 pt-5 pb-12 animate-fade-in shadow-xl max-h-[85vh] overflow-y-auto">
+            <div className="fixed bottom-0 inset-x-0 z-[60] bg-dark-800 border-t border-dark-600 rounded-t-2xl px-5 pt-5 pb-12 animate-fade-in shadow-xl max-h-[85vh] overflow-y-auto">
               {/* Header */}
               <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-base" style={{ backgroundColor: '#EFF6FF' }}>🧠</div>
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-base bg-brand-50">🧠</div>
                   <p className="font-bold text-ink text-sm">{hi ? 'अर्जुन की रिपोर्ट' : "Arjun's report"}</p>
                 </div>
                 <button
                   onClick={() => setShowMfsReport(false)}
-                  className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-slt"
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-dark-700 text-slt"
                 >
                   <X size={16} />
                 </button>
               </div>
 
               {/* Report text */}
-              <div className="bg-gray-50 rounded-xl p-4 mb-5">
+              <div className="bg-dark-700 rounded-xl p-4 mb-5">
                 <p className="text-sm text-ink leading-relaxed">{mfsEntry.arjunResponse}</p>
               </div>
 
@@ -534,17 +626,16 @@ export default function Dashboard() {
                     : rec.state ? { state: rec.state } : undefined;
                   navigate(rec.to, navState);
                 }}
-                className="w-full flex items-center gap-3 p-3.5 rounded-xl border-2 active:scale-[0.98] transition-transform mb-3"
-                style={{ borderColor: '#185FA5' }}
+                className="w-full flex items-center gap-3 p-3.5 rounded-xl border-2 border-brand-500 active:scale-[0.98] transition-transform mb-3 bg-dark-700"
               >
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: '#EFF6FF' }}>
-                  <rec.Icon size={18} style={{ color: '#185FA5' }} />
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-brand-50">
+                  <rec.Icon size={18} className="text-brand-400" />
                 </div>
                 <div className="text-left flex-1">
                   <p className="font-semibold text-ink text-sm">{toolInfo.title}</p>
                   <p className="text-xs text-slt">{toolInfo.desc}</p>
                 </div>
-                <ChevronRight size={16} style={{ color: '#185FA5' }} />
+                <ChevronRight size={16} className="text-brand-400" />
               </button>
 
               {/* Talk to Arjun secondary */}
@@ -563,10 +654,10 @@ export default function Dashboard() {
       {showFreezeConfirm && (
         <>
           <div className="fixed inset-0 z-[60] bg-black/40" onClick={() => setShowFreezeConfirm(false)} />
-          <div className="fixed bottom-0 inset-x-0 z-[60] bg-white border-t border-dark-600 rounded-t-2xl px-5 pt-6 pb-12 animate-fade-in shadow-xl">
+          <div className="fixed bottom-0 inset-x-0 z-[60] bg-dark-800 border-t border-dark-600 rounded-t-2xl px-5 pt-6 pb-12 animate-fade-in shadow-xl">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center">
-                <Snowflake size={20} className="text-sky-500" />
+              <div className="w-10 h-10 rounded-full bg-sky-900/30 flex items-center justify-center">
+                <Snowflake size={20} className="text-sky-400" />
               </div>
               <h3 className="font-bold text-ink">{ts.freezeConfirmTitle}</h3>
             </div>
@@ -575,7 +666,7 @@ export default function Dashboard() {
               <button
                 onClick={() => setShowFreezeConfirm(false)}
                 disabled={freezeLoading}
-                className="flex-1 py-3 rounded-xl border border-dark-600 text-slt font-semibold bg-dark-800 hover:bg-dark-700 transition-colors"
+                className="flex-1 py-3 rounded-xl border border-dark-600 text-slt font-semibold bg-dark-700 hover:bg-dark-600 transition-colors"
               >
                 {hi ? 'रद्द करें' : 'Cancel'}
               </button>

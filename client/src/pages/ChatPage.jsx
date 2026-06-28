@@ -9,14 +9,14 @@ import { ArjunLogo } from '../components/ArjunLogo';
 // ─── Session definitions ───────────────────────────────────────────────────────
 
 const SESSIONS = [
-  { key: 'match_prep',      color: 'text-violet-700', activeBg: 'bg-violet-500/15 border-violet-500/60' },
-  { key: 'post_match',      color: 'text-blue-700',   activeBg: 'bg-blue-500/15 border-blue-500/60'   },
-  { key: 'build_focus',     color: 'text-orange-700', activeBg: 'bg-orange-500/15 border-orange-500/60' },
-  { key: 'confidence',      color: 'text-brand-600',  activeBg: 'bg-brand-500/15 border-brand-500/60' },
-  { key: 'handle_pressure', color: 'text-red-700',    activeBg: 'bg-red-500/15 border-red-500/60'     },
-  { key: 'pressure_reset',  color: 'text-brand-600',  activeBg: 'bg-brand-500/15 border-brand-500/60' },
-  { key: 'setback_reset',   color: 'text-fire-600',   activeBg: 'bg-fire-500/15 border-fire-500/60'   },
-  { key: 'open',            color: 'text-win-500',    activeBg: 'bg-win-500/15 border-win-500/60'     },
+  { key: 'match_prep',      color: 'text-violet-400', activeBg: 'bg-violet-500/15 border-violet-500/60' },
+  { key: 'post_match',      color: 'text-blue-400',   activeBg: 'bg-blue-500/15 border-blue-500/60'   },
+  { key: 'build_focus',     color: 'text-orange-400', activeBg: 'bg-orange-500/15 border-orange-500/60' },
+  { key: 'confidence',      color: 'text-brand-400',  activeBg: 'bg-brand-500/15 border-brand-500/60' },
+  { key: 'handle_pressure', color: 'text-red-400',    activeBg: 'bg-red-500/15 border-red-500/60'     },
+  { key: 'pressure_reset',  color: 'text-brand-400',  activeBg: 'bg-brand-500/15 border-brand-500/60' },
+  { key: 'setback_reset',   color: 'text-fire-400',   activeBg: 'bg-fire-500/15 border-fire-500/60'   },
+  { key: 'open',            color: 'text-win-400',    activeBg: 'bg-win-500/15 border-win-500/60'     },
 ];
 
 // Reliable hardcoded initial chips per session (shown after Arjun's first reply)
@@ -109,7 +109,7 @@ function MessageBubble({ message, isStreaming }) {
         className={`max-w-[92%] px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap break-words ${
           isUser
             ? 'bg-brand-600 text-white rounded-2xl rounded-br-md'
-            : 'bg-white border border-brand-100 text-ink shadow-sm rounded-2xl rounded-bl-md'
+            : 'bg-dark-400 border border-dark-600 text-ink shadow-sm rounded-2xl rounded-bl-md'
         }`}
       >
         {message.content}
@@ -128,7 +128,7 @@ function MessageBubble({ message, isStreaming }) {
 function TypingIndicator() {
   return (
     <div className="flex justify-start">
-      <div className="bg-white border border-brand-100 shadow-sm rounded-2xl rounded-bl-md px-4 py-3">
+      <div className="bg-dark-400 border border-dark-600 shadow-sm rounded-2xl rounded-bl-md px-4 py-3">
         <span className="inline-flex gap-1">
           <span className="w-2 h-2 bg-slt rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
           <span className="w-2 h-2 bg-slt rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
@@ -143,14 +143,14 @@ function SummaryBubble({ summary, label }) {
   const sentences = summary.split(/(?<=\.)\s+/).filter(Boolean);
   return (
     <div className="animate-fade-in mb-1">
-      <div className="rounded-2xl bg-brand-50 border border-brand-200 p-4 shadow-sm">
+      <div className="rounded-2xl bg-brand-600/10 border border-brand-500/30 p-4 shadow-sm">
         <div className="flex items-center gap-2 mb-2">
           <div className="w-4 h-4 rounded-full bg-brand-500 flex items-center justify-center shrink-0">
             <svg viewBox="0 0 10 10" className="w-2.5 h-2.5">
               <path d="M1.5 5L3.5 7.5L8.5 2.5" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <p className="text-[10px] uppercase tracking-widest text-brand-600 font-bold">{label}</p>
+          <p className="text-[10px] uppercase tracking-widest text-brand-400 font-bold">{label}</p>
         </div>
         <p className="text-sm leading-relaxed text-ink whitespace-pre-wrap">
           {sentences.join('\n\n')}
@@ -588,7 +588,7 @@ function ChatPage() {
           {/* Arjun welcome bubble — shown on start screen or empty session */}
           {!hasMessages && !waitingForFirst && (
             <div className="flex justify-start animate-fade-in">
-              <div className="max-w-[92%] px-3.5 py-2.5 text-sm leading-relaxed bg-white border border-brand-100 text-ink shadow-sm rounded-2xl rounded-bl-md">
+              <div className="max-w-[92%] px-3.5 py-2.5 text-sm leading-relaxed bg-dark-400 border border-dark-600 text-ink shadow-sm rounded-2xl rounded-bl-md">
                 {t.arjunWelcome}
               </div>
             </div>
@@ -656,7 +656,7 @@ function ChatPage() {
                         <button
                           key={reply}
                           onClick={() => sendMessage(reply)}
-                          className="text-xs bg-dark-700 border border-brand-600/40 text-brand-500 px-3 py-1.5 rounded-full hover:bg-brand-600/20 hover:border-brand-500 active:scale-95 transition-all"
+                          className="text-xs bg-dark-700 border border-brand-600/40 text-brand-400 px-3 py-1.5 rounded-full hover:bg-brand-600/20 hover:border-brand-500 active:scale-95 transition-all"
                         >
                           {reply}
                         </button>
@@ -693,7 +693,7 @@ function ChatPage() {
       </div>
 
       {/* ── Input area ──────────────────────────────────────────────────── */}
-      <div className="shrink-0 bg-dark-900 border-t border-dark-600 px-4 py-3">
+      <div className="shrink-0 bg-dark-800 border-t border-dark-600 px-4 py-3">
         <div className="max-w-2xl mx-auto relative">
 
           {/* ── Session picker dropdown ─────────────────────────── */}
@@ -718,7 +718,7 @@ function ChatPage() {
                         <p className={`text-sm font-medium ${isActive ? color : 'text-ink'}`}>{def.title}</p>
                         <p className="text-xs text-slt truncate">{def.desc}</p>
                       </div>
-                      {isActive && <span className="ml-auto text-brand-600 shrink-0 text-sm">✓</span>}
+                      {isActive && <span className="ml-auto text-brand-400 shrink-0 text-sm">✓</span>}
                     </button>
                   );
                 })}
@@ -737,11 +737,11 @@ function ChatPage() {
                     key={style}
                     onClick={() => { setReplyStyle(style); setShowStylePicker(false); }}
                     className={`w-full flex items-center justify-between px-4 py-2.5 text-sm text-left hover:bg-dark-700 transition-colors ${
-                      replyStyle === style ? 'text-brand-600 font-medium bg-brand-50' : 'text-ink'
+                      replyStyle === style ? 'text-brand-400 font-medium bg-brand-600/20' : 'text-ink'
                     }`}
                   >
                     {t.replyStyles[style]}
-                    {replyStyle === style && <span className="text-brand-600 text-xs">✓</span>}
+                    {replyStyle === style && <span className="text-brand-400 text-xs">✓</span>}
                   </button>
                 ))}
               </div>
@@ -749,8 +749,8 @@ function ChatPage() {
           )}
 
           {atLimit && (
-            <div className="mb-3 flex flex-col sm:flex-row sm:items-center gap-2 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3">
-              <p className="text-sm text-amber-700 flex-1">
+            <div className="mb-3 flex flex-col sm:flex-row sm:items-center gap-2 bg-amber-950/30 border border-amber-700/40 rounded-2xl px-4 py-3">
+              <p className="text-sm text-amber-400 flex-1">
                 🔒 {t.limitReached} {t.upgradePrompt}.
               </p>
               <button onClick={() => navigate('/pricing')} className="text-xs font-semibold text-white bg-brand-600 hover:bg-brand-700 px-4 py-2 rounded-xl transition-colors whitespace-nowrap">
@@ -772,7 +772,7 @@ function ChatPage() {
               }
               disabled={atLimit || streaming}
               rows={1}
-              className="flex-1 resize-none bg-dark-700 border border-dark-500 text-ink rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent placeholder-slt disabled:opacity-50 disabled:cursor-not-allowed max-h-32 overflow-y-auto"
+              className="flex-1 resize-none bg-dark-700 border border-dark-600 text-ink rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent placeholder:text-muted disabled:opacity-50 disabled:cursor-not-allowed max-h-32 overflow-y-auto"
               style={{ minHeight: '44px' }}
               onInput={e => {
                 e.target.style.height = 'auto';
@@ -785,7 +785,7 @@ function ChatPage() {
                 onClick={() => { setShowStylePicker(s => !s); setShowSessionPicker(false); }}
                 title={t.styleLabel}
                 className={`p-2 rounded-xl transition-colors ${
-                  showStylePicker ? 'bg-brand-100 text-brand-600' : 'text-slt hover:text-ink hover:bg-dark-700'
+                  showStylePicker ? 'bg-brand-600/20 text-brand-400' : 'text-slt hover:text-ink hover:bg-dark-700'
                 }`}
               >
                 <SlidersHorizontal size={16} />
@@ -795,7 +795,7 @@ function ChatPage() {
                 disabled={atLimit || streaming}
                 title={t.chooseFocus}
                 className={`p-2 rounded-xl transition-colors disabled:opacity-40 ${
-                  showSessionPicker || activeSession ? 'bg-brand-100 text-brand-600' : 'text-slt hover:text-ink hover:bg-dark-700'
+                  showSessionPicker || activeSession ? 'bg-brand-600/20 text-brand-400' : 'text-slt hover:text-ink hover:bg-dark-700'
                 }`}
               >
                 <Compass size={16} />
