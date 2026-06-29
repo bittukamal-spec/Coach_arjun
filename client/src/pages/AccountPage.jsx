@@ -75,9 +75,10 @@ function AccountPage() {
   const [deleteError, setDeleteError]         = useState('');
 
   // Privacy & selective data deletion state
-  const [showDataConfirm, setShowDataConfirm] = useState(null);
-  const [privacyLoading, setPrivacyLoading]   = useState(null);
-  const [privacyToast, setPrivacyToast]       = useState('');
+  const [showPrivacySheet, setShowPrivacySheet] = useState(false);
+  const [showDataConfirm, setShowDataConfirm]   = useState(null);
+  const [privacyLoading, setPrivacyLoading]     = useState(null);
+  const [privacyToast, setPrivacyToast]         = useState('');
 
   async function cancelSubscription() {
     setCancelLoading(true);
@@ -649,36 +650,22 @@ function AccountPage() {
           </div>
         </section>
 
-        {/* Privacy & Data */}
+        {/* Privacy & Data — single row, opens bottom sheet */}
         <section className="mb-6">
-          <div className="flex items-center gap-2 mb-3">
-            <Shield size={16} className="text-slt" />
-            <h2 className="text-sm font-semibold text-slt uppercase tracking-wide">{tprivacy.sectionTitle}</h2>
-          </div>
-          <div className="card divide-y divide-dark-600">
-            {[
-              { type: 'chat-history',   Icon: MessageSquare, label: tprivacy.chat.label,        sub: tprivacy.chat.sub },
-              { type: 'reflections',    Icon: FileX,         label: tprivacy.reflections.label,  sub: tprivacy.reflections.sub },
-              { type: 'mental-profile', Icon: RefreshCw,     label: tprivacy.profile.label,      sub: tprivacy.profile.sub },
-              { type: 'cue-word',       Icon: Tag,           label: tprivacy.cue.label,          sub: tprivacy.cue.sub },
-              { type: 'checkin-history',Icon: BarChart2,     label: tprivacy.checkin.label,      sub: tprivacy.checkin.sub },
-            ].map(({ type, Icon, label, sub }) => (
-              <button
-                key={type}
-                onClick={() => setShowDataConfirm(type)}
-                disabled={privacyLoading === type}
-                className="w-full flex items-center gap-3 px-3 py-3 hover:bg-dark-700 transition-colors text-left first:rounded-t-2xl last:rounded-b-2xl disabled:opacity-50"
-              >
-                <div className="w-9 h-9 rounded-xl bg-dark-700 flex items-center justify-center flex-shrink-0">
-                  <Icon size={15} className="text-slt" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-ink">{label}</p>
-                  <p className="text-xs text-slt truncate">{sub}</p>
-                </div>
-                <Trash2 size={15} className="text-red-400 flex-shrink-0" />
-              </button>
-            ))}
+          <div className="card">
+            <button
+              onClick={() => setShowPrivacySheet(true)}
+              className="w-full flex items-center gap-3 px-3 py-3 rounded-2xl hover:bg-dark-700 transition-colors text-left"
+            >
+              <div className="w-9 h-9 rounded-xl bg-dark-700 flex items-center justify-center flex-shrink-0">
+                <Shield size={16} className="text-slt" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-ink">{tprivacy.sectionTitle}</p>
+                <p className="text-xs text-slt">{hi ? 'डेटा देखें और हटाएं' : 'View and delete your data'}</p>
+              </div>
+              <ChevronRight size={16} className="text-slt flex-shrink-0" />
+            </button>
           </div>
         </section>
 
@@ -795,6 +782,51 @@ function AccountPage() {
                   ? (hi ? 'रद्द हो रहा है…' : 'Cancelling…')
                   : (hi ? 'हाँ, रद्द करें' : 'Yes, Cancel')}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Privacy & Data bottom sheet */}
+      {showPrivacySheet && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm">
+          <div className="bg-dark-800 border border-dark-500 rounded-t-3xl w-full max-w-md animate-slide-up pb-8">
+            <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-dark-600">
+              <div className="flex items-center gap-2">
+                <Shield size={16} className="text-slt" />
+                <h3 className="font-bold text-ink">{tprivacy.sectionTitle}</h3>
+              </div>
+              <button
+                onClick={() => setShowPrivacySheet(false)}
+                className="w-8 h-8 rounded-full bg-dark-700 flex items-center justify-center text-slt hover:text-ink transition-colors text-lg leading-none"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="divide-y divide-dark-600">
+              {[
+                { type: 'chat-history',    Icon: MessageSquare, label: tprivacy.chat.label,       sub: tprivacy.chat.sub },
+                { type: 'reflections',     Icon: FileX,         label: tprivacy.reflections.label, sub: tprivacy.reflections.sub },
+                { type: 'mental-profile',  Icon: RefreshCw,     label: tprivacy.profile.label,     sub: tprivacy.profile.sub },
+                { type: 'cue-word',        Icon: Tag,           label: tprivacy.cue.label,         sub: tprivacy.cue.sub },
+                { type: 'checkin-history', Icon: BarChart2,     label: tprivacy.checkin.label,     sub: tprivacy.checkin.sub },
+              ].map(({ type, Icon, label, sub }) => (
+                <button
+                  key={type}
+                  onClick={() => { setShowDataConfirm(type); setShowPrivacySheet(false); }}
+                  disabled={privacyLoading === type}
+                  className="w-full flex items-center gap-3 px-5 py-4 hover:bg-dark-700 transition-colors text-left disabled:opacity-50"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-dark-700 flex items-center justify-center flex-shrink-0">
+                    <Icon size={15} className="text-slt" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-ink">{label}</p>
+                    <p className="text-xs text-slt">{sub}</p>
+                  </div>
+                  <Trash2 size={15} className="text-red-400 flex-shrink-0" />
+                </button>
+              ))}
             </div>
           </div>
         </div>
