@@ -364,7 +364,7 @@ export default function Dashboard() {
                   iconColor="text-brand-400"
                   title={hi ? 'मैच से पहले'    : 'Before You Play'}
                   desc={hi  ? 'फोकस और तैयारी' : 'Get focused and mentally ready.'}
-                  onClick={() => navigate('/reset')}
+                  onClick={() => navigate('/before-you-play')}
                 />
                 <QuickTool
                   icon={Shield}
@@ -372,7 +372,7 @@ export default function Dashboard() {
                   iconColor="text-teal-400"
                   title={hi ? 'वापसी करो'    : 'Bounce Back'}
                   desc={hi  ? 'रीसेट और आगे बढ़ो' : 'Reset, refocus and stay in control.'}
-                  onClick={() => navigate('/reset')}
+                  onClick={() => navigate('/bounce-back')}
                 />
                 <QuickTool
                   icon={ClipboardList}

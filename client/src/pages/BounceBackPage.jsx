@@ -28,19 +28,19 @@ const S5_KEYS = [
 
 // Colours (all via inline style — not in Tailwind config)
 const C = {
-  bg:     '#F7F3EA',
-  navy:   '#172033',
-  amber:  '#D98B2B',
-  teal:   '#2E7D6B',
-  danger: '#C0392B',
-  muted:  '#64748B',
-  card:   '#FFFFFF',
-  selBg:  '#FEF9F0',
-  border: '#E5E0D8',
-  blue:   '#185FA5',
-  blueFill: '#E8F0FE',
+  bg:     '#07131F',
+  navy:   '#F8FAFC',
+  amber:  '#E59A2E',
+  teal:   '#2CB5A0',
+  danger: '#EF4444',
+  muted:  '#7E8A99',
+  card:   '#132334',
+  selBg:  '#0D2A4A',
+  border: '#1B3044',
+  blue:   '#19A7FF',
+  blueFill: '#0D2A4A',
 };
-const SHADOW = '0 2px 8px rgba(0,0,0,0.08)';
+const SHADOW = '0 2px 8px rgba(0,0,0,0.4)';
 
 function haptic(ms = 50) { try { navigator.vibrate(ms); } catch {} }
 

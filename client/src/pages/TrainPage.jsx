@@ -79,7 +79,7 @@ export default function TrainPage() {
             title={hi ? 'मैच से पहले'       : 'Before You Play'}
             desc={hi  ? 'मैच से पहले लॉक इन करो' : 'Lock in before match'}
             duration="5 min"
-            onClick={() => navigate('/reset')}
+            onClick={() => navigate('/before-you-play')}
           />
           <ToolCard
             icon={Eye}
@@ -106,7 +106,7 @@ export default function TrainPage() {
             title={hi ? 'क्यू वर्ड'          : 'Cue Word Builder'}
             desc={hi  ? 'अपना परफॉर्मेंस क्यू वर्ड बनाओ और सेव करो' : 'Create and save a cue word'}
             duration="2 min"
-            onClick={() => navigate('/reset')}
+            onClick={() => navigate('/before-you-play')}
           />
         </div>
 
@@ -120,16 +120,7 @@ export default function TrainPage() {
             title={hi ? 'वापसी करो'         : 'Bounce Back'}
             desc={hi  ? 'गलती के बाद रीसेट करो' : 'Reset after a setback'}
             duration="3 min"
-            onClick={() => navigate('/reset')}
-          />
-          <ToolCard
-            icon={RotateCcw}
-            iconBg="bg-brand-50"
-            iconColor="text-brand-400"
-            title={hi ? 'प्रेशर रीसेट'       : 'Pressure Reset'}
-            desc={hi  ? 'शांत शरीर, साफ दिमाग' : 'Calm body, clear mind'}
-            duration="2 min"
-            onClick={() => navigate('/reset')}
+            onClick={() => navigate('/bounce-back')}
           />
           <ToolCard
             icon={Wind}
