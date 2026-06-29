@@ -90,10 +90,14 @@ export function AuthProvider({ children }) {
 
   function updateAvatar(url) {
     if (!user?.id) return;
-    if (url) {
-      localStorage.setItem(`arjun_avatar_${user.id}`, url);
-    } else {
-      localStorage.removeItem(`arjun_avatar_${user.id}`);
+    try {
+      if (url) {
+        localStorage.setItem(`arjun_avatar_${user.id}`, url);
+      } else {
+        localStorage.removeItem(`arjun_avatar_${user.id}`);
+      }
+    } catch {
+      // localStorage quota exceeded — state still updates so header shows it this session
     }
     setAvatarUrl(url);
   }
