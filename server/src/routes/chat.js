@@ -40,13 +40,6 @@ const PRESSURE_LABELS = {
   unaware:         'Has not developed any coping strategy yet',
 };
 
-const STYLE_INSTRUCTIONS = {
-  short:      'Keep responses very brief — 1–2 sentences. Answer directly, no padding.',
-  honest:     'Be direct and unfiltered — say what needs to be said without softening.',
-  thoughtful: 'Give a reflective, nuanced response. Slightly longer is fine when it serves the athlete.',
-  motivating: 'Be energetic and encouraging — raise their spirits and fire them up.',
-};
-
 // ── Middleware: block free users whose 14-day trial has ended ─────────────
 
 async function checkFreeLimit(req, res, next) {
@@ -121,7 +114,7 @@ Start by fully acknowledging what happened and validating the feeling. Then guid
 // ── Helper: build personalised system prompt ─────────────────────────────
 
 function buildSystemPrompt(user, checkIns = [], memories = [], sessionType = null, extra = {}) {
-  const { recentDebriefs = [], todayDrill = null, achievementCount = 0, recentDrills = [], gameSessions = [], ritual = null, replyStyle = null, mfsEntry = null, mfsHistory = [], mfsReport = null } = extra;
+  const { recentDebriefs = [], todayDrill = null, achievementCount = 0, recentDrills = [], gameSessions = [], ritual = null, mfsEntry = null, mfsHistory = [], mfsReport = null } = extra;
   const goals = JSON.parse(user.goals || '[]').map(g => GOAL_LABELS[g] || g);
   const goalsText = goals.length ? goals.join(', ') : 'general mental performance';
 
@@ -299,10 +292,6 @@ Do NOT mention that you are reading a profile — let it silently shape your res
     ? `\n\n## Natural Action Offer\nYou are ${extra.arjunMsgCount} responses into this session. If you feel you have addressed the athlete's main concern, naturally offer ONE specific next step they can try right now — for example a 2-minute breathing exercise, building a pre-match routine together, or a quick visualisation drill. Keep it to one casual sentence such as "Want to try a quick breathing exercise right now?" Only offer this once — if you have already suggested a next action in this session, do not repeat it.`
     : '';
 
-  const styleSection = replyStyle && STYLE_INSTRUCTIONS[replyStyle]
-    ? `\n\n## Response Style\nThe user has selected "${replyStyle}" mode. ${STYLE_INSTRUCTIONS[replyStyle]}`
-    : '';
-
   // ── Mental Fitness Check-in (today + last 7 entries history) ───────────
   let mfsSection = '';
   if (mfsEntry) {
@@ -435,7 +424,7 @@ ${sessionSection ? sessionSection + '\n\n' : ''}${checkInSection}
 
 ${activitySection}${debriefSection ? '\n\n' + debriefSection : ''}
 
-${memorySection}${extraSections ? '\n\n' + extraSections : ''}${actionBridgeSection}${styleSection}`;
+${memorySection}${extraSections ? '\n\n' + extraSections : ''}${actionBridgeSection}`;
 }
 
 // ── Background memory extraction ──────────────────────────────────────────
@@ -546,7 +535,7 @@ router.post('/message', authenticate, checkFreeLimit, async (req, res) => {
     });
   }
 
-  const { content, sessionType = null, arjunMsgCount = 0, replyStyle = null, chatSessionId = null, arjunReport = null } = req.body;
+  const { content, sessionType = null, arjunMsgCount = 0, chatSessionId = null, arjunReport = null } = req.body;
   if (!content || typeof content !== 'string' || content.trim().length === 0) {
     return res.status(400).json({ error: 'Message content is required' });
   }
@@ -687,7 +676,7 @@ router.post('/message', authenticate, checkFreeLimit, async (req, res) => {
     const stream = anthropic.messages.stream({
       model: process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001',
       max_tokens: 800,
-      system: buildSystemPrompt(user, recentCheckIns, memories, sessionType, { recentDebriefs, todayDrill, achievementCount, recentDrills, gameSessions, ritual, arjunMsgCount, replyStyle, mfsEntry, mfsHistory, mfsReport: arjunReport }),
+      system: buildSystemPrompt(user, recentCheckIns, memories, sessionType, { recentDebriefs, todayDrill, achievementCount, recentDrills, gameSessions, ritual, arjunMsgCount, mfsEntry, mfsHistory, mfsReport: arjunReport }),
       messages: conversationHistory,
     });
 

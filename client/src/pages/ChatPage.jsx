@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Compass, Info, SlidersHorizontal } from 'lucide-react';
+import { Compass, Info } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
@@ -175,11 +175,9 @@ function ChatPage() {
   const [waitingForFirst, setWaitingForFirst]     = useState(false);
   const [error, setError]                         = useState('');
   const [usage, setUsage]                         = useState({ isPremium: false, trialDaysRemaining: 14 });
-  const [replyStyle, setReplyStyle]               = useState(() => localStorage.getItem('arjun_reply_style') || 'thoughtful');
   const [activeSession, setActiveSession]         = useState(null);
   const [showSafety, setShowSafety]               = useState(false);
   const [showSessionPicker, setShowSessionPicker] = useState(false);
-  const [showStylePicker, setShowStylePicker]     = useState(false);
   const [chatSessionId, setChatSessionId]         = useState(null);
   const [showStartScreen, setShowStartScreen]     = useState(false);
   const [recentSessions, setRecentSessions]       = useState([]);
@@ -267,12 +265,6 @@ function ChatPage() {
     }
     init();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ── Persist reply style ───────────────────────────────────────────────────
-
-  useEffect(() => {
-    localStorage.setItem('arjun_reply_style', replyStyle);
-  }, [replyStyle]);
 
   // ── Auto-scroll ───────────────────────────────────────────────────────────
 
@@ -432,7 +424,7 @@ function ChatPage() {
       const res = await apiFetch('/api/chat/message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ content: trimmed, sessionType, arjunMsgCount: arjunMsgCountRef.current, replyStyle, chatSessionId: sessionIdToUse, arjunReport: arjunReportRef.current }),
+        body: JSON.stringify({ content: trimmed, sessionType, arjunMsgCount: arjunMsgCountRef.current, chatSessionId: sessionIdToUse, arjunReport: arjunReportRef.current }),
       });
 
       if (!res.ok) {
@@ -497,7 +489,7 @@ function ChatPage() {
       streamIdRef.current = null;
       inputRef.current?.focus();
     }
-  }, [input, streaming, token, t.errorRetry, activeSession, language, replyStyle, chatSessionId]);
+  }, [input, streaming, token, t.errorRetry, activeSession, language, chatSessionId]);
 
   // ── Session selection ─────────────────────────────────────────────────────
 
@@ -725,28 +717,6 @@ function ChatPage() {
             </>
           )}
 
-          {/* ── Style picker dropdown ─────────────────────────────── */}
-          {showStylePicker && (
-            <>
-              <div className="fixed inset-0 z-10" onClick={() => setShowStylePicker(false)} />
-              <div className="absolute bottom-full mb-2 right-0 z-20 bg-dark-800 border border-dark-600 rounded-xl shadow-lg overflow-hidden w-44">
-                <p className="text-[11px] uppercase tracking-widest text-slt font-medium px-4 pt-3 pb-1">{t.styleLabel}</p>
-                {['short', 'honest', 'thoughtful', 'motivating'].map(style => (
-                  <button
-                    key={style}
-                    onClick={() => { setReplyStyle(style); setShowStylePicker(false); }}
-                    className={`w-full flex items-center justify-between px-4 py-2.5 text-sm text-left hover:bg-dark-700 transition-colors ${
-                      replyStyle === style ? 'text-brand-400 font-medium bg-brand-600/20' : 'text-ink'
-                    }`}
-                  >
-                    {t.replyStyles[style]}
-                    {replyStyle === style && <span className="text-brand-400 text-xs">✓</span>}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-
           {atLimit && (
             <div className="mb-3 flex flex-col sm:flex-row sm:items-center gap-2 bg-amber-950/30 border border-amber-700/40 rounded-2xl px-4 py-3">
               <p className="text-sm text-amber-400 flex-1">
@@ -796,7 +766,7 @@ function ChatPage() {
             </button>
             {/* Topic picker */}
             <button
-              onClick={() => { setShowSessionPicker(s => !s); setShowStylePicker(false); }}
+              onClick={() => setShowSessionPicker(s => !s)}
               disabled={atLimit || streaming}
               title={t.chooseFocus}
               className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-colors shrink-0 disabled:opacity-40 ${
@@ -806,18 +776,6 @@ function ChatPage() {
               }`}
             >
               <Compass size={18} />
-            </button>
-            {/* Style filter */}
-            <button
-              onClick={() => { setShowStylePicker(s => !s); setShowSessionPicker(false); }}
-              title={t.styleLabel}
-              className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-colors shrink-0 ${
-                showStylePicker
-                  ? 'bg-brand-600/20 text-brand-400 border border-brand-500/30'
-                  : 'bg-dark-700 border border-dark-600 text-slt hover:text-ink'
-              }`}
-            >
-              <SlidersHorizontal size={18} />
             </button>
           </div>
 
