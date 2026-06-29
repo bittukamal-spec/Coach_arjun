@@ -7,8 +7,16 @@ import { apiFetch } from '../api';
 import {
   Flame, Zap, CheckCircle2, Snowflake, ChevronRight,
   Wind, RotateCcw, Trophy, ClipboardList, Gamepad2, Crown, X, MessageCircle,
-  Play, Eye, Target, Shield,
+  Eye, Target, Shield, CircleDot, Waves, Activity,
 } from 'lucide-react';
+
+function getSportIcon(sport) {
+  const s = (sport || '').toLowerCase();
+  if (['cricket','football','soccer','basketball','tennis','volleyball','baseball','hockey','badminton'].some(k => s.includes(k))) return CircleDot;
+  if (['swimming','water polo'].some(k => s.includes(k))) return Waves;
+  if (['running','athletics','track','cycling','marathon'].some(k => s.includes(k))) return Activity;
+  return Trophy;
+}
 
 const TRIAL_DAYS = 14;
 
@@ -167,23 +175,17 @@ export default function Dashboard() {
             {/* ── HERO GREETING ──────────────────────────────────────────────── */}
             <div className="pt-1 mb-5">
               <p className="text-2xl font-black text-ink leading-tight">
-                {hi ? `तैयार, ${firstName}?` : `Ready, ${firstName}?`}
-              </p>
-              <p className="text-sm text-slt mt-1">
-                {hi
-                  ? 'एक छोटा मानसिक अभ्यास आज तुम्हारी परफॉर्मेंस बेहतर कर सकता है।'
-                  : 'One short mental drill today can sharpen your performance.'}
+                {hi ? `हाय, ${firstName}` : `Hi, ${firstName}`}
               </p>
 
-              {/* Stat chips */}
-              <div className="flex gap-2 mt-4 flex-wrap">
+              {/* Stat chips — icon + number only */}
+              <div className="flex gap-2 mt-3 flex-wrap">
                 <button
                   onClick={() => setInfoPopup('streak')}
                   className="stat-pill active:scale-95 transition-transform"
                 >
                   <Flame size={13} className={streak > 0 ? 'text-fire-500' : 'text-slt'} />
                   <span className="text-xs font-bold text-ink">{streak ?? 0}</span>
-                  <span className="text-[10px] text-slt">{hi ? 'स्ट्रीक' : 'streak'}</span>
                 </button>
 
                 {user?.xp !== undefined && (
@@ -193,7 +195,6 @@ export default function Dashboard() {
                   >
                     <Zap size={13} className="text-fire-400" />
                     <span className="text-xs font-bold text-ink">{user.xp}</span>
-                    <span className="text-[10px] text-slt">MXP</span>
                   </button>
                 )}
 
@@ -210,7 +211,6 @@ export default function Dashboard() {
                       fitnessScore >= 75 ? 'text-win-400' :
                       fitnessScore >= 60 ? 'text-brand-400' : 'text-slt'
                     }`}>{fitnessScore}</span>
-                    <span className="text-[10px] text-slt">{hi ? 'स्कोर' : 'score'}</span>
                   </button>
                 )}
               </div>
@@ -252,9 +252,9 @@ export default function Dashboard() {
               </div>
             )}
 
-            {/* ── TODAY'S WORKOUT HERO CARD ──────────────────────────────────── */}
+            {/* ── MIND JOURNAL HERO CARD ─────────────────────────────────────── */}
             <div className="mb-6">
-              <SectionLabel>{hi ? 'आज का वर्कआउट' : "Today's Workout"}</SectionLabel>
+              <SectionLabel>{hi ? 'माइंड जर्नल' : 'Mind Journal'}</SectionLabel>
 
               {/* Loading check-in state */}
               {mfsEntry === null ? (
@@ -300,54 +300,44 @@ export default function Dashboard() {
                 </div>
               ) : (
                 /* ── CHECK-IN NOT DONE ── hero workout card */
-                <div className="relative rounded-2xl overflow-hidden border border-dark-600 bg-dark-800">
-                  {/* Decorative arc */}
-                  <div className="absolute top-0 right-0 w-40 h-40 opacity-10 pointer-events-none">
-                    <svg viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <circle cx="160" cy="0" r="120" stroke="#19A7FF" strokeWidth="1.5" />
-                      <circle cx="160" cy="0" r="80" stroke="#1769AA" strokeWidth="1" />
-                    </svg>
-                  </div>
-                  {/* Sport tag */}
-                  <div className="px-4 pt-4">
-                    <span className="inline-flex items-center gap-1.5 bg-brand-500/20 text-brand-300 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wide border border-brand-500/30">
-                      {hi ? 'अनुशंसित' : 'Recommended'} · {sport}
-                    </span>
-                  </div>
-                  {/* Title */}
-                  <div className="px-4 pt-2 pb-1">
-                    <p className="text-xl font-black text-ink leading-tight">
-                      {hi ? 'मानसिक वर्कआउट' : 'Mental Workout'}
-                    </p>
-                    <p className="text-xs text-slt mt-0.5">
-                      {hi ? 'आज के लिए तैयार किया गया' : `Personalised for your ${sport.toLowerCase()}`}
-                    </p>
-                  </div>
-                  {/* Drill list */}
-                  <div className="px-4 py-3 space-y-1.5">
-                    {[
-                      { label: hi ? 'दैनिक चेक-इन'      : 'Daily Check-in',   time: '60s'  },
-                      { label: hi ? 'मैच से पहले रीसेट'  : 'Before You Play',  time: '5min' },
-                      { label: hi ? 'विज़ुअलाइज़ेशन'    : 'Visualization',    time: '4min' },
-                    ].map(({ label, time }) => (
-                      <div key={label} className="flex items-center gap-2">
-                        <div className="w-1 h-1 rounded-full bg-brand-400 shrink-0" />
-                        <span className="text-xs text-slt">{label}</span>
-                        <span className="text-[10px] text-muted ml-auto">— {time}</span>
+                (() => {
+                  const SportIcon = getSportIcon(sport);
+                  return (
+                    <div className="relative rounded-2xl overflow-hidden border border-dark-600 bg-dark-800">
+                      {/* Decorative arc */}
+                      <div className="absolute top-0 right-0 w-40 h-40 opacity-10 pointer-events-none">
+                        <svg viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <circle cx="160" cy="0" r="120" stroke="#19A7FF" strokeWidth="1.5" />
+                          <circle cx="160" cy="0" r="80" stroke="#1769AA" strokeWidth="1" />
+                        </svg>
                       </div>
-                    ))}
-                  </div>
-                  {/* Start button */}
-                  <div className="px-4 pb-4">
-                    <button
-                      onClick={() => navigate('/mental-fitness')}
-                      className="w-full flex items-center justify-center gap-2 py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-bold active:scale-[0.98] transition-all shadow-glow-brand"
-                    >
-                      <Play size={15} className="fill-white" />
-                      {hi ? 'शुरू करें' : 'Start'}
-                    </button>
-                  </div>
-                </div>
+                      {/* Content */}
+                      <div className="px-4 pt-6 pb-5 flex flex-col items-center text-center">
+                        {/* Sport icon */}
+                        <div className="w-12 h-12 rounded-2xl bg-brand-500/20 border border-brand-500/30 flex items-center justify-center mb-3">
+                          <SportIcon size={22} className="text-brand-400" />
+                        </div>
+                        {/* Title */}
+                        <p className="text-lg font-black text-ink leading-tight mb-2">
+                          {hi ? 'दैनिक मानसिक वर्कआउट' : 'Daily Mental Workout'}
+                        </p>
+                        {/* Science subtitle */}
+                        <p className="text-xs text-slt leading-relaxed mb-5 max-w-xs">
+                          {hi
+                            ? 'रोज़ का मानसिक चेक-इन फोकस बढ़ाता है और मैच से पहले की घबराहट 31% तक कम करता है — खेल विज्ञान पर आधारित।'
+                            : 'A daily mental check-in is proven to sharpen focus and reduce pre-match nerves by 31% — backed by sport psychology.'}
+                        </p>
+                        {/* Start button */}
+                        <button
+                          onClick={() => navigate('/mental-fitness')}
+                          className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-bold active:scale-[0.98] transition-all"
+                        >
+                          {hi ? 'शुरू करें' : 'Start'}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })()
               )}
             </div>
 
