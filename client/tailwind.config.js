@@ -8,20 +8,20 @@ export default {
         // These map the existing `dark-*` tokens to the new dark navy palette.
         // All redesigned screens use bg-dark-900 for page, bg-dark-400/300 for cards.
         dark: {
-          900: '#07131F', // page background
-          800: '#0B1B2A', // surface / section bg
-          700: '#102538', // elevated surface / inputs
-          600: '#2B4157', // border
-          500: '#1F3448', // soft border
-          400: '#132334', // card
-          300: '#1B3044', // card muted / alternate card
-          200: '#22384F', // hover states
-          100: '#2E4D69', // active/selected
+          900: 'rgb(var(--dark-900) / <alpha-value>)', // page background
+          800: 'rgb(var(--dark-800) / <alpha-value>)', // surface / section bg
+          700: 'rgb(var(--dark-700) / <alpha-value>)', // elevated surface / inputs
+          600: 'rgb(var(--dark-600) / <alpha-value>)', // border
+          500: 'rgb(var(--dark-500) / <alpha-value>)', // soft border
+          400: 'rgb(var(--dark-400) / <alpha-value>)', // card
+          300: 'rgb(var(--dark-300) / <alpha-value>)', // card muted / alternate card
+          200: 'rgb(var(--dark-200) / <alpha-value>)', // hover states
+          100: 'rgb(var(--dark-100) / <alpha-value>)', // active/selected
         },
 
         // Primary brand — deep blue
         brand: {
-          50:  '#0D2A4A', // dark active bg (tab pills, icon bg)
+          50:  'rgb(var(--brand-50) / <alpha-value>)', // active bg (tab pills, icon bg)
           100: '#0F3357', // dark subtle accent
           200: '#1A4E80', // medium dark blue
           300: '#2A72B5', // medium blue
@@ -70,9 +70,9 @@ export default {
         },
 
         // Semantic text tokens
-        ink:   '#F8FAFC', // primary text (light on dark)
-        slt:   '#AAB7C4', // secondary text
-        muted: '#7E8A99', // muted text
+        ink:   'rgb(var(--ink)   / <alpha-value>)', // primary text
+        slt:   'rgb(var(--slt)   / <alpha-value>)', // secondary text
+        muted: 'rgb(var(--muted) / <alpha-value>)', // muted text
         alert: '#EF4444', // errors
         success: '#22C55E',
 

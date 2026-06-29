@@ -7,14 +7,14 @@ import { VIZ_FALLBACKS } from '../data/vizFallbacks';
 import { Zap, AlertCircle, HelpCircle, Battery, Brain, CheckCircle2 } from 'lucide-react';
 
 const C = {
-  lightBg:   '#F0F4F8',
-  darkBg:    '#0F1F35',
+  lightBg:   'var(--bg)',      // page bg follows theme
+  darkBg:    '#0F1F35',        // step4 script screen — intentionally always dark
   blue:      '#185FA5',
   amber:     '#D98B2B',
-  textDark:  '#121826',
-  textMuted: '#64748B',
+  textDark:  'var(--text-1)', // primary text follows theme
+  textMuted: 'var(--text-2)', // secondary text follows theme
   textLight: '#F8FAFC',
-  cardBg:    '#FFFFFF',
+  cardBg:    'var(--card)',    // card follows theme
   selBorder: '#185FA5',
   selBg:     '#EBF3FC',
 };

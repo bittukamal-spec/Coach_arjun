@@ -4,7 +4,8 @@ import Navbar from '../components/Navbar';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
-import { LogOut, Trash2, ChevronRight, Shield, Bell, User, Zap, Award, Camera, Brain, Star, MessageCircle, Mail, Sparkles } from 'lucide-react';
+import { LogOut, Trash2, ChevronRight, Shield, Bell, User, Zap, Award, Camera, Brain, Star, MessageCircle, Mail, Sparkles, Sun } from 'lucide-react';
+import { useTheme } from '../hooks/useTheme';
 import { ACHIEVEMENTS, ALL_ACHIEVEMENT_KEYS } from '../data/achievements';
 
 const EXPERIENCE_LEVELS = ['beginner', 'amateur', 'competitive', 'professional'];
@@ -33,6 +34,7 @@ function AccountPage() {
   const tp = translations[language].pricing;
   const hi = language === 'hi';
   const navigate = useNavigate();
+  const { theme, setTheme } = useTheme();
   const fileInputRef = useRef(null);
 
   const isPremium = user?.tier === 'premium';
@@ -452,6 +454,33 @@ function AccountPage() {
                 </button>
               </div>
               {savedMsg && <p className="text-win-400 text-xs mt-2 text-center">{savedMsg}</p>}
+            </div>
+
+            {/* Appearance */}
+            <div>
+              <label className="text-xs text-slt font-medium block mb-2">
+                {t.appearance}
+              </label>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs text-slt">{t.appearanceSub}</p>
+                <div className="flex gap-1 bg-dark-700 rounded-lg p-1 shrink-0">
+                  {[
+                    { v: 'system', label: t.themeAuto  },
+                    { v: 'light',  label: t.themeLight },
+                    { v: 'dark',   label: t.themeDark  },
+                  ].map(opt => (
+                    <button
+                      key={opt.v}
+                      onClick={() => setTheme(opt.v)}
+                      className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors ${
+                        theme === opt.v ? 'bg-dark-400 text-ink shadow-sm' : 'text-slt hover:text-ink'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
             {profileError && <p className="text-red-400 text-xs">{profileError}</p>}

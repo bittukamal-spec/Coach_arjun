@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
+import { useTheme } from './hooks/useTheme';
 import LandingPage from './pages/LandingPage';
 import AuthPage from './pages/AuthPage';
 import PrivacyPage from './pages/PrivacyPage';
@@ -35,6 +36,7 @@ import { translations } from './i18n/translations';
 function App() {
   const { loading, language, user } = useAuth();
   const t = translations[language];
+  useTheme(); // initializes data-theme on <html> from localStorage
 
   if (loading) {
     return (

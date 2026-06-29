@@ -630,6 +630,11 @@ export const translations = {
       // Photo
       changePhoto: 'Change Photo',
       uploadPhoto: 'Upload Photo',
+      appearance:    'Appearance',
+      appearanceSub: 'Change theme',
+      themeAuto:     'Auto',
+      themeLight:    'Light',
+      themeDark:     'Dark',
     },
     personality: {
       title: 'Mental DNA Test',
@@ -1686,6 +1691,11 @@ export const translations = {
       },
       changePhoto: 'फ़ोटो बदलें',
       uploadPhoto: 'फ़ोटो अपलोड करें',
+      appearance:    'थीम',
+      appearanceSub: 'थीम बदलें',
+      themeAuto:     'ऑटो',
+      themeLight:    'लाइट',
+      themeDark:     'डार्क',
     },
     personality: {
       title: 'मानसिक DNA परीक्षण',

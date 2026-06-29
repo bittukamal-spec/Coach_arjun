@@ -3,18 +3,42 @@
 @tailwind utilities;
 
 /* ── Design tokens ──────────────────────────────────────────────────────────── */
+/* Tailwind rgb() channel vars — space-separated for opacity modifier support  */
+/* dark-* scale INVERTED in light mode: 900=lightest bg, 400=white card        */
 :root {
-  /* Dark athletic theme */
-  --bg:            #07131F;
-  --surface:       #0B1B2A;
-  --card:          #132334;
-  --card-muted:    #1B3044;
-  --elevated:      #102538;
+  /* Light theme (default) */
+  --dark-900: 248 250 252;   /* #F8FAFC — page bg         */
+  --dark-800: 237 242 247;   /* #EDF2F7 — surface         */
+  --dark-700: 226 232 240;   /* #E2E8F0 — elevated        */
+  --dark-600: 203 213 225;   /* #CBD5E1 — border          */
+  --dark-500: 148 163 184;   /* #94A3B8 — soft border     */
+  --dark-400: 255 255 255;   /* #FFFFFF — card            */
+  --dark-300: 247 250 252;   /* #F7FAFC — card muted      */
+  --dark-200: 226 232 240;   /* #E2E8F0 — hover           */
+  --dark-100: 219 234 254;   /* #DBEAFE — active          */
+  --ink:      15 23 42;      /* #0F172A — primary text    */
+  --slt:      71 85 105;     /* #475569 — secondary text  */
+  --muted:    100 116 139;   /* #64748B — muted text      */
+  --brand-50: 239 246 255;   /* #EFF6FF — active tab bg   */
 
-  --text-1:        #F8FAFC;
-  --text-2:        #AAB7C4;
-  --text-3:        #7E8A99;
+  /* Non-Tailwind CSS vars (used in inline styles / old code) */
+  --bg:            #F8FAFC;
+  --surface:       #EDF2F7;
+  --card:          #FFFFFF;
+  --card-muted:    #F7FAFC;
+  --elevated:      #E2E8F0;
+  --text-1:        #0F172A;
+  --text-2:        #475569;
+  --text-3:        #64748B;
+  --border:        #CBD5E1;
+  --border-soft:   #E2E8F0;
+  --color-ink:     #0F172A;
+  --color-slate:   #475569;
+  --color-bg:      #F8FAFC;
+  --color-surface: #EDF2F7;
+  --color-border:  #CBD5E1;
 
+  /* Brand/accent — same in both themes */
   --blue:          #1769AA;
   --blue-bright:   #19A7FF;
   --saffron:       #F29B38;
@@ -22,21 +46,77 @@
   --purple:        #8B5CF6;
   --green:         #22C55E;
   --red:           #EF4444;
-
-  --border:        #2B4157;
-  --border-soft:   #1F3448;
-
-  /* Compat with old code */
   --color-primary:      #1769AA;
   --color-primary-dark: #0C4D85;
   --color-action:       #F29B38;
-  --color-ink:          #F8FAFC;
-  --color-slate:        #AAB7C4;
-  --color-bg:           #07131F;
-  --color-surface:      #0B1B2A;
-  --color-border:       #2B4157;
   --color-success:      #22C55E;
   --color-alert:        #EF4444;
+}
+
+/* OS prefers dark — applies when arjun_theme = 'system' (no data-theme attr) */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --dark-900: 7 19 31;
+    --dark-800: 11 27 42;
+    --dark-700: 16 37 56;
+    --dark-600: 43 65 87;
+    --dark-500: 31 52 72;
+    --dark-400: 19 35 52;
+    --dark-300: 27 48 68;
+    --dark-200: 34 56 79;
+    --dark-100: 46 77 105;
+    --ink:      248 250 252;
+    --slt:      170 183 196;
+    --muted:    126 138 153;
+    --brand-50: 13 42 74;
+    --bg:            #07131F;
+    --surface:       #0B1B2A;
+    --card:          #132334;
+    --card-muted:    #1B3044;
+    --elevated:      #102538;
+    --text-1:        #F8FAFC;
+    --text-2:        #AAB7C4;
+    --text-3:        #7E8A99;
+    --border:        #2B4157;
+    --border-soft:   #1F3448;
+    --color-ink:     #F8FAFC;
+    --color-slate:   #AAB7C4;
+    --color-bg:      #07131F;
+    --color-surface: #0B1B2A;
+    --color-border:  #2B4157;
+  }
+}
+
+/* Manual dark override — beats OS preference */
+[data-theme="dark"] {
+  --dark-900: 7 19 31;
+  --dark-800: 11 27 42;
+  --dark-700: 16 37 56;
+  --dark-600: 43 65 87;
+  --dark-500: 31 52 72;
+  --dark-400: 19 35 52;
+  --dark-300: 27 48 68;
+  --dark-200: 34 56 79;
+  --dark-100: 46 77 105;
+  --ink:      248 250 252;
+  --slt:      170 183 196;
+  --muted:    126 138 153;
+  --brand-50: 13 42 74;
+  --bg:            #07131F;
+  --surface:       #0B1B2A;
+  --card:          #132334;
+  --card-muted:    #1B3044;
+  --elevated:      #102538;
+  --text-1:        #F8FAFC;
+  --text-2:        #AAB7C4;
+  --text-3:        #7E8A99;
+  --border:        #2B4157;
+  --border-soft:   #1F3448;
+  --color-ink:     #F8FAFC;
+  --color-slate:   #AAB7C4;
+  --color-bg:      #07131F;
+  --color-surface: #0B1B2A;
+  --color-border:  #2B4157;
 }
 
 @layer utilities {
@@ -47,11 +127,12 @@
 
 @layer base {
   body {
-    background-color: #07131F;
-    color: #F8FAFC;
+    background-color: var(--bg);
+    color: var(--text-1);
     font-family: 'Poppins', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    transition: background-color 200ms ease, color 200ms ease;
   }
 }
 
