@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Compass, Info } from 'lucide-react';
+import { Compass, Info, Zap, PlayCircle, Eye, Wind, ClipboardList, Target } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
 import { ArjunLogo } from '../components/ArjunLogo';
+import { useTheme } from '../hooks/useTheme';
+import { parseArjunMessage, APP_TOOL_CONFIG } from '../utils/parseArjunMessage';
 
 // ─── Session definitions ───────────────────────────────────────────────────────
 
@@ -102,24 +104,13 @@ function SessionDivider({ sessionKey, date, t }) {
 }
 
 function MessageBubble({ message, isStreaming }) {
-  const isUser = message.role === 'user';
+  if (message.role === 'assistant') {
+    return <ArjunBubble message={message} isStreaming={isStreaming} />;
+  }
   return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
-      <div
-        className={`max-w-[92%] px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap break-words ${
-          isUser
-            ? 'bg-brand-600 text-white rounded-2xl rounded-br-md'
-            : 'bg-dark-400 border border-dark-600 text-ink shadow-sm rounded-2xl rounded-bl-md'
-        }`}
-      >
+    <div className="flex justify-end">
+      <div className="max-w-[92%] px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap break-words bg-brand-600 text-white rounded-2xl rounded-br-md">
         {message.content}
-        {isStreaming && (
-          <span className="inline-flex ml-1 gap-0.5 align-middle">
-            <span className="w-1 h-1 bg-slt rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-            <span className="w-1 h-1 bg-slt rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-            <span className="w-1 h-1 bg-slt rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-          </span>
-        )}
       </div>
     </div>
   );
@@ -155,6 +146,191 @@ function SummaryBubble({ summary, label }) {
         <p className="text-sm leading-relaxed text-ink whitespace-pre-wrap">
           {sentences.join('\n\n')}
         </p>
+      </div>
+    </div>
+  );
+}
+
+// ─── Lucide icon lookup for APP tool cards ────────────────────────────────────
+
+const ICON_MAP = { Zap, PlayCircle, Eye, Wind, ClipboardList, Target };
+
+// ─── ArjunText: formats Arjun's plain-text responses ─────────────────────────
+
+function ArjunText({ text, isStreaming }) {
+  // Strip any partial or complete [APP:...] fragments before rendering
+  const displayText = text.replace(/\[APP:[^\]]*\]?/g, '').trimEnd();
+
+  const paragraphs = displayText.split(/\n\n+/);
+
+  return (
+    <div className="text-sm leading-relaxed text-ink break-words">
+      {paragraphs.map((para, pIdx) => {
+        if (!para.trim()) return null;
+        const lines = para.split('\n');
+        return (
+          <div key={pIdx} style={pIdx > 0 ? { marginTop: '8px' } : {}}>
+            {lines.map((line, lIdx) => {
+              if (!line.trim()) return null;
+              const isCue = /your cue|cue:/i.test(line);
+              const numMatch = line.match(/^(\d+)\.\s+([\s\S]*)/);
+
+              if (isCue) {
+                return (
+                  <div
+                    key={lIdx}
+                    style={{
+                      background: '#FEF9F0',
+                      borderLeft: '3px solid #D98B2B',
+                      padding: '8px 10px',
+                      borderRadius: '6px',
+                      color: '#D98B2B',
+                      fontWeight: 500,
+                      marginTop: lIdx > 0 ? '6px' : 0,
+                    }}
+                  >
+                    {line}
+                  </div>
+                );
+              }
+
+              if (numMatch) {
+                return (
+                  <div
+                    key={lIdx}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '8px',
+                      marginTop: lIdx > 0 ? '6px' : 0,
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: '20px',
+                        height: '20px',
+                        minWidth: '20px',
+                        borderRadius: '50%',
+                        background: '#185FA5',
+                        color: 'white',
+                        fontSize: '10px',
+                        fontWeight: 700,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginTop: '1px',
+                      }}
+                    >
+                      {numMatch[1]}
+                    </div>
+                    <span>{numMatch[2]}</span>
+                  </div>
+                );
+              }
+
+              return (
+                <span key={lIdx}>
+                  {lIdx > 0 && <br />}
+                  {line}
+                </span>
+              );
+            })}
+          </div>
+        );
+      })}
+      {isStreaming && (
+        <span className="inline-flex ml-1 gap-0.5 align-middle">
+          <span className="w-1 h-1 bg-slt rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+          <span className="w-1 h-1 bg-slt rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+          <span className="w-1 h-1 bg-slt rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+        </span>
+      )}
+    </div>
+  );
+}
+
+// ─── AppToolCard: tappable tool card rendered below Arjun's text ──────────────
+
+function AppToolCard({ toolId, isDark }) {
+  const config = APP_TOOL_CONFIG[toolId];
+  const navigate = useNavigate();
+  if (!config) return null;
+
+  const IconComponent = ICON_MAP[config.icon];
+
+  return (
+    <div
+      onClick={() => navigate(config.route)}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        padding: '10px 12px',
+        background: isDark ? 'rgba(255,255,255,0.05)' : config.bgColor,
+        border: `1px solid ${isDark ? 'rgba(255,255,255,0.10)' : config.iconColor + '22'}`,
+        borderRadius: '10px',
+        cursor: 'pointer',
+        flex: 1,
+        minWidth: 0,
+        minHeight: '48px',
+        WebkitTapHighlightColor: 'transparent',
+      }}
+    >
+      <div
+        style={{
+          width: '32px',
+          height: '32px',
+          minWidth: '32px',
+          borderRadius: '8px',
+          background: config.iconColor + (isDark ? '26' : '22'),
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        {IconComponent && <IconComponent size={16} color={config.iconColor} />}
+      </div>
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div style={{ fontSize: '13px', fontWeight: 600, color: isDark ? 'var(--ink)' : '#172033', lineHeight: 1.2 }}>
+          {config.label}
+        </div>
+        <div style={{ fontSize: '11px', color: isDark ? 'var(--slt)' : '#64748B', marginTop: '2px' }}>
+          {config.sub}
+        </div>
+      </div>
+      <div style={{ marginLeft: 'auto', color: config.iconColor, fontSize: '16px', flexShrink: 0, lineHeight: 1 }}>
+        ›
+      </div>
+    </div>
+  );
+}
+
+// ─── ArjunBubble: full assistant message bubble with text + tool cards ─────────
+
+function ArjunBubble({ message, isStreaming }) {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark' ||
+    (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+  const appTools = (message.appTools || []).filter(id => APP_TOOL_CONFIG[id]);
+  const hasTools = !isStreaming && appTools.length > 0;
+
+  return (
+    <div className="flex justify-start">
+      <div className="max-w-[92%] bg-dark-400 border border-dark-600 shadow-sm rounded-2xl rounded-bl-md overflow-hidden">
+        <div className="px-3.5 py-2.5">
+          <ArjunText text={message.content} isStreaming={isStreaming} />
+        </div>
+        {hasTools && (
+          <>
+            <div style={{ height: '1px', background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)', margin: '0 12px' }} />
+            <div style={{ padding: '8px 10px', display: 'flex', gap: '8px' }}>
+              {appTools.map(toolId => (
+                <AppToolCard key={toolId} toolId={toolId} isDark={isDark} />
+              ))}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -348,7 +524,8 @@ function ChatPage() {
         const processed = msgs.map((msg, i) => {
           if (msg.role !== 'assistant') return msg;
           const { clean, suggestions } = extractSuggestions(msg.content);
-          return { ...msg, content: clean, tags: i === lastAsstIdx ? suggestions : [] };
+          const { cleanText, tools } = parseArjunMessage(clean);
+          return { ...msg, content: cleanText, tags: i === lastAsstIdx ? suggestions : [], appTools: tools };
         });
         setMessages(processed);
       }
@@ -461,6 +638,7 @@ function ChatPage() {
               );
             } else if (data.t === 'end') {
               const { clean, suggestions } = extractSuggestions(fullStreamText.current);
+              const { cleanText, tools } = parseArjunMessage(clean);
               arjunMsgCountRef.current += 1;
               const isFirstReply = arjunMsgCountRef.current === 1 && sessionType;
               const chips = suggestions.length > 0
@@ -468,7 +646,7 @@ function ChatPage() {
                 : (isFirstReply ? (INITIAL_CHIPS[sessionType]?.[language] ?? []) : []);
               setMessages(prev =>
                 prev.map(m => m.id === streamId
-                  ? { ...m, content: clean, id: data.id, streaming: false, ...(chips.length > 0 ? { tags: chips } : {}) }
+                  ? { ...m, content: cleanText, id: data.id, streaming: false, appTools: tools, ...(chips.length > 0 ? { tags: chips } : {}) }
                   : m)
               );
               fullStreamText.current = '';
