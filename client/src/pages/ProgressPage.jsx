@@ -19,10 +19,16 @@ import { translations } from '../i18n/translations';
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const METRIC_CONFIG = [
-  { key: 'mood',       color: '#185FA5', barClass: 'bg-brand-600', labelKey: 'mood'       },
-  { key: 'focus',      color: '#3A7FC1', barClass: 'bg-sky-500',   labelKey: 'focus'      },
-  { key: 'confidence', color: '#E2711D', barClass: 'bg-fire-500',  labelKey: 'confidence' },
+  { key: 'mood',       color: '#185FA5', barClass: 'bg-brand-600',    labelKey: 'mood'       },
+  { key: 'focus',      color: '#3A7FC1', barClass: 'bg-sky-500',      labelKey: 'focus'      },
+  { key: 'confidence', color: '#E2711D', barClass: 'bg-fire-500',     labelKey: 'confidence' },
+  { key: 'drive',      color: '#EAB308', barClass: 'bg-saffron-400',  labelKey: 'drive'      },
+  { key: 'calm',       color: '#2CB5A0', barClass: 'bg-teal-400',     labelKey: 'calm'       },
+  { key: 'selftalk',   color: '#A855F7', barClass: 'bg-purple-400',   labelKey: 'selftalk'   },
+  { key: 'bounce',     color: '#22C55E', barClass: 'bg-win-400',      labelKey: 'bounce'     },
 ];
+
+const CHART_METRIC_CONFIG = METRIC_CONFIG.slice(0, 3);
 
 // ─── Share card quote bank ────────────────────────────────────────────────────
 
@@ -514,7 +520,7 @@ function ProgressPage() {
                         wrapperStyle={{ fontSize: 12, paddingTop: 12, color: '#AAB7C4' }}
                         formatter={(value) => t[value] || value}
                       />
-                      {METRIC_CONFIG.map(({ key, color, labelKey }) => (
+                      {CHART_METRIC_CONFIG.map(({ key, color, labelKey }) => (
                         <Line
                           key={key}
                           type="monotone"

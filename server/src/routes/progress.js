@@ -11,6 +11,10 @@ function daysAgo(n) {
   return new Date(Date.now() - n * 24 * 60 * 60 * 1000);
 }
 
+function daysAgoStr(n) {
+  return daysAgo(n).toISOString().slice(0, 10);
+}
+
 function utcDateStr(date) {
   return new Date(date).toISOString().slice(0, 10); // "2024-01-15"
 }
@@ -74,7 +78,7 @@ router.get('/summary', authenticate, async (req, res) => {
   const days = [7, 30].includes(parseInt(req.query.days)) ? parseInt(req.query.days) : 7;
 
   try {
-    const [periodCheckIns, allCheckIns, thisWeekCheckIns, prevWeekCheckIns, totalCheckIns, user, last14Count, userAchievements] =
+    const [periodCheckIns, allCheckIns, thisWeekCheckIns, prevWeekCheckIns, totalCheckIns, user, last14Count, userAchievements, thisMfsEntries, prevMfsEntries] =
       await Promise.all([
         // Chart data for selected period (exclude freeze entries)
         prisma.checkIn.findMany({
@@ -106,6 +110,16 @@ router.get('/summary', authenticate, async (req, res) => {
         prisma.checkIn.count({ where: { userId: req.userId, createdAt: { gte: daysAgo(14) }, type: { not: 'freeze' } } }),
         // Achievements earned (for fitness score + share card)
         prisma.userAchievement.findMany({ where: { userId: req.userId }, select: { key: true } }),
+        // This week MFS entries (for drive/calm/selftalk/bounce averages)
+        prisma.mentalFitnessEntry.findMany({
+          where: { userId: req.userId, date: { gte: daysAgoStr(7) } },
+          select: { drive: true, calm: true, selftalk: true, bounce: true },
+        }),
+        // Prev week MFS entries for trend comparison
+        prisma.mentalFitnessEntry.findMany({
+          where: { userId: req.userId, date: { gte: daysAgoStr(14), lt: daysAgoStr(7) } },
+          select: { drive: true, calm: true, selftalk: true, bounce: true },
+        }),
       ]);
 
     const chartData = periodCheckIns.map(c => ({
@@ -120,6 +134,10 @@ router.get('/summary', authenticate, async (req, res) => {
       mood:       avg(thisWeekCheckIns, 'mood'),
       focus:      avg(thisWeekCheckIns, 'focus'),
       confidence: avg(thisWeekCheckIns, 'confidence'),
+      drive:      avg(thisMfsEntries, 'drive'),
+      calm:       avg(thisMfsEntries, 'calm'),
+      selftalk:   avg(thisMfsEntries, 'selftalk'),
+      bounce:     avg(thisMfsEntries, 'bounce'),
     };
 
     res.json({
@@ -135,6 +153,10 @@ router.get('/summary', authenticate, async (req, res) => {
         mood:       avg(prevWeekCheckIns, 'mood'),
         focus:      avg(prevWeekCheckIns, 'focus'),
         confidence: avg(prevWeekCheckIns, 'confidence'),
+        drive:      avg(prevMfsEntries, 'drive'),
+        calm:       avg(prevMfsEntries, 'calm'),
+        selftalk:   avg(prevMfsEntries, 'selftalk'),
+        bounce:     avg(prevMfsEntries, 'bounce'),
       },
     });
   } catch {

@@ -33,7 +33,7 @@ const TOOL_MAP = {
   confidence: { toolKey: 'coaching',  to: '/coaching',   state: { sessionType: 'confidence' },     Icon: MessageCircle },
   drive:      { toolKey: 'coaching',  to: '/coaching',   state: { sessionType: 'general' },        Icon: MessageCircle },
   selftalk:   { toolKey: 'debrief',   to: '/debrief',    state: null,                              Icon: ClipboardList },
-  bounce:     { toolKey: 'reset',     to: '/reset',      state: null,                              Icon: RotateCcw     },
+  bounce:     { toolKey: 'reset',     to: '/bounce-back', state: null,                             Icon: RotateCcw     },
   mood:       { toolKey: 'coaching',  to: '/coaching',   state: { sessionType: 'post_checkin' },   Icon: MessageCircle },
 };
 
@@ -120,16 +120,14 @@ export default function MentalFitnessCheckin() {
           <p className="text-2xl font-black text-ink leading-tight mb-3">{mf.title}</p>
           <p className="text-sm text-slt leading-relaxed">{mf.subtitle}</p>
 
-          <div className="mt-8 space-y-2">
-            <div className="flex items-center gap-3 bg-dark-700 border border-dark-600 rounded-xl px-4 py-3">
-              <span className="text-xl">😊</span>
-              <span className="text-sm font-semibold text-ink">{mf.dims.mood}</span>
-              <span className="text-xs text-slt ml-auto">{mf.moodCardLabel}</span>
-            </div>
-            {MFS_DIMS.map(d => (
-              <div key={d} className="flex items-center gap-3 bg-dark-700 border border-dark-600 rounded-xl px-4 py-3">
-                <span className="text-xl">{MFS_EMOJIS[d]}</span>
-                <span className="text-sm font-semibold text-ink">{mf.dims[d]}</span>
+          <div className="mt-6 space-y-2">
+            {[{ key: 'mood', emoji: '😊' }, ...MFS_DIMS.map(d => ({ key: d, emoji: MFS_EMOJIS[d] }))].map(({ key, emoji }) => (
+              <div key={key} className="flex items-start gap-3 px-4 py-3 rounded-xl bg-dark-800/60">
+                <span className="text-xl mt-0.5 shrink-0">{emoji}</span>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-ink leading-tight">{mf.dims[key]}</p>
+                  <p className="text-xs text-slt leading-snug mt-0.5">{mf.dimDescriptions[key]}</p>
+                </div>
               </div>
             ))}
           </div>
