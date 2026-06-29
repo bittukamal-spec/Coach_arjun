@@ -109,43 +109,34 @@ export default function PricingPage() {
 
           {/* Yearly — highlighted */}
           <div className="bg-dark-400 border-2 border-brand-500 rounded-2xl p-5 relative overflow-hidden">
-            {/* Best value badge */}
             <span className="inline-flex items-center bg-saffron-500/20 text-saffron-400 text-[10px] font-bold px-2.5 py-1 rounded-full mb-3">
               {t.bestValue} · {t.save590}
             </span>
-            <div className="flex items-end justify-between gap-4">
-              <div>
-                <p className="text-xs font-bold text-brand-400 uppercase tracking-wide mb-1">{t.yearly}</p>
-                <p className="text-3xl font-black text-ink leading-none mb-1">{t.yearlyPrice}</p>
-                <p className="text-xs text-brand-300 font-semibold">{t.monthlyEquiv} · {t.twoMonthsFree}</p>
-                <p className="text-[11px] text-slt mt-0.5">{t.billedYearly}</p>
-              </div>
-              <button
-                onClick={() => handleSubscribe('yearly')}
-                disabled={!!loadingPlan}
-                className="shrink-0 px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-sm font-bold transition-colors disabled:opacity-60"
-              >
-                {loadingPlan === 'yearly' ? t.loading : t.startYearly}
-              </button>
-            </div>
+            <p className="text-xs font-bold text-brand-400 uppercase tracking-wide mb-1">{t.yearly}</p>
+            <p className="text-3xl font-black text-ink leading-none mb-1">{t.yearlyPrice}</p>
+            <p className="text-xs text-brand-300 font-semibold">{t.monthlyEquiv} · {t.twoMonthsFree}</p>
+            <p className="text-[11px] text-slt mt-0.5 mb-4">{t.billedYearly}</p>
+            <button
+              onClick={() => handleSubscribe('yearly')}
+              disabled={!!loadingPlan}
+              className="w-full py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-sm font-bold transition-colors disabled:opacity-60"
+            >
+              {loadingPlan === 'yearly' ? t.loading : t.startYearly}
+            </button>
           </div>
 
           {/* Monthly */}
           <div className="bg-dark-800 border border-dark-600 rounded-2xl p-5">
-            <div className="flex items-end justify-between gap-4">
-              <div>
-                <p className="text-xs font-bold text-slt uppercase tracking-wide mb-1">{t.monthly}</p>
-                <p className="text-3xl font-black text-ink leading-none mb-1">{t.monthlyPrice}</p>
-                <p className="text-xs text-slt">{t.billedMonthly}</p>
-              </div>
-              <button
-                onClick={() => handleSubscribe('monthly')}
-                disabled={!!loadingPlan}
-                className="shrink-0 px-5 py-2.5 rounded-xl bg-dark-700 border border-dark-500 hover:bg-dark-600 text-ink text-sm font-bold transition-colors disabled:opacity-60"
-              >
-                {loadingPlan === 'monthly' ? t.loading : t.startMonthly}
-              </button>
-            </div>
+            <p className="text-xs font-bold text-slt uppercase tracking-wide mb-1">{t.monthly}</p>
+            <p className="text-3xl font-black text-ink leading-none mb-1">{t.monthlyPrice}</p>
+            <p className="text-xs text-slt mb-4">{t.billedMonthly}</p>
+            <button
+              onClick={() => handleSubscribe('monthly')}
+              disabled={!!loadingPlan}
+              className="w-full py-3 rounded-xl bg-dark-700 border border-dark-500 hover:bg-dark-600 text-ink text-sm font-bold transition-colors disabled:opacity-60"
+            >
+              {loadingPlan === 'monthly' ? t.loading : t.startMonthly}
+            </button>
           </div>
 
         </div>

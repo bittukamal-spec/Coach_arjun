@@ -202,7 +202,7 @@ function AccountPage() {
     <div className="min-h-screen bg-dark-900">
       <Navbar />
 
-      <main className="max-w-2xl mx-auto px-4 pt-24 pb-28 animate-fade-in">
+      <main className="max-w-2xl mx-auto px-4 pt-20 pb-28 animate-fade-in">
 
         {/* Profile header with photo upload */}
         <div className="flex items-center gap-4 mb-8">
@@ -255,7 +255,7 @@ function AccountPage() {
             <Shield size={16} className="text-brand-400" />
             <h2 className="text-sm font-semibold text-slt uppercase tracking-wide">{t.subscription}</h2>
           </div>
-          <div className="card">
+          <div className="card p-5">
             {isPremium ? (
               <div>
                 <div className="flex items-center justify-between mb-3">
@@ -318,13 +318,46 @@ function AccountPage() {
           </div>
         </section>
 
+        {/* Appearance */}
+        <section className="mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Sun size={16} className="text-brand-400" />
+            <h2 className="text-sm font-semibold text-slt uppercase tracking-wide">{t.appearance}</h2>
+          </div>
+          <div className="card p-5">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium text-ink">{t.appearance}</p>
+                <p className="text-xs text-slt mt-0.5">{t.appearanceSub}</p>
+              </div>
+              <div className="flex gap-1 bg-dark-700 rounded-lg p-1 shrink-0">
+                {[
+                  { v: 'system', label: t.themeAuto  },
+                  { v: 'light',  label: t.themeLight },
+                  { v: 'dark',   label: t.themeDark  },
+                ].map(opt => (
+                  <button
+                    key={opt.v}
+                    onClick={() => setTheme(opt.v)}
+                    className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors ${
+                      theme === opt.v ? 'bg-dark-400 text-ink shadow-sm' : 'text-slt hover:text-ink'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Profile edit section */}
         <section className="mb-6">
           <div className="flex items-center gap-2 mb-3">
             <User size={16} className="text-brand-400" />
             <h2 className="text-sm font-semibold text-slt uppercase tracking-wide">{t.editProfile}</h2>
           </div>
-          <div className="card space-y-4">
+          <div className="card p-5 space-y-4">
             {/* Name */}
             <div>
               <label className="text-xs text-slt font-medium block mb-1">{t.nameLabel}</label>
@@ -456,33 +489,6 @@ function AccountPage() {
               {savedMsg && <p className="text-win-400 text-xs mt-2 text-center">{savedMsg}</p>}
             </div>
 
-            {/* Appearance */}
-            <div>
-              <label className="text-xs text-slt font-medium block mb-2">
-                {t.appearance}
-              </label>
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-xs text-slt">{t.appearanceSub}</p>
-                <div className="flex gap-1 bg-dark-700 rounded-lg p-1 shrink-0">
-                  {[
-                    { v: 'system', label: t.themeAuto  },
-                    { v: 'light',  label: t.themeLight },
-                    { v: 'dark',   label: t.themeDark  },
-                  ].map(opt => (
-                    <button
-                      key={opt.v}
-                      onClick={() => setTheme(opt.v)}
-                      className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors ${
-                        theme === opt.v ? 'bg-dark-400 text-ink shadow-sm' : 'text-slt hover:text-ink'
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
             {profileError && <p className="text-red-400 text-xs">{profileError}</p>}
             {profileSaved && <p className="text-win-400 text-xs text-center">{profileSaved}</p>}
 
@@ -502,7 +508,7 @@ function AccountPage() {
             <Brain size={16} className="text-brand-400" />
             <h2 className="text-sm font-semibold text-slt uppercase tracking-wide">{t.dnaTitle}</h2>
           </div>
-          <div className="card">
+          <div className="card p-5">
             <p className="text-xs text-slt mb-4">{t.dnaSubtitle}</p>
             {user?.oceanO != null ? (
               <div className="space-y-3 mb-4">
@@ -549,7 +555,7 @@ function AccountPage() {
             </div>
             <Link
               to="/mental-game-profile"
-              className="card flex items-center justify-between hover:border-brand-500/40 transition-colors"
+              className="card p-5 flex items-center justify-between hover:border-brand-500/40 transition-colors"
             >
               <div>
                 <p className="text-sm font-semibold text-ink mb-0.5">
@@ -570,7 +576,7 @@ function AccountPage() {
             <Bell size={16} className="text-brand-400" />
             <h2 className="text-sm font-semibold text-slt uppercase tracking-wide">{t.notifications}</h2>
           </div>
-          <div className="card opacity-60">
+          <div className="card p-5 opacity-60">
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-medium text-ink text-sm">{t.whatsappLabel}</p>
