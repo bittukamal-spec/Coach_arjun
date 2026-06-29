@@ -4,7 +4,7 @@ import Navbar from '../components/Navbar';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
-import { LogOut, Trash2, ChevronRight, Shield, Bell, User, Zap, Award, Camera, Brain, Star, MessageCircle, Mail, Sparkles, Sun } from 'lucide-react';
+import { LogOut, Trash2, ChevronRight, Shield, Bell, User, Zap, Award, Camera, Brain, Star, MessageCircle, Mail, Sparkles, Sun, MessageSquare, FileX, RefreshCw, Tag, BarChart2 } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 import { ACHIEVEMENTS, ALL_ACHIEVEMENT_KEYS } from '../data/achievements';
 
@@ -30,8 +30,9 @@ function getTrialDaysRemaining(user) {
 
 function AccountPage() {
   const { user, token, language, logout, updateUser, avatarUrl, updateAvatar } = useAuth();
-  const t  = translations[language].account;
-  const tp = translations[language].pricing;
+  const t        = translations[language].account;
+  const tp       = translations[language].pricing;
+  const tprivacy = translations[language].privacy;
   const hi = language === 'hi';
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
@@ -68,9 +69,15 @@ function AccountPage() {
 
   // Delete account state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState('');
-  const [deleting, setDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState('');
+  const [deleteStep, setDeleteStep]           = useState(1);
+  const [deleteConfirm, setDeleteConfirm]     = useState('');
+  const [deleting, setDeleting]               = useState(false);
+  const [deleteError, setDeleteError]         = useState('');
+
+  // Privacy & selective data deletion state
+  const [showDataConfirm, setShowDataConfirm] = useState(null);
+  const [privacyLoading, setPrivacyLoading]   = useState(null);
+  const [privacyToast, setPrivacyToast]       = useState('');
 
   async function cancelSubscription() {
     setCancelLoading(true);
@@ -189,16 +196,39 @@ function AccountPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
+        localStorage.clear();
+        sessionStorage.clear();
         logout();
         navigate('/');
       } else {
         const data = await res.json();
-        setDeleteError(data.error || 'Something went wrong');
+        setDeleteError(data.error || tprivacy.account.error);
       }
     } catch {
-      setDeleteError('Network error. Please try again.');
+      setDeleteError(tprivacy.account.error);
     } finally {
       setDeleting(false);
+    }
+  }
+
+  async function handleSelectiveDelete(type) {
+    setPrivacyLoading(type);
+    try {
+      const res = await apiFetch(`/api/user/data/${type}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        setPrivacyToast(tprivacy.deleted.toast);
+      } else {
+        setPrivacyToast(tprivacy.errorToast);
+      }
+    } catch {
+      setPrivacyToast(tprivacy.errorToast);
+    } finally {
+      setPrivacyLoading(null);
+      setShowDataConfirm(null);
+      setTimeout(() => setPrivacyToast(''), 3000);
     }
   }
 
@@ -619,6 +649,39 @@ function AccountPage() {
           </div>
         </section>
 
+        {/* Privacy & Data */}
+        <section className="mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Shield size={16} className="text-slt" />
+            <h2 className="text-sm font-semibold text-slt uppercase tracking-wide">{tprivacy.sectionTitle}</h2>
+          </div>
+          <div className="card divide-y divide-dark-600">
+            {[
+              { type: 'chat-history',   Icon: MessageSquare, label: tprivacy.chat.label,        sub: tprivacy.chat.sub },
+              { type: 'reflections',    Icon: FileX,         label: tprivacy.reflections.label,  sub: tprivacy.reflections.sub },
+              { type: 'mental-profile', Icon: RefreshCw,     label: tprivacy.profile.label,      sub: tprivacy.profile.sub },
+              { type: 'cue-word',       Icon: Tag,           label: tprivacy.cue.label,          sub: tprivacy.cue.sub },
+              { type: 'checkin-history',Icon: BarChart2,     label: tprivacy.checkin.label,      sub: tprivacy.checkin.sub },
+            ].map(({ type, Icon, label, sub }) => (
+              <button
+                key={type}
+                onClick={() => setShowDataConfirm(type)}
+                disabled={privacyLoading === type}
+                className="w-full flex items-center gap-3 px-3 py-3 hover:bg-dark-700 transition-colors text-left first:rounded-t-2xl last:rounded-b-2xl disabled:opacity-50"
+              >
+                <div className="w-9 h-9 rounded-xl bg-dark-700 flex items-center justify-center flex-shrink-0">
+                  <Icon size={15} className="text-slt" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-ink">{label}</p>
+                  <p className="text-xs text-slt truncate">{sub}</p>
+                </div>
+                <Trash2 size={15} className="text-red-400 flex-shrink-0" />
+              </button>
+            ))}
+          </div>
+        </section>
+
         {/* Achievements */}
         <section className="mb-6">
           <div className="flex items-center gap-2 mb-3">
@@ -696,11 +759,14 @@ function AccountPage() {
             </button>
             <div className="border-t border-dark-600" />
             <button
-              onClick={() => setShowDeleteModal(true)}
+              onClick={() => { setShowDeleteModal(true); setDeleteStep(1); setDeleteConfirm(''); setDeleteError(''); }}
               className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-red-500/10 transition-colors text-left"
             >
               <Trash2 size={18} className="text-red-500 flex-shrink-0" />
-              <span className="text-red-400 text-sm font-medium">{t.deleteAccount}</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-red-400 text-sm font-medium">{tprivacy.account.label}</p>
+                <p className="text-xs text-slt">{tprivacy.account.sub}</p>
+              </div>
             </button>
           </div>
         </section>
@@ -734,7 +800,35 @@ function AccountPage() {
         </div>
       )}
 
-      {/* Delete account modal */}
+      {/* Selective data delete confirmation sheet */}
+      {showDataConfirm && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm px-4 pb-4 sm:pb-0">
+          <div className="bg-dark-800 border border-dark-500 rounded-2xl p-6 w-full max-w-md animate-slide-up">
+            <h3 className="font-bold text-ink mb-2">{tprivacy.confirm.title}</h3>
+            <p className="text-slt text-sm mb-6">{tprivacy.confirm.body}</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDataConfirm(null)}
+                disabled={privacyLoading === showDataConfirm}
+                className="flex-1 btn-secondary"
+              >
+                {tprivacy.confirm.cancel}
+              </button>
+              <button
+                onClick={() => handleSelectiveDelete(showDataConfirm)}
+                disabled={privacyLoading === showDataConfirm}
+                className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {privacyLoading === showDataConfirm
+                  ? (hi ? 'हट रहा है…' : 'Deleting…')
+                  : tprivacy.confirm.yes}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete account modal — two-step */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm px-4 pb-4 sm:pb-0">
           <div className="bg-dark-800 border border-dark-500 rounded-2xl p-6 w-full max-w-md animate-slide-up">
@@ -742,33 +836,69 @@ function AccountPage() {
               <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center flex-shrink-0">
                 <Trash2 size={20} className="text-red-400" />
               </div>
-              <h3 className="font-bold text-ink">{t.deleteConfirmTitle}</h3>
+              <h3 className="font-bold text-ink">
+                {deleteStep === 1 ? tprivacy.account.step1.title : tprivacy.account.step2.title}
+              </h3>
             </div>
-            <p className="text-slt text-sm mb-5">{t.deleteConfirmDesc}</p>
-            <input
-              type="text"
-              value={deleteConfirm}
-              onChange={e => setDeleteConfirm(e.target.value)}
-              placeholder={t.deleteConfirmPlaceholder}
-              className="input-field mb-4 font-mono tracking-widest"
-            />
-            {deleteError && <p className="text-red-400 text-sm mb-3">{deleteError}</p>}
-            <div className="flex gap-3">
-              <button
-                onClick={() => { setShowDeleteModal(false); setDeleteConfirm(''); setDeleteError(''); }}
-                className="flex-1 btn-secondary"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDeleteAccount}
-                disabled={deleteConfirm !== 'DELETE' || deleting}
-                className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {deleting ? t.deleting : t.deleteConfirmBtn}
-              </button>
-            </div>
+
+            {deleteStep === 1 ? (
+              <>
+                <div className="mb-5 space-y-1.5">
+                  {tprivacy.account.step1.body.split('\n').map((line, i) => (
+                    <p key={i} className="text-slt text-sm">{line}</p>
+                  ))}
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowDeleteModal(false)}
+                    className="flex-1 btn-secondary"
+                  >
+                    {tprivacy.confirm.cancel}
+                  </button>
+                  <button
+                    onClick={() => setDeleteStep(2)}
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 active:scale-95 transition-all"
+                  >
+                    {tprivacy.account.step1.confirm}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-slt text-sm mb-5">{tprivacy.account.step2.body}</p>
+                <input
+                  type="text"
+                  value={deleteConfirm}
+                  onChange={e => setDeleteConfirm(e.target.value)}
+                  placeholder={tprivacy.account.step2.placeholder}
+                  className="input-field mb-4 font-mono tracking-widest"
+                />
+                {deleteError && <p className="text-red-400 text-sm mb-3">{deleteError}</p>}
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => { setShowDeleteModal(false); setDeleteConfirm(''); setDeleteError(''); setDeleteStep(1); }}
+                    className="flex-1 btn-secondary"
+                  >
+                    {tprivacy.confirm.cancel}
+                  </button>
+                  <button
+                    onClick={handleDeleteAccount}
+                    disabled={deleteConfirm !== 'DELETE' || deleting}
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {deleting ? tprivacy.account.loading : tprivacy.account.step2.confirm}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
+        </div>
+      )}
+
+      {/* Toast notification */}
+      {privacyToast && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 px-4 py-2 bg-dark-700 border border-dark-500 rounded-xl shadow-lg text-sm text-ink font-medium whitespace-nowrap animate-fade-in">
+          {privacyToast}
         </div>
       )}
     </div>

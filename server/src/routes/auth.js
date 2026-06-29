@@ -4,7 +4,7 @@ const jwt     = require('jsonwebtoken');
 const crypto  = require('crypto');
 const { PrismaClient } = require('@prisma/client');
 const authenticate = require('../middleware/authenticate');
-const { sendPasswordResetEmail, sendWelcomeEmail } = require('../services/email');
+const { sendPasswordResetEmail, sendWelcomeEmail, sendDeletionEmail } = require('../services/email');
 
 const router  = express.Router();
 const prisma  = new PrismaClient();
@@ -261,9 +261,54 @@ router.post('/me/ocean', authenticate, async (req, res) => {
 
 router.delete('/account', authenticate, async (req, res) => {
   try {
-    // Prisma cascades deletes via onDelete: Cascade on all relations
+    // Step 1: Read user data needed for post-deletion actions
+    const user = await prisma.user.findUnique({
+      where: { id: req.userId },
+      select: { id: true, name: true, email: true, razorpaySubscriptionId: true },
+    });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const { name, email, razorpaySubscriptionId } = user;
+    const firstName = name ? name.split(' ')[0] : 'there';
+
+    // Step 2: Cancel Razorpay subscription if one exists (fire-and-forget; never block deletion)
+    if (razorpaySubscriptionId) {
+      try {
+        const Razorpay = require('razorpay');
+        const rzp = new Razorpay({
+          key_id: process.env.RAZORPAY_KEY_ID,
+          key_secret: process.env.RAZORPAY_KEY_SECRET,
+        });
+        await rzp.subscriptions.cancel(razorpaySubscriptionId, { cancel_at_cycle_end: false });
+      } catch (rzpErr) {
+        console.error('Razorpay cancel failed during account deletion (continuing):', rzpErr?.message);
+      }
+    }
+
+    // Step 3: Delete Messages first (Message.chatSessionId has no explicit onDelete cascade)
+    await prisma.message.deleteMany({ where: { userId: req.userId } });
+
+    // Step 4: Delete ChatSessions
+    await prisma.chatSession.deleteMany({ where: { userId: req.userId } });
+
+    // Step 5: Delete the User (cascades all remaining relations via onDelete: Cascade)
     await prisma.user.delete({ where: { id: req.userId } });
-    res.json({ message: 'Account deleted' });
+
+    // Step 6: Audit log
+    console.log(JSON.stringify({
+      event: 'account_deleted',
+      timestamp: new Date().toISOString(),
+      hadSubscription: !!razorpaySubscriptionId,
+    }));
+
+    // Step 7: Send confirmation email (best-effort)
+    try {
+      await sendDeletionEmail(email, firstName);
+    } catch (emailErr) {
+      console.error('Deletion email failed (non-blocking):', emailErr?.message);
+    }
+
+    res.json({ success: true, deletedAt: new Date().toISOString() });
   } catch {
     res.status(500).json({ error: 'Server error' });
   }

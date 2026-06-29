@@ -80,4 +80,30 @@ async function sendWelcomeEmail(toEmail, name) {
   });
 }
 
-module.exports = { sendPasswordResetEmail, sendWelcomeEmail };
+async function sendDeletionEmail(toEmail, firstName) {
+  const resend = getResend();
+  await resend.emails.send({
+    from: `Arjun <${FROM}>`,
+    to: toEmail,
+    subject: 'Your Arjun account has been deleted',
+    html: `
+      <div style="font-family: 'Poppins', sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; background: #0A0A15; color: #F1F5F9;">
+        <div style="text-align: center; margin-bottom: 28px;">
+          <div style="display: inline-block; width: 40px; height: 40px; background: #7C3AED; border-radius: 10px; line-height: 40px; font-weight: 800; font-size: 18px; color: white;">A</div>
+        </div>
+        <h2 style="color: #F1F5F9; margin-bottom: 8px; font-size: 20px;">Account deleted</h2>
+        <p style="color: #94A3B8; margin-bottom: 16px; line-height: 1.6;">
+          Hi ${firstName}, your Arjun account and all associated data have been permanently deleted as requested.
+        </p>
+        <p style="color: #94A3B8; margin-bottom: 24px; line-height: 1.6;">
+          If you ever want to come back, you can create a new account at any time. Take care of yourself.
+        </p>
+        <p style="color: #475569; font-size: 12px; text-align: center; margin: 0;">
+          Arjun · AI Mental Performance Coaching for Indian Athletes
+        </p>
+      </div>
+    `,
+  });
+}
+
+module.exports = { sendPasswordResetEmail, sendWelcomeEmail, sendDeletionEmail };
