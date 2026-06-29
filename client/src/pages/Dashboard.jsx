@@ -151,7 +151,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-dark-900">
       <Navbar />
 
-      <main className="max-w-lg mx-auto px-4 pt-20 pb-24 animate-fade-in">
+      <main className="max-w-lg mx-auto px-4 pt-14 pb-24 animate-fade-in">
 
         {/* ── Loading skeleton ──────────────────────────────────────────────── */}
         {!loaded && (
@@ -165,7 +165,7 @@ export default function Dashboard() {
         {loaded && (
           <>
             {/* ── HERO GREETING ──────────────────────────────────────────────── */}
-            <div className="pt-4 mb-5">
+            <div className="pt-1 mb-5">
               <p className="text-2xl font-black text-ink leading-tight">
                 {hi ? `तैयार, ${firstName}?` : `Ready, ${firstName}?`}
               </p>

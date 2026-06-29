@@ -34,9 +34,7 @@ function Navbar() {
         {/* Logo */}
         <div className="flex items-center gap-2">
           <ArjunLogo size={26} />
-          <span className="font-bold text-base tracking-tight">
-            <span className="text-brand-400">A</span><span className="text-ink">rjun</span>
-          </span>
+          <span className="font-bold text-xl leading-none" style={{ color: '#185FA5' }}>Arjun</span>
         </div>
 
         {/* Avatar + dropdown */}

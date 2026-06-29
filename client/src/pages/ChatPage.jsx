@@ -550,7 +550,6 @@ function ChatPage() {
             <ArjunLogo size={28} />
             <div className="min-w-0">
               <p className="font-semibold text-ink text-sm leading-none">{t.title}</p>
-              <p className="text-xs text-slt leading-none mt-0.5">{t.aiLabel}</p>
             </div>
           </div>
           <div className="flex items-center gap-1 shrink-0">
@@ -779,32 +778,11 @@ function ChatPage() {
                 e.target.style.height = Math.min(e.target.scrollHeight, 128) + 'px';
               }}
             />
-            {/* Style + Focus icon buttons */}
-            <div className="flex gap-1 self-end pb-0.5">
-              <button
-                onClick={() => { setShowStylePicker(s => !s); setShowSessionPicker(false); }}
-                title={t.styleLabel}
-                className={`p-2 rounded-xl transition-colors ${
-                  showStylePicker ? 'bg-brand-600/20 text-brand-400' : 'text-slt hover:text-ink hover:bg-dark-700'
-                }`}
-              >
-                <SlidersHorizontal size={16} />
-              </button>
-              <button
-                onClick={() => { setShowSessionPicker(s => !s); setShowStylePicker(false); }}
-                disabled={atLimit || streaming}
-                title={t.chooseFocus}
-                className={`p-2 rounded-xl transition-colors disabled:opacity-40 ${
-                  showSessionPicker || activeSession ? 'bg-brand-600/20 text-brand-400' : 'text-slt hover:text-ink hover:bg-dark-700'
-                }`}
-              >
-                <Compass size={16} />
-              </button>
-            </div>
+            {/* Send — highlighted primary action */}
             <button
               onClick={() => sendMessage()}
               disabled={!input.trim() || streaming || atLimit}
-              className="w-11 h-11 bg-brand-600 text-white rounded-2xl flex items-center justify-center hover:bg-brand-700 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:scale-100 shrink-0"
+              className="w-11 h-11 bg-brand-600 text-white rounded-2xl flex items-center justify-center hover:bg-brand-700 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:scale-100 shrink-0 shadow-md"
               aria-label={t.send}
             >
               {streaming ? (
@@ -815,6 +793,31 @@ function ChatPage() {
                   <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               )}
+            </button>
+            {/* Topic picker */}
+            <button
+              onClick={() => { setShowSessionPicker(s => !s); setShowStylePicker(false); }}
+              disabled={atLimit || streaming}
+              title={t.chooseFocus}
+              className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-colors shrink-0 disabled:opacity-40 ${
+                showSessionPicker || activeSession
+                  ? 'bg-brand-600/20 text-brand-400 border border-brand-500/30'
+                  : 'bg-dark-700 border border-dark-600 text-slt hover:text-ink'
+              }`}
+            >
+              <Compass size={18} />
+            </button>
+            {/* Style filter */}
+            <button
+              onClick={() => { setShowStylePicker(s => !s); setShowSessionPicker(false); }}
+              title={t.styleLabel}
+              className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-colors shrink-0 ${
+                showStylePicker
+                  ? 'bg-brand-600/20 text-brand-400 border border-brand-500/30'
+                  : 'bg-dark-700 border border-dark-600 text-slt hover:text-ink'
+              }`}
+            >
+              <SlidersHorizontal size={18} />
             </button>
           </div>
 
