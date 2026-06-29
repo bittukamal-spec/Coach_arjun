@@ -29,7 +29,7 @@ function getTrialDaysRemaining(user) {
 }
 
 function AccountPage() {
-  const { user, token, language, logout, updateUser } = useAuth();
+  const { user, token, language, logout, updateUser, avatarUrl, updateAvatar } = useAuth();
   const t  = translations[language].account;
   const tp = translations[language].pricing;
   const hi = language === 'hi';
@@ -63,7 +63,8 @@ function AccountPage() {
   const [profileError, setProfileError] = useState('');
 
   // Photo upload
-  const [avatar, setAvatar] = useState(() => localStorage.getItem(`arjun_avatar_${user?.id}`) || null);
+  const [pendingAvatar, setPendingAvatar] = useState(null); // selected but not yet saved
+  const [photoSaved, setPhotoSaved] = useState(false);
 
   // Delete account state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -93,12 +94,16 @@ function AccountPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      const dataUrl = ev.target.result;
-      setAvatar(dataUrl);
-      localStorage.setItem(`arjun_avatar_${user.id}`, dataUrl);
-    };
+    reader.onload = (ev) => setPendingAvatar(ev.target.result);
     reader.readAsDataURL(file);
+  }
+
+  function handleSavePhoto() {
+    if (!pendingAvatar) return;
+    updateAvatar(pendingAvatar);
+    setPendingAvatar(null);
+    setPhotoSaved(true);
+    setTimeout(() => setPhotoSaved(false), 2000);
   }
 
   function toggleGoal(goal) {
@@ -206,30 +211,42 @@ function AccountPage() {
 
         {/* Profile header with photo upload */}
         <div className="flex items-center gap-4 mb-8">
-          <div className="relative flex-shrink-0">
-            <div
-              onClick={() => fileInputRef.current?.click()}
-              className="w-16 h-16 rounded-full bg-brand-500 text-white text-2xl font-bold flex items-center justify-center ring-2 ring-brand-600/40 cursor-pointer overflow-hidden"
-            >
-              {avatar
-                ? <img src={avatar} alt="avatar" className="w-16 h-16 object-cover" />
-                : user?.name?.charAt(0)?.toUpperCase()
-              }
+          <div className="flex flex-col items-center gap-2 flex-shrink-0">
+            <div className="relative">
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="w-16 h-16 rounded-full bg-brand-500 text-white text-2xl font-bold flex items-center justify-center ring-2 ring-brand-600/40 cursor-pointer overflow-hidden"
+              >
+                {(pendingAvatar || avatarUrl)
+                  ? <img src={pendingAvatar || avatarUrl} alt="avatar" className="w-16 h-16 object-cover" />
+                  : user?.name?.charAt(0)?.toUpperCase()
+                }
+              </div>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-dark-700 border border-dark-500 flex items-center justify-center hover:bg-dark-600 transition-colors"
+                title={t.uploadPhoto}
+              >
+                <Camera size={12} className="text-slt" />
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handlePhotoUpload}
+              />
             </div>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-dark-700 border border-dark-500 flex items-center justify-center hover:bg-dark-600 transition-colors"
-              title={t.uploadPhoto}
-            >
-              <Camera size={12} className="text-slt" />
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handlePhotoUpload}
-            />
+            {pendingAvatar ? (
+              <button
+                onClick={handleSavePhoto}
+                className="text-[11px] font-bold text-white bg-brand-500 hover:bg-brand-600 px-3 py-1 rounded-full transition-colors"
+              >
+                {hi ? 'सेव करें' : 'Save photo'}
+              </button>
+            ) : photoSaved ? (
+              <p className="text-[11px] text-win-400 font-semibold">{hi ? 'सेव हो गया ✓' : 'Saved ✓'}</p>
+            ) : null}
           </div>
           <div>
             <h1 className="text-xl font-bold text-ink">{user?.name}</h1>

@@ -13,13 +13,11 @@ function getInitials(name = '') {
 }
 
 function Navbar() {
-  const { user, language, toggleLanguage } = useAuth();
+  const { user, language, toggleLanguage, avatarUrl } = useAuth();
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
-
-  const avatar = (user?.id && localStorage.getItem(`arjun_avatar_${user.id}`)) || user?.avatar || null;
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -48,8 +46,8 @@ function Navbar() {
               onClick={() => setMenuOpen(v => !v)}
               className="w-8 h-8 rounded-full bg-brand-500 text-white text-xs font-bold flex items-center justify-center ring-2 ring-brand-700 hover:bg-brand-600 transition-colors overflow-hidden"
             >
-              {avatar
-                ? <img src={avatar} alt="avatar" className="w-8 h-8 object-cover" />
+              {avatarUrl
+                ? <img src={avatarUrl} alt="avatar" className="w-8 h-8 object-cover" />
                 : getInitials(user.name)
               }
             </button>

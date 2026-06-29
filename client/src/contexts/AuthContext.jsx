@@ -13,6 +13,12 @@ export function AuthProvider({ children }) {
   const [language, setLanguage] = useState(
     () => localStorage.getItem('mg_language') || 'en'
   );
+  const [avatarUrl, setAvatarUrl] = useState(() => {
+    try {
+      const u = JSON.parse(localStorage.getItem('mg_user') || 'null');
+      return u?.id ? localStorage.getItem(`arjun_avatar_${u.id}`) || null : null;
+    } catch { return null; }
+  });
 
   const fetchUser = useCallback(async (activeToken) => {
     try {
@@ -82,11 +88,22 @@ export function AuthProvider({ children }) {
     setLoading(false);
   }
 
+  function updateAvatar(url) {
+    if (!user?.id) return;
+    if (url) {
+      localStorage.setItem(`arjun_avatar_${user.id}`, url);
+    } else {
+      localStorage.removeItem(`arjun_avatar_${user.id}`);
+    }
+    setAvatarUrl(url);
+  }
+
   function logout() {
     localStorage.removeItem('mg_token');
     localStorage.removeItem('mg_user');
     setToken(null);
     setUser(null);
+    setAvatarUrl(null);
     setLoading(false);
   }
 
@@ -124,7 +141,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, token, loading, language, login, loginWithUser, logout, toggleLanguage, updateUser, fetchUser }}
+      value={{ user, token, loading, language, avatarUrl, login, loginWithUser, logout, toggleLanguage, updateUser, updateAvatar, fetchUser }}
     >
       {children}
     </AuthContext.Provider>
