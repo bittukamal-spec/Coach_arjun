@@ -237,20 +237,6 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* ── TRIAL SLIM STRIP ───────────────────────────────────────────── */}
-            {!isPremium && trialDaysRemaining != null && (
-              <div className="mb-4 flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-dark-800 border border-dark-600">
-                <div className="flex items-center gap-2 min-w-0">
-                  <Crown size={13} className={trialEnded ? 'text-saffron-400 shrink-0' : 'text-brand-400 shrink-0'} />
-                  <p className="text-xs text-slt truncate">
-                    {trialEnded ? td.trialEndedHome : td.trialDaysLeftHome(trialDaysRemaining)}
-                  </p>
-                </div>
-                <button onClick={() => navigate('/pricing')} className="shrink-0 text-xs font-bold text-brand-400 whitespace-nowrap">
-                  {td.upgradeNowBtn} →
-                </button>
-              </div>
-            )}
 
             {/* ── MIND JOURNAL HERO CARD ─────────────────────────────────────── */}
             <div className="mb-6">
@@ -365,17 +351,17 @@ export default function Dashboard() {
                   icon={ClipboardList}
                   iconBg="bg-saffron-500/15"
                   iconColor="text-saffron-400"
-                  title={hi ? 'मैच के बाद'   : 'After the Match'}
-                  desc={hi  ? 'सोचो, सीखो'    : 'Reflect, learn and improve.'}
+                  title={hi ? 'मैच/ट्रेनिंग के बाद' : 'After Match / Training'}
+                  desc={hi  ? 'सोचो, सीखो'           : 'Reflect, learn and improve.'}
                   onClick={() => navigate('/debrief')}
                 />
                 <QuickTool
-                  icon={MessageCircle}
+                  icon={Eye}
                   iconBg="bg-purple-500/15"
                   iconColor="text-purple-400"
-                  title={hi ? 'अर्जुन से बात' : 'Talk to Arjun'}
-                  desc={hi  ? 'तुम्हारा AI कोच' : 'Your AI coach is here.'}
-                  onClick={() => navigate('/coaching', { state: { newSession: true } })}
+                  title={hi ? 'विज़ुअलाइज़ेशन' : 'Visualization'}
+                  desc={hi  ? 'मन में खेलते देखो' : 'Picture yourself playing your best.'}
+                  onClick={() => navigate('/visualization')}
                 />
               </div>
             </div>
@@ -427,55 +413,33 @@ export default function Dashboard() {
               </div>
             )}
 
-            {/* ── AI COACH CARD ───────────────────────────────────────────────── */}
-            <div className="mb-6">
-              <div className="card p-4">
-                <p className="font-semibold text-ink mb-0.5">{td.coachCardTitle}</p>
-                <p className="text-xs text-slt mb-3">{td.coachCardSub}</p>
-                <div className="flex flex-col gap-2">
+            {/* ── TRIAL / UPGRADE CARD ─────────────────────────────────────────── */}
+            {!isPremium && trialDaysRemaining != null && (
+              <div className="mb-6 rounded-2xl overflow-hidden border border-brand-500/30" style={{ background: 'linear-gradient(135deg, rgba(23,105,170,0.18) 0%, rgba(11,27,42,0.9) 100%)' }}>
+                <div className="p-5">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Crown size={15} className={trialEnded ? 'text-saffron-400' : 'text-brand-400'} />
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-saffron-400">
+                      {trialEnded
+                        ? (hi ? 'ट्रायल खत्म हो गया' : 'Free trial ended')
+                        : (hi ? `${trialDaysRemaining} दिन बचे हैं` : `${trialDaysRemaining} days left in your trial`)}
+                    </p>
+                  </div>
+                  <p className="text-base font-black text-ink mb-1">
+                    {hi ? 'पूरी पहुंच अनलॉक करो' : 'Unlock full access'}
+                  </p>
+                  <p className="text-xs text-slt mb-4 leading-relaxed">
+                    {hi
+                      ? 'असीमित AI कोचिंग · सभी मानसिक टूल · मैच के लिए तैयार रहो'
+                      : 'Unlimited AI coaching · All mental tools · Stay match-ready year-round'}
+                  </p>
                   <button
-                    onClick={() => navigate('/coaching', { state: { newSession: true } })}
-                    className="w-full py-2.5 px-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-semibold text-center active:scale-[0.98] transition-all"
+                    onClick={() => navigate('/pricing')}
+                    className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-bold active:scale-[0.98] transition-all"
                   >
-                    {td.startNewSession}
-                  </button>
-                  <button
-                    onClick={() => navigate('/sessions')}
-                    className="w-full py-2.5 px-3 bg-dark-700 border border-dark-600 rounded-xl text-xs font-semibold text-slt text-center hover:bg-dark-600 active:scale-95 transition-all"
-                  >
-                    {td.viewPastSessions}
+                    {hi ? 'प्रीमियम अपग्रेड करें — ₹299/माह' : 'Upgrade to Premium — ₹299/mo'}
                   </button>
                 </div>
-              </div>
-            </div>
-
-            {/* ── UPGRADE BANNERS ─────────────────────────────────────────────── */}
-            {trialEnded && (
-              <div className="mb-4 bg-brand-600 rounded-2xl p-5">
-                <p className="font-bold text-white mb-1">🚀 {td.upgradePrompt}</p>
-                <p className="text-white/80 text-sm mb-4">
-                  {hi ? 'असीमित AI कोचिंग · सभी सुविधाएं' : 'Unlimited AI coaching · All features'}
-                </p>
-                <button
-                  onClick={() => navigate('/pricing')}
-                  className="bg-white text-brand-600 font-bold text-sm py-3 rounded-xl w-full"
-                >
-                  {td.upgrade}
-                </button>
-              </div>
-            )}
-            {!isPremium && !trialEnded && trialDaysRemaining != null && trialDaysRemaining <= 3 && (
-              <div className="mb-4">
-                <Link to="/account">
-                  <div className="bg-dark-400 border border-fire-400/40 rounded-2xl px-4 py-3 flex items-center justify-between">
-                    <p className="text-sm font-semibold text-saffron-400">
-                      ⏰ {trialDaysRemaining === 1
-                        ? (hi ? 'ट्रायल का आखिरी दिन' : 'Last day of trial')
-                        : (hi ? `${trialDaysRemaining} दिन बचे` : `${trialDaysRemaining} days left`)}
-                    </p>
-                    <span className="text-xs font-bold text-brand-400">{hi ? 'अपग्रेड →' : 'Upgrade →'}</span>
-                  </div>
-                </Link>
               </div>
             )}
           </>
