@@ -300,10 +300,7 @@ export default function Dashboard() {
                 </div>
               ) : (
                 /* ── CHECK-IN NOT DONE ── hero workout card */
-                <div
-                  className="relative rounded-2xl overflow-hidden border border-dark-600"
-                  style={{ background: 'linear-gradient(135deg, #0F2D45 0%, #132334 60%, #0B1B2A 100%)' }}
-                >
+                <div className="relative rounded-2xl overflow-hidden border border-dark-600 bg-dark-800">
                   {/* Decorative arc */}
                   <div className="absolute top-0 right-0 w-40 h-40 opacity-10 pointer-events-none">
                     <svg viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
