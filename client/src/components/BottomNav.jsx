@@ -6,7 +6,7 @@ import { translations } from '../i18n/translations';
 const NAV_ITEMS = [
   { icon: Home,          labelKey: 'home',     path: '/dashboard' },
   { icon: Dumbbell,      labelKey: 'train',    path: '/train'     },
-  { icon: MessageCircle, labelKey: 'coach',    path: '/sessions'  },
+  { icon: MessageCircle, labelKey: 'coach',    path: '/coaching'  },
   { icon: TrendingUp,    labelKey: 'progress', path: '/progress'  },
   { icon: User,          labelKey: 'profile',  path: '/account'   },
 ];

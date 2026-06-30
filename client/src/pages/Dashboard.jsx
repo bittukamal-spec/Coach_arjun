@@ -277,7 +277,7 @@ export default function Dashboard() {
                   <div className="px-4 pb-4">
                     <p className="text-[11px] text-slt mb-2">{hi ? 'अगला कदम:' : 'Next up:'}</p>
                     <button
-                      onClick={() => navigate('/coaching', { state: { newSession: true } })}
+                      onClick={() => navigate('/coaching')}
                       className="w-full py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-bold active:scale-[0.98] transition-all"
                     >
                       {hi ? 'अर्जुन से बात करो' : 'Talk to Arjun'}
@@ -573,7 +573,7 @@ export default function Dashboard() {
                 onClick={() => {
                   setShowMfsReport(false);
                   const navState = rec.toolKey === 'coaching'
-                    ? { state: { ...(rec.state || {}), newSession: true } }
+                    ? { state: rec.state || {} }
                     : rec.state ? { state: rec.state } : undefined;
                   navigate(rec.to, navState);
                 }}
@@ -591,7 +591,7 @@ export default function Dashboard() {
 
               {/* Talk to Arjun secondary */}
               <button
-                onClick={() => { setShowMfsReport(false); navigate('/coaching', { state: { sessionType: 'post_checkin', newSession: true, arjunReport: mfsEntry?.arjunResponse } }); }}
+                onClick={() => { setShowMfsReport(false); navigate('/coaching', { state: { sessionType: 'post_checkin' } }); }}
                 className="w-full py-3.5 rounded-xl font-bold text-sm border border-dark-600 text-slt active:scale-[0.98] transition-transform"
               >
                 {hi ? 'अर्जुन से बात करो' : 'Talk to Arjun'}

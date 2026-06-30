@@ -9,7 +9,6 @@ import RefundPage from './pages/RefundPage';
 import Dashboard from './pages/Dashboard';
 import OnboardingPage from './pages/OnboardingPage';
 import ChatPage from './pages/ChatPage';
-import CheckInPage from './pages/CheckInPage';
 import ProgressPage from './pages/ProgressPage';
 import AccountPage from './pages/AccountPage';
 import BreathingPage from './pages/BreathingPage';

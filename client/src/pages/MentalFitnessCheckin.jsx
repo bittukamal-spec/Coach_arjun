@@ -330,7 +330,7 @@ export default function MentalFitnessCheckin() {
       <div className="flex-1" />
       <div className="px-4 pb-10 space-y-3">
         <button
-          onClick={() => navigate('/coaching', { state: { sessionType: 'post_checkin', newSession: true, arjunReport: entry?.arjunResponse } })}
+          onClick={() => navigate('/coaching', { state: { sessionType: 'post_checkin' } })}
           className="w-full py-4 rounded-2xl text-white font-bold text-base active:scale-[0.98] transition-transform"
           style={{ backgroundColor: '#185FA5' }}
         >
@@ -393,7 +393,7 @@ export default function MentalFitnessCheckin() {
 
               {/* Talk to Arjun secondary */}
               <button
-                onClick={() => { setShowReport(false); navigate('/coaching', { state: { sessionType: 'post_checkin', newSession: true, arjunReport: entry?.arjunResponse } }); }}
+                onClick={() => { setShowReport(false); navigate('/coaching', { state: { sessionType: 'post_checkin' } }); }}
                 className="w-full py-3.5 rounded-xl font-bold text-sm border border-dark-600 text-slt active:scale-[0.98] transition-transform"
               >
                 {mf.talkToArjun}
