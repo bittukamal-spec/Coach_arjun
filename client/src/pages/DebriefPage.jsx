@@ -319,19 +319,7 @@ export default function DebriefPage() {
 
             {/* CTAs */}
             <div className="flex flex-col gap-3">
-              <button
-                onClick={() => navigate('/coaching', {
-                  state: {
-                    sessionType: 'post_match',
-                    newSession: true,
-                    arjunReport: todayDebrief.arjunInsight || undefined,
-                  },
-                })}
-                className="btn-primary justify-center"
-              >
-                {ad.cta}
-              </button>
-              <button onClick={() => navigate('/train')} className="btn-secondary justify-center">
+              <button onClick={() => navigate('/train')} className="btn-primary justify-center">
                 {ad.back}
               </button>
             </div>
@@ -709,19 +697,7 @@ export default function DebriefPage() {
 
               {/* CTAs */}
               <div className="flex flex-col gap-3">
-                <button
-                  onClick={() => navigate('/coaching', {
-                    state: {
-                      sessionType: 'post_match',
-                      newSession: true,
-                      arjunReport: result.insight || undefined,
-                    },
-                  })}
-                  className="btn-primary justify-center"
-                >
-                  {t.done.secondary}
-                </button>
-                <button onClick={() => navigate('/train')} className="btn-secondary justify-center">
+                <button onClick={() => navigate('/train')} className="btn-primary justify-center">
                   {t.done.primary}
                 </button>
               </div>

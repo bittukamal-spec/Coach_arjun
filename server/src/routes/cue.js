@@ -30,6 +30,20 @@ router.patch('/cue-word', authenticate, async (req, res) => {
       where:  { id: req.userId },
       select: { xp: true, cueWord: true },
     });
+
+    // Save ToolReport (fire-and-forget) — template-based, no Claude call
+    const arousalLabel = { calm_down: 'calm down', lock_in: 'lock in', fire_up: 'fire up' }[cueArousalState] || 'get ready';
+    const savedWord = updated.cueWord || cueWord.trim().toUpperCase().slice(0, 20);
+    prisma.toolReport.create({
+      data: {
+        userId:        req.userId,
+        toolType:      'cue_word',
+        summary:       `Set cue word "${savedWord}" to ${arousalLabel} before a match.`,
+        arjunResponse: `Your word is locked in — ${savedWord}. Use it the moment you need to ${arousalLabel}.`,
+        details:       JSON.stringify({ cueWord: savedWord, cueArousalState, cueLanguage }),
+      },
+    }).catch(() => {});
+
     res.json({ ok: true, cueWord: updated.cueWord, xpEarned: CUE_XP, xp: updated.xp });
   } catch (err) {
     console.error('cue-word error:', err);

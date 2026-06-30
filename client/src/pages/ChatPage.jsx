@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Compass, Info, Zap, PlayCircle, Eye, Wind, ClipboardList, Target } from 'lucide-react';
+import { Compass, Info, Zap, PlayCircle, Eye, Wind, ClipboardList, Target, EyeOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
@@ -359,6 +359,7 @@ function ChatPage() {
   const [recentSessions, setRecentSessions]       = useState([]);
   const [summarising, setSummarising]             = useState(false);
   const [sessionSummary, setSessionSummary]       = useState(null);
+  const [chatMode, setChatMode]                   = useState('main');
 
   const bottomRef               = useRef(null);
   const inputRef                = useRef(null);
@@ -368,9 +369,6 @@ function ChatPage() {
   const pendingSessionRef       = useRef(location.state?.sessionType ?? null);
   const prefillMsgRef           = useRef(location.state?.prefillMsg ?? null);
   const pendingChatSessionIdRef = useRef(location.state?.chatSessionId ?? null);
-  const forceNewSessionRef      = useRef(location.state?.newSession ?? false);
-  const arjunReportRef          = useRef(location.state?.arjunReport ?? null);
-  const bridgeMsgRef            = useRef(location.state?.bridgeMsg ?? null);
 
   // ── Load on mount ─────────────────────────────────────────────────────────
 
@@ -406,11 +404,11 @@ function ChatPage() {
           if (sess?.summary) setSessionSummary(sess.summary);
           await fetchSessionMessages(pendingId);
           sessionLoaded = true;
-        } else if (!forceNewSessionRef.current) {
-          // Resume the most recent unended session (regardless of when it was created).
+        } else {
+          // Resume the most recent unended main session (regardless of when it was created).
           // end-stale auto-closes sessions from previous days; if the user didn't
           // explicitly end today's session, we pick it back up.
-          const existingActive = sessions.find(s => s.status === 'active');
+          const existingActive = sessions.find(s => s.status === 'active' && (s.mode === 'main' || !s.mode));
           if (existingActive) {
             setChatSessionId(existingActive.id);
             if (existingActive.sessionType && existingActive.sessionType !== 'general') {
@@ -424,12 +422,7 @@ function ChatPage() {
       }
 
       if (!sessionLoaded) {
-        if (forceNewSessionRef.current) {
-          // Auto-start immediately — skip the start screen; preserve any specific sessionType
-          if (!pendingSessionRef.current) pendingSessionRef.current = 'general';
-        } else {
-          setShowStartScreen(true);
-        }
+        setShowStartScreen(true);
       }
 
       setLoading(false);
@@ -467,39 +460,40 @@ function ChatPage() {
   }, [navigate]);
 
   // ── Auto-start when navigated from another page with a sessionType ────────
-  // If there is already an active session loaded, resume it — don't inject a new
-  // greeting on top of existing messages. Only start fresh when there is no session.
 
   useEffect(() => {
     if (!loading && pendingSessionRef.current) {
       const key = pendingSessionRef.current;
       pendingSessionRef.current = null;
-
-      const bridge = bridgeMsgRef.current || (language === 'hi'
-        ? 'मैंने अभी अपना मैच रिव्यू किया। इस पर बात करें।'
-        : 'I just finished my match review. Can we talk about it?');
-
       if (!chatSessionId) {
         arjunMsgCountRef.current = 0;
         setActiveSession(key);
-        if (arjunReportRef.current) {
-          // New session, coming from debrief — send the bridge message directly.
-          // Arjun's system prompt has the full review context (fromToolSection).
-          // Don't send __SESSION:post_match__ since it tells Arjun to ask basic
-          // questions the user already answered in the review.
-          createSession(key).then(id => sendMessage(bridge, key, id));
-        } else {
-          // New session, no tool context — normal session start
-          createSession(key).then(id => sendMessage(`__SESSION:${key}__`, key, id));
-        }
-      } else if (arjunReportRef.current) {
-        // Existing active session + debrief context — auto-send bridge message
-        // so Arjun picks up the context immediately.
-        setTimeout(() => sendMessage(bridge), 400);
+        createSession(key).then(id => sendMessage(`__SESSION:${key}__`, key, id));
       }
-      // Otherwise (existing session, no tool context): resume silently.
+      // Otherwise (existing session): resume silently.
     }
   }, [loading]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Quick chat cleanup: delete session on tab hide or unmount ────────────
+
+  useEffect(() => {
+    if (chatMode !== 'quick') return;
+    const cleanup = () => {
+      if (chatSessionId) {
+        apiFetch(`/api/sessions/${chatSessionId}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        }).catch(() => {});
+      }
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') cleanup();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [chatMode, chatSessionId, token]);
 
   // ── API helpers ───────────────────────────────────────────────────────────
 
@@ -532,11 +526,11 @@ function ChatPage() {
     } catch { /* ignore */ }
   }
 
-  async function createSession(type = 'general') {
+  async function createSession(type = 'general', mode = chatMode) {
     const res = await apiFetch('/api/sessions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ sessionType: type }),
+      body: JSON.stringify({ sessionType: type, mode }),
     });
     const data = await res.json();
     const id = data.session.id;
@@ -544,6 +538,31 @@ function ChatPage() {
     setShowStartScreen(false);
     setSessionSummary(null);
     return id;
+  }
+
+  async function switchMode(newMode) {
+    if (newMode === chatMode) return;
+    // End the current session before switching
+    if (chatSessionId && chatMode === 'main') {
+      apiFetch(`/api/sessions/${chatSessionId}/end`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      }).catch(() => {});
+    }
+    setChatMode(newMode);
+    setChatSessionId(null);
+    setMessages([]);
+    setActiveSession(null);
+    setSessionSummary(null);
+    arjunMsgCountRef.current = 0;
+    if (newMode === 'quick') {
+      // Create quick session immediately
+      const id = await createSession('general', 'quick');
+      // No session-start message for quick chat — just show the welcome bubble
+      return id;
+    } else {
+      setShowStartScreen(true);
+    }
   }
 
   async function endSession() {
@@ -601,7 +620,7 @@ function ChatPage() {
       const res = await apiFetch('/api/chat/message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ content: trimmed, sessionType, arjunMsgCount: arjunMsgCountRef.current, chatSessionId: sessionIdToUse, arjunReport: arjunReportRef.current }),
+        body: JSON.stringify({ content: trimmed, sessionType, arjunMsgCount: arjunMsgCountRef.current, chatSessionId: sessionIdToUse, chatMode }),
       });
 
       if (!res.ok) {
@@ -722,8 +741,23 @@ function ChatPage() {
               <p className="font-semibold text-ink text-sm leading-none">{t.title}</p>
             </div>
           </div>
+          {/* Mode segmented control */}
+          <div className="flex gap-0.5 bg-dark-700 rounded-lg p-0.5 shrink-0">
+            {['main', 'quick'].map(m => (
+              <button
+                key={m}
+                onClick={() => switchMode(m)}
+                title={t.mode[m + 'Desc']}
+                className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors ${
+                  chatMode === m ? 'bg-dark-400 text-ink shadow-sm' : 'text-slt hover:text-ink'
+                }`}
+              >
+                {t.mode[m]}
+              </button>
+            ))}
+          </div>
           <div className="flex items-center gap-1 shrink-0">
-            {chatSessionId && !showStartScreen && (
+            {chatSessionId && !showStartScreen && chatMode === 'main' && (
               <button
                 onClick={endSession}
                 disabled={summarising || streaming}
@@ -753,6 +787,14 @@ function ChatPage() {
       {/* ── Messages area ───────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto px-2 py-4">
         <div className="max-w-2xl mx-auto flex flex-col gap-3">
+
+          {/* Quick chat — not saved banner */}
+          {chatMode === 'quick' && (
+            <div className="flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl bg-dark-700 border border-dark-600 text-xs text-slt">
+              <EyeOff size={11} className="shrink-0" />
+              <span>{t.mode.notSaved}</span>
+            </div>
+          )}
 
           {/* Arjun welcome bubble — shown on start screen or empty session */}
           {!hasMessages && !waitingForFirst && (

@@ -277,6 +277,13 @@ export const translations = {
         pressure_reset:  { title: 'Before you play',    desc: 'Calm your nerves, find your focus',            icon: '⚡' },
         setback_reset:   { title: 'Bounce back',         desc: 'Process it and move forward',                  icon: '🔄' },
       },
+      mode: {
+        main:       'Coach',
+        quick:      'Quick',
+        mainDesc:   'Full session — saved',
+        quickDesc:  'Fast chat — not saved',
+        notSaved:   'Quick chat — not saved',
+      },
     },
     pressureReset: {
       pageTitle:        'Settle your nerves',
@@ -1386,6 +1393,13 @@ export const translations = {
         post_checkin:    { title: 'चेक-इन — बात करें', desc: 'अपनी रीडिंग अर्जुन से समझें',          icon: '📊' },
         pressure_reset:  { title: 'खेल से पहले',      desc: 'घबराहट दूर करो, ध्यान लगाओ',            icon: '⚡' },
         setback_reset:   { title: 'वापसी करो',       desc: 'समझो और आगे बढ़ो',                       icon: '🔄' },
+      },
+      mode: {
+        main:       'कोच',
+        quick:      'त्वरित',
+        mainDesc:   'पूरा सत्र — सेव होगा',
+        quickDesc:  'जल्दी बात — सेव नहीं',
+        notSaved:   'त्वरित चैट — सेव नहीं होगी',
       },
     },
     pressureReset: {

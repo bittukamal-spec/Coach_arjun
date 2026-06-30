@@ -848,17 +848,11 @@ export default function BeforeYouPlayPage() {
               {/* CTAs */}
               <div className="flex flex-col gap-3">
                 <button
-                  onClick={() => navigate('/dashboard')}
+                  onClick={() => navigate('/train')}
                   className="w-full py-3.5 rounded-2xl text-white font-semibold text-base active:scale-[0.98] transition-transform"
                   style={{ background: colors.accent }}
                 >
                   {tb.letsGo}
-                </button>
-                <button
-                  onClick={() => navigate('/coaching', { state: { sessionType: 'match_prep' } })}
-                  className="w-full py-2 text-sm text-slt hover:text-ink transition-colors"
-                >
-                  {tb.talkArjun}
                 </button>
               </div>
             </div>

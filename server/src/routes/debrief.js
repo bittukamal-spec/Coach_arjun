@@ -227,6 +227,17 @@ router.post('/', authenticate, async (req, res) => {
       select: { id: true, eventType: true, resultType: true, wentWell: true, nextFocus: true, arjunInsight: true, createdAt: true, mode: true },
     });
 
+    // Save ToolReport (fire-and-forget)
+    prisma.toolReport.create({
+      data: {
+        userId:        req.userId,
+        toolType:      'debrief',
+        summary:       `Match review: ${eventType}, result: ${resultType}. Went well: ${wentWellChips.join(', ')}. Would change: ${wouldChange}.`,
+        arjunResponse: insight ? insight.slice(0, 500) : null,
+        details:       JSON.stringify({ eventType, resultType, wentWellChips, wouldChange, nextFocus, mode }),
+      },
+    }).catch(() => {});
+
     return res.json({ insight, pattern, debrief, xp: updatedUser.xp, xpEarned: xpAmount, recentEntries });
   } catch {
     return res.status(500).json({ error: 'Server error' });

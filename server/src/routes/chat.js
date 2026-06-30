@@ -8,6 +8,8 @@ const prisma = new PrismaClient();
 
 // How many past messages to send to Claude as context (keeps costs reasonable)
 const MAX_HISTORY = 20;
+// Quick chat: cap history to 7 days
+const QUICK_HISTORY_DAYS = 7;
 
 const TRIAL_DAYS = 14;
 
@@ -114,7 +116,27 @@ Start by fully acknowledging what happened and validating the feeling. Then guid
 // ── Helper: build personalised system prompt ─────────────────────────────
 
 function buildSystemPrompt(user, checkIns = [], memories = [], sessionType = null, extra = {}) {
-  const { recentDebriefs = [], todayDrill = null, achievementCount = 0, recentDrills = [], gameSessions = [], ritual = null, mfsEntry = null, mfsHistory = [], mfsReport = null } = extra;
+  const { recentDebriefs = [], todayDrill = null, achievementCount = 0, recentDrills = [], gameSessions = [], ritual = null, mfsEntry = null, mfsHistory = [], mfsReport = null, toolReports = [], isQuickChat = false } = extra;
+
+  // Quick chat: minimal prompt — no memory, no history context, no tool reports
+  if (isQuickChat) {
+    const lang = user.language === 'hi'
+      ? 'CRITICAL: Respond ONLY in Hindi (Devanagari script). Never switch to English unless the athlete writes in English first.'
+      : 'CRITICAL: Respond ONLY in English. Never switch to Hindi unless the athlete writes in Hindi first.';
+    return `You are Arjun — a mental performance coach for Indian athletes. Be warm, direct, concise.
+This is a quick chat — not a saved session. Keep replies short (1–3 sentences). No memory of past sessions. No long-form coaching.
+
+## Athlete
+- Name: ${user.name}
+- Sport: ${user.sport || 'Not specified'}
+
+## Language
+${lang}
+
+## Format
+No markdown. No bullet points. No headers. Conversational tone only.
+End each reply with: [SUGGEST: option1 | option2 | option3]`;
+  }
   const goals = JSON.parse(user.goals || '[]').map(g => GOAL_LABELS[g] || g);
   const goalsText = goals.length ? goals.join(', ') : 'general mental performance';
 
@@ -320,15 +342,18 @@ Do NOT mention that you are reading a profile — let it silently shape your res
     mfsSection = `\n\n## Today's Mental Fitness Check-in (1–5 scale)\n- TODAY: ${todayLine}${historyLine}\nFactor these scores into your coaching tone. Low scores (≤2) on any dimension are important signals — acknowledge them naturally if relevant. If a dimension is trending down, treat it as a priority.${mfsReport ? `\n- Arjun's personalised report shown to athlete just now: "${mfsReport}" — build on this naturally and directly, do not repeat it verbatim.` : ''}`;
   }
 
-  // ── From-tool context (debrief review, visible even without MFS entry) ──
-  // When mfsReport is set but there is no MFS entry, the athlete came from a tool
-  // (e.g. After Match / Training review). Always surface it here so Arjun can
-  // reference it even if they skipped today's MFS check-in.
-  const fromToolSection = mfsReport && !mfsEntry
-    ? `\n\n## Athlete just came from a mental training tool\nContext to reference:\n"${mfsReport}"\nIMPORTANT: Open by directly referencing ONE specific detail from this context — not generically. Do NOT ask basic match or session questions — the context above already tells you the situation. Ask ONE focused follow-up question to deepen the coaching.`
-    : '';
+  // ── Recent tool activity (last 7 days, up to 3) ─────────────────────────
+  let toolSection = '';
+  if (toolReports.length > 0) {
+    const toolLines = toolReports.map(t => {
+      const daysAgo = Math.floor((Date.now() - new Date(t.createdAt).getTime()) / 86400000);
+      const when = daysAgo === 0 ? 'today' : `${daysAgo}d ago`;
+      return `- ${t.toolType.replace(/_/g, ' ')} (${when}): ${t.summary}${t.arjunResponse ? ` → Arjun said: "${t.arjunResponse}"` : ''}`;
+    }).join('\n');
+    toolSection = `\n\n## Recent Mental Tool Activity\n${toolLines}\nIMPORTANT: If the athlete's message clearly relates to one of these tool sessions, reference it specifically. Do NOT ask basic questions whose answers are already here.`;
+  }
 
-  return `You are Arjun — a mental performance coach who specialises in sports psychology for Indian athletes. You are warm, direct, and feel like a trusted older brother who truly understands the pressures of Indian sports culture.${mfsSection}${fromToolSection}
+  return `You are Arjun — a mental performance coach who specialises in sports psychology for Indian athletes. You are warm, direct, and feel like a trusted older brother who truly understands the pressures of Indian sports culture.${mfsSection}${toolSection}
 
 ## Athlete Profile
 - **Name:** ${user.name}
@@ -593,7 +618,8 @@ router.post('/message', authenticate, checkFreeLimit, async (req, res) => {
     });
   }
 
-  const { content, sessionType = null, arjunMsgCount = 0, chatSessionId = null, arjunReport = null } = req.body;
+  const { content, sessionType = null, arjunMsgCount = 0, chatSessionId = null, chatMode = 'main' } = req.body;
+  const isQuickChat = chatMode === 'quick';
   if (!content || typeof content !== 'string' || content.trim().length === 0) {
     return res.status(400).json({ error: 'Message content is required' });
   }
@@ -680,6 +706,15 @@ router.post('/message', authenticate, checkFreeLimit, async (req, res) => {
     }).catch(() => []);
     const mfsEntry = mfsHistory.find(e => e.date === todayIST) || null;
 
+    // Fetch recent tool reports (last 7 days, up to 3) — skipped for quick chat
+    const sevenDaysAgoISO = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const toolReports = isQuickChat ? [] : await prisma.toolReport.findMany({
+      where: { userId: req.userId, createdAt: { gte: sevenDaysAgoISO } },
+      orderBy: { createdAt: 'desc' },
+      take: 3,
+      select: { toolType: true, summary: true, arjunResponse: true, createdAt: true },
+    }).catch(() => []);
+
     // Save the user's message (skip invisible session-start markers)
     if (!isSessionStart) {
       await prisma.message.create({
@@ -691,6 +726,9 @@ router.post('/message', authenticate, checkFreeLimit, async (req, res) => {
     const historyWhere = chatSessionId
       ? { userId: req.userId, chatSessionId }
       : { userId: req.userId };
+    if (isQuickChat) {
+      historyWhere.createdAt = { gte: new Date(Date.now() - QUICK_HISTORY_DAYS * 24 * 60 * 60 * 1000) };
+    }
     const history = await prisma.message.findMany({
       where: historyWhere,
       orderBy: { createdAt: 'desc' },
@@ -734,7 +772,7 @@ router.post('/message', authenticate, checkFreeLimit, async (req, res) => {
     const stream = anthropic.messages.stream({
       model: process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001',
       max_tokens: 800,
-      system: buildSystemPrompt(user, recentCheckIns, memories, sessionType, { recentDebriefs, todayDrill, achievementCount, recentDrills, gameSessions, ritual, arjunMsgCount, mfsEntry, mfsHistory, mfsReport: arjunReport }),
+      system: buildSystemPrompt(user, recentCheckIns, memories, sessionType, { recentDebriefs, todayDrill, achievementCount, recentDrills, gameSessions, ritual, arjunMsgCount, mfsEntry, mfsHistory, mfsReport: null, toolReports, isQuickChat }),
       messages: conversationHistory,
     });
 
@@ -828,14 +866,17 @@ Write a short coaching response in this exact structure (as flowing prose, no la
 5. End with a 3–5 word cue phrase they can repeat.
 
 Rules:
-- Under 80 words total
+- coaching response under 80 words
 - NEVER say: "you've got this", "stay positive", "everything happens for a reason", "be kind to yourself", "I understand how you feel"
 - No therapy language, no clinical terms, no toxic positivity
 - Tone: strong, calm, direct — Indian performance coach talking to a 14–17 year old athlete
-- ${lang === 'hi' ? 'Write in Hinglish (natural Hindi-English mix — conversational, not formal Hindi).' : 'Write in English. You may use 1–2 natural Hinglish phrases.'}
+- ${lang === 'hi' ? 'Write coaching in Hinglish (natural Hindi-English mix — conversational, not formal Hindi).' : 'Write coaching in English. You may use 1–2 natural Hinglish phrases.'}
 - Address the athlete directly as "you" or "tu" (match the language register)
-- Output only the coaching response — no labels, no numbers, no prefix`;
-      maxTokens = 160;
+
+Return ONLY valid JSON — no markdown, no text outside JSON:
+{"arjunResponse":"<the coaching response>","report":{"situation":"<1 sentence: what the athlete described>","feeling":"<the emotional intensity label>","lesson":"<1 sentence: the key lesson from the coaching>","nextAction":"<the immediate action you gave them>"}}`;
+
+      maxTokens = 200;
     } else if (wizardType === 'cue_word') {
       const { arousal, firstFocus } = req.body;
       const arousalDesc = {
@@ -903,9 +944,10 @@ SPORT CUSTOMIZATION for ${sport}:
 - Default: use generic athletic environment
 
 70% execution focus. 30% handling pressure.
-cueWordLine in the JSON response = the array index of the "CUE: ${effectiveCue}" line.`;
+cueWordLine in the JSON response = the array index of the "CUE: ${effectiveCue}" line.
+Also include a "report" field: {"report":{"moment":"<1-sentence: what moment they rehearsed>","state":"<their mental state going in>","cueWord":"${effectiveCue}","keySection":"<1-sentence: the most impactful part of the script>"}}`;
 
-      maxTokens = 800;
+      maxTokens = 1000;
     } else {
       return res.status(400).json({ error: 'Invalid wizardType' });
     }
@@ -932,6 +974,7 @@ cueWordLine in the JSON response = the array index of the "CUE: ${effectiveCue}"
     }
 
     if (wizardType === 'visualization') {
+      const { specificMoment: vizMoment, currentState: vizState, cueWord: vizCue } = req.body;
       try {
         const raw = message.content[0].text.trim();
         const cleaned = raw.replace(/^```(?:json)?\s*\n?|\n?```\s*$/gm, '').trim();
@@ -941,6 +984,19 @@ cueWordLine in the JSON response = the array index of the "CUE: ${effectiveCue}"
         const VIZ_XP = 15;
         await prisma.user.update({ where: { id: req.userId }, data: { xp: { increment: VIZ_XP } } });
         const updated = await prisma.user.findUnique({ where: { id: req.userId }, select: { xp: true } });
+
+        // Save ToolReport (fire-and-forget)
+        const vizReport = parsed.report || {};
+        prisma.toolReport.create({
+          data: {
+            userId: req.userId,
+            toolType: 'visualization',
+            summary: vizReport.moment || `Visualized: ${(vizMoment || 'a match moment').slice(0, 100)}`,
+            arjunResponse: null,
+            details: JSON.stringify({ moment: vizMoment, state: vizState, cueWord: vizCue, ...vizReport }),
+          },
+        }).catch(() => {});
+
         return res.json({
           lines: parsed.lines,
           totalDurationSeconds: parsed.totalDurationSeconds || 150,
@@ -954,16 +1010,36 @@ cueWordLine in the JSON response = the array index of the "CUE: ${effectiveCue}"
       }
     }
 
-    let xpEarned = null, xpTotal = null;
     if (wizardType === 'bounce_back') {
       const BOUNCE_XP = 15;
+      let arjunText = message.content[0].text;
+      let reportData = null;
+      try {
+        const cleaned = arjunText.replace(/^```(?:json)?\s*\n?|\n?```\s*$/gm, '').trim();
+        const parsed = JSON.parse(cleaned);
+        arjunText = typeof parsed.arjunResponse === 'string' ? parsed.arjunResponse : arjunText;
+        reportData = parsed.report || null;
+      } catch {
+        // If JSON parse fails, use raw text as-is
+      }
       await prisma.user.update({ where: { id: req.userId }, data: { xp: { increment: BOUNCE_XP } } });
       const updated = await prisma.user.findUnique({ where: { id: req.userId }, select: { xp: true } });
-      xpEarned = BOUNCE_XP;
-      xpTotal = updated.xp;
+
+      // Save ToolReport (fire-and-forget)
+      prisma.toolReport.create({
+        data: {
+          userId: req.userId,
+          toolType: 'bounce_back',
+          summary: reportData?.situation || `Bounce back after: ${(situation || 'a setback').slice(0, 100)}`,
+          arjunResponse: arjunText.slice(0, 500),
+          details: JSON.stringify(reportData || { situation, stuckOn, intensityLabel, controlChoice }),
+        },
+      }).catch(() => {});
+
+      return res.json({ text: arjunText, cueWord, xpEarned: BOUNCE_XP, xp: updated.xp });
     }
 
-    res.json({ text: message.content[0].text, cueWord, xpEarned, xp: xpTotal });
+    res.json({ text: message.content[0].text, cueWord, xpEarned: null, xp: null });
   } catch (err) {
     console.error('wizard error:', err);
     res.status(500).json({ error: 'Wizard call failed' });

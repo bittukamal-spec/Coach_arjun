@@ -89,6 +89,7 @@ model User {
   gameSessions           GameSession[]
   chatSessions           ChatSession[]
   mentalFitnessEntries   MentalFitnessEntry[]
+  toolReports            ToolReport[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -188,12 +189,15 @@ model ChatSession {
   userId      String
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   sessionType String    @default("general")
+  mode        String    @default("main") // "main" | "quick"
   title       String?
   summary     String?
   status      String    @default("active") // "active" | "ended"
   createdAt   DateTime  @default(now())
   endedAt     DateTime?
   messages    Message[]
+
+  @@index([userId, mode])
 }
 
 model PasswordResetToken {
@@ -222,4 +226,17 @@ model MentalFitnessEntry {
   createdAt      DateTime @default(now())
 
   @@unique([userId, date])
+}
+
+model ToolReport {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  toolType       String   // "bounce_back" | "visualization" | "debrief" | "cue_word"
+  summary        String   // 1–2 sentence human-readable summary of what was done
+  arjunResponse  String?  // Arjun's closing line shown to athlete
+  details        String   @default("{}") // JSON blob of tool-specific fields
+  createdAt      DateTime @default(now())
+
+  @@index([userId, createdAt])
 }

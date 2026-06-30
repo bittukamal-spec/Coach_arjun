@@ -69,7 +69,7 @@ async function generateSessionSummary(sessionId) {
 router.get('/', authenticate, async (req, res) => {
   try {
     const sessions = await prisma.chatSession.findMany({
-      where: { userId: req.userId },
+      where: { userId: req.userId, mode: 'main' },
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
@@ -92,13 +92,26 @@ router.get('/', authenticate, async (req, res) => {
 // ── POST / — create session ───────────────────────────────────────────────
 
 router.post('/', authenticate, async (req, res) => {
-  const { sessionType = 'general' } = req.body;
+  const { sessionType = 'general', mode = 'main' } = req.body;
   try {
+    // Opportunistic cleanup: delete user's old quick sessions before creating a new one
+    if (mode === 'quick') {
+      const oldQuick = await prisma.chatSession.findMany({
+        where: { userId: req.userId, mode: 'quick' },
+        select: { id: true },
+      });
+      for (const s of oldQuick) {
+        await prisma.message.deleteMany({ where: { chatSessionId: s.id } });
+        await prisma.chatSession.delete({ where: { id: s.id } });
+      }
+    }
+
     const session = await prisma.chatSession.create({
       data: {
         userId: req.userId,
         sessionType,
-        title: generateTitle(sessionType),
+        mode,
+        title: mode === 'quick' ? 'Quick chat' : generateTitle(sessionType),
         status: 'active',
       },
     });

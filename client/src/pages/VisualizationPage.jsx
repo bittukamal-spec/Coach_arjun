@@ -736,21 +736,6 @@ export default function VisualizationPage() {
               {t.step5.replay}
             </button>
 
-            {/* Tertiary */}
-            <button
-              onClick={() => navigate('/coaching', { state: { sessionType: null, newSession: true, arjunReport: vizContextStr, bridgeMsg: vizBridgeMsg } })}
-              style={{
-                width: '100%',
-                height: 48,
-                background: 'none',
-                color: C.textMuted,
-                border: 'none',
-                fontSize: 15,
-                cursor: 'pointer',
-              }}
-            >
-              {t.step5.talk}
-            </button>
           </div>
         </div>
       </div>
