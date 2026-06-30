@@ -327,7 +327,7 @@ function RitualPage() {
                 ← Back
               </button>
             ) : (
-              <Link to="/dashboard" className="text-sm text-slt hover:text-ink">{t.backDash}</Link>
+              <Link to="/train" className="text-sm text-slt hover:text-ink">{t.backDash}</Link>
             )}
             <p className="font-semibold text-ink">{t.title}</p>
             <div className="w-20" />
@@ -354,7 +354,7 @@ function RitualPage() {
     <div className="min-h-screen bg-dark-900 pb-20">
       <header className="bg-dark-900 border-b border-dark-600 px-4 py-4 sticky top-0 z-10">
         <div className="max-w-lg mx-auto flex items-center justify-between">
-          <Link to="/dashboard" className="text-sm text-slt hover:text-ink">{t.backDash}</Link>
+          <Link to="/train" className="text-sm text-slt hover:text-ink">{t.backDash}</Link>
           <p className="font-semibold text-ink">{t.title}</p>
           <button onClick={() => setMode('build')} className="text-sm text-brand-400 hover:text-brand-300 font-medium">
             {t.editRitual}

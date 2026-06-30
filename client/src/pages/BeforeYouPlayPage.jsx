@@ -435,7 +435,7 @@ export default function BeforeYouPlayPage() {
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 shrink-0 border-b border-dark-700">
         <button
-          onClick={() => navigate('/reset')}
+          onClick={() => navigate('/train')}
           aria-label="Exit"
           className="w-9 h-9 flex items-center justify-center text-slt hover:text-ink text-2xl rounded-xl hover:bg-dark-800 transition-colors"
         >

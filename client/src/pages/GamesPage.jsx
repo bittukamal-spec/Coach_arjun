@@ -1172,7 +1172,7 @@ function GamesPage() {
               <ChevronLeft size={20} />
             </button>
           ) : (
-            <Link to="/dashboard" className="p-1 -ml-1 text-slt hover:text-ink transition-colors">
+            <Link to="/train" className="p-1 -ml-1 text-slt hover:text-ink transition-colors">
               <ChevronLeft size={20} />
             </Link>
           )}

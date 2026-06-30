@@ -26,7 +26,7 @@ const TOOL_MAP = {
   confidence: { toolKey: 'coaching',  to: '/coaching',  state: { sessionType: 'confidence' },   Icon: MessageCircle },
   drive:      { toolKey: 'coaching',  to: '/coaching',  state: { sessionType: 'general' },      Icon: MessageCircle },
   selftalk:   { toolKey: 'debrief',   to: '/debrief',   state: null,                            Icon: ClipboardList },
-  bounce:     { toolKey: 'reset',     to: '/reset',     state: null,                            Icon: RotateCcw     },
+  bounce:     { toolKey: 'reset',     to: '/bounce-back', state: null,                          Icon: RotateCcw     },
   mood:       { toolKey: 'coaching',  to: '/coaching',  state: { sessionType: 'post_checkin' }, Icon: MessageCircle },
 };
 

@@ -61,14 +61,6 @@ const INITIAL_CHIPS = {
   },
 };
 
-// ─── Starter cards ────────────────────────────────────────────────────────────
-
-const STARTERS = [
-  { key: 'pressure_reset',  icon: '⚡', to: '/reset' }, // navigates to toolkit page
-  { key: 'handle_pressure', icon: '😤' },
-  { key: 'open',            icon: '💬' },
-];
-
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
 function timeAgo(dateStr, t) {

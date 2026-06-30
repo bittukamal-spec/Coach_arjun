@@ -482,7 +482,7 @@ export const translations = {
       emptyTitle: 'No ritual yet',
       emptySub: 'Build your personalized pre-match mental routine',
       saved: 'Ritual saved!',
-      backDash: '← Dashboard',
+      backDash: '← Train',
       removeStep: 'Remove',
     },
     progress: {
@@ -1553,7 +1553,7 @@ export const translations = {
       emptyTitle: 'अभी तक कोई रिचुअल नहीं',
       emptySub: 'अपना व्यक्तिगत प्री-मैच रिचुअल बनाएं',
       saved: 'रिचुअल सेव हो गया!',
-      backDash: '← डैशबोर्ड',
+      backDash: '← ट्रेन',
       removeStep: 'हटाएं',
     },
     progress: {

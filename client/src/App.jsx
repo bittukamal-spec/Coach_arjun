@@ -18,7 +18,6 @@ import TrainPage from './pages/TrainPage';
 import DebriefPage from './pages/DebriefPage';
 import GamesPage from './pages/GamesPage';
 import PersonalityTestPage from './pages/PersonalityTestPage';
-import PressureResetPage from './pages/PressureResetPage';
 import BounceBackPage from './pages/BounceBackPage';
 import BeforeYouPlayPage from './pages/BeforeYouPlayPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
@@ -122,15 +121,6 @@ function App() {
         element={
           <ProtectedRoute requireOnboarding={true}>
             <BreathingPage />
-            <BottomNav />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/reset"
-        element={
-          <ProtectedRoute requireOnboarding={true}>
-            <PressureResetPage />
             <BottomNav />
           </ProtectedRoute>
         }
