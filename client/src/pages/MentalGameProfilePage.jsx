@@ -32,10 +32,9 @@ function MentalGameProfilePage() {
 
   const challenge     = user?.primaryChallenge || 'focus';
   const focusLabel    = t.focusLabels[challenge] || challenge;
-  const prefillMsg    = t.prefillMsg[challenge] || '';
 
   function handleStart() {
-    navigate('/coaching', { state: { prefillMsg } });
+    navigate('/coaching');
   }
 
   return (

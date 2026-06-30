@@ -3,9 +3,9 @@ import Navbar from '../components/Navbar';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import {
-  Target, Zap, TrendingUp, Sun, Wind, RotateCcw, Trophy,
+  Target, TrendingUp, Sun, Wind, RotateCcw, Trophy,
   ClipboardList, Gamepad2, ChevronRight, Eye, Shield, Dumbbell,
-  Brain, Star, Flame, RefreshCw, Crown, Lock,
+  Brain, Star, Crown, Lock,
 } from 'lucide-react';
 
 function SectionLabel({ children }) {
@@ -154,30 +154,6 @@ export default function TrainPage() {
             duration="5 min"
             onClick={() => navigate('/progress')}
           />
-        </div>
-
-        {/* ── SECTION 4: MENTAL SKILLS ─────────────────────────────────────── */}
-        <SectionLabel>{hi ? 'मानसिक कौशल' : 'Mental Skills'}</SectionLabel>
-        <div className="space-y-2">
-          {[
-            { key: 'focus',       icon: Target,  iconBg: 'bg-brand-50',        iconColor: 'text-brand-400',   title: hi ? 'फोकस'         : 'Focus',       sessionType: 'focus_reset'  },
-            { key: 'confidence',  icon: Star,    iconBg: 'bg-saffron-500/15',  iconColor: 'text-saffron-400', title: hi ? 'आत्मविश्वास'  : 'Confidence',  sessionType: 'confidence'   },
-            { key: 'composure',   icon: Shield,  iconBg: 'bg-teal-500/15',     iconColor: 'text-teal-400',    title: hi ? 'संयम'         : 'Composure',   sessionType: 'general'      },
-            { key: 'consistency', icon: Flame,   iconBg: 'bg-fire-500/15',     iconColor: 'text-fire-500',    title: hi ? 'निरंतरता'     : 'Consistency', sessionType: 'general'      },
-            { key: 'pressure',    icon: Zap,     iconBg: 'bg-purple-500/15',   iconColor: 'text-purple-400',  title: hi ? 'दबाव'         : 'Pressure',    sessionType: 'match_prep'   },
-            { key: 'recovery',    icon: RefreshCw, iconBg: 'bg-win-400/15',    iconColor: 'text-win-400',     title: hi ? 'रिकवरी'       : 'Recovery',    sessionType: 'post_match'   },
-          ].map(({ key, icon, iconBg, iconColor, title, sessionType }) => (
-            <ToolCard
-              key={key}
-              icon={icon}
-              iconBg={iconBg}
-              iconColor={iconColor}
-              title={title}
-              desc={hi ? '3–5 मिनट में अर्जुन से काम करो' : '3–5 min guided session with Arjun'}
-              duration="3–5 min"
-              onClick={() => navigate('/coaching', { state: { sessionType } })}
-            />
-          ))}
         </div>
 
         {/* ── FOCUS GAMES ──────────────────────────────────────────────────── */}

@@ -6,7 +6,7 @@ import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
 import {
   Flame, Zap, CheckCircle2, Snowflake, ChevronRight,
-  Wind, RotateCcw, Trophy, ClipboardList, Gamepad2, Crown, X, MessageCircle,
+  Wind, RotateCcw, Trophy, ClipboardList, Gamepad2, Crown, X,
   Eye, Target, Shield, CircleDot, Waves, Activity,
 } from 'lucide-react';
 
@@ -21,19 +21,16 @@ function getSportIcon(sport) {
 const TRIAL_DAYS = 14;
 
 const TOOL_MAP = {
-  calm:       { toolKey: 'breathing', to: '/breathing', state: null,                            Icon: Wind          },
-  focus:      { toolKey: 'games',     to: '/games',     state: null,                            Icon: Gamepad2      },
-  confidence: { toolKey: 'coaching',  to: '/coaching',  state: { sessionType: 'confidence' },   Icon: MessageCircle },
-  drive:      { toolKey: 'coaching',  to: '/coaching',  state: { sessionType: 'general' },      Icon: MessageCircle },
-  selftalk:   { toolKey: 'debrief',   to: '/debrief',   state: null,                            Icon: ClipboardList },
-  bounce:     { toolKey: 'reset',     to: '/bounce-back', state: null,                          Icon: RotateCcw     },
-  mood:       { toolKey: 'coaching',  to: '/coaching',  state: { sessionType: 'post_checkin' }, Icon: MessageCircle },
+  calm:     { toolKey: 'breathing', to: '/breathing',   state: null, Icon: Wind          },
+  focus:    { toolKey: 'games',     to: '/games',       state: null, Icon: Gamepad2      },
+  selftalk: { toolKey: 'debrief',   to: '/debrief',     state: null, Icon: ClipboardList },
+  bounce:   { toolKey: 'reset',     to: '/bounce-back', state: null, Icon: RotateCcw     },
 };
 
 function getRecommendedTool(entry) {
-  const dims = ['calm', 'focus', 'confidence', 'drive', 'selftalk', 'bounce', 'mood'];
+  const dims = ['calm', 'focus', 'selftalk', 'bounce'];
   const sorted = dims.filter(d => entry[d] != null).sort((a, b) => entry[a] - entry[b]);
-  return TOOL_MAP[sorted[0]] || TOOL_MAP.mood;
+  return TOOL_MAP[sorted[0]] || TOOL_MAP.calm;
 }
 
 function getTrialDaysRemaining(user) {
@@ -272,16 +269,6 @@ export default function Dashboard() {
                         </span>
                       )
                     ))}
-                  </div>
-                  {/* Next action */}
-                  <div className="px-4 pb-4">
-                    <p className="text-[11px] text-slt mb-2">{hi ? 'अगला कदम:' : 'Next up:'}</p>
-                    <button
-                      onClick={() => navigate('/coaching')}
-                      className="w-full py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-bold active:scale-[0.98] transition-all"
-                    >
-                      {hi ? 'अर्जुन से बात करो' : 'Talk to Arjun'}
-                    </button>
                   </div>
                 </div>
               ) : (
@@ -572,10 +559,7 @@ export default function Dashboard() {
               <button
                 onClick={() => {
                   setShowMfsReport(false);
-                  const navState = rec.toolKey === 'coaching'
-                    ? { state: rec.state || {} }
-                    : rec.state ? { state: rec.state } : undefined;
-                  navigate(rec.to, navState);
+                  navigate(rec.to, rec.state ? { state: rec.state } : undefined);
                 }}
                 className="w-full flex items-center gap-3 p-3.5 rounded-xl border-2 border-brand-500 active:scale-[0.98] transition-transform mb-3 bg-dark-700"
               >
@@ -587,14 +571,6 @@ export default function Dashboard() {
                   <p className="text-xs text-slt">{toolInfo.desc}</p>
                 </div>
                 <ChevronRight size={16} className="text-brand-400" />
-              </button>
-
-              {/* Talk to Arjun secondary */}
-              <button
-                onClick={() => { setShowMfsReport(false); navigate('/coaching', { state: { sessionType: 'post_checkin' } }); }}
-                className="w-full py-3.5 rounded-xl font-bold text-sm border border-dark-600 text-slt active:scale-[0.98] transition-transform"
-              >
-                {hi ? 'अर्जुन से बात करो' : 'Talk to Arjun'}
               </button>
             </div>
           </>

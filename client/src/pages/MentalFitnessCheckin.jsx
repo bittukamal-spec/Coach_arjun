@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Zap, X, ChevronLeft, ChevronRight, Wind, Gamepad2, MessageCircle, ClipboardList, RotateCcw } from 'lucide-react';
+import { Zap, X, ChevronLeft, ChevronRight, Wind, Gamepad2, ClipboardList, RotateCcw } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
@@ -28,19 +28,16 @@ function calcAvg(data) {
 }
 
 const TOOL_MAP = {
-  calm:       { toolKey: 'breathing', to: '/breathing',  state: null,                              Icon: Wind          },
-  focus:      { toolKey: 'games',     to: '/games',      state: null,                              Icon: Gamepad2      },
-  confidence: { toolKey: 'coaching',  to: '/coaching',   state: { sessionType: 'confidence' },     Icon: MessageCircle },
-  drive:      { toolKey: 'coaching',  to: '/coaching',   state: { sessionType: 'general' },        Icon: MessageCircle },
-  selftalk:   { toolKey: 'debrief',   to: '/debrief',    state: null,                              Icon: ClipboardList },
-  bounce:     { toolKey: 'reset',     to: '/bounce-back', state: null,                             Icon: RotateCcw     },
-  mood:       { toolKey: 'coaching',  to: '/coaching',   state: { sessionType: 'post_checkin' },   Icon: MessageCircle },
+  calm:     { toolKey: 'breathing', to: '/breathing',   state: null, Icon: Wind          },
+  focus:    { toolKey: 'games',     to: '/games',       state: null, Icon: Gamepad2      },
+  selftalk: { toolKey: 'debrief',   to: '/debrief',     state: null, Icon: ClipboardList },
+  bounce:   { toolKey: 'reset',     to: '/bounce-back', state: null, Icon: RotateCcw     },
 };
 
 function getRecommendedTool(entry) {
-  const dims = ['calm', 'focus', 'confidence', 'drive', 'selftalk', 'bounce', 'mood'];
+  const dims = ['calm', 'focus', 'selftalk', 'bounce'];
   const sorted = dims.filter(d => entry[d] != null).sort((a, b) => entry[a] - entry[b]);
-  return TOOL_MAP[sorted[0]] || TOOL_MAP.mood;
+  return TOOL_MAP[sorted[0]] || TOOL_MAP.calm;
 }
 
 export default function MentalFitnessCheckin() {
@@ -330,13 +327,6 @@ export default function MentalFitnessCheckin() {
       <div className="flex-1" />
       <div className="px-4 pb-10 space-y-3">
         <button
-          onClick={() => navigate('/coaching', { state: { sessionType: 'post_checkin' } })}
-          className="w-full py-4 rounded-2xl text-white font-bold text-base active:scale-[0.98] transition-transform"
-          style={{ backgroundColor: '#185FA5' }}
-        >
-          {mf.talkToArjun}
-        </button>
-        <button
           onClick={() => navigate('/dashboard')}
           className="w-full py-3.5 rounded-2xl border border-dark-600 text-slt font-semibold text-sm active:scale-[0.98] transition-transform"
         >
@@ -389,14 +379,6 @@ export default function MentalFitnessCheckin() {
                   <p className="text-xs text-slt">{toolInfo.desc}</p>
                 </div>
                 <ChevronRight size={16} style={{ color: '#185FA5' }} />
-              </button>
-
-              {/* Talk to Arjun secondary */}
-              <button
-                onClick={() => { setShowReport(false); navigate('/coaching', { state: { sessionType: 'post_checkin' } }); }}
-                className="w-full py-3.5 rounded-xl font-bold text-sm border border-dark-600 text-slt active:scale-[0.98] transition-transform"
-              >
-                {mf.talkToArjun}
               </button>
             </div>
           </>

@@ -1,65 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Compass, Info, Zap, PlayCircle, Eye, Wind, ClipboardList, Target, EyeOff } from 'lucide-react';
+import { Info, Zap, PlayCircle, Eye, Wind, ClipboardList, Target, EyeOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
 import { ArjunLogo } from '../components/ArjunLogo';
 import { useTheme } from '../hooks/useTheme';
 import { parseArjunMessage, APP_TOOL_CONFIG } from '../utils/parseArjunMessage';
-
-// ─── Session definitions ───────────────────────────────────────────────────────
-
-const SESSIONS = [
-  { key: 'match_prep',      color: 'text-violet-400', activeBg: 'bg-violet-500/15 border-violet-500/60' },
-  { key: 'post_match',      color: 'text-blue-400',   activeBg: 'bg-blue-500/15 border-blue-500/60'   },
-  { key: 'build_focus',     color: 'text-orange-400', activeBg: 'bg-orange-500/15 border-orange-500/60' },
-  { key: 'confidence',      color: 'text-brand-400',  activeBg: 'bg-brand-500/15 border-brand-500/60' },
-  { key: 'handle_pressure', color: 'text-red-400',    activeBg: 'bg-red-500/15 border-red-500/60'     },
-  { key: 'pressure_reset',  color: 'text-brand-400',  activeBg: 'bg-brand-500/15 border-brand-500/60' },
-  { key: 'setback_reset',   color: 'text-fire-400',   activeBg: 'bg-fire-500/15 border-fire-500/60'   },
-  { key: 'open',            color: 'text-win-400',    activeBg: 'bg-win-500/15 border-win-500/60'     },
-];
-
-// Reliable hardcoded initial chips per session (shown after Arjun's first reply)
-const INITIAL_CHIPS = {
-  match_prep: {
-    en: ['Tomorrow', 'Today', 'In a few days', 'Next week'],
-    hi: ['कल', 'आज', 'कुछ दिनों में', 'अगले हफ्ते'],
-  },
-  post_match: {
-    en: ['We won', 'We lost', 'I played okay', 'Mixed result'],
-    hi: ['जीते', 'हारे', 'ठीक खेला', 'मिला-जुला'],
-  },
-  build_focus: {
-    en: ['In matches', 'In training', 'Both', 'Before I play'],
-    hi: ['मैच में', 'ट्रेनिंग में', 'दोनों में', 'शुरुआत में'],
-  },
-  confidence: {
-    en: ['Before a big match', 'After a mistake', 'Around selection', 'Always'],
-    hi: ['बड़े मैच से पहले', 'गलती के बाद', 'सिलेक्शन पर', 'हमेशा'],
-  },
-  handle_pressure: {
-    en: ['From family', 'From coach', 'Self-imposed', 'Selection pressure'],
-    hi: ['परिवार से', 'कोच से', 'खुद से', 'सिलेक्शन का'],
-  },
-  open: {
-    en: ['Feeling off today', 'Need motivation', 'Something happened', 'Just want to talk'],
-    hi: ['कुछ ठीक नहीं', 'हौसला चाहिए', 'कुछ हुआ है', 'बस बात करनी है'],
-  },
-  post_checkin: {
-    en: ['Tell me more', 'What should I focus on?', 'Felt this before', "It's getting better"],
-    hi: ['और बताइए', 'किस पर ध्यान दूं?', 'पहले भी हुआ', 'बेहतर हो रहा है'],
-  },
-  pressure_reset: {
-    en: ['Feeling nervous', 'My stomach is tight', "Can't focus", 'Heart is racing'],
-    hi: ['नर्वस हूं', 'पेट में घबराहट', 'ध्यान नहीं लग रहा', 'दिल तेज़ धड़क रहा'],
-  },
-  setback_reset: {
-    en: ['Made a big mistake', 'We lost badly', 'Feel like giving up', "I let everyone down"],
-    hi: ['बड़ी गलती हुई', 'बुरी हार हुई', 'छोड़ने का मन है', 'सबको निराश किया'],
-  },
-};
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -345,7 +292,6 @@ function ChatPage() {
   const [usage, setUsage]                         = useState({ isPremium: false, trialDaysRemaining: 14 });
   const [activeSession, setActiveSession]         = useState(null);
   const [showSafety, setShowSafety]               = useState(false);
-  const [showSessionPicker, setShowSessionPicker] = useState(false);
   const [chatSessionId, setChatSessionId]         = useState(null);
   const [showStartScreen, setShowStartScreen]     = useState(false);
   const [recentSessions, setRecentSessions]       = useState([]);
@@ -358,7 +304,6 @@ function ChatPage() {
   const streamIdRef             = useRef(null);
   const fullStreamText          = useRef('');
   const arjunMsgCountRef        = useRef(0);
-  const pendingSessionRef       = useRef(location.state?.sessionType ?? null);
   const prefillMsgRef           = useRef(location.state?.prefillMsg ?? null);
   const pendingChatSessionIdRef = useRef(location.state?.chatSessionId ?? null);
 
@@ -387,7 +332,6 @@ function ChatPage() {
         const pendingId = pendingChatSessionIdRef.current;
         if (pendingId) {
           pendingChatSessionIdRef.current = null;
-          pendingSessionRef.current = null; // don't auto-start a new greeting on an existing session
           setChatSessionId(pendingId);
           const sess = sessions.find(s => s.id === pendingId);
           if (sess?.sessionType && sess.sessionType !== 'general') {
@@ -427,21 +371,6 @@ function ChatPage() {
     }
   }, [messages, chatSessionId]);
 
-  // ── Auto-start when navigated from another page with a sessionType ────────
-
-  useEffect(() => {
-    if (!loading && pendingSessionRef.current) {
-      const key = pendingSessionRef.current;
-      pendingSessionRef.current = null;
-      if (!chatSessionId) {
-        arjunMsgCountRef.current = 0;
-        setActiveSession(key);
-        createSession(key).then(id => sendMessage(`__SESSION:${key}__`, key, id));
-      }
-      // Otherwise (existing session): resume silently.
-    }
-  }, [loading]); // eslint-disable-line react-hooks/exhaustive-deps
-
   // ── Quick chat cleanup: delete session on tab hide or unmount ────────────
 
   useEffect(() => {
@@ -479,15 +408,11 @@ function ChatPage() {
       if (res.ok) {
         const data = await res.json();
         const msgs = data.messages || [];
-        let lastAsstIdx = -1;
-        for (let i = msgs.length - 1; i >= 0; i--) {
-          if (msgs[i].role === 'assistant') { lastAsstIdx = i; break; }
-        }
-        const processed = msgs.map((msg, i) => {
+        const processed = msgs.map(msg => {
           if (msg.role !== 'assistant') return msg;
-          const { clean, suggestions } = extractSuggestions(msg.content);
+          const { clean } = extractSuggestions(msg.content);
           const { cleanText, tools } = parseArjunMessage(clean);
-          return { ...msg, content: cleanText, tags: i === lastAsstIdx ? suggestions : [], appTools: tools };
+          return { ...msg, content: cleanText, appTools: tools };
         });
         setMessages(processed);
       }
@@ -506,31 +431,6 @@ function ChatPage() {
     setShowStartScreen(false);
     setSessionSummary(null);
     return id;
-  }
-
-  async function switchMode(newMode) {
-    if (newMode === chatMode) return;
-    // End the current session before switching
-    if (chatSessionId && chatMode === 'main') {
-      apiFetch(`/api/sessions/${chatSessionId}/end`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      }).catch(() => {});
-    }
-    setChatMode(newMode);
-    setChatSessionId(null);
-    setMessages([]);
-    setActiveSession(null);
-    setSessionSummary(null);
-    arjunMsgCountRef.current = 0;
-    if (newMode === 'quick') {
-      // Create quick session immediately
-      const id = await createSession('general', 'quick');
-      // No session-start message for quick chat — just show the welcome bubble
-      return id;
-    } else {
-      setShowStartScreen(true);
-    }
   }
 
   async function endSession() {
@@ -635,16 +535,12 @@ function ChatPage() {
                 prev.map(m => m.id === streamId ? { ...m, content: m.content + data.c } : m)
               );
             } else if (data.t === 'end') {
-              const { clean, suggestions } = extractSuggestions(fullStreamText.current);
+              const { clean } = extractSuggestions(fullStreamText.current);
               const { cleanText, tools } = parseArjunMessage(clean);
               arjunMsgCountRef.current += 1;
-              const isFirstReply = arjunMsgCountRef.current === 1 && sessionType;
-              const chips = suggestions.length > 0
-                ? suggestions
-                : (isFirstReply ? (INITIAL_CHIPS[sessionType]?.[language] ?? []) : []);
               setMessages(prev =>
                 prev.map(m => m.id === streamId
-                  ? { ...m, content: cleanText, id: data.id, streaming: false, appTools: tools, ...(chips.length > 0 ? { tags: chips } : {}) }
+                  ? { ...m, content: cleanText, id: data.id, streaming: false, appTools: tools }
                   : m)
               );
               fullStreamText.current = '';
@@ -666,22 +562,6 @@ function ChatPage() {
       inputRef.current?.focus();
     }
   }, [input, streaming, token, t.errorRetry, activeSession, language, chatSessionId]);
-
-  // ── Session selection ─────────────────────────────────────────────────────
-
-  async function handleSessionSelect(key) {
-    if (streaming) return;
-    if (activeSession === key) return;
-    arjunMsgCountRef.current = 0;
-    setActiveSession(key);
-    let sessionId = chatSessionId;
-    if (!sessionId) {
-      sessionId = await createSession(key);
-    }
-    if (messages.length === 0) {
-      sendMessage(`__SESSION:${key}__`, key, sessionId);
-    }
-  }
 
   // ── Keyboard ──────────────────────────────────────────────────────────────
 
@@ -718,21 +598,6 @@ function ChatPage() {
             <div className="min-w-0">
               <p className="font-semibold text-ink text-sm leading-none">{t.title}</p>
             </div>
-          </div>
-          {/* Mode segmented control */}
-          <div className="flex gap-0.5 bg-dark-700 rounded-lg p-0.5 shrink-0">
-            {['main', 'quick'].map(m => (
-              <button
-                key={m}
-                onClick={() => switchMode(m)}
-                title={t.mode[m + 'Desc']}
-                className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors ${
-                  chatMode === m ? 'bg-dark-400 text-ink shadow-sm' : 'text-slt hover:text-ink'
-                }`}
-              >
-                {t.mode[m]}
-              </button>
-            ))}
           </div>
           <div className="flex items-center gap-1 shrink-0">
             {chatSessionId && !showStartScreen && chatMode === 'main' && (
@@ -810,42 +675,16 @@ function ChatPage() {
           )}
 
           {/* Message list */}
-          {!showStartScreen && (() => {
-            const lastAsstIdx = messages.reduce((acc, m, i) => m.role === 'assistant' && !m.streaming ? i : acc, -1);
-            const elseLabel = language === 'hi' ? 'Kuch aur…' : 'Something else…';
-            return messages.map((msg, i) => {
-              const prevMsg = messages[i - 1];
-              const showDivider = msg.sessionType && msg.sessionType !== prevMsg?.sessionType && i > 0;
-              const isLastAsst = i === lastAsstIdx && !streaming;
-              return (
-                <div key={msg.id} className="flex flex-col gap-2">
-                  {showDivider && <SessionDivider sessionKey={msg.sessionType} date={msg.createdAt} t={t} />}
-                  <MessageBubble message={msg} isStreaming={msg.streaming} />
-                  {msg.role === 'assistant' && !msg.streaming && (msg.tags?.length > 0 || isLastAsst) && (
-                    <div className="flex flex-wrap gap-2">
-                      {msg.tags?.map(reply => (
-                        <button
-                          key={reply}
-                          onClick={() => sendMessage(reply)}
-                          className="text-xs bg-dark-700 border border-brand-600/40 text-brand-400 px-3 py-1.5 rounded-full hover:bg-brand-600/20 hover:border-brand-500 active:scale-95 transition-all"
-                        >
-                          {reply}
-                        </button>
-                      ))}
-                      {isLastAsst && (
-                        <button
-                          onClick={() => inputRef.current?.focus()}
-                          className="text-xs bg-transparent border border-dashed border-dark-500 text-slt px-3 py-1.5 rounded-full hover:border-brand-400 hover:text-brand-400 active:scale-95 transition-all"
-                        >
-                          {elseLabel}
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            });
-          })()}
+          {!showStartScreen && messages.map((msg, i) => {
+            const prevMsg = messages[i - 1];
+            const showDivider = msg.sessionType && msg.sessionType !== prevMsg?.sessionType && i > 0;
+            return (
+              <div key={msg.id} className="flex flex-col gap-2">
+                {showDivider && <SessionDivider sessionKey={msg.sessionType} date={msg.createdAt} t={t} />}
+                <MessageBubble message={msg} isStreaming={msg.streaming} />
+              </div>
+            );
+          })}
 
           {/* Typing indicator */}
           {waitingForFirst && <TypingIndicator />}
@@ -864,38 +703,9 @@ function ChatPage() {
       </div>
 
       {/* ── Input area ──────────────────────────────────────────────────── */}
+      {chatSessionId && !showStartScreen && (
       <div className="shrink-0 bg-dark-800 border-t border-dark-600 px-4 py-3">
         <div className="max-w-2xl mx-auto relative">
-
-          {/* ── Session picker dropdown ─────────────────────────── */}
-          {showSessionPicker && (
-            <>
-              <div className="fixed inset-0 z-10" onClick={() => setShowSessionPicker(false)} />
-              <div className="absolute bottom-full mb-2 right-0 z-20 bg-dark-800 border border-dark-600 rounded-xl shadow-lg overflow-hidden w-60 max-h-72 overflow-y-auto">
-                {SESSIONS.map(({ key, color }) => {
-                  const def = t.sessions[key];
-                  const isActive = activeSession === key;
-                  return (
-                    <button
-                      key={key}
-                      onClick={() => { handleSessionSelect(key); setShowSessionPicker(false); }}
-                      disabled={atLimit || streaming}
-                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-dark-700 transition-colors disabled:opacity-40 ${
-                        isActive ? 'bg-dark-700' : ''
-                      }`}
-                    >
-                      <span className="text-base shrink-0">{def.icon}</span>
-                      <div className="min-w-0 flex-1">
-                        <p className={`text-sm font-medium ${isActive ? color : 'text-ink'}`}>{def.title}</p>
-                        <p className="text-xs text-slt truncate">{def.desc}</p>
-                      </div>
-                      {isActive && <span className="ml-auto text-brand-400 shrink-0 text-sm">✓</span>}
-                    </button>
-                  );
-                })}
-              </div>
-            </>
-          )}
 
           {atLimit && (
             <div className="mb-3 flex flex-col sm:flex-row sm:items-center gap-2 bg-amber-950/30 border border-amber-700/40 rounded-2xl px-4 py-3">
@@ -944,23 +754,11 @@ function ChatPage() {
                 </svg>
               )}
             </button>
-            {/* Topic picker */}
-            <button
-              onClick={() => setShowSessionPicker(s => !s)}
-              disabled={atLimit || streaming}
-              title={t.chooseFocus}
-              className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-colors shrink-0 disabled:opacity-40 ${
-                showSessionPicker || activeSession
-                  ? 'bg-brand-600/20 text-brand-400 border border-brand-500/30'
-                  : 'bg-dark-700 border border-dark-600 text-slt hover:text-ink'
-              }`}
-            >
-              <Compass size={18} />
-            </button>
           </div>
 
         </div>
       </div>
+      )}
     </div>
   );
 }
