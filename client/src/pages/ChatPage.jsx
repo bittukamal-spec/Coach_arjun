@@ -404,20 +404,6 @@ function ChatPage() {
           if (sess?.summary) setSessionSummary(sess.summary);
           await fetchSessionMessages(pendingId);
           sessionLoaded = true;
-        } else {
-          // Resume the most recent unended main session (regardless of when it was created).
-          // end-stale auto-closes sessions from previous days; if the user didn't
-          // explicitly end today's session, we pick it back up.
-          const existingActive = sessions.find(s => s.status === 'active' && (s.mode === 'main' || !s.mode));
-          if (existingActive) {
-            setChatSessionId(existingActive.id);
-            if (existingActive.sessionType && existingActive.sessionType !== 'general') {
-              setActiveSession(existingActive.sessionType);
-            }
-            if (existingActive.summary) setSessionSummary(existingActive.summary);
-            await fetchSessionMessages(existingActive.id);
-            sessionLoaded = true;
-          }
         }
       }
 
@@ -448,16 +434,6 @@ function ChatPage() {
       sessionStorage.setItem(`arjun_chat_messages_${chatSessionId}`, JSON.stringify(messages));
     }
   }, [messages, chatSessionId]);
-
-  // ── Intercept mobile back — always go to /sessions ────────────────────────
-
-  useEffect(() => {
-    const handlePop = () => {
-      navigate('/sessions', { replace: true });
-    };
-    window.addEventListener('popstate', handlePop);
-    return () => window.removeEventListener('popstate', handlePop);
-  }, [navigate]);
 
   // ── Auto-start when navigated from another page with a sessionType ────────
 
@@ -574,25 +550,36 @@ function ChatPage() {
       headers: { Authorization: `Bearer ${token}` },
     }).catch(() => {});
     setSummarising(false);
-    navigate('/sessions');
+    // Return to entry choice screen without leaving /coaching
+    setChatSessionId(null);
+    setMessages([]);
+    setActiveSession(null);
+    setSessionSummary(null);
+    arjunMsgCountRef.current = 0;
+    setChatMode('main');
+    setShowStartScreen(true);
   }
 
-  async function handleContinueYesterday() {
-    const recent = recentSessions.find(s => s.status === 'ended');
-    if (!recent) return;
-    const res = await apiFetch(`/api/sessions/${recent.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ status: 'active' }),
-    });
-    if (res.ok) {
-      setChatSessionId(recent.id);
-      setShowStartScreen(false);
-      if (recent.sessionType && recent.sessionType !== 'general') {
-        setActiveSession(recent.sessionType);
+  async function handleContinueMain() {
+    const existingSession = recentSessions.find(
+      s => s.status === 'active' && (s.mode === 'main' || !s.mode)
+    );
+    if (existingSession) {
+      setChatSessionId(existingSession.id);
+      if (existingSession.sessionType && existingSession.sessionType !== 'general') {
+        setActiveSession(existingSession.sessionType);
       }
-      await fetchSessionMessages(recent.id);
+      if (existingSession.summary) setSessionSummary(existingSession.summary);
+      await fetchSessionMessages(existingSession.id);
+      setShowStartScreen(false);
+    } else {
+      await createSession('general', 'main');
     }
+  }
+
+  async function handleStartQuick() {
+    setChatMode('quick');
+    await createSession('general', 'quick');
   }
 
   // ── Send message ──────────────────────────────────────────────────────────
@@ -715,9 +702,8 @@ function ChatPage() {
 
   // ── Derived state ─────────────────────────────────────────────────────────
 
-  const atLimit          = !usage.isPremium && usage.trialDaysRemaining === 0;
-  const hasMessages      = messages.length > 0;
-  const hasEndedSessions = recentSessions.some(s => s.status === 'ended');
+  const atLimit     = !usage.isPremium && usage.trialDaysRemaining === 0;
+  const hasMessages = messages.length > 0;
 
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -796,47 +782,29 @@ function ChatPage() {
             </div>
           )}
 
-          {/* Arjun welcome bubble — shown on start screen or empty session */}
-          {!hasMessages && !waitingForFirst && (
-            <div className="flex justify-start animate-fade-in">
-              <div className="max-w-[92%] px-3.5 py-2.5 text-sm leading-relaxed bg-dark-400 border border-dark-600 text-ink shadow-sm rounded-2xl rounded-bl-md">
-                {t.arjunWelcome}
-              </div>
-            </div>
-          )}
-
-          {/* Start screen — shown when no session is loaded yet and not auto-starting */}
+          {/* Entry choice screen — shown when no session is active */}
           {showStartScreen && !waitingForFirst && (
-            <div className="flex flex-col gap-3 mt-2 animate-fade-in">
-              {hasEndedSessions && (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 animate-fade-in">
+              <h2 className="text-[22px] font-bold text-ink mb-2 text-center">{t.entry.heading}</h2>
+              <p className="text-[15px] text-slt text-center mb-8 leading-relaxed max-w-xs">{t.entry.description}</p>
+              <div className="w-full flex flex-col gap-2">
                 <button
-                  onClick={handleContinueYesterday}
+                  onClick={handleContinueMain}
                   disabled={atLimit}
-                  className="flex items-center gap-3 bg-dark-800 border border-dark-600 hover:border-brand-500/50 hover:bg-dark-700 active:scale-[0.98] rounded-2xl p-4 text-left transition-all disabled:opacity-40"
+                  className="w-full py-4 bg-brand-600 text-white rounded-2xl font-semibold text-sm active:scale-[0.98] transition-all disabled:opacity-40"
                 >
-                  <span className="text-lg shrink-0">🕐</span>
-                  <span className="text-sm font-medium text-ink">{t.continueYesterday}</span>
+                  {t.entry.continue.label}
                 </button>
-              )}
-              <button
-                onClick={() => createSession('general')}
-                disabled={atLimit}
-                className="w-full py-3 rounded-2xl bg-brand-600 text-white font-semibold text-sm hover:bg-brand-700 transition-colors active:scale-[0.98] disabled:opacity-40"
-              >
-                {t.startFresh}
-              </button>
-              <div className="grid grid-cols-2 gap-2 mt-1">
-                {STARTERS.map(({ key, icon, to }) => (
-                  <button
-                    key={key}
-                    onClick={() => to ? navigate(to) : handleSessionSelect(key)}
-                    disabled={!to && (atLimit || streaming)}
-                    className="flex items-center gap-2 bg-dark-800 border border-dark-600 hover:border-brand-500/50 hover:bg-dark-700 active:scale-95 rounded-2xl px-3 py-3 text-left transition-all disabled:opacity-40"
-                  >
-                    <span className="text-lg shrink-0">{icon}</span>
-                    <span className="text-sm font-medium text-ink leading-tight">{t.starters[key]}</span>
-                  </button>
-                ))}
+                <p className="text-[13px] text-slt text-center">{t.entry.continue.sub}</p>
+                <div className="h-3" />
+                <button
+                  onClick={handleStartQuick}
+                  disabled={atLimit}
+                  className="w-full py-4 border border-dark-500 text-ink rounded-2xl font-semibold text-sm active:scale-[0.98] transition-all disabled:opacity-40"
+                >
+                  {t.entry.quick.label}
+                </button>
+                <p className="text-[13px] text-slt text-center">{t.entry.quick.sub}</p>
               </div>
             </div>
           )}

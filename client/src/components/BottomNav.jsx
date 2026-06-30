@@ -16,7 +16,7 @@ function BottomNav() {
   const { language } = useAuth();
   const t = translations[language].nav;
 
-  if (pathname.startsWith('/coaching') || pathname.startsWith('/sessions')) return null;
+  if (pathname.startsWith('/coaching')) return null;
 
   return (
     <nav className="fixed bottom-0 inset-x-0 z-50 sm:hidden bg-dark-900/97 backdrop-blur-md border-t border-dark-600">
