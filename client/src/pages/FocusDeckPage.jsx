@@ -13,7 +13,6 @@ export default function FocusDeckPage() {
 
   const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all');
   const [actionLoading, setActionLoading] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
@@ -29,20 +28,7 @@ export default function FocusDeckPage() {
   }, [token]);
 
   const activeCount = cards.length;
-
-  const FILTERS = [
-    { key: 'all', label: t.filterAll },
-    { key: 'before_competition', label: hi ? 'competition से पहले' : 'Before competition' },
-    { key: 'during_pressure', label: hi ? 'दबाव में' : 'During pressure' },
-    { key: 'after_mistake', label: hi ? 'गलती के बाद' : 'After mistake' },
-    { key: 'selection_trials', label: hi ? 'selection' : 'Selection' },
-    { key: 'low_confidence', label: hi ? 'confidence' : 'Confidence' },
-  ];
-
-  const visible = cards.filter(c => {
-    if (filter === 'all') return true;
-    return c.situationCategory === filter;
-  });
+  const visible = cards;
 
   const patch = async (id, data) => {
     setActionLoading(id);
@@ -130,21 +116,6 @@ export default function FocusDeckPage() {
           <p className="text-xs text-amber-400">{t.maxBanner} {hi ? 'पहले एक हटाओ।' : 'Delete one first.'}</p>
         </div>
       )}
-
-      {/* Filter pills */}
-      <div className="flex gap-2 px-4 pb-3 overflow-x-auto scrollbar-none">
-        {FILTERS.map(f => (
-          <button
-            key={f.key}
-            onClick={() => setFilter(f.key)}
-            className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-              filter === f.key ? 'bg-brand-500 text-white' : 'bg-dark-800 text-slt border border-dark-600'
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
 
       {/* Empty state */}
       {visible.length === 0 && (
