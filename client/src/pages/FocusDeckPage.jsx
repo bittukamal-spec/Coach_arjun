@@ -5,12 +5,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { apiFetch } from '../api';
 import { translations } from '../i18n/translations';
 
-const SITUATION_KEYS = [
-  'before_competition', 'during_pressure', 'after_mistake',
-  'selection_trials', 'being_watched', 'low_confidence',
-  'technical_focus', 'fitness_effort', 'custom',
-];
-
 export default function FocusDeckPage() {
   const { token, language } = useAuth();
   const navigate = useNavigate();
@@ -21,9 +15,11 @@ export default function FocusDeckPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [actionLoading, setActionLoading] = useState(null);
+  const [expandedId, setExpandedId] = useState(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
 
   useEffect(() => {
-    apiFetch('/api/self-talk/cards?filter=all', {
+    apiFetch('/api/self-talk/cards?filter=active', {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => r.json())
@@ -32,21 +28,20 @@ export default function FocusDeckPage() {
       .finally(() => setLoading(false));
   }, [token]);
 
-  const activeCount = cards.filter(c => !c.isArchived).length;
+  const activeCount = cards.length;
 
   const FILTERS = [
     { key: 'all', label: t.filterAll },
-    ...SITUATION_KEYS.map(k => ({
-      key: k,
-      label: k.replace(/_/g, ' '),
-    })),
-    { key: 'archived', label: hi ? 'आर्काइव' : 'Archived' },
+    { key: 'before_competition', label: hi ? 'competition से पहले' : 'Before competition' },
+    { key: 'during_pressure', label: hi ? 'दबाव में' : 'During pressure' },
+    { key: 'after_mistake', label: hi ? 'गलती के बाद' : 'After mistake' },
+    { key: 'selection_trials', label: hi ? 'selection' : 'Selection' },
+    { key: 'low_confidence', label: hi ? 'confidence' : 'Confidence' },
   ];
 
   const visible = cards.filter(c => {
-    if (filter === 'all') return !c.isArchived;
-    if (filter === 'archived') return c.isArchived;
-    return c.situationCategory === filter && !c.isArchived;
+    if (filter === 'all') return true;
+    return c.situationCategory === filter;
   });
 
   const patch = async (id, data) => {
@@ -90,6 +85,26 @@ export default function FocusDeckPage() {
     }
   };
 
+  const deleteCard = async (id) => {
+    setActionLoading(id);
+    try {
+      const r = await apiFetch(`/api/self-talk/cards/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const res = await r.json();
+      if (res.success) {
+        setCards(prev => prev.filter(c => c.id !== id));
+        if (expandedId === id) setExpandedId(null);
+      }
+    } catch {
+      // silent
+    } finally {
+      setActionLoading(null);
+      setDeleteConfirmId(null);
+    }
+  };
+
   if (loading) return (
     <div className="min-h-screen bg-dark-900 flex items-center justify-center">
       <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
@@ -112,21 +127,13 @@ export default function FocusDeckPage() {
       {/* Max cards banner */}
       {activeCount >= 5 && (
         <div className="mx-4 mb-3 bg-amber-500/10 border border-amber-500/30 rounded-xl px-3 py-2">
-          <p className="text-xs text-amber-400">{t.maxBanner} <button onClick={() => navigate('/self-talk')} className="underline">{hi ? 'पहले आर्काइव करो' : 'Archive one first'}</button></p>
+          <p className="text-xs text-amber-400">{t.maxBanner} {hi ? 'पहले एक हटाओ।' : 'Delete one first.'}</p>
         </div>
       )}
 
       {/* Filter pills */}
       <div className="flex gap-2 px-4 pb-3 overflow-x-auto scrollbar-none">
-        {[
-          { key: 'all', label: t.filterAll },
-          { key: 'before_competition', label: hi ? 'competition से पहले' : 'Before competition' },
-          { key: 'during_pressure', label: hi ? 'दबाव में' : 'During pressure' },
-          { key: 'after_mistake', label: hi ? 'गलती के बाद' : 'After mistake' },
-          { key: 'selection_trials', label: hi ? 'selection' : 'Selection' },
-          { key: 'low_confidence', label: hi ? 'confidence' : 'Confidence' },
-          { key: 'archived', label: hi ? 'आर्काइव' : 'Archived' },
-        ].map(f => (
+        {FILTERS.map(f => (
           <button
             key={f.key}
             onClick={() => setFilter(f.key)}
@@ -155,76 +162,126 @@ export default function FocusDeckPage() {
 
       {/* Cards */}
       <div className="px-4 space-y-3">
-        {visible.map(card => (
-          <div key={card.id} className={`rounded-3xl border p-4 ${card.isMatchDayCard ? 'bg-brand-500/10 border-brand-500/40' : 'bg-dark-800 border-dark-600'} ${card.isArchived ? 'opacity-60' : ''}`}>
+        {visible.map(card => {
+          const isExpanded = expandedId === card.id;
+          return (
+            <div key={card.id} className={`rounded-3xl border ${card.isMatchDayCard ? 'bg-brand-500/10 border-brand-500/40' : 'bg-dark-800 border-dark-600'}`}>
 
-            {/* Match day badge */}
-            {card.isMatchDayCard && (
-              <div className="flex items-center gap-1 mb-2">
-                <Star size={12} className="text-amber-400 fill-amber-400" />
-                <span className="text-xs font-semibold text-amber-400">{t.matchDayBadge}</span>
+              {/* Tappable card header */}
+              <button
+                className="w-full text-left p-4"
+                onClick={() => setExpandedId(isExpanded ? null : card.id)}
+              >
+                {/* Match day badge */}
+                {card.isMatchDayCard && (
+                  <div className="flex items-center gap-1 mb-2">
+                    <Star size={12} className="text-amber-400 fill-amber-400" />
+                    <span className="text-xs font-semibold text-amber-400">{t.matchDayBadge}</span>
+                  </div>
+                )}
+
+                {/* Focus + reset words */}
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="text-2xl font-black" style={{ color: '#185FA5' }}>{card.focusWord}</span>
+                  <span className="text-xs text-muted">·</span>
+                  <span className="text-base font-bold" style={{ color: '#D98B2B' }}>{card.resetWord}</span>
+                </div>
+
+                {/* Power line */}
+                <p className="text-sm text-slt italic mb-2">"{card.powerLine}"</p>
+
+                {/* Situation + sport */}
+                <div className="flex items-center gap-2 flex-wrap mb-2">
+                  <span className="text-xs bg-dark-700 text-muted px-2 py-0.5 rounded-full capitalize">
+                    {card.situationCategory.replace(/_/g, ' ')}
+                  </span>
+                  {card.sport && (
+                    <span className="text-xs bg-dark-700 text-muted px-2 py-0.5 rounded-full capitalize">{card.sport}</span>
+                  )}
+                </div>
+
+                {/* Usage count */}
+                <p className="text-xs text-muted">
+                  {card.usedCount > 0 ? t.usedCount(card.usedCount) : t.notUsedYet}
+                </p>
+              </button>
+
+              {/* Expanded details */}
+              {isExpanded && (
+                <div className="px-4 pb-3 space-y-3 border-t border-dark-600/50 pt-3">
+                  {card.performanceReminder && (
+                    <div>
+                      <p className="text-[10px] font-semibold text-slt uppercase tracking-wider mb-1">{hi ? 'Performance Reminder' : 'Performance Reminder'}</p>
+                      <p className="text-sm text-slt">{card.performanceReminder}</p>
+                    </div>
+                  )}
+                  {card.arjunNote && (
+                    <div>
+                      <p className="text-[10px] font-semibold text-brand-400 uppercase tracking-wider mb-1">{hi ? "Arjun का नोट" : "Arjun's Note"}</p>
+                      <p className="text-sm text-slt leading-relaxed">{card.arjunNote}</p>
+                    </div>
+                  )}
+                  {card.performanceMoment && (
+                    <div>
+                      <p className="text-[10px] font-semibold text-slt uppercase tracking-wider mb-1">{hi ? 'Moment' : 'Moment'}</p>
+                      <p className="text-xs text-muted">{card.performanceMoment}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex gap-2 flex-wrap px-4 pb-4 pt-1">
+                {/* Match day actions */}
+                {card.isMatchDayCard ? (
+                  <button
+                    disabled={actionLoading === card.id}
+                    onClick={() => patch(card.id, { isMatchDayCard: false })}
+                    className="text-xs font-semibold text-muted bg-dark-700 px-3 py-1.5 rounded-xl active:scale-95 disabled:opacity-50"
+                  >
+                    {hi ? 'Remove' : 'Remove'}
+                  </button>
+                ) : (
+                  <button
+                    disabled={actionLoading === card.id}
+                    onClick={() => setMatchDay(card.id)}
+                    className="text-xs font-semibold text-brand-400 bg-brand-500/10 px-3 py-1.5 rounded-xl active:scale-95 disabled:opacity-50"
+                  >
+                    {t.setMatchDayBtn}
+                  </button>
+                )}
+
+                {/* Delete */}
+                {deleteConfirmId === card.id ? (
+                  <>
+                    <span className="text-xs text-red-400 self-center">{hi ? 'Card हटाएं?' : 'Delete this card?'}</span>
+                    <button
+                      disabled={actionLoading === card.id}
+                      onClick={() => deleteCard(card.id)}
+                      className="text-xs font-semibold text-white bg-red-600 px-3 py-1.5 rounded-xl active:scale-95 disabled:opacity-50"
+                    >
+                      {hi ? 'हाँ' : 'Yes'}
+                    </button>
+                    <button
+                      onClick={() => setDeleteConfirmId(null)}
+                      className="text-xs font-semibold text-muted bg-dark-700 px-3 py-1.5 rounded-xl active:scale-95"
+                    >
+                      {hi ? 'नहीं' : 'No'}
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    disabled={actionLoading === card.id}
+                    onClick={() => setDeleteConfirmId(card.id)}
+                    className="text-xs font-semibold text-red-400 bg-dark-700 px-3 py-1.5 rounded-xl active:scale-95 disabled:opacity-50"
+                  >
+                    {hi ? 'हटाओ' : 'Delete'}
+                  </button>
+                )}
               </div>
-            )}
-
-            {/* Focus + reset words */}
-            <div className="flex items-center gap-3 mb-2">
-              <span className="text-2xl font-black text-ink">{card.focusWord}</span>
-              <span className="text-xs text-muted">·</span>
-              <span className="text-base font-bold text-slt">{card.resetWord}</span>
             </div>
-
-            {/* Power line */}
-            <p className="text-sm text-slt italic mb-1">"{card.powerLine}"</p>
-
-            {/* Situation + sport */}
-            <div className="flex items-center gap-2 flex-wrap mb-3">
-              <span className="text-xs bg-dark-700 text-muted px-2 py-0.5 rounded-full capitalize">
-                {card.situationCategory.replace(/_/g, ' ')}
-              </span>
-              {card.sport && (
-                <span className="text-xs bg-dark-700 text-muted px-2 py-0.5 rounded-full capitalize">{card.sport}</span>
-              )}
-              {card.performanceMoment && (
-                <span className="text-xs text-muted truncate max-w-[140px]">{card.performanceMoment}</span>
-              )}
-            </div>
-
-            {/* Usage count */}
-            <p className="text-xs text-muted mb-3">
-              {card.usedCount > 0 ? t.usedCount(card.usedCount) : t.notUsedYet}
-            </p>
-
-            {/* Actions */}
-            <div className="flex gap-2 flex-wrap">
-              {!card.isArchived && !card.isMatchDayCard && (
-                <button
-                  disabled={actionLoading === card.id}
-                  onClick={() => setMatchDay(card.id)}
-                  className="text-xs font-semibold text-brand-400 bg-brand-500/10 px-3 py-1.5 rounded-xl active:scale-95 disabled:opacity-50"
-                >
-                  {t.setMatchDayBtn}
-                </button>
-              )}
-              {!card.isArchived ? (
-                <button
-                  disabled={actionLoading === card.id}
-                  onClick={() => patch(card.id, { isArchived: true })}
-                  className="text-xs font-semibold text-muted bg-dark-700 px-3 py-1.5 rounded-xl active:scale-95 disabled:opacity-50"
-                >
-                  {t.archiveBtn}
-                </button>
-              ) : (
-                <button
-                  disabled={actionLoading === card.id}
-                  onClick={() => patch(card.id, { isArchived: false })}
-                  className="text-xs font-semibold text-brand-400 bg-dark-700 px-3 py-1.5 rounded-xl active:scale-95 disabled:opacity-50"
-                >
-                  {t.unarchiveBtn}
-                </button>
-              )}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* FAB — build card */}

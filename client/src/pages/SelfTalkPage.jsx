@@ -482,15 +482,12 @@ export default function SelfTalkPage() {
         <h2 className="text-xl font-bold text-ink mb-4">{t.card.heading}</h2>
 
         <div className="bg-gradient-to-br from-brand-500/20 to-purple-500/10 border border-brand-500/30 rounded-3xl p-5 mb-4">
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <div className="bg-dark-900/60 rounded-2xl p-3">
-              <p className="text-[10px] font-semibold text-brand-400 uppercase tracking-wider mb-1">{t.card.focusWordLabel}</p>
-              <p className="text-2xl font-black text-ink">{card.focusWord}</p>
-            </div>
-            <div className="bg-dark-900/60 rounded-2xl p-3">
-              <p className="text-[10px] font-semibold text-purple-400 uppercase tracking-wider mb-1">{t.card.resetWordLabel}</p>
-              <p className="text-2xl font-black text-ink">{card.resetWord}</p>
-            </div>
+          <div className="flex flex-col items-center mb-4">
+            <p className="text-[10px] font-semibold text-brand-400 uppercase tracking-wider mb-1">{t.card.focusWordLabel}</p>
+            <p className="font-bold text-center" style={{ fontSize: '28px', color: '#185FA5' }}>{card.focusWord}</p>
+            <div className="h-3" />
+            <p className="text-[10px] font-semibold text-amber-500 uppercase tracking-wider mb-1">{t.card.resetWordLabel}</p>
+            <p className="font-bold text-center" style={{ fontSize: '22px', color: '#D98B2B' }}>{card.resetWord}</p>
           </div>
 
           <div className="mb-3">
@@ -550,7 +547,7 @@ export default function SelfTalkPage() {
           <span className="text-3xl">✦</span>
         </div>
         <h2 className="text-2xl font-bold text-ink mb-2">{t.saved.heading}</h2>
-        <p className="text-sm text-slt">{t.saved.summary(card.focusWord, form.situationCategory.replace(/_/g, ' '))}</p>
+        <p className="text-sm text-slt">{hi ? 'तुम्हारा Focus Card save हो गया।' : 'Your Focus Card is saved.'}</p>
       </div>
       <div className="w-full space-y-3">
         <button

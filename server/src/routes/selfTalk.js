@@ -230,6 +230,26 @@ router.patch('/cards/:id', authenticate, async (req, res) => {
   }
 });
 
+// ── DELETE /api/self-talk/cards/:id ──────────────────────────────────────────
+
+router.delete('/cards/:id', authenticate, async (req, res) => {
+  const userId = req.userId;
+  const { id } = req.params;
+
+  const existing = await prisma.selfTalkCard.findUnique({ where: { id } });
+  if (!existing || existing.userId !== userId) {
+    return res.status(404).json({ error: 'not_found' });
+  }
+
+  try {
+    await prisma.selfTalkCard.delete({ where: { id } });
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('self-talk delete error:', err);
+    return res.status(500).json({ error: 'server_error' });
+  }
+});
+
 // ── POST /api/self-talk/cards/:id/practice ───────────────────────────────────
 
 router.post('/cards/:id/practice', authenticate, async (req, res) => {

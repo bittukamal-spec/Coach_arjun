@@ -108,15 +108,20 @@ export default function TrainPage() {
             duration="2 min"
             onClick={() => navigate('/before-you-play')}
           />
-          <ToolCard
-            icon={MessageSquare}
-            iconBg="bg-purple-500/15"
-            iconColor="text-purple-400"
-            title={t.selfTalkTitle}
-            desc={t.selfTalkSub}
-            duration="5 min"
-            onClick={() => navigate('/self-talk')}
-          />
+          <div>
+            <ToolCard
+              icon={MessageSquare}
+              iconBg="bg-purple-500/15"
+              iconColor="text-purple-400"
+              title={t.selfTalkTitle}
+              desc={t.selfTalkSub}
+              duration="5 min"
+              onClick={() => navigate('/self-talk')}
+            />
+            <p className="text-right text-xs font-semibold text-brand-400 pr-1 mt-1">
+              <button onClick={() => navigate('/focus-deck')}>{hi ? 'Focus Deck देखो →' : 'View Focus Deck →'}</button>
+            </p>
+          </div>
           <ToolCard
             icon={Brain}
             iconBg="bg-brand-50"

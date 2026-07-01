@@ -4,7 +4,7 @@ import Navbar from '../components/Navbar';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
-import { LogOut, Trash2, ChevronRight, Shield, Bell, User, Zap, Award, Camera, Star, MessageCircle, Mail, Sparkles, Sun, MessageSquare, FileX, RefreshCw, Tag, BarChart2 } from 'lucide-react';
+import { LogOut, Trash2, ChevronRight, Shield, Bell, User, Zap, Award, Camera, Star, MessageCircle, Mail, Sparkles, Sun, MessageSquare, FileX, RefreshCw, Tag, BarChart2, Layers } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 import { ACHIEVEMENTS, ALL_ACHIEVEMENT_KEYS } from '../data/achievements';
 
@@ -587,6 +587,23 @@ function AccountPage() {
             </Link>
           </section>
         )}
+
+        {/* My Focus Deck */}
+        <section className="mb-6">
+          <button
+            onClick={() => navigate('/focus-deck')}
+            className="card w-full p-4 flex items-center gap-3 hover:border-brand-500/40 transition-colors text-left"
+          >
+            <div className="w-9 h-9 rounded-xl bg-dark-700 flex items-center justify-center flex-shrink-0">
+              <Layers size={16} className="text-brand-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-ink">{hi ? 'मेरा Focus Deck' : 'My Focus Deck'}</p>
+              <p className="text-xs text-slt">{hi ? 'अपने saved Focus Cards देखो' : 'View your saved Focus Cards'}</p>
+            </div>
+            <ChevronRight size={18} className="text-slt shrink-0" />
+          </button>
+        </section>
 
         {/* WhatsApp reminders placeholder */}
         <section className="mb-6">
