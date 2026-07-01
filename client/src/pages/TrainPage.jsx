@@ -5,7 +5,7 @@ import { translations } from '../i18n/translations';
 import {
   Target, TrendingUp, Sun, Wind, RotateCcw, Trophy,
   ClipboardList, Gamepad2, ChevronRight, Eye, Shield, Dumbbell,
-  Brain, Star, Crown, Lock,
+  Brain, Star, Crown, Lock, MessageSquare,
 } from 'lucide-react';
 
 function SectionLabel({ children }) {
@@ -107,6 +107,24 @@ export default function TrainPage() {
             desc={hi  ? 'अपना परफॉर्मेंस क्यू वर्ड बनाओ और सेव करो' : 'Create and save a cue word'}
             duration="2 min"
             onClick={() => navigate('/before-you-play')}
+          />
+          <ToolCard
+            icon={MessageSquare}
+            iconBg="bg-purple-500/15"
+            iconColor="text-purple-400"
+            title={t.selfTalkTitle}
+            desc={t.selfTalkSub}
+            duration="5 min"
+            onClick={() => navigate('/self-talk')}
+          />
+          <ToolCard
+            icon={Brain}
+            iconBg="bg-brand-50"
+            iconColor="text-brand-400"
+            title={t.focusDeckTitle}
+            desc={t.focusDeckSub}
+            duration="2 min"
+            onClick={() => navigate('/focus-deck')}
           />
         </div>
 

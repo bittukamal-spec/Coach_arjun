@@ -91,6 +91,7 @@ model User {
   mentalFitnessEntries   MentalFitnessEntry[]
   toolReports            ToolReport[]
   weeklyReports          WeeklyReport[]
+  selfTalkCards          SelfTalkCard[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -254,4 +255,38 @@ model WeeklyReport {
 
   @@unique([userId, weekStart])
   @@index([userId, weekStart])
+}
+
+model SelfTalkCard {
+  id                     String    @id @default(cuid())
+  userId                 String
+  user                   User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sport                  String?
+  roleOrPosition         String?
+  performanceMoment      String?
+  skillContext           String?
+  situationCategory      String
+  situationText          String?
+  oldThought             String
+  thoughtIntensityBefore Int?
+  confidenceBefore       Int?
+  confidenceAfter        Int?
+  focusWord              String
+  resetWord              String
+  powerLine              String
+  performanceReminder    String
+  arjunNote              String
+  safetyFlag             String    @default("safe")
+  aiModel                String?
+  tags                   Json?
+  isActive               Boolean   @default(true)
+  isMatchDayCard         Boolean   @default(false)
+  isArchived             Boolean   @default(false)
+  usedCount              Int       @default(0)
+  lastUsedAt             DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  @@index([userId, isActive, createdAt])
+  @@index([userId, isArchived])
 }

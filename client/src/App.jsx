@@ -25,6 +25,8 @@ import PricingPage from './pages/PricingPage';
 import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import MentalFitnessCheckin from './pages/MentalFitnessCheckin';
 import VisualizationPage from './pages/VisualizationPage';
+import SelfTalkPage from './pages/SelfTalkPage';
+import FocusDeckPage from './pages/FocusDeckPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import BottomNav from './components/BottomNav';
 import { translations } from './i18n/translations';
@@ -209,6 +211,25 @@ function App() {
         element={
           <ProtectedRoute requireOnboarding={true}>
             <VisualizationPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/self-talk"
+        element={
+          <ProtectedRoute requireOnboarding={true}>
+            <SelfTalkPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/focus-deck"
+        element={
+          <ProtectedRoute requireOnboarding={true}>
+            <FocusDeckPage />
+            <BottomNav />
           </ProtectedRoute>
         }
       />
