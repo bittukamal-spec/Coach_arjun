@@ -18,7 +18,7 @@ Analyse the athlete's situation, thought, and context, then return a JSON object
   "reset_word": "One calming word for tough moments (e.g. Breathe, Reset, Now, Easy)",
   "power_line": "A short first-person mantra (6–12 words max, athlete's voice)",
   "performance_reminder": "One practical thing they already know how to do (20 words max)",
-  "arjun_note": "A warm, direct 1–2 sentence coach note to the athlete",
+  "arjun_note": "1-3 short sentences — a coaching observation specific to this athlete's situation and old thought. Not generic. Reference their sport and moment if provided. Sound like a real coach, not an app.",
   "tags": ["tag1", "tag2"]
 }
 
@@ -60,12 +60,16 @@ router.post('/generate', authenticate, async (req, res) => {
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const message = await anthropic.messages.create({
       model: process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001',
-      max_tokens: 500,
+      max_tokens: 700,
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: `Here is my context:\n\n${contextLines}\n\nBuild my Focus Card.` }],
     });
 
-    const rawText = message.content[0].text.trim();
+    let rawText = message.content[0].text.trim();
+    // Strip markdown code fences Claude occasionally wraps around JSON
+    if (rawText.startsWith('```')) {
+      rawText = rawText.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
+    }
     let parsed;
     try {
       parsed = JSON.parse(rawText);

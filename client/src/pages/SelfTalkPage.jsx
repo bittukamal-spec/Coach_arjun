@@ -468,7 +468,9 @@ export default function SelfTalkPage() {
   }
 
   // ── SCREEN 6: Focus Card ─────────────────────────────────────────────────
-  if (screen === 6 && card) return (
+  if (screen === 6 && card) {
+  console.log('[SelfTalk] card.arjunNote:', card.arjunNote);
+  return (
     <div className="min-h-screen bg-dark-900 flex flex-col">
       <Header progress="85%" />
       <div className="flex-1 px-4 pt-2 pb-4 overflow-y-auto">
@@ -534,6 +536,7 @@ export default function SelfTalkPage() {
       </div>
     </div>
   );
+  } // end screen 6
 
   // ── SCREEN 7: Saved ──────────────────────────────────────────────────────
   if (screen === 7 && card) return (
