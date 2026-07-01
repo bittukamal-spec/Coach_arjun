@@ -453,6 +453,13 @@ export const translations = {
       again: 'Try Another',
       backDash: '← Dashboard',
       changeTech: '← Change Technique',
+      intro: {
+        title: 'Breathing',
+        desc: 'Quick breathing exercises to calm nerves, sharpen focus, or build energy.',
+        duration: '1–5 min per technique',
+        benefits: ['Calm nerves before a big match', 'Refocus quickly mid-game', 'Build a pre-game breathing habit'],
+        start: 'Pick a technique →',
+      },
     },
     ritual: {
       title: 'Your match routine',
@@ -744,6 +751,13 @@ export const translations = {
         primary:   'Back to training',
         secondary: 'Talk this through with Arjun',
       },
+      intro: {
+        title: 'After Match / Training',
+        desc: '3 quick questions that help you learn from every game and come back stronger.',
+        duration: '3–5 min',
+        benefits: ['Spot what actually worked', 'Name one thing to fix', 'Set your focus for next session'],
+        start: 'Start review →',
+      },
     },
     viz: {
       entry: {
@@ -827,6 +841,13 @@ export const translations = {
         primary: 'I\'m ready',
         replay:  'Replay visualization',
         talk:    'Talk to Arjun about this',
+      },
+      intro: {
+        title: 'Visualization',
+        desc: 'Picture your next performance in detail. Mental rehearsal improves play.',
+        duration: '5–10 min',
+        benefits: ['Rehearse key match moments in your head', 'Build confidence before you compete', 'Lock in your cue word'],
+        start: "Let's visualize →",
       },
     },
     profile: {
@@ -1002,6 +1023,13 @@ export const translations = {
       doneXp: '+15 MXP',
       doneRestart: 'Go again',
       doneBack: 'Back to training →',
+      intro: {
+        title: 'Bounce Back',
+        desc: "Tough match? Rough session? Let's process it and reset your head.",
+        duration: '5 min',
+        benefits: ['Name what happened without harsh self-judgment', 'Reset your mindset', 'Walk away ready for next time'],
+        start: "I'm ready →",
+      },
     },
     byp: {
       // Entry
@@ -1051,6 +1079,13 @@ export const translations = {
       doneXp:     '+15 MXP',
       letsGo:     "Let's go",
       talkArjun:  'Talk to Arjun',
+      intro: {
+        title: 'Before Match / Training',
+        desc: 'Get your head right before a big match or training session.',
+        duration: '5–8 min',
+        benefits: ['Build your switch-on cue word', 'Create a repeatable pre-match routine', 'Go in with focus and confidence'],
+        start: "Let's go →",
+      },
     },
   },
 
@@ -1474,6 +1509,13 @@ export const translations = {
       again: 'फिर से करें',
       backDash: '← डैशबोर्ड',
       changeTech: '← तकनीक बदलें',
+      intro: {
+        title: 'सांस लो',
+        desc: 'नसों को शांत करो, फोकस बढ़ाओ, या एनर्जी बनाओ — बस कुछ मिनट में।',
+        duration: 'हर तकनीक 1–5 मिनट',
+        benefits: ['मैच से पहले घबराहट कम करो', 'खेल के बीच तुरंत रीसेट करो', 'प्री-गेम सांस की आदत बनाओ'],
+        start: 'तकनीक चुनो →',
+      },
     },
     ritual: {
       title: 'मैच से पहले की दिनचर्या',
@@ -1763,6 +1805,13 @@ export const translations = {
         primary:   'Wapas training pe',
         secondary: 'Arjun se baat karo',
       },
+      intro: {
+        title: 'मैच / ट्रेनिंग के बाद',
+        desc: '3 सवाल जो हर मैच से सीखने और अगली बार मज़बूत लौटने में मदद करते हैं।',
+        duration: '3–5 मिनट',
+        benefits: ['जो काम आया वो पहचानो', 'एक चीज़ नाम करो जो सुधारनी है', 'अगले सेशन का फोकस सेट करो'],
+        start: 'समीक्षा शुरू करो →',
+      },
     },
     viz: {
       entry: {
@@ -1846,6 +1895,13 @@ export const translations = {
         primary: 'Ready hoon',
         replay:  'Phir se karo',
         talk:    'Arjun se baat karo',
+      },
+      intro: {
+        title: 'विज़ुअलाइज़ेशन',
+        desc: 'अपने अगले खेल की कल्पना करो। मानसिक रिहर्सल असल खेल सुधारती है।',
+        duration: '5–10 मिनट',
+        benefits: ['मैच के अहम पलों को दिमाग में रिहर्स करो', 'मैदान से पहले आत्मविश्वास बढ़ाओ', 'अपना क्यू वर्ड लॉक करो'],
+        start: 'चलो शुरू करें →',
       },
     },
     profile: {
@@ -2021,6 +2077,13 @@ export const translations = {
       doneXp: '+15 MXP',
       doneRestart: 'Phir karo',
       doneBack: 'Training pe wapas →',
+      intro: {
+        title: 'वापसी करो',
+        desc: 'मुश्किल मैच? खराब सेशन? चलो उसे प्रोसेस करते हैं और दिमाग रीसेट करते हैं।',
+        duration: '5 मिनट',
+        benefits: ['बिना खुद को कोसे नाम करो क्या हुआ', 'मानसिकता रीसेट करो', 'अगली बार के लिए तैयार होकर जाओ'],
+        start: 'मैं तैयार हूं →',
+      },
     },
     byp: {
       entryArjun:  'Match aane wala hai? Chalo taiyaar ho jaate hain.',
@@ -2064,6 +2127,13 @@ export const translations = {
       doneXp:     '+15 MXP',
       letsGo:     'Chalo',
       talkArjun:  'Arjun se baat karo',
+      intro: {
+        title: 'मैच / ट्रेनिंग से पहले',
+        desc: 'बड़े मैच या ट्रेनिंग से पहले दिमाग तैयार करो।',
+        duration: '5–8 मिनट',
+        benefits: ['अपना स्विच-ऑन क्यू वर्ड बनाओ', 'दोहराने वाला प्री-मैच रूटीन बनाओ', 'फोकस और आत्मविश्वास के साथ जाओ'],
+        start: 'चलो शुरू करें →',
+      },
     },
   },
 };

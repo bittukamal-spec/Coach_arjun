@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ClipboardList } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
@@ -80,6 +81,7 @@ export default function DebriefPage() {
   const navigate = useNavigate();
 
   // ── State ─────────────────────────────────────────────────────────────────
+  const [showInfo,        setShowInfo]        = useState(true);
   const [screen,          setScreen]          = useState('entry');  // 'entry'|'s1'|'s2'|'s3'|'s4'|'s5'|'done'
   const [mode,            setMode]            = useState(null);     // 'quick'|'full'
   const [eventType,       setEventType]       = useState(null);
@@ -245,7 +247,7 @@ export default function DebriefPage() {
             ) : (
               <button onClick={() => navigate('/train')} className="text-sm text-slt hover:text-ink">✕</button>
             )}
-            <p className="font-semibold text-ink">{hi ? 'मैच / ट्रेनिंग के बाद' : 'After Match / Training'}</p>
+            <p className="font-semibold text-ink">{t.intro.title}</p>
             {step != null ? (
               <p className="text-xs text-slt">{step}/{totalScreens}</p>
             ) : (
@@ -255,6 +257,50 @@ export default function DebriefPage() {
         </header>
         {step != null && <ProgressBar current={step} total={totalScreens} />}
       </>
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // INFO SCREEN
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (showInfo) {
+    return (
+      <div className="min-h-screen bg-dark-900 flex flex-col pb-6">
+        <header className="bg-dark-900 border-b border-dark-600 px-4 py-4 sticky top-0 z-10">
+          <div className="max-w-lg mx-auto flex items-center justify-between">
+            <button onClick={() => navigate('/train')} className="text-sm text-slt hover:text-ink">← {hi ? 'वापस' : 'Back'}</button>
+            <p className="font-semibold text-ink">{t.intro.title}</p>
+            <div className="w-14" />
+          </div>
+        </header>
+        <main className="flex-1 max-w-lg mx-auto w-full px-4 py-8 animate-fade-in">
+          <div className="flex flex-col items-center gap-6">
+            <ClipboardList size={48} className="text-brand-500" />
+            <div className="text-center">
+              <h2 className="text-xl font-bold text-ink mb-2">{t.intro.title}</h2>
+              <p className="text-sm text-slt leading-relaxed">{t.intro.desc}</p>
+            </div>
+            <div className="w-full flex items-center gap-2 text-xs text-slt bg-dark-800 rounded-xl px-3 py-2">
+              <span className="text-brand-500 font-semibold">⏱</span>
+              <span>{t.intro.duration}</span>
+            </div>
+            <div className="w-full flex flex-col gap-2">
+              {t.intro.benefits.map((b, i) => (
+                <div key={i} className="flex items-start gap-2 text-sm text-ink">
+                  <span className="text-brand-500 mt-0.5 shrink-0">✓</span>
+                  <span>{b}</span>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={() => setShowInfo(false)}
+              className="w-full py-3.5 bg-brand-500 text-white font-semibold rounded-2xl active:scale-95 transition-transform"
+            >
+              {t.intro.start}
+            </button>
+          </div>
+        </main>
+      </div>
     );
   }
 
@@ -280,7 +326,7 @@ export default function DebriefPage() {
           <header className="bg-dark-900 border-b border-dark-600 px-4 py-4 sticky top-0 z-10">
             <div className="max-w-lg mx-auto flex items-center justify-between">
               <button onClick={() => navigate('/train')} className="text-sm text-slt hover:text-ink">✕</button>
-              <p className="font-semibold text-ink">{hi ? 'मैच / ट्रेनिंग के बाद' : 'After Match / Training'}</p>
+              <p className="font-semibold text-ink">{t.intro.title}</p>
               <div className="w-10" />
             </div>
           </header>
@@ -373,14 +419,14 @@ export default function DebriefPage() {
       <div className="min-h-screen bg-dark-900 flex flex-col pb-6">
         <Header showBack step={1} />
         <main className="flex-1 max-w-lg mx-auto w-full px-4 py-6 overflow-y-auto">
-          <h2 className="text-lg font-bold text-ink mb-4">{t.screen1.promptA}</h2>
+          <h2 className="text-lg font-bold text-ink mb-4 text-center">{t.screen1.promptA}</h2>
           <div className="flex flex-wrap gap-2 mb-7">
             {t.screen1.events.map(ev => (
               <Chip key={ev} label={ev} selected={eventType === ev} onClick={() => setEventType(ev)} />
             ))}
           </div>
 
-          <h2 className="text-lg font-bold text-ink mb-4">{t.screen1.promptB}</h2>
+          <h2 className="text-lg font-bold text-ink mb-4 text-center">{t.screen1.promptB}</h2>
           <div className="flex flex-col gap-2">
             {t.screen1.results.map(r => (
               <Chip key={r} label={r} selected={resultType === r} onClick={() => setResultType(r)} fullWidth />
@@ -407,8 +453,8 @@ export default function DebriefPage() {
         <Header showBack step={2} />
         <main className="flex-1 max-w-lg mx-auto w-full px-4 py-6 flex flex-col overflow-y-auto">
           <div className="flex-1">
-            <h2 className="text-lg font-bold text-ink mb-1">{t.screen2.prompt}</h2>
-            <p className="text-sm text-slt mb-5">{t.screen2.sub}</p>
+            <h2 className="text-lg font-bold text-ink mb-1 text-center">{t.screen2.prompt}</h2>
+            <p className="text-sm text-slt mb-5 text-center">{t.screen2.sub}</p>
 
             <div className="flex flex-wrap gap-2 mb-5">
               {t.screen2.chips.map(chip => (
@@ -451,7 +497,7 @@ export default function DebriefPage() {
         <Header showBack step={3} />
         <main className="flex-1 max-w-lg mx-auto w-full px-4 py-6 flex flex-col overflow-y-auto">
           <div className="flex-1">
-            <h2 className="text-lg font-bold text-ink mb-1">{t.screen3.prompt}</h2>
+            <h2 className="text-lg font-bold text-ink mb-1 text-center">{t.screen3.prompt}</h2>
             <div className="flex items-center gap-2 mb-5">
               <p className="text-sm text-slt">{t.screen3.sub}</p>
               {atMax && (
@@ -520,8 +566,8 @@ export default function DebriefPage() {
       <div className="min-h-screen bg-dark-900 flex flex-col pb-6">
         <Header showBack step={4} />
         <main className="flex-1 max-w-lg mx-auto w-full px-4 py-6 overflow-y-auto">
-          <h2 className="text-lg font-bold text-ink mb-1">{t.screen4.prompt}</h2>
-          <p className="text-sm text-slt mb-5">{t.screen4.sub}</p>
+          <h2 className="text-lg font-bold text-ink mb-1 text-center">{t.screen4.prompt}</h2>
+          <p className="text-sm text-slt mb-5 text-center">{t.screen4.sub}</p>
 
           <div className="flex flex-col gap-2">
             {getFocusChips().map(chip => (
@@ -552,7 +598,7 @@ export default function DebriefPage() {
       <div className="min-h-screen bg-dark-900 flex flex-col pb-6">
         <Header showBack step={5} />
         <main className="flex-1 max-w-lg mx-auto w-full px-4 py-6 overflow-y-auto">
-          <h2 className="text-lg font-bold text-ink mb-2">{t.screen5.prompt}</h2>
+          <h2 className="text-lg font-bold text-ink mb-2 text-center">{t.screen5.prompt}</h2>
 
           <div className="bg-dark-800 border border-dark-600 rounded-2xl px-4 py-3 mb-6 flex items-center gap-3">
             <span className="text-2xl">🔑</span>

@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
 import { VIZ_FALLBACKS } from '../data/vizFallbacks';
-import { Zap, AlertCircle, HelpCircle, Battery, Brain, CheckCircle2 } from 'lucide-react';
+import { Zap, AlertCircle, HelpCircle, Battery, Brain, CheckCircle2, Eye } from 'lucide-react';
 
 const C = {
   lightBg:   'var(--bg)',      // page bg follows theme
@@ -54,6 +54,7 @@ export default function VisualizationPage() {
   const { user, token, language, updateUser } = useAuth();
   const t = translations[language].viz;
 
+  const [showInfo, setShowInfo]            = useState(true);
   const [screen, setScreen]               = useState('entry');
   const [specificMoment, setSpecificMoment] = useState('');
   const [currentState, setCurrentState]   = useState('');
@@ -190,18 +191,84 @@ export default function VisualizationPage() {
     }
   }
 
+  // ── Back navigation ──────────────────────────────────────────────────────────
+  function goBack() {
+    if (showInfo) { navigate('/train'); return; }
+    if (screen === 'entry') navigate('/train');
+    else if (screen === 'step1') setScreen('entry');
+    else if (screen === 'step2') setScreen('step1');
+    else if (screen === 'step3') setScreen('step2');
+  }
+
+  // ── INFO SCREEN ───────────────────────────────────────────────────────────────
+  if (showInfo) {
+    return (
+      <div style={{ minHeight: '100vh', background: C.lightBg, padding: '0 16px 40px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0' }}>
+          <button
+            onClick={() => navigate('/train')}
+            style={{ color: C.textMuted, fontSize: 14, background: 'none', border: 'none', cursor: 'pointer' }}
+          >
+            ← Back
+          </button>
+          <span style={{ color: C.textDark, fontSize: 15, fontWeight: 600 }}>{t.intro.title}</span>
+          <div style={{ width: 56 }} />
+        </div>
+        <div style={{ maxWidth: 480, margin: '0 auto', paddingTop: 8 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24 }}>
+            <Eye size={48} style={{ color: C.blue }} />
+            <div style={{ textAlign: 'center' }}>
+              <h2 style={{ fontSize: 22, fontWeight: 700, color: C.textDark, marginBottom: 8 }}>{t.intro.title}</h2>
+              <p style={{ fontSize: 15, color: C.textMuted, lineHeight: 1.6 }}>{t.intro.desc}</p>
+            </div>
+            <div style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, background: C.cardBg, borderRadius: 12, padding: '10px 14px' }}>
+              <span style={{ color: C.blue, fontWeight: 600, fontSize: 13 }}>⏱</span>
+              <span style={{ color: C.textMuted, fontSize: 13 }}>{t.intro.duration}</span>
+            </div>
+            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {t.intro.benefits.map((b, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                  <span style={{ color: C.blue, marginTop: 2, flexShrink: 0 }}>✓</span>
+                  <span style={{ color: C.textDark, fontSize: 15 }}>{b}</span>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={() => setShowInfo(false)}
+              style={{
+                width: '100%',
+                height: 56,
+                background: C.blue,
+                color: '#fff',
+                border: 'none',
+                borderRadius: 14,
+                fontSize: 16,
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              {t.intro.start}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // ── ENTRY SCREEN ─────────────────────────────────────────────────────────────
   if (screen === 'entry') {
     return (
       <div style={{ minHeight: '100vh', background: C.lightBg, padding: '0 16px 40px' }}>
         {/* Top bar */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '16px 0' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0' }}>
           <button
-            onClick={() => navigate('/train')}
+            onClick={goBack}
             style={{ color: C.textMuted, fontSize: 14, background: 'none', border: 'none', cursor: 'pointer' }}
           >
-            ✕ Exit
+            ← Back
           </button>
+          <span style={{ color: C.textDark, fontSize: 15, fontWeight: 600 }}>{t.intro.title}</span>
+          <div style={{ width: 56 }} />
         </div>
 
         <div style={{ maxWidth: 480, margin: '0 auto', paddingTop: 24 }}>
@@ -261,18 +328,19 @@ export default function VisualizationPage() {
     return (
       <div style={{ minHeight: '100vh', background: C.lightBg, padding: '0 16px 40px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0' }}>
-          <span style={{ color: C.textMuted, fontSize: 14 }}>{t.step1.progress}</span>
           <button
-            onClick={() => navigate('/train')}
+            onClick={goBack}
             style={{ color: C.textMuted, fontSize: 14, background: 'none', border: 'none', cursor: 'pointer' }}
           >
-            ✕ Exit
+            ← Back
           </button>
+          <span style={{ color: C.textDark, fontSize: 14, fontWeight: 600 }}>{t.intro.title}</span>
+          <span style={{ color: C.textMuted, fontSize: 14 }}>{t.step1.progress}</span>
         </div>
 
         <div style={{ maxWidth: 480, margin: '0 auto', paddingTop: 16 }}>
-          <p style={{ fontSize: 22, fontWeight: 600, color: C.textDark, marginBottom: 8 }}>{t.step1.prompt}</p>
-          <p style={{ fontSize: 14, color: C.textMuted, marginBottom: 24 }}>{t.step1.sub}</p>
+          <p style={{ fontSize: 22, fontWeight: 600, color: C.textDark, marginBottom: 8, textAlign: 'center' }}>{t.step1.prompt}</p>
+          <p style={{ fontSize: 14, color: C.textMuted, marginBottom: 24, textAlign: 'center' }}>{t.step1.sub}</p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {t.step1.options.map((opt) => (
@@ -314,17 +382,18 @@ export default function VisualizationPage() {
     return (
       <div style={{ minHeight: '100vh', background: C.lightBg, padding: '0 16px 40px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0' }}>
-          <span style={{ color: C.textMuted, fontSize: 14 }}>{t.step2.progress}</span>
           <button
-            onClick={() => navigate('/train')}
+            onClick={goBack}
             style={{ color: C.textMuted, fontSize: 14, background: 'none', border: 'none', cursor: 'pointer' }}
           >
-            ✕ Exit
+            ← Back
           </button>
+          <span style={{ color: C.textDark, fontSize: 14, fontWeight: 600 }}>{t.intro.title}</span>
+          <span style={{ color: C.textMuted, fontSize: 14 }}>{t.step2.progress}</span>
         </div>
 
         <div style={{ maxWidth: 480, margin: '0 auto', paddingTop: 16 }}>
-          <p style={{ fontSize: 22, fontWeight: 600, color: C.textDark, marginBottom: 24 }}>{t.step2.prompt}</p>
+          <p style={{ fontSize: 22, fontWeight: 600, color: C.textDark, marginBottom: 24, textAlign: 'center' }}>{t.step2.prompt}</p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {STATES.map(({ key, icon: Icon, color }, idx) => (
@@ -372,13 +441,14 @@ export default function VisualizationPage() {
     return (
       <div style={{ minHeight: '100vh', background: C.lightBg, padding: '0 16px 40px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0' }}>
-          <span style={{ color: C.textMuted, fontSize: 14 }}>{t.step3.progress}</span>
           <button
-            onClick={() => navigate('/train')}
+            onClick={goBack}
             style={{ color: C.textMuted, fontSize: 14, background: 'none', border: 'none', cursor: 'pointer' }}
           >
-            ✕ Exit
+            ← Back
           </button>
+          <span style={{ color: C.textDark, fontSize: 14, fontWeight: 600 }}>{t.intro.title}</span>
+          <span style={{ color: C.textMuted, fontSize: 14 }}>{t.step3.progress}</span>
         </div>
 
         <div style={{ maxWidth: 480, margin: '0 auto', paddingTop: 16 }}>

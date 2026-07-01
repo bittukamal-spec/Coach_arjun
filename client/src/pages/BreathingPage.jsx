@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Square, Zap, Moon } from 'lucide-react';
+import { Square, Zap, Moon, Wind } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
@@ -81,6 +81,7 @@ function BreathingPage() {
   const { language, token } = useAuth();
   const t = translations[language].breathing;
 
+  const [showInfo, setShowInfo] = useState(true);
   const [screen,       setScreen]       = useState('pick');      // 'pick' | 'info' | 'breathing' | 'done'
   const [intent,       setIntent]       = useState(null);        // 'nerves' | 'reset' | 'winddown'
   const [status,       setStatus]       = useState('countdown'); // 'countdown' | 'running'
@@ -188,6 +189,51 @@ function BreathingPage() {
       });
       try { navigator.vibrate(100); } catch {}
     } catch {}
+  }
+
+  // ── Tool intro screen ──────────────────────────────────────────────────────
+
+  if (showInfo) {
+    return (
+      <div className="min-h-screen bg-dark-900 pb-20">
+        <header className="bg-dark-900 border-b border-dark-600 px-4 py-4 sticky top-0 z-10">
+          <div className="max-w-lg mx-auto flex items-center justify-between">
+            <Link to="/train" className="text-sm text-slt hover:text-ink transition-colors">
+              {t.backTrain}
+            </Link>
+            <p className="font-semibold text-ink">{t.intro.title}</p>
+            <div className="w-20" />
+          </div>
+        </header>
+        <main className="max-w-lg mx-auto px-4 py-8 animate-fade-in">
+          <div className="flex flex-col items-center gap-6">
+            <Wind size={48} className="text-brand-500" />
+            <div className="text-center">
+              <h2 className="text-xl font-bold text-ink mb-2">{t.intro.title}</h2>
+              <p className="text-sm text-slt leading-relaxed">{t.intro.desc}</p>
+            </div>
+            <div className="w-full flex items-center gap-2 text-xs text-slt bg-dark-800 rounded-xl px-3 py-2">
+              <span className="text-brand-500 font-semibold">⏱</span>
+              <span>{t.intro.duration}</span>
+            </div>
+            <div className="w-full flex flex-col gap-2">
+              {t.intro.benefits.map((b, i) => (
+                <div key={i} className="flex items-start gap-2 text-sm text-ink">
+                  <span className="text-brand-500 mt-0.5 shrink-0">✓</span>
+                  <span>{b}</span>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={() => setShowInfo(false)}
+              className="w-full py-3.5 bg-brand-500 text-white font-semibold rounded-2xl active:scale-95 transition-transform"
+            >
+              {t.intro.start}
+            </button>
+          </div>
+        </main>
+      </div>
+    );
   }
 
   // ── Intent picker ──────────────────────────────────────────────────────────

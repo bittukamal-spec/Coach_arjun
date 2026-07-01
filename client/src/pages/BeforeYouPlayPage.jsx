@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
 import { cueFallbacks } from '../data/cueFallbacks';
+import { PlayCircle } from 'lucide-react';
 
 // ── Arousal colour themes ─────────────────────────────────────────────────────
 const AROUSAL_COLORS = {
@@ -97,6 +98,7 @@ export default function BeforeYouPlayPage() {
   const sport = user?.sport || 'default';
 
   // ── Screen state machine ──────────────────────────────────────────────────
+  const [showInfo, setShowInfo] = useState(true);
   const [screen, setScreen] = useState('entry');
 
   // Step 1
@@ -421,6 +423,17 @@ export default function BeforeYouPlayPage() {
     } catch {}
   }
 
+  // ── Back navigation ───────────────────────────────────────────────────────
+  function goBack() {
+    if (showInfo) { navigate('/train'); return; }
+    if (screen === 'entry') navigate('/train');
+    else if (screen === 'step1') setScreen('entry');
+    else if (screen === 'step2') setScreen('step1');
+    else if (screen === 'step3') setScreen('step2');
+    else if (screen === 'step4') setScreen('step3');
+    else if (screen === 'step5') setScreen('step4');
+  }
+
   // ── Derived values ────────────────────────────────────────────────────────
   const colors      = arousal ? AROUSAL_COLORS[arousal] : AROUSAL_COLORS.calm_down;
   const focusOptions = FOCUS_OPTIONS[sport] || DEFAULT_FOCUS;
@@ -434,14 +447,17 @@ export default function BeforeYouPlayPage() {
 
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 shrink-0 border-b border-dark-700">
-        <button
-          onClick={() => navigate('/train')}
-          aria-label="Exit"
-          className="w-9 h-9 flex items-center justify-center text-slt hover:text-ink text-2xl rounded-xl hover:bg-dark-800 transition-colors"
-        >
-          ×
-        </button>
-        {screen !== 'entry' && screen !== 'done' ? (
+        {screen !== 'done' ? (
+          <button
+            onClick={goBack}
+            aria-label="Back"
+            className="flex items-center gap-1 text-slt hover:text-ink text-sm font-medium rounded-xl px-2 py-1.5 hover:bg-dark-800 transition-colors"
+          >
+            ← {hi ? 'वापस' : 'Back'}
+          </button>
+        ) : <span />}
+        <span className="text-sm font-semibold text-ink">{tb.intro.title}</span>
+        {!showInfo && screen !== 'entry' && screen !== 'done' ? (
           <span className="text-xs text-slt font-medium tabular-nums">
             {stepNums[screen]} / 5
           </span>
@@ -452,8 +468,38 @@ export default function BeforeYouPlayPage() {
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-lg mx-auto px-4 py-6">
 
+          {/* ── INFO SCREEN ───────────────────────────────────────────── */}
+          {showInfo && (
+            <div className="flex flex-col items-center gap-6 pt-4 pb-8">
+              <PlayCircle size={48} className="text-brand-500" />
+              <div className="text-center">
+                <h2 className="text-xl font-bold text-ink mb-2">{tb.intro.title}</h2>
+                <p className="text-sm text-slt leading-relaxed">{tb.intro.desc}</p>
+              </div>
+              <div className="w-full flex items-center gap-2 text-xs text-slt bg-dark-800 rounded-xl px-3 py-2">
+                <span className="text-brand-500 font-semibold">⏱</span>
+                <span>{tb.intro.duration}</span>
+              </div>
+              <div className="w-full flex flex-col gap-2">
+                {tb.intro.benefits.map((b, i) => (
+                  <div key={i} className="flex items-start gap-2 text-sm text-ink">
+                    <span className="text-brand-500 mt-0.5 shrink-0">✓</span>
+                    <span>{b}</span>
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={() => setShowInfo(false)}
+                className="w-full py-3.5 rounded-2xl text-white font-semibold text-base active:scale-95 transition-transform"
+                style={{ background: AROUSAL_COLORS.calm_down.accent }}
+              >
+                {tb.intro.start}
+              </button>
+            </div>
+          )}
+
           {/* ── ENTRY ─────────────────────────────────────────────────── */}
-          {screen === 'entry' && (
+          {!showInfo && screen === 'entry' && (
             <div className="flex flex-col gap-8">
               <ArjunBubble>{tb.entryArjun}</ArjunBubble>
               <button
@@ -508,8 +554,8 @@ export default function BeforeYouPlayPage() {
                 <ArjunBubble>{s2.calm.arjun}</ArjunBubble>
               ) : (
                 <>
-                  <p className="text-lg font-bold text-ink">{s2.calm.label}</p>
-                  <p className="text-sm text-slt">{s2.calm.instruction}</p>
+                  <p className="text-lg font-bold text-ink text-center">{s2.calm.label}</p>
+                  <p className="text-sm text-slt text-center">{s2.calm.instruction}</p>
                   <div className="flex flex-col items-center gap-3 py-4">
                     {/* Countdown above the circle — always visible even with finger on it */}
                     <div className="h-20 flex flex-col items-center justify-center">
@@ -565,8 +611,8 @@ export default function BeforeYouPlayPage() {
                 <ArjunBubble>{s2.fire.arjun}</ArjunBubble>
               ) : (
                 <>
-                  <p className="text-lg font-bold text-ink">{s2.fire.label}</p>
-                  <p className="text-sm text-slt">{s2.fire.instruction}</p>
+                  <p className="text-lg font-bold text-ink text-center">{s2.fire.label}</p>
+                  <p className="text-sm text-slt text-center">{s2.fire.instruction}</p>
                   {/* Progress strip */}
                   <div className="flex items-center gap-3">
                     <span className="text-xs text-slt tabular-nums shrink-0">
@@ -628,8 +674,8 @@ export default function BeforeYouPlayPage() {
                 <ArjunBubble>{s2.lock.arjun}</ArjunBubble>
               ) : (
                 <>
-                  <p className="text-lg font-bold text-ink">{s2.lock.label}</p>
-                  <p className="text-sm text-slt">{s2.lock.instruction}</p>
+                  <p className="text-lg font-bold text-ink text-center">{s2.lock.label}</p>
+                  <p className="text-sm text-slt text-center">{s2.lock.instruction}</p>
                   {/* Progress bar */}
                   <div className="w-full h-1.5 bg-dark-700 rounded-full overflow-hidden">
                     <div
@@ -764,7 +810,7 @@ export default function BeforeYouPlayPage() {
           {screen === 'step5' && (
             <div className="flex flex-col gap-6">
               <ArjunBubble>{tb.step5Arjun}</ArjunBubble>
-              <p className="text-xs text-slt">{tb.step5Sub}</p>
+              <p className="text-xs text-slt text-center">{tb.step5Sub}</p>
 
               {/* Word chips */}
               <div className="flex flex-wrap gap-2">

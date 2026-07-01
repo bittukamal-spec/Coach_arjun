@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, Shield } from 'lucide-react';
+import { Heart, Shield, Zap } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
@@ -86,6 +86,7 @@ export default function BounceBackPage() {
   const t = translations[language]?.bounceBack || translations.en.bounceBack;
 
   // Screen state machine
+  const [showInfo, setShowInfo] = useState(true);
   const [screen, setScreen] = useState('step1');
 
   // Collected data
@@ -213,6 +214,19 @@ export default function BounceBackPage() {
     setScreen('step1');
   }
 
+  // ── Back navigation ────────────────────────────────────────────────────
+
+  function goBack() {
+    if (showInfo) { navigate('/train'); return; }
+    if (screen === 'step1') navigate('/train');
+    else if (screen === 'step2') setScreen('step1');
+    else if (screen === 'step3') setScreen('step2');
+    else if (screen === 'step4') setScreen('step3');
+    else if (screen === 'step5') setScreen('step4');
+    else if (screen === 'safety') setScreen('step3');
+    else if (screen === 'help') setScreen('safety');
+  }
+
   // ── Step number for progress display ──────────────────────────────────
 
   const stepNums = { step1: 1, step2: 2, step3: 3, step4: 4, step5: 5 };
@@ -231,29 +245,62 @@ export default function BounceBackPage() {
 
       {/* ── Top bar ─────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between px-5 pt-safe pt-5 pb-3 shrink-0">
-        <span style={{ color: C.muted, fontSize: 14 }}>
-          {stepNum ? `Step ${stepNum} ${t.stepOf} 5` : ''}
-        </span>
         <button
-          onClick={() => navigate('/train')}
+          onClick={goBack}
           style={{ color: C.muted, fontSize: 14 }}
           className="py-1 px-2"
         >
-          {t.exitLabel}
+          {screen === 'done' ? '' : `← ${t.exitLabel === '✕ Exit' ? 'Back' : 'Back'}`}
         </button>
+        <span style={{ color: C.navy, fontSize: 14, fontWeight: 600 }}>
+          {t.intro.title}
+        </span>
+        <span style={{ color: C.muted, fontSize: 14 }}>
+          {stepNum ? `${stepNum}/5` : ''}
+        </span>
       </div>
 
       {/* ── Scrollable content ──────────────────────────────────────── */}
       <div className="flex-1 px-5 overflow-y-auto pb-10">
 
+        {/* ═══════════ INFO SCREEN ═══════════════════════════════════ */}
+        {showInfo && (
+          <div className="flex flex-col items-center gap-6 pt-4 pb-8 animate-fade-in">
+            <Zap size={48} color={C.amber} />
+            <div style={{ textAlign: 'center' }}>
+              <h2 style={{ color: C.navy, fontSize: 22, fontWeight: 700, marginBottom: 8 }}>{t.intro.title}</h2>
+              <p style={{ color: C.muted, fontSize: 15, lineHeight: 1.6 }}>{t.intro.desc}</p>
+            </div>
+            <div className="w-full flex items-center gap-2" style={{ background: C.card, borderRadius: 12, padding: '10px 14px' }}>
+              <span style={{ color: C.amber, fontWeight: 600, fontSize: 13 }}>⏱</span>
+              <span style={{ color: C.muted, fontSize: 13 }}>{t.intro.duration}</span>
+            </div>
+            <div className="w-full flex flex-col gap-2">
+              {t.intro.benefits.map((b, i) => (
+                <div key={i} className="flex items-start gap-2">
+                  <span style={{ color: C.amber, marginTop: 2, flexShrink: 0 }}>✓</span>
+                  <span style={{ color: C.navy, fontSize: 15 }}>{b}</span>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={() => setShowInfo(false)}
+              style={{ background: C.amber, minHeight: 56, width: '100%' }}
+              className="rounded-2xl py-4 text-white font-semibold text-[17px] active:scale-[0.97] transition-transform duration-[120ms]"
+            >
+              {t.intro.start}
+            </button>
+          </div>
+        )}
+
         {/* ═══════════ STEP 1 — What hit you? ═══════════════════════ */}
-        {screen === 'step1' && (
+        {!showInfo && screen === 'step1' && (
           <div className="flex flex-col gap-3 animate-fade-in">
             <div className="mb-1">
-              <h1 style={{ color: C.navy, fontSize: 24, fontWeight: 600, lineHeight: 1.3 }} className="mb-1">
+              <h1 style={{ color: C.navy, fontSize: 24, fontWeight: 600, lineHeight: 1.3, textAlign: 'center' }} className="mb-1">
                 {t.step1Title}
               </h1>
-              <p style={{ color: C.muted, fontSize: 15 }}>{t.step1Sub}</p>
+              <p style={{ color: C.muted, fontSize: 15, textAlign: 'center' }}>{t.step1Sub}</p>
             </div>
             {S1_KEYS.map((key, i) => (
               <TapCard
@@ -274,10 +321,10 @@ export default function BounceBackPage() {
         {screen === 'step2' && (
           <div className="flex flex-col gap-3 animate-fade-in">
             <div className="mb-1">
-              <h1 style={{ color: C.navy, fontSize: 24, fontWeight: 600, lineHeight: 1.3 }} className="mb-1">
+              <h1 style={{ color: C.navy, fontSize: 24, fontWeight: 600, lineHeight: 1.3, textAlign: 'center' }} className="mb-1">
                 {t.step2Title}
               </h1>
-              <p style={{ color: C.muted, fontSize: 15 }}>{t.step2Sub}</p>
+              <p style={{ color: C.muted, fontSize: 15, textAlign: 'center' }}>{t.step2Sub}</p>
             </div>
             {S2_KEYS.map((key, i) => (
               <TapCard
@@ -298,10 +345,10 @@ export default function BounceBackPage() {
         {screen === 'step3' && (
           <div className="flex flex-col gap-3 animate-fade-in">
             <div className="mb-1">
-              <h1 style={{ color: C.navy, fontSize: 24, fontWeight: 600, lineHeight: 1.3 }} className="mb-1">
+              <h1 style={{ color: C.navy, fontSize: 24, fontWeight: 600, lineHeight: 1.3, textAlign: 'center' }} className="mb-1">
                 {t.step3Title}
               </h1>
-              <p style={{ color: C.muted, fontSize: 15 }}>{t.step3Sub}</p>
+              <p style={{ color: C.muted, fontSize: 15, textAlign: 'center' }}>{t.step3Sub}</p>
             </div>
             {[1, 2, 3, 4, 5].map((n) => (
               <button
@@ -471,10 +518,10 @@ export default function BounceBackPage() {
         {screen === 'step5' && (
           <div className="flex flex-col gap-3 animate-fade-in">
             <div className="mb-1">
-              <h1 style={{ color: C.navy, fontSize: 24, fontWeight: 600, lineHeight: 1.3 }} className="mb-1">
+              <h1 style={{ color: C.navy, fontSize: 24, fontWeight: 600, lineHeight: 1.3, textAlign: 'center' }} className="mb-1">
                 {t.step5Title}
               </h1>
-              <p style={{ color: C.muted, fontSize: 15 }}>{t.step5Sub}</p>
+              <p style={{ color: C.muted, fontSize: 15, textAlign: 'center' }}>{t.step5Sub}</p>
             </div>
             {S5_KEYS.map((key, i) => (
               <TapCard
