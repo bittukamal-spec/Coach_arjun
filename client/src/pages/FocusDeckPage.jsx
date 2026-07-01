@@ -161,20 +161,6 @@ export default function FocusDeckPage() {
                 {/* Power line */}
                 <p className="text-sm text-slt italic mb-2">"{card.powerLine}"</p>
 
-                {/* Situation + sport */}
-                <div className="flex items-center gap-2 flex-wrap mb-2">
-                  <span className="text-xs bg-dark-700 text-muted px-2 py-0.5 rounded-full capitalize">
-                    {card.situationCategory.replace(/_/g, ' ')}
-                  </span>
-                  {card.sport && (
-                    <span className="text-xs bg-dark-700 text-muted px-2 py-0.5 rounded-full capitalize">{card.sport}</span>
-                  )}
-                </div>
-
-                {/* Usage count */}
-                <p className="text-xs text-muted">
-                  {card.usedCount > 0 ? t.usedCount(card.usedCount) : t.notUsedYet}
-                </p>
               </button>
 
               {/* Expanded details */}
@@ -210,7 +196,7 @@ export default function FocusDeckPage() {
                     onClick={() => patch(card.id, { isMatchDayCard: false })}
                     className="text-xs font-semibold text-muted bg-dark-700 px-3 py-1.5 rounded-xl active:scale-95 disabled:opacity-50"
                   >
-                    {hi ? 'Remove' : 'Remove'}
+                    {hi ? 'Match Day से हटाओ' : 'Remove from match day'}
                   </button>
                 ) : (
                   <button
