@@ -60,6 +60,10 @@ export default function SelfTalkPage() {
         confidenceBefore: form.confidenceBefore,
       }),
     })
+      .then(r => {
+        if (!r.ok) throw new Error('server_error');
+        return r.json();
+      })
       .then(data => {
         if (cancelledRef.current) return;
         if (data.safetyFlag === 'needs_support') {
@@ -99,11 +103,12 @@ export default function SelfTalkPage() {
     setSaving(true);
     setMaxCardsError(false);
     try {
-      const data = await apiFetch('/api/self-talk/save', {
+      const r = await apiFetch('/api/self-talk/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ ...form, ...card }),
       });
+      const data = await r.json();
       if (data.error === 'max_cards_reached') {
         setMaxCardsError(true);
       } else {
@@ -122,7 +127,7 @@ export default function SelfTalkPage() {
       await apiFetch(`/api/self-talk/cards/${savedCard.id}/practice`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
-      }).catch(() => {});
+      }).then(r => r.json()).catch(() => {});
     }
     setPracticeStep(0);
     setPracticeDone(false);
@@ -469,7 +474,6 @@ export default function SelfTalkPage() {
 
   // ── SCREEN 6: Focus Card ─────────────────────────────────────────────────
   if (screen === 6 && card) {
-  console.log('[SelfTalk] card.arjunNote:', card.arjunNote);
   return (
     <div className="min-h-screen bg-dark-900 flex flex-col">
       <Header progress="85%" />

@@ -26,6 +26,7 @@ export default function FocusDeckPage() {
     apiFetch('/api/self-talk/cards?filter=all', {
       headers: { Authorization: `Bearer ${token}` },
     })
+      .then(r => r.json())
       .then(data => setCards(Array.isArray(data) ? data : []))
       .catch(() => setCards([]))
       .finally(() => setLoading(false));
@@ -51,11 +52,12 @@ export default function FocusDeckPage() {
   const patch = async (id, data) => {
     setActionLoading(id);
     try {
-      const res = await apiFetch(`/api/self-talk/cards/${id}`, {
+      const r = await apiFetch(`/api/self-talk/cards/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(data),
       });
+      const res = await r.json();
       if (res.card) {
         setCards(prev => prev.map(c => c.id === id ? res.card : c));
       }
@@ -69,11 +71,12 @@ export default function FocusDeckPage() {
   const setMatchDay = async (id) => {
     setActionLoading(id);
     try {
-      const res = await apiFetch(`/api/self-talk/cards/${id}`, {
+      const r = await apiFetch(`/api/self-talk/cards/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ isMatchDayCard: true }),
       });
+      const res = await r.json();
       if (res.card) {
         setCards(prev => prev.map(c => ({
           ...c,
