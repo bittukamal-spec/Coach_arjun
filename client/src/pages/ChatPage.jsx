@@ -295,7 +295,6 @@ function ChatPage() {
   const [chatSessionId, setChatSessionId]         = useState(null);
   const [showStartScreen, setShowStartScreen]     = useState(false);
   const [recentSessions, setRecentSessions]       = useState([]);
-  const [summarising, setSummarising]             = useState(false);
   const [sessionSummary, setSessionSummary]       = useState(null);
   const [chatMode, setChatMode]                   = useState('main');
 
@@ -306,6 +305,8 @@ function ChatPage() {
   const arjunMsgCountRef        = useRef(0);
   const prefillMsgRef           = useRef(location.state?.prefillMsg ?? null);
   const pendingChatSessionIdRef = useRef(location.state?.chatSessionId ?? null);
+  const chatSessionIdRef        = useRef(null);
+  const chatModeRef             = useRef('main');
 
   // ── Load on mount ─────────────────────────────────────────────────────────
 
@@ -371,6 +372,26 @@ function ChatPage() {
     }
   }, [messages, chatSessionId]);
 
+  // ── Keep refs in sync with state ─────────────────────────────────────────
+
+  useEffect(() => { chatSessionIdRef.current = chatSessionId; }, [chatSessionId]);
+  useEffect(() => { chatModeRef.current = chatMode; }, [chatMode]);
+
+  // ── Auto-end main session when user navigates away ────────────────────────
+
+  useEffect(() => {
+    return () => {
+      const id   = chatSessionIdRef.current;
+      const mode = chatModeRef.current;
+      if (!id || mode !== 'main') return;
+      sessionStorage.removeItem(`arjun_chat_messages_${id}`);
+      apiFetch(`/api/sessions/${id}/end`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      }).catch(() => {});
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Quick chat cleanup: delete session on tab hide or unmount ────────────
 
   useEffect(() => {
@@ -395,16 +416,14 @@ function ChatPage() {
   // ── API helpers ───────────────────────────────────────────────────────────
 
   async function fetchSessionMessages(id) {
-    // Load from cache immediately so tags survive navigation
-    const cached = sessionStorage.getItem(`arjun_chat_messages_${id}`);
-    if (cached) {
-      try { setMessages(JSON.parse(cached)); } catch { /* ignore */ }
-    }
-    // Fetch from DB in background to sync
+    // Always fetch fresh — discard any stale cache from prior visits
+    sessionStorage.removeItem(`arjun_chat_messages_${id}`);
     try {
-      const res = await apiFetch(`/api/sessions/${id}/messages`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const res = await apiFetch(
+        `/api/sessions/${id}/messages?since=${encodeURIComponent(since)}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       if (res.ok) {
         const data = await res.json();
         const msgs = data.messages || [];
@@ -415,6 +434,8 @@ function ChatPage() {
           return { ...msg, content: cleanText, appTools: tools };
         });
         setMessages(processed);
+        // Scroll to most recent message instantly
+        setTimeout(() => { bottomRef.current?.scrollIntoView({ behavior: 'auto' }); }, 50);
       }
     } catch { /* ignore */ }
   }
@@ -431,25 +452,6 @@ function ChatPage() {
     setShowStartScreen(false);
     setSessionSummary(null);
     return id;
-  }
-
-  async function endSession() {
-    if (!chatSessionId || summarising) return;
-    setSummarising(true);
-    sessionStorage.removeItem(`arjun_chat_messages_${chatSessionId}`);
-    await apiFetch(`/api/sessions/${chatSessionId}/end`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-    }).catch(() => {});
-    setSummarising(false);
-    // Return to entry choice screen without leaving /coaching
-    setChatSessionId(null);
-    setMessages([]);
-    setActiveSession(null);
-    setSessionSummary(null);
-    arjunMsgCountRef.current = 0;
-    setChatMode('main');
-    setShowStartScreen(true);
   }
 
   async function handleContinueMain() {
@@ -600,15 +602,6 @@ function ChatPage() {
             </div>
           </div>
           <div className="flex items-center gap-1 shrink-0">
-            {chatSessionId && !showStartScreen && chatMode === 'main' && (
-              <button
-                onClick={endSession}
-                disabled={summarising || streaming}
-                className="text-xs text-slt hover:text-ink transition-colors px-2 py-1.5 rounded-lg hover:bg-dark-700 disabled:opacity-40"
-              >
-                {summarising ? t.summarising : t.endSession}
-              </button>
-            )}
             <button
               onClick={() => setShowSafety(s => !s)}
               className="p-1.5 text-slt hover:text-ink transition-colors rounded-lg hover:bg-dark-700"
@@ -672,6 +665,13 @@ function ChatPage() {
               summary={sessionSummary}
               label={translations[language].sessionHistory.sessionSummaryLabel}
             />
+          )}
+
+          {/* Empty state — no messages in last 7 days */}
+          {!showStartScreen && messages.length === 0 && !waitingForFirst && (
+            <div className="flex items-center justify-center min-h-[50vh]">
+              <p className="text-sm text-muted text-center">{t.emptyPrompt}</p>
+            </div>
           )}
 
           {/* Message list */}

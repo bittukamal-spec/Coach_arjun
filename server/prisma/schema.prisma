@@ -90,6 +90,7 @@ model User {
   chatSessions           ChatSession[]
   mentalFitnessEntries   MentalFitnessEntry[]
   toolReports            ToolReport[]
+  weeklyReports          WeeklyReport[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -239,4 +240,18 @@ model ToolReport {
   createdAt      DateTime @default(now())
 
   @@index([userId, createdAt])
+}
+
+model WeeklyReport {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  weekStart    DateTime // Monday 00:00:00 UTC
+  weekEnd      DateTime // Sunday 23:59:59 UTC
+  content      String   // Full report text with **bold** section headings
+  messageCount Int      // User messages that week (for generation threshold)
+  createdAt    DateTime @default(now())
+
+  @@unique([userId, weekStart])
+  @@index([userId, weekStart])
 }

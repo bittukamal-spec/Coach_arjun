@@ -43,6 +43,7 @@ app.use('/api/user',            require('./routes/userData'));
 app.use('/api/streaks',         require('./routes/streaks'));
 app.use('/api/payments',        require('./routes/payments'));
 app.use('/api/mental-fitness',  require('./routes/mentalFitness'));
+app.use('/api/weekly-reports',  require('./routes/weeklyReports'));
 
 // Health check — useful to confirm the server is running
 app.get('/api/health', (_req, res) => {

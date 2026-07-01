@@ -259,6 +259,7 @@ export const translations = {
       timeAgoYesterday:  'yesterday',
       timeAgoDays:       (n) => `${n} days ago`,
       emptyInputHint:    "Or type what's on your mind…",
+      emptyPrompt:       "What's on your mind?",
       sessionTitle:      'What\'s going on today?',
       endSession:        'End session',
       summarising:       'Summarising…',
@@ -521,6 +522,8 @@ export const translations = {
       shareGenerating: 'Generating…',
       shareSave: 'Save Image',
       shareClose: 'Close',
+      weeklyReportTitle: 'Weekly Report from Arjun',
+      weeklyReportEmpty: 'Your first report appears after a week of chats with Arjun.',
     },
     streak: {
       consecutiveDays:  'consecutive days of mental training',
@@ -1335,6 +1338,7 @@ export const translations = {
       timeAgoYesterday:  'कल',
       timeAgoDays:       (n) => `${n} दिन पहले`,
       emptyInputHint:    'या यहाँ टाइप करें…',
+      emptyPrompt:       'क्या सोच रहे हो?',
       sessionTitle:      'आज क्या हो रहा है?',
       endSession:        'सत्र समाप्त',
       summarising:       'सारांश बना रहे हैं…',
@@ -1577,6 +1581,8 @@ export const translations = {
       shareGenerating: 'बन रहा है…',
       shareSave: 'इमेज सेव करें',
       shareClose: 'बंद करें',
+      weeklyReportTitle: 'अर्जुन की साप्ताहिक रिपोर्ट',
+      weeklyReportEmpty: 'अर्जुन के साथ एक हफ्ते की बातचीत के बाद पहली रिपोर्ट आएगी।',
     },
     streak: {
       consecutiveDays:  'लगातार मानसिक ट्रेनिंग के दिन',

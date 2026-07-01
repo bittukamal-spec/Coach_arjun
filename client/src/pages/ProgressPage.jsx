@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronLeft, Flame, Share2 } from 'lucide-react';
+import { ChevronLeft, ChevronDown, Flame, Share2 } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import { useAuth } from '../contexts/AuthContext';
 import { apiFetch } from '../api';
@@ -321,6 +321,10 @@ function ProgressPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState('');
 
+  const [weeklyReports, setWeeklyReports]     = useState([]);
+  const [reportsLoading, setReportsLoading]   = useState(true);
+  const [expandedReport, setExpandedReport]   = useState(null);
+
   useEffect(() => {
     setLoading(true);
     apiFetch(`/api/progress/summary?days=${days}`, {
@@ -332,11 +336,37 @@ function ProgressPage() {
       .finally(() => setLoading(false));
   }, [days, token]);
 
+  useEffect(() => {
+    setReportsLoading(true);
+    apiFetch('/api/weekly-reports', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(d => setWeeklyReports(Array.isArray(d) ? d : []))
+      .catch(() => {})
+      .finally(() => setReportsLoading(false));
+  }, [token]);
+
   const hasEnoughData = data && data.chartData.length >= 2;
 
   function trendDiff(current, previous) {
     if (current === null || previous === null) return null;
     return +(current - previous).toFixed(1);
+  }
+
+  function formatWeekRange(start, end) {
+    const opts = { day: 'numeric', month: 'short' };
+    const s = new Date(start).toLocaleDateString('en-IN', opts);
+    const e = new Date(end).toLocaleDateString('en-IN', opts);
+    return `${s} – ${e}`;
+  }
+
+  function renderBoldHeadings(text) {
+    return text.split(/(\*\*[^*]+\*\*)/).map((part, i) =>
+      part.startsWith('**') && part.endsWith('**')
+        ? <strong key={i} className="font-semibold text-ink">{part.slice(2, -2)}</strong>
+        : <span key={i}>{part}</span>
+    );
   }
 
   return (
@@ -489,6 +519,47 @@ function ProgressPage() {
                 })}
                 <p className="text-[11px] text-slt text-center pt-1">{t.vsLastWeek}</p>
               </div>
+            </div>
+
+            {/* ── Weekly Reports ── */}
+            <div>
+              <SectionLabel>{t.weeklyReportTitle}</SectionLabel>
+              {reportsLoading ? (
+                <div className="flex justify-center py-6">
+                  <div className="w-5 h-5 border-2 border-brand-600 border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : weeklyReports.length === 0 ? (
+                <div className="bg-dark-800 border border-dark-600 rounded-2xl px-5 py-8 text-center">
+                  <p className="text-sm text-slt">{t.weeklyReportEmpty}</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {weeklyReports.map(r => (
+                    <div key={r.id} className="bg-dark-800 border border-dark-600 rounded-2xl overflow-hidden">
+                      <button
+                        className="w-full flex items-center justify-between px-4 py-3 text-left"
+                        onClick={() => setExpandedReport(expandedReport === r.id ? null : r.id)}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-ink">{formatWeekRange(r.weekStart, r.weekEnd)}</p>
+                          <p className="text-xs text-slt mt-0.5 truncate">
+                            {r.content.replace(/\*\*/g, '').slice(0, 80)}…
+                          </p>
+                        </div>
+                        <ChevronDown
+                          size={14}
+                          className={`text-slt ml-2 shrink-0 transition-transform ${expandedReport === r.id ? 'rotate-180' : ''}`}
+                        />
+                      </button>
+                      {expandedReport === r.id && (
+                        <div className="px-4 pb-4 text-sm text-slt leading-relaxed border-t border-dark-700 pt-3 whitespace-pre-wrap">
+                          {renderBoldHeadings(r.content)}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* ── Chart or empty state ── */}

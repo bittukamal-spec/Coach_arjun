@@ -173,8 +173,15 @@ router.get('/:id/messages', authenticate, async (req, res) => {
     if (!session || session.userId !== req.userId) {
       return res.status(404).json({ error: 'Session not found' });
     }
+    const msgWhere = { chatSessionId: req.params.id };
+    if (req.query.since) {
+      const sinceDate = new Date(req.query.since);
+      if (!isNaN(sinceDate.getTime())) {
+        msgWhere.createdAt = { gte: sinceDate };
+      }
+    }
     const messages = await prisma.message.findMany({
-      where: { chatSessionId: req.params.id },
+      where: msgWhere,
       orderBy: { createdAt: 'asc' },
       select: { id: true, role: true, content: true, sessionType: true, createdAt: true },
     });
