@@ -17,7 +17,6 @@ const SAFE_SELECT = {
   sport: true, experienceLevel: true, goals: true, onboardingDone: true,
   competitionLevel: true, primaryChallenge: true, pressureResponse: true, position: true,
   xp: true, createdAt: true,
-  oceanO: true, oceanC: true, oceanE: true, oceanA: true, oceanN: true,
   age: true, profileIntro: true,
   subscriptionPlanType: true, subscriptionStartDate: true,
   cueWord: true, cueArousalState: true,
@@ -218,36 +217,6 @@ router.put('/me/profile', authenticate, async (req, res) => {
     const user = await prisma.user.update({
       where: { id: req.userId },
       data: updates,
-      select: SAFE_SELECT,
-    });
-    res.json({ user: parseGoals(user) });
-  } catch {
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-// ── POST /api/auth/me/ocean — save OCEAN personality test results ──────────
-
-router.post('/me/ocean', authenticate, async (req, res) => {
-  const { oceanO, oceanC, oceanE, oceanA, oceanN } = req.body;
-
-  for (const [key, val] of Object.entries({ oceanO, oceanC, oceanE, oceanA, oceanN })) {
-    const num = parseInt(val, 10);
-    if (isNaN(num) || num < 1 || num > 5) {
-      return res.status(400).json({ error: `${key} must be an integer 1–5` });
-    }
-  }
-
-  try {
-    const user = await prisma.user.update({
-      where: { id: req.userId },
-      data: {
-        oceanO: parseInt(oceanO, 10),
-        oceanC: parseInt(oceanC, 10),
-        oceanE: parseInt(oceanE, 10),
-        oceanA: parseInt(oceanA, 10),
-        oceanN: parseInt(oceanN, 10),
-      },
       select: SAFE_SELECT,
     });
     res.json({ user: parseGoals(user) });

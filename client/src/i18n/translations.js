@@ -617,14 +617,6 @@ export const translations = {
       positionLabel: 'Position / Role',
       positionPlaceholder: 'e.g. Batsman, Goalkeeper, Sprinter',
       saveProfile: 'Save Profile',
-      // Mental DNA (OCEAN)
-      dnaTitle: 'Mental DNA',
-      dnaSubtitle: 'How you think and react — shapes how Arjun coaches you',
-      dnaTake: 'Take Personality Test',
-      dnaRetake: 'Retake Test',
-      dnaTraits: {
-        O: 'Reading the game', C: 'Discipline', E: 'Energy', A: 'Team focus', N: 'Pressure control',
-      },
       // Photo
       changePhoto: 'Change Photo',
       uploadPhoto: 'Upload Photo',
@@ -638,7 +630,7 @@ export const translations = {
       sectionTitle: 'Privacy & Data',
       chat: { label: 'Chat history', sub: 'All messages and sessions with Arjun' },
       reflections: { label: 'Match reviews', sub: 'All post-match debriefs' },
-      profile: { label: 'Mental profile', sub: 'OCEAN personality data and onboarding answers' },
+      profile: { label: 'Mental profile', sub: 'Onboarding answers and preferences' },
       cue: { label: 'Cue word', sub: 'Your personal focus cue' },
       checkin: { label: 'Check-in history', sub: 'All daily mental fitness scores' },
       confirm: {
@@ -666,46 +658,6 @@ export const translations = {
       },
       deleted: { toast: 'Deleted successfully' },
       errorToast: 'Something went wrong. Please try again.',
-    },
-    personality: {
-      title: 'Mental DNA Test',
-      subtitle: 'Find out how you think and react under pressure. Arjun uses this to coach you better.',
-      questionOf: (n, t) => `Question ${n} of ${t}`,
-      scaleLabels: ['Strongly Disagree', 'Disagree', 'Neutral', 'Agree', 'Strongly Agree'],
-      questions: [
-        'I enjoy trying new training techniques even if they feel unusual.',
-        'I always complete my training sessions even when I don\'t feel like it.',
-        'I perform better when there\'s a crowd cheering.',
-        'I prefer my team winning over my personal glory.',
-        'I tend to overthink mistakes after a bad game.',
-        'I like to experiment with different mental approaches before competing.',
-        'I write down goals and track them consistently.',
-        'I get energy from team huddles and group warmups.',
-        'I often put my teammates\' needs ahead of my own.',
-        'Pressure situations make me nervous rather than excited.',
-      ],
-      traits: ['Reading the game', 'Discipline', 'Energy', 'Team focus', 'Pressure control'],
-      traitEmojis: ['🌟', '📋', '🤝', '💙', '🌊'],
-      traitDescriptions: [
-        (v) => v >= 4 ? 'Curious & creative — loves new techniques' : v <= 2 ? 'Prefers proven, familiar routines' : 'Balanced approach to new ideas',
-        (v) => v >= 4 ? 'Highly disciplined & goal-driven' : v <= 2 ? 'Flexible, spontaneous approach' : 'Moderately structured',
-        (v) => v >= 4 ? 'Energised by team & crowd' : v <= 2 ? 'Thrives with internal focus & quiet' : 'Comfortable in both settings',
-        (v) => v >= 4 ? 'Team-first, receptive to feedback' : v <= 2 ? 'Independent & self-reliant' : 'Balanced team & individual focus',
-        (v) => v >= 4 ? 'Tends to get nervous — breathe first' : v <= 2 ? 'Stays calm under pressure' : 'Usually handles pressure OK',
-      ],
-      coachingNote: (traits) => {
-        const notes = [];
-        if (traits.N >= 4) notes.push('Arjun will always calm you first before advising.');
-        if (traits.C >= 4) notes.push('You\'ll get structured, step-by-step plans.');
-        if (traits.E <= 2) notes.push('Advice will focus on internal focus over team talk.');
-        if (traits.O >= 4) notes.push('Arjun will suggest varied, creative techniques.');
-        return notes.length ? notes.join(' ') : 'Arjun will adapt coaching to your unique profile.';
-      },
-      saving: 'Saving…',
-      saveBtn: 'Save My Profile →',
-      resultTitle: 'Your Mental DNA',
-      backBtn: '← Back',
-      goToAccount: 'View My Profile',
     },
     debrief: {
       title: 'Match review',
@@ -1685,13 +1637,6 @@ export const translations = {
       positionLabel: 'पोजीशन / भूमिका',
       positionPlaceholder: 'जैसे: बल्लेबाज़, गोलकीपर, धावक',
       saveProfile: 'प्रोफाइल सेव करें',
-      dnaTitle: 'मानसिक DNA',
-      dnaSubtitle: 'तुम कैसे सोचते हो — इससे अर्जुन कोचिंग बदलता है',
-      dnaTake: 'व्यक्तित्व परीक्षण लें',
-      dnaRetake: 'दोबारा परीक्षण दें',
-      dnaTraits: {
-        O: 'खेल पढ़ना', C: 'अनुशासन', E: 'ऊर्जा', A: 'टीम फोकस', N: 'दबाव नियंत्रण',
-      },
       changePhoto: 'फ़ोटो बदलें',
       uploadPhoto: 'फ़ोटो अपलोड करें',
       appearance:    'थीम',
@@ -1704,7 +1649,7 @@ export const translations = {
       sectionTitle: 'गोपनीयता और डेटा',
       chat: { label: 'चैट इतिहास', sub: 'अर्जुन के साथ सभी संदेश और सत्र' },
       reflections: { label: 'मैच समीक्षाएं', sub: 'सभी मैच के बाद की समीक्षाएं' },
-      profile: { label: 'मानसिक प्रोफाइल', sub: 'OCEAN व्यक्तित्व डेटा और ऑनबोर्डिंग उत्तर' },
+      profile: { label: 'मानसिक प्रोफाइल', sub: 'ऑनबोर्डिंग उत्तर और प्राथमिकताएं' },
       cue: { label: 'क्यू वर्ड', sub: 'आपका व्यक्तिगत फोकस शब्द' },
       checkin: { label: 'चेक-इन इतिहास', sub: 'सभी दैनिक मानसिक फिटनेस स्कोर' },
       confirm: {
@@ -1732,46 +1677,6 @@ export const translations = {
       },
       deleted: { toast: 'सफलतापूर्वक हटा दिया' },
       errorToast: 'कुछ गलत हो गया। कृपया पुनः प्रयास करें।',
-    },
-    personality: {
-      title: 'मानसिक DNA परीक्षण',
-      subtitle: 'जानो कि तुम दबाव में कैसे सोचते और प्रतिक्रिया देते हो। अर्जुन इससे तुम्हें बेहतर कोच कर सकता है।',
-      questionOf: (n, t) => `सवाल ${n} / ${t}`,
-      scaleLabels: ['बिल्कुल असहमत', 'असहमत', 'तटस्थ', 'सहमत', 'पूरी तरह सहमत'],
-      questions: [
-        'मैं नई ट्रेनिंग तकनीकें आज़माना पसंद करता हूं, भले ही वे अजीब लगें।',
-        'मैं हमेशा अपने ट्रेनिंग सेशन पूरे करता हूं, चाहे मन हो या न हो।',
-        'मैं भीड़ के सामने बेहतर प्रदर्शन करता हूं।',
-        'मैं व्यक्तिगत प्रसिद्धि से ज़्यादा टीम की जीत चाहता हूं।',
-        'मैं बुरे मैच के बाद गलतियों के बारे में ज़्यादा सोचता हूं।',
-        'मैं प्रतिस्पर्धा से पहले अलग मानसिक तरीके आज़माना पसंद करता हूं।',
-        'मैं लक्ष्य लिखता हूं और नियमित रूप से उन्हें ट्रैक करता हूं।',
-        'टीम हडल और ग्रुप वॉर्मअप मुझे ऊर्जा देते हैं।',
-        'मैं अक्सर अपनी ज़रूरतों से पहले साथियों की ज़रूरतें रखता हूं।',
-        'दबाव की स्थितियां मुझे उत्साह की जगह घबराहट देती हैं।',
-      ],
-      traits: ['खेल पढ़ना', 'अनुशासन', 'ऊर्जा', 'टीम फोकस', 'दबाव नियंत्रण'],
-      traitEmojis: ['🌟', '📋', '🤝', '💙', '🌊'],
-      traitDescriptions: [
-        (v) => v >= 4 ? 'जिज्ञासु और रचनात्मक — नई तकनीकें पसंद' : v <= 2 ? 'जाने-माने तरीके पसंद' : 'नई और पुरानी तकनीकों में संतुलन',
-        (v) => v >= 4 ? 'अत्यधिक अनुशासित और लक्ष्य-केंद्रित' : v <= 2 ? 'लचीला और स्वाभाविक तरीका' : 'मध्यम अनुशासन',
-        (v) => v >= 4 ? 'टीम और भीड़ से ऊर्जा मिलती है' : v <= 2 ? 'आंतरिक फोकस और शांति से ताकत' : 'दोनों परिस्थितियों में सहज',
-        (v) => v >= 4 ? 'टीम-केंद्रित, फीडबैक स्वीकार करते हैं' : v <= 2 ? 'स्वतंत्र और आत्मनिर्भर' : 'संतुलित',
-        (v) => v >= 4 ? 'घबराहट होती है — पहले शांत हो जाओ' : v <= 2 ? 'दबाव में शांत रहते हो' : 'दबाव अक्सर संभाल लेते हो',
-      ],
-      coachingNote: (traits) => {
-        const notes = [];
-        if (traits.N >= 4) notes.push('अर्जुन पहले आपको शांत करेगा, फिर सलाह देगा।');
-        if (traits.C >= 4) notes.push('आपको क्रमबद्ध, चरण-दर-चरण योजनाएं मिलेंगी।');
-        if (traits.E <= 2) notes.push('सलाह आंतरिक फोकस पर होगी, न कि टीम बातचीत पर।');
-        if (traits.O >= 4) notes.push('अर्जुन विविध, रचनात्मक तकनीकें सुझाएगा।');
-        return notes.length ? notes.join(' ') : 'अर्जुन आपकी अनूठी प्रोफाइल के अनुसार कोचिंग देगा।';
-      },
-      saving: 'सेव हो रहा है…',
-      saveBtn: 'मेरी प्रोफाइल सेव करें →',
-      resultTitle: 'आपका मानसिक DNA',
-      backBtn: '← वापस',
-      goToAccount: 'प्रोफाइल देखें',
     },
     debrief: {
       title: 'मैच की समीक्षा',

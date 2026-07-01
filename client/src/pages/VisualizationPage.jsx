@@ -143,10 +143,6 @@ export default function VisualizationPage() {
           cueWord,
           language,
           userName: user?.name?.split(' ')[0] || 'athlete',
-          oceanProfile: {
-            O: user?.oceanO, C: user?.oceanC, E: user?.oceanE,
-            A: user?.oceanA, N: user?.oceanN,
-          },
         }),
       });
       if (res.ok) {

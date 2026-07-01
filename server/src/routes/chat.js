@@ -272,43 +272,11 @@ No recent check-ins — the athlete hasn't tracked their mental state yet.`;
     ? `## Athlete Behavioral Patterns\n${patternLines.join('\n')}`
     : '';
 
-  // ── OCEAN personality profile ────────────────────────────────────────────
-  let oceanSection = '';
-  if (user.oceanO != null) {
-    const oceanDescriptions = {
-      O: user.oceanO >= 4 ? 'creative, curious, open to trying new techniques' : user.oceanO <= 2 ? 'prefers familiar, proven routines — introduce changes gradually' : 'moderately open to new ideas',
-      C: user.oceanC >= 4 ? 'highly disciplined, structure-driven, goal-focused — give clear step-by-step plans' : user.oceanC <= 2 ? 'flexible but may struggle with consistency — short habit loops work better' : 'moderately conscientious',
-      E: user.oceanE >= 4 ? 'energised by team & crowd, motivated by recognition — use social/team framing' : user.oceanE <= 2 ? 'introverted, prefers internal motivation — quiet focus strategies work best' : 'moderately extraverted',
-      A: user.oceanA >= 4 ? 'team-oriented, receptive to feedback — responds well to collaborative coaching' : user.oceanA <= 2 ? 'independent-minded — frame advice as their own idea where possible' : 'moderately agreeable',
-      N: user.oceanN >= 4 ? 'higher anxiety tendency — prioritise calming and grounding before performance advice' : user.oceanN <= 2 ? 'emotionally stable under pressure — can push harder, less hand-holding needed' : 'moderate emotional reactivity',
-    };
-    oceanSection = `## Personality Profile (Big Five / OCEAN)
-- Openness: ${user.oceanO}/5 — ${oceanDescriptions.O}
-- Conscientiousness: ${user.oceanC}/5 — ${oceanDescriptions.C}
-- Extraversion: ${user.oceanE}/5 — ${oceanDescriptions.E}
-- Agreeableness: ${user.oceanA}/5 — ${oceanDescriptions.A}
-- Neuroticism: ${user.oceanN}/5 — ${oceanDescriptions.N}
-Adapt ALL advice and coaching style to match this personality. High N = calm first, then advise. Low E = avoid "talk to teammates" advice. High C = give structured 3-step plans.
-
-## Profile Active Use
-This profile is re-fetched on every message — treat it as live truth, not a fixed snapshot.
-Shape HOW you respond (framing, tone, structure), not just WHAT you say:
-- High O (4–5): exploratory, reflective framing; introduce new mental frameworks
-- High C (4–5): structured, step-by-step plans; measurable commitments
-- High E (4–5): social/crowd framing; team energy angles
-- Low E (1–2): internal strategies only; never "talk to your teammates"
-- High N (4–5): calm and ground FIRST — never add to anxiety
-- Low N (1–2): can challenge more directly; less hand-holding needed
-- High A (4–5): "we" framing; collaborative tone
-- Low A (1–2): frame advice as their own idea; independent-minded approach
-Do NOT mention that you are reading a profile — let it silently shape your response.`;
-  }
-
   const sessionSection = sessionType && SESSION_INSTRUCTIONS[sessionType]
     ? `## Active Session\n${SESSION_INSTRUCTIONS[sessionType]}\n\nFor this session: Ask ONE focused question at a time. Do not give advice, techniques, or solutions until you fully understand the athlete's situation.`
     : '';
 
-  const extraSections = [patternSection, oceanSection].filter(Boolean).join('\n\n');
+  const extraSections = [patternSection].filter(Boolean).join('\n\n');
 
   const actionBridgeSection = (extra.arjunMsgCount ?? 0) >= 4
     ? `\n\n## Natural Action Offer\nYou are ${extra.arjunMsgCount} responses into this session. If you feel you have addressed the athlete's main concern, naturally offer ONE specific next step they can try right now — for example a 2-minute breathing exercise, building a pre-match routine together, or a quick visualisation drill. Keep it to one casual sentence such as "Want to try a quick breathing exercise right now?" Only offer this once — if you have already suggested a next action in this session, do not repeat it.`
@@ -631,14 +599,13 @@ router.post('/message', authenticate, checkFreeLimit, async (req, res) => {
   }
 
   try {
-    // Fetch user profile for the system prompt (including OCEAN + age + all onboarding fields)
+    // Fetch user profile for the system prompt
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
       select: {
         name: true, sport: true, experienceLevel: true, goals: true, language: true,
         competitionLevel: true, primaryChallenge: true, pressureResponse: true,
         ritualName: true, ritualSteps: true, xp: true, age: true,
-        oceanO: true, oceanC: true, oceanE: true, oceanA: true, oceanN: true,
       },
     });
 
@@ -814,7 +781,7 @@ router.post('/wizard', authenticate, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
-      select: { sport: true, oceanO: true, oceanC: true, oceanE: true, oceanA: true, oceanN: true, ritualSteps: true, language: true },
+      select: { sport: true, ritualSteps: true, language: true },
     });
     if (!user) return res.status(404).json({ error: 'User not found' });
 

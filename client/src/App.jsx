@@ -17,7 +17,6 @@ import MentalGameProfilePage from './pages/MentalGameProfilePage';
 import TrainPage from './pages/TrainPage';
 import DebriefPage from './pages/DebriefPage';
 import GamesPage from './pages/GamesPage';
-import PersonalityTestPage from './pages/PersonalityTestPage';
 import BounceBackPage from './pages/BounceBackPage';
 import BeforeYouPlayPage from './pages/BeforeYouPlayPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
@@ -167,15 +166,6 @@ function App() {
           </ProtectedRoute>
         }
       />
-      <Route
-        path="/personality-test"
-        element={
-          <ProtectedRoute requireOnboarding={true}>
-            <PersonalityTestPage />
-          </ProtectedRoute>
-        }
-      />
-
       {/* Mental Fitness check-in — full screen, no BottomNav */}
       <Route
         path="/mental-fitness"

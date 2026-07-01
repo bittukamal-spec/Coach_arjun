@@ -32,13 +32,7 @@ function buildInsightPrompt(data, user, prevChanges, recentCheckIns) {
     }
   }
 
-  // OCEAN coaching tone hints
-  const toneNotes = [];
-  if (user.oceanN >= 4) toneNotes.push('calm and validate first — they are anxiety-prone');
-  if (user.oceanN <= 2) toneNotes.push('can be direct and challenge them — emotionally stable');
-  if (user.oceanC >= 4) toneNotes.push('give a concrete structured action — they respond to step-by-step plans');
-  if (user.oceanE <= 2) toneNotes.push('keep advice internal/solo — avoid team-facing suggestions');
-  const toneNote = toneNotes.length ? `\nCoaching tone: ${toneNotes.join('; ')}.` : '';
+  const toneNote = '';
 
   // Cue word
   const cueNote = user.cueWord
@@ -142,7 +136,7 @@ router.post('/', authenticate, async (req, res) => {
       where: { id: req.userId },
       select: {
         name: true, sport: true, language: true, experienceLevel: true,
-        cueWord: true, oceanO: true, oceanC: true, oceanE: true, oceanA: true, oceanN: true,
+        cueWord: true,
       },
     }),
     prisma.checkIn.findMany({

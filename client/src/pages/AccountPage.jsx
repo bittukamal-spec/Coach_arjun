@@ -4,7 +4,7 @@ import Navbar from '../components/Navbar';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
-import { LogOut, Trash2, ChevronRight, Shield, Bell, User, Zap, Award, Camera, Brain, Star, MessageCircle, Mail, Sparkles, Sun, MessageSquare, FileX, RefreshCw, Tag, BarChart2 } from 'lucide-react';
+import { LogOut, Trash2, ChevronRight, Shield, Bell, User, Zap, Award, Camera, Star, MessageCircle, Mail, Sparkles, Sun, MessageSquare, FileX, RefreshCw, Tag, BarChart2 } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 import { ACHIEVEMENTS, ALL_ACHIEVEMENT_KEYS } from '../data/achievements';
 
@@ -558,48 +558,6 @@ function AccountPage() {
               className="btn-primary w-full justify-center py-3 disabled:opacity-50"
             >
               {profileSaving ? t.saving : t.saveProfile}
-            </button>
-          </div>
-        </section>
-
-        {/* Mental DNA — OCEAN personality */}
-        <section className="mb-6">
-          <div className="flex items-center gap-2 mb-3">
-            <Brain size={16} className="text-brand-400" />
-            <h2 className="text-sm font-semibold text-slt uppercase tracking-wide">{t.dnaTitle}</h2>
-          </div>
-          <div className="card p-5">
-            <p className="text-xs text-slt mb-4">{t.dnaSubtitle}</p>
-            {user?.oceanO != null ? (
-              <div className="space-y-3 mb-4">
-                {Object.entries(t.dnaTraits).map(([key, traitName]) => {
-                  const val = user[`ocean${key}`];
-                  return (
-                    <div key={key}>
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-xs text-slt font-medium">{traitName}</span>
-                        <span className="text-xs text-brand-400 font-bold">{val}/5</span>
-                      </div>
-                      <div className="w-full bg-dark-600 rounded-full h-1.5">
-                        <div
-                          className="h-1.5 rounded-full bg-brand-500"
-                          style={{ width: `${(val / 5) * 100}%` }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="text-slt text-sm mb-4">
-                {language === 'hi' ? 'अभी तक परीक्षण नहीं लिया।' : 'No personality test taken yet.'}
-              </p>
-            )}
-            <button
-              onClick={() => navigate('/personality-test')}
-              className="btn-secondary w-full justify-center py-2.5 text-sm"
-            >
-              {user?.oceanO != null ? t.dnaRetake : t.dnaTake}
             </button>
           </div>
         </section>
