@@ -14,7 +14,7 @@ export default function SelfTalkPage() {
   const [screen, setScreen] = useState(1);
   const [form, setForm] = useState({
     sport: user?.sport || '',
-    roleOrPosition: '',
+    roleOrPosition: user?.position || '',
     performanceMoment: '',
     skillContext: '',
     situationCategory: '',

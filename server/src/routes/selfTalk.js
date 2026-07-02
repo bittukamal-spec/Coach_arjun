@@ -208,7 +208,7 @@ router.patch('/cards/:id', authenticate, async (req, res) => {
     return res.status(404).json({ error: 'not_found' });
   }
 
-  const allowed = ['isMatchDayCard', 'isArchived', 'isActive', 'confidenceAfter'];
+  const allowed = ['isMatchDayCard', 'matchDayContext', 'isArchived', 'isActive', 'confidenceAfter'];
   const data = {};
   for (const key of allowed) {
     if (req.body[key] !== undefined) data[key] = req.body[key];

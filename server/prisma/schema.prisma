@@ -281,6 +281,7 @@ model SelfTalkCard {
   tags                   Json?
   isActive               Boolean   @default(true)
   isMatchDayCard         Boolean   @default(false)
+  matchDayContext        String?
   isArchived             Boolean   @default(false)
   usedCount              Int       @default(0)
   lastUsedAt             DateTime?

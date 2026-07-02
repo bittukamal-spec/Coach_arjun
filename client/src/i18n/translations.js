@@ -591,8 +591,8 @@ export const translations = {
       gamesDesc:       'Focus games — train your attention like an athlete',
       selfTalkTitle:   'Self-Talk Builder',
       selfTalkSub:     'Build your Focus Word',
-      focusDeckTitle:  'Focus Deck',
-      focusDeckSub:    'View your Focus Cards',
+      focusDeckTitle:  'Self-talk cards',
+      focusDeckSub:    'View your self-talk cards',
     },
     selfTalk: {
       learn: {
@@ -631,7 +631,7 @@ export const translations = {
         opt6:  'When confidence is low',
         opt7:  'Technical focus',
         opt8:  'Fitness / effort moment',
-        opt9:  'Custom situation',
+        opt9:  'Write your situation',
         customPlaceholder: 'Describe your situation…',
       },
       thought: {
@@ -646,7 +646,7 @@ export const translations = {
         opt6:  'I feel nervous.',
         opt7:  'I cannot handle pressure.',
         opt8:  'I am overthinking my technique.',
-        opt9:  'Custom thought',
+        opt9:  'Write your thought',
         customPlaceholder: 'Describe your thought…',
         intensityLabel:   'How strong is this thought? (1–10)',
         confidenceLabel:  'Your confidence right now? (1–10)',
@@ -699,9 +699,9 @@ export const translations = {
         backBtn:  'Back to training',
       },
       deck: {
-        title:         'Focus Deck',
-        emptyTitle:    'No Focus Cards yet. Build your first one.',
-        emptyBtn:      'Build Focus Card',
+        title:         'Self-talk cards',
+        emptyTitle:    'No self-talk cards yet. Build your first one.',
+        emptyBtn:      'Build a card',
         filterAll:     'All',
         matchDayBadge: 'Match Day',
         archiveBtn:    'Archive',
@@ -1773,8 +1773,8 @@ export const translations = {
       gamesDesc:       'फोकस गेम्स — खिलाड़ी की तरह ध्यान लगाना सीखो',
       selfTalkTitle:   'सेल्फ-टॉक बिल्डर',
       selfTalkSub:     'अपना Focus Word बनाओ',
-      focusDeckTitle:  'Focus Deck',
-      focusDeckSub:    'अपने Focus Cards देखो',
+      focusDeckTitle:  'Self-talk cards',
+      focusDeckSub:    'अपने self-talk cards देखो',
     },
     selfTalk: {
       learn: {
@@ -1813,7 +1813,7 @@ export const translations = {
         opt6:  'जब confidence कम हो',
         opt7:  'Technical focus',
         opt8:  'Fitness / effort का पल',
-        opt9:  'कुछ और',
+        opt9:  'अपनी situation लिखो',
         customPlaceholder: 'अपनी situation बताओ…',
       },
       thought: {
@@ -1828,7 +1828,7 @@ export const translations = {
         opt6:  'Nervous feel हो रहा है।',
         opt7:  'Pressure handle नहीं होता।',
         opt8:  'Technique के बारे में ज़्यादा सोच रहा हूं।',
-        opt9:  'कुछ और',
+        opt9:  'अपनी thought लिखो',
         customPlaceholder: 'अपनी सोच बताओ…',
         intensityLabel:   'यह सोच कितनी तेज़ है? (1–10)',
         confidenceLabel:  'अभी confidence कितना है? (1–10)',
@@ -1881,9 +1881,9 @@ export const translations = {
         backBtn:  'Training पर वापस',
       },
       deck: {
-        title:         'Focus Deck',
-        emptyTitle:    'अभी कोई Focus Card नहीं है। पहला बनाओ।',
-        emptyBtn:      'Focus Card बनाओ',
+        title:         'Self-talk cards',
+        emptyTitle:    'अभी कोई self-talk card नहीं है। पहला बनाओ।',
+        emptyBtn:      'Card बनाओ',
         filterAll:     'सभी',
         matchDayBadge: 'Match Day',
         archiveBtn:    'Archive',

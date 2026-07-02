@@ -1,9 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Star } from 'lucide-react';
+import { ArrowLeft, Star, Plus } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiFetch } from '../api';
 import { translations } from '../i18n/translations';
+
+const MATCH_CONTEXTS = [
+  { key: 'pre_match',    labelEn: 'Pre-match',    labelHi: 'Match से पहले' },
+  { key: 'during_match', labelEn: 'During match',  labelHi: 'Match के दौरान' },
+  { key: 'training',     labelEn: 'Training',      labelHi: 'Training में' },
+  { key: 'after_match',  labelEn: 'After match',   labelHi: 'Match के बाद' },
+];
 
 export default function FocusDeckPage() {
   const { token, language } = useAuth();
@@ -16,6 +23,7 @@ export default function FocusDeckPage() {
   const [actionLoading, setActionLoading] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [contextMenuId, setContextMenuId] = useState(null);
 
   useEffect(() => {
     apiFetch('/api/self-talk/cards?filter=active', {
@@ -28,7 +36,6 @@ export default function FocusDeckPage() {
   }, [token]);
 
   const activeCount = cards.length;
-  const visible = cards;
 
   const patch = async (id, data) => {
     setActionLoading(id);
@@ -49,19 +56,21 @@ export default function FocusDeckPage() {
     }
   };
 
-  const setMatchDay = async (id) => {
+  const setMatchDay = async (id, context) => {
     setActionLoading(id);
+    setContextMenuId(null);
     try {
       const r = await apiFetch(`/api/self-talk/cards/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ isMatchDayCard: true }),
+        body: JSON.stringify({ isMatchDayCard: true, matchDayContext: context }),
       });
       const res = await r.json();
       if (res.card) {
         setCards(prev => prev.map(c => ({
           ...c,
-          isMatchDayCard: c.id === id ? true : false,
+          isMatchDayCard: c.id === id,
+          matchDayContext: c.id === id ? context : c.matchDayContext,
         })));
       }
     } catch {
@@ -91,6 +100,12 @@ export default function FocusDeckPage() {
     }
   };
 
+  const contextLabel = (ctx) => {
+    const found = MATCH_CONTEXTS.find(c => c.key === ctx);
+    if (!found) return t.matchDayBadge;
+    return hi ? found.labelHi : found.labelEn;
+  };
+
   if (loading) return (
     <div className="min-h-screen bg-dark-900 flex items-center justify-center">
       <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
@@ -108,6 +123,14 @@ export default function FocusDeckPage() {
         {activeCount >= 5 && (
           <span className="text-xs bg-amber-500/15 text-amber-400 px-2 py-1 rounded-full font-semibold">5/5</span>
         )}
+        {activeCount < 5 && (
+          <button
+            onClick={() => navigate('/self-talk')}
+            className="w-9 h-9 flex items-center justify-center rounded-full bg-brand-500 active:scale-95"
+          >
+            <Plus size={18} className="text-white" />
+          </button>
+        )}
       </div>
 
       {/* Max cards banner */}
@@ -118,7 +141,7 @@ export default function FocusDeckPage() {
       )}
 
       {/* Empty state */}
-      {visible.length === 0 && (
+      {cards.length === 0 && (
         <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
           <div className="text-4xl mb-4">🎯</div>
           <h3 className="text-base font-bold text-ink mb-2">{t.emptyTitle}</h3>
@@ -133,21 +156,27 @@ export default function FocusDeckPage() {
 
       {/* Cards */}
       <div className="px-4 space-y-3">
-        {visible.map(card => {
+        {cards.map(card => {
           const isExpanded = expandedId === card.id;
+          const showContextMenu = contextMenuId === card.id;
           return (
             <div key={card.id} className={`rounded-3xl border ${card.isMatchDayCard ? 'bg-brand-500/10 border-brand-500/40' : 'bg-dark-800 border-dark-600'}`}>
 
               {/* Tappable card header */}
               <button
                 className="w-full text-left p-4"
-                onClick={() => setExpandedId(isExpanded ? null : card.id)}
+                onClick={() => {
+                  setExpandedId(isExpanded ? null : card.id);
+                  if (showContextMenu) setContextMenuId(null);
+                }}
               >
-                {/* Match day badge */}
+                {/* Match day badge with context */}
                 {card.isMatchDayCard && (
                   <div className="flex items-center gap-1 mb-2">
                     <Star size={12} className="text-amber-400 fill-amber-400" />
-                    <span className="text-xs font-semibold text-amber-400">{t.matchDayBadge}</span>
+                    <span className="text-xs font-semibold text-amber-400">
+                      {contextLabel(card.matchDayContext)}
+                    </span>
                   </div>
                 )}
 
@@ -159,8 +188,7 @@ export default function FocusDeckPage() {
                 </div>
 
                 {/* Power line */}
-                <p className="text-sm text-slt italic mb-2">"{card.powerLine}"</p>
-
+                <p className="text-sm text-slt italic">"{card.powerLine}"</p>
               </button>
 
               {/* Expanded details */}
@@ -188,68 +216,99 @@ export default function FocusDeckPage() {
               )}
 
               {/* Actions */}
-              <div className="flex gap-2 flex-wrap px-4 pb-4 pt-1">
-                {/* Match day actions */}
+              <div className="px-4 pb-4 pt-1">
+                {/* Match day context picker */}
                 {card.isMatchDayCard ? (
                   <button
                     disabled={actionLoading === card.id}
-                    onClick={() => patch(card.id, { isMatchDayCard: false })}
-                    className="text-xs font-semibold text-muted bg-dark-700 px-3 py-1.5 rounded-xl active:scale-95 disabled:opacity-50"
+                    onClick={() => patch(card.id, { isMatchDayCard: false, matchDayContext: null })}
+                    className="text-xs font-semibold text-muted bg-dark-700 px-3 py-1.5 rounded-xl active:scale-95 disabled:opacity-50 mr-2"
                   >
                     {hi ? 'Match Day से हटाओ' : 'Remove from match day'}
                   </button>
+                ) : showContextMenu ? (
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-semibold text-muted uppercase tracking-wider">
+                      {hi ? 'Context चुनो' : 'Select context'}
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {MATCH_CONTEXTS.map(ctx => (
+                        <button
+                          key={ctx.key}
+                          disabled={actionLoading === card.id}
+                          onClick={() => setMatchDay(card.id, ctx.key)}
+                          className="text-xs font-semibold text-brand-400 bg-brand-500/10 border border-brand-500/30 px-3 py-1.5 rounded-xl active:scale-95 disabled:opacity-50"
+                        >
+                          {hi ? ctx.labelHi : ctx.labelEn}
+                        </button>
+                      ))}
+                      <button
+                        onClick={() => setContextMenuId(null)}
+                        className="text-xs font-semibold text-muted bg-dark-700 px-3 py-1.5 rounded-xl active:scale-95"
+                      >
+                        {hi ? 'रद्द' : 'Cancel'}
+                      </button>
+                    </div>
+                  </div>
                 ) : (
-                  <button
-                    disabled={actionLoading === card.id}
-                    onClick={() => setMatchDay(card.id)}
-                    className="text-xs font-semibold text-brand-400 bg-brand-500/10 px-3 py-1.5 rounded-xl active:scale-95 disabled:opacity-50"
-                  >
-                    {t.setMatchDayBtn}
-                  </button>
-                )}
-
-                {/* Delete */}
-                {deleteConfirmId === card.id ? (
-                  <>
-                    <span className="text-xs text-red-400 self-center">{hi ? 'Card हटाएं?' : 'Delete this card?'}</span>
+                  <div className="flex gap-2 flex-wrap">
                     <button
                       disabled={actionLoading === card.id}
-                      onClick={() => deleteCard(card.id)}
-                      className="text-xs font-semibold text-white bg-red-600 px-3 py-1.5 rounded-xl active:scale-95 disabled:opacity-50"
+                      onClick={() => setContextMenuId(card.id)}
+                      className="text-xs font-semibold text-brand-400 bg-brand-500/10 px-3 py-1.5 rounded-xl active:scale-95 disabled:opacity-50"
                     >
-                      {hi ? 'हाँ' : 'Yes'}
+                      {hi ? 'Match day के लिए use करो' : 'Use for match day'}
                     </button>
-                    <button
-                      onClick={() => setDeleteConfirmId(null)}
-                      className="text-xs font-semibold text-muted bg-dark-700 px-3 py-1.5 rounded-xl active:scale-95"
-                    >
-                      {hi ? 'नहीं' : 'No'}
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    disabled={actionLoading === card.id}
-                    onClick={() => setDeleteConfirmId(card.id)}
-                    className="text-xs font-semibold text-red-400 bg-dark-700 px-3 py-1.5 rounded-xl active:scale-95 disabled:opacity-50"
-                  >
-                    {hi ? 'हटाओ' : 'Delete'}
-                  </button>
+
+                    {/* Delete */}
+                    {deleteConfirmId === card.id ? (
+                      <>
+                        <span className="text-xs text-red-400 self-center">{hi ? 'हटाएं?' : 'Delete?'}</span>
+                        <button
+                          disabled={actionLoading === card.id}
+                          onClick={() => deleteCard(card.id)}
+                          className="text-xs font-semibold text-white bg-red-600 px-3 py-1.5 rounded-xl active:scale-95 disabled:opacity-50"
+                        >
+                          {hi ? 'हाँ' : 'Yes'}
+                        </button>
+                        <button
+                          onClick={() => setDeleteConfirmId(null)}
+                          className="text-xs font-semibold text-muted bg-dark-700 px-3 py-1.5 rounded-xl active:scale-95"
+                        >
+                          {hi ? 'नहीं' : 'No'}
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        disabled={actionLoading === card.id}
+                        onClick={() => setDeleteConfirmId(card.id)}
+                        className="text-xs font-semibold text-red-400 bg-dark-700 px-3 py-1.5 rounded-xl active:scale-95 disabled:opacity-50"
+                      >
+                        {hi ? 'हटाओ' : 'Delete'}
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Delete row when match day card */}
+                {card.isMatchDayCard && (
+                  <div className="mt-2 flex gap-2">
+                    {deleteConfirmId === card.id ? (
+                      <>
+                        <span className="text-xs text-red-400 self-center">{hi ? 'हटाएं?' : 'Delete?'}</span>
+                        <button disabled={actionLoading === card.id} onClick={() => deleteCard(card.id)} className="text-xs font-semibold text-white bg-red-600 px-3 py-1.5 rounded-xl active:scale-95 disabled:opacity-50">{hi ? 'हाँ' : 'Yes'}</button>
+                        <button onClick={() => setDeleteConfirmId(null)} className="text-xs font-semibold text-muted bg-dark-700 px-3 py-1.5 rounded-xl active:scale-95">{hi ? 'नहीं' : 'No'}</button>
+                      </>
+                    ) : (
+                      <button disabled={actionLoading === card.id} onClick={() => setDeleteConfirmId(card.id)} className="text-xs font-semibold text-red-400 bg-dark-700 px-3 py-1.5 rounded-xl active:scale-95 disabled:opacity-50">{hi ? 'हटाओ' : 'Delete'}</button>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
           );
         })}
       </div>
-
-      {/* FAB — build card */}
-      {activeCount < 5 && (
-        <button
-          onClick={() => navigate('/self-talk')}
-          className="fixed bottom-24 right-4 bg-brand-500 text-white font-bold px-5 py-3 rounded-full shadow-lg active:scale-95 text-sm z-20"
-        >
-          + {hi ? 'नया card' : 'New card'}
-        </button>
-      )}
     </div>
   );
 }
