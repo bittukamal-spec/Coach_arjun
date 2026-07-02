@@ -1,213 +1,235 @@
 # Arjun — CLAUDE.md
 
-AI assistant reference file. Read this at the start of every session.
+Read at the start of every session. Reflects the codebase as of 2026-07-02 (source of truth: `AUDIT.md`, same date).
 
 ---
 
-## 1. WHAT THIS APP IS
+## 1. PROJECT
 
-**Arjun** is an AI mental performance coaching app for young Indian athletes (14–25). Powered by the Claude API. Think sports psychologist in your pocket — not therapy. Solo non-technical founder. India market. ₹299/month. Product URL: `coacharjun.in`.
-
----
+- App: **Arjun** — AI mental performance coaching for young Indian athletes (14–25). Sports psychologist in your pocket, not therapy.
+- Live URL: `coacharjun.in`
+- Solo non-technical founder. India market. ₹299/month.
 
 ## 2. TECH STACK
 
-| Layer | Technology |
-|---|---|
-| Frontend | React 18 + Vite + Tailwind CSS (Lucide React icons, Recharts charts) |
-| Backend | Node.js + Express 4 |
-| Database | PostgreSQL via Prisma ORM (`@prisma/client` 5.7) |
-| AI | Claude API (`@anthropic-ai/sdk` 0.104). Model: `process.env.ANTHROPIC_MODEL \|\| 'claude-haiku-4-5-20251001'`. Configurable via env var — no code change needed to swap model. |
-| Email | Resend (`resend` 4.8) |
-| Payments | Razorpay — **integration pending**. API keys not yet obtained. |
-| PWA | `vite-plugin-pwa` 1.3 — installed and configured. |
-| Auth | JWT (`jsonwebtoken`) + bcrypt passwords. No OAuth. |
+- Frontend: React 18 + Vite 5 + Tailwind 3.4 (`lucide-react`, `recharts`, `html-to-image`, `vite-plugin-pwa`) → deploys to **Vercel**
+- Backend: Node.js + Express 4 → deploys to **Railway** (`npm start` runs `prisma db push` first)
+- DB: PostgreSQL via Prisma 5.7
+- AI: Claude API (`@anthropic-ai/sdk` 0.104). Model: `process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001'`
+- Payments: Razorpay (`razorpay` 2.9.6) — checkout + webhook live
+- Email: Resend 4.8. Auth: JWT + bcrypt (no OAuth)
+- Branch: `claude/mindgame-setup-auth-m3cxg6` — always commit here, never push to main
 
-**Live URLs:** Check Railway dashboard (server) and Vercel dashboard (client) — not stored in codebase.
+## 3. KEY FILES
 
-**Local dev:**
-```bash
-# Backend (port 5000)
-cd server && npm install && npm run dev
+- `server/src/routes/chat.js:118` — `buildSystemPrompt()` — Arjun's brain
+- `server/src/routes/auth.js:14` — `SAFE_SELECT` — user fields safe to return
+- `client/src/i18n/translations.js` — every UI string, EN + HI
+- `server/prisma/schema.prisma` — DB models (additive changes only)
+- `server/src/index.js` — all route registrations (no cron jobs exist)
+- `client/src/App.jsx` — all 30 routes
+- `client/tailwind.config.js` — design tokens (dark-* bound to CSS vars)
+- `client/src/index.css` — theme system (light default, `[data-theme]` overrides)
+- `client/src/hooks/useTheme.js` — theme persistence (`localStorage arjun_theme`)
+- `client/src/utils/parseArjunMessage.js` — `[APP:]` tag → tool card parsing
+- `client/src/api.js` — `apiFetch()` — returns raw Response; always `.then(r => r.json())`
+- `server/src/services/gamification.js` — `awardXP`, achievement checks
+- Route files (from index.js): auth, chat, checkin, progress, achievements, drills, ritual, debrief, games, profileIntro, sessions, cue, userData, streaks, payments, mentalFitness, weeklyReports, selfTalk, bodyReset
 
-# Frontend (port 5173)
-cd client && npm install && npm run dev
+## 4. DATABASE MODELS
 
-# DB browser
-cd server && npx prisma studio
-```
+All 14 User relations confirmed `onDelete: Cascade`. Additive changes only — never drop/rename.
+
+- `User` — id, email, password (bcrypt), tier, trialStarted, language, sport, position, goals, xp, streakFreezeCount, cueWord*, ritual*, age, ocean*
+- `CheckIn` — userId, mood/focus/confidence (1–5), energy, sleep, reflection, gratitude, type
+- `Message` — userId, role, content, sessionType, chatSessionId (⚠️ no index — AUDIT AMBER 7)
+- `ChatSession` — userId, sessionType, mode ("main"|"quick"), title, summary, status
+- `UserMemory` — userId, memKey, value (unique per userId+memKey)
+- `UserAchievement` — userId, key (badge defs live in `gamification.js:7-17`, 9 badges)
+- `DrillCompletion` — userId, drillIndex (server-only; no client caller)
+- `Debrief` — userId, wentWell, doDifferently, nextFocus, arjunInsight, mode, chips
+- `GameSession` — userId, gameType, score
+- `PasswordResetToken` — userId, token, expiresAt, used
+- `MentalFitnessEntry` — userId, date (IST string), mood + 6 dims (1–5), arjunResponse (unique per userId+date)
+- `ToolReport` — userId, toolType, summary, arjunResponse, details (JSON string)
+- `WeeklyReport` — userId, weekStart, content (unique per userId+weekStart)
+- `SelfTalkCard` — userId, focusWord, resetWord, powerLine, performanceReminder, arjunNote, isMatchDayCard, matchDayContext
+- `BodyResetSession` — userId, mode, feeling, context, focusWordUsed, tension/readiness before+after, arjunNote
+
+**INERT fields (never written — do not rely on):** `googleId`, `reminderOptIn`, `phone`, `razorpayCustomerId`, `avatar` (server-side), `subscriptionEndDate` (write-only), `oceanO–N` (no test UI exists; the one reader in bounce_back wizard doesn't even select them — AUDIT AMBER 6).
+
+## 5. API ROUTES
+
+All require auth (JWT via `authenticate` → `req.userId`) except where marked. **Trial gate exists on exactly ONE route — AUDIT RED 2.**
+
+| Method + Path | Purpose | Auth | Trial gate |
+|---|---|---|---|
+| POST /api/auth/register | Create account | no | — |
+| POST /api/auth/login | Sign in | no | — |
+| GET /api/auth/me | Current user (SAFE_SELECT) | yes | no |
+| PATCH /api/auth/me/language | Toggle EN/HI | yes | no |
+| PATCH /api/auth/me/onboarding | Save onboarding | yes | no |
+| PUT /api/auth/me/profile | Update profile (age 8–80) | yes | no |
+| DELETE /api/auth/account | Full account deletion | yes | no |
+| POST /api/auth/logout · forgot-password · reset-password | Auth flows | no | — |
+| GET /api/chat/messages · /usage | History / trial days left | yes | no |
+| **POST /api/chat/message** | Main chat (SSE streaming) | yes | **YES — only gated route** |
+| POST /api/chat/wizard | Bounce-back / viz / cue AI flows | yes | **no (leak)** |
+| GET/POST /api/checkin* | Legacy check-in (no client caller) | yes | no |
+| GET /api/progress/summary | Charts, streak, fitness score | yes | no |
+| GET /api/achievements/me | Earned badges | yes | no |
+| GET /api/drills/today · POST /complete | Daily drill (orphaned, no client) | yes | no |
+| GET/POST /api/ritual/me | Pre-match routine | yes | no |
+| POST/GET /api/debrief | Match review + AI insight | yes | **no (leak)** |
+| POST /api/games/xp | Record GameSession +10 XP | yes | no |
+| GET /api/profile-intro | AI profile intro (cached) | yes | **no (leak)** |
+| GET/POST /api/sessions · /end-stale · /:id/messages (?since) · /:id/end · PATCH·DELETE /:id | Chat session CRUD + summaries | yes | **no (leak on summaries)** |
+| PATCH /api/user/cue-word | Save cue word (+ToolReport) | yes | no |
+| DELETE /api/user/data/:type | Selective deletion (5 types — RED 3 bug) | yes | no |
+| POST /api/streaks/freeze | Use streak freeze | yes | no |
+| POST /api/payments/webhook | Razorpay events (HMAC-verified) | no (signature) | — |
+| POST /api/payments/create-subscription · GET /status · POST /cancel | Subscription mgmt | yes | no |
+| POST /api/mental-fitness · GET /today · /week | MFS check-in + AI line | yes | **no (leak)** |
+| GET /api/weekly-reports | Lazy-generates last week's report | yes | **no (leak)** |
+| POST /api/self-talk/generate · /save · GET /cards · PATCH·DELETE /cards/:id · POST /cards/:id/practice | Self-Talk Builder + Focus Deck | yes | **no (leak on generate)** |
+| POST /api/body-reset/arjun-note · /save · GET / · DELETE /:id | Body Reset | yes | **no (leak on arjun-note)** |
+| GET /api/health | Health check | no | — |
+
+## 6. ENV VARIABLES
+
+**Railway (backend):**
+- `DATABASE_URL` — PostgreSQL connection
+- `ANTHROPIC_API_KEY` — Claude key
+- `ANTHROPIC_MODEL` — model override (default claude-haiku-4-5-20251001)
+- `JWT_SECRET` — token signing; never rotate in prod
+- `CLIENT_URL` — password-reset email links only (⚠️ NOT used for CORS — CORS is `origin: true` allow-all, index.js:27 — AUDIT AMBER 8)
+- `PORT` — default 5000
+- `RESEND_API_KEY`, `RESEND_FROM_EMAIL` — transactional email
+- `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`, `RAZORPAY_PLAN_MONTHLY`, `RAZORPAY_PLAN_YEARLY` — payments
+
+**Vercel (frontend):**
+- `VITE_API_URL` — backend base URL (api.js:1)
+- `VITE_RAZORPAY_KEY_ID` — public checkout key (PricingPage.jsx:54)
+
+**Stubs only — SDK NOT installed, no code references:** `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_NUMBER`, `META_WHATSAPP_TOKEN`, `META_WHATSAPP_PHONE_ID`, `SENTRY_DSN`, `POSTHOG_KEY`.
+
+## 7. DESIGN SYSTEM — CALM CLARITY
+
+- Primary: `#185FA5` deep blue — ⚠️ tailwind `brand.500` is `#1769AA` (mismatch); screens hardcode `#185FA5` directly — AUDIT AMBER 15
+- Accent: `#E2711D` amber
+- Background: white — **light is the default theme**
+- Font: **Poppins** (index.css:132, tailwind fontFamily)
+- Theme: light default → `@media prefers-color-scheme` auto-dark → manual `[data-theme]` override on `<html>` → `localStorage arjun_theme` (useTheme.js)
+- ⚠️ Purple `#8B5CF6` still in config and used on Dashboard, TrainPage, SelfTalkPage, LandingPage — unresolved drift (AMBER 15)
+- BounceBackPage: always-dark hardcoded palette — **intentional** (emotional design)
+- VisualizationPage: hardcoded light palette + always-dark step 4 — **intentional**
+- ⚠️ `--color-dark-600/700/800` referenced in MentalFitnessCheckin + BeforeYouPlayPage are UNDEFINED — use `--dark-*` (RED 4)
+
+## 8. MENTAL TOOLS
+
+| Tool | Route | ToolReport | Status |
+|---|---|---|---|
+| Breathing (Calm Body) | `/breathing` | no — XP only (games.js) | 🟢 |
+| Body Reset | `/body-reset` (+`/body-reset/history`) | yes — bodyReset.js:97 | 🟢 |
+| Bounce Back | `/bounce-back` | yes — chat.js:996 (wizard) | 🟢 (no trial gate) |
+| Before You Play | `/before-you-play` | yes — cue.js:37 | 🟡 broken CSS vars (RED 4) |
+| After the Match / Debrief | `/debrief` | yes — debrief.js:225 | 🟢 (no trial gate) |
+| Visualization | `/visualization` | yes — chat.js:957 (wizard) | 🟡 hardcoded palette |
+| Self-Talk Builder + Focus Deck | `/self-talk`, `/focus-deck` | yes — selfTalk.js:149 | 🟡 KIRAN missing on safety screen; cards reach coaching only via ToolReport line |
+
+All tools: intro screen → flow → back/quit lands on `/train`. Max 5 active SelfTalkCards (server-enforced).
+
+## 9. CHAT ARCHITECTURE
+
+- Main chat: persistent; SSE streaming (`anthropic.messages.stream`, chat.js:739); loads last 7 days via `?since` query filter — **NO retention job exists anywhere; nothing is ever deleted on a schedule** (AMBER 3)
+- Quick chat: separate mode, minimal prompt, 7-day history cap, no ToolReports; "zero-footprint" is intent only — messages persist server-side; cleanup is a best-effort client DELETE on tab-hide + purge on next quick start; killed browser = messages persist (AMBER 3)
+- Session types: 8 `SESSION_INSTRUCTIONS` in chat.js:75-114 but client always sends `sessionType='general'` — topic variants unreachable (dead code)
+- `[APP:tool]` tags: working — parsed in parseArjunMessage.js, rendered as tap-to-open tool cards, max 2/reply
+- `[SUGGEST:]` chips: prompt demands them EVERY reply; client parses then discards — dead feature burning tokens per reply (AMBER 9)
+- Weekly reports: lazy — generated on Progress page load if last week missing + ≥3 user messages; no Monday cron (AMBER 10)
+- Memory extraction: separate non-streaming `messages.create` (chat.js:495)
+
+## 10. SAFETY RULES
+
+- Main chat: crisis (chat.js:440-464) + injury (chat.js:416-438) blocks, EN + Hinglish, iCall 9152987821 + 112, "safety overrides everything" — CONFIRMED WORKING
+- **Quick chat: NO SAFETY COVERAGE AT ALL (chat.js:122-139) — RED 1, fix before anything else**
+- Safety events: never logged or persisted anywhere — founder cannot review incidents (AMBER 2)
+- KIRAN 1800-599-0019: present ONLY in Body Reset safety screen; missing from chat + Self-Talk (AMBER 1)
+- Self-Talk safety screen: iCall only
+- Detection is prompt-only (LLM instruction), except Body Reset/Self-Talk client-side keyword checks
+
+## 11. PAYMENT RULES
+
+- Tier upgraded ONLY inside webhook `subscription.activated` (payments.js:38) — no client-callable upgrade path
+- Webhook: HMAC-SHA256 over raw body, wired before `express.json()` (index.js:23) ✓
+- `RAZORPAY_KEY_SECRET`: never sent to frontend, never logged ✓
+- ⚠️ Webhook NOT idempotent — no event-ID dedup; replayed `subscription.charged` resets start date (AMBER 4)
+- ⚠️ Account deletion: Razorpay cancel runs FIRST but failure is swallowed — live sub can survive with no user (auth.js:252-254, AMBER 5)
+- Trial: 14 days from `trialStarted` (fallback createdAt), 429 `TRIAL_ENDED` — **gates ONLY POST /api/chat/message; 8 other AI endpoints ungated (RED 2)**
+
+## 12. DELETION RULES
+
+Full account deletion (`DELETE /api/auth/account`) — confirmed correct order:
+1. Read user (id, name, email, razorpaySubscriptionId)
+2. Razorpay cancel (`cancel_at_cycle_end: false`)
+3. Delete Messages, then ChatSessions (Message→ChatSession has no cascade)
+4. `user.delete()` — cascade covers all 14 relations, no orphans
+5. Audit log + confirmation email
+
+Selective deletion (`DELETE /api/user/data/:type`, 5 types) — **KNOWN BUG (RED 3):**
+- `checkin-history` deletes `MentalFitnessEntry` ONLY; `CheckIn` rows (incl. reflection + gratitude free text) survive and keep feeding the prompt
+- Fix when authorized: also `prisma.checkIn.deleteMany({ where: { userId } })` in the same handler (userData.js:59)
+- Note: no selective option touches ToolReport / SelfTalkCard / BodyResetSession
+
+## 13. KNOWN BUGS (fix before marketing)
+
+1. Quick chat no safety — `chat.js:122-139`
+2. Trial gate missing on 8 AI endpoints — only `chat.js:582` gated
+3. Selective deletion deletes wrong table — `userData.js:59`
+4. Broken CSS vars — `MentalFitnessCheckin.jsx:173,174,220,221` + `BeforeYouPlayPage.jsx:531,772,773,823,824` reference undefined `--color-dark-600/700/800` (should be `--dark-*`)
+5. No parental consent / no age gate at signup — minors product, DPDP exposure
+
+## 14. CODING PATTERNS
+
+- Routes: `express.Router()` + `authenticate` middleware sets `req.userId`; `new PrismaClient()` per route file
+- Claude: main chat = `anthropic.messages.stream` + SSE; everything else = non-streaming `messages.create` with markdown-fence stripping before `JSON.parse`; new `Anthropic({ apiKey })` per request
+- ToolReports: `prisma.toolReport.create({ toolType, summary, arjunResponse, details: JSON.stringify({...}) })` on tool completion; consumed in buildSystemPrompt (last 3, chat.js:678)
+- XP: central `awardXP(userId, amount)` in gamification.js (some legacy inline `xp: { increment }` in chat.js/debrief.js/cue.js)
+- Translations: `translations[language].namespace.key` — every new string in BOTH `en` and `hi`; no hardcoded strings in JSX
+- Theme: `useTheme()` sets/removes `data-theme` on `<html>`; components use semantic tokens (`bg-dark-900`, `text-ink`, `text-slt`)
+- Frontend fetch: `apiFetch(path, init)` returns raw Response — ALWAYS chain `.then(r => r.json())`
+- New page: create in `client/src/pages/`, add `<Route>` in App.jsx (BottomNav for library pages, none for full-screen flows), strings to translations.js
+- Build check: `cd client && npm run build` must pass with zero errors before reporting done
+
+## 15. DO NOT TOUCH (without explicit instruction)
+
+- `buildSystemPrompt()` — Arjun's brain (chat.js:118-479)
+- Webhook handler payment logic (payments.js:15-81)
+- `SAFE_SELECT` (auth.js:14)
+- Cascade delete relations in schema.prisma
+- Crisis/injury safety blocks in main chat (chat.js:416-472)
+- `authenticate` middleware
+- Razorpay plan IDs in env
+- `calculateStreak()` (gamification.js) and freemium gating logic
+
+## 16. DEAD CODE — DO NOT USE
+
+- `server/src/config/passport.js` — never required; passport deps not installed; importing it crashes
+- `client/src/data/drills.js` — never imported
+- `checkChatAchievements` (gamification.js:119) — exported, never called
+- Translation namespaces `pressureReset`, `wizard`, `games` — zero references
+- `SESSION_INSTRUCTIONS` topic variants (chat.js:75-114) — client always sends 'general'
+- `POST /api/checkin` — no client caller (model kept alive by mentalFitness dual-write only)
+- `.claude/worktrees/` — two stale outdated app copies; ignore entirely
+
+## 17. TOKEN DISCIPLINE
+
+- grep/search before reading full files; read only the section needed
+- translations.js is ~2,500 lines — always grep for the namespace first
+- List changed files + one-line summaries when reporting back
+- Confirm `npm run build` passes before reporting done
+- Use Plan Mode for any multi-file change
 
 ---
 
-## 3. GIT
-
-- **Working branch:** `claude/mindgame-setup-auth-m3cxg6`
-- **Remote:** `bittukamal-spec/AI-mental-coach-` (GitHub)
-- **Rule:** Always commit to the working branch above. Never push to `main` directly.
-- **Deploy:** Push to branch → Railway auto-deploys server, Vercel auto-deploys client.
-- **Schema changes:** `prisma db push` runs automatically on server start (`npm start`).
-
----
-
-## 4. KEY FILES
-
-| File | Purpose |
-|---|---|
-| `server/src/routes/chat.js:123` | `buildSystemPrompt()` — Arjun's brain. Assembles full AI context from user profile, check-ins, memories, session type. **Most complex file. Never change data sources without understanding full impact.** |
-| `client/src/i18n/translations.js` | Every user-facing string in EN + HI. **All new strings must be added here in both languages.** Access via `translations[language].section`. |
-| `server/prisma/schema.prisma` | DB models. **All changes must be additive only — never drop or rename existing columns.** |
-| `client/src/App.jsx` | All frontend routes. Protected routes use `<ProtectedRoute>` + `<BottomNav />`. |
-| `server/src/routes/auth.js:14` | `SAFE_SELECT` — controls which user fields are returned to frontend. Never expose `password`. Never add a sensitive field without thinking twice. |
-| `server/src/index.js` | Express entry point. All route registrations here. |
-| `server/src/services/gamification.js` | XP awards, achievement checks, `calculateStreak()`. |
-| `client/src/api.js` | `apiFetch(path, init)` — fetch wrapper with base URL auto-detection. Use this everywhere instead of raw `fetch`. |
-| `client/src/contexts/AuthContext.jsx` | Provides `{ user, token, language, login, logout, updateUser }` to all components. |
-
----
-
-## 5. ENV VARS
-
-All defined in `server/.env.example`. Copy to `server/.env` for local dev.
-
-| Variable | Description |
-|---|---|
-| `DATABASE_URL` | PostgreSQL connection string (Railway provides this in prod) |
-| `ANTHROPIC_API_KEY` | Claude AI key — get from console.anthropic.com |
-| `ANTHROPIC_MODEL` | Model override. Default: `claude-haiku-4-5-20251001`. Change here, redeploy — no code change needed. |
-| `JWT_SECRET` | Long random string (64+ chars) used to sign login tokens. Never change in production. |
-| `CLIENT_URL` | Frontend URL — used for CORS allow-list and password reset email links |
-| `PORT` | Server port (default `5000`) |
-| `RESEND_API_KEY` | Resend transactional email key |
-| `RESEND_FROM_EMAIL` | From address for emails — must be verified on resend.com |
-| `TWILIO_ACCOUNT_SID` | Twilio WhatsApp sandbox SID (optional, Sprint 2) |
-| `TWILIO_AUTH_TOKEN` | Twilio auth token |
-| `TWILIO_WHATSAPP_NUMBER` | Twilio WhatsApp sender (sandbox: `whatsapp:+14155238886`) |
-| `META_WHATSAPP_TOKEN` | Meta Cloud API token — production WhatsApp alternative |
-| `META_WHATSAPP_PHONE_ID` | Meta Cloud API phone ID |
-| `SENTRY_DSN` | Sentry error monitoring DSN (not yet integrated in code) |
-| `POSTHOG_KEY` | PostHog analytics key (not yet integrated in code) |
-
-> **Note:** `SENTRY_DSN` and `POSTHOG_KEY` are in `.env.example` but SDK integration code has not been added yet.
-
----
-
-## 6. HOW TO ADD A NEW PAGE (frontend)
-
-1. Create `client/src/pages/NewPage.jsx`
-2. Import it in `client/src/App.jsx` and add a `<Route>`:
-   ```jsx
-   import NewPage from './pages/NewPage';
-   // Inside <Routes>:
-   <Route path="/new" element={
-     <ProtectedRoute requireOnboarding={true}>
-       <NewPage />
-       <BottomNav />
-     </ProtectedRoute>
-   } />
-   ```
-   Omit `<BottomNav />` for full-screen flows (e.g. onboarding, personality test).
-3. Add all new user-facing strings to `client/src/i18n/translations.js` in both `en` and `hi`.
-
----
-
-## 7. HOW TO ADD AN API ROUTE (backend)
-
-1. Create `server/src/routes/newRoute.js`:
-   ```js
-   const express = require('express');
-   const { PrismaClient } = require('@prisma/client');
-   const authenticate = require('../middleware/authenticate');
-   const router = express.Router();
-   const prisma = new PrismaClient();
-
-   router.get('/', authenticate, async (req, res) => {
-     // req.userId is set by authenticate middleware
-     res.json({ ok: true });
-   });
-
-   module.exports = router;
-   ```
-2. Register it in `server/src/index.js`:
-   ```js
-   app.use('/api/new', require('./routes/newRoute'));
-   ```
-3. Call it from the frontend using `apiFetch('/api/new', { headers: { Authorization: \`Bearer \${token}\` } })`.
-
----
-
-## 8. CORE RULES (always follow)
-
-- **Never touch** `calculateStreak()`, payment/freemium gating logic, or `buildSystemPrompt()` data sources without explicit instruction.
-- **Every new user-facing string** goes in `translations.js` in **both** `en` and `hi`. No hardcoded English strings in JSX.
-- **All schema changes are additive only.** Never drop or rename existing columns.
-- **Run `npm run build` in `client/` and confirm zero errors** before reporting a task done.
-- **List changed files + one-line summaries** when reporting back.
-- **Search/grep before reading full files** — preserve context window.
-- Use `apiFetch` not raw `fetch`. Use `SAFE_SELECT` in every user query. Add `authenticate` on every protected route.
-
----
-
-## 9. CURRENT STATE — WHAT'S BUILT
-
-| Feature | Status |
-|---|---|
-| Auth | Register, login, JWT, password reset (email via Resend), language toggle (EN/HI) |
-| Onboarding | 5-step wizard (sport → level → challenge → pressure → goals) + Mental Game Profile results screen (AI-generated, cached) |
-| Daily check-in | Mood / Focus / Confidence (1–5), optional reflection + gratitude. One per UTC day. Always unlimited. |
-| AI coaching (Arjun) | Chat with session types, reply style selector, focus dropdown, session history, session summaries, delete sessions. Free 14-day trial → premium only. |
-| Progress | Streak tracking, 7/30-day chart, weekly averages vs prev week, Mental Fitness Score (0–100), shareable progress card (PNG via `html-to-image`) |
-| Streak freeze | Freeze mechanic — use a freeze to backdate a check-in to yesterday. Earn 1 freeze per 7-day milestone (capped at 2). |
-| Gamification | Mental XP (MXP), 9 achievement badges, Daily Drill (rotates by day), drill completions tracked |
-| Mental tools | Breathing page, Pressure Reset wizard (5-step), Pre-match ritual builder, Post-match debrief |
-| Games | Reaction Ball (3 difficulty levels + No-Go), Stroop, Focus Grid, Thought Filter, Mental Reset |
-| Personality test | OCEAN Big Five (stored on User model) |
-| Dashboard | Greeting + stat pills (streak / MXP / fitness score) with tappable info sheets, Today check-in card, Training Streak card (with freeze UI), Coach card, Today's Drill, Mental Tools grid |
-| Compliance | Privacy policy, Terms, Refund policy, AI disclosure, safety signpost |
-| PWA | Installed — add to home screen supported |
-
----
-
-## 10. WHAT'S PENDING
-
-- **Razorpay payment integration** — API keys pending approval. Paywall logic exists (`checkFreeLimit()` in `chat.js`), payment button is a placeholder.
-- **WhatsApp reminders** — phone collection UI + daily 8:30 PM IST cron if no check-in. Twilio/Meta env vars ready.
-- **PostHog analytics** — env var ready, SDK not integrated.
-- **Sentry error monitoring** — env var ready, SDK not integrated.
-- **Parent/coach progress snapshot** — planned, not started.
-- **Fear of injury + patience content** — planned, not started.
-- **Weekly Sunday insight email from Arjun** — not built.
-
----
-
-## 11. PRICING
-
-| Tier | Access | Price |
-|---|---|---|
-| Free trial | Full access for 14 days from registration | ₹0 |
-| Premium monthly | Unlimited forever | ₹299/month |
-| Premium annual | Unlimited forever | ₹1,999/year |
-
-- **Check-ins:** Always unlimited — no paywall, ever.
-- **Chat with Arjun:** Free for 14 days (`TRIAL_DAYS = 14` in `chat.js`), then premium only. Trial gate lives in `checkFreeLimit()` middleware in `chat.js`.
-- **Payment processor:** Razorpay (integration pending — no code yet).
-
----
-
-## 12. DB MODELS (quick reference)
-
-| Model | Key fields |
-|---|---|
-| `User` | id, email, name, tier, trialStarted, language, sport, experienceLevel, goals (JSON), xp, streakFreezeCount, lastFreezeUsedAt, OCEAN fields, profileIntro |
-| `CheckIn` | userId, mood, focus, confidence, energy, sleep, reflection, gratitude, type ("checkin"\|"freeze") |
-| `Message` | userId, role, content, sessionType, chatSessionId |
-| `ChatSession` | userId, sessionType, title, summary, status ("active"\|"ended") |
-| `UserMemory` | userId, memKey, value, source — unique per (userId, memKey) |
-| `UserAchievement` | userId, key — unique per (userId, key) |
-| `Debrief` | userId, wentWell, doDifferently, nextFocus, arjunInsight |
-| `GameSession` | userId, gameType, score |
-| `DrillCompletion` | userId, drillIndex, completedAt |
-| `PasswordResetToken` | userId, token, expiresAt, used |
-
----
-
-*Keep this file accurate. Update it when new features ship or key files move.*
+*Keep this file accurate. Update it when features ship, bugs in §13 are fixed, or key files move.*
