@@ -27,6 +27,8 @@ import MentalFitnessCheckin from './pages/MentalFitnessCheckin';
 import VisualizationPage from './pages/VisualizationPage';
 import SelfTalkPage from './pages/SelfTalkPage';
 import FocusDeckPage from './pages/FocusDeckPage';
+import BodyResetPage from './pages/BodyResetPage';
+import ResetHistoryPage from './pages/ResetHistoryPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import BottomNav from './components/BottomNav';
 import { translations } from './i18n/translations';
@@ -229,6 +231,25 @@ function App() {
         element={
           <ProtectedRoute requireOnboarding={true}>
             <FocusDeckPage />
+            <BottomNav />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/body-reset"
+        element={
+          <ProtectedRoute requireOnboarding={true}>
+            <BodyResetPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/body-reset/history"
+        element={
+          <ProtectedRoute requireOnboarding={true}>
+            <ResetHistoryPage />
             <BottomNav />
           </ProtectedRoute>
         }

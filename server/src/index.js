@@ -45,6 +45,7 @@ app.use('/api/payments',        require('./routes/payments'));
 app.use('/api/mental-fitness',  require('./routes/mentalFitness'));
 app.use('/api/weekly-reports',  require('./routes/weeklyReports'));
 app.use('/api/self-talk',       require('./routes/selfTalk'));
+app.use('/api/body-reset',      require('./routes/bodyReset'));
 
 // Health check — useful to confirm the server is running
 app.get('/api/health', (_req, res) => {

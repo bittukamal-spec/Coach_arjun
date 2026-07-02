@@ -605,6 +605,23 @@ function AccountPage() {
           </button>
         </section>
 
+        {/* Body Reset History */}
+        <section className="mb-6">
+          <button
+            onClick={() => navigate('/body-reset/history')}
+            className="card w-full p-4 flex items-center gap-3 hover:border-teal-500/30 transition-colors text-left"
+          >
+            <div className="w-9 h-9 rounded-xl bg-dark-700 flex items-center justify-center flex-shrink-0">
+              <RefreshCw size={16} className="text-teal-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-ink">{hi ? 'Body Reset History' : 'Body Reset History'}</p>
+              <p className="text-xs text-slt">{hi ? 'पिछले breathing resets देखो' : 'View past breathing resets'}</p>
+            </div>
+            <ChevronRight size={18} className="text-slt shrink-0" />
+          </button>
+        </section>
+
         {/* WhatsApp reminders placeholder */}
         <section className="mb-6">
           <div className="flex items-center gap-2 mb-3">

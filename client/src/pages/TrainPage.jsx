@@ -166,6 +166,32 @@ export default function TrainPage() {
             duration="2 min"
             onClick={() => navigate('/breathing')}
           />
+          <div className="rounded-2xl border bg-dark-400 border-dark-600 hover:border-dark-500 transition-all overflow-hidden">
+            <button
+              onClick={() => navigate('/body-reset')}
+              className="w-full flex items-center gap-3 px-4 py-3.5 text-left active:scale-[0.98]"
+            >
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-teal-500/15">
+                <RotateCcw size={18} className="text-teal-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-ink leading-snug">{t.bodyResetTitle}</p>
+                <p className="text-xs text-slt leading-snug mt-0.5">{t.bodyResetSub}</p>
+              </div>
+              <div className="shrink-0 flex flex-col items-end gap-1">
+                <span className="text-[10px] text-muted font-medium">3 min</span>
+                <ChevronRight size={14} className="text-muted" />
+              </div>
+            </button>
+            <div className="px-4 pb-2.5 pt-1 border-t border-dark-700/50">
+              <button
+                onClick={() => navigate('/body-reset/history')}
+                className="text-xs font-semibold text-brand-400 active:opacity-70"
+              >
+                {hi ? 'Reset history देखो →' : 'View reset history →'}
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* ── SECTION 3: REFLECTION ────────────────────────────────────────── */}

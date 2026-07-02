@@ -92,6 +92,7 @@ model User {
   toolReports            ToolReport[]
   weeklyReports          WeeklyReport[]
   selfTalkCards          SelfTalkCard[]
+  bodyResetSessions      BodyResetSession[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -290,4 +291,28 @@ model SelfTalkCard {
 
   @@index([userId, isActive, createdAt])
   @@index([userId, isArchived])
+}
+
+model BodyResetSession {
+  id               String    @id @default(cuid())
+  userId           String
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mode             String    // "quick" | "training"
+  feeling          String?
+  feelingCustom    String?
+  context          String?
+  contextCustom    String?
+  focusWordUsed    String?
+  tensionBefore    Int?
+  readinessBefore  Int?
+  tensionAfter     Int?
+  readinessAfter   Int?
+  cyclesCompleted  Int       @default(0)
+  durationSeconds  Int       @default(0)
+  arjunNote        String?
+  arjunTags        Json?
+  aiModel          String?
+  completedAt      DateTime  @default(now())
+
+  @@index([userId, completedAt])
 }
