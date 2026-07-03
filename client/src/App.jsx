@@ -17,6 +17,8 @@ import MentalGameProfilePage from './pages/MentalGameProfilePage';
 import TrainPage from './pages/TrainPage';
 import DebriefPage from './pages/DebriefPage';
 import GamesPage from './pages/GamesPage';
+import FocusLockGame from './pages/games/FocusLockGame';
+import ResetRallyGame from './pages/games/ResetRallyGame';
 import BounceBackPage from './pages/BounceBackPage';
 import BeforeYouPlayPage from './pages/BeforeYouPlayPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
@@ -167,6 +169,23 @@ function App() {
           <ProtectedRoute requireOnboarding={true}>
             <GamesPage />
             <BottomNav />
+          </ProtectedRoute>
+        }
+      />
+      {/* Mental Reps games — full screen, no BottomNav */}
+      <Route
+        path="/games/focus-lock"
+        element={
+          <ProtectedRoute requireOnboarding={true}>
+            <FocusLockGame />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/games/reset-rally"
+        element={
+          <ProtectedRoute requireOnboarding={true}>
+            <ResetRallyGame />
           </ProtectedRoute>
         }
       />
