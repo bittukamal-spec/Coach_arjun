@@ -341,6 +341,17 @@ function ChatPage() {
           if (sess?.summary) setSessionSummary(sess.summary);
           await fetchSessionMessages(pendingId);
           sessionLoaded = true;
+        } else if (sessions.length > 0) {
+          // Auto-load the most recent main session — sessions are ordered createdAt desc
+          const mainSession = sessions[0];
+          setChatSessionId(mainSession.id);
+          setChatMode('main');
+          if (mainSession.sessionType && mainSession.sessionType !== 'general') {
+            setActiveSession(mainSession.sessionType);
+          }
+          if (mainSession.summary) setSessionSummary(mainSession.summary);
+          await fetchSessionMessages(mainSession.id);
+          sessionLoaded = true;
         }
       }
 
@@ -377,18 +388,13 @@ function ChatPage() {
   useEffect(() => { chatSessionIdRef.current = chatSessionId; }, [chatSessionId]);
   useEffect(() => { chatModeRef.current = chatMode; }, [chatMode]);
 
-  // ── Auto-end main session when user navigates away ────────────────────────
+  // ── Clear sessionStorage cache when component unmounts ────────────────────
+  // Sessions are NOT ended here — end-stale handles previous-day cleanup on next mount
 
   useEffect(() => {
     return () => {
-      const id   = chatSessionIdRef.current;
-      const mode = chatModeRef.current;
-      if (!id || mode !== 'main') return;
-      sessionStorage.removeItem(`arjun_chat_messages_${id}`);
-      apiFetch(`/api/sessions/${id}/end`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      }).catch(() => {});
+      const id = chatSessionIdRef.current;
+      if (id) sessionStorage.removeItem(`arjun_chat_messages_${id}`);
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -455,8 +461,9 @@ function ChatPage() {
   }
 
   async function handleContinueMain() {
+    // Find the most recent main session — status doesn't matter, messages persist
     const existingSession = recentSessions.find(
-      s => s.status === 'active' && (s.mode === 'main' || !s.mode)
+      s => s.mode === 'main' || !s.mode
     );
     if (existingSession) {
       setChatSessionId(existingSession.id);
