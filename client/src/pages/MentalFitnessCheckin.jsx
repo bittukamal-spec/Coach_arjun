@@ -170,8 +170,8 @@ export default function MentalFitnessCheckin() {
                   onClick={() => selectMood(opt.v)}
                   className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl border-2 text-left transition-all active:scale-[0.98]"
                   style={{
-                    borderColor: selected ? '#185FA5' : 'rgb(var(--color-dark-600))',
-                    backgroundColor: selected ? 'rgba(24,95,165,0.15)' : 'rgb(var(--color-dark-700))',
+                    borderColor: selected ? '#185FA5' : 'rgb(var(--dark-600))',
+                    backgroundColor: selected ? 'rgba(24,95,165,0.15)' : 'rgb(var(--dark-700))',
                   }}
                 >
                   <span className="text-3xl shrink-0">{opt.emoji}</span>
@@ -217,8 +217,8 @@ export default function MentalFitnessCheckin() {
                     onClick={() => selectDim(val)}
                     className="w-12 h-12 rounded-full border-2 transition-all active:scale-95 flex items-center justify-center"
                     style={{
-                      borderColor: selected ? '#185FA5' : 'rgb(var(--color-dark-600))',
-                      backgroundColor: selected ? '#185FA5' : 'rgb(var(--color-dark-700))',
+                      borderColor: selected ? '#185FA5' : 'rgb(var(--dark-600))',
+                      backgroundColor: selected ? '#185FA5' : 'rgb(var(--dark-700))',
                     }}
                   >
                     {selected && (

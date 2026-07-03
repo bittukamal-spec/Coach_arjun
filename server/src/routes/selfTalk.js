@@ -2,6 +2,7 @@ const express = require('express');
 const Anthropic = require('@anthropic-ai/sdk');
 const { PrismaClient } = require('@prisma/client');
 const authenticate = require('../middleware/authenticate');
+const { checkFreeLimit } = require('./chat');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -34,7 +35,7 @@ Return ONLY the JSON object. No markdown, no explanation, no wrapping.`;
 
 // ── POST /api/self-talk/generate ─────────────────────────────────────────────
 
-router.post('/generate', authenticate, async (req, res) => {
+router.post('/generate', authenticate, checkFreeLimit, async (req, res) => {
   const {
     sport, roleOrPosition, performanceMoment, skillContext,
     situationCategory, situationText,

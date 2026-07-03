@@ -2,6 +2,7 @@ const express = require('express');
 const Anthropic = require('@anthropic-ai/sdk');
 const { PrismaClient } = require('@prisma/client');
 const authenticate = require('../middleware/authenticate');
+const { isTrialActive } = require('./chat');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -147,13 +148,16 @@ router.post('/end-stale', authenticate, async (req, res) => {
       data: { status: 'ended', endedAt: new Date() },
     });
 
-    // Generate summaries asynchronously — do not block response
-    Promise.all(ids.map(async id => {
-      const summary = await generateSessionSummary(id);
-      if (summary) {
-        await prisma.chatSession.update({ where: { id }, data: { summary } });
-      }
-    })).catch(err => console.error('stale summary error:', err));
+    // Generate summaries asynchronously — do not block response.
+    // Trial gate: skip the AI summaries for expired-trial free users; sessions still end.
+    if (await isTrialActive(req.userId)) {
+      Promise.all(ids.map(async id => {
+        const summary = await generateSessionSummary(id);
+        if (summary) {
+          await prisma.chatSession.update({ where: { id }, data: { summary } });
+        }
+      })).catch(err => console.error('stale summary error:', err));
+    }
 
     res.json({ count: staleSessions.length });
   } catch (err) {
@@ -211,7 +215,8 @@ router.post('/:id/end', authenticate, async (req, res) => {
 
     // Generate summary synchronously so it's ready when user lands on sessions page
     let summary = null;
-    try {
+    // Trial gate: skip the AI summary for expired-trial free users; the session still ends.
+    if (await isTrialActive(req.userId)) try {
       summary = await generateSessionSummary(req.params.id);
       if (summary) {
         await prisma.chatSession.update({ where: { id: req.params.id }, data: { summary } });

@@ -528,7 +528,7 @@ export default function BeforeYouPlayPage() {
                       key={key}
                       onClick={() => { setArousal(key); setTimeout(() => setScreen('step2'), 200); }}
                       className="flex items-center gap-4 rounded-2xl p-5 text-left active:scale-[0.98] transition-transform border"
-                      style={{ background: 'var(--color-dark-800)', borderColor: 'var(--color-dark-600)' }}
+                      style={{ background: 'rgb(var(--dark-800))', borderColor: 'rgb(var(--dark-600))' }}
                     >
                       <div
                         className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 text-xl"
@@ -769,8 +769,8 @@ export default function BeforeYouPlayPage() {
                     onClick={() => { setFirstFocus(opt); setTimeout(() => setScreen('step4'), 200); }}
                     className="flex items-center justify-between rounded-2xl px-5 py-4 text-left text-sm font-medium text-ink active:scale-[0.98] transition-all border"
                     style={{
-                      background: firstFocus === opt ? colors.light : 'var(--color-dark-800)',
-                      borderColor: firstFocus === opt ? colors.accent : 'var(--color-dark-600)',
+                      background: firstFocus === opt ? colors.light : 'rgb(var(--dark-800))',
+                      borderColor: firstFocus === opt ? colors.accent : 'rgb(var(--dark-600))',
                       borderLeftWidth: firstFocus === opt ? '4px' : '1px',
                     }}
                   >
@@ -820,8 +820,8 @@ export default function BeforeYouPlayPage() {
                     onClick={() => { setCueWord(word); setCueInput(''); }}
                     className="px-4 py-2.5 rounded-full text-sm font-bold tracking-widest border transition-all active:scale-95"
                     style={{
-                      background: cueWord === word ? colors.light : 'var(--color-dark-800)',
-                      borderColor: cueWord === word ? colors.accent : 'var(--color-dark-600)',
+                      background: cueWord === word ? colors.light : 'rgb(var(--dark-800))',
+                      borderColor: cueWord === word ? colors.accent : 'rgb(var(--dark-600))',
                       color:       cueWord === word ? colors.accent : 'var(--color-ink)',
                     }}
                   >

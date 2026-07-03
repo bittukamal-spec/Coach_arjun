@@ -3,6 +3,7 @@ const Anthropic = require('@anthropic-ai/sdk');
 const { PrismaClient } = require('@prisma/client');
 const authenticate = require('../middleware/authenticate');
 const { awardXP, checkCheckInAchievements } = require('../services/gamification');
+const { isTrialActive } = require('./chat');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -59,7 +60,9 @@ router.post('/', authenticate, async (req, res) => {
       select: { sport: true, language: true },
     });
 
-    if (process.env.ANTHROPIC_API_KEY) {
+    // Trial gate: skip the Claude call for expired-trial free users.
+    // The check-in itself still saves below — check-ins are always free.
+    if (process.env.ANTHROPIC_API_KEY && await isTrialActive(req.userId)) {
       const sport = user?.sport || 'sport';
       const langNote = user?.language === 'hi' ? ' Respond in Hindi (Devanagari script).' : '';
       const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });

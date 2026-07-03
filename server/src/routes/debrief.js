@@ -2,6 +2,7 @@ const express = require('express');
 const Anthropic = require('@anthropic-ai/sdk');
 const { PrismaClient } = require('@prisma/client');
 const authenticate = require('../middleware/authenticate');
+const { isTrialActive } = require('./chat');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -80,7 +81,8 @@ router.post('/', authenticate, async (req, res) => {
     }
 
     let arjunInsight = null;
-    try {
+    // Trial gate: skip AI insight for expired-trial free users; debrief still saves.
+    if (await isTrialActive(req.userId)) try {
       const msg = await anthropic.messages.create({
         model: process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001',
         max_tokens: 200,
@@ -161,7 +163,8 @@ router.post('/', authenticate, async (req, res) => {
   // AI insight
   let insight = null;
   let pattern = null;
-  try {
+  // Trial gate: skip AI insight for expired-trial free users; debrief still saves.
+  if (await isTrialActive(req.userId)) try {
     const prompt = buildInsightPrompt(
       { eventType, resultType, wentWellChips, wentWellText, wouldChange, wouldChangeText, nextFocus, mode },
       user || {},

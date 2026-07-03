@@ -57,6 +57,7 @@ router.delete('/data/:type', authenticate, async (req, res) => {
 
       case 'checkin-history':
         await prisma.mentalFitnessEntry.deleteMany({ where: { userId } });
+        await prisma.checkIn.deleteMany({ where: { userId } });
         break;
     }
 

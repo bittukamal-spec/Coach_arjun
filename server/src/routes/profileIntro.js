@@ -2,6 +2,7 @@ const express    = require('express');
 const Anthropic  = require('@anthropic-ai/sdk');
 const { PrismaClient } = require('@prisma/client');
 const authenticate = require('../middleware/authenticate');
+const { isTrialActive } = require('./chat');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -61,6 +62,11 @@ router.get('/', authenticate, async (req, res) => {
     const lang      = user.language || 'en';
     const challenge = user.primaryChallenge || 'focus';
     const fallback  = FALLBACKS[challenge]?.[lang] || FALLBACKS.focus.en;
+
+    // Trial gate: expired-trial free users get the static fallback intro (no Claude call, no cache).
+    if (!(await isTrialActive(req.userId))) {
+      return res.json({ intro: fallback, cached: false });
+    }
 
     try {
       const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });

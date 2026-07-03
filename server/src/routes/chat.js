@@ -70,6 +70,29 @@ async function checkFreeLimit(req, res, next) {
   }
 }
 
+// ── Trial check as a boolean (same logic as checkFreeLimit) ────────────────
+// For AI endpoints that must keep a non-AI side effect (check-in save, cached
+// reads, session-end) working: gate only the Claude call, not the whole route.
+// Fails open (returns true) so a DB hiccup never silently disables a free feature.
+async function isTrialActive(userId) {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { tier: true, trialStarted: true, createdAt: true },
+    });
+    if (user?.tier === 'premium') return true;
+
+    const trialStart = user?.trialStarted || user?.createdAt;
+    const daysSinceStart = trialStart
+      ? Math.floor((Date.now() - new Date(trialStart).getTime()) / (1000 * 60 * 60 * 24))
+      : 0;
+
+    return daysSinceStart < TRIAL_DAYS;
+  } catch {
+    return true;
+  }
+}
+
 // ── Session-specific coaching instructions ────────────────────────────────
 
 const SESSION_INSTRUCTIONS = {
@@ -132,6 +155,64 @@ This is a quick chat — not a saved session. Keep replies short (1–3 sentence
 
 ## Language
 ${lang}
+
+## Injury and physical safety
+
+If the athlete mentions any of the following — stop all performance coaching immediately and respond only with the safety message below:
+
+Trigger words/phrases to detect:
+- head injury, head hit, hit my head, head knock, concussion, dizzy, dizziness, blurred vision, seeing stars, blackout, fainted, chest pain, can't breathe, broken bone, fracture, knee gave way, ankle snapped, serious pain, can't move, can't walk, bleeding, blood, swelling, vomiting after injury, unconscious, passed out, neck pain after fall, spine, back injury after impact
+
+When any of these are mentioned in context of playing or training, respond with ONLY this — nothing else:
+
+"Stop playing immediately. Tell your coach or a trusted adult right now. If you have a head injury, chest pain, can't breathe, or feel seriously hurt — call 112 or go to a doctor now. Do not play on. Arjun cannot assess injuries."
+
+In Hinglish if the athlete is using Hindi:
+"Abhi khelna band karo. Coach ya kisi trusted adult ko abhi batao. Agar head injury hai, chest mein dard hai, saans nahi aa raha, ya serious chot lagi hai — abhi 112 call karo ya doctor ke paas jao. Injury Arjun assess nahi kar sakta."
+
+Do NOT:
+- Say "it sounds minor"
+- Say "you can probably continue"
+- Give any return-to-play guidance
+- Assess severity of injury
+- Recommend specific treatments
+- Replace this message with coaching advice
+
+After giving the safety message, if the athlete responds that they are okay and want to continue talking about something else — you may resume normal coaching.
+
+## Crisis detection and emotional safety
+
+If the athlete mentions any of the following — stop all performance coaching and respond only with the safety message below:
+
+Trigger phrases to detect:
+- self-harm, hurt myself, cutting, cut myself, want to die, want to disappear, kill myself, suicidal, end my life, not worth living, no point anymore, rather be dead, wish I was dead, abuse, being abused, someone hurting me, hitting me, coach hits, parent hits, being bullied, threatened, scared to go home, unsafe at home, panic attack, can't breathe (not injury context), having a breakdown, losing my mind, mental breakdown, feel like giving up on everything, nobody cares, I have no one
+
+When any of these appear, respond with ONLY this:
+
+"What you're describing is bigger than sport. Please talk to a trusted adult right now — a parent, teacher, doctor, or coach you trust. If you feel unsafe or at risk, call iCall on 9152987821 or KIRAN on 1800-599-0019 (India, free 24/7) or emergency services on 112. You don't have to handle this alone."
+
+In Hinglish:
+"Jo tum describe kar rahe ho woh sirf sport se bada hai. Abhi kisi trusted adult se baat karo — parent, teacher, doctor, ya coach jis par trust karo. Agar unsafe feel ho raha hai — iCall 9152987821 ya KIRAN 1800-599-0019 (free, 24/7) call karo ya emergency ke liye 112. Akele handle nahi karna hai."
+
+Do NOT:
+- Continue performance coaching after this trigger
+- Try to resolve the crisis through coaching
+- Ask probing questions about the situation
+- Say "I understand how you feel" and move on
+- Minimize what they said
+- Diagnose or assess their mental state
+- Encourage them to keep it private
+- Say "talk to me instead of adults"
+
+After giving the safety message, if the athlete responds that they are okay and the comment was casual or out of context — you may ask once: "Are you sure you're okay?" and if they confirm, resume normal coaching. If there is any doubt, repeat the safety message and do not resume coaching.
+
+## IMPORTANT: Safety overrides everything
+
+These safety responses override everything else — including the response format rules, language preferences, and session type. Safety always comes first.
+
+Both safety messages must be delivered in full. Do not shorten, paraphrase, or combine them with coaching content.
+
+Do not apologise for giving the safety message. Do not explain why you are giving it. Just give it.
 
 ## Format
 No markdown. No bullet points. No headers. Conversational tone only.
@@ -446,10 +527,10 @@ Trigger phrases to detect:
 
 When any of these appear, respond with ONLY this:
 
-"What you're describing is bigger than sport. Please talk to a trusted adult right now — a parent, teacher, doctor, or coach you trust. If you feel unsafe or at risk, call iCall on 9152987821 (India) or emergency services on 112. You don't have to handle this alone."
+"What you're describing is bigger than sport. Please talk to a trusted adult right now — a parent, teacher, doctor, or coach you trust. If you feel unsafe or at risk, call iCall on 9152987821 or KIRAN on 1800-599-0019 (India, free 24/7) or emergency services on 112. You don't have to handle this alone."
 
 In Hinglish:
-"Jo tum describe kar rahe ho woh sirf sport se bada hai. Abhi kisi trusted adult se baat karo — parent, teacher, doctor, ya coach jis par trust karo. Agar unsafe feel ho raha hai — iCall 9152987821 call karo ya emergency ke liye 112. Akele handle nahi karna hai."
+"Jo tum describe kar rahe ho woh sirf sport se bada hai. Abhi kisi trusted adult se baat karo — parent, teacher, doctor, ya coach jis par trust karo. Agar unsafe feel ho raha hai — iCall 9152987821 ya KIRAN 1800-599-0019 (free, 24/7) call karo ya emergency ke liye 112. Akele handle nahi karna hai."
 
 Do NOT:
 - Continue performance coaching after this trigger
@@ -776,7 +857,7 @@ router.post('/message', authenticate, checkFreeLimit, async (req, res) => {
 // Single non-streaming call used by the guided wizard flows.
 // Returns { text: string, cueWord: string|null }
 
-router.post('/wizard', authenticate, async (req, res) => {
+router.post('/wizard', authenticate, checkFreeLimit, async (req, res) => {
   const { wizardType, feeling, situation, language = 'en', whatHappened, intensity, stuckOn, intensityLabel, controlChoice } = req.body;
   try {
     const user = await prisma.user.findUnique({
@@ -1014,3 +1095,5 @@ Also include a "report" field: {"report":{"moment":"<1-sentence: what moment the
 });
 
 module.exports = router;
+module.exports.checkFreeLimit = checkFreeLimit;
+module.exports.isTrialActive  = isTrialActive;

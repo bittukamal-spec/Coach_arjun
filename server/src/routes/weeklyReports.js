@@ -2,6 +2,7 @@ const express = require('express');
 const Anthropic = require('@anthropic-ai/sdk');
 const { PrismaClient } = require('@prisma/client');
 const authenticate = require('../middleware/authenticate');
+const { isTrialActive } = require('./chat');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -87,9 +88,13 @@ router.get('/', authenticate, async (req, res) => {
   try {
     // Fire-and-forget: try to generate last week's report if not yet created.
     // Errors are suppressed so they never block the response.
-    await maybeGenerateLastWeekReport(req.userId).catch(err =>
-      console.error('weekly-report generation error:', err)
-    );
+    // Trial gate: skip generation for expired-trial free users; already-generated
+    // reports below are still returned.
+    if (await isTrialActive(req.userId)) {
+      await maybeGenerateLastWeekReport(req.userId).catch(err =>
+        console.error('weekly-report generation error:', err)
+      );
+    }
 
     const reports = await prisma.weeklyReport.findMany({
       where: { userId: req.userId },
