@@ -840,6 +840,14 @@ router.post('/message', authenticate, requireGuardianConsent, checkFreeLimit, as
     res.write(`data: ${JSON.stringify({ t: 'end', id: assistantMsg.id })}\n\n`);
     res.end();
 
+    // Safety visibility: if the reply contains a crisis/injury helpline, the
+    // safety block fired — log a minimal event (no message content stored).
+    if (/9152987821|1800-599-0019/.test(fullText)) {
+      prisma.safetyEvent.create({
+        data: { userId: req.userId, surface: 'chat', triggerType: 'helpline_response' },
+      }).catch(err => console.error('[safety] chat event failed:', err?.message));
+    }
+
     // Run memory extraction in background — don't await
     extractAndStoreMemories(req.userId, conversationHistory, fullText).catch(() => {});
 

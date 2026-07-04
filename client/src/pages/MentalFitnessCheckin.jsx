@@ -4,6 +4,7 @@ import { Zap, X, ChevronLeft, ChevronRight, Wind, Gamepad2, ClipboardList, Rotat
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
+import HelplineList from '../components/HelplineList';
 
 const MFS_DIMS = ['focus', 'confidence', 'drive', 'calm', 'selftalk', 'bounce'];
 const MFS_EMOJIS = {
@@ -255,6 +256,8 @@ export default function MentalFitnessCheckin() {
   const displayEntry = entry || {};
   const avg = entry ? calcAvg(entry) : null;
   const avgPct = avg ? Math.round((parseFloat(avg) / 5) * 100) : null;
+  // Floor rule: very low check-in → show gentle support + helplines (display only, no score change)
+  const showSupport = entry && (parseFloat(avg) <= 2 || entry.selftalk === 1);
 
   return (
     <div className="min-h-screen bg-dark-900 flex flex-col">
@@ -301,6 +304,15 @@ export default function MentalFitnessCheckin() {
               </div>
             ))}
           </div>
+
+          {/* Gentle support on very low scores */}
+          {showSupport && (
+            <div className="bg-dark-700 border border-dark-600 rounded-2xl p-4">
+              <p className="text-sm font-semibold text-ink mb-1">{mf.support.title}</p>
+              <p className="text-xs text-slt leading-relaxed mb-3">{mf.support.body}</p>
+              <HelplineList />
+            </div>
+          )}
 
           {/* XP earned */}
           {xpEarned > 0 && (

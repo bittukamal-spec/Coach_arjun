@@ -47,6 +47,7 @@ app.use('/api/weekly-reports',  require('./routes/weeklyReports'));
 app.use('/api/self-talk',       require('./routes/selfTalk'));
 app.use('/api/body-reset',      require('./routes/bodyReset'));
 app.use('/api/founder',         require('./routes/founder'));
+app.use('/api/safety',          require('./routes/safety'));
 
 // Health check — useful to confirm the server is running
 app.get('/api/health', (_req, res) => {

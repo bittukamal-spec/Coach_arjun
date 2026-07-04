@@ -39,6 +39,7 @@ router.get('/pulse', founderAuth, async (req, res) => {
       debriefsWeek,
       newUsersWeek,
       flaggedCards,
+      safetyEventsWeek,
     ] = await Promise.all([
       prisma.user.count(),
       prisma.user.count({ where: { tier: 'premium' } }),
@@ -56,7 +57,9 @@ router.get('/pulse', founderAuth, async (req, res) => {
       prisma.message.count({ where: { createdAt: { gte: weekStart } } }),
       prisma.debrief.count({ where: { createdAt: { gte: weekStart } } }),
       prisma.user.count({ where: { createdAt: { gte: weekStart } } }),
-      prisma.selfTalkCard.count({ where: { safetyFlag: true } }),
+      // safetyFlag is a String column ("safe" | "needs_support") — not a boolean
+      prisma.selfTalkCard.count({ where: { safetyFlag: 'needs_support' } }),
+      prisma.safetyEvent.count({ where: { createdAt: { gte: weekStart } } }),
     ]);
 
     const expiringSoon = expiringSoonUsers.map(u => ({
@@ -87,7 +90,7 @@ router.get('/pulse', founderAuth, async (req, res) => {
         debriefs: debriefsWeek,
         newUsers: newUsersWeek,
       },
-      safety: { flaggedCards },
+      safety: { flaggedCards, eventsLast7Days: safetyEventsWeek },
     });
   } catch (err) {
     console.error('founder pulse error:', err);

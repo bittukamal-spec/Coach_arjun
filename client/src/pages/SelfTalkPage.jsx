@@ -4,6 +4,7 @@ import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiFetch } from '../api';
 import { translations } from '../i18n/translations';
+import HelplineList from '../components/HelplineList';
 
 export default function SelfTalkPage() {
   const { user, token, language } = useAuth();
@@ -435,9 +436,8 @@ export default function SelfTalkPage() {
             <h2 className="text-lg font-bold text-amber-400 mb-2">{t.safety.heading}</h2>
             <p className="text-sm text-slt leading-relaxed">{t.safety.message}</p>
           </div>
-          <div className="bg-dark-800 rounded-2xl p-4 mb-6">
-            <p className="text-xs text-muted mb-1">{t.safety.iCallLabel}</p>
-            <a href="tel:9152987821" className="text-xl font-bold text-brand-400">9152987821</a>
+          <div className="mb-6">
+            <HelplineList />
           </div>
           <button onClick={() => navigate('/train')} className="w-full bg-dark-700 text-ink font-bold py-3.5 rounded-2xl active:scale-95">
             {t.safety.backBtn}

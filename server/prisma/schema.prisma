@@ -86,6 +86,7 @@ model User {
   guardianConsentToken  String?   @unique // one-time consent-link token
 
   messages               Message[]
+  safetyEvents           SafetyEvent[]
   checkIns               CheckIn[]
   memories               UserMemory[]
   passwordResets         PasswordResetToken[]
@@ -297,6 +298,19 @@ model SelfTalkCard {
 
   @@index([userId, isActive, createdAt])
   @@index([userId, isArchived])
+}
+
+// Minimal safety-incident log — deliberately stores NO message content or free text.
+model SafetyEvent {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  surface     String   // "chat" | "self_talk" | "body_reset" | "bounce_back"
+  triggerType String   // "helpline_response" | "needs_support" | "crisis_keyword" | "intensity_max"
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([userId, createdAt])
 }
 
 model BodyResetSession {

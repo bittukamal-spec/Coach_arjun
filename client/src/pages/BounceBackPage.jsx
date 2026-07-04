@@ -356,6 +356,14 @@ export default function BounceBackPage() {
                 onClick={() => {
                   setIntensity(n);
                   haptic();
+                  if (n === 5) {
+                    // Minimal safety-incident log — metadata only
+                    apiFetch('/api/safety/event', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                      body: JSON.stringify({ surface: 'bounce_back', triggerType: 'intensity_max' }),
+                    }).catch(() => {});
+                  }
                   setTimeout(() => setScreen(n === 5 ? 'safety' : 'step4'), 150);
                 }}
                 style={{
@@ -419,6 +427,9 @@ export default function BounceBackPage() {
               </p>
               <p style={{ color: C.navy, fontSize: 16, fontWeight: 500, marginBottom: 6 }}>
                 {t.helpIcall}
+              </p>
+              <p style={{ color: C.navy, fontSize: 16, fontWeight: 500, marginBottom: 6 }}>
+                {t.helpKiran}
               </p>
               <p style={{ color: C.danger, fontSize: 16, fontWeight: 600 }}>
                 {t.helpEmergency}

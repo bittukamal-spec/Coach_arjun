@@ -261,7 +261,7 @@ export const translations = {
       chooseFocus: 'Choose focus',
       safetyLinkLabel: 'Not a crisis service — helplines',
       safetyNote: 'Arjun is a coaching tool, not a medical or crisis service. If you\'re in distress, please contact a professional.',
-      safetyHelpline: 'India helpline — iCall (TISS): 9152987821',
+      safetyHelpline: 'India helplines — iCall: 9152987821 · KIRAN: 1800-599-0019 · Emergency: 112',
       placeholder: 'What\'s on your mind?',
       send: 'Send',
       thinking: 'Arjun is thinking…',
@@ -864,7 +864,10 @@ export const translations = {
         sub: 'Pick up to 3.',
         chips: ['Start sharper', 'Stay calmer', 'Better decisions', 'Better technique', 'More communication', 'More aggressive', 'More patient', 'Handle pressure better', 'Something else'],
         placeholder: 'What specifically? (optional)',
-        selfAbuse: { warning: "Don't label yourself. Be specific — what needs training?" },
+        selfAbuse: {
+          warning: "Don't label yourself. Be specific — what needs training?",
+          helpline: 'If it feels heavier than one match, talk to someone: iCall 9152987821 · KIRAN 1800-599-0019',
+        },
       },
       screen4: {
         prompt: 'One thing to focus on next time.',
@@ -1087,6 +1090,10 @@ export const translations = {
         debrief:      { title: 'Match Review',       desc: 'Reflect and improve' },
         ritual:       { title: 'Pre-match routine',  desc: 'Build your match-day ritual' },
       },
+      support: {
+        title: 'Rough patch? That’s human.',
+        body: 'Low days happen to every athlete. If things feel heavy beyond sport, talking to someone helps — these lines are free and confidential.',
+      },
     },
     common: {
       loading: 'Loading…',
@@ -1136,6 +1143,7 @@ export const translations = {
       helpTitle: "You don't have to handle this alone.",
       helpBody: 'Tell a coach, parent, or trusted adult right now.',
       helpIcall: 'iCall helpline: 9152987821',
+      helpKiran: 'KIRAN helpline: 1800-599-0019',
       helpEmergency: 'Emergency: 112',
       helpBack: '← Go back',
       // Step 4 — breathing
@@ -1602,7 +1610,7 @@ export const translations = {
       chooseFocus: 'फोकस चुनें',
       safetyLinkLabel: 'संकट सेवा नहीं — हेल्पलाइन',
       safetyNote: 'अर्जुन एक कोचिंग टूल है, कोई चिकित्सा या संकट सेवा नहीं। अगर आप परेशान हैं, तो किसी पेशेवर से मिलें।',
-      safetyHelpline: 'भारत हेल्पलाइन — iCall (TISS): 9152987821',
+      safetyHelpline: 'भारत हेल्पलाइन — iCall: 9152987821 · KIRAN: 1800-599-0019 · आपातकाल: 112',
       placeholder: 'मन में क्या है?',
       send: 'भेजें',
       thinking: 'अर्जुन सोच रहा है…',
@@ -2183,7 +2191,10 @@ export const translations = {
         sub: 'Teen tak choose karo.',
         chips: ['Tez start', 'Zyada calm', 'Better decisions', 'Better technique', 'Zyada baat karo', 'Zyada aggressive', 'Zyada patient', 'Pressure better handle karo', 'Kuch aur'],
         placeholder: 'Exactly kya? (optional)',
-        selfAbuse: { warning: 'Label mat laga apne aap ko. Specific bolo — kya train karna hai?' },
+        selfAbuse: {
+          warning: 'Label mat laga apne aap ko. Specific bolo — kya train karna hai?',
+          helpline: 'अगर यह एक मैच से ज़्यादा भारी लग रहा है, तो किसी से बात करो: iCall 9152987821 · KIRAN 1800-599-0019',
+        },
       },
       screen4: {
         prompt: 'Agli baar ek cheez pe focus.',
@@ -2406,6 +2417,10 @@ export const translations = {
         debrief:      { title: 'मैच समीक्षा',        desc: 'सोचो और सुधरो' },
         ritual:       { title: 'मैच रूटीन',          desc: 'अपनी मैच-डे दिनचर्या बनाओ' },
       },
+      support: {
+        title: 'मुश्किल दौर? यह इंसानी है।',
+        body: 'हर खिलाड़ी के बुरे दिन आते हैं। अगर खेल से बाहर भी सब भारी लग रहा है, तो किसी से बात करना मदद करता है — ये लाइनें मुफ़्त और गोपनीय हैं।',
+      },
     },
     common: {
       loading: 'लोड हो रहा है…',
@@ -2455,6 +2470,7 @@ export const translations = {
       helpTitle: 'Akele mat raho.',
       helpBody: 'Kisi coach, parent, ya trusted adult ko abhi batao.',
       helpIcall: 'iCall helpline: 9152987821',
+      helpKiran: 'KIRAN हेल्पलाइन: 1800-599-0019',
       helpEmergency: 'Emergency: 112',
       helpBack: '← Wapas jao',
       // Step 4 — breathing

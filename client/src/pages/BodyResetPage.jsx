@@ -4,6 +4,7 @@ import { ArrowLeft, ChevronRight, Wind } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiFetch } from '../api';
 import { translations } from '../i18n/translations';
+import HelplineList from '../components/HelplineList';
 
 const CRISIS_KEYWORDS = [
   'suicide', 'kill myself', 'end my life', 'self harm', 'hurt myself',
@@ -52,6 +53,15 @@ export default function BodyResetPage() {
   const hi = language === 'hi';
 
   const [screen, setScreen] = useState(1);
+
+  // Minimal safety-incident log when a crisis keyword routes to the safety screen
+  function reportCrisisEvent() {
+    apiFetch('/api/safety/event', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ surface: 'body_reset', triggerType: 'crisis_keyword' }),
+    }).catch(() => {});
+  }
 
   // Feeling / Context
   const [feeling, setFeeling] = useState(null);
@@ -350,12 +360,8 @@ export default function BodyResetPage() {
           </div>
           <h1 className="text-xl font-bold text-ink mb-3">{hi ? 'एक पल रुको।' : 'One moment.'}</h1>
           <p className="text-sm text-slt leading-relaxed mb-6">{t.safety.message}</p>
-          <div className="space-y-2 mb-8">
-            {[t.safety.line1, t.safety.line2, t.safety.line3].map((line, i) => (
-              <div key={i} className="bg-dark-800 border border-dark-600 rounded-2xl px-4 py-3">
-                <p className="text-sm font-semibold text-ink">{line}</p>
-              </div>
-            ))}
+          <div className="mb-8">
+            <HelplineList />
           </div>
           <button
             onClick={() => navigate('/train')}
@@ -417,7 +423,7 @@ export default function BodyResetPage() {
 
     function advanceFromFeeling() {
       if (!canContinue) return;
-      if (isCustom && hasCrisis(feelingCustom)) { setScreen('safety'); return; }
+      if (isCustom && hasCrisis(feelingCustom)) { reportCrisisEvent(); setScreen('safety'); return; }
       setScreen(3);
     }
 
@@ -484,7 +490,7 @@ export default function BodyResetPage() {
 
     function advanceFromContext() {
       if (!canContinue) return;
-      if (isCustom && hasCrisis(contextCustom)) { setScreen('safety'); return; }
+      if (isCustom && hasCrisis(contextCustom)) { reportCrisisEvent(); setScreen('safety'); return; }
       setScreen(4);
     }
 

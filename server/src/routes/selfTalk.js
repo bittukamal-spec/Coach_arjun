@@ -81,6 +81,10 @@ router.post('/generate', authenticate, requireGuardianConsent, checkFreeLimit, a
     }
 
     if (parsed.safety_flag === 'needs_support') {
+      // Log the incident — metadata only, no content
+      prisma.safetyEvent.create({
+        data: { userId: req.userId, surface: 'self_talk', triggerType: 'needs_support' },
+      }).catch(err => console.error('[safety] self-talk event failed:', err?.message));
       return res.json({ safetyFlag: 'needs_support' });
     }
 

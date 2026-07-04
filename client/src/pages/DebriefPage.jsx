@@ -535,7 +535,10 @@ export default function DebriefPage() {
                   className="w-full bg-dark-700 border border-dark-500 text-ink rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 placeholder-slt resize-none"
                 />
                 {selfAbuse && (
-                  <p className="text-xs text-amber-400 mt-2 px-1">{t.screen3.selfAbuse.warning}</p>
+                  <>
+                    <p className="text-xs text-amber-400 mt-2 px-1">{t.screen3.selfAbuse.warning}</p>
+                    <p className="text-xs text-slt mt-1 px-1">{t.screen3.selfAbuse.helpline}</p>
+                  </>
                 )}
               </>
             )}
