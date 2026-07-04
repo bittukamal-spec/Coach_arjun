@@ -338,6 +338,22 @@ export default function MentalFitnessCheckin() {
 
       <div className="flex-1" />
       <div className="px-4 pb-10 space-y-3">
+        {/* Primary CTA — the tool recommended from today's lowest dimension */}
+        {!submitError && entry && (() => {
+          const rec = getRecommendedTool(entry);
+          const toolInfo = mf.toolRec[rec.toolKey];
+          return (
+            <button
+              onClick={() => navigate(rec.to, rec.state ? { state: rec.state } : undefined)}
+              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-white font-semibold text-sm active:scale-[0.98] transition-transform"
+              style={{ backgroundColor: '#185FA5' }}
+            >
+              <rec.Icon size={16} />
+              <span>{toolInfo.title} — {toolInfo.desc}</span>
+              <ChevronRight size={15} />
+            </button>
+          );
+        })()}
         <button
           onClick={() => navigate('/dashboard')}
           className="w-full py-3.5 rounded-2xl border border-dark-600 text-slt font-semibold text-sm active:scale-[0.98] transition-transform"

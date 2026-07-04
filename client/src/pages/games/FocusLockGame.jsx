@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, Target } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { translations } from '../../i18n/translations';
 import { apiFetch } from '../../api';
 import GameTimer from '../../components/games/GameTimer';
 import GameResult from '../../components/games/GameResult';
@@ -26,21 +27,17 @@ function levelOf(elapsedSec) {
   return 3;
 }
 
-function buildInsight({ accuracy, wrongCount, missedCount }) {
-  if (accuracy >= 0.8) {
-    return 'You stayed locked on your focus word even with distractions. Strong mental rep.';
-  }
-  if (wrongCount > missedCount) {
-    return 'You reacted fast but pressure made you rush. Next round, pause before tapping.';
-  }
-  if (missedCount > wrongCount) {
-    return 'Your focus dropped when the screen got busy. Try one breath before starting.';
-  }
-  return 'Good rep. Each round builds your focus filter.';
+function buildInsight({ accuracy, wrongCount, missedCount }, fl) {
+  if (accuracy >= 0.8) return fl.insightLocked;
+  if (wrongCount > missedCount) return fl.insightRushed;
+  if (missedCount > wrongCount) return fl.insightDropped;
+  return fl.insightDefault;
 }
 
 function FocusLockGame() {
-  const { token } = useAuth();
+  const { token, language } = useAuth();
+  const mr = translations[language].mentalReps;
+  const fl = mr.focusLock;
 
   const [screen, setScreen] = useState('ready'); // ready | playing | result
   const [focusWord, setFocusWord] = useState(null);
@@ -107,7 +104,7 @@ function FocusLockGame() {
     const focusAppearances = correctCount + missedCount;
     const accuracy = focusAppearances > 0 ? correctCount / focusAppearances : 0;
     const finalScore = Math.max(0, scoreRef.current);
-    const insightText = buildInsight({ accuracy, wrongCount, missedCount });
+    const insightText = buildInsight({ accuracy, wrongCount, missedCount }, fl);
 
     const gameResult = {
       score: finalScore, level: 3, accuracy,
@@ -135,7 +132,7 @@ function FocusLockGame() {
         })
         .catch(() => {});
     }
-  }, [token]);
+  }, [token, fl]);
 
   const showNextWord = useCallback(() => {
     const elapsedSec = (Date.now() - startRef.current) / 1000;
@@ -237,16 +234,16 @@ function FocusLockGame() {
 
   if (screen === 'result' && result) {
     const stats = [
-      { label: 'Level reached', value: `Level ${result.level}` },
-      { label: 'Accuracy', value: `${Math.round(result.accuracy * 100)}%` },
-      { label: 'Best streak', value: result.bestStreak },
-      { label: 'Focus words caught', value: result.correctCount },
+      { label: fl.statLevel, value: `${fl.level} ${result.level}` },
+      { label: fl.statAccuracy, value: `${Math.round(result.accuracy * 100)}%` },
+      { label: fl.statStreak, value: result.bestStreak },
+      { label: fl.statCaught, value: result.correctCount },
     ];
     return (
       <div className="min-h-screen bg-dark-900">
         <header className="px-4 py-4">
           <div className="max-w-lg mx-auto text-center">
-            <h1 className="font-semibold text-ink">Focus Lock</h1>
+            <h1 className="font-semibold text-ink">{mr.cards.focusLock.title}</h1>
           </div>
         </header>
         <GameResult
@@ -274,17 +271,17 @@ function FocusLockGame() {
           <GameTimer duration={GAME_DURATION} elapsed={elapsed} />
 
           <div className="flex items-center justify-between mt-3">
-            <span className="text-sm font-semibold text-ink tabular-nums">Score {score}</span>
+            <span className="text-sm font-semibold text-ink tabular-nums">{fl.score} {score}</span>
             <span
               className="text-[11px] font-bold px-2.5 py-1 rounded-full"
               style={{ backgroundColor: 'rgba(24,95,165,0.10)', color: '#185FA5' }}
             >
-              Level {level}
+              {fl.level} {level}
             </span>
           </div>
 
           <p className="text-center text-xs text-muted mt-6">
-            Tap only: <span className="font-bold" style={{ color: '#185FA5' }}>{focusWord}</span>
+            {fl.tapOnly} <span className="font-bold" style={{ color: '#185FA5' }}>{focusWord}</span>
           </p>
 
           {/* Word area — bottom two-thirds, large tap target */}
@@ -314,9 +311,9 @@ function FocusLockGame() {
         <div className="max-w-lg mx-auto flex items-center justify-between">
           <Link to="/games" className="flex items-center gap-1 text-slt text-sm font-medium">
             <ChevronLeft size={18} />
-            Games
+            {mr.gamesLink}
           </Link>
-          <h1 className="font-semibold text-ink">Focus Lock</h1>
+          <h1 className="font-semibold text-ink">{mr.cards.focusLock.title}</h1>
           <span className="w-14" />
         </div>
       </header>
@@ -330,20 +327,19 @@ function FocusLockGame() {
         </div>
 
         <div>
-          <p className="text-sm text-slt mb-2">Your focus word</p>
+          <p className="text-sm text-slt mb-2">{fl.yourWord}</p>
           <p className="text-4xl font-bold" style={{ color: '#185FA5' }}>
             {focusWord || '…'}
           </p>
         </div>
 
         <p className="text-sm text-slt leading-relaxed max-w-xs mx-auto">
-          Words will flash on screen for 60 seconds. Tap only your focus word.
-          Let every distraction pass. It gets faster as you go.
+          {fl.instructions}
         </p>
 
         {limitReached ? (
           <p className="text-sm text-slt py-3">
-            Good reps today. Come back tomorrow for more training.
+            {mr.limitMessage}
           </p>
         ) : (
           <button
@@ -352,11 +348,11 @@ function FocusLockGame() {
             className="w-full max-w-xs text-white font-semibold py-4 rounded-xl active:scale-[0.98] transition-transform disabled:opacity-50"
             style={{ backgroundColor: '#185FA5', minHeight: '56px' }}
           >
-            Start
+            {fl.start}
           </button>
         )}
 
-        <p className="text-xs text-muted">{playsToday}/{dailyLimit} plays today</p>
+        <p className="text-xs text-muted">{mr.playsToday(playsToday, dailyLimit)}</p>
       </main>
     </div>
   );

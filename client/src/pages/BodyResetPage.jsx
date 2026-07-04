@@ -97,6 +97,10 @@ export default function BodyResetPage() {
   const pausedElapsedRef = useRef(0);
   const cyclesCompletedRef = useRef(0);
   const durationSecondsRef = useRef(0);
+  // Live phase state in refs so pause/resume continues mid-cycle
+  const phaseRef = useRef('inhale');
+  const phaseTimeRef = useRef(0);
+  const tipIdxRef = useRef(0);
 
   // Arjun note
   const [arjunNote, setArjunNote] = useState(null);
@@ -143,48 +147,33 @@ export default function BodyResetPage() {
     return () => stopTimer();
   }, [screen]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  function startTimer() {
+  // The interval reads phase/cycle/elapsed from refs so it can be stopped and
+  // resumed without losing progress.
+  function runInterval() {
     stopTimer();
-    setBreathPhase('inhale');
-    setPhaseRemaining(proto.inhale);
-    setCycleCount(0);
-    setTotalElapsed(0);
-    setBreathingDone(false);
-    cyclesCompletedRef.current = 0;
-    durationSecondsRef.current = 0;
-    pausedElapsedRef.current = 0;
-    startTimeRef.current = Date.now();
-
-    let currentPhase = 'inhale';
-    let phaseTime = proto.inhale;
-    let cycles = 0;
-    let elapsed = 0;
-    let tipIdx = 0;
-
     timerRef.current = setInterval(() => {
-      elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000) + pausedElapsedRef.current;
+      const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000) + pausedElapsedRef.current;
       durationSecondsRef.current = elapsed;
       setTotalElapsed(elapsed);
 
       // Rotate tip every 15 seconds
       const newTipIdx = Math.floor(elapsed / 15) % TIPS.length;
-      if (newTipIdx !== tipIdx) { tipIdx = newTipIdx; setTipIndex(newTipIdx); }
+      if (newTipIdx !== tipIdxRef.current) { tipIdxRef.current = newTipIdx; setTipIndex(newTipIdx); }
 
-      phaseTime -= 1;
-      setPhaseRemaining(phaseTime);
+      phaseTimeRef.current -= 1;
+      setPhaseRemaining(phaseTimeRef.current);
 
-      if (phaseTime <= 0) {
-        if (currentPhase === 'inhale') {
-          currentPhase = 'exhale';
-          phaseTime = proto.exhale;
+      if (phaseTimeRef.current <= 0) {
+        if (phaseRef.current === 'inhale') {
+          phaseRef.current = 'exhale';
+          phaseTimeRef.current = proto.exhale;
           setBreathPhase('exhale');
-          setPhaseRemaining(phaseTime);
+          setPhaseRemaining(phaseTimeRef.current);
         } else {
-          cycles += 1;
-          cyclesCompletedRef.current = cycles;
-          setCycleCount(cycles);
+          cyclesCompletedRef.current += 1;
+          setCycleCount(cyclesCompletedRef.current);
 
-          if (mode === 'quick' && cycles >= proto.cycles) {
+          if (mode === 'quick' && cyclesCompletedRef.current >= proto.cycles) {
             stopTimer();
             setBreathingDone(true);
             setScreen(8);
@@ -196,13 +185,31 @@ export default function BodyResetPage() {
             setScreen(8);
             return;
           }
-          currentPhase = 'inhale';
-          phaseTime = proto.inhale;
+          phaseRef.current = 'inhale';
+          phaseTimeRef.current = proto.inhale;
           setBreathPhase('inhale');
-          setPhaseRemaining(phaseTime);
+          setPhaseRemaining(phaseTimeRef.current);
         }
       }
     }, 1000);
+  }
+
+  function startTimer() {
+    // Full reset — fresh session start only (not resume)
+    setBreathPhase('inhale');
+    setPhaseRemaining(proto.inhale);
+    setCycleCount(0);
+    setTotalElapsed(0);
+    setBreathingDone(false);
+    setPaused(false);
+    cyclesCompletedRef.current = 0;
+    durationSecondsRef.current = 0;
+    pausedElapsedRef.current = 0;
+    phaseRef.current = 'inhale';
+    phaseTimeRef.current = proto.inhale;
+    tipIdxRef.current = 0;
+    startTimeRef.current = Date.now();
+    runInterval();
   }
 
   function stopTimer() {
@@ -211,12 +218,12 @@ export default function BodyResetPage() {
 
   function togglePause() {
     if (paused) {
+      // Resume exactly where we left off — phase, cycles and elapsed live in refs
       startTimeRef.current = Date.now();
       setPaused(false);
-      // restart interval
-      startTimer(); // re-triggers the timer; state is preserved via refs
+      runInterval();
     } else {
-      pausedElapsedRef.current = totalElapsed;
+      pausedElapsedRef.current = durationSecondsRef.current;
       stopTimer();
       setPaused(true);
     }
@@ -431,7 +438,7 @@ export default function BodyResetPage() {
       <div className="min-h-screen bg-dark-900">
         <Header />
         <div className="px-4 pb-24">
-          <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">{hi ? '1 / 7' : '1 / 7'}</p>
+          <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">1 / 8</p>
           <h2 className="text-xl font-bold text-ink mb-1">{t.feeling.heading}</h2>
           <p className="text-sm text-slt mb-5">{t.feeling.sub}</p>
           <div className="grid grid-cols-2 gap-2 mb-4">
@@ -498,7 +505,7 @@ export default function BodyResetPage() {
       <div className="min-h-screen bg-dark-900">
         <Header />
         <div className="px-4 pb-24">
-          <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">2 / 7</p>
+          <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">2 / 8</p>
           <h2 className="text-xl font-bold text-ink mb-1">{t.context.heading}</h2>
           <p className="text-sm text-slt mb-5">{t.context.sub}</p>
           <div className="grid grid-cols-2 gap-2 mb-4">
@@ -556,7 +563,7 @@ export default function BodyResetPage() {
       <div className="min-h-screen bg-dark-900">
         <Header />
         <div className="px-4 pb-24">
-          <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">3 / 7</p>
+          <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">3 / 8</p>
           <h2 className="text-xl font-bold text-ink mb-5">{t.mode.heading}</h2>
           <div className="space-y-3">
             {[
@@ -590,7 +597,7 @@ export default function BodyResetPage() {
       <div className="min-h-screen bg-dark-900">
         <Header />
         <div className="px-4 pb-24">
-          <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">4 / 7</p>
+          <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">4 / 8</p>
           <h2 className="text-xl font-bold text-ink mb-5">{t.before.heading}</h2>
 
           <div className="mb-6">
@@ -628,7 +635,7 @@ export default function BodyResetPage() {
       <div className="min-h-screen bg-dark-900">
         <Header />
         <div className="px-4 pb-24">
-          <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">5 / 7</p>
+          <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">5 / 8</p>
           <h2 className="text-xl font-bold text-ink mb-1">{t.focus.heading}</h2>
           <p className="text-sm text-slt mb-5">{t.focus.sub}</p>
 
@@ -755,7 +762,7 @@ export default function BodyResetPage() {
       <div className="min-h-screen bg-dark-900">
         <Header canGoBack={false} />
         <div className="px-4 pb-24">
-          <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">6 / 7</p>
+          <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">7 / 8</p>
           <h2 className="text-xl font-bold text-ink mb-5">{t.note.heading}</h2>
 
           {noteLoading ? (
@@ -797,7 +804,7 @@ export default function BodyResetPage() {
       <div className="min-h-screen bg-dark-900">
         <Header canGoBack={false} />
         <div className="px-4 pb-24">
-          <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">7 / 7</p>
+          <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">8 / 8</p>
           <h2 className="text-xl font-bold text-ink mb-5">{t.after.heading}</h2>
 
           <div className="mb-6">

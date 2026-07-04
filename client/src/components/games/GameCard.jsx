@@ -1,5 +1,10 @@
+import { useAuth } from '../../contexts/AuthContext';
+import { translations } from '../../i18n/translations';
+
 // Hub card for one game on the Mental Reps page.
 function GameCard({ icon, title, purpose, skillTag, playsToday, limit, onPlay }) {
+  const { language } = useAuth();
+  const mr = translations[language].mentalReps;
   const atLimit = playsToday >= limit;
   return (
     <div className="bg-dark-400 border border-dark-600 rounded-2xl p-5 flex flex-col gap-3">
@@ -19,16 +24,16 @@ function GameCard({ icon, title, purpose, skillTag, playsToday, limit, onPlay })
       <p className="text-sm text-slt leading-relaxed">{purpose}</p>
 
       <div className="flex items-center justify-between mt-1">
-        <span className="text-xs text-muted font-medium">{playsToday}/{limit} plays today</span>
+        <span className="text-xs text-muted font-medium">{mr.playsToday(playsToday, limit)}</span>
         {atLimit ? (
-          <span className="text-xs text-slt font-medium px-4 py-3">Come back tomorrow</span>
+          <span className="text-xs text-slt font-medium px-4 py-3">{mr.comeBackTomorrow}</span>
         ) : (
           <button
             onClick={onPlay}
             className="text-white text-sm font-semibold px-8 rounded-xl active:scale-[0.98] transition-transform"
             style={{ backgroundColor: '#185FA5', minHeight: '56px' }}
           >
-            Play
+            {mr.play}
           </button>
         )}
       </div>

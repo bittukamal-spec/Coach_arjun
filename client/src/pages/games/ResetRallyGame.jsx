@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, RotateCcw } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { translations } from '../../i18n/translations';
 import { apiFetch } from '../../api';
 import GameResult from '../../components/games/GameResult';
 
@@ -200,21 +201,17 @@ function shuffle(arr) {
   return a;
 }
 
-function buildInsight({ strongResets, negativeResets, neutralResets }) {
-  if (strongResets >= 4) {
-    return 'You are building a next-play mindset. Strong resets in most scenarios.';
-  }
-  if (negativeResets >= 3) {
-    return 'You noticed the mistake, but your self-talk became harsh. Train the reset: breathe, next action.';
-  }
-  if (neutralResets >= 3) {
-    return 'You avoided the negative thought but held back on the reset. Trust the strong response.';
-  }
-  return 'Good session. Resets get faster with practice.';
+function buildInsight({ strongResets, negativeResets, neutralResets }, rr) {
+  if (strongResets >= 4) return rr.insightStrong;
+  if (negativeResets >= 3) return rr.insightHarsh;
+  if (neutralResets >= 3) return rr.insightNeutral;
+  return rr.insightDefault;
 }
 
 function ResetRallyGame() {
-  const { token } = useAuth();
+  const { token, language } = useAuth();
+  const mr = translations[language].mentalReps;
+  const rr = mr.resetRally;
 
   const [screen, setScreen] = useState('ready'); // ready | playing | result
   const [playsToday, setPlaysToday] = useState(0);
@@ -282,7 +279,7 @@ function ResetRallyGame() {
     const { strongResets, neutralResets, negativeResets, bestStreak } = statsRef.current;
     const accuracy = strongResets / SCENARIOS_PER_GAME;
     const duration = Math.round((Date.now() - gameStartRef.current) / 1000);
-    const insightText = buildInsight({ strongResets, negativeResets, neutralResets });
+    const insightText = buildInsight({ strongResets, negativeResets, neutralResets }, rr);
     const finalScore = scoreRef.current;
 
     setResult({ score: finalScore, accuracy, bestStreak, strongResets, insightText });
@@ -377,15 +374,15 @@ function ResetRallyGame() {
 
   if (screen === 'result' && result) {
     const stats = [
-      { label: 'Reset accuracy', value: `${Math.round(result.accuracy * 100)}%` },
-      { label: 'Strong resets', value: `${result.strongResets}/${SCENARIOS_PER_GAME}` },
-      { label: 'Best streak', value: result.bestStreak },
+      { label: rr.statAccuracy, value: `${Math.round(result.accuracy * 100)}%` },
+      { label: rr.statStrong, value: `${result.strongResets}/${SCENARIOS_PER_GAME}` },
+      { label: rr.statStreak, value: result.bestStreak },
     ];
     return (
       <div className="min-h-screen bg-dark-900">
         <header className="px-4 py-4">
           <div className="max-w-lg mx-auto text-center">
-            <h1 className="font-semibold text-ink">Reset Rally</h1>
+            <h1 className="font-semibold text-ink">{mr.cards.resetRally.title}</h1>
           </div>
         </header>
         <GameResult
@@ -478,9 +475,9 @@ function ResetRallyGame() {
         <div className="max-w-lg mx-auto flex items-center justify-between">
           <Link to="/games" className="flex items-center gap-1 text-slt text-sm font-medium">
             <ChevronLeft size={18} />
-            Games
+            {mr.gamesLink}
           </Link>
-          <h1 className="font-semibold text-ink">Reset Rally</h1>
+          <h1 className="font-semibold text-ink">{mr.cards.resetRally.title}</h1>
           <span className="w-14" />
         </div>
       </header>
@@ -494,16 +491,15 @@ function ResetRallyGame() {
         </div>
 
         <div>
-          <h2 className="text-2xl font-bold text-ink mb-2">Train your bounce-back</h2>
+          <h2 className="text-2xl font-bold text-ink mb-2">{rr.heading}</h2>
           <p className="text-sm text-slt leading-relaxed max-w-xs mx-auto">
-            Six pressure moments. For each one, choose your reset thought,
-            then your next action. Strong resets score highest — fast ones earn a bonus.
+            {rr.instructions}
           </p>
         </div>
 
         {limitReached ? (
           <p className="text-sm text-slt py-3">
-            Good reps today. Come back tomorrow for more training.
+            {mr.limitMessage}
           </p>
         ) : (
           <button
@@ -511,11 +507,11 @@ function ResetRallyGame() {
             className="w-full max-w-xs text-white font-semibold py-4 rounded-xl active:scale-[0.98] transition-transform"
             style={{ backgroundColor: '#185FA5', minHeight: '56px' }}
           >
-            Start
+            {rr.start}
           </button>
         )}
 
-        <p className="text-xs text-muted">{playsToday}/{dailyLimit} plays today</p>
+        <p className="text-xs text-muted">{mr.playsToday(playsToday, dailyLimit)}</p>
       </main>
     </div>
   );
