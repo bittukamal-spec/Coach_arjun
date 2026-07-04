@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
+import ConsentBanner from '../components/ConsentBanner';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
@@ -169,6 +170,9 @@ export default function Dashboard() {
 
         {loaded && (
           <>
+            {/* ── Guardian consent pending (under-18 accounts) ──────────────── */}
+            <ConsentBanner />
+
             {/* ── HERO GREETING ──────────────────────────────────────────────── */}
             <div className="pt-1 mb-5">
               <p className="text-2xl font-black text-ink leading-tight">

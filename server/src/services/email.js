@@ -106,4 +106,44 @@ async function sendDeletionEmail(toEmail, firstName) {
   });
 }
 
-module.exports = { sendPasswordResetEmail, sendWelcomeEmail, sendDeletionEmail };
+async function sendGuardianConsentEmail(toEmail, athleteName, consentUrl) {
+  const resend = getResend();
+  const firstName = athleteName ? athleteName.split(' ')[0] : 'your child';
+  await resend.emails.send({
+    from: `Arjun <${FROM}>`,
+    to: toEmail,
+    subject: `${firstName} needs your permission to use Arjun`,
+    html: `
+      <div style="font-family: 'Poppins', sans-serif; max-width: 520px; margin: 0 auto; padding: 32px 24px; background: #0A0A15; color: #F1F5F9;">
+        <div style="text-align: center; margin-bottom: 28px;">
+          <div style="display: inline-block; width: 40px; height: 40px; background: #185FA5; border-radius: 10px; line-height: 40px; font-weight: 800; font-size: 18px; color: white;">A</div>
+        </div>
+        <h2 style="color: #F1F5F9; margin-bottom: 8px; font-size: 20px;">Parent / guardian consent needed</h2>
+        <p style="color: #94A3B8; margin-bottom: 16px; line-height: 1.7; font-size: 15px;">
+          <strong style="color: #F1F5F9;">${firstName}</strong> has created an account on <strong style="color: #F1F5F9;">Arjun</strong> —
+          a mental performance coaching app for young Indian athletes. Arjun helps athletes handle match nerves,
+          bounce back from mistakes, and build focus. It is performance coaching, <strong style="color: #F1F5F9;">not therapy or medical advice</strong>.
+        </p>
+        <p style="color: #94A3B8; margin-bottom: 24px; line-height: 1.7; font-size: 15px;">
+          Because ${firstName} is under 18, we need your consent before they can use Arjun's coaching tools.
+          If you approve, tap the button below.
+        </p>
+        <div style="text-align: center; margin-bottom: 28px;">
+          <a href="${consentUrl}" style="display: inline-block; background: #185FA5; color: white; text-decoration: none; padding: 14px 32px; border-radius: 10px; font-weight: 700; font-size: 15px;">
+            I give my consent →
+          </a>
+        </div>
+        <p style="color: #94A3B8; font-size: 13px; line-height: 1.6; margin-bottom: 16px;">
+          What Arjun stores: the athlete's name, email, sport, and their coaching activity inside the app.
+          You can ask for the account and all data to be deleted at any time from the app's Account page.
+        </p>
+        <p style="color: #475569; font-size: 12px; text-align: center; margin: 0;">
+          If you do not approve, ignore this email — ${firstName}'s coaching tools will stay locked.<br/>
+          Arjun · AI Mental Performance Coaching for Indian Athletes · coacharjun.in
+        </p>
+      </div>
+    `,
+  });
+}
+
+module.exports = { sendPasswordResetEmail, sendWelcomeEmail, sendDeletionEmail, sendGuardianConsentEmail };

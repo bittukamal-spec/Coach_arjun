@@ -23,6 +23,7 @@ import BounceBackPage from './pages/BounceBackPage';
 import BeforeYouPlayPage from './pages/BeforeYouPlayPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
+import GuardianConsentPage from './pages/GuardianConsentPage';
 import PricingPage from './pages/PricingPage';
 import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import MentalFitnessCheckin from './pages/MentalFitnessCheckin';
@@ -61,6 +62,7 @@ function App() {
       <Route path="/refund" element={<RefundPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/guardian-consent" element={<GuardianConsentPage />} />
 
       {/* Onboarding — logged in but NOT yet onboarded */}
       <Route

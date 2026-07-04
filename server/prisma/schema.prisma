@@ -79,6 +79,12 @@ model User {
   // Demographics
   age           Int?   // age in years
 
+  // Minor-user compliance (DPDP) — set at registration
+  dateOfBirth           DateTime? // null for accounts created before the age gate
+  guardianEmail         String?   // required at signup when under 18
+  guardianConsentAt     DateTime? // set when guardian confirms via emailed link
+  guardianConsentToken  String?   @unique // one-time consent-link token
+
   messages               Message[]
   checkIns               CheckIn[]
   memories               UserMemory[]

@@ -14,17 +14,41 @@ function AuthPage() {
   const [name, setName]         = useState('');
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
+  const [dob, setDob]           = useState('');
+  const [guardianEmail, setGuardianEmail] = useState('');
   const [error, setError]       = useState('');
   const [busy, setBusy]         = useState(false);
+
+  function ageFromDob(dobStr) {
+    if (!dobStr) return null;
+    const birth = new Date(dobStr);
+    if (isNaN(birth.getTime())) return null;
+    const now = new Date();
+    let years = now.getFullYear() - birth.getFullYear();
+    const m = now.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) years -= 1;
+    return years;
+  }
+
+  const signupAge = tab === 'signup' ? ageFromDob(dob) : null;
+  const isUnderage = signupAge !== null && signupAge < 13;
+  const needsGuardian = signupAge !== null && signupAge >= 13 && signupAge < 18;
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
+    if (tab === 'signup' && isUnderage) {
+      setError(t.auth.underageError);
+      return;
+    }
     setBusy(true);
 
     const endpoint = tab === 'signup' ? '/api/auth/register' : '/api/auth/login';
     const body = tab === 'signup'
-      ? { name: name.trim(), email: email.trim(), password }
+      ? {
+          name: name.trim(), email: email.trim(), password, dateOfBirth: dob,
+          ...(needsGuardian && { guardianEmail: guardianEmail.trim() }),
+        }
       : { email: email.trim(), password };
 
     try {
@@ -102,6 +126,31 @@ function AuthPage() {
                     />
                   </div>
                 )}
+                {tab === 'signup' && (
+                  <div>
+                    <label className="block text-xs font-semibold text-slt mb-1.5">{t.auth.dobLabel}</label>
+                    <input
+                      type="date" value={dob} onChange={e => setDob(e.target.value)}
+                      required autoComplete="bday"
+                      max={new Date().toISOString().slice(0, 10)}
+                      className="input-field text-sm"
+                    />
+                    {isUnderage
+                      ? <p className="text-xs text-red-400 mt-1.5">{t.auth.underageError}</p>
+                      : <p className="text-xs text-muted mt-1.5">{t.auth.dobHint}</p>}
+                  </div>
+                )}
+                {tab === 'signup' && needsGuardian && (
+                  <div>
+                    <label className="block text-xs font-semibold text-slt mb-1.5">{t.auth.guardianEmailLabel}</label>
+                    <input
+                      type="email" value={guardianEmail} onChange={e => setGuardianEmail(e.target.value)}
+                      placeholder={t.auth.guardianEmailPlaceholder} required
+                      className="input-field text-sm"
+                    />
+                    <p className="text-xs text-muted mt-1.5">{t.auth.guardianEmailHint}</p>
+                  </div>
+                )}
                 <div>
                   <label className="block text-xs font-semibold text-slt mb-1.5">{t.auth.emailLabel}</label>
                   <input
@@ -134,7 +183,7 @@ function AuthPage() {
                   </p>
                 )}
 
-                <button type="submit" disabled={busy} className="btn-primary w-full justify-center py-3 text-sm">
+                <button type="submit" disabled={busy || (tab === 'signup' && isUnderage)} className="btn-primary w-full justify-center py-3 text-sm disabled:opacity-50">
                   {busy
                     ? (tab === 'signup' ? t.auth.signingUp : t.auth.signingIn)
                     : (tab === 'signup' ? t.auth.signUpBtn : t.auth.signInBtn)}

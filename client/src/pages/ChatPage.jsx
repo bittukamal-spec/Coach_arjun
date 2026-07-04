@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
 import { ArjunLogo } from '../components/ArjunLogo';
+import ConsentBanner, { needsGuardianConsent } from '../components/ConsentBanner';
 import { useTheme } from '../hooks/useTheme';
 import { parseArjunMessage, APP_TOOL_CONFIG } from '../utils/parseArjunMessage';
 
@@ -278,7 +279,8 @@ function ArjunBubble({ message, isStreaming }) {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 function ChatPage() {
-  const { token, language } = useAuth();
+  const { token, language, user } = useAuth();
+  const consentPending = needsGuardianConsent(user);
   const t = translations[language].chat;
   const location = useLocation();
   const navigate = useNavigate();
@@ -642,12 +644,13 @@ function ChatPage() {
           {/* Entry choice screen — shown when no session is active */}
           {showStartScreen && !waitingForFirst && (
             <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 animate-fade-in">
+              {consentPending && <div className="w-full"><ConsentBanner /></div>}
               <h2 className="text-[22px] font-bold text-ink mb-2 text-center">{t.entry.heading}</h2>
               <p className="text-[15px] text-slt text-center mb-8 leading-relaxed max-w-xs">{t.entry.description}</p>
               <div className="w-full flex flex-col gap-2">
                 <button
                   onClick={handleContinueMain}
-                  disabled={atLimit}
+                  disabled={atLimit || consentPending}
                   className="w-full py-4 bg-brand-600 text-white rounded-2xl font-semibold text-sm active:scale-[0.98] transition-all disabled:opacity-40"
                 >
                   {t.entry.continue.label}
@@ -656,7 +659,7 @@ function ChatPage() {
                 <div className="h-3" />
                 <button
                   onClick={handleStartQuick}
-                  disabled={atLimit}
+                  disabled={atLimit || consentPending}
                   className="w-full py-4 border border-dark-500 text-ink rounded-2xl font-semibold text-sm active:scale-[0.98] transition-all disabled:opacity-40"
                 >
                   {t.entry.quick.label}

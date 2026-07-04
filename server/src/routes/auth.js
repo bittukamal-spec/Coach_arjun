@@ -4,7 +4,7 @@ const jwt     = require('jsonwebtoken');
 const crypto  = require('crypto');
 const { PrismaClient } = require('@prisma/client');
 const authenticate = require('../middleware/authenticate');
-const { sendPasswordResetEmail, sendWelcomeEmail, sendDeletionEmail } = require('../services/email');
+const { sendPasswordResetEmail, sendWelcomeEmail, sendDeletionEmail, sendGuardianConsentEmail } = require('../services/email');
 
 const router  = express.Router();
 const prisma  = new PrismaClient();
@@ -20,7 +20,18 @@ const SAFE_SELECT = {
   age: true, profileIntro: true,
   subscriptionPlanType: true, subscriptionStartDate: true,
   cueWord: true, cueArousalState: true,
+  dateOfBirth: true, guardianEmail: true, guardianConsentAt: true,
 };
+
+// Age helpers for the minor-user gate. Legacy accounts (no dateOfBirth) are never gated.
+function ageFromDob(dob) {
+  const birth = new Date(dob);
+  const now = new Date();
+  let years = now.getFullYear() - birth.getFullYear();
+  const m = now.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) years -= 1;
+  return years;
+}
 
 function makeToken(user) {
   return jwt.sign(
@@ -37,16 +48,48 @@ function parseGoals(user) {
 // ── POST /api/auth/register ────────────────────────────────────────────────
 
 router.post('/register', async (req, res) => {
-  const { name, email, password } = req.body;
+  const { name, email, password, dateOfBirth, guardianEmail } = req.body;
+  const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   if (!name?.trim())   return res.status(400).json({ error: 'Name is required' });
   if (!email?.trim())  return res.status(400).json({ error: 'Email is required' });
   if (!password)       return res.status(400).json({ error: 'Password is required' });
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  if (!emailRe.test(email)) {
     return res.status(400).json({ error: 'Please enter a valid email address' });
   }
   if (password.length < 8) {
     return res.status(400).json({ error: 'Password must be at least 8 characters' });
+  }
+
+  // Age gate — DOB is required for new accounts
+  if (!dateOfBirth) {
+    return res.status(400).json({ error: 'Date of birth is required', code: 'DOB_REQUIRED' });
+  }
+  const dob = new Date(dateOfBirth);
+  if (isNaN(dob.getTime()) || dob > new Date()) {
+    return res.status(400).json({ error: 'Please enter a valid date of birth' });
+  }
+  const years = ageFromDob(dob);
+  if (years > 100) {
+    return res.status(400).json({ error: 'Please enter a valid date of birth' });
+  }
+  if (years < 13) {
+    return res.status(403).json({
+      error: 'Arjun is for athletes aged 13 and above. You cannot create an account yet.',
+      code: 'AGE_BLOCKED',
+    });
+  }
+  const isMinor = years < 18;
+  if (isMinor) {
+    if (!guardianEmail?.trim() || !emailRe.test(guardianEmail)) {
+      return res.status(400).json({
+        error: 'A parent or guardian email is required for athletes under 18',
+        code: 'GUARDIAN_EMAIL_REQUIRED',
+      });
+    }
+    if (guardianEmail.toLowerCase().trim() === email.toLowerCase().trim()) {
+      return res.status(400).json({ error: 'Guardian email must be different from your own email' });
+    }
   }
 
   try {
@@ -56,23 +99,98 @@ router.post('/register', async (req, res) => {
     }
 
     const hashed = await bcrypt.hash(password, SALT_ROUNDS);
+    const consentToken = isMinor ? crypto.randomBytes(32).toString('hex') : null;
     const user = await prisma.user.create({
       data: {
         name:         name.trim(),
         email:        email.toLowerCase().trim(),
         password:     hashed,
         trialStarted: new Date(),
+        dateOfBirth:  dob,
+        age:          years,
+        ...(isMinor && {
+          guardianEmail: guardianEmail.toLowerCase().trim(),
+          guardianConsentToken: consentToken,
+        }),
       },
       select: SAFE_SELECT,
     });
 
-    // Fire-and-forget welcome email — don't block the response
+    // Fire-and-forget emails — don't block the response
     sendWelcomeEmail(user.email, user.name).catch(err =>
       console.error('[auth] welcome email failed:', err?.message)
     );
+    if (isMinor) {
+      const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+      const consentUrl = `${clientUrl}/guardian-consent?token=${consentToken}`;
+      sendGuardianConsentEmail(user.guardianEmail, user.name, consentUrl).catch(err =>
+        console.error('[auth] guardian consent email failed:', err?.message)
+      );
+    }
 
     res.status(201).json({ token: makeToken(user), user: parseGoals(user) });
   } catch {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ── POST /api/auth/guardian-consent — public, from the emailed link ────────
+
+router.post('/guardian-consent', async (req, res) => {
+  const { token } = req.body;
+  if (!token) return res.status(400).json({ error: 'Token is required' });
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { guardianConsentToken: token },
+      select: { id: true, name: true, guardianConsentAt: true },
+    });
+    if (!user) {
+      return res.status(400).json({ error: 'This consent link is invalid or has already been used.' });
+    }
+    if (user.guardianConsentAt) {
+      return res.json({ success: true, athleteName: user.name.split(' ')[0], alreadyConfirmed: true });
+    }
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { guardianConsentAt: new Date() },
+    });
+
+    console.log(JSON.stringify({
+      event: 'guardian_consent_confirmed',
+      timestamp: new Date().toISOString(),
+    }));
+
+    res.json({ success: true, athleteName: user.name.split(' ')[0] });
+  } catch {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ── POST /api/auth/resend-guardian-consent — authenticated minor re-sends ──
+
+router.post('/resend-guardian-consent', authenticate, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.userId },
+      select: { name: true, guardianEmail: true, guardianConsentAt: true, guardianConsentToken: true },
+    });
+    if (!user?.guardianEmail || user.guardianConsentAt) {
+      return res.status(400).json({ error: 'No pending guardian consent for this account' });
+    }
+
+    let token = user.guardianConsentToken;
+    if (!token) {
+      token = crypto.randomBytes(32).toString('hex');
+      await prisma.user.update({ where: { id: req.userId }, data: { guardianConsentToken: token } });
+    }
+
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+    await sendGuardianConsentEmail(user.guardianEmail, user.name, `${clientUrl}/guardian-consent?token=${token}`);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[auth] resend guardian consent failed:', err?.message);
     res.status(500).json({ error: 'Server error' });
   }
 });
