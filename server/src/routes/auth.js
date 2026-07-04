@@ -5,6 +5,7 @@ const crypto  = require('crypto');
 const { PrismaClient } = require('@prisma/client');
 const authenticate = require('../middleware/authenticate');
 const { sendPasswordResetEmail, sendWelcomeEmail, sendDeletionEmail, sendGuardianConsentEmail } = require('../services/email');
+const { authLimiter } = require('../middleware/rateLimits');
 
 const router  = express.Router();
 const prisma  = new PrismaClient();
@@ -47,7 +48,7 @@ function parseGoals(user) {
 
 // ── POST /api/auth/register ────────────────────────────────────────────────
 
-router.post('/register', async (req, res) => {
+router.post('/register', authLimiter, async (req, res) => {
   const { name, email, password, dateOfBirth, guardianEmail } = req.body;
   const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -197,7 +198,7 @@ router.post('/resend-guardian-consent', authenticate, async (req, res) => {
 
 // ── POST /api/auth/login ───────────────────────────────────────────────────
 
-router.post('/login', async (req, res) => {
+router.post('/login', authLimiter, async (req, res) => {
   const { email, password } = req.body;
 
   if (!email?.trim() || !password) {
@@ -409,7 +410,7 @@ router.post('/logout', (_req, res) => {
 
 // ── POST /api/auth/forgot-password ────────────────────────────────────────
 
-router.post('/forgot-password', async (req, res) => {
+router.post('/forgot-password', authLimiter, async (req, res) => {
   const { email } = req.body;
   if (!email?.trim()) return res.status(400).json({ error: 'Email is required' });
 

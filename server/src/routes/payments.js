@@ -30,6 +30,25 @@ router.post('/webhook', async (req, res) => {
     const subEntity = payload.payload?.subscription?.entity;
     const userId   = subEntity?.notes?.userId;
 
+    // Idempotency: Razorpay retries deliver the same x-razorpay-event-id.
+    // Record it first — a unique violation means we already processed this event.
+    const eventId = req.headers['x-razorpay-event-id'];
+    if (eventId) {
+      try {
+        await prisma.processedWebhookEvent.create({
+          data: { eventId, eventType: event ?? null },
+        });
+      } catch (dupErr) {
+        if (dupErr?.code === 'P2002') {
+          console.log(`[PAYMENT] Duplicate webhook event ${eventId} ignored`);
+          return res.status(200).json({ received: true, duplicate: true });
+        }
+        // Dedup table hiccup — log and continue; processing twice is the
+        // pre-existing behavior, dropping a real event would be worse.
+        console.error('[PAYMENT] Webhook dedup write failed (continuing):', dupErr?.message);
+      }
+    }
+
     if (event === 'subscription.activated') {
       if (userId) {
         await prisma.user.update({

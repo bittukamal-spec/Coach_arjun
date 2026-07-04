@@ -3,6 +3,7 @@ const Anthropic = require('@anthropic-ai/sdk');
 const { PrismaClient } = require('@prisma/client');
 const authenticate = require('../middleware/authenticate');
 const requireGuardianConsent = require('../middleware/requireGuardianConsent');
+const { aiLimiter } = require('../middleware/rateLimits');
 const { checkFreeLimit } = require('./chat');
 
 const router = express.Router();
@@ -14,7 +15,7 @@ const SYSTEM_PROMPT = `You are Arjun, an AI mental performance coach for young I
 
 // ── POST /api/body-reset/arjun-note ──────────────────────────────────────────
 
-router.post('/arjun-note', authenticate, requireGuardianConsent, checkFreeLimit, async (req, res) => {
+router.post('/arjun-note', authenticate, aiLimiter, requireGuardianConsent, checkFreeLimit, async (req, res) => {
   const { mode, feeling, context, focusWordUsed, tensionBefore, tensionAfter, sport } = req.body;
 
   const contextLines = [

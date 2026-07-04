@@ -2,6 +2,7 @@ const express    = require('express');
 const Anthropic  = require('@anthropic-ai/sdk');
 const { PrismaClient } = require('@prisma/client');
 const authenticate = require('../middleware/authenticate');
+const { aiLimiter } = require('../middleware/rateLimits');
 const { isTrialActive } = require('./chat');
 
 const router = express.Router();
@@ -44,7 +45,7 @@ const FALLBACKS = {
 };
 
 // GET /api/profile-intro — returns (and caches) the user's personalized intro paragraph
-router.get('/', authenticate, async (req, res) => {
+router.get('/', authenticate, aiLimiter, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.userId },

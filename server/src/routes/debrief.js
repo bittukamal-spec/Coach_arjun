@@ -3,6 +3,7 @@ const Anthropic = require('@anthropic-ai/sdk');
 const { PrismaClient } = require('@prisma/client');
 const authenticate = require('../middleware/authenticate');
 const requireGuardianConsent = require('../middleware/requireGuardianConsent');
+const { aiLimiter } = require('../middleware/rateLimits');
 const { isTrialActive } = require('./chat');
 
 const router = express.Router();
@@ -68,7 +69,7 @@ Rules: ${lang} only. Sound like a trusted older brother who knows the sport. Ret
 
 // ── POST /api/debrief ─────────────────────────────────────────────────────────
 
-router.post('/', authenticate, requireGuardianConsent, async (req, res) => {
+router.post('/', authenticate, aiLimiter, requireGuardianConsent, async (req, res) => {
   const { mode } = req.body;
 
   // ── Legacy flow (old 3-textarea form) ────────────────────────────────────

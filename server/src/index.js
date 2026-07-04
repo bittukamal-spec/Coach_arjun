@@ -17,6 +17,9 @@ const sessionsRoutes    = require('./routes/sessions');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Railway terminates TLS at a proxy — needed for correct client IPs (rate limiting)
+app.set('trust proxy', 1);
+
 // Webhook must receive the raw Buffer for HMAC signature verification.
 // Register path-specific raw-body middleware BEFORE the global express.json()
 // so the stream is not pre-consumed on this path.
@@ -24,7 +27,17 @@ app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
 
 app.use(express.json());
 
-app.use(cors({ origin: true, credentials: true }));
+// CORS allowlist from CLIENT_URL (comma-separated for extra origins, e.g. the
+// founder dashboard). Falls back to allow-all only when CLIENT_URL is unset (dev).
+const allowedOrigins = (process.env.CLIENT_URL || '')
+  .split(',')
+  .map(o => o.trim().replace(/\/$/, ''))
+  .filter(Boolean);
+
+app.use(cors({
+  origin: allowedOrigins.length > 0 ? allowedOrigins : true,
+  credentials: true,
+}));
 
 // Routes
 app.use('/api/auth',         authRoutes);

@@ -3,6 +3,7 @@ const Anthropic = require('@anthropic-ai/sdk');
 const { PrismaClient } = require('@prisma/client');
 const authenticate = require('../middleware/authenticate');
 const requireGuardianConsent = require('../middleware/requireGuardianConsent');
+const { aiLimiter } = require('../middleware/rateLimits');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -661,7 +662,7 @@ router.get('/usage', authenticate, async (req, res) => {
 
 // ── POST /api/chat/message — send a message, stream Claude's response ─────
 
-router.post('/message', authenticate, requireGuardianConsent, checkFreeLimit, async (req, res) => {
+router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFreeLimit, async (req, res) => {
   if (!process.env.ANTHROPIC_API_KEY) {
     return res.status(503).json({
       error: 'AI coaching is not configured. Add ANTHROPIC_API_KEY to your server .env file.',
@@ -866,7 +867,7 @@ router.post('/message', authenticate, requireGuardianConsent, checkFreeLimit, as
 // Single non-streaming call used by the guided wizard flows.
 // Returns { text: string, cueWord: string|null }
 
-router.post('/wizard', authenticate, requireGuardianConsent, checkFreeLimit, async (req, res) => {
+router.post('/wizard', authenticate, aiLimiter, requireGuardianConsent, checkFreeLimit, async (req, res) => {
   const { wizardType, feeling, situation, language = 'en', whatHappened, intensity, stuckOn, intensityLabel, controlChoice } = req.body;
   try {
     const user = await prisma.user.findUnique({
