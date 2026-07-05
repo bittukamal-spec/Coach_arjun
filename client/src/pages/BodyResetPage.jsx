@@ -123,6 +123,8 @@ export default function BodyResetPage() {
     if (screen === 'safety') { navigate('/train'); return; }
     // Don't allow back during active breathing
     if (screen === 7 && timerRef.current) return;
+    // Screens 2+3 are merged — skip 3 when going back from 4
+    if (screen === 4) { setScreen(2); return; }
     if (typeof screen === 'number' && screen > 1) setScreen(s => s - 1);
   }
 
@@ -422,26 +424,32 @@ export default function BodyResetPage() {
   }
 
   // ──────────────────────────────────────────────────────────────────────────────
-  // SCREEN 2 — Feeling
+  // SCREEN 2 — Feeling + Context (merged)
   // ──────────────────────────────────────────────────────────────────────────────
   if (screen === 2) {
-    const isCustom = feeling === 'custom';
-    const canContinue = feeling && (feeling !== 'custom' || feelingCustom.trim().length > 0);
+    const isFeelingCustom = feeling === 'custom';
+    const isContextCustom = context === 'custom';
+    const feelingOk = feeling && (feeling !== 'custom' || feelingCustom.trim().length > 0);
+    const contextOk = context && (context !== 'custom' || contextCustom.trim().length > 0);
+    const canContinue = feelingOk && contextOk;
 
-    function advanceFromFeeling() {
+    function advance() {
       if (!canContinue) return;
-      if (isCustom && hasCrisis(feelingCustom)) { reportCrisisEvent(); setScreen('safety'); return; }
-      setScreen(3);
+      if (isFeelingCustom && hasCrisis(feelingCustom)) { reportCrisisEvent(); setScreen('safety'); return; }
+      if (isContextCustom && hasCrisis(contextCustom)) { reportCrisisEvent(); setScreen('safety'); return; }
+      setScreen(4);
     }
 
     return (
       <div className="min-h-screen bg-dark-900">
         <Header />
         <div className="px-4 pb-24">
-          <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">1 / 8</p>
+          <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">1 / 7</p>
+
+          {/* Feeling question */}
           <h2 className="text-xl font-bold text-ink mb-1">{t.feeling.heading}</h2>
-          <p className="text-sm text-slt mb-5">{t.feeling.sub}</p>
-          <div className="grid grid-cols-2 gap-2 mb-4">
+          <p className="text-sm text-slt mb-4">{t.feeling.sub}</p>
+          <div className="grid grid-cols-2 gap-2 mb-2">
             {feelingOpts.map(opt => (
               <button
                 key={opt.val}
@@ -457,8 +465,8 @@ export default function BodyResetPage() {
             ))}
             <button
               onClick={() => setFeeling('custom')}
-              className={`col-span-2 py-3 px-3 rounded-2xl text-sm font-semibold border transition-all active:scale-95 ${
-                isCustom
+              className={`col-span-2 py-2 px-3 rounded-2xl text-sm font-semibold border transition-all active:scale-95 ${
+                isFeelingCustom
                   ? 'bg-teal-500/15 border-teal-500/60 text-teal-400'
                   : 'bg-dark-800 border-dark-600 text-slt'
               }`}
@@ -466,89 +474,63 @@ export default function BodyResetPage() {
               {t.feeling.customLabel}
             </button>
           </div>
-          {isCustom && (
+          {isFeelingCustom && (
             <textarea
               autoFocus
               value={feelingCustom}
               onChange={e => setFeelingCustom(e.target.value)}
               placeholder={t.feeling.customPlaceholder}
-              rows={3}
-              className="w-full bg-dark-800 border border-dark-600 rounded-2xl px-4 py-3 text-sm text-ink placeholder-muted resize-none focus:outline-none focus:border-teal-500/60 mb-4"
+              rows={2}
+              className="w-full bg-dark-800 border border-dark-600 rounded-2xl px-4 py-3 text-sm text-ink placeholder-muted resize-none focus:outline-none focus:border-teal-500/60 mb-2"
             />
           )}
-          <button
-            disabled={!canContinue}
-            onClick={advanceFromFeeling}
-            className="w-full bg-teal-500 text-white font-bold py-4 rounded-2xl text-base active:scale-[0.98] disabled:opacity-40"
-          >
-            {t.feeling.nextBtn}
-          </button>
-        </div>
-      </div>
-    );
-  }
 
-  // ──────────────────────────────────────────────────────────────────────────────
-  // SCREEN 3 — Context
-  // ──────────────────────────────────────────────────────────────────────────────
-  if (screen === 3) {
-    const isCustom = context === 'custom';
-    const canContinue = context && (context !== 'custom' || contextCustom.trim().length > 0);
-
-    function advanceFromContext() {
-      if (!canContinue) return;
-      if (isCustom && hasCrisis(contextCustom)) { reportCrisisEvent(); setScreen('safety'); return; }
-      setScreen(4);
-    }
-
-    return (
-      <div className="min-h-screen bg-dark-900">
-        <Header />
-        <div className="px-4 pb-24">
-          <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">2 / 8</p>
-          <h2 className="text-xl font-bold text-ink mb-1">{t.context.heading}</h2>
-          <p className="text-sm text-slt mb-5">{t.context.sub}</p>
-          <div className="grid grid-cols-2 gap-2 mb-4">
-            {contextOpts.map(opt => (
+          {/* Context question — always visible below */}
+          <div className="mt-6 mb-4">
+            <h2 className="text-xl font-bold text-ink mb-1">{t.context.heading}</h2>
+            <p className="text-sm text-slt mb-4">{t.context.sub}</p>
+            <div className="grid grid-cols-2 gap-2 mb-2">
+              {contextOpts.map(opt => (
+                <button
+                  key={opt.val}
+                  onClick={() => setContext(opt.val)}
+                  className={`py-3 px-3 rounded-2xl text-sm font-semibold border transition-all active:scale-95 ${
+                    context === opt.val
+                      ? 'bg-teal-500/15 border-teal-500/60 text-teal-400'
+                      : 'bg-dark-800 border-dark-600 text-slt'
+                  }`}
+                >
+                  {opt.key}
+                </button>
+              ))}
               <button
-                key={opt.val}
-                onClick={() => setContext(opt.val)}
-                className={`py-3 px-3 rounded-2xl text-sm font-semibold border transition-all active:scale-95 ${
-                  context === opt.val
+                onClick={() => setContext('custom')}
+                className={`col-span-2 py-2 px-3 rounded-2xl text-sm font-semibold border transition-all active:scale-95 ${
+                  isContextCustom
                     ? 'bg-teal-500/15 border-teal-500/60 text-teal-400'
                     : 'bg-dark-800 border-dark-600 text-slt'
                 }`}
               >
-                {opt.key}
+                {t.context.customLabel}
               </button>
-            ))}
-            <button
-              onClick={() => setContext('custom')}
-              className={`col-span-2 py-3 px-3 rounded-2xl text-sm font-semibold border transition-all active:scale-95 ${
-                isCustom
-                  ? 'bg-teal-500/15 border-teal-500/60 text-teal-400'
-                  : 'bg-dark-800 border-dark-600 text-slt'
-              }`}
-            >
-              {t.context.customLabel}
-            </button>
+            </div>
+            {isContextCustom && (
+              <textarea
+                value={contextCustom}
+                onChange={e => setContextCustom(e.target.value)}
+                placeholder={t.context.customPlaceholder}
+                rows={2}
+                className="w-full bg-dark-800 border border-dark-600 rounded-2xl px-4 py-3 text-sm text-ink placeholder-muted resize-none focus:outline-none focus:border-teal-500/60 mb-2"
+              />
+            )}
           </div>
-          {isCustom && (
-            <textarea
-              autoFocus
-              value={contextCustom}
-              onChange={e => setContextCustom(e.target.value)}
-              placeholder={t.context.customPlaceholder}
-              rows={3}
-              className="w-full bg-dark-800 border border-dark-600 rounded-2xl px-4 py-3 text-sm text-ink placeholder-muted resize-none focus:outline-none focus:border-teal-500/60 mb-4"
-            />
-          )}
+
           <button
             disabled={!canContinue}
-            onClick={advanceFromContext}
+            onClick={advance}
             className="w-full bg-teal-500 text-white font-bold py-4 rounded-2xl text-base active:scale-[0.98] disabled:opacity-40"
           >
-            {t.context.nextBtn}
+            {t.feeling.nextBtn}
           </button>
         </div>
       </div>
@@ -563,7 +545,7 @@ export default function BodyResetPage() {
       <div className="min-h-screen bg-dark-900">
         <Header />
         <div className="px-4 pb-24">
-          <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">3 / 8</p>
+          <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">2 / 7</p>
           <h2 className="text-xl font-bold text-ink mb-5">{t.mode.heading}</h2>
           <div className="space-y-3">
             {[
@@ -597,7 +579,7 @@ export default function BodyResetPage() {
       <div className="min-h-screen bg-dark-900">
         <Header />
         <div className="px-4 pb-24">
-          <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">4 / 8</p>
+          <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">3 / 7</p>
           <h2 className="text-xl font-bold text-ink mb-5">{t.before.heading}</h2>
 
           <div className="mb-6">
@@ -635,7 +617,7 @@ export default function BodyResetPage() {
       <div className="min-h-screen bg-dark-900">
         <Header />
         <div className="px-4 pb-24">
-          <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">5 / 8</p>
+          <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">4 / 7</p>
           <h2 className="text-xl font-bold text-ink mb-1">{t.focus.heading}</h2>
           <p className="text-sm text-slt mb-5">{t.focus.sub}</p>
 
@@ -762,7 +744,7 @@ export default function BodyResetPage() {
       <div className="min-h-screen bg-dark-900">
         <Header canGoBack={false} />
         <div className="px-4 pb-24">
-          <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">7 / 8</p>
+          <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">5 / 7</p>
           <h2 className="text-xl font-bold text-ink mb-5">{t.note.heading}</h2>
 
           {noteLoading ? (
@@ -804,7 +786,7 @@ export default function BodyResetPage() {
       <div className="min-h-screen bg-dark-900">
         <Header canGoBack={false} />
         <div className="px-4 pb-24">
-          <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">8 / 8</p>
+          <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">6 / 7</p>
           <h2 className="text-xl font-bold text-ink mb-5">{t.after.heading}</h2>
 
           <div className="mb-6">
@@ -850,6 +832,7 @@ export default function BodyResetPage() {
       <div className="min-h-screen bg-dark-900">
         <Header canGoBack={false} />
         <div className="px-4 pb-24">
+          <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">7 / 7</p>
           <h2 className="text-xl font-bold text-ink mb-5">{t.card.heading}</h2>
 
           <div className="bg-dark-800 border border-dark-600 rounded-2xl overflow-hidden mb-6">

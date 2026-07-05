@@ -154,7 +154,7 @@ export default function SelfTalkPage() {
     <div className="min-h-screen bg-dark-900 flex flex-col">
       <Header />
       <div className="flex-1 px-4 pt-2 pb-8 overflow-y-auto">
-        <div className="inline-flex items-center gap-1.5 bg-purple-500/15 text-purple-400 text-xs font-semibold px-3 py-1 rounded-full mb-3">
+        <div className="inline-flex items-center gap-1.5 bg-brand-500/15 text-brand-400 text-xs font-semibold px-3 py-1 rounded-full mb-3">
           <span>✦</span> {t.learn.duration}
         </div>
         <h1 className="text-2xl font-bold text-ink mb-3">{t.learn.title}</h1>
@@ -346,7 +346,6 @@ export default function SelfTalkPage() {
               key={opt.key}
               onClick={() => {
                 setField('oldThought', opt.key === 'custom' ? '' : opt.label);
-                if (opt.key !== 'custom') setField('oldThought', opt.label);
                 setField('_thoughtKey', opt.key);
               }}
               className={`text-left px-4 py-3.5 rounded-2xl border text-sm font-medium transition-colors active:scale-[0.98] ${
@@ -399,7 +398,7 @@ export default function SelfTalkPage() {
                   onClick={() => setField('confidenceBefore', n)}
                   className={`w-8 h-8 rounded-lg text-xs font-bold transition-colors ${
                     form.confidenceBefore === n
-                      ? 'bg-purple-500 text-white'
+                      ? 'bg-brand-500 text-white'
                       : 'bg-dark-800 border border-dark-600 text-slt'
                   }`}
                 >
@@ -481,7 +480,7 @@ export default function SelfTalkPage() {
         <p className="text-xs text-slt mb-1">{t.card.progress}</p>
         <h2 className="text-xl font-bold text-ink mb-4">{t.card.heading}</h2>
 
-        <div className="bg-gradient-to-br from-brand-500/20 to-purple-500/10 border border-brand-500/30 rounded-3xl p-5 mb-4">
+        <div className="bg-brand-500/10 border border-brand-500/30 rounded-3xl p-5 mb-4">
           <div className="flex flex-col items-center mb-4">
             <p className="text-[10px] font-semibold text-brand-400 uppercase tracking-wider mb-1">{t.card.focusWordLabel}</p>
             <p className="font-bold text-center" style={{ fontSize: '28px', color: '#185FA5' }}>{card.focusWord}</p>

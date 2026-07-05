@@ -16,7 +16,7 @@ const C = {
   textLight: '#F8FAFC',
   cardBg:    'var(--card)',    // card follows theme
   selBorder: '#185FA5',
-  selBg:     '#EBF3FC',
+  selBg:     'rgba(24,95,165,0.15)',
 };
 
 function ArjunBubble({ children }) {
@@ -351,7 +351,7 @@ export default function VisualizationPage() {
                   width: '100%',
                   minHeight: 48,
                   background: specificMoment === opt ? C.selBg : C.cardBg,
-                  border: `1px solid ${specificMoment === opt ? C.selBorder : '#E2E8F0'}`,
+                  border: `1px solid ${specificMoment === opt ? C.selBorder : 'var(--border-soft)'}`,
                   borderRadius: 12,
                   fontSize: 16,
                   color: C.textDark,
@@ -404,7 +404,7 @@ export default function VisualizationPage() {
                   width: '100%',
                   minHeight: 56,
                   background: C.cardBg,
-                  border: `1px solid #E2E8F0`,
+                  border: `1px solid var(--border-soft)`,
                   borderRadius: 12,
                   display: 'flex',
                   alignItems: 'center',
@@ -672,11 +672,6 @@ export default function VisualizationPage() {
 
   // ── STEP 5 ───────────────────────────────────────────────────────────────────
   if (screen === 'step5') {
-    const vizContextStr = `Athlete just completed a visualization rehearsal. Moment rehearsed: "${specificMoment}". Sport: ${user?.sport || 'unspecified'}. Mental state going in: ${currentState}. Cue word: ${user?.cueWord || 'none set'}.`;
-    const vizBridgeMsg = language === 'hi'
-      ? 'Visualization complete ho gayi. Baat karte hain?'
-      : 'I just finished my visualization. Can we talk about it?';
-
     const arjunLine = t.step5.arjun[
       currentState === 'nervous' ? 'nervous' :
       currentState === 'flat' ? 'flat' :
