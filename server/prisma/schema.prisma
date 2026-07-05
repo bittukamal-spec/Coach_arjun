@@ -83,7 +83,13 @@ model User {
   dateOfBirth           DateTime? // null for accounts created before the age gate
   guardianEmail         String?   // required at signup when under 18
   guardianConsentAt     DateTime? // set when guardian confirms via emailed link
-  guardianConsentToken  String?   @unique // one-time consent-link token
+  // TODO: restore @unique once this project moves to tracked Prisma
+  // migrations — db push on a populated User table requires
+  // --accept-data-loss to add a new unique constraint, which we're
+  // avoiding for production `start`. Token is still effectively unique
+  // in practice (crypto.randomBytes(32) — see auth.js), just not
+  // DB-enforced right now. Lookup uses findFirst, not findUnique.
+  guardianConsentToken  String?   // one-time consent-link token
 
   messages               Message[]
   safetyEvents           SafetyEvent[]

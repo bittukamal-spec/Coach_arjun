@@ -142,7 +142,11 @@ router.post('/guardian-consent', async (req, res) => {
   if (!token) return res.status(400).json({ error: 'Token is required' });
 
   try {
-    const user = await prisma.user.findUnique({
+    // findFirst, not findUnique: guardianConsentToken isn't DB-enforced
+    // unique right now (see schema.prisma TODO). Token is still a
+    // cryptographically random 256-bit value, so a collision is not a
+    // realistic concern in practice.
+    const user = await prisma.user.findFirst({
       where: { guardianConsentToken: token },
       select: { id: true, name: true, guardianConsentAt: true },
     });
