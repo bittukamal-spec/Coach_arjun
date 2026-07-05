@@ -282,12 +282,15 @@ function ChatPage() {
   const { token, language, user } = useAuth();
   const consentPending = needsGuardianConsent(user);
   const t = translations[language].chat;
+  const hi = language === 'hi';
   const location = useLocation();
   const navigate = useNavigate();
 
   const [messages, setMessages]                   = useState([]);
   const [input, setInput]                         = useState('');
   const [loading, setLoading]                     = useState(true);
+  const [initError, setInitError]                 = useState('');
+  const [retryKey, setRetryKey]                   = useState(0);
   const [streaming, setStreaming]                 = useState(false);
   const [waitingForFirst, setWaitingForFirst]     = useState(false);
   const [error, setError]                         = useState('');
@@ -314,62 +317,68 @@ function ChatPage() {
 
   useEffect(() => {
     async function init() {
-      // Fire-and-forget: end sessions from previous days
-      apiFetch('/api/sessions/end-stale', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      }).catch(() => {});
+      setInitError('');
+      try {
+        // Fire-and-forget: end sessions from previous days
+        apiFetch('/api/sessions/end-stale', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        }).catch(() => {});
 
-      const [sessionsRes, usageRes] = await Promise.all([
-        apiFetch('/api/sessions',    { headers: { Authorization: `Bearer ${token}` } }),
-        apiFetch('/api/chat/usage',  { headers: { Authorization: `Bearer ${token}` } }),
-      ]);
+        const [sessionsRes, usageRes] = await Promise.all([
+          apiFetch('/api/sessions',    { headers: { Authorization: `Bearer ${token}` } }),
+          apiFetch('/api/chat/usage',  { headers: { Authorization: `Bearer ${token}` } }),
+        ]);
 
-      if (usageRes.ok) setUsage(await usageRes.json());
+        if (usageRes.ok) setUsage(await usageRes.json());
 
-      let sessionLoaded = false;
-      if (sessionsRes.ok) {
-        const { sessions } = await sessionsRes.json();
-        setRecentSessions(sessions);
+        let sessionLoaded = false;
+        if (sessionsRes.ok) {
+          const { sessions } = await sessionsRes.json();
+          setRecentSessions(sessions);
 
-        const pendingId = pendingChatSessionIdRef.current;
-        if (pendingId) {
-          pendingChatSessionIdRef.current = null;
-          setChatSessionId(pendingId);
-          const sess = sessions.find(s => s.id === pendingId);
-          if (sess?.sessionType && sess.sessionType !== 'general') {
-            setActiveSession(sess.sessionType);
+          const pendingId = pendingChatSessionIdRef.current;
+          if (pendingId) {
+            pendingChatSessionIdRef.current = null;
+            setChatSessionId(pendingId);
+            const sess = sessions.find(s => s.id === pendingId);
+            if (sess?.sessionType && sess.sessionType !== 'general') {
+              setActiveSession(sess.sessionType);
+            }
+            if (sess?.summary) setSessionSummary(sess.summary);
+            await fetchSessionMessages(pendingId);
+            sessionLoaded = true;
+          } else if (sessions.length > 0) {
+            // Auto-load the most recent main session — sessions are ordered createdAt desc
+            const mainSession = sessions[0];
+            setChatSessionId(mainSession.id);
+            setChatMode('main');
+            if (mainSession.sessionType && mainSession.sessionType !== 'general') {
+              setActiveSession(mainSession.sessionType);
+            }
+            if (mainSession.summary) setSessionSummary(mainSession.summary);
+            await fetchSessionMessages(mainSession.id);
+            sessionLoaded = true;
           }
-          if (sess?.summary) setSessionSummary(sess.summary);
-          await fetchSessionMessages(pendingId);
-          sessionLoaded = true;
-        } else if (sessions.length > 0) {
-          // Auto-load the most recent main session — sessions are ordered createdAt desc
-          const mainSession = sessions[0];
-          setChatSessionId(mainSession.id);
-          setChatMode('main');
-          if (mainSession.sessionType && mainSession.sessionType !== 'general') {
-            setActiveSession(mainSession.sessionType);
-          }
-          if (mainSession.summary) setSessionSummary(mainSession.summary);
-          await fetchSessionMessages(mainSession.id);
-          sessionLoaded = true;
         }
-      }
 
-      if (!sessionLoaded) {
-        setShowStartScreen(true);
-      }
+        if (!sessionLoaded) {
+          setShowStartScreen(true);
+        }
 
-      setLoading(false);
-
-      if (prefillMsgRef.current) {
-        setInput(prefillMsgRef.current);
-        prefillMsgRef.current = null;
+        if (prefillMsgRef.current) {
+          setInput(prefillMsgRef.current);
+          prefillMsgRef.current = null;
+        }
+      } catch (err) {
+        console.error('[ChatPage] init failed:', err);
+        setInitError(t.errorRetry);
+      } finally {
+        setLoading(false);
       }
     }
     init();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [retryKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Auto-scroll ───────────────────────────────────────────────────────────
 
@@ -594,6 +603,20 @@ function ChatPage() {
     return (
       <div className="h-dvh flex items-center justify-center bg-dark-900">
         <div className="w-8 h-8 border-4 border-brand-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (initError) {
+    return (
+      <div className="h-dvh flex flex-col items-center justify-center bg-dark-900 px-6 gap-4">
+        <p className="text-sm text-red-400 text-center">{initError}</p>
+        <button
+          onClick={() => { setLoading(true); setRetryKey(k => k + 1); }}
+          className="px-5 py-2.5 bg-brand-600 text-white rounded-xl text-sm font-semibold active:scale-95 transition-all"
+        >
+          {hi ? 'फिर कोशिश करो' : 'Retry'}
+        </button>
       </div>
     );
   }
