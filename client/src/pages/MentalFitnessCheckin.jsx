@@ -270,14 +270,17 @@ export default function MentalFitnessCheckin() {
 
       {!submitError && (
         <div className="px-4 space-y-4">
-          {/* Average score — prominent */}
+          {/* Score — word label first, number second */}
           {avgPct !== null && (
-            <div className="rounded-2xl p-5 flex items-center justify-between" style={{ backgroundColor: '#185FA5' }}>
-              <div>
-                <p className="text-xs text-white/70 mb-1">{mf.avgLabel}</p>
-                <p className="text-4xl font-black text-white">{avgPct}<span className="text-lg font-normal opacity-70">/100</span></p>
+            <div className="rounded-2xl p-5" style={{ backgroundColor: '#185FA5' }}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-white/70 mb-1">{hi ? 'आज' : 'Today'}</p>
+                  <p className="text-2xl font-black text-white leading-tight">{mf.scoreLabel(avgPct)}</p>
+                  <p className="text-base font-semibold text-white/80 mt-1">{avgPct}<span className="text-sm font-normal opacity-70">/100</span></p>
+                </div>
+                <p className="text-5xl">🧠</p>
               </div>
-              <p className="text-5xl">🧠</p>
             </div>
           )}
 

@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import ConsentBanner from '../components/ConsentBanner';
+import { ArjunLogo } from '../components/ArjunLogo';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
 import {
   Flame, Zap, CheckCircle2, Snowflake, ChevronRight,
-  Wind, RotateCcw, Trophy, ClipboardList, Gamepad2, Crown, X,
-  Eye, Target, Shield, CircleDot, Waves, Activity,
+  Wind, RotateCcw, Target, Shield, CircleDot, Waves, Activity,
+  Gamepad2, ClipboardList, X,
 } from 'lucide-react';
 
 function getSportIcon(sport) {
@@ -18,8 +19,6 @@ function getSportIcon(sport) {
   if (['running','athletics','track','cycling','marathon'].some(k => s.includes(k))) return Activity;
   return Trophy;
 }
-
-const TRIAL_DAYS = 14;
 
 const TOOL_MAP = {
   calm:     { toolKey: 'breathing', to: '/breathing',   state: null, Icon: Wind          },
@@ -32,14 +31,6 @@ function getRecommendedTool(entry) {
   const dims = ['calm', 'focus', 'selftalk', 'bounce'];
   const sorted = dims.filter(d => entry[d] != null).sort((a, b) => entry[a] - entry[b]);
   return TOOL_MAP[sorted[0]] || TOOL_MAP.calm;
-}
-
-function getTrialDaysRemaining(user) {
-  if (user?.tier === 'premium') return null;
-  const start = user?.trialStarted || null;
-  if (!start) return TRIAL_DAYS;
-  const daysSince = Math.floor((Date.now() - new Date(start).getTime()) / (1000 * 60 * 60 * 24));
-  return Math.max(0, TRIAL_DAYS - daysSince);
 }
 
 function SectionLabel({ children }) {
@@ -77,17 +68,12 @@ export default function Dashboard() {
   const mf = t.mentalFitness;
   const hi = language === 'hi';
 
-  const isPremium          = user?.tier === 'premium';
-  const trialDaysRemaining = getTrialDaysRemaining(user);
-  const trialEnded         = !isPremium && trialDaysRemaining === 0;
-
   // ── state ──────────────────────────────────────────────────────────────────
   const [mfsEntry,          setMfsEntry]          = useState(null);
   const [streak,            setStreak]            = useState(null);
   const [freezeCount,       setFreezeCount]       = useState(null);
   const [totalCheckIns,     setTotalCheckIns]     = useState(0);
   const [fitnessScore,      setFitnessScore]      = useState(null);
-  const [weeklyAvg,         setWeeklyAvg]         = useState(null);
   const [infoPopup,         setInfoPopup]         = useState(null);
   const [showMfsReport,     setShowMfsReport]     = useState(false);
   const [showFreezeConfirm, setShowFreezeConfirm] = useState(false);
@@ -96,8 +82,6 @@ export default function Dashboard() {
   const [missedDismissed,   setMissedDismissed]   = useState(
     () => localStorage.getItem('arjun_missed_dismissed') === new Date().toISOString().slice(0, 10)
   );
-
-  const savedCueWord = localStorage.getItem(`arjun_cue_word_${user?.id}`) || '';
 
   // ── data fetch ─────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -109,7 +93,6 @@ export default function Dashboard() {
         setFreezeCount(data.freezeCount ?? 0);
         setTotalCheckIns(data.totalCheckIns ?? 0);
         if (data.fitnessScore !== undefined) setFitnessScore(data.fitnessScore);
-        if (data.weeklyAvg) setWeeklyAvg(data.weeklyAvg);
         setLoaded(true);
       })
       .catch(() => setLoaded(true));
@@ -318,16 +301,16 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* ── QUICK TOOLS 2×2 ────────────────────────────────────────────── */}
+            {/* ── MOMENT BUTTONS ─────────────────────────────────────────────── */}
             <div className="mb-6">
-              <SectionLabel>{hi ? 'त्वरित टूल' : 'Quick Tools'}</SectionLabel>
+              <SectionLabel>{hi ? 'अभी क्या चाहिए?' : 'What do you need right now?'}</SectionLabel>
               <div className="grid grid-cols-2 gap-3">
                 <QuickTool
                   icon={RotateCcw}
                   iconBg="bg-brand-50"
                   iconColor="text-brand-400"
                   title={hi ? 'मैच से पहले'    : 'Before You Play'}
-                  desc={hi  ? 'फोकस और तैयारी' : 'Get focused and mentally ready.'}
+                  desc={hi  ? 'फोकस और तैयारी' : 'Get focused and ready.'}
                   onClick={() => navigate('/before-you-play')}
                 />
                 <QuickTool
@@ -335,104 +318,28 @@ export default function Dashboard() {
                   iconBg="bg-teal-500/15"
                   iconColor="text-teal-400"
                   title={hi ? 'वापसी करो'    : 'Bounce Back'}
-                  desc={hi  ? 'रीसेट और आगे बढ़ो' : 'Reset, refocus and stay in control.'}
+                  desc={hi  ? 'रीसेट और आगे बढ़ो' : 'Reset and refocus.'}
                   onClick={() => navigate('/bounce-back')}
-                />
-                <QuickTool
-                  icon={ClipboardList}
-                  iconBg="bg-saffron-500/15"
-                  iconColor="text-saffron-400"
-                  title={hi ? 'मैच/ट्रेनिंग के बाद' : 'After Match / Training'}
-                  desc={hi  ? 'सोचो, सीखो'           : 'Reflect, learn and improve.'}
-                  onClick={() => navigate('/debrief')}
-                />
-                <QuickTool
-                  icon={Eye}
-                  iconBg="bg-purple-500/15"
-                  iconColor="text-purple-400"
-                  title={hi ? 'विज़ुअलाइज़ेशन' : 'Visualization'}
-                  desc={hi  ? 'मन में खेलते देखो' : 'Picture yourself playing your best.'}
-                  onClick={() => navigate('/visualization')}
                 />
               </div>
             </div>
 
-            {/* ── MATCH DAY ──────────────────────────────────────────────────── */}
-            {(savedCueWord || totalCheckIns > 0) && (
-              <div className="mb-6">
-                <SectionLabel>{hi ? 'मैच डे' : 'Match Day'}</SectionLabel>
-                <div className="card p-4">
-                  <p className="text-[10px] text-muted uppercase tracking-widest mb-1">
-                    {hi ? 'तुम्हारा क्यू वर्ड' : 'Your cue word'}
-                  </p>
-                  <p className="text-2xl font-black text-navy-bright tracking-wider mb-3">
-                    {savedCueWord || (hi ? 'अभी बनाओ' : 'SET IT UP')}
-                  </p>
-                  <button
-                    onClick={() => navigate('/ritual')}
-                    className="w-full py-2.5 bg-dark-700 border border-dark-600 hover:bg-dark-600 text-ink rounded-xl text-sm font-semibold active:scale-[0.98] transition-all"
-                  >
-                    {hi ? 'मेरा रूटीन खोलें' : 'Open My Routine'}
-                  </button>
+            {/* ── CHAT ENTRY ─────────────────────────────────────────────────── */}
+            <div className="mb-6">
+              <button
+                onClick={() => navigate('/coaching')}
+                className="w-full card p-4 flex items-center gap-3 text-left hover:border-dark-500 active:scale-[0.98] transition-all"
+              >
+                <div className="w-10 h-10 rounded-xl bg-brand-500/15 flex items-center justify-center shrink-0">
+                  <ArjunLogo size={20} />
                 </div>
-              </div>
-            )}
-
-            {/* ── PROGRESS PREVIEW ────────────────────────────────────────────── */}
-            {weeklyAvg && (weeklyAvg.mood !== null || weeklyAvg.focus !== null) && (
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-3">
-                  <SectionLabel>{td.thisWeek}</SectionLabel>
-                  <Link to="/progress" className="text-xs font-semibold text-brand-400 -mt-3">
-                    {td.viewFullProgress} <ChevronRight size={11} className="inline" />
-                  </Link>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-ink">{hi ? 'Arjun से बात करो' : 'Talk to Arjun'}</p>
+                  <p className="text-xs text-slt mt-0.5">{hi ? 'जो भी मन में है, यहाँ बोलो' : 'Whatever\'s on your mind'}</p>
                 </div>
-                <div className="card p-4">
-                  <div className="grid grid-cols-3 gap-3 text-center">
-                    {[
-                      { key: 'mood',       label: hi ? 'मूड'   : 'Mood',  color: 'text-brand-400' },
-                      { key: 'focus',      label: hi ? 'फोकस'  : 'Focus', color: 'text-sky-400'   },
-                      { key: 'confidence', label: hi ? 'आत्म.' : 'Conf',  color: 'text-win-400'   },
-                    ].map(({ key, label, color }) => (
-                      <div key={key}>
-                        <p className={`text-2xl font-black ${color}`}>{weeklyAvg[key] ?? '–'}</p>
-                        <p className="text-[10px] text-slt mt-0.5">{label}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* ── TRIAL / UPGRADE CARD ─────────────────────────────────────────── */}
-            {!isPremium && trialDaysRemaining != null && (
-              <div className="mb-6 rounded-2xl overflow-hidden border border-brand-500/30" style={{ background: 'linear-gradient(135deg, rgba(23,105,170,0.18) 0%, rgba(11,27,42,0.9) 100%)' }}>
-                <div className="p-5">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Crown size={15} className={trialEnded ? 'text-saffron-400' : 'text-brand-400'} />
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-saffron-400">
-                      {trialEnded
-                        ? (hi ? 'ट्रायल खत्म हो गया' : 'Free trial ended')
-                        : (hi ? `${trialDaysRemaining} दिन बचे हैं` : `${trialDaysRemaining} days left in your trial`)}
-                    </p>
-                  </div>
-                  <p className="text-base font-black text-ink mb-1">
-                    {hi ? 'पूरी पहुंच अनलॉक करो' : 'Unlock full access'}
-                  </p>
-                  <p className="text-xs text-slt mb-4 leading-relaxed">
-                    {hi
-                      ? 'असीमित AI कोचिंग · सभी मानसिक टूल · मैच के लिए तैयार रहो'
-                      : 'Unlimited AI coaching · All mental tools · Stay match-ready year-round'}
-                  </p>
-                  <button
-                    onClick={() => navigate('/pricing')}
-                    className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-bold active:scale-[0.98] transition-all"
-                  >
-                    {hi ? 'प्रीमियम अपग्रेड करें — ₹299/माह' : 'Upgrade to Premium — ₹299/mo'}
-                  </button>
-                </div>
-              </div>
-            )}
+                <ChevronRight size={16} className="text-muted shrink-0" />
+              </button>
+            </div>
           </>
         )}
       </main>

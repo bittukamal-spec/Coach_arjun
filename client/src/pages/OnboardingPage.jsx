@@ -56,7 +56,7 @@ const GOALS = [
   { value: 'injury',        icon: '🏥', labelKey: 'goalInjury'        },
 ];
 
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 4;
 
 // ─── Option row ───────────────────────────────────────────────────────────────
 
@@ -105,10 +105,9 @@ function OnboardingPage() {
 
   function canContinue() {
     if (step === 1) return data.sport !== '';
-    if (step === 2) return data.competitionLevel !== '';
-    if (step === 3) return data.experienceLevel !== '';
-    if (step === 4) return data.primaryChallenge !== '';
-    if (step === 5) return data.goals.length > 0;
+    if (step === 2) return data.competitionLevel !== '' && data.experienceLevel !== '';
+    if (step === 3) return data.primaryChallenge !== '';
+    if (step === 4) return data.goals.length > 0;
     return false;
   }
 
@@ -132,7 +131,7 @@ function OnboardingPage() {
       }
       const { user } = await res.json();
       updateUser(user);
-      navigate('/mental-game-profile', { replace: true });
+      navigate('/mental-fitness', { replace: true, state: { fromOnboarding: true } });
     } catch (err) {
       setError(err.message);
       setSubmitting(false);
@@ -190,12 +189,12 @@ function OnboardingPage() {
           </div>
         )}
 
-        {/* Step 2: Competition Level */}
+        {/* Step 2: Competition + Experience Level (merged) */}
         {step === 2 && (
           <div className="animate-fade-in">
             <h1 className="text-3xl font-bold text-ink mb-1">{t.competitionTitle}</h1>
-            <p className="text-slt mb-8">{t.competitionSubtitle}</p>
-            <div className="flex flex-col gap-3">
+            <p className="text-slt mb-6">{t.competitionSubtitle}</p>
+            <div className="flex flex-col gap-3 mb-8">
               {COMPETITION_LEVELS.map(level => (
                 <OptionRow
                   key={level.value}
@@ -206,14 +205,8 @@ function OnboardingPage() {
                 />
               ))}
             </div>
-          </div>
-        )}
-
-        {/* Step 3: Experience Level */}
-        {step === 3 && (
-          <div className="animate-fade-in">
-            <h1 className="text-3xl font-bold text-ink mb-1">{t.levelTitle}</h1>
-            <p className="text-slt mb-8">{t.levelSubtitle}</p>
+            <h2 className="text-xl font-bold text-ink mb-1">{t.levelTitle}</h2>
+            <p className="text-slt mb-6">{t.levelSubtitle}</p>
             <div className="flex flex-col gap-3">
               {LEVELS.map(level => (
                 <OptionRow
@@ -229,8 +222,8 @@ function OnboardingPage() {
           </div>
         )}
 
-        {/* Step 4: Primary Challenge */}
-        {step === 4 && (
+        {/* Step 3: Primary Challenge */}
+        {step === 3 && (
           <div className="animate-fade-in">
             <h1 className="text-3xl font-bold text-ink mb-1">{t.challengeTitle}</h1>
             <p className="text-slt mb-8">{t.challengeSubtitle}</p>
@@ -248,17 +241,17 @@ function OnboardingPage() {
           </div>
         )}
 
-        {/* Step 5: Goals (multi-select up to 3) */}
-        {step === 5 && (
+        {/* Step 4: Goals (multi-select up to 3) */}
+        {step === 4 && (
           <div className="animate-fade-in">
             <h1 className="text-3xl font-bold text-ink mb-1">{t.goalsTitle}</h1>
-            <p className="text-slt mb-8">
+            <p className="text-slt mb-6">
               {t.goalsSubtitle}{' '}
               <span className={`font-semibold ${data.goals.length === 3 ? 'text-brand-600' : 'text-slt'}`}>
                 ({data.goals.length}/3)
               </span>
             </p>
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3 mb-6">
               {GOALS.map(goal => {
                 const selected = data.goals.includes(goal.value);
                 const maxed    = data.goals.length >= 3 && !selected;
@@ -273,6 +266,16 @@ function OnboardingPage() {
                   />
                 );
               })}
+            </div>
+            <div className="bg-brand-500/10 border border-brand-500/30 rounded-2xl px-4 py-4 text-center">
+              <p className="text-sm font-semibold text-brand-400 mb-1">
+                {hi ? 'अगला: 60-सेकंड मेंटल चेक-इन' : 'Next: 60-second mental check-in'}
+              </p>
+              <p className="text-xs text-slt leading-relaxed">
+                {hi
+                  ? 'Arjun को बताओ कि आज तुम्हें क्या चाहिए — पहला चेक-इन तुरंत करो।'
+                  : 'Start with a 60-second mental check-in so Arjun knows what you need today.'}
+              </p>
             </div>
           </div>
         )}

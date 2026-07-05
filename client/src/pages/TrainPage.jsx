@@ -3,9 +3,9 @@ import Navbar from '../components/Navbar';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import {
-  Target, TrendingUp, Sun, Wind, RotateCcw, Trophy,
-  ClipboardList, Gamepad2, ChevronRight, Eye, Shield, Dumbbell,
-  Brain, Star, Crown, Lock, MessageSquare,
+  Target, Wind, RotateCcw, Trophy,
+  ClipboardList, Gamepad2, ChevronRight, Eye, Shield,
+  Brain, Crown, Lock, MessageSquare,
 } from 'lucide-react';
 
 function SectionLabel({ children }) {
@@ -98,15 +98,6 @@ export default function TrainPage() {
             desc={hi  ? 'अपना प्री-मैच रूटीन चलाओ' : 'Run your pre-match routine'}
             duration="3 min"
             onClick={() => navigate('/ritual')}
-          />
-          <ToolCard
-            icon={Star}
-            iconBg="bg-navy-bright/10"
-            iconColor="text-navy-bright"
-            title={hi ? 'क्यू वर्ड'          : 'Cue Word Builder'}
-            desc={hi  ? 'अपना परफॉर्मेंस क्यू वर्ड बनाओ और सेव करो' : 'Create and save a cue word'}
-            duration="2 min"
-            onClick={() => navigate('/before-you-play')}
           />
           <div className="rounded-2xl border bg-dark-400 border-dark-600 hover:border-dark-500 transition-all overflow-hidden">
             <button
@@ -205,15 +196,6 @@ export default function TrainPage() {
             desc={hi  ? 'समीक्षा करो और सीखो' : 'Review and learn'}
             duration="4 min"
             onClick={() => navigate('/debrief')}
-          />
-          <ToolCard
-            icon={TrendingUp}
-            iconBg="bg-win-400/15"
-            iconColor="text-win-400"
-            title={hi ? 'साप्ताहिक समीक्षा'  : 'Weekly Review'}
-            desc={hi  ? 'पैटर्न देखो, विकास ट्रैक करो' : 'Spot patterns, track growth'}
-            duration="5 min"
-            onClick={() => navigate('/progress')}
           />
         </div>
 

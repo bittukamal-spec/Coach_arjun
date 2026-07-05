@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Info, Zap, PlayCircle, Eye, Wind, ClipboardList, Target, EyeOff } from 'lucide-react';
+import { Info, Zap, PlayCircle, Eye, Wind, ClipboardList, Target, EyeOff, ChevronLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
@@ -437,9 +437,9 @@ function ChatPage() {
         const msgs = data.messages || [];
         const processed = msgs.map(msg => {
           if (msg.role !== 'assistant') return msg;
-          const { clean } = extractSuggestions(msg.content);
+          const { clean, suggestions } = extractSuggestions(msg.content);
           const { cleanText, tools } = parseArjunMessage(clean);
-          return { ...msg, content: cleanText, appTools: tools };
+          return { ...msg, content: cleanText, appTools: tools, suggestions };
         });
         setMessages(processed);
         // Scroll to most recent message instantly
@@ -546,12 +546,12 @@ function ChatPage() {
                 prev.map(m => m.id === streamId ? { ...m, content: m.content + data.c } : m)
               );
             } else if (data.t === 'end') {
-              const { clean } = extractSuggestions(fullStreamText.current);
+              const { clean, suggestions } = extractSuggestions(fullStreamText.current);
               const { cleanText, tools } = parseArjunMessage(clean);
               arjunMsgCountRef.current += 1;
               setMessages(prev =>
                 prev.map(m => m.id === streamId
-                  ? { ...m, content: cleanText, id: data.id, streaming: false, appTools: tools }
+                  ? { ...m, content: cleanText, id: data.id, streaming: false, appTools: tools, suggestions }
                   : m)
               );
               fullStreamText.current = '';
@@ -605,6 +605,13 @@ function ChatPage() {
       <header className="shrink-0 bg-dark-900 border-b border-dark-600 px-4 py-3 relative">
         <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
+            <button
+              onClick={() => navigate(-1)}
+              className="p-1.5 text-slt hover:text-ink transition-colors rounded-lg hover:bg-dark-700 -ml-1 shrink-0"
+              aria-label="Go back"
+            >
+              <ChevronLeft size={20} />
+            </button>
             <ArjunLogo size={28} />
             <div className="min-w-0">
               <p className="font-semibold text-ink text-sm leading-none">{t.title}</p>
@@ -685,16 +692,34 @@ function ChatPage() {
           )}
 
           {/* Message list */}
-          {!showStartScreen && messages.map((msg, i) => {
-            const prevMsg = messages[i - 1];
-            const showDivider = msg.sessionType && msg.sessionType !== prevMsg?.sessionType && i > 0;
-            return (
-              <div key={msg.id} className="flex flex-col gap-2">
-                {showDivider && <SessionDivider sessionKey={msg.sessionType} date={msg.createdAt} t={t} />}
-                <MessageBubble message={msg} isStreaming={msg.streaming} />
-              </div>
-            );
-          })}
+          {!showStartScreen && (() => {
+            const lastArjunIdx = messages.reduce((acc, m, i) => m.role === 'assistant' ? i : acc, -1);
+            return messages.map((msg, i) => {
+              const prevMsg = messages[i - 1];
+              const showDivider = msg.sessionType && msg.sessionType !== prevMsg?.sessionType && i > 0;
+              const showChips = i === lastArjunIdx && !streaming && !waitingForFirst
+                && msg.suggestions?.length > 0 && !atLimit;
+              return (
+                <div key={msg.id} className="flex flex-col gap-2">
+                  {showDivider && <SessionDivider sessionKey={msg.sessionType} date={msg.createdAt} t={t} />}
+                  <MessageBubble message={msg} isStreaming={msg.streaming} />
+                  {showChips && (
+                    <div className="flex flex-wrap gap-1.5 pl-1">
+                      {msg.suggestions.map(s => (
+                        <button
+                          key={s}
+                          onClick={() => sendMessage(s)}
+                          className="text-xs font-medium px-3 py-1.5 rounded-full border border-dark-500 bg-dark-700 text-slt hover:border-brand-500 hover:text-brand-400 active:scale-95 transition-all"
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            });
+          })()}
 
           {/* Typing indicator */}
           {waitingForFirst && <TypingIndicator />}
