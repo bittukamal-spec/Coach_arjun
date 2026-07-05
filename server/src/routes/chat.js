@@ -882,7 +882,7 @@ router.post('/wizard', authenticate, aiLimiter, requireGuardianConsent, checkFre
       const steps = JSON.parse(user.ritualSteps || '[]');
       const cueStep = steps.find(s => s.type === 'cue');
       if (cueStep?.label) cueWord = cueStep.label;
-    } catch {}
+    } catch (err) { console.error('ritualSteps parse failed', err); }
 
     const lang = user.language || language;
     const sport = user.sport || 'sport';
@@ -1017,7 +1017,7 @@ Also include a "report" field: {"report":{"moment":"<1-sentence: what moment the
         if (Array.isArray(words)) {
           return res.json({ words: words.slice(0, 5) });
         }
-      } catch {}
+      } catch (err) { console.error('focus_cue words parse failed', err); }
       // Fallback if parse fails
       return res.json({ words: ['SHARP', 'READY', 'HERE', 'LOCK', 'TRUST'] });
     }

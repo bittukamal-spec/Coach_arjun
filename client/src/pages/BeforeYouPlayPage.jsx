@@ -412,15 +412,19 @@ export default function BeforeYouPlayPage() {
   async function lockItIn() {
     const word = cueInput.trim() || cueWord;
     if (!word) return;
-    setXpEarned(15);
     setScreen('done');
     try {
-      await apiFetch('/api/user/cue-word', {
+      const res = await apiFetch('/api/user/cue-word', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ cueWord: word, cueArousalState: arousal, cueLanguage: language }),
       });
-    } catch {}
+      const data = await res.json().catch(() => ({}));
+      setXpEarned(data.xpEarned ?? 15);
+    } catch (err) {
+      console.error('cue-word save failed', err);
+      setXpEarned(15);
+    }
   }
 
   // ── Back navigation ───────────────────────────────────────────────────────
