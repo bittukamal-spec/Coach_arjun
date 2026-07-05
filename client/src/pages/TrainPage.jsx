@@ -1,46 +1,79 @@
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../contexts/AuthContext';
-import { translations } from '../i18n/translations';
 import {
-  Target, Wind, RotateCcw, Trophy,
-  ClipboardList, Gamepad2, ChevronRight, Eye, Shield,
-  Brain, MessageSquare,
+  Target, Shield, RotateCcw, ClipboardList, Layers,
 } from 'lucide-react';
 
 function SectionLabel({ children }) {
   return (
-    <p className="text-[11px] font-bold text-slt uppercase tracking-widest mb-3 mt-6">
+    <p className="text-[11px] font-bold text-slt uppercase tracking-widest mb-4 mt-8">
       {children}
     </p>
   );
 }
 
-function ToolCard({ icon: Icon, iconBg, iconColor, title, desc, duration, onClick }) {
+function TrainCard({
+  icon: Icon, iconBg, iconColor,
+  title, skillTag, desc, duration, bestFor,
+  ctaLabel, onCta,
+  secondaryLabel, onSecondary,
+}) {
   return (
-    <button
-      onClick={onClick}
-      className="w-full flex items-center gap-3 rounded-2xl px-4 py-3.5 text-left border transition-all bg-dark-400 border-dark-600 hover:border-dark-500 active:scale-[0.98]"
-    >
-      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${iconBg}`}>
-        <Icon size={18} className={iconColor} />
+    <div className="bg-dark-400 border border-dark-600 rounded-2xl p-5 flex flex-col gap-3">
+
+      {/* Header: icon + title + skill pill */}
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-3">
+          <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${iconBg}`}>
+            <Icon size={22} className={iconColor} />
+          </div>
+          <h2 className="text-base font-bold text-ink leading-tight">{title}</h2>
+        </div>
+        <span
+          className="text-[11px] font-semibold px-2.5 py-1 rounded-full whitespace-nowrap shrink-0"
+          style={{ backgroundColor: 'rgba(24,95,165,0.10)', color: '#185FA5' }}
+        >
+          {skillTag}
+        </span>
       </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-ink leading-snug">{title}</p>
-        <p className="text-xs text-slt leading-snug mt-0.5">{desc}</p>
+
+      {/* Description */}
+      <p className="text-sm text-slt leading-relaxed">{desc}</p>
+
+      {/* Duration + Best for */}
+      <div className="flex items-center gap-1.5 text-xs text-muted">
+        <span>{duration}</span>
+        <span>·</span>
+        <span>{bestFor}</span>
       </div>
-      <div className="shrink-0 flex flex-col items-end gap-1">
-        {duration && <span className="text-[10px] text-muted font-medium">{duration}</span>}
-        <ChevronRight size={14} className="text-muted" />
+
+      {/* CTA row */}
+      <div className={`flex items-center mt-1 ${secondaryLabel ? 'justify-between' : 'justify-end'}`}>
+        {secondaryLabel && (
+          <button
+            onClick={onSecondary}
+            className="text-xs font-semibold text-brand-400 active:opacity-70 py-1"
+          >
+            {secondaryLabel}
+          </button>
+        )}
+        <button
+          onClick={onCta}
+          className="text-white text-sm font-semibold px-6 rounded-xl active:scale-[0.98] transition-transform"
+          style={{ backgroundColor: '#185FA5', minHeight: '44px' }}
+        >
+          {ctaLabel}
+        </button>
       </div>
-    </button>
+
+    </div>
   );
 }
 
 export default function TrainPage() {
   const navigate = useNavigate();
   const { language } = useAuth();
-  const t = translations[language].train;
   const hi = language === 'hi';
 
   return (
@@ -52,155 +85,104 @@ export default function TrainPage() {
         {/* Page header */}
         <div className="pt-4 mb-2">
           <p className="text-2xl font-black text-ink">{hi ? 'ट्रेन करो' : 'Train'}</p>
-          <p className="text-sm text-slt mt-1">{hi ? 'आज के लिए सही मानसिक टूल चुनो।' : 'Choose the mental tool you need today.'}</p>
+          <p className="text-sm text-slt mt-1">
+            {hi ? 'अपनी मानसिक ट्रेनिंग शुरू करो।' : 'Your mental training toolkit.'}
+          </p>
         </div>
 
-        {/* ── SECTION 1: MATCH PREP ─────────────────────────────────────────── */}
-        <SectionLabel>{hi ? 'मैच की तैयारी' : 'Match Prep'}</SectionLabel>
-        <div className="space-y-2">
-          <ToolCard
+        {/* ── PREPARE ──────────────────────────────────────────────────────── */}
+        <SectionLabel>{hi ? 'तैयारी' : 'Prepare'}</SectionLabel>
+        <div className="space-y-3">
+          <TrainCard
             icon={Target}
-            iconBg="bg-brand-50"
+            iconBg="bg-brand-500/15"
             iconColor="text-brand-400"
-            title={hi ? 'मैच से पहले'       : 'Before You Play'}
-            desc={hi  ? 'मैच से पहले लॉक इन करो' : 'Lock in before match'}
+            title={hi ? 'मैच से पहले' : 'Before You Play'}
+            skillTag={hi ? 'प्री-मैच' : 'Pre-match'}
+            desc={hi
+              ? 'मैच, ट्रायल, या कठिन ट्रेनिंग से पहले खुद को लॉक इन करो।'
+              : 'Lock in before a match, trial, or hard training session.'}
             duration="5 min"
-            onClick={() => navigate('/before-you-play')}
-          />
-          <ToolCard
-            icon={Eye}
-            iconBg="bg-purple-500/15"
-            iconColor="text-purple-400"
-            title={hi ? 'विज़ुअलाइज़ेशन'     : 'Visualization'}
-            desc={hi  ? 'एक मुख्य पल को मानसिक रूप से तैयार करो' : 'Mentally rehearse one key moment'}
-            duration="4 min"
-            onClick={() => navigate('/visualization')}
-          />
-          <ToolCard
-            icon={Trophy}
-            iconBg="bg-saffron-500/15"
-            iconColor="text-saffron-400"
-            title={hi ? 'मेरी रूटीन'        : 'My Routine'}
-            desc={hi  ? 'अपना प्री-मैच रूटीन चलाओ' : 'Run your pre-match routine'}
-            duration="3 min"
-            onClick={() => navigate('/ritual')}
-          />
-          <div className="rounded-2xl border bg-dark-400 border-dark-600 hover:border-dark-500 transition-all overflow-hidden">
-            <button
-              onClick={() => navigate('/self-talk')}
-              className="w-full flex items-center gap-3 px-4 py-3.5 text-left active:scale-[0.98]"
-            >
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-purple-500/15">
-                <MessageSquare size={18} className="text-purple-400" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-ink leading-snug">{t.selfTalkTitle}</p>
-                <p className="text-xs text-slt leading-snug mt-0.5">{t.selfTalkSub}</p>
-              </div>
-              <div className="shrink-0 flex flex-col items-end gap-1">
-                <span className="text-[10px] text-muted font-medium">5 min</span>
-                <ChevronRight size={14} className="text-muted" />
-              </div>
-            </button>
-            <div className="px-4 pb-2.5 pt-1 border-t border-dark-700/50">
-              <button
-                onClick={() => navigate('/focus-deck')}
-                className="text-xs font-semibold text-brand-400 active:opacity-70"
-              >
-                {hi ? 'Self-talk cards देखो →' : 'View self-talk cards →'}
-              </button>
-            </div>
-          </div>
-          <ToolCard
-            icon={Brain}
-            iconBg="bg-brand-50"
-            iconColor="text-brand-400"
-            title={t.focusDeckTitle}
-            desc={t.focusDeckSub}
-            duration="2 min"
-            onClick={() => navigate('/focus-deck')}
+            bestFor={hi ? 'प्री-मैच · प्री-ट्रेनिंग' : 'Pre-match · Pre-training'}
+            ctaLabel={hi ? 'तैयारी शुरू करो' : 'Start Prep'}
+            onCta={() => navigate('/before-you-play')}
           />
         </div>
 
-        {/* ── SECTION 2: RECOVERY ──────────────────────────────────────────── */}
-        <SectionLabel>{hi ? 'रिकवरी' : 'Recovery'}</SectionLabel>
-        <div className="space-y-2">
-          <ToolCard
+        {/* ── RECOVER ──────────────────────────────────────────────────────── */}
+        <SectionLabel>{hi ? 'रिकवरी' : 'Recover'}</SectionLabel>
+        <div className="space-y-3">
+          <TrainCard
             icon={Shield}
             iconBg="bg-teal-500/15"
             iconColor="text-teal-400"
-            title={hi ? 'वापसी करो'         : 'Bounce Back'}
-            desc={hi  ? 'गलती के बाद रीसेट करो' : 'Reset after a setback'}
+            title={hi ? 'वापसी करो' : 'Bounce Back'}
+            skillTag={hi ? 'सेटबैक के बाद' : 'After a setback'}
+            desc={hi
+              ? 'गलती, खराब गेम, आलोचना, या सिलेक्शन सेटबैक के बाद रीसेट करो।'
+              : 'Reset after a mistake, bad game, criticism, or selection setback.'}
             duration="3 min"
-            onClick={() => navigate('/bounce-back')}
+            bestFor={hi ? 'सेटबैक के बाद' : 'After a setback'}
+            ctaLabel={hi ? 'रीसेट शुरू करो' : 'Start Reset'}
+            onCta={() => navigate('/bounce-back')}
           />
-          <ToolCard
-            icon={Wind}
+          <TrainCard
+            icon={RotateCcw}
             iconBg="bg-teal-500/15"
             iconColor="text-teal-400"
-            title={hi ? 'सांस और ग्राउंडिंग' : 'Calm Body'}
-            desc={hi  ? 'श्वास और ग्राउंडिंग' : 'Breath and grounding'}
-            duration="2 min"
-            onClick={() => navigate('/breathing')}
+            title="Body Reset"
+            skillTag={hi ? 'तनाव और घबराहट' : 'Tension & nerves'}
+            desc={hi
+              ? 'तनाव छोड़ो, सांस को धीमा करो, और शरीर को वापस कंट्रोल में लाओ।'
+              : 'Release tension, slow your breathing, and bring your body back under control.'}
+            duration="3 min"
+            bestFor={hi ? 'घबराया हुआ, तना हुआ, या ओवरलोडेड' : 'Nervous, tight, or overloaded'}
+            ctaLabel={hi ? 'Body Reset करो' : 'Reset Body'}
+            onCta={() => navigate('/body-reset')}
+            secondaryLabel={hi ? 'Reset history देखो →' : 'View reset history →'}
+            onSecondary={() => navigate('/body-reset/history')}
           />
-          <div className="rounded-2xl border bg-dark-400 border-dark-600 hover:border-dark-500 transition-all overflow-hidden">
-            <button
-              onClick={() => navigate('/body-reset')}
-              className="w-full flex items-center gap-3 px-4 py-3.5 text-left active:scale-[0.98]"
-            >
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-teal-500/15">
-                <RotateCcw size={18} className="text-teal-400" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-ink leading-snug">{t.bodyResetTitle}</p>
-                <p className="text-xs text-slt leading-snug mt-0.5">{t.bodyResetSub}</p>
-              </div>
-              <div className="shrink-0 flex flex-col items-end gap-1">
-                <span className="text-[10px] text-muted font-medium">3 min</span>
-                <ChevronRight size={14} className="text-muted" />
-              </div>
-            </button>
-            <div className="px-4 pb-2.5 pt-1 border-t border-dark-700/50">
-              <button
-                onClick={() => navigate('/body-reset/history')}
-                className="text-xs font-semibold text-brand-400 active:opacity-70"
-              >
-                {hi ? 'Reset history देखो →' : 'View reset history →'}
-              </button>
-            </div>
-          </div>
         </div>
 
-        {/* ── SECTION 3: REFLECTION ────────────────────────────────────────── */}
-        <SectionLabel>{hi ? 'रिफ्लेक्शन' : 'Reflection'}</SectionLabel>
-        <div className="space-y-2">
-          <ToolCard
+        {/* ── BUILD SKILLS ──────────────────────────────────────────────────── */}
+        <SectionLabel>{hi ? 'स्किल बनाओ' : 'Build Skills'}</SectionLabel>
+        <div className="space-y-3">
+          <TrainCard
+            icon={Layers}
+            iconBg="bg-brand-500/15"
+            iconColor="text-brand-400"
+            title="Focus Card Builder"
+            skillTag={hi ? 'फोकस और दबाव' : 'Focus & pressure'}
+            desc={hi
+              ? 'अपने cue word, reset word, और pressure self-talk को अहम पलों के लिए बनाओ।'
+              : 'Build your cue word, reset word, and pressure self-talk for key moments.'}
+            duration="5 min"
+            bestFor={hi ? 'फोकस, आत्मविश्वास, दबाव' : 'Focus, confidence, pressure'}
+            ctaLabel={hi ? 'Focus Card बनाओ' : 'Build Focus Card'}
+            onCta={() => navigate('/self-talk')}
+            secondaryLabel={hi ? 'Focus Cards देखो →' : 'View Focus Cards →'}
+            onSecondary={() => navigate('/focus-deck')}
+          />
+        </div>
+
+        {/* ── REVIEW ────────────────────────────────────────────────────────── */}
+        <SectionLabel>{hi ? 'रिव्यू' : 'Review'}</SectionLabel>
+        <div className="space-y-3">
+          <TrainCard
             icon={ClipboardList}
             iconBg="bg-saffron-500/15"
             iconColor="text-saffron-400"
-            title={hi ? 'मैच के बाद'        : 'After the Match'}
-            desc={hi  ? 'समीक्षा करो और सीखो' : 'Review and learn'}
+            title={hi ? 'Training Review' : 'Training Review'}
+            skillTag={hi ? 'मैच के बाद' : 'After match'}
+            desc={hi
+              ? 'क्या काम किया, क्या बदलना है, और आगे क्या फोकस करना है — यह रिव्यू करो।'
+              : 'Review what worked, what to adjust, and what to focus on next.'}
             duration="4 min"
-            onClick={() => navigate('/debrief')}
+            bestFor={hi ? 'मैच या ट्रेनिंग के बाद' : 'After match or training'}
+            ctaLabel={hi ? 'रिव्यू शुरू करो' : 'Start Review'}
+            onCta={() => navigate('/debrief')}
           />
         </div>
-
-        {/* ── FOCUS GAMES ──────────────────────────────────────────────────── */}
-        <SectionLabel>{hi ? 'फोकस गेम्स' : 'Focus Games'}</SectionLabel>
-        <Link to="/games">
-          <div className="card p-4 flex items-center justify-between active:scale-[0.99] transition-transform hover:border-dark-500">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-brand-50 rounded-xl flex items-center justify-center">
-                <Gamepad2 size={20} className="text-brand-400" />
-              </div>
-              <div>
-                <p className="font-semibold text-ink text-sm">{hi ? 'फोकस गेम्स' : 'Focus Games'}</p>
-                <p className="text-xs text-slt">{t.gamesDesc}</p>
-              </div>
-            </div>
-            <ChevronRight size={18} className="text-slt shrink-0" />
-          </div>
-        </Link>
 
       </main>
     </div>
