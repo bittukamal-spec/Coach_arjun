@@ -898,14 +898,6 @@ router.post('/wizard', authenticate, aiLimiter, requireGuardianConsent, checkFre
     } else if (wizardType === 'bounce_back') {
       const intensityNum = parseInt(intensity) || 3;
       const intDesc = intensityLabel || ['Manageable', 'Irritated', 'Heavy', 'Very intense', 'Losing control'][intensityNum - 1] || 'Heavy';
-      const oceanN = user.oceanN ?? 3;
-      const oceanO = user.oceanO ?? 3;
-      const pressureCtx = oceanN >= 4
-        ? 'This athlete is emotionally sensitive — they need full acknowledgment before any forward focus. Do not rush them.'
-        : oceanN <= 2
-        ? 'This athlete is resilient — they can handle a direct challenge and move forward quickly.'
-        : '';
-      const openCtx = oceanO >= 4 ? 'They respond well to reframing and new angles.' : '';
       systemPrompt = `You are Arjun, a mental performance coach for Indian athletes aged 14–25.
 
 An athlete just used the Bounce Back tool. Here is what they shared:
@@ -914,7 +906,6 @@ An athlete just used the Bounce Back tool. Here is what they shared:
 • Intensity: ${intensityNum}/5 — "${intDesc}"
 • One thing they will control next: "${controlChoice || 'their next action'}"
 • Sport: ${sport}
-${pressureCtx} ${openCtx}
 
 Write a short coaching response in this exact structure (as flowing prose, no labels or numbers):
 1. Name their pain directly — acknowledge it was hard. No fluff.

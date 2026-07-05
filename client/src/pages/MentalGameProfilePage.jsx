@@ -13,6 +13,7 @@ function MentalGameProfilePage() {
 
   const [intro, setIntro] = useState(user?.profileIntro || '');
   const [fetching, setFetching] = useState(!user?.profileIntro);
+  const [fetchError, setFetchError] = useState(false);
 
   useEffect(() => {
     if (user?.profileIntro) return;
@@ -26,7 +27,7 @@ function MentalGameProfilePage() {
           updateUser({ profileIntro: data.intro });
         }
       })
-      .catch(() => {})
+      .catch(() => setFetchError(true))
       .finally(() => setFetching(false));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -77,6 +78,12 @@ function MentalGameProfilePage() {
                 <Loader2 size={18} className="animate-spin" />
                 <span className="text-sm">{t.loading}</span>
               </div>
+            ) : fetchError && !intro ? (
+              <p className="text-sm text-slt leading-relaxed">
+                {language === 'hi'
+                  ? 'प्रोफ़ाइल लोड नहीं हो सकी। नीचे बटन से शुरू करो।'
+                  : "Couldn't load your profile intro. Hit Start to begin."}
+              </p>
             ) : (
               <p className="text-sm text-ink leading-relaxed">{intro}</p>
             )}

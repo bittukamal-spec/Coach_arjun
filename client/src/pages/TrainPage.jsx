@@ -5,7 +5,7 @@ import { translations } from '../i18n/translations';
 import {
   Target, Wind, RotateCcw, Trophy,
   ClipboardList, Gamepad2, ChevronRight, Eye, Shield,
-  Brain, Crown, Lock, MessageSquare,
+  Brain, MessageSquare,
 } from 'lucide-react';
 
 function SectionLabel({ children }) {
@@ -16,36 +16,22 @@ function SectionLabel({ children }) {
   );
 }
 
-function ToolCard({ icon: Icon, iconBg, iconColor, title, desc, duration, badge, onClick, locked }) {
+function ToolCard({ icon: Icon, iconBg, iconColor, title, desc, duration, onClick }) {
   return (
     <button
-      onClick={locked ? undefined : onClick}
-      className={`w-full flex items-center gap-3 rounded-2xl px-4 py-3.5 text-left border transition-all ${
-        locked
-          ? 'bg-dark-800 border-dark-700 opacity-60 cursor-default'
-          : 'bg-dark-400 border-dark-600 hover:border-dark-500 active:scale-[0.98]'
-      }`}
+      onClick={onClick}
+      className="w-full flex items-center gap-3 rounded-2xl px-4 py-3.5 text-left border transition-all bg-dark-400 border-dark-600 hover:border-dark-500 active:scale-[0.98]"
     >
       <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${iconBg}`}>
-        {locked
-          ? <Lock size={16} className="text-muted" />
-          : <Icon size={18} className={iconColor} />
-        }
+        <Icon size={18} className={iconColor} />
       </div>
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5">
-          <p className="text-sm font-semibold text-ink leading-snug">{title}</p>
-          {badge && (
-            <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-saffron-400 bg-saffron-500/15 px-1.5 py-0.5 rounded-full border border-saffron-500/30">
-              <Crown size={8} /> PRO
-            </span>
-          )}
-        </div>
+        <p className="text-sm font-semibold text-ink leading-snug">{title}</p>
         <p className="text-xs text-slt leading-snug mt-0.5">{desc}</p>
       </div>
       <div className="shrink-0 flex flex-col items-end gap-1">
         {duration && <span className="text-[10px] text-muted font-medium">{duration}</span>}
-        {!locked && <ChevronRight size={14} className="text-muted" />}
+        <ChevronRight size={14} className="text-muted" />
       </div>
     </button>
   );

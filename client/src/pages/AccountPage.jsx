@@ -4,7 +4,7 @@ import Navbar from '../components/Navbar';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
-import { LogOut, Trash2, ChevronRight, Shield, Bell, User, Zap, Award, Camera, Star, MessageCircle, Mail, Sparkles, Sun, MessageSquare, FileX, RefreshCw, Tag, BarChart2, Layers } from 'lucide-react';
+import { LogOut, Trash2, ChevronRight, Shield, User, Zap, Award, Camera, Star, MessageCircle, Mail, Sparkles, Sun, MessageSquare, FileX, RefreshCw, Tag, BarChart2, Layers } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 import { ACHIEVEMENTS, ALL_ACHIEVEMENT_KEYS } from '../data/achievements';
 
@@ -622,25 +622,6 @@ function AccountPage() {
           </button>
         </section>
 
-        {/* WhatsApp reminders placeholder */}
-        <section className="mb-6">
-          <div className="flex items-center gap-2 mb-3">
-            <Bell size={16} className="text-brand-400" />
-            <h2 className="text-sm font-semibold text-slt uppercase tracking-wide">{t.notifications}</h2>
-          </div>
-          <div className="card p-5 opacity-60">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-ink text-sm">{t.whatsappLabel}</p>
-                <p className="text-slt text-xs mt-0.5">{t.whatsappDesc}</p>
-              </div>
-              <ChevronRight size={18} className="text-slt" />
-            </div>
-            <p className="text-xs text-slt mt-2">
-              {language === 'hi' ? 'जल्द आ रहा है' : 'Coming soon'}
-            </p>
-          </div>
-        </section>
 
         {/* Privacy & Data — single row, opens bottom sheet */}
         <section className="mb-6">

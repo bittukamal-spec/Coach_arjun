@@ -7,7 +7,11 @@ import { useAuth } from '../contexts/AuthContext';
 function ProtectedRoute({ children, requireOnboarding = true }) {
   const { user, loading } = useAuth();
 
-  if (loading) return null;
+  if (loading) return (
+    <div className="min-h-screen bg-dark-900 flex items-center justify-center">
+      <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
   if (!user) return <Navigate to="/" replace />;
   if (requireOnboarding && !user.onboardingDone) return <Navigate to="/onboarding" replace />;
 

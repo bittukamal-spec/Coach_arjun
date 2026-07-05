@@ -332,7 +332,7 @@ function ProgressPage() {
     })
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(d => { setData(d); setError(''); })
-      .catch(() => setError('Failed to load progress data.'))
+      .catch(() => setError(t.loadError))
       .finally(() => setLoading(false));
   }, [days, token]);
 
