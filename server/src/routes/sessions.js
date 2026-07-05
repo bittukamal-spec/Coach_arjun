@@ -16,8 +16,6 @@ const SESSION_TYPE_LABELS = {
   build_focus:    'Focus',
   confidence:     'Confidence',
   handle_pressure:'Handle pressure',
-  pressure_reset: 'Pressure reset',
-  setback_reset:  'Bounce back',
   open:           'Open chat',
   post_checkin:   'Post check-in',
 };

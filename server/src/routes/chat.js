@@ -98,13 +98,13 @@ async function isTrialActive(userId) {
 // ── Session-specific coaching instructions ────────────────────────────────
 
 const SESSION_INSTRUCTIONS = {
-  match_prep: `The athlete is preparing for an upcoming match.
-Start by asking: what sport is the match for, and when is it?
+  match_prep: `The athlete is preparing for an upcoming match, trial, or training session.
+Start by asking: what's coming up, and when is it?
 Then progressively understand: what they're most worried about, what's happened in similar situations before.
-Goal: help them build a simple pre-match mental routine.`,
+Goal: help them build a simple pre-performance mental routine.`,
 
-  post_match: `The athlete wants to process a recent match result.
-Start by asking what happened — win or loss, and how they felt during it.
+  post_match: `The athlete wants to process a recent match or training result.
+Start by asking what happened — win, loss, or how the session went, and how they felt during it.
 Validate their emotions first. Then help extract one key learning.
 Do NOT minimise a loss or over-celebrate a win.`,
 
@@ -124,18 +124,6 @@ Validate before advising. Avoid platitudes like "just believe in yourself".`,
 Be warm and curious. Ask one natural follow-up question per response.`,
 
   post_checkin: `The athlete just completed their Daily Pulse check-in and wants to discuss how they're doing today. Their specific mood, focus, and confidence scores are in the "Recent Mental State" section above. Start by directly referencing their exact scores — acknowledge what they mean, validate any low numbers, then ask ONE specific follow-up question about what is driving those numbers today. Be concrete, not generic.`,
-
-  pressure_reset: `The athlete is in a high-pressure moment right now — before a match, a big game, or a crucial performance. They may be nervous, anxious, or overwhelmed. Your ONLY job right now is to calm, ground, and focus them in 3–4 short exchanges. Do not give long coaching advice.
-
-Your FIRST reply in this session must start with: "I'm here. Tell me — how are you feeling right now, one word or as much as you want." (If the user's language is Hindi, translate naturally.)
-
-Then guide them through: (1) one breath cue, (2) a simple reframe of nerves as readiness, (3) their cue word or a suggested one if they have no ritual set. End with a single confidence statement. Keep every reply under 3 sentences. Do not ask multiple questions.`,
-
-  setback_reset: `The athlete has just had a bad game, made a serious mistake, or experienced a significant setback. They may feel frustrated, ashamed, or deflated. Your ONLY job right now is to help them process and stabilise in 3–4 short exchanges. Do NOT use toxic positivity or rush to silver linings.
-
-Your FIRST reply in this session must start with: "That was tough. I'm not going to rush you — tell me what happened." (If the user's language is Hindi, translate naturally.)
-
-Start by fully acknowledging what happened and validating the feeling. Then guide them through: (1) separating the performance from their identity, (2) one thing in their control next time, (3) a self-compassion reframe. End with one forward-looking sentence. Keep replies short. Do not rush the process.`,
 };
 
 // ── Helper: build personalised system prompt ─────────────────────────────
@@ -473,8 +461,6 @@ ALWAYS structure responses like this:
 
 5. APP TAGS (when a tool would genuinely help)
    At the very end, on their own lines:
-   [APP:bounce-back] — setback, bad match, low confidence
-   [APP:before-you-play] — match coming up, nerves
    [APP:visualization] — pre-match, wants to rehearse
    [APP:breathing] — nervous, needs to calm down now
    [APP:after-the-match] — just finished, needs to reflect
@@ -795,15 +781,13 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
     // Long-term memory and check-in data still flow through buildSystemPrompt as always.
     if (isSessionStart) {
       const SESSION_LABELS = {
-        match_prep: 'an upcoming match',
-        post_match: 'a recent match result',
+        match_prep: 'an upcoming match or training session',
+        post_match: 'a recent match or training result',
         build_focus: 'improving focus and concentration',
         confidence: 'building confidence',
         handle_pressure: 'handling pressure',
         open: 'an open coaching conversation',
         post_checkin:    'my daily check-in results and how I\'m doing today',
-        pressure_reset:  'a high-pressure moment before my match',
-        setback_reset:   'processing a tough game or setback',
       };
       const label = SESSION_LABELS[sessionType] || 'mental performance coaching';
       conversationHistory.length = 0;
@@ -864,78 +848,23 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
 });
 
 // ── Wizard reframe endpoint ────────────────────────────────────────────────
-// Single non-streaming call used by the guided wizard flows.
-// Returns { text: string, cueWord: string|null }
+// Single non-streaming call used by the Visualization guided-script flow.
 
 router.post('/wizard', authenticate, aiLimiter, requireGuardianConsent, checkFreeLimit, async (req, res) => {
-  const { wizardType, feeling, situation, language = 'en', whatHappened, intensity, stuckOn, intensityLabel, controlChoice } = req.body;
+  const { wizardType, language = 'en' } = req.body;
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
-      select: { sport: true, ritualSteps: true, language: true },
+      select: { sport: true, language: true },
     });
     if (!user) return res.status(404).json({ error: 'User not found' });
-
-    // Extract cue word from ritual steps (type === 'cue')
-    let cueWord = null;
-    try {
-      const steps = JSON.parse(user.ritualSteps || '[]');
-      const cueStep = steps.find(s => s.type === 'cue');
-      if (cueStep?.label) cueWord = cueStep.label;
-    } catch (err) { console.error('ritualSteps parse failed', err); }
 
     const lang = user.language || language;
     const sport = user.sport || 'sport';
     const langNote = lang === 'hi' ? ' Respond in Hindi.' : '';
 
     let systemPrompt, maxTokens;
-    if (wizardType === 'pressure_reset') {
-      systemPrompt = `You are Arjun, a mental performance coach. In 1–2 sentences maximum, reframe the athlete's feeling as a sign of readiness, not weakness. Be direct and warm. No lists. No questions. Feeling: ${feeling}. Sport: ${sport}.${langNote} Output only the reframe text.`;
-      maxTokens = 80;
-    } else if (wizardType === 'setback_reset') {
-      systemPrompt = `You are Arjun, a mental performance coach. In 2–3 sentences maximum: first fully acknowledge what happened and validate the feeling (do NOT rush to positivity or silver linings), then name ONE specific thing in the athlete's control next time. Be warm, direct, real. No lists. No questions. Situation: ${situation}. Feeling: ${feeling}. Sport: ${sport}.${langNote} Output only the response text.`;
-      maxTokens = 120;
-    } else if (wizardType === 'bounce_back') {
-      const intensityNum = parseInt(intensity) || 3;
-      const intDesc = intensityLabel || ['Manageable', 'Irritated', 'Heavy', 'Very intense', 'Losing control'][intensityNum - 1] || 'Heavy';
-      systemPrompt = `You are Arjun, a mental performance coach for Indian athletes aged 14–25.
-
-An athlete just used the Bounce Back tool. Here is what they shared:
-• What happened: "${situation || 'a bad game'}"
-• Mind stuck on: "${stuckOn || 'the moment'}"
-• Intensity: ${intensityNum}/5 — "${intDesc}"
-• One thing they will control next: "${controlChoice || 'their next action'}"
-• Sport: ${sport}
-
-Write a short coaching response in this exact structure (as flowing prose, no labels or numbers):
-1. Name their pain directly — acknowledge it was hard. No fluff.
-2. Separate the mistake from their identity. Use language like: "Mistake ko data bana, identity mat bana" or "One bad moment is not your level."
-3. Give one specific useful lesson from THIS exact situation.
-4. Give one immediate action — concrete, doable in the next 10 minutes.
-5. End with a 3–5 word cue phrase they can repeat.
-
-Rules:
-- coaching response under 80 words
-- NEVER say: "you've got this", "stay positive", "everything happens for a reason", "be kind to yourself", "I understand how you feel"
-- No therapy language, no clinical terms, no toxic positivity
-- Tone: strong, calm, direct — Indian performance coach talking to a 14–17 year old athlete
-- ${lang === 'hi' ? 'Write coaching in Hinglish (natural Hindi-English mix — conversational, not formal Hindi).' : 'Write coaching in English. You may use 1–2 natural Hinglish phrases.'}
-- Address the athlete directly as "you" or "tu" (match the language register)
-
-Return ONLY valid JSON — no markdown, no text outside JSON:
-{"arjunResponse":"<the coaching response>","report":{"situation":"<1 sentence: what the athlete described>","feeling":"<the emotional intensity label>","lesson":"<1 sentence: the key lesson from the coaching>","nextAction":"<the immediate action you gave them>"}}`;
-
-      maxTokens = 200;
-    } else if (wizardType === 'cue_word') {
-      const { arousal, firstFocus } = req.body;
-      const arousalDesc = {
-        calm_down: 'calming down — they are nervous or anxious',
-        lock_in:   'locking in focus — they are distracted or scattered',
-        fire_up:   'firing up — they are flat or low on energy',
-      }[arousal] || 'getting ready';
-      systemPrompt = `You are Arjun, a mental performance coach. Generate exactly 5 short power words for an athlete who needs to focus on ${arousalDesc} before their ${sport} match. Their chosen match focus: "${firstFocus || 'performing well'}". Rules: Each word must be 1–2 words MAX, ALL CAPS, short and punchy (e.g. SHARP, READY, HERE, LOCK, TRUST). Output a valid JSON array only — exactly like this example: ["SHARP","READY","HERE","LOCK","TRUST"]. No other text, no explanation.`;
-      maxTokens = 60;
-    } else if (wizardType === 'visualization') {
+    if (wizardType === 'visualization') {
       const { specificMoment, currentState, setupType, cueWord: cw, userName, oceanProfile } = req.body;
       const effectiveCue = cw || 'Next action';
       const stateDesc = {
@@ -1009,19 +938,6 @@ Also include a "report" field: {"report":{"moment":"<1-sentence: what moment the
       messages: [{ role: 'user', content: 'Generate the response.' }],
     });
 
-    // For cue_word: parse the JSON array response
-    if (wizardType === 'cue_word') {
-      try {
-        const raw = message.content[0].text.trim();
-        const words = JSON.parse(raw);
-        if (Array.isArray(words)) {
-          return res.json({ words: words.slice(0, 5) });
-        }
-      } catch (err) { console.error('focus_cue words parse failed', err); }
-      // Fallback if parse fails
-      return res.json({ words: ['SHARP', 'READY', 'HERE', 'LOCK', 'TRUST'] });
-    }
-
     if (wizardType === 'visualization') {
       const { specificMoment: vizMoment, currentState: vizState, cueWord: vizCue } = req.body;
       try {
@@ -1058,37 +974,6 @@ Also include a "report" field: {"report":{"moment":"<1-sentence: what moment the
         return res.status(422).json({ error: 'Script parse failed' });
       }
     }
-
-    if (wizardType === 'bounce_back') {
-      const BOUNCE_XP = 15;
-      let arjunText = message.content[0].text;
-      let reportData = null;
-      try {
-        const cleaned = arjunText.replace(/^```(?:json)?\s*\n?|\n?```\s*$/gm, '').trim();
-        const parsed = JSON.parse(cleaned);
-        arjunText = typeof parsed.arjunResponse === 'string' ? parsed.arjunResponse : arjunText;
-        reportData = parsed.report || null;
-      } catch {
-        // If JSON parse fails, use raw text as-is
-      }
-      await prisma.user.update({ where: { id: req.userId }, data: { xp: { increment: BOUNCE_XP } } });
-      const updated = await prisma.user.findUnique({ where: { id: req.userId }, select: { xp: true } });
-
-      // Save ToolReport (fire-and-forget)
-      prisma.toolReport.create({
-        data: {
-          userId: req.userId,
-          toolType: 'bounce_back',
-          summary: reportData?.situation || `Bounce back after: ${(situation || 'a setback').slice(0, 100)}`,
-          arjunResponse: arjunText.slice(0, 500),
-          details: JSON.stringify(reportData || { situation, stuckOn, intensityLabel, controlChoice }),
-        },
-      }).catch(() => {});
-
-      return res.json({ text: arjunText, cueWord, xpEarned: BOUNCE_XP, xp: updated.xp });
-    }
-
-    res.json({ text: message.content[0].text, cueWord, xpEarned: null, xp: null });
   } catch (err) {
     console.error('wizard error:', err);
     res.status(500).json({ error: 'Wizard call failed' });

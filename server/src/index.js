@@ -51,7 +51,6 @@ app.use('/api/debrief',      debriefRoutes);
 app.use('/api/games',         gamesRoutes);
 app.use('/api/profile-intro', profileIntroRoutes);
 app.use('/api/sessions',        sessionsRoutes);
-app.use('/api/user',            require('./routes/cue'));
 app.use('/api/user',            require('./routes/userData'));
 app.use('/api/streaks',         require('./routes/streaks'));
 app.use('/api/payments',        require('./routes/payments'));

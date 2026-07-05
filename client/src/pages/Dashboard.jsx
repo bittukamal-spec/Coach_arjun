@@ -8,8 +8,8 @@ import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
 import {
   Flame, Zap, CheckCircle2, Snowflake, ChevronRight,
-  Wind, RotateCcw, Target, Shield, CircleDot, Waves, Activity,
-  Gamepad2, ClipboardList, X,
+  Wind, RotateCcw, Target, CircleDot, Waves, Activity,
+  Gamepad2, ClipboardList, MessageSquare, X,
 } from 'lucide-react';
 
 function getSportIcon(sport) {
@@ -21,14 +21,16 @@ function getSportIcon(sport) {
 }
 
 const TOOL_MAP = {
-  calm:     { toolKey: 'breathing', to: '/breathing',   state: null, Icon: Wind          },
-  focus:    { toolKey: 'games',     to: '/games',       state: null, Icon: Gamepad2      },
-  selftalk: { toolKey: 'debrief',   to: '/debrief',     state: null, Icon: ClipboardList },
-  bounce:   { toolKey: 'reset',     to: '/bounce-back', state: null, Icon: RotateCcw     },
+  calm:       { toolKey: 'breathing',  to: '/breathing',          state: null, Icon: Wind          },
+  focus:      { toolKey: 'focusLock',  to: '/games/focus-lock',   state: null, Icon: Gamepad2      },
+  selftalk:   { toolKey: 'selftalk',   to: '/self-talk',          state: null, Icon: MessageSquare },
+  bounce:     { toolKey: 'resetRally', to: '/games/reset-rally',  state: null, Icon: RotateCcw     },
+  confidence: { toolKey: 'selftalk',   to: '/self-talk',          state: null, Icon: MessageSquare },
+  drive:      { toolKey: 'debrief',    to: '/debrief',            state: null, Icon: ClipboardList },
 };
 
 function getRecommendedTool(entry) {
-  const dims = ['calm', 'focus', 'selftalk', 'bounce'];
+  const dims = ['calm', 'focus', 'selftalk', 'bounce', 'confidence', 'drive'];
   const sorted = dims.filter(d => entry[d] != null).sort((a, b) => entry[a] - entry[b]);
   return TOOL_MAP[sorted[0]] || TOOL_MAP.calm;
 }
@@ -284,8 +286,8 @@ export default function Dashboard() {
                         {/* Science subtitle */}
                         <p className="text-xs text-slt leading-relaxed mb-5 max-w-xs">
                           {hi
-                            ? 'रोज़ का मानसिक चेक-इन फोकस बढ़ाता है और मैच से पहले की घबराहट 31% तक कम करता है — खेल विज्ञान पर आधारित।'
-                            : 'A daily mental check-in is proven to sharpen focus and reduce pre-match nerves by 31% — backed by sport psychology.'}
+                            ? 'रोज़ का मानसिक चेक-इन फोकस बढ़ाता है और खेलने या ट्रेनिंग से पहले की घबराहट 31% तक कम करता है — खेल विज्ञान पर आधारित।'
+                            : 'A daily mental check-in is proven to sharpen focus and reduce nerves before you play or train by 31% — backed by sport psychology.'}
                         </p>
                         {/* Start button */}
                         <button
@@ -301,28 +303,24 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* ── MOMENT BUTTONS ─────────────────────────────────────────────── */}
-            <div className="mb-6">
-              <SectionLabel>{hi ? 'अभी क्या चाहिए?' : 'What do you need right now?'}</SectionLabel>
-              <div className="grid grid-cols-2 gap-3">
-                <QuickTool
-                  icon={RotateCcw}
-                  iconBg="bg-brand-50"
-                  iconColor="text-brand-400"
-                  title={hi ? 'मैच से पहले'    : 'Before You Play'}
-                  desc={hi  ? 'फोकस और तैयारी' : 'Get focused and ready.'}
-                  onClick={() => navigate('/before-you-play')}
-                />
-                <QuickTool
-                  icon={Shield}
-                  iconBg="bg-teal-500/15"
-                  iconColor="text-teal-400"
-                  title={hi ? 'वापसी करो'    : 'Bounce Back'}
-                  desc={hi  ? 'रीसेट और आगे बढ़ो' : 'Reset and refocus.'}
-                  onClick={() => navigate('/bounce-back')}
-                />
-              </div>
-            </div>
+            {/* ── RECOMMENDED TOOL (from today's MFS check-in) ──────────────── */}
+            {mfsEntry && (() => {
+              const rec = getRecommendedTool(mfsEntry);
+              const toolInfo = mf.toolRec[rec.toolKey];
+              return (
+                <div className="mb-6">
+                  <SectionLabel>{mf.toolRec.sectionLabel}</SectionLabel>
+                  <QuickTool
+                    icon={rec.Icon}
+                    iconBg="bg-brand-50"
+                    iconColor="text-brand-400"
+                    title={toolInfo.title}
+                    desc={toolInfo.desc}
+                    onClick={() => navigate(rec.to, rec.state ? { state: rec.state } : undefined)}
+                  />
+                </div>
+              );
+            })()}
 
             {/* ── CHAT ENTRY ─────────────────────────────────────────────────── */}
             <div className="mb-6">

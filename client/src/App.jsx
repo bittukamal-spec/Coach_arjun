@@ -16,11 +16,8 @@ import RitualPage from './pages/RitualPage';
 import MentalGameProfilePage from './pages/MentalGameProfilePage';
 import TrainPage from './pages/TrainPage';
 import DebriefPage from './pages/DebriefPage';
-import GamesPage from './pages/GamesPage';
 import FocusLockGame from './pages/games/FocusLockGame';
 import ResetRallyGame from './pages/games/ResetRallyGame';
-import BounceBackPage from './pages/BounceBackPage';
-import BeforeYouPlayPage from './pages/BeforeYouPlayPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import GuardianConsentPage from './pages/GuardianConsentPage';
@@ -132,22 +129,9 @@ function App() {
           </ProtectedRoute>
         }
       />
-      <Route
-        path="/bounce-back"
-        element={
-          <ProtectedRoute requireOnboarding={true}>
-            <BounceBackPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/before-you-play"
-        element={
-          <ProtectedRoute requireOnboarding={true}>
-            <BeforeYouPlayPage />
-          </ProtectedRoute>
-        }
-      />
+      {/* Before You Play + Bounce Back removed — retired for MVP, redirect to Train */}
+      <Route path="/bounce-back" element={<Navigate to="/train" replace />} />
+      <Route path="/before-you-play" element={<Navigate to="/train" replace />} />
       <Route
         path="/ritual"
         element={
@@ -165,15 +149,8 @@ function App() {
           </ProtectedRoute>
         }
       />
-      <Route
-        path="/games"
-        element={
-          <ProtectedRoute requireOnboarding={true}>
-            <GamesPage />
-            <BottomNav />
-          </ProtectedRoute>
-        }
-      />
+      {/* Games hub folded into Train — redirect to keep old links/bookmarks alive */}
+      <Route path="/games" element={<Navigate to="/train" replace />} />
       {/* Mental Reps games — full screen, no BottomNav */}
       <Route
         path="/games/focus-lock"

@@ -402,8 +402,8 @@ function RitualPage() {
         </button>
         <p className="text-xs text-slt text-center">
           {language === 'hi'
-            ? 'मैच से 2-5 मिनट पहले करें'
-            : 'Do this 2-5 minutes before your match starts'}
+            ? 'खेलने या ट्रेनिंग से 2-5 मिनट पहले करें'
+            : 'Do this 2-5 minutes before you play or train'}
         </p>
       </main>
     </div>

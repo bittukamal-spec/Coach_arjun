@@ -739,7 +739,7 @@ export default function VisualizationPage() {
                 <p style={{ fontSize: 16, color: C.amber, fontWeight: 700, margin: 0 }}>{user.cueWord}</p>
               ) : (
                 <button
-                  onClick={() => navigate('/before-you-play')}
+                  onClick={() => navigate('/self-talk')}
                   style={{ background: 'none', border: 'none', padding: 0, color: C.blue, fontSize: 14, cursor: 'pointer' }}
                 >
                   {t.step5.cue_missing_cta}

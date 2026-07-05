@@ -1,20 +1,4 @@
 export const APP_TOOL_CONFIG = {
-  'bounce-back': {
-    label: 'Bounce Back',
-    sub: '3 min reset',
-    icon: 'Zap',
-    iconColor: '#D98B2B',
-    bgColor: '#FEF9F0',
-    route: '/bounce-back',
-  },
-  'before-you-play': {
-    label: 'Before You Play',
-    sub: '5 min prep',
-    icon: 'PlayCircle',
-    iconColor: '#185FA5',
-    bgColor: '#EBF3FC',
-    route: '/before-you-play',
-  },
   'visualization': {
     label: 'Visualization',
     sub: '4 min mental rep',
@@ -32,7 +16,7 @@ export const APP_TOOL_CONFIG = {
     route: '/breathing',
   },
   'after-the-match': {
-    label: 'After the Match',
+    label: 'After Match / Training',
     sub: '3 min reflect',
     icon: 'ClipboardList',
     iconColor: '#1E3A5F',
@@ -45,7 +29,7 @@ export const APP_TOOL_CONFIG = {
     icon: 'Target',
     iconColor: '#185FA5',
     bgColor: '#EBF3FC',
-    route: '/games',
+    route: '/train',
   },
 };
 

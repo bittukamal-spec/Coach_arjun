@@ -1,12 +1,11 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Dumbbell, Zap, MessageCircle, TrendingUp, User } from 'lucide-react';
+import { Home, Dumbbell, MessageCircle, TrendingUp, User } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 
 const NAV_ITEMS = [
   { icon: Home,          labelKey: 'home',     path: '/dashboard' },
   { icon: Dumbbell,      labelKey: 'train',    path: '/train'     },
-  { icon: Zap,           labelKey: 'games',    path: '/games'     },
   { icon: MessageCircle, labelKey: 'coach',    path: '/coaching'  },
   { icon: TrendingUp,    labelKey: 'progress', path: '/progress'  },
   { icon: User,          labelKey: 'profile',  path: '/account'   },

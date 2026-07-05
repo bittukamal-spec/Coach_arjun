@@ -309,7 +309,7 @@ function FocusLockGame() {
     <div className="min-h-screen bg-dark-900">
       <header className="bg-dark-900 border-b border-dark-600 px-4 py-4 sticky top-0 z-10">
         <div className="max-w-lg mx-auto flex items-center justify-between">
-          <Link to="/games" className="flex items-center gap-1 text-slt text-sm font-medium">
+          <Link to="/train" className="flex items-center gap-1 text-slt text-sm font-medium">
             <ChevronLeft size={18} />
             {mr.gamesLink}
           </Link>

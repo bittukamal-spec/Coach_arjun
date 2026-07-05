@@ -5,11 +5,11 @@ const authenticate = require('../middleware/authenticate');
 const router = express.Router();
 const prisma = new PrismaClient();
 
-// Client-reported safety events (Body Reset keyword hit, Bounce Back intensity-5).
+// Client-reported safety events (Body Reset keyword hit).
 // Server-detected events (Self-Talk flag, chat helpline response) are written
 // directly in their own routes. Only minimal metadata is stored — never content.
 
-const VALID_SURFACES = ['body_reset', 'bounce_back', 'self_talk', 'chat'];
+const VALID_SURFACES = ['body_reset', 'self_talk', 'chat'];
 const VALID_TRIGGERS = ['crisis_keyword', 'intensity_max', 'needs_support', 'helpline_response'];
 
 router.post('/event', authenticate, async (req, res) => {
