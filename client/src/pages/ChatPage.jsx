@@ -325,41 +325,57 @@ function ChatPage() {
           headers: { Authorization: `Bearer ${token}` },
         }).catch(() => {});
 
-        const [sessionsRes, usageRes] = await Promise.all([
-          apiFetch('/api/sessions',    { headers: { Authorization: `Bearer ${token}` } }),
-          apiFetch('/api/chat/usage',  { headers: { Authorization: `Bearer ${token}` } }),
-        ]);
-
-        if (usageRes.ok) setUsage(await usageRes.json());
-
-        let sessionLoaded = false;
-        if (sessionsRes.ok) {
-          const { sessions } = await sessionsRes.json();
-          setRecentSessions(sessions);
-
-          const pendingId = pendingChatSessionIdRef.current;
-          if (pendingId) {
-            pendingChatSessionIdRef.current = null;
-            setChatSessionId(pendingId);
-            const sess = sessions.find(s => s.id === pendingId);
-            if (sess?.sessionType && sess.sessionType !== 'general') {
-              setActiveSession(sess.sessionType);
-            }
-            if (sess?.summary) setSessionSummary(sess.summary);
-            await fetchSessionMessages(pendingId);
-            sessionLoaded = true;
-          } else if (sessions.length > 0) {
-            // Auto-load the most recent main session — sessions are ordered createdAt desc
-            const mainSession = sessions[0];
-            setChatSessionId(mainSession.id);
-            setChatMode('main');
-            if (mainSession.sessionType && mainSession.sessionType !== 'general') {
-              setActiveSession(mainSession.sessionType);
-            }
-            if (mainSession.summary) setSessionSummary(mainSession.summary);
-            await fetchSessionMessages(mainSession.id);
-            sessionLoaded = true;
+        // ── Usage (trial days left) — independent of sessions; a failure
+        // here must not block the rest of the page from loading.
+        try {
+          const usageRes = await apiFetch('/api/chat/usage', { headers: { Authorization: `Bearer ${token}` } });
+          if (usageRes.ok) {
+            setUsage(await usageRes.json());
+          } else {
+            console.error('[ChatPage] GET /api/chat/usage returned', usageRes.status);
           }
+        } catch (err) {
+          console.error('[ChatPage] GET /api/chat/usage failed:', err);
+        }
+
+        // ── Sessions — independent of usage; a failure here must not block
+        // the rest of the page from loading either.
+        let sessionLoaded = false;
+        try {
+          const sessionsRes = await apiFetch('/api/sessions', { headers: { Authorization: `Bearer ${token}` } });
+          if (sessionsRes.ok) {
+            const data = await sessionsRes.json();
+            const sessions = Array.isArray(data?.sessions) ? data.sessions : [];
+            setRecentSessions(sessions);
+
+            const pendingId = pendingChatSessionIdRef.current;
+            if (pendingId) {
+              pendingChatSessionIdRef.current = null;
+              setChatSessionId(pendingId);
+              const sess = sessions.find(s => s.id === pendingId);
+              if (sess?.sessionType && sess.sessionType !== 'general') {
+                setActiveSession(sess.sessionType);
+              }
+              if (sess?.summary) setSessionSummary(sess.summary);
+              await fetchSessionMessages(pendingId);
+              sessionLoaded = true;
+            } else if (sessions.length > 0) {
+              // Auto-load the most recent main session — sessions are ordered createdAt desc
+              const mainSession = sessions[0];
+              setChatSessionId(mainSession.id);
+              setChatMode('main');
+              if (mainSession.sessionType && mainSession.sessionType !== 'general') {
+                setActiveSession(mainSession.sessionType);
+              }
+              if (mainSession.summary) setSessionSummary(mainSession.summary);
+              await fetchSessionMessages(mainSession.id);
+              sessionLoaded = true;
+            }
+          } else {
+            console.error('[ChatPage] GET /api/sessions returned', sessionsRes.status);
+          }
+        } catch (err) {
+          console.error('[ChatPage] GET /api/sessions failed:', err);
         }
 
         if (!sessionLoaded) {
@@ -371,7 +387,10 @@ function ChatPage() {
           prefillMsgRef.current = null;
         }
       } catch (err) {
-        console.error('[ChatPage] init failed:', err);
+        // Last-resort net for something truly unexpected outside the two
+        // guarded fetches above (both of which already degrade gracefully
+        // on their own and never reach here in normal operation).
+        console.error('[ChatPage] init failed unexpectedly:', err);
         setInitError(t.errorRetry);
       } finally {
         setLoading(false);
