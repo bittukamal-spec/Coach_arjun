@@ -27,17 +27,30 @@ app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
 
 app.use(express.json());
 
-// CORS allowlist from CLIENT_URL (comma-separated for extra origins, e.g. the
-// founder dashboard). Falls back to allow-all only when CLIENT_URL is unset (dev).
-const allowedOrigins = (process.env.CLIENT_URL || '')
+// CORS allowlist — production custom domains are always allowed; CLIENT_URL
+// (comma-separated) adds any extra origins (Vercel preview URLs, the founder
+// dashboard, local dev) on top, without replacing these.
+const PRODUCTION_ORIGINS = [
+  'https://coacharjun.in',
+  'https://www.coacharjun.in',
+];
+
+const envOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
   .split(',')
   .map(o => o.trim().replace(/\/$/, ''))
   .filter(Boolean);
 
-app.use(cors({
-  origin: allowedOrigins.length > 0 ? allowedOrigins : true,
+const allowedOrigins = Array.from(new Set([...PRODUCTION_ORIGINS, ...envOrigins]));
+
+const corsOptions = {
+  origin: allowedOrigins,
   credentials: true,
-}));
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // explicit preflight handler for every route
 
 // Routes
 app.use('/api/auth',         authRoutes);
