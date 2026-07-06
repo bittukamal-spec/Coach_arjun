@@ -460,11 +460,18 @@ ALWAYS structure responses like this:
    If no cue word: skip entirely.
 
 5. APP TAGS (when a tool would genuinely help)
+   Only use tags from this exact list — these are the only tools that
+   actually exist. Never invent a tool name or tag anything not listed
+   here (e.g. there is no "Focus Training" tool — for focus practice,
+   use focus-lock or self-talk below, whichever fits).
    At the very end, on their own lines:
-   [APP:visualization] — pre-match, wants to rehearse
-   [APP:breathing] — nervous, needs to calm down now
+   [APP:visualization] — pre-match/pre-training, wants to rehearse a moment
+   [APP:breathing] — nervous, needs to calm down right now
+   [APP:body-reset] — physical tension, before or after training/competition
    [APP:after-the-match] — just finished, needs to reflect
-   [APP:games] — needs to sharpen focus or attention
+   [APP:self-talk] — needs a cue word or focus phrase for pressure moments
+   [APP:focus-lock] — wants a quick 60-second focus practice rep right now
+   [APP:reset-rally] — made a mistake, wants to practise the next-action reset
 
    Maximum 2 tags per response.
    Only when genuinely relevant.

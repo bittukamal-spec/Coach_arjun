@@ -11,6 +11,7 @@ import {
   Wind, RotateCcw, Target, CircleDot, Waves, Activity,
   Gamepad2, ClipboardList, MessageSquare, X,
 } from 'lucide-react';
+import { isActiveToolRoute } from '../constants/activeTools';
 
 function getSportIcon(sport) {
   const s = (sport || '').toLowerCase();
@@ -32,7 +33,13 @@ const TOOL_MAP = {
 function getRecommendedTool(entry) {
   const dims = ['calm', 'focus', 'selftalk', 'bounce', 'confidence', 'drive'];
   const sorted = dims.filter(d => entry[d] != null).sort((a, b) => entry[a] - entry[b]);
-  return TOOL_MAP[sorted[0]] || TOOL_MAP.calm;
+  const rec = TOOL_MAP[sorted[0]] || TOOL_MAP.calm;
+  // Guardrail: never recommend a route that isn't a real, active tool.
+  if (!isActiveToolRoute(rec.to)) {
+    console.warn(`[Dashboard] getRecommendedTool resolved to inactive route "${rec.to}" — falling back to /breathing`);
+    return TOOL_MAP.calm;
+  }
+  return rec;
 }
 
 function SectionLabel({ children }) {

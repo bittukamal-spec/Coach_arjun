@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Info, Zap, PlayCircle, Eye, Wind, ClipboardList, Target, EyeOff, ChevronLeft } from 'lucide-react';
+import { Info, Eye, Wind, RotateCcw, ClipboardList, MessageSquare, Target, RefreshCw, EyeOff, ChevronLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
@@ -93,7 +93,7 @@ function SummaryBubble({ summary, label }) {
 
 // ─── Lucide icon lookup for APP tool cards ────────────────────────────────────
 
-const ICON_MAP = { Zap, PlayCircle, Eye, Wind, ClipboardList, Target };
+const ICON_MAP = { Eye, Wind, RotateCcw, ClipboardList, MessageSquare, Target, RefreshCw };
 
 // ─── ArjunText: formats Arjun's plain-text responses ─────────────────────────
 
@@ -252,7 +252,17 @@ function ArjunBubble({ message, isStreaming }) {
   const isDark = theme === 'dark' ||
     (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
-  const appTools = (message.appTools || []).filter(id => APP_TOOL_CONFIG[id]);
+  // Guardrail: only ever render a card for a tool id that's in the active
+  // registry. An unrecognised tag (Arjun inventing a name, or a stale tag
+  // from an old saved message) is dropped silently from the UI — never
+  // rendered as a broken/dead-end card — but logged so it's visible.
+  const appTools = (message.appTools || []).filter(id => {
+    if (!APP_TOOL_CONFIG[id]) {
+      if (!isStreaming) console.warn(`[ChatPage] Ignoring unknown [APP:${id}] tag — not in APP_TOOL_CONFIG`);
+      return false;
+    }
+    return true;
+  });
   const hasTools = !isStreaming && appTools.length > 0;
 
   return (

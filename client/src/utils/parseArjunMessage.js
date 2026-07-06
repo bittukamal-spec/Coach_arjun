@@ -1,4 +1,13 @@
-export const APP_TOOL_CONFIG = {
+import { isActiveToolRoute } from '../constants/activeTools';
+
+// Chat-card config for each [APP:...] tag Arjun's system prompt is allowed
+// to emit. Every entry's route must be a real, currently-working tool —
+// never a hub page standing in for "something focus-related" (that's how
+// the old 'games' → 'Focus Training' → /train card ended up feeling like
+// a dead click: it didn't open any specific tool). If a tool is retired,
+// delete its entry here; ACTIVE_TOOL_CONFIG below then filters any stale
+// tag out automatically instead of rendering a broken card.
+const RAW_APP_TOOL_CONFIG = {
   'visualization': {
     label: 'Visualization',
     sub: '4 min mental rep',
@@ -15,6 +24,14 @@ export const APP_TOOL_CONFIG = {
     bgColor: '#F0FAF7',
     route: '/breathing',
   },
+  'body-reset': {
+    label: 'Body Reset',
+    sub: '3 min reset',
+    icon: 'RotateCcw',
+    iconColor: '#2E7D6B',
+    bgColor: '#F0FAF7',
+    route: '/body-reset',
+  },
   'after-the-match': {
     label: 'After Match / Training',
     sub: '3 min reflect',
@@ -23,15 +40,44 @@ export const APP_TOOL_CONFIG = {
     bgColor: '#EFF6FF',
     route: '/debrief',
   },
-  'games': {
-    label: 'Focus Training',
-    sub: 'Sharpen attention',
+  'self-talk': {
+    label: 'Self-Talk Builder',
+    sub: 'Build a focus word',
+    icon: 'MessageSquare',
+    iconColor: '#185FA5',
+    bgColor: '#EBF3FC',
+    route: '/self-talk',
+  },
+  'focus-lock': {
+    label: 'Focus Lock',
+    sub: '60-second rep',
     icon: 'Target',
     iconColor: '#185FA5',
     bgColor: '#EBF3FC',
-    route: '/train',
+    route: '/games/focus-lock',
+  },
+  'reset-rally': {
+    label: 'Reset Rally',
+    sub: '60-second rep',
+    icon: 'RefreshCw',
+    iconColor: '#185FA5',
+    bgColor: '#EBF3FC',
+    route: '/games/reset-rally',
   },
 };
+
+// Guardrail: drop any entry whose route isn't in the active-tool registry,
+// so a future stale/mistyped route can never render a clickable card —
+// it just won't be recognised as a valid tool id.
+export const APP_TOOL_CONFIG = Object.fromEntries(
+  Object.entries(RAW_APP_TOOL_CONFIG).filter(([id, config]) => {
+    if (!isActiveToolRoute(config.route)) {
+      console.warn(`[parseArjunMessage] Dropping tool "${id}" — route "${config.route}" is not in ACTIVE_TOOL_ROUTES`);
+      return false;
+    }
+    return true;
+  })
+);
 
 export function parseArjunMessage(text) {
   const tools = [];
