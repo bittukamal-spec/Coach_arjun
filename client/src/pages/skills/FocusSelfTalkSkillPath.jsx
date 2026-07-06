@@ -1,14 +1,23 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle2, XCircle } from 'lucide-react';
+import {
+  ArrowLeft, CheckCircle2, XCircle, Target, MessageCircle,
+  Dumbbell, Trophy, ListChecks, PenLine, Zap,
+} from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { translations } from '../../i18n/translations';
 import { apiFetch } from '../../api';
 
 const SKILL_KEY = 'focus_self_talk';
 
-// ─── Screen shape ──────────────────────────────────────────────────────────
-// 'intro' → 'example' → 'quiz' → 'pass' | 'fail' → 'useTool' → 'practice'
+// ─── Reference implementation for the skill-loop template ──────────────────
+// Screen shape: 'intro' → 'example' → 'quiz' → 'pass' | 'fail' → 'useTool' → 'practice'
+// Every screen (bar pass/fail, which are brief transitions) carries a small
+// "Skip learning for now" link under its main CTA — this is a soft-guidance
+// loop, never a hard gate. Future skill paths should follow this same shape:
+// intro (concept + benefits + science line) → personalized examples (training
+// + competition) → personalized quick check (3 Q, 2/3 to pass) → tool handoff
+// → practice handoff.
 
 export default function FocusSelfTalkSkillPath() {
   const { user, token, language } = useAuth();
@@ -23,7 +32,7 @@ export default function FocusSelfTalkSkillPath() {
   const [selected, setSelected] = useState(null);
 
   // Check for an existing active Focus Card — decides whether the athlete
-  // goes to Self-Talk Builder or straight to Focus Lock after passing.
+  // goes to Build Focus Words or straight to Focus Lock after passing.
   useEffect(() => {
     apiFetch('/api/self-talk/cards?filter=active', {
       headers: { Authorization: `Bearer ${token}` },
@@ -34,8 +43,13 @@ export default function FocusSelfTalkSkillPath() {
   }, [token]);
 
   function goBack() {
-    if (screen === 'intro') { navigate('/train'); return; }
     navigate('/train');
+  }
+
+  // Leaves the learning loop and hands the athlete straight to the tool —
+  // used by the "Skip learning for now" link on intro/example/quiz.
+  function skipToTool() {
+    navigate('/self-talk');
   }
 
   function startExample() {
@@ -56,13 +70,13 @@ export default function FocusSelfTalkSkillPath() {
   function selectAnswer(i) {
     if (selected !== null) return;
     setSelected(i);
-    if (i === t.quiz.questions[quizIndex].correct) {
+    if (i === quizSet[quizIndex].correct) {
       setCorrectCount(c => c + 1);
     }
   }
 
   function nextQuestion() {
-    const isLast = quizIndex === t.quiz.questions.length - 1;
+    const isLast = quizIndex === quizSet.length - 1;
     if (!isLast) {
       setQuizIndex(i => i + 1);
       setSelected(null);
@@ -94,13 +108,14 @@ export default function FocusSelfTalkSkillPath() {
     setScreen(hasActiveFocusCard ? 'practice' : 'useTool');
   }
 
-  // ── Sport-personalized example ───────────────────────────────────────────
+  // ── Sport-personalized content ───────────────────────────────────────────
   const sportKey = ['football', 'cricket', 'badminton', 'athletics'].includes(user?.sport)
     ? user.sport
     : 'generic';
   const example = t.example[sportKey];
+  const quizSet = t.quiz.bySport[sportKey] || t.quiz.bySport.generic;
 
-  // ── Shared header ─────────────────────────────────────────────────────────
+  // ── Shared bits ───────────────────────────────────────────────────────────
   function Header() {
     return (
       <div className="flex items-center gap-3 px-4 pt-4 pb-2">
@@ -111,19 +126,53 @@ export default function FocusSelfTalkSkillPath() {
     );
   }
 
+  function SkipLink({ onClick }) {
+    return (
+      <button onClick={onClick} className="w-full text-center text-xs text-muted font-medium mt-3 active:opacity-70">
+        {t.skipLearning}
+      </button>
+    );
+  }
+
+  function IconBadge({ icon: Icon, color = '#185FA5', bg = 'rgba(24,95,165,0.12)' }) {
+    return (
+      <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: bg }}>
+        <Icon size={22} style={{ color }} />
+      </div>
+    );
+  }
+
   // ── SCREEN: Intro ─────────────────────────────────────────────────────────
   if (screen === 'intro') return (
     <div className="min-h-screen bg-dark-900 flex flex-col">
       <Header />
-      <div className="flex-1 px-4 pt-4 pb-8 flex flex-col justify-center max-w-lg mx-auto w-full">
-        <h1 className="text-2xl font-bold text-ink mb-6">{t.intro.title}</h1>
-        <div className="space-y-4 mb-8">
+      <div className="flex-1 px-4 pt-2 pb-8 flex flex-col justify-center max-w-lg mx-auto w-full">
+        <div className="flex items-center gap-2 mb-5">
+          <IconBadge icon={Target} />
+          <IconBadge icon={MessageCircle} color="#E2711D" bg="rgba(226,113,29,0.12)" />
+        </div>
+        <h1 className="text-2xl font-bold text-ink mb-4">{t.intro.title}</h1>
+        <div className="space-y-3 mb-6">
           <p className="text-base text-ink leading-relaxed bg-dark-800 border border-dark-600 rounded-2xl p-4">
             {t.intro.line1}
           </p>
           <p className="text-base text-ink leading-relaxed bg-dark-800 border border-dark-600 rounded-2xl p-4">
             {t.intro.line2}
           </p>
+        </div>
+
+        <p className="text-xs font-bold text-slt uppercase tracking-widest mb-3">{t.intro.benefitsTitle}</p>
+        <div className="space-y-2 mb-6">
+          {t.intro.benefits.map((b, i) => (
+            <div key={i} className="flex items-center gap-2.5">
+              <CheckCircle2 size={16} className="text-teal-400 shrink-0" />
+              <p className="text-sm text-slt leading-snug">{b}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="bg-dark-800 rounded-2xl p-4">
+          <p className="text-xs text-slt leading-relaxed">{t.intro.scienceLine}</p>
         </div>
       </div>
       <div className="px-4 pb-8 max-w-lg mx-auto w-full">
@@ -134,26 +183,42 @@ export default function FocusSelfTalkSkillPath() {
         >
           {t.intro.cta}
         </button>
+        <SkipLink onClick={skipToTool} />
       </div>
     </div>
   );
 
-  // ── SCREEN: Personalized Example ─────────────────────────────────────────
+  // ── SCREEN: Personalized Examples ────────────────────────────────────────
   if (screen === 'example') return (
     <div className="min-h-screen bg-dark-900 flex flex-col">
       <Header />
       <div className="flex-1 px-4 pt-2 pb-8 max-w-lg mx-auto w-full">
         <p className="text-xs font-bold text-slt uppercase tracking-widest mb-3">{t.example.heading}</p>
-        <div className="bg-dark-800 border border-dark-600 rounded-2xl p-5 space-y-4">
-          <p className="text-base text-ink font-semibold leading-relaxed">{example.situation}</p>
-          <div>
-            <p className="text-xs font-semibold text-red-400 uppercase tracking-wide mb-1">{example.harshLabel}</p>
-            <p className="text-sm text-slt">{example.harsh}</p>
-          </div>
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: '#E2711D' }}>{example.usefulLabel}</p>
-            <p className="text-sm text-ink font-medium">{example.useful}</p>
-          </div>
+
+        <div className="space-y-3">
+          {[
+            { data: example.training, label: t.example.trainingLabel, icon: Dumbbell, color: '#2E7D6B', bg: 'rgba(46,125,107,0.12)' },
+            { data: example.competition, label: t.example.competitionLabel, icon: Trophy, color: '#E2711D', bg: 'rgba(226,113,29,0.12)' },
+          ].map(({ data, label, icon: Icon, color, bg }) => (
+            <div key={label} className="bg-dark-800 border border-dark-600 rounded-2xl p-5 space-y-3">
+              <div className="flex items-center gap-2.5">
+                <IconBadge icon={Icon} color={color} bg={bg} />
+                <p className="text-xs font-bold uppercase tracking-wide" style={{ color }}>{label}</p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-slt uppercase tracking-wide mb-1">{t.example.situationLabel}</p>
+                <p className="text-sm text-ink font-semibold leading-relaxed">{data.situation}</p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-red-400 uppercase tracking-wide mb-1">{t.example.unhelpfulLabel}</p>
+                <p className="text-sm text-slt">{data.unhelpful}</p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: '#185FA5' }}>{t.example.usefulLabel}</p>
+                <p className="text-sm text-ink font-medium">{data.useful}</p>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
       <div className="px-4 pb-8 max-w-lg mx-auto w-full">
@@ -164,14 +229,15 @@ export default function FocusSelfTalkSkillPath() {
         >
           {t.example.cta}
         </button>
+        <SkipLink onClick={skipToTool} />
       </div>
     </div>
   );
 
   // ── SCREEN: Quick Check ───────────────────────────────────────────────────
   if (screen === 'quiz') {
-    const question = t.quiz.questions[quizIndex];
-    const isLast = quizIndex === t.quiz.questions.length - 1;
+    const question = quizSet[quizIndex];
+    const isLast = quizIndex === quizSet.length - 1;
     const answered = selected !== null;
     const isCorrect = answered && selected === question.correct;
 
@@ -179,9 +245,12 @@ export default function FocusSelfTalkSkillPath() {
       <div className="min-h-screen bg-dark-900 flex flex-col">
         <Header />
         <div className="flex-1 px-4 pt-2 pb-8 max-w-lg mx-auto w-full">
-          <p className="text-xs font-bold text-slt uppercase tracking-widest mb-4">
-            {t.quiz.progressLabel(quizIndex + 1)}
-          </p>
+          <div className="flex items-center gap-2 mb-4">
+            <ListChecks size={18} className="text-brand-400" />
+            <p className="text-xs font-bold text-slt uppercase tracking-widest">
+              {t.quiz.progressLabel(quizIndex + 1)}
+            </p>
+          </div>
           <h2 className="text-lg font-bold text-ink mb-5 leading-snug">{question.q}</h2>
 
           <div className="space-y-2.5 mb-5">
@@ -229,6 +298,7 @@ export default function FocusSelfTalkSkillPath() {
           >
             {isLast ? t.quiz.seeResultBtn : t.quiz.nextBtn}
           </button>
+          <SkipLink onClick={skipToTool} />
         </div>
       </div>
     );
@@ -267,11 +337,13 @@ export default function FocusSelfTalkSkillPath() {
     </div>
   );
 
-  // ── SCREEN: Use Tool ──────────────────────────────────────────────────────
+  // ── SCREEN: Use Tool (Build Focus Words) ─────────────────────────────────
   if (screen === 'useTool') return (
     <div className="min-h-screen bg-dark-900 flex flex-col items-center justify-center px-4 text-center">
-      <h1 className="text-xl font-bold text-ink mb-2">{t.useTool.title}</h1>
-      <p className="text-sm text-slt mb-8 max-w-xs">{t.useTool.body}</p>
+      <IconBadge icon={PenLine} />
+      <h1 className="text-xl font-bold text-ink mt-4 mb-2">{t.useTool.title}</h1>
+      <p className="text-sm text-slt mb-2 max-w-xs">{t.useTool.body}</p>
+      <p className="text-xs text-muted mb-8 max-w-xs">{t.useTool.supportLine}</p>
       <button
         onClick={() => navigate('/self-talk')}
         className="w-full max-w-xs text-white font-bold py-4 rounded-2xl text-base active:scale-[0.98] transition-transform mb-3"
@@ -291,14 +363,23 @@ export default function FocusSelfTalkSkillPath() {
   // ── SCREEN: Practice ──────────────────────────────────────────────────────
   if (screen === 'practice') return (
     <div className="min-h-screen bg-dark-900 flex flex-col items-center justify-center px-4 text-center">
-      <h1 className="text-xl font-bold text-ink mb-2">{t.practice.title}</h1>
-      <p className="text-sm text-slt mb-8 max-w-xs">{t.practice.body}</p>
+      <IconBadge icon={Zap} color="#E2711D" bg="rgba(226,113,29,0.12)" />
+      <h1 className="text-xl font-bold text-ink mt-4 mb-2">{t.practice.title}</h1>
+      <p className="text-sm text-slt mb-2 max-w-xs">{t.practice.body}</p>
+      <p className="text-xs text-muted mb-1 max-w-xs">{t.practice.supportLine}</p>
+      <p className="text-xs text-muted mb-8 max-w-xs italic">{t.practice.note}</p>
       <button
         onClick={() => navigate('/games/focus-lock')}
         className="w-full max-w-xs text-white font-bold py-4 rounded-2xl text-base active:scale-[0.98] transition-transform"
         style={{ backgroundColor: '#185FA5', minHeight: '56px' }}
       >
         {t.practice.cta}
+      </button>
+      <button
+        onClick={goBack}
+        className="text-sm text-slt font-medium active:opacity-70 mt-3"
+      >
+        {t.skipLearning}
       </button>
     </div>
   );

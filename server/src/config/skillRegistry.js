@@ -13,8 +13,8 @@
 const SKILL_REGISTRY = {
   focus_self_talk: {
     skillKey: 'focus_self_talk',
-    name: 'Focus & Self-Talk',
-    explanation: 'Bringing your mind back to one cue when it wanders or turns negative.',
+    name: 'Focus / Focus Words',
+    explanation: 'Bringing your mind back to one focus word when it wanders or turns negative.',
     // Resolved dynamically: 'self-talk' if no active focus card, 'focus-lock' if one exists.
     tools: ['self-talk', 'focus-lock'],
     route: '/self-talk',

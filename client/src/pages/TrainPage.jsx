@@ -191,14 +191,14 @@ export default function TrainPage() {
             icon={GraduationCap}
             iconBg="bg-brand-500/15"
             iconColor="text-brand-400"
-            title={hi ? 'Focus / Self-Talk' : 'Focus / Self-Talk'}
+            title="Focus / Focus Words"
             skillTag={hi ? 'सीखो' : 'Learn'}
             desc={hi
-              ? 'अपने मन को एक काम के शब्द पर वापस लाना सीखो।'
-              : 'Learn how to bring your mind back to one useful cue.'}
+              ? 'सीखो कि अपने मन को एक काम के Focus Word पर कैसे वापस लाओ।'
+              : 'Learn how to bring your mind back to one useful focus word.'}
             duration="5 min"
             bestFor={hi ? 'फोकस खोना' : 'Losing focus'}
-            ctaLabel={hi ? 'सीखना शुरू करो' : 'Start learning'}
+            ctaLabel={hi ? 'अभी शुरू करो' : 'Start now'}
             onCta={() => navigate('/skills/focus-self-talk')}
           />
           <TrainCard
