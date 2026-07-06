@@ -145,7 +145,7 @@ All tools: intro screen → flow → back/quit lands on `/train`. Max 5 active S
 - Quick chat: separate mode, minimal prompt, 7-day history cap, no ToolReports; "zero-footprint" is intent only — messages persist server-side; cleanup is a best-effort client DELETE on tab-hide + purge on next quick start; killed browser = messages persist (AMBER 3)
 - Session types: 8 `SESSION_INSTRUCTIONS` in chat.js:75-114 but client always sends `sessionType='general'` — topic variants unreachable (dead code)
 - `[APP:tool]` tags: working — parsed in parseArjunMessage.js, rendered as tap-to-open tool cards, max 2/reply
-- `[SUGGEST:]` chips: prompt demands them EVERY reply; client parses then discards — dead feature burning tokens per reply (AMBER 9)
+- `[SUGGEST:]` chips: client renders them as tappable quick-reply buttons under the last assistant message (`ChatPage.jsx`'s `extractSuggestions()` + `showChips` block); prompt asks for them on most (not every) reply, with specific non-generic options, skippable when nothing fits
 - Weekly reports: lazy — generated on Progress page load if last week missing + ≥3 user messages; no Monday cron (AMBER 10)
 - Memory extraction: separate non-streaming `messages.create` (chat.js:495)
 
