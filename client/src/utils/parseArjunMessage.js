@@ -78,6 +78,26 @@ const RAW_APP_TOOL_CONFIG = {
     bgColor: '#EBF3FC',
     route: '/games/reset-rally',
   },
+  'focus-deck': {
+    label: 'Focus Cards',
+    sub: 'Your saved cues',
+    why: 'Review the cue words and phrases you already built.',
+    cta: 'View cards',
+    icon: 'Layers',
+    iconColor: '#185FA5',
+    bgColor: '#EBF3FC',
+    route: '/focus-deck',
+  },
+  'train': {
+    label: 'Train',
+    sub: 'Your mental training toolkit',
+    why: 'Find the right tool for what you need right now.',
+    cta: 'Open Train',
+    icon: 'Dumbbell',
+    iconColor: '#185FA5',
+    bgColor: '#EBF3FC',
+    route: '/train',
+  },
 };
 
 // Guardrail: drop any entry whose route isn't in the active-tool registry,
