@@ -34,6 +34,7 @@ function TrainCard({
   title, skillTag, desc, duration, bestFor,
   ctaLabel, onCta,
   secondaryLabel, onSecondary,
+  secondaryLabel2, onSecondary2,
 }) {
   return (
     <div className="bg-dark-400 border border-dark-600 rounded-2xl p-5 flex flex-col gap-3">
@@ -65,14 +66,27 @@ function TrainCard({
       </div>
 
       {/* CTA row */}
-      <div className={`flex items-center mt-1 ${secondaryLabel ? 'justify-between' : 'justify-end'}`}>
-        {secondaryLabel && (
-          <button
-            onClick={onSecondary}
-            className="text-xs font-semibold text-brand-400 active:opacity-70 py-1"
-          >
-            {secondaryLabel}
-          </button>
+      <div className={`flex items-center mt-1 ${(secondaryLabel || secondaryLabel2) ? 'justify-between' : 'justify-end'}`}>
+        {(secondaryLabel || secondaryLabel2) && (
+          <div className="flex items-center gap-3">
+            {secondaryLabel && (
+              <button
+                onClick={onSecondary}
+                className="text-xs font-semibold text-brand-400 active:opacity-70 py-1"
+              >
+                {secondaryLabel}
+              </button>
+            )}
+            {secondaryLabel && secondaryLabel2 && <span className="text-xs text-muted">·</span>}
+            {secondaryLabel2 && (
+              <button
+                onClick={onSecondary2}
+                className="text-xs font-semibold text-brand-400 active:opacity-70 py-1"
+              >
+                {secondaryLabel2}
+              </button>
+            )}
+          </div>
         )}
         <button
           onClick={onCta}
@@ -94,12 +108,22 @@ export default function TrainPage() {
   const mr = translations[language].mentalReps;
 
   const [gameStatus, setGameStatus] = useState(DEFAULT_GAME_STATUS);
+  const [pressureResetLearned, setPressureResetLearned] = useState(true);
 
   useEffect(() => {
     apiFetch('/api/games/status', { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(data => { if (data && data.focusLock) setGameStatus(data); })
       .catch(() => {});
+  }, [token]);
+
+  // "Learn first" only shows on the Pressure Reset card until the athlete
+  // has passed its Quick Check once — soft guidance, never a hard gate.
+  useEffect(() => {
+    apiFetch('/api/skills/calm_body', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(data => setPressureResetLearned(!!data?.quickCheckPassedAt))
+      .catch(() => setPressureResetLearned(true));
   }, [token]);
 
   return (
@@ -132,8 +156,10 @@ export default function TrainPage() {
             bestFor={hi ? 'घबराया हुआ, तना हुआ, या ओवरलोडेड' : 'Nervous, tight, or overloaded'}
             ctaLabel={hi ? 'शुरू करो' : 'Start'}
             onCta={() => navigate('/body-reset')}
-            secondaryLabel={hi ? 'Reset history देखो →' : 'View reset history →'}
-            onSecondary={() => navigate('/body-reset/history')}
+            secondaryLabel={!pressureResetLearned ? (hi ? 'पहले सीखो' : 'Learn first') : undefined}
+            onSecondary={() => navigate('/skills/pressure-reset')}
+            secondaryLabel2={hi ? 'Reset history देखो →' : 'View reset history →'}
+            onSecondary2={() => navigate('/body-reset/history')}
           />
           <TrainCard
             icon={Eye}

@@ -13,7 +13,8 @@ const SKILL_KEYWORDS = {
   ],
   calm_body: [
     'nervous', 'tense', 'tight', 'panic', 'pressure', 'rushing', 'rushed',
-    'breathing fast', 'shaky', 'anxious', 'overloaded',
+    'breathing fast', 'breathing gets fast', 'fast breathing', 'shaky',
+    'anxious', 'overloaded',
   ],
   reflection: [
     'bad session', 'bad training', 'not improving', 'what went wrong',

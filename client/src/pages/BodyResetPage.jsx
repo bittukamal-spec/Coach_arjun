@@ -50,9 +50,19 @@ export default function BodyResetPage() {
   const navigate = useNavigate();
   const { token, language, user } = useAuth();
   const t = translations[language]?.bodyReset || translations.en.bodyReset;
+  const tSkill = translations[language]?.skillPathPressure || translations.en.skillPathPressure;
   const hi = language === 'hi';
 
   const [screen, setScreen] = useState(1);
+  const [showSoftGate, setShowSoftGate] = useState(false);
+
+  // Soft gate: has the athlete passed the Pressure Reset Quick Check?
+  useEffect(() => {
+    apiFetch('/api/skills/calm_body', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(data => setShowSoftGate(!data?.quickCheckPassedAt))
+      .catch(() => setShowSoftGate(false));
+  }, [token]);
 
   // Minimal safety-incident log when a crisis keyword routes to the safety screen
   function reportCrisisEvent() {
@@ -412,6 +422,27 @@ export default function BodyResetPage() {
             <p className="text-xs font-bold text-slt uppercase tracking-widest mb-2">{t.learn.educTitle}</p>
             <p className="text-sm text-slt leading-relaxed whitespace-pre-line">{t.learn.educBody}</p>
           </div>
+
+          {showSoftGate && (
+            <div className="bg-teal-500/10 border border-teal-500/30 rounded-2xl p-4 mb-6">
+              <p className="text-sm text-ink mb-3">{tSkill.softGate.message}</p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => navigate('/skills/pressure-reset')}
+                  className="text-sm font-semibold text-white bg-teal-500 px-4 py-2 rounded-xl active:scale-95 transition-transform"
+                >
+                  {tSkill.softGate.learnFirst}
+                </button>
+                <button
+                  onClick={() => setShowSoftGate(false)}
+                  className="text-sm font-medium text-slt active:opacity-70"
+                >
+                  {tSkill.softGate.startAnyway}
+                </button>
+              </div>
+            </div>
+          )}
+
           <button
             onClick={() => setScreen(2)}
             className="w-full bg-teal-500 text-white font-bold py-4 rounded-2xl text-base active:scale-[0.98]"

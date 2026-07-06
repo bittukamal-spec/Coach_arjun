@@ -26,6 +26,7 @@ import MentalFitnessCheckin from './pages/MentalFitnessCheckin';
 import VisualizationPage from './pages/VisualizationPage';
 import SelfTalkPage from './pages/SelfTalkPage';
 import FocusSelfTalkSkillPath from './pages/skills/FocusSelfTalkSkillPath';
+import PressureResetSkillPath from './pages/skills/PressureResetSkillPath';
 import FocusDeckPage from './pages/FocusDeckPage';
 import BodyResetPage from './pages/BodyResetPage';
 import ResetHistoryPage from './pages/ResetHistoryPage';
@@ -222,6 +223,15 @@ function App() {
         element={
           <ProtectedRoute requireOnboarding={true}>
             <FocusSelfTalkSkillPath />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/skills/pressure-reset"
+        element={
+          <ProtectedRoute requireOnboarding={true}>
+            <PressureResetSkillPath />
           </ProtectedRoute>
         }
       />

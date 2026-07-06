@@ -819,6 +819,108 @@ export const translations = {
         cta: 'Play Focus Lock',
       },
     },
+    skillPathPressure: {
+      skipLearning: 'Skip learning for now',
+      trainCardLearnFirst: 'Learn first',
+      softGate: {
+        message: 'New to Pressure Reset? Learn it first for better results.',
+        learnFirst: 'Learn first',
+        startAnyway: 'Start anyway',
+      },
+      intro: {
+        title: 'Pressure Reset',
+        line1: 'When pressure rises, your body reacts first: your breathing gets faster, your muscles tighten, and your movements can rush.',
+        line2: 'Pressure Reset helps you steady your body and return to the next action.',
+        benefitsTitle: 'What this helps with',
+        benefits: [
+          'Lowering tension before training or competition',
+          'Slowing rushed movement',
+          'Resetting after pressure moments',
+          'Bringing attention back to the next action',
+        ],
+        scienceLine: 'Science-backed: controlled breathing is used in sport to help athletes steady attention and manage body tension under pressure.',
+        cta: 'Start now',
+      },
+      example: {
+        heading: 'A quick example',
+        trainingLabel: 'Training',
+        competitionLabel: 'Competition',
+        situationLabel: 'Situation',
+        reactionLabel: 'Body reaction',
+        resetLabel: 'Reset action',
+        cta: 'Try quick check',
+        football: {
+          training: { situation: 'You rush your first touch during a drill.', reaction: 'Breathing gets fast. Shoulders tighten.', reset: 'Slow exhale. Relax shoulders. Next touch.' },
+          competition: { situation: 'You lose the ball early in the match.', reaction: 'Body speeds up. Mind jumps to the mistake.', reset: 'Breathe out. Scan. Get ready for the next play.' },
+        },
+        cricket: {
+          training: { situation: 'You get beaten in nets.', reaction: 'Grip tightens. Breathing speeds up.', reset: 'Exhale. Loosen hands. Watch the next ball.' },
+          competition: { situation: 'You mistime a shot early.', reaction: 'Body tightens. You start rushing.', reset: 'Breathe out. Reset stance. Next ball.' },
+        },
+        badminton: {
+          training: { situation: 'You miss two easy shots in practice.', reaction: 'Feet get heavy. Breathing feels rushed.', reset: 'Exhale. Bounce light. One rally.' },
+          competition: { situation: 'You lose three points in a row.', reaction: 'Body tightens. You start forcing shots.', reset: 'Breathe out. Reset grip. Next point.' },
+        },
+        athletics: {
+          training: { situation: 'Your rhythm drops during a set.', reaction: 'Breathing feels heavy. Body tenses.', reset: 'Long exhale. Relax face. Next rep.' },
+          competition: { situation: 'You feel tense before the start.', reaction: 'Shoulders rise. Breathing gets shallow.', reset: 'Exhale slowly. Set posture. First action.' },
+        },
+        generic: {
+          training: { situation: 'Training starts badly.', reaction: 'Your body gets tight and rushed.', reset: 'Slow exhale. Relax shoulders. Next action.' },
+          competition: { situation: 'Pressure rises before performance.', reaction: 'Breathing gets fast. Muscles tighten.', reset: 'Breathe out. Set body. Next action.' },
+        },
+      },
+      quiz: {
+        progressLabel: (n) => `Quick Check · ${n}/3`,
+        correctFeedback: 'That\'s it. Pressure Reset helps your body return to the next action.',
+        wrongFeedback: 'Not quite. The best answer is the one that steadies your body for the next action.',
+        nextBtn: 'Next →',
+        seeResultBtn: 'See result',
+        bySport: {
+          football: [
+            { q: 'You lose the ball and feel your body rush. What helps first?', options: ['Push harder without thinking.', 'Breathe out, scan, next play.', 'Blame yourself for the loss.'], correct: 1 },
+            { q: 'Pressure Reset is mainly for:', options: ['Making pressure disappear forever.', 'Steadying your body so you can act better now.', 'Ignoring your body completely.'], correct: 1 },
+            { q: 'You give the ball away and feel your body speed up. What is the best first step?', options: ['Breathe out slowly.', 'Think about the whole match.', 'Judge yourself harder.'], correct: 0 },
+          ],
+          cricket: [
+            { q: 'You get beaten in nets and your grip tightens. What helps first?', options: ['Grip harder and swing faster.', 'Exhale, loosen hands, watch next ball.', 'Replay the mistake in your head.'], correct: 1 },
+            { q: 'Pressure Reset is mainly for:', options: ['Making pressure disappear forever.', 'Steadying your body so you can act better now.', 'Ignoring your body completely.'], correct: 1 },
+            { q: 'You get out cheaply and feel your body speed up. What is the best first step?', options: ['Breathe out slowly.', 'Think about the whole innings.', 'Judge yourself harder.'], correct: 0 },
+          ],
+          badminton: [
+            { q: 'You lose points and start forcing shots. What helps first?', options: ['Force even harder.', 'Breathe out, reset grip, next point.', 'Think about the whole match.'], correct: 1 },
+            { q: 'Pressure Reset is mainly for:', options: ['Making pressure disappear forever.', 'Steadying your body so you can act better now.', 'Ignoring your body completely.'], correct: 1 },
+            { q: 'You lose a rally and feel your body speed up. What is the best first step?', options: ['Breathe out slowly.', 'Think about the whole game.', 'Judge yourself harder.'], correct: 0 },
+          ],
+          athletics: [
+            { q: 'Before your start, shoulders rise and breath gets shallow. What helps first?', options: ['Hold your breath and tense up.', 'Slow exhale, set posture, first action.', 'Worry about the result.'], correct: 1 },
+            { q: 'Pressure Reset is mainly for:', options: ['Making pressure disappear forever.', 'Steadying your body so you can act better now.', 'Ignoring your body completely.'], correct: 1 },
+            { q: 'Your start feels off and your body speeds up. What is the best first step?', options: ['Breathe out slowly.', 'Think about the whole race.', 'Judge yourself harder.'], correct: 0 },
+          ],
+          generic: [
+            { q: 'Your body feels tight before training. What helps most?', options: ['Rush harder.', 'Slow your breathing and return to the next action.', 'Keep thinking about what could go wrong.'], correct: 1 },
+            { q: 'Pressure Reset is mainly for:', options: ['Making pressure disappear forever.', 'Steadying your body so you can act better now.', 'Ignoring your body completely.'], correct: 1 },
+            { q: 'You make a mistake and feel your body speed up. What is the best first step?', options: ['Breathe out slowly.', 'Think about the whole session.', 'Judge yourself harder.'], correct: 0 },
+          ],
+        },
+      },
+      pass: {
+        title: 'You understand the basics.',
+        body: 'Now try Pressure Reset.',
+        cta: 'Continue',
+      },
+      fail: {
+        title: 'Good start.',
+        body: 'Let\'s make it simpler and try again.',
+        cta: 'Try again',
+      },
+      useTool: {
+        title: 'Try Pressure Reset',
+        body: 'Now use the reset for your own body state before training or competition.',
+        supportLine: 'Keep it simple: breathe out, soften tension, return to the next action.',
+        cta: 'Start Pressure Reset',
+      },
+    },
     account: {
       title: 'My Profile',
       editProfile: 'Edit Profile',
@@ -2166,6 +2268,108 @@ export const translations = {
         supportLine: 'ट्रेनिंग और कॉम्पिटिशन के असली पलों के लिए अपने Focus Words को ट्रेन करने के लिए Focus Lock use करो।',
         note: 'अपने खुद के Focus Words बनाने के बाद यह सबसे बेहतर होता है।',
         cta: 'Focus Lock खेलो',
+      },
+    },
+    skillPathPressure: {
+      skipLearning: 'अभी सीखना छोड़ें',
+      trainCardLearnFirst: 'पहले सीखो',
+      softGate: {
+        message: 'Pressure Reset नया है? बेहतर नतीजों के लिए पहले सीख लो।',
+        learnFirst: 'पहले सीखो',
+        startAnyway: 'फिर भी शुरू करो',
+      },
+      intro: {
+        title: 'Pressure Reset',
+        line1: 'जब दबाव बढ़ता है, तो पहले तुम्हारा शरीर react करता है — सांस तेज़ हो जाती है, मसल्स टाइट हो जाती हैं, और मूवमेंट जल्दी में होने लगते हैं।',
+        line2: 'Pressure Reset तुम्हारे शरीर को स्थिर करने और वापस अगले एक्शन पर लाने में मदद करता है।',
+        benefitsTitle: 'यह किसमें मदद करता है',
+        benefits: [
+          'ट्रेनिंग या कॉम्पिटिशन से पहले तनाव कम करना',
+          'जल्दबाज़ी वाली मूवमेंट को धीमा करना',
+          'दबाव वाले पलों के बाद रीसेट करना',
+          'ध्यान को वापस अगले एक्शन पर लाना',
+        ],
+        scienceLine: 'Science-backed: खेल में controlled breathing का इस्तेमाल एथलीट्स को दबाव में ध्यान स्थिर रखने और शरीर के तनाव को मैनेज करने में मदद करने के लिए होता है।',
+        cta: 'अभी शुरू करो',
+      },
+      example: {
+        heading: 'एक छोटा उदाहरण',
+        trainingLabel: 'ट्रेनिंग',
+        competitionLabel: 'कॉम्पिटिशन',
+        situationLabel: 'स्थिति',
+        reactionLabel: 'शरीर की प्रतिक्रिया',
+        resetLabel: 'Reset एक्शन',
+        cta: 'Quick Check करो',
+        football: {
+          training: { situation: 'ड्रिल में तुम अपना पहला टच जल्दी में करते हो।', reaction: 'सांस तेज़ हो जाती है। कंधे टाइट हो जाते हैं।', reset: 'धीमी सांस छोड़ो। कंधे ढीले करो। अगला टच।' },
+          competition: { situation: 'मैच में जल्दी बॉल छूट जाती है।', reaction: 'शरीर तेज़ हो जाता है। दिमाग़ गलती पर चला जाता है।', reset: 'सांस छोड़ो। स्कैन करो। अगली प्ले के लिए तैयार हो जाओ।' },
+        },
+        cricket: {
+          training: { situation: 'नेट्स में तुम आउट हो जाते हो।', reaction: 'पकड़ टाइट हो जाती है। सांस तेज़ हो जाती है।', reset: 'सांस छोड़ो। हाथ ढीले करो। अगली गेंद देखो।' },
+          competition: { situation: 'तुम जल्दी शॉट मिस टाइम करते हो।', reaction: 'शरीर टाइट हो जाता है। तुम जल्दबाज़ी करने लगते हो।', reset: 'सांस छोड़ो। स्टांस रीसेट करो। अगली गेंद।' },
+        },
+        badminton: {
+          training: { situation: 'प्रैक्टिस में तुम दो आसान शॉट मिस करते हो।', reaction: 'पैर भारी हो जाते हैं। सांस जल्दी में लगती है।', reset: 'सांस छोड़ो। हल्का उछलो। एक रैली।' },
+          competition: { situation: 'तुम लगातार तीन पॉइंट हार जाते हो।', reaction: 'शरीर टाइट हो जाता है। तुम ज़बरदस्ती शॉट खेलने लगते हो।', reset: 'सांस छोड़ो। ग्रिप रीसेट करो। अगला पॉइंट।' },
+        },
+        athletics: {
+          training: { situation: 'सेट के दौरान तुम्हारी रिदम गिरती है।', reaction: 'सांस भारी लगती है। शरीर टेंस हो जाता है।', reset: 'लंबी सांस छोड़ो। चेहरा ढीला करो। अगला रेप।' },
+          competition: { situation: 'स्टार्ट से पहले तुम टेंस महसूस करते हो।', reaction: 'कंधे ऊपर उठते हैं। सांस उथली हो जाती है।', reset: 'धीरे से सांस छोड़ो। पोश्चर सेट करो। पहला एक्शन।' },
+        },
+        generic: {
+          training: { situation: 'ट्रेनिंग खराब शुरू होती है।', reaction: 'तुम्हारा शरीर टाइट और जल्दी में हो जाता है।', reset: 'धीमी सांस छोड़ो। कंधे ढीले करो। अगला एक्शन।' },
+          competition: { situation: 'परफॉर्मेंस से पहले दबाव बढ़ता है।', reaction: 'सांस तेज़ हो जाती है। मसल्स टाइट हो जाती हैं।', reset: 'सांस छोड़ो। शरीर सेट करो। अगला एक्शन।' },
+        },
+      },
+      quiz: {
+        progressLabel: (n) => `Quick Check · ${n}/3`,
+        correctFeedback: 'बिल्कुल सही। Pressure Reset तुम्हारे शरीर को वापस अगले एक्शन पर लाने में मदद करता है।',
+        wrongFeedback: 'बिल्कुल नहीं। सबसे अच्छा जवाब वही है जो तुम्हारे शरीर को अगले एक्शन के लिए स्थिर करे।',
+        nextBtn: 'अगला →',
+        seeResultBtn: 'नतीजा देखो',
+        bySport: {
+          football: [
+            { q: 'बॉल छूट जाती है और शरीर जल्दी में आ जाता है। पहले क्या मदद करता है?', options: ['ज़्यादा ज़ोर लगाओ बिना सोचे।', 'सांस छोड़ो, स्कैन करो, अगली प्ले।', 'हार के लिए खुद को दोष दो।'], correct: 1 },
+            { q: 'Pressure Reset मुख्य रूप से किसके लिए है?', options: ['दबाव को हमेशा के लिए खत्म करना।', 'शरीर को स्थिर करना ताकि तुम अभी बेहतर खेल सको।', 'शरीर को पूरी तरह नज़रअंदाज़ करना।'], correct: 1 },
+            { q: 'बॉल गंवाने पर शरीर तेज़ हो जाता है। पहला सबसे अच्छा कदम क्या है?', options: ['धीरे से सांस छोड़ो।', 'पूरे मैच के बारे में सोचो।', 'खुद को और कोसो।'], correct: 0 },
+          ],
+          cricket: [
+            { q: 'नेट्स में तुम आउट हो जाते हो और पकड़ टाइट हो जाती है। पहले क्या मदद करता है?', options: ['और ज़ोर से पकड़ो और तेज़ खेलो।', 'सांस छोड़ो, हाथ ढीले करो, अगली गेंद देखो।', 'गलती को दिमाग़ में दोहराओ।'], correct: 1 },
+            { q: 'Pressure Reset मुख्य रूप से किसके लिए है?', options: ['दबाव को हमेशा के लिए खत्म करना।', 'शरीर को स्थिर करना ताकि तुम अभी बेहतर खेल सको।', 'शरीर को पूरी तरह नज़रअंदाज़ करना।'], correct: 1 },
+            { q: 'सस्ते में आउट होने पर शरीर तेज़ हो जाता है। पहला सबसे अच्छा कदम क्या है?', options: ['धीरे से सांस छोड़ो।', 'पूरी इनिंग के बारे में सोचो।', 'खुद को और कोसो।'], correct: 0 },
+          ],
+          badminton: [
+            { q: 'पॉइंट हारने पर तुम ज़बरदस्ती शॉट खेलने लगते हो। पहले क्या मदद करता है?', options: ['और ज़बरदस्ती करो।', 'सांस छोड़ो, ग्रिप रीसेट करो, अगला पॉइंट।', 'पूरे मैच के बारे में सोचो।'], correct: 1 },
+            { q: 'Pressure Reset मुख्य रूप से किसके लिए है?', options: ['दबाव को हमेशा के लिए खत्म करना।', 'शरीर को स्थिर करना ताकि तुम अभी बेहतर खेल सको।', 'शरीर को पूरी तरह नज़रअंदाज़ करना।'], correct: 1 },
+            { q: 'रैली हारने पर शरीर तेज़ हो जाता है। पहला सबसे अच्छा कदम क्या है?', options: ['धीरे से सांस छोड़ो।', 'पूरे गेम के बारे में सोचो।', 'खुद को और कोसो।'], correct: 0 },
+          ],
+          athletics: [
+            { q: 'स्टार्ट से पहले कंधे ऊपर उठते हैं और सांस उथली हो जाती है। पहले क्या मदद करता है?', options: ['सांस रोको और टाइट हो जाओ।', 'धीरे सांस छोड़ो, पोश्चर सेट करो, पहला एक्शन।', 'नतीजे की चिंता करो।'], correct: 1 },
+            { q: 'Pressure Reset मुख्य रूप से किसके लिए है?', options: ['दबाव को हमेशा के लिए खत्म करना।', 'शरीर को स्थिर करना ताकि तुम अभी बेहतर खेल सको।', 'शरीर को पूरी तरह नज़रअंदाज़ करना।'], correct: 1 },
+            { q: 'स्टार्ट सही नहीं लगती और शरीर तेज़ हो जाता है। पहला सबसे अच्छा कदम क्या है?', options: ['धीरे से सांस छोड़ो।', 'पूरी रेस के बारे में सोचो।', 'खुद को और कोसो।'], correct: 0 },
+          ],
+          generic: [
+            { q: 'ट्रेनिंग से पहले शरीर टाइट महसूस होता है। सबसे ज्यादा क्या मदद करता है?', options: ['और जल्दी करो।', 'सांस धीमी करो और अगले एक्शन पर वापस आओ।', 'लगातार सोचते रहो कि क्या गलत हो सकता है।'], correct: 1 },
+            { q: 'Pressure Reset मुख्य रूप से किसके लिए है?', options: ['दबाव को हमेशा के लिए खत्म करना।', 'शरीर को स्थिर करना ताकि तुम अभी बेहतर खेल सको।', 'शरीर को पूरी तरह नज़रअंदाज़ करना।'], correct: 1 },
+            { q: 'गलती होने पर शरीर तेज़ हो जाता है। पहला सबसे अच्छा कदम क्या है?', options: ['धीरे से सांस छोड़ो।', 'पूरे सेशन के बारे में सोचो।', 'खुद को और कोसो।'], correct: 0 },
+          ],
+        },
+      },
+      pass: {
+        title: 'तुम्हें बेसिक्स समझ आ गए।',
+        body: 'अब Pressure Reset ट्राई करो।',
+        cta: 'आगे बढ़ो',
+      },
+      fail: {
+        title: 'अच्छी शुरुआत।',
+        body: 'चलो इसे आसान बनाकर फिर से कोशिश करते हैं।',
+        cta: 'फिर कोशिश करो',
+      },
+      useTool: {
+        title: 'Pressure Reset ट्राई करो',
+        body: 'अब अपने शरीर की स्थिति के लिए reset का इस्तेमाल करो — ट्रेनिंग या कॉम्पिटिशन से पहले।',
+        supportLine: 'इसे सिंपल रखो: सांस छोड़ो, तनाव को ढीला करो, अगले एक्शन पर वापस आओ।',
+        cta: 'Pressure Reset शुरू करो',
       },
     },
     account: {

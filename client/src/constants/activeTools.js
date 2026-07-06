@@ -17,6 +17,7 @@ export const ACTIVE_TOOL_ROUTES = [
   '/coaching',
   '/train',
   '/skills/focus-self-talk',
+  '/skills/pressure-reset',
 ];
 
 export function isActiveToolRoute(route) {

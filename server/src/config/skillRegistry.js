@@ -87,6 +87,12 @@ function resolveTagForSkill(skillKey, { hasActiveFocusCard = false, quickCheckPa
     if (!quickCheckPassed) return 'skill-focus-self-talk';
     return hasActiveFocusCard ? 'focus-lock' : 'self-talk';
   }
+  if (skillKey === 'calm_body') {
+    // Same Learn → Quick Check gate as focus_self_talk, ahead of the
+    // Pressure Reset tool itself.
+    if (!quickCheckPassed) return 'skill-pressure-reset';
+    return 'body-reset';
+  }
   const skill = getSkill(skillKey);
   return skill ? skill.tools[0] : null;
 }

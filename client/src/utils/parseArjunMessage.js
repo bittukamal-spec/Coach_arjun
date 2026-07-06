@@ -98,6 +98,16 @@ const RAW_APP_TOOL_CONFIG = {
     bgColor: '#EBF3FC',
     route: '/skills/focus-self-talk',
   },
+  'skill-pressure-reset': {
+    label: 'Pressure Reset',
+    sub: 'Learn how to steady your body under pressure.',
+    why: 'A short path to learn and try your own pressure reset.',
+    cta: 'Learn reset',
+    icon: 'GraduationCap',
+    iconColor: '#2E7D6B',
+    bgColor: '#F0FAF7',
+    route: '/skills/pressure-reset',
+  },
 };
 
 // Guardrail: drop any entry whose route isn't in the active-tool registry,
