@@ -5,6 +5,7 @@ const authenticate = require('../middleware/authenticate');
 const requireGuardianConsent = require('../middleware/requireGuardianConsent');
 const { aiLimiter } = require('../middleware/rateLimits');
 const { checkFreeLimit } = require('./chat');
+const { markSkillProgress } = require('../services/skillProgress');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -157,6 +158,7 @@ router.post('/save', authenticate, async (req, res) => {
       data: {
         userId,
         toolType: 'self_talk_builder',
+        skillKey: 'focus_self_talk',
         summary: `${situationCategory} — ${focusWord}`,
         arjunResponse: arjunNote,
         details: JSON.stringify({
@@ -170,6 +172,7 @@ router.post('/save', authenticate, async (req, res) => {
         }),
       },
     });
+    markSkillProgress(userId, 'focus_self_talk', 'toolCompletedAt').catch(() => {});
 
     return res.json({ success: true, card });
   } catch (err) {

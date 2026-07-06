@@ -5,6 +5,7 @@ const authenticate = require('../middleware/authenticate');
 const requireGuardianConsent = require('../middleware/requireGuardianConsent');
 const { aiLimiter } = require('../middleware/rateLimits');
 const { isTrialActive } = require('./chat');
+const { markSkillProgress } = require('../services/skillProgress');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -231,11 +232,13 @@ router.post('/', authenticate, aiLimiter, requireGuardianConsent, async (req, re
       data: {
         userId:        req.userId,
         toolType:      'debrief',
+        skillKey:      'reflection',
         summary:       `Match review: ${eventType}, result: ${resultType}. Went well: ${wentWellChips.join(', ')}. Would change: ${wouldChange}.`,
         arjunResponse: insight ? insight.slice(0, 500) : null,
         details:       JSON.stringify({ eventType, resultType, wentWellChips, wouldChange, nextFocus, mode }),
       },
     }).catch(() => {});
+    markSkillProgress(req.userId, 'reflection', 'toolCompletedAt').catch(() => {});
 
     return res.json({ insight, pattern, debrief, xp: updatedUser.xp, xpEarned: xpAmount, recentEntries });
   } catch {

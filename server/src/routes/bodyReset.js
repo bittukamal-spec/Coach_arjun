@@ -5,6 +5,7 @@ const authenticate = require('../middleware/authenticate');
 const requireGuardianConsent = require('../middleware/requireGuardianConsent');
 const { aiLimiter } = require('../middleware/rateLimits');
 const { checkFreeLimit } = require('./chat');
+const { markSkillProgress } = require('../services/skillProgress');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -101,6 +102,7 @@ router.post('/save', authenticate, async (req, res) => {
       data: {
         userId,
         toolType:      'body_reset',
+        skillKey:      'calm_body',
         summary:       `${mode} reset — ${feeling || 'general'}`,
         arjunResponse: arjunNote || null,
         details: JSON.stringify({
@@ -110,6 +112,7 @@ router.post('/save', authenticate, async (req, res) => {
         }),
       },
     });
+    markSkillProgress(userId, 'calm_body', 'toolCompletedAt').catch(() => {});
 
     return res.json({ success: true, session });
   } catch (err) {

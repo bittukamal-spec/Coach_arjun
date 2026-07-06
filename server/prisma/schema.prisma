@@ -106,6 +106,7 @@ model User {
   weeklyReports          WeeklyReport[]
   selfTalkCards          SelfTalkCard[]
   bodyResetSessions      BodyResetSession[]
+  skillProgress          SkillProgress[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -249,12 +250,33 @@ model ToolReport {
   userId         String
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   toolType       String   // "bounce_back" | "visualization" | "debrief" | "cue_word"
+  skillKey       String?  // "focus_self_talk" | "calm_body" | "reflection" | "visualization" | "mistake_reset" | "confidence"
   summary        String   // 1–2 sentence human-readable summary of what was done
   arjunResponse  String?  // Arjun's closing line shown to athlete
   details        String   @default("{}") // JSON blob of tool-specific fields
   createdAt      DateTime @default(now())
 
   @@index([userId, createdAt])
+}
+
+// Tracks per-skill recommendation/completion state for the chat
+// recommendation loop. learnCompletedAt/quickCheckPassedAt are reserved
+// for a future Learn/Quick-Check flow and are not written yet — MVP only
+// uses toolCompletedAt/practiceCompletedAt/lastRecommendedAt.
+model SkillProgress {
+  id                  String    @id @default(cuid())
+  userId              String
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skillKey            String    // focus_self_talk | calm_body | reflection | visualization | mistake_reset | confidence
+  learnCompletedAt    DateTime?
+  quickCheckPassedAt  DateTime?
+  toolCompletedAt     DateTime?
+  practiceCompletedAt DateTime?
+  lastRecommendedAt   DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@unique([userId, skillKey])
 }
 
 model WeeklyReport {

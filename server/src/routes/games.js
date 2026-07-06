@@ -2,6 +2,7 @@ const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const authenticate = require('../middleware/authenticate');
 const { awardXP } = require('../services/gamification');
+const { markSkillProgress } = require('../services/skillProgress');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -18,6 +19,9 @@ router.post('/xp', authenticate, async (req, res) => {
           data: { userId: req.userId, gameType, score },
         });
       }
+    }
+    if (gameType === 'breathing') {
+      markSkillProgress(req.userId, 'calm_body', 'toolCompletedAt').catch(() => {});
     }
     const { xp } = await awardXP(req.userId, 10);
     res.json({ xp, xpEarned: 10 });
@@ -65,6 +69,7 @@ router.post('/session', authenticate, async (req, res) => {
 
     // Rich stats live in a ToolReport so they reach Arjun's coaching context
     const gameLabel = gameId === 'focus_lock' ? 'Focus Lock' : 'Reset Rally';
+    const skillKey = gameId === 'focus_lock' ? 'focus_self_talk' : 'mistake_reset';
     const accuracyPct = Math.round((accuracy || 0) * 100);
     const summary = gameId === 'focus_lock'
       ? `${gameLabel}: score ${score}, ${accuracyPct}% accuracy, best streak ${bestStreak || 0}, reached level ${level || 1}`
@@ -73,6 +78,7 @@ router.post('/session', authenticate, async (req, res) => {
       data: {
         userId: req.userId,
         toolType: gameId,
+        skillKey,
         summary,
         arjunResponse: insightText || null,
         details: JSON.stringify({
@@ -80,6 +86,7 @@ router.post('/session', authenticate, async (req, res) => {
         }),
       },
     });
+    markSkillProgress(req.userId, skillKey, 'practiceCompletedAt').catch(() => {});
 
     const { xp } = await awardXP(req.userId, 15);
 

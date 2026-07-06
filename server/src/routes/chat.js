@@ -4,6 +4,13 @@ const { PrismaClient } = require('@prisma/client');
 const authenticate = require('../middleware/authenticate');
 const requireGuardianConsent = require('../middleware/requireGuardianConsent');
 const { aiLimiter } = require('../middleware/rateLimits');
+const { detectSkill } = require('../services/skillDetection');
+const { getSkill, resolveTagForSkill } = require('../config/skillRegistry');
+const { markSkillProgress, getLastRecommendedAt } = require('../services/skillProgress');
+
+// How long a suppressed (ignored) skill recommendation stays suppressed
+// before it can be primed again — a lightweight stand-in for "session".
+const SKILL_RECOMMEND_COOLDOWN_MS = 2 * 60 * 60 * 1000; // 2 hours
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -129,7 +136,7 @@ Be warm and curious. Ask one natural follow-up question per response.`,
 // ── Helper: build personalised system prompt ─────────────────────────────
 
 function buildSystemPrompt(user, checkIns = [], memories = [], sessionType = null, extra = {}) {
-  const { recentDebriefs = [], todayDrill = null, achievementCount = 0, recentDrills = [], gameSessions = [], ritual = null, mfsEntry = null, mfsHistory = [], mfsReport = null, toolReports = [], isQuickChat = false } = extra;
+  const { recentDebriefs = [], todayDrill = null, achievementCount = 0, recentDrills = [], gameSessions = [], ritual = null, mfsEntry = null, mfsHistory = [], mfsReport = null, toolReports = [], isQuickChat = false, skillHint = null } = extra;
 
   // Quick chat: minimal prompt — no memory, no history context, no tool reports
   if (isQuickChat) {
@@ -387,12 +394,22 @@ No recent check-ins — the athlete hasn't tracked their mental state yet.`;
     const toolLines = toolReports.map(t => {
       const daysAgo = Math.floor((Date.now() - new Date(t.createdAt).getTime()) / 86400000);
       const when = daysAgo === 0 ? 'today' : `${daysAgo}d ago`;
-      return `- ${t.toolType.replace(/_/g, ' ')} (${when}): ${t.summary}${t.arjunResponse ? ` → Arjun said: "${t.arjunResponse}"` : ''}`;
+      const skillName = t.skillKey ? getSkill(t.skillKey)?.name : null;
+      const skillNote = skillName ? ` [practising: ${skillName}]` : '';
+      return `- ${t.toolType.replace(/_/g, ' ')}${skillNote} (${when}): ${t.summary}${t.arjunResponse ? ` → Arjun said: "${t.arjunResponse}"` : ''}`;
     }).join('\n');
-    toolSection = `\n\n## Recent Mental Tool Activity\n${toolLines}\nIMPORTANT: If the athlete's message clearly relates to one of these tool sessions, reference it specifically. Do NOT ask basic questions whose answers are already here.`;
+    toolSection = `\n\n## Recent Mental Tool Activity\n${toolLines}\nIMPORTANT: If the athlete's message clearly relates to one of these tool sessions, reference it specifically — connect it to their ongoing practice of that skill (e.g. "You built a cue for focus. Use it for one set in training, not the whole session."), not just a generic acknowledgement. Do NOT ask basic questions whose answers are already here.`;
   }
 
-  return `You are Arjun — a mental performance coach who specialises in sports psychology for Indian athletes. You are warm, direct, and feel like a trusted older brother who truly understands the pressures of Indian sports culture.${mfsSection}${toolSection}
+  // ── Skill recommendation hint (from rule-based intent detection on this
+  // message) — a suggestion for Arjun to weigh, never a command. Safety
+  // instructions elsewhere in this prompt always take priority over this.
+  let skillHintSection = '';
+  if (skillHint) {
+    skillHintSection = `\n\n## Possible Focus Area For This Reply\nThis message may be about: ${skillHint.name} — ${skillHint.explanation}\nIf (and only if) this genuinely fits what the athlete said, you may explain it briefly and tag [APP:${skillHint.tag}] at the end. Do not tag it if it doesn't fit, if the athlete is just acknowledging something, or if a safety response is needed instead (safety always overrides this). Never use a tool name other than the ones listed in the APP TAGS section below — there is no such tool as "Focus Training".`;
+  }
+
+  return `You are Arjun — a mental performance coach who specialises in sports psychology for Indian athletes. You are warm, direct, and feel like a trusted older brother who truly understands the pressures of Indian sports culture.${mfsSection}${toolSection}${skillHintSection}
 
 ## Athlete Profile
 - **Name:** ${user.name}
@@ -453,6 +470,7 @@ ALWAYS structure responses like this:
    Maximum 3 steps. Each step maximum 8 words.
    Number them: 1. 2. 3.
    No paragraphs. One line per step.
+   Use the athlete's own sport (from their profile) for the example when it's known, instead of a generic one. If sport is unknown, use general training/competition language rather than defaulting to any one sport.
 
 4. CUE WORD (when cueWord exists in athlete profile)
    Surface it at the end of the action section.
@@ -755,8 +773,32 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
       where: { userId: req.userId, createdAt: { gte: sevenDaysAgoISO } },
       orderBy: { createdAt: 'desc' },
       take: 3,
-      select: { toolType: true, summary: true, arjunResponse: true, createdAt: true },
+      select: { toolType: true, summary: true, arjunResponse: true, createdAt: true, skillKey: true },
     }).catch(() => []);
+
+    // ── Skill recommendation loop: rule-based intent detection on this
+    // message, personalized against whether the athlete has an active
+    // Self-Talk (focus) card, and throttled so an ignored recommendation
+    // doesn't get re-primed on every following message.
+    let skillHint = null;
+    if (!isQuickChat && !isSessionStart) {
+      const detectedSkill = detectSkill(content);
+      if (detectedSkill) {
+        const lastRecommendedAt = await getLastRecommendedAt(req.userId, detectedSkill);
+        const onCooldown = lastRecommendedAt && (Date.now() - new Date(lastRecommendedAt).getTime()) < SKILL_RECOMMEND_COOLDOWN_MS;
+        if (!onCooldown) {
+          const hasActiveFocusCard = await prisma.selfTalkCard.count({
+            where: { userId: req.userId, isArchived: false },
+          }).catch(() => 0) > 0;
+          const tag = resolveTagForSkill(detectedSkill, { hasActiveFocusCard });
+          const skill = getSkill(detectedSkill);
+          if (tag && skill) {
+            skillHint = { skillKey: detectedSkill, name: skill.name, explanation: skill.explanation, tag };
+            await markSkillProgress(req.userId, detectedSkill, 'lastRecommendedAt');
+          }
+        }
+      }
+    }
 
     // Save the user's message (skip invisible session-start markers)
     if (!isSessionStart) {
@@ -813,7 +855,7 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
     const stream = anthropic.messages.stream({
       model: process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001',
       max_tokens: 800,
-      system: buildSystemPrompt(user, recentCheckIns, memories, sessionType, { recentDebriefs, todayDrill, achievementCount, recentDrills, gameSessions, ritual, arjunMsgCount, mfsEntry, mfsHistory, mfsReport: null, toolReports, isQuickChat }),
+      system: buildSystemPrompt(user, recentCheckIns, memories, sessionType, { recentDebriefs, todayDrill, achievementCount, recentDrills, gameSessions, ritual, arjunMsgCount, mfsEntry, mfsHistory, mfsReport: null, toolReports, isQuickChat, skillHint }),
       messages: conversationHistory,
     });
 
@@ -963,11 +1005,13 @@ Also include a "report" field: {"report":{"moment":"<1-sentence: what moment the
           data: {
             userId: req.userId,
             toolType: 'visualization',
+            skillKey: 'visualization',
             summary: vizReport.moment || `Visualized: ${(vizMoment || 'a match moment').slice(0, 100)}`,
             arjunResponse: null,
             details: JSON.stringify({ moment: vizMoment, state: vizState, cueWord: vizCue, ...vizReport }),
           },
         }).catch(() => {});
+        markSkillProgress(req.userId, 'visualization', 'toolCompletedAt').catch(() => {});
 
         return res.json({
           lines: parsed.lines,

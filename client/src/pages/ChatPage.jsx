@@ -203,8 +203,8 @@ function AppToolCard({ toolId, isDark }) {
       onClick={() => navigate(config.route)}
       style={{
         display: 'flex',
-        alignItems: 'center',
-        gap: '10px',
+        flexDirection: 'column',
+        gap: '6px',
         padding: '10px 12px',
         background: isDark ? 'rgba(255,255,255,0.05)' : config.bgColor,
         border: `1px solid ${isDark ? 'rgba(255,255,255,0.10)' : config.iconColor + '22'}`,
@@ -212,34 +212,41 @@ function AppToolCard({ toolId, isDark }) {
         cursor: 'pointer',
         flex: 1,
         minWidth: 0,
-        minHeight: '48px',
         WebkitTapHighlightColor: 'transparent',
       }}
     >
-      <div
-        style={{
-          width: '32px',
-          height: '32px',
-          minWidth: '32px',
-          borderRadius: '8px',
-          background: config.iconColor + (isDark ? '26' : '22'),
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        {IconComponent && <IconComponent size={16} color={config.iconColor} />}
-      </div>
-      <div style={{ minWidth: 0, flex: 1 }}>
-        <div style={{ fontSize: '13px', fontWeight: 600, color: isDark ? 'var(--ink)' : '#172033', lineHeight: 1.2 }}>
-          {config.label}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div
+          style={{
+            width: '32px',
+            height: '32px',
+            minWidth: '32px',
+            borderRadius: '8px',
+            background: config.iconColor + (isDark ? '26' : '22'),
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          {IconComponent && <IconComponent size={16} color={config.iconColor} />}
         </div>
-        <div style={{ fontSize: '11px', color: isDark ? 'var(--slt)' : '#64748B', marginTop: '2px' }}>
-          {config.sub}
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ fontSize: '13px', fontWeight: 600, color: isDark ? 'var(--ink)' : '#172033', lineHeight: 1.2 }}>
+            {config.label}
+          </div>
+          <div style={{ fontSize: '11px', color: isDark ? 'var(--slt)' : '#64748B', marginTop: '2px' }}>
+            {config.sub}
+          </div>
         </div>
       </div>
-      <div style={{ marginLeft: 'auto', color: config.iconColor, fontSize: '16px', flexShrink: 0, lineHeight: 1 }}>
-        ›
+      {config.why && (
+        <div style={{ fontSize: '11px', color: isDark ? 'var(--slt)' : '#64748B', lineHeight: 1.35 }}>
+          {config.why}
+        </div>
+      )}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: config.iconColor, fontSize: '12px', fontWeight: 600 }}>
+        {config.cta || 'Open'}
+        <span style={{ fontSize: '14px', lineHeight: 1 }}>›</span>
       </div>
     </div>
   );

@@ -11,6 +11,8 @@ const RAW_APP_TOOL_CONFIG = {
   'visualization': {
     label: 'Visualization',
     sub: '4 min mental rep',
+    why: 'Mentally rehearse the moment before it happens.',
+    cta: 'Rehearse it',
     icon: 'Eye',
     iconColor: '#6366F1',
     bgColor: '#EEF2FF',
@@ -19,6 +21,8 @@ const RAW_APP_TOOL_CONFIG = {
   'breathing': {
     label: 'Breathe',
     sub: '2 min reset',
+    why: 'Slows the body down so your mind can follow.',
+    cta: 'Start breathing',
     icon: 'Wind',
     iconColor: '#2E7D6B',
     bgColor: '#F0FAF7',
@@ -27,6 +31,8 @@ const RAW_APP_TOOL_CONFIG = {
   'body-reset': {
     label: 'Body Reset',
     sub: '3 min reset',
+    why: 'Helps when pressure makes your body rush.',
+    cta: 'Reset body',
     icon: 'RotateCcw',
     iconColor: '#2E7D6B',
     bgColor: '#F0FAF7',
@@ -35,6 +41,8 @@ const RAW_APP_TOOL_CONFIG = {
   'after-the-match': {
     label: 'After Match / Training',
     sub: '3 min reflect',
+    why: 'Turns today\'s session into one clear takeaway.',
+    cta: 'Reflect now',
     icon: 'ClipboardList',
     iconColor: '#1E3A5F',
     bgColor: '#EFF6FF',
@@ -42,7 +50,9 @@ const RAW_APP_TOOL_CONFIG = {
   },
   'self-talk': {
     label: 'Self-Talk Builder',
-    sub: 'Build a focus word',
+    sub: 'Build one cue for your next training session.',
+    why: 'Helps you bring your mind back to one action.',
+    cta: 'Build cue',
     icon: 'MessageSquare',
     iconColor: '#185FA5',
     bgColor: '#EBF3FC',
@@ -50,7 +60,9 @@ const RAW_APP_TOOL_CONFIG = {
   },
   'focus-lock': {
     label: 'Focus Lock',
-    sub: '60-second rep',
+    sub: '60-second focus rep.',
+    why: 'Practise returning to your cue under distraction.',
+    cta: 'Train focus',
     icon: 'Target',
     iconColor: '#185FA5',
     bgColor: '#EBF3FC',
@@ -59,6 +71,8 @@ const RAW_APP_TOOL_CONFIG = {
   'reset-rally': {
     label: 'Reset Rally',
     sub: '60-second rep',
+    why: 'Practise the next-action reset after a mistake.',
+    cta: 'Practise reset',
     icon: 'RefreshCw',
     iconColor: '#185FA5',
     bgColor: '#EBF3FC',

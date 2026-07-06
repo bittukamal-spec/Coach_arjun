@@ -998,7 +998,7 @@ export const translations = {
       sessionSummaryLabel: 'What we covered',
     },
     games: {
-      stroopTip:    'Helps you block out distractions and stay locked in — like ignoring crowd noise when you\'re batting.',
+      stroopTip:    'Helps you block out distractions and stay locked in — like ignoring crowd noise during your event.',
       thoughtTip:   'Helps you catch negative thoughts and switch them off — like a fielder reading the ball early.',
       filterTip:    'Trains you to stay focused on what matters, even when there\'s noise and pressure around you.',
       stroopTarget: 'Target: 85%+ = focus that holds under pressure',
@@ -2232,7 +2232,7 @@ export const translations = {
       sessionSummaryLabel: 'क्या बात हुई',
     },
     games: {
-      stroopTip:    'ध्यान भटकने से बचने की ट्रेनिंग — जैसे बैटिंग करते वक्त शोर को नज़रअंदाज़ करना।',
+      stroopTip:    'ध्यान भटकने से बचने की ट्रेनिंग — जैसे अपने इवेंट के दौरान शोर को नज़रअंदाज़ करना।',
       thoughtTip:   'नकारात्मक सोच को पकड़ो और बंद करो — जैसे गेंद जल्दी पढ़ना।',
       filterTip:    'दबाव और शोर के बावजूद ज़रूरी चीज़ पर ध्यान रखने की ट्रेनिंग।',
       stroopTarget: 'लक्ष्य: 85%+ = दबाव में भी फोकस बना रहे',
