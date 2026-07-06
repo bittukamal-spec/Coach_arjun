@@ -6,7 +6,7 @@ import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
 import GameCard from '../components/games/GameCard';
 import {
-  Wind, RotateCcw, Eye, ClipboardList, Layers, GraduationCap,
+  RotateCcw, Eye, ClipboardList, Layers, GraduationCap,
 } from 'lucide-react';
 
 const GAMES = [
@@ -120,31 +120,17 @@ export default function TrainPage() {
         <SectionLabel>{hi ? 'मैच / ट्रेनिंग से पहले' : 'Pre-match / Training'}</SectionLabel>
         <div className="space-y-3">
           <TrainCard
-            icon={Wind}
-            iconBg="bg-teal-500/15"
-            iconColor="text-teal-400"
-            title={hi ? 'सांस लो' : 'Breathing / Calm Body'}
-            skillTag={hi ? 'शांति' : 'Calm'}
-            desc={hi
-              ? 'ट्रेनिंग, ट्रायल, या कॉम्पिटिशन से पहले अपने शरीर को शांत करो।'
-              : 'Settle your body before training, trials, or competition.'}
-            duration="2 min"
-            bestFor={hi ? 'घबराहट, तनाव' : 'Nerves, tension'}
-            ctaLabel={hi ? 'शुरू करो' : 'Start Breathing'}
-            onCta={() => navigate('/breathing')}
-          />
-          <TrainCard
             icon={RotateCcw}
             iconBg="bg-teal-500/15"
             iconColor="text-teal-400"
-            title="Body Reset"
+            title="Pressure Reset"
             skillTag={hi ? 'तनाव और घबराहट' : 'Tension & nerves'}
             desc={hi
-              ? 'तनाव छोड़ो, सांस को धीमा करो, और शरीर को वापस कंट्रोल में लाओ।'
-              : 'Release tension, slow your breathing, and bring your body back under control.'}
+              ? 'टॉप एथलीट्स कंट्रोल्ड ब्रीदिंग का इस्तेमाल करते हैं ताकि शरीर को स्थिर रखें, तनाव कम करें, और ट्रेनिंग या कॉम्पिटिशन से पहले ध्यान वापस अगले एक्शन पर लाएं।'
+              : 'Top athletes use controlled breathing to steady their body, lower tension, and bring attention back to the next action before training or competition.'}
             duration="3 min"
             bestFor={hi ? 'घबराया हुआ, तना हुआ, या ओवरलोडेड' : 'Nervous, tight, or overloaded'}
-            ctaLabel={hi ? 'Body Reset करो' : 'Reset Body'}
+            ctaLabel={hi ? 'शुरू करो' : 'Start'}
             onCta={() => navigate('/body-reset')}
             secondaryLabel={hi ? 'Reset history देखो →' : 'View reset history →'}
             onSecondary={() => navigate('/body-reset/history')}

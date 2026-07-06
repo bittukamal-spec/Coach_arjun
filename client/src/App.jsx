@@ -11,7 +11,6 @@ import OnboardingPage from './pages/OnboardingPage';
 import ChatPage from './pages/ChatPage';
 import ProgressPage from './pages/ProgressPage';
 import AccountPage from './pages/AccountPage';
-import BreathingPage from './pages/BreathingPage';
 import RitualPage from './pages/RitualPage';
 import MentalGameProfilePage from './pages/MentalGameProfilePage';
 import TrainPage from './pages/TrainPage';
@@ -121,18 +120,11 @@ function App() {
         }
       />
 
-      <Route
-        path="/breathing"
-        element={
-          <ProtectedRoute requireOnboarding={true}>
-            <BreathingPage />
-            <BottomNav />
-          </ProtectedRoute>
-        }
-      />
       {/* Before You Play + Bounce Back removed — retired for MVP, redirect to Train */}
       <Route path="/bounce-back" element={<Navigate to="/train" replace />} />
       <Route path="/before-you-play" element={<Navigate to="/train" replace />} />
+      {/* Standalone Breathing tool folded into Pressure Reset (Body Reset) — redirect to keep old links/bookmarks alive */}
+      <Route path="/breathing" element={<Navigate to="/body-reset" replace />} />
       <Route
         path="/ritual"
         element={

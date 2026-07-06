@@ -605,7 +605,7 @@ function AccountPage() {
           </button>
         </section>
 
-        {/* Body Reset History */}
+        {/* Pressure Reset History */}
         <section className="mb-6">
           <button
             onClick={() => navigate('/body-reset/history')}
@@ -615,7 +615,7 @@ function AccountPage() {
               <RefreshCw size={16} className="text-teal-400" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-ink">{hi ? 'Body Reset History' : 'Body Reset History'}</p>
+              <p className="text-sm font-semibold text-ink">{hi ? 'Pressure Reset History' : 'Pressure Reset History'}</p>
               <p className="text-xs text-slt">{hi ? 'पिछले breathing resets देखो' : 'View past breathing resets'}</p>
             </div>
             <ChevronRight size={18} className="text-slt shrink-0" />

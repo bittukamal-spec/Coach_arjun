@@ -92,7 +92,7 @@ All require auth (JWT via `authenticate` → `req.userId`) except where marked. 
 | POST /api/mental-fitness · GET /today · /week | MFS check-in + AI line | yes | **no (leak)** |
 | GET /api/weekly-reports | Lazy-generates last week's report | yes | **no (leak)** |
 | POST /api/self-talk/generate · /save · GET /cards · PATCH·DELETE /cards/:id · POST /cards/:id/practice | Self-Talk Builder + Focus Deck | yes | **no (leak on generate)** |
-| POST /api/body-reset/arjun-note · /save · GET / · DELETE /:id | Body Reset | yes | **no (leak on arjun-note)** |
+| POST /api/body-reset/arjun-note · /save · GET / · DELETE /:id | Pressure Reset (route/model still `body-reset` internally) | yes | **no (leak on arjun-note)** |
 | GET /api/health | Health check | no | — |
 
 ## 6. ENV VARIABLES
@@ -129,8 +129,7 @@ All require auth (JWT via `authenticate` → `req.userId`) except where marked. 
 
 | Tool | Route | ToolReport | Status |
 |---|---|---|---|
-| Breathing (Calm Body) | `/breathing` | no — XP only (games.js) | 🟢 |
-| Body Reset | `/body-reset` (+`/body-reset/history`) | yes — bodyReset.js:97 | 🟢 |
+| Pressure Reset (formerly Body Reset; standalone Breathing/Calm Body retired, `/breathing` now redirects here) | `/body-reset` (+`/body-reset/history`) | yes — bodyReset.js:97 | 🟢 |
 | Bounce Back | `/bounce-back` | yes — chat.js:996 (wizard) | 🟢 (no trial gate) |
 | Before You Play | `/before-you-play` | yes — cue.js:37 | 🟡 broken CSS vars (RED 4) |
 | After the Match / Debrief | `/debrief` | yes — debrief.js:225 | 🟢 (no trial gate) |

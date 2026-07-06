@@ -8,7 +8,7 @@ import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
 import {
   Flame, Zap, CheckCircle2, Snowflake, ChevronRight,
-  Wind, RotateCcw, Target, CircleDot, Waves, Activity,
+  RotateCcw, Target, CircleDot, Waves, Activity,
   Gamepad2, ClipboardList, MessageSquare, X,
 } from 'lucide-react';
 import { isActiveToolRoute } from '../constants/activeTools';
@@ -22,12 +22,12 @@ function getSportIcon(sport) {
 }
 
 const TOOL_MAP = {
-  calm:       { toolKey: 'breathing',  to: '/breathing',          state: null, Icon: Wind          },
-  focus:      { toolKey: 'focusLock',  to: '/games/focus-lock',   state: null, Icon: Gamepad2      },
-  selftalk:   { toolKey: 'selftalk',   to: '/self-talk',          state: null, Icon: MessageSquare },
-  bounce:     { toolKey: 'resetRally', to: '/games/reset-rally',  state: null, Icon: RotateCcw     },
-  confidence: { toolKey: 'selftalk',   to: '/self-talk',          state: null, Icon: MessageSquare },
-  drive:      { toolKey: 'debrief',    to: '/debrief',            state: null, Icon: ClipboardList },
+  calm:       { toolKey: 'pressureReset', to: '/body-reset',        state: null, Icon: RotateCcw     },
+  focus:      { toolKey: 'focusLock',     to: '/games/focus-lock',  state: null, Icon: Gamepad2      },
+  selftalk:   { toolKey: 'selftalk',      to: '/self-talk',         state: null, Icon: MessageSquare },
+  bounce:     { toolKey: 'resetRally',    to: '/games/reset-rally', state: null, Icon: RotateCcw     },
+  confidence: { toolKey: 'selftalk',      to: '/self-talk',         state: null, Icon: MessageSquare },
+  drive:      { toolKey: 'debrief',       to: '/debrief',           state: null, Icon: ClipboardList },
 };
 
 function getRecommendedTool(entry) {
@@ -36,7 +36,7 @@ function getRecommendedTool(entry) {
   const rec = TOOL_MAP[sorted[0]] || TOOL_MAP.calm;
   // Guardrail: never recommend a route that isn't a real, active tool.
   if (!isActiveToolRoute(rec.to)) {
-    console.warn(`[Dashboard] getRecommendedTool resolved to inactive route "${rec.to}" — falling back to /breathing`);
+    console.warn(`[Dashboard] getRecommendedTool resolved to inactive route "${rec.to}" — falling back to /body-reset`);
     return TOOL_MAP.calm;
   }
   return rec;

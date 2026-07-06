@@ -557,7 +557,7 @@ export const translations = {
       featuresTitle:    'Everything in Premium',
       feature1:         'Unlimited chat sessions with Arjun',
       feature2:         'Daily check-ins & mood tracking',
-      feature3:         'Pressure reset, breathing & ritual tools',
+      feature3:         'Pressure Reset & ritual tools',
       feature4:         'Session history & AI summaries',
       feature5:         'Mental Fitness Score & progress charts',
       feature6:         'Focus games & mental drills',
@@ -1169,7 +1169,7 @@ export const translations = {
       },
       toolRec: {
         sectionLabel: 'What to do now',
-        breathing:  { title: 'Calm Your Body',        desc: 'Breathing & grounding · 2 min' },
+        pressureReset: { title: 'Pressure Reset',      desc: 'Controlled breathing · 3 min' },
         focusLock:  { title: 'Train Your Focus',      desc: 'Focus Lock · 60-second rep' },
         selftalk:   { title: 'Build Your Focus Card', desc: 'Self-Talk Builder · 5 min' },
         resetRally: { title: 'Practise Your Reset',   desc: 'Reset Rally · 60-second rep' },
@@ -1188,7 +1188,7 @@ export const translations = {
     },
     bodyReset: {
       learn: {
-        title:      'Body Reset',
+        title:      'Pressure Reset',
         duration:   '~3 minutes',
         desc:       'Breathing to calm your body before, during, or after sport.',
         benefit1:   'Reduce physical tension in under a minute',
@@ -1196,7 +1196,7 @@ export const translations = {
         benefit3:   'Works before matches, after mistakes, in training',
         educTitle:  'Your body talks first. Breathing answers.',
         educBody:   "When you are stressed, your body tenses up before your mind even knows why.\n\nControlled breathing resets your nervous system. It is not relaxation — it is a reset switch.",
-        startBtn:   'Start Reset',
+        startBtn:   'Start',
       },
       feeling: {
         heading:           'How are you feeling in your body?',
@@ -1289,7 +1289,7 @@ export const translations = {
         saving:         'Saving…',
       },
       done: {
-        heading:    'Body reset saved.',
+        heading:    'Pressure Reset saved.',
         anotherBtn: 'Do another reset',
         historyBtn: 'View history',
         trainBtn:   'Back to training',
@@ -1897,7 +1897,7 @@ export const translations = {
       featuresTitle:    'Premium में सब कुछ',
       feature1:         'Arjun के साथ असीमित चैट सेशन',
       feature2:         'दैनिक चेक-इन और मूड ट्रैकिंग',
-      feature3:         'प्रेशर रीसेट, श्वास और रिचुअल टूल्स',
+      feature3:         'Pressure Reset और रिचुअल टूल्स',
       feature4:         'सेशन इतिहास और AI सारांश',
       feature5:         'मानसिक फिटनेस स्कोर और प्रगति चार्ट',
       feature6:         'फोकस गेम्स और मानसिक अभ्यास',
@@ -2516,7 +2516,7 @@ export const translations = {
       },
       toolRec: {
         sectionLabel: 'अभी क्या करें',
-        breathing:  { title: 'शरीर को शांत करो',      desc: 'श्वास · 2 मिनट' },
+        pressureReset: { title: 'Pressure Reset',      desc: 'कंट्रोल्ड ब्रीदिंग · 3 मिनट' },
         focusLock:  { title: 'फोकस ट्रेन करो',        desc: 'Focus Lock · 60 सेकंड' },
         selftalk:   { title: 'Focus Card बनाओ',       desc: 'Self-Talk Builder · 5 मिनट' },
         resetRally: { title: 'रीसेट का अभ्यास करो',   desc: 'Reset Rally · 60 सेकंड' },
@@ -2535,7 +2535,7 @@ export const translations = {
     },
     bodyReset: {
       learn: {
-        title:      'Body Reset',
+        title:      'Pressure Reset',
         duration:   '~3 मिनट',
         desc:       'खेल से पहले, दौरान, या बाद में body को calm करने के लिए breathing.',
         benefit1:   'एक मिनट से कम में शारीरिक तनाव कम करो',
@@ -2543,7 +2543,7 @@ export const translations = {
         benefit3:   'मैच से पहले, गलती के बाद, training में — हर जगह काम करता है',
         educTitle:  'पहले body बोलती है। Breathing जवाब देती है।',
         educBody:   "जब तनाव होता है, body पहले tense होती है — दिमाग़ को पता चलने से पहले।\n\nControlled breathing nervous system को reset करती है। यह relaxation नहीं — यह एक reset switch है।",
-        startBtn:   'Reset शुरू करो',
+        startBtn:   'शुरू करो',
       },
       feeling: {
         heading:           'अभी body में कैसा महसूस हो रहा है?',
@@ -2636,7 +2636,7 @@ export const translations = {
         saving:         'Save हो रहा है…',
       },
       done: {
-        heading:    'Body reset save हो गया।',
+        heading:    'Pressure Reset save हो गया।',
         anotherBtn: 'एक और reset करो',
         historyBtn: 'History देखो',
         trainBtn:   'Training पर वापस',

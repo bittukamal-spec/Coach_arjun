@@ -8,7 +8,8 @@
 //
 // Do not add a skill here without also adding real tools for it in
 // APP_TOOL_CONFIG. Do not point any skill at a removed tool (Before You
-// Play, Bounce Back).
+// Play, Bounce Back, the standalone Breathing / Calm Body tool — folded
+// into Pressure Reset / body-reset).
 
 const SKILL_REGISTRY = {
   focus_self_talk: {
@@ -23,11 +24,11 @@ const SKILL_REGISTRY = {
   },
   calm_body: {
     skillKey: 'calm_body',
-    name: 'Calm the Body',
-    explanation: 'Settling physical nerves — fast heart rate, tight shoulders, rushed breathing — before the mind can settle.',
-    tools: ['body-reset', 'breathing'],
+    name: 'Pressure Reset',
+    explanation: 'When pressure rises, your body reacts first. Pressure Reset helps you steady your body and return to the next action.',
+    tools: ['body-reset'],
     route: '/body-reset',
-    whenToRecommend: 'nervous, tense, rushed, pressure, fast breathing, tight body, panic before training or competition',
+    whenToRecommend: 'nervous, tense, rushed, pressure, breathing fast, tight body, overloaded, panic before training or competition',
     whenNotToRecommend: 'urgent safety/distress signals (those override everything and get a real support response, not a tool card)',
   },
   reflection: {
