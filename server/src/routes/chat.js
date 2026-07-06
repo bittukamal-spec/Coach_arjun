@@ -6,7 +6,7 @@ const requireGuardianConsent = require('../middleware/requireGuardianConsent');
 const { aiLimiter } = require('../middleware/rateLimits');
 const { detectSkill } = require('../services/skillDetection');
 const { getSkill, resolveTagForSkill } = require('../config/skillRegistry');
-const { markSkillProgress, getLastRecommendedAt } = require('../services/skillProgress');
+const { markSkillProgress, getLastRecommendedAt, getSkillProgress } = require('../services/skillProgress');
 
 // How long a suppressed (ignored) skill recommendation stays suppressed
 // before it can be primed again — a lightweight stand-in for "session".
@@ -454,6 +454,7 @@ These are the only tools that exist. Never invent a tool name (there is no "Focu
 - Focus Deck — reviewing saved focus cards/cue words the athlete already built → [APP:focus-deck]
 - Focus Lock — short focus practice, cue-word practice under distraction → [APP:focus-lock]
 - Reset Rally — mistake-reset practice, next-action response → [APP:reset-rally]
+- Focus / Self-Talk Skill Path — first-time learning before building a cue, only for an athlete who hasn't passed its quick check yet (see the Possible Focus Area section above if this applies right now) → [APP:skill-focus-self-talk]
 - Train — fallback only, when a tool would help but none of the above clearly fits → [APP:train]
 Tag syntax: exactly [APP:tag-id] on its own line at the very end of your reply, using only the tag ids above. Maximum 2 tags per reply, only when genuinely relevant.
 
@@ -465,7 +466,7 @@ Tag syntax: exactly [APP:tag-id] on its own line at the very end of your reply, 
 - If the athlete already completed a tool today, don't recommend it again unless you're suggesting how to apply or practise it further (not redo it).
 - Never render a card for a tool not in the Active Tool Registry above. If you're unsure a route exists, don't tag anything.
 Worked examples:
-- "I lose focus in training" + no active focus card → recommend Self-Talk Builder. If a focus card already exists → recommend Focus Lock instead.
+- "I lose focus in training": if the athlete hasn't passed the Focus / Self-Talk quick check yet → recommend the Skill Path first. If they've passed it but have no active focus card → recommend Self-Talk Builder. If they already have a focus card → recommend Focus Lock instead.
 - "I get nervous before training" → recommend Body Reset or Breathing.
 - "I made a mistake and kept thinking about it" → recommend Reset Rally, Self-Talk Builder, or Body Reset depending on how intense it sounds. Never Bounce Back — it doesn't exist.
 - "I had a bad training session" → recommend After Training / Competition.
@@ -822,7 +823,9 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
           const hasActiveFocusCard = await prisma.selfTalkCard.count({
             where: { userId: req.userId, isArchived: false },
           }).catch(() => 0) > 0;
-          const tag = resolveTagForSkill(detectedSkill, { hasActiveFocusCard });
+          const skillProgress = await getSkillProgress(req.userId, detectedSkill);
+          const quickCheckPassed = !!skillProgress?.quickCheckPassedAt;
+          const tag = resolveTagForSkill(detectedSkill, { hasActiveFocusCard, quickCheckPassed });
           const skill = getSkill(detectedSkill);
           if (tag && skill) {
             skillHint = { skillKey: detectedSkill, name: skill.name, explanation: skill.explanation, tag };

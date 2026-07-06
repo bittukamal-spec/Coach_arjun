@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Info, Eye, Wind, RotateCcw, ClipboardList, MessageSquare, Target, RefreshCw, Layers, Dumbbell, EyeOff, ChevronLeft } from 'lucide-react';
+import { Info, Eye, Wind, RotateCcw, ClipboardList, MessageSquare, Target, RefreshCw, Layers, Dumbbell, GraduationCap, EyeOff, ChevronLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
@@ -93,7 +93,7 @@ function SummaryBubble({ summary, label }) {
 
 // ─── Lucide icon lookup for APP tool cards ────────────────────────────────────
 
-const ICON_MAP = { Eye, Wind, RotateCcw, ClipboardList, MessageSquare, Target, RefreshCw, Layers, Dumbbell };
+const ICON_MAP = { Eye, Wind, RotateCcw, ClipboardList, MessageSquare, Target, RefreshCw, Layers, Dumbbell, GraduationCap };
 
 // ─── ArjunText: formats Arjun's plain-text responses ─────────────────────────
 

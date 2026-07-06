@@ -26,6 +26,7 @@ import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import MentalFitnessCheckin from './pages/MentalFitnessCheckin';
 import VisualizationPage from './pages/VisualizationPage';
 import SelfTalkPage from './pages/SelfTalkPage';
+import FocusSelfTalkSkillPath from './pages/skills/FocusSelfTalkSkillPath';
 import FocusDeckPage from './pages/FocusDeckPage';
 import BodyResetPage from './pages/BodyResetPage';
 import ResetHistoryPage from './pages/ResetHistoryPage';
@@ -220,6 +221,15 @@ function App() {
         element={
           <ProtectedRoute requireOnboarding={true}>
             <SelfTalkPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/skills/focus-self-talk"
+        element={
+          <ProtectedRoute requireOnboarding={true}>
+            <FocusSelfTalkSkillPath />
           </ProtectedRoute>
         }
       />

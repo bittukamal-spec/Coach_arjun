@@ -98,6 +98,16 @@ const RAW_APP_TOOL_CONFIG = {
     bgColor: '#EBF3FC',
     route: '/train',
   },
+  'skill-focus-self-talk': {
+    label: 'Focus / Self-Talk',
+    sub: 'Learn how to bring your mind back to one cue.',
+    why: 'A short path to build and practise your own focus cue.',
+    cta: 'Learn focus',
+    icon: 'GraduationCap',
+    iconColor: '#185FA5',
+    bgColor: '#EBF3FC',
+    route: '/skills/focus-self-talk',
+  },
 };
 
 // Guardrail: drop any entry whose route isn't in the active-tool registry,

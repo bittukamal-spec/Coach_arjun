@@ -15,6 +15,7 @@ export const ACTIVE_TOOL_ROUTES = [
   '/games/reset-rally',
   '/coaching',
   '/train',
+  '/skills/focus-self-talk',
 ];
 
 export function isActiveToolRoute(route) {

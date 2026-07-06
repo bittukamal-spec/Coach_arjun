@@ -78,8 +78,12 @@ function getSkill(skillKey) {
 // Resolve a detected skill + what's known about the athlete into one
 // concrete APP_TOOL_CONFIG tag id. Never returns a tag outside the
 // skill's own `tools` list, so it can't drift from the registry above.
-function resolveTagForSkill(skillKey, { hasActiveFocusCard = false } = {}) {
+function resolveTagForSkill(skillKey, { hasActiveFocusCard = false, quickCheckPassed = true } = {}) {
   if (skillKey === 'focus_self_talk') {
+    // First-time athletes go through the Learn → Quick Check path before
+    // either building a cue or practising one — never straight to the
+    // tool/game itself.
+    if (!quickCheckPassed) return 'skill-focus-self-talk';
     return hasActiveFocusCard ? 'focus-lock' : 'self-talk';
   }
   const skill = getSkill(skillKey);

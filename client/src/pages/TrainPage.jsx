@@ -6,7 +6,7 @@ import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
 import GameCard from '../components/games/GameCard';
 import {
-  Wind, RotateCcw, Eye, ClipboardList, Layers,
+  Wind, RotateCcw, Eye, ClipboardList, Layers, GraduationCap,
 } from 'lucide-react';
 
 const GAMES = [
@@ -187,6 +187,20 @@ export default function TrainPage() {
         {/* ── BUILD MENTAL SKILLS ──────────────────────────────────────────── */}
         <SectionLabel>{hi ? 'मानसिक स्किल बनाओ' : 'Build Mental Skills'}</SectionLabel>
         <div className="space-y-3">
+          <TrainCard
+            icon={GraduationCap}
+            iconBg="bg-brand-500/15"
+            iconColor="text-brand-400"
+            title={hi ? 'Focus / Self-Talk' : 'Focus / Self-Talk'}
+            skillTag={hi ? 'सीखो' : 'Learn'}
+            desc={hi
+              ? 'अपने मन को एक काम के शब्द पर वापस लाना सीखो।'
+              : 'Learn how to bring your mind back to one useful cue.'}
+            duration="5 min"
+            bestFor={hi ? 'फोकस खोना' : 'Losing focus'}
+            ctaLabel={hi ? 'सीखना शुरू करो' : 'Start learning'}
+            onCta={() => navigate('/skills/focus-self-talk')}
+          />
           <TrainCard
             icon={Layers}
             iconBg="bg-brand-500/15"

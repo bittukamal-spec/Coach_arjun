@@ -33,4 +33,17 @@ async function getLastRecommendedAt(userId, skillKey) {
   }
 }
 
-module.exports = { markSkillProgress, getLastRecommendedAt };
+// Full SkillProgress row for a user+skill, or null if none exists yet.
+async function getSkillProgress(userId, skillKey) {
+  if (!userId || !skillKey) return null;
+  try {
+    return await prisma.skillProgress.findUnique({
+      where: { userId_skillKey: { userId, skillKey } },
+    });
+  } catch (err) {
+    console.error('[skillProgress] getSkillProgress failed:', err?.message);
+    return null;
+  }
+}
+
+module.exports = { markSkillProgress, getLastRecommendedAt, getSkillProgress };
