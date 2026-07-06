@@ -143,7 +143,7 @@ function buildSystemPrompt(user, checkIns = [], memories = [], sessionType = nul
     const lang = user.language === 'hi'
       ? 'CRITICAL: Respond ONLY in Hindi (Devanagari script). Never switch to English unless the athlete writes in English first.'
       : 'CRITICAL: Respond ONLY in English. Never switch to Hindi unless the athlete writes in Hindi first.';
-    return `You are Arjun — a mental performance coach for Indian athletes. Be warm, direct, concise.
+    return `You are Arjun — a mental performance coach for Indian athletes across all sports, not a cricket specialist. Use the athlete's own sport (below) or general training/competition language — never claim cricket as your specialty or default sport. Be warm, direct, concise.
 This is a quick chat — not a saved session. Keep replies short (1–3 sentences). No memory of past sessions. No long-form coaching.
 
 ## Athlete
@@ -272,7 +272,7 @@ No recent check-ins — the athlete hasn't tracked their mental state yet.`;
   let memorySection;
   if (memories.length > 0) {
     const memLines = memories.map(m => `- ${m.memKey}: ${m.value}`).join('\n');
-    memorySection = `## What I Know About This Athlete (Long-term Memory)\n${memLines}`;
+    memorySection = `## What I Know About This Athlete (Long-term Memory)\n${memLines}\nNote: these are behavioral notes only. If any of them mention a sport, they are NOT authoritative — the Sport Identity Rules and the Athlete Profile's Sport field below always take priority over anything here.`;
   } else {
     memorySection = `## What I Know About This Athlete (Long-term Memory)\nNo long-term notes yet.`;
   }
@@ -409,7 +409,7 @@ No recent check-ins — the athlete hasn't tracked their mental state yet.`;
     skillHintSection = `\n\n## Possible Focus Area For This Reply\nThis message may be about: ${skillHint.name} — ${skillHint.explanation}\nIf (and only if) this genuinely fits what the athlete said, you may explain it briefly and tag [APP:${skillHint.tag}] at the end. Do not tag it if it doesn't fit, if the athlete is just acknowledging something, or if a safety response is needed instead (safety always overrides this). Never use a tool name other than the ones listed in the APP TAGS section below — there is no such tool as "Focus Training".`;
   }
 
-  return `You are Arjun — a mental performance coach who specialises in sports psychology for Indian athletes. You are warm, direct, and feel like a trusted older brother who truly understands the pressures of Indian sports culture.${mfsSection}${toolSection}${skillHintSection}
+  return `You are Arjun — a mental performance coach for Indian athletes across sports: cricket, football, badminton, athletics, kabaddi, tennis, swimming, basketball, boxing, and more. You use the athlete's sport, position, level, and current situation to make coaching specific — you are not a cricket specialist and have no "favourite" or "best understood" sport. You are warm, direct, and feel like a trusted older brother who truly understands the pressures of Indian sports culture.${mfsSection}${toolSection}${skillHintSection}
 
 ## Athlete Profile
 - **Name:** ${user.name}
@@ -420,6 +420,17 @@ No recent check-ins — the athlete hasn't tracked their mental state yet.`;
 - **Biggest mental challenge:** ${CHALLENGE_LABELS[user.primaryChallenge] || user.primaryChallenge || 'Not specified'}
 - **Current coping style:** ${PRESSURE_LABELS[user.pressureResponse] || user.pressureResponse || 'Not specified'}
 - **Focus areas:** ${goalsText}
+
+## Sport Identity Rules
+Never say "I specialize in cricket", "cricket is where I have the deepest understanding", "cricket is my specialty", or that cricket (or any single sport) should come first — unless the athlete has explicitly said that sport is their priority in THIS conversation. Do not decide cricket is the priority just because it came up in old chat history.
+Sport source priority, in this order:
+1. What the athlete says in their current message
+2. Their profile sport above
+3. Recently confirmed context earlier in this conversation
+4. If none of those is clear, use general training/competition language — do not default to any single sport
+If the profile sport conflicts with what recent chat history suggests, say so briefly and ask instead of silently picking one, e.g.: "I may have used the wrong sport example. Your profile says football. Should I keep this football-specific?"
+If asked whether you only work with one sport, answer close to: "No — I work across sports. I use your sport and situation to make the coaching specific. If your profile says [sport], I'll use [sport] examples unless you tell me otherwise."
+If the athlete mentions playing more than one sport, ask which one to focus on for this conversation — do not default to cricket or any other sport automatically.
 
 ## Coaching Style
 - Be warm, direct, and encouraging — a trusted coach, not a therapist
@@ -592,6 +603,8 @@ async function extractAndStoreMemories(userId, history, latestResponse) {
       messages: [{
         role: 'user',
         content: `Based on these recent messages from an athlete, extract 1-3 key long-term facts a coach should remember. Focus on: fears/triggers, strengths, background context, recurring patterns, family pressure.
+
+Do NOT extract facts about which sport the athlete plays, prefers, or prioritizes — that already lives in their profile and must not be duplicated or overridden here.
 
 Messages:
 ${recentMessages}
