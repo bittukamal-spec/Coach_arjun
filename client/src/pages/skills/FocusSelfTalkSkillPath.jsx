@@ -136,8 +136,8 @@ export default function FocusSelfTalkSkillPath() {
 
   function IconBadge({ icon: Icon, color = '#185FA5', bg = 'rgba(24,95,165,0.12)' }) {
     return (
-      <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: bg }}>
-        <Icon size={22} style={{ color }} />
+      <div className="icon-tile" style={{ '--tile-fg': color, '--tile-bg': bg }}>
+        <Icon size={22} />
       </div>
     );
   }
@@ -178,8 +178,8 @@ export default function FocusSelfTalkSkillPath() {
       <div className="px-4 pb-8 max-w-lg mx-auto w-full">
         <button
           onClick={startExample}
-          className="w-full text-white font-bold py-4 rounded-2xl text-base active:scale-[0.98] transition-transform"
-          style={{ backgroundColor: '#185FA5', minHeight: '56px' }}
+          className="btn-gradient w-full py-4 text-base"
+          style={{ minHeight: '56px' }}
         >
           {t.intro.cta}
         </button>
@@ -224,8 +224,8 @@ export default function FocusSelfTalkSkillPath() {
       <div className="px-4 pb-8 max-w-lg mx-auto w-full">
         <button
           onClick={startQuiz}
-          className="w-full text-white font-bold py-4 rounded-2xl text-base active:scale-[0.98] transition-transform"
-          style={{ backgroundColor: '#185FA5', minHeight: '56px' }}
+          className="btn-gradient w-full py-4 text-base"
+          style={{ minHeight: '56px' }}
         >
           {t.example.cta}
         </button>
@@ -293,8 +293,8 @@ export default function FocusSelfTalkSkillPath() {
           <button
             onClick={nextQuestion}
             disabled={!answered}
-            className="w-full text-white font-bold py-4 rounded-2xl text-base active:scale-[0.98] transition-transform disabled:opacity-40"
-            style={{ backgroundColor: '#185FA5', minHeight: '56px' }}
+            className="btn-gradient w-full py-4 text-base"
+            style={{ minHeight: '56px' }}
           >
             {isLast ? t.quiz.seeResultBtn : t.quiz.nextBtn}
           </button>
@@ -314,8 +314,8 @@ export default function FocusSelfTalkSkillPath() {
       <p className="text-sm text-slt mb-8 max-w-xs">{t.pass.body}</p>
       <button
         onClick={continueFromPass}
-        className="w-full max-w-xs text-white font-bold py-4 rounded-2xl text-base active:scale-[0.98] transition-transform"
-        style={{ backgroundColor: '#185FA5', minHeight: '56px' }}
+        className="btn-gradient w-full max-w-xs py-4 text-base"
+        style={{ minHeight: '56px' }}
       >
         {t.pass.cta}
       </button>
@@ -329,8 +329,8 @@ export default function FocusSelfTalkSkillPath() {
       <p className="text-sm text-slt mb-8 max-w-xs">{t.fail.body}</p>
       <button
         onClick={retryQuiz}
-        className="w-full max-w-xs text-white font-bold py-4 rounded-2xl text-base active:scale-[0.98] transition-transform"
-        style={{ backgroundColor: '#185FA5', minHeight: '56px' }}
+        className="btn-gradient w-full max-w-xs py-4 text-base"
+        style={{ minHeight: '56px' }}
       >
         {t.fail.cta}
       </button>
@@ -346,8 +346,8 @@ export default function FocusSelfTalkSkillPath() {
       <p className="text-xs text-muted mb-8 max-w-xs">{t.useTool.supportLine}</p>
       <button
         onClick={() => navigate('/self-talk')}
-        className="w-full max-w-xs text-white font-bold py-4 rounded-2xl text-base active:scale-[0.98] transition-transform mb-3"
-        style={{ backgroundColor: '#185FA5', minHeight: '56px' }}
+        className="btn-gradient w-full max-w-xs py-4 text-base mb-3"
+        style={{ minHeight: '56px' }}
       >
         {t.useTool.cta}
       </button>
@@ -370,8 +370,8 @@ export default function FocusSelfTalkSkillPath() {
       <p className="text-xs text-muted mb-8 max-w-xs italic">{t.practice.note}</p>
       <button
         onClick={() => navigate('/games/focus-lock')}
-        className="w-full max-w-xs text-white font-bold py-4 rounded-2xl text-base active:scale-[0.98] transition-transform"
-        style={{ backgroundColor: '#185FA5', minHeight: '56px' }}
+        className="btn-gradient w-full max-w-xs py-4 text-base"
+        style={{ minHeight: '56px' }}
       >
         {t.practice.cta}
       </button>

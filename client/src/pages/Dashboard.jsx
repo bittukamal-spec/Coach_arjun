@@ -43,20 +43,16 @@ function getRecommendedTool(entry) {
 }
 
 function SectionLabel({ children }) {
-  return (
-    <p className="text-[11px] font-bold text-slt uppercase tracking-widest mb-3">
-      {children}
-    </p>
-  );
+  return <p className="section-label">{children}</p>;
 }
 
 function QuickTool({ icon: Icon, iconBg, iconColor, title, desc, onClick }) {
   return (
     <button
       onClick={onClick}
-      className="card p-3.5 text-left active:scale-95 transition-transform flex flex-col gap-2.5 hover:border-dark-500"
+      className="card-elevated p-3.5 text-left active:scale-95 transition-transform flex flex-col gap-2.5 hover:border-dark-500"
     >
-      <div className={`w-9 h-9 rounded-full ${iconBg} flex items-center justify-center shrink-0`}>
+      <div className={`w-9 h-9 rounded-xl ${iconBg} flex items-center justify-center shrink-0`}>
         <Icon size={16} className={iconColor} />
       </div>
       <div className="flex-1">

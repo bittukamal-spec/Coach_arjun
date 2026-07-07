@@ -29,8 +29,8 @@ function BottomNav() {
               to={path}
               className="flex-1 flex flex-col items-center justify-center"
             >
-              <div className={`flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl transition-colors ${
-                active ? 'bg-brand-50' : ''
+              <div className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-2xl transition-colors ${
+                active ? 'bg-brand-50 shadow-sm' : ''
               }`}>
                 <Icon
                   size={20}

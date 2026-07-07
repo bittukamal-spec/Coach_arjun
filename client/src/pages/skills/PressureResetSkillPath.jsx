@@ -116,8 +116,8 @@ export default function PressureResetSkillPath() {
 
   function IconBadge({ icon: Icon, color = '#2E7D6B', bg = 'rgba(46,125,107,0.12)' }) {
     return (
-      <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: bg }}>
-        <Icon size={22} style={{ color }} />
+      <div className="icon-tile" style={{ '--tile-fg': color, '--tile-bg': bg }}>
+        <Icon size={22} />
       </div>
     );
   }
@@ -159,8 +159,8 @@ export default function PressureResetSkillPath() {
       <div className="px-4 pb-8 max-w-lg mx-auto w-full">
         <button
           onClick={startExample}
-          className="w-full text-white font-bold py-4 rounded-2xl text-base active:scale-[0.98] transition-transform"
-          style={{ backgroundColor: '#185FA5', minHeight: '56px' }}
+          className="btn-gradient w-full py-4 text-base"
+          style={{ minHeight: '56px' }}
         >
           {t.intro.cta}
         </button>
@@ -205,8 +205,8 @@ export default function PressureResetSkillPath() {
       <div className="px-4 pb-8 max-w-lg mx-auto w-full">
         <button
           onClick={startQuiz}
-          className="w-full text-white font-bold py-4 rounded-2xl text-base active:scale-[0.98] transition-transform"
-          style={{ backgroundColor: '#185FA5', minHeight: '56px' }}
+          className="btn-gradient w-full py-4 text-base"
+          style={{ minHeight: '56px' }}
         >
           {t.example.cta}
         </button>
@@ -274,8 +274,8 @@ export default function PressureResetSkillPath() {
           <button
             onClick={nextQuestion}
             disabled={!answered}
-            className="w-full text-white font-bold py-4 rounded-2xl text-base active:scale-[0.98] transition-transform disabled:opacity-40"
-            style={{ backgroundColor: '#185FA5', minHeight: '56px' }}
+            className="btn-gradient w-full py-4 text-base"
+            style={{ minHeight: '56px' }}
           >
             {isLast ? t.quiz.seeResultBtn : t.quiz.nextBtn}
           </button>
@@ -295,8 +295,8 @@ export default function PressureResetSkillPath() {
       <p className="text-sm text-slt mb-8 max-w-xs">{t.pass.body}</p>
       <button
         onClick={() => setScreen('useTool')}
-        className="w-full max-w-xs text-white font-bold py-4 rounded-2xl text-base active:scale-[0.98] transition-transform"
-        style={{ backgroundColor: '#185FA5', minHeight: '56px' }}
+        className="btn-gradient w-full max-w-xs py-4 text-base"
+        style={{ minHeight: '56px' }}
       >
         {t.pass.cta}
       </button>
@@ -310,8 +310,8 @@ export default function PressureResetSkillPath() {
       <p className="text-sm text-slt mb-8 max-w-xs">{t.fail.body}</p>
       <button
         onClick={retryQuiz}
-        className="w-full max-w-xs text-white font-bold py-4 rounded-2xl text-base active:scale-[0.98] transition-transform"
-        style={{ backgroundColor: '#185FA5', minHeight: '56px' }}
+        className="btn-gradient w-full max-w-xs py-4 text-base"
+        style={{ minHeight: '56px' }}
       >
         {t.fail.cta}
       </button>
@@ -327,8 +327,8 @@ export default function PressureResetSkillPath() {
       <p className="text-xs text-muted mb-8 max-w-xs">{t.useTool.supportLine}</p>
       <button
         onClick={() => navigate('/body-reset')}
-        className="w-full max-w-xs text-white font-bold py-4 rounded-2xl text-base active:scale-[0.98] transition-transform mb-3"
-        style={{ backgroundColor: '#185FA5', minHeight: '56px' }}
+        className="btn-gradient w-full max-w-xs py-4 text-base mb-3"
+        style={{ minHeight: '56px' }}
       >
         {t.useTool.cta}
       </button>

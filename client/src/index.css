@@ -184,4 +184,80 @@
   .skill-bar-fill {
     @apply h-full rounded-full transition-all duration-700;
   }
+
+  /* ── Redesign pass: shared premium-polish tokens ─────────────────────────
+     Reused across Train, the Focus Words / Pressure Reset skill-loop
+     screens, and Chat's recommendation card + chips. Colour that must vary
+     per-instance (a tool's own accent) is passed in via --tile-bg/--tile-fg/
+     --tile-border custom properties on the element, so one class covers
+     every accent without a matrix of one-off utility classes. Dark-mode
+     overrides follow the same manual-override + media-query-fallback
+     pattern already used above for [data-theme], instead of Tailwind's
+     `dark:` prefix — this app's dark mode also has a manual override that
+     Tailwind's default `media` strategy would ignore. */
+
+  /* Elevated card — a bit more premium than .card, same theme tokens */
+  .card-elevated {
+    @apply bg-dark-400 rounded-2xl border border-dark-600;
+    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06);
+  }
+  [data-theme="dark"] .card-elevated {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .card-elevated {
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+    }
+  }
+
+  /* Gradient primary button — Arjun blue → purple, same in both themes */
+  .btn-gradient {
+    @apply inline-flex items-center justify-center gap-2 text-white font-bold rounded-2xl active:scale-[0.98] transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
+    background-image: linear-gradient(135deg, theme('colors.brand.500'), theme('colors.purple.500'));
+    box-shadow: 0 2px 10px rgba(23, 105, 170, 0.25);
+  }
+  .btn-gradient:active { filter: brightness(0.96); }
+
+  /* Icon tile — 40–48px rounded-square icon container */
+  .icon-tile {
+    @apply w-11 h-11 rounded-xl flex items-center justify-center shrink-0 border;
+    background: var(--tile-bg, rgb(var(--brand-50)));
+    border-color: var(--tile-border, transparent);
+    color: var(--tile-fg, theme('colors.brand.500'));
+  }
+
+  /* Tag / pill — soft, low-saturation accent background */
+  .tag-pill {
+    @apply text-[11px] font-semibold px-2.5 py-1 rounded-full whitespace-nowrap shrink-0;
+    background: var(--tile-bg, rgb(var(--brand-50)));
+    color: var(--tile-fg, theme('colors.brand.500'));
+  }
+
+  /* Quick-reply chip — visually secondary, never a main button */
+  .chip {
+    @apply text-xs font-medium px-3 py-1.5 rounded-full border border-dark-500 bg-dark-700 text-slt active:scale-95 transition-all;
+  }
+  .chip:hover {
+    @apply border-brand-500 text-brand-400;
+  }
+
+  /* Tool recommendation card (chat) — dark mode flattens every tool's own
+     tint to one translucent surface so accent colours don't clash inside
+     the dark bubble. */
+  .tool-card {
+    @apply rounded-xl border transition-transform;
+    background: var(--tool-bg, rgb(var(--dark-800)));
+    border-color: var(--tool-border, rgb(var(--dark-600)));
+  }
+  .tool-card:active { transform: scale(0.98); }
+  [data-theme="dark"] .tool-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.10);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .tool-card {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.10);
+    }
+  }
 }

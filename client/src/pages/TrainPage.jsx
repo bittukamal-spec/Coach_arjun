@@ -6,12 +6,14 @@ import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
 import GameCard from '../components/games/GameCard';
 import {
-  RotateCcw, Eye, ClipboardList, Layers, GraduationCap,
+  RotateCcw, Eye, ClipboardList, Layers, GraduationCap, Target, RefreshCw,
 } from 'lucide-react';
 
+// Accent colours reused verbatim from parseArjunMessage.js's APP_TOOL_CONFIG
+// so a tool looks the same on the Train card and in a chat recommendation.
 const GAMES = [
-  { id: 'focusLock',  icon: '🎯', path: '/games/focus-lock'  },
-  { id: 'resetRally', icon: '🔄', path: '/games/reset-rally' },
+  { id: 'focusLock',  icon: Target,     tileFg: '#185FA5', tileBg: '#EBF3FC', path: '/games/focus-lock'  },
+  { id: 'resetRally', icon: RefreshCw,  tileFg: '#185FA5', tileBg: '#EBF3FC', path: '/games/reset-rally' },
 ];
 
 const DEFAULT_GAME_STATUS = {
@@ -22,37 +24,29 @@ const DEFAULT_GAME_STATUS = {
 };
 
 function SectionLabel({ children }) {
-  return (
-    <p className="text-[11px] font-bold text-slt uppercase tracking-widest mb-4 mt-8">
-      {children}
-    </p>
-  );
+  return <p className="section-label mt-8">{children}</p>;
 }
 
 function TrainCard({
-  icon: Icon, iconBg, iconColor,
+  icon: Icon, tileFg, tileBg,
   title, skillTag, desc, duration, bestFor,
   ctaLabel, onCta,
   secondaryLabel, onSecondary,
   secondaryLabel2, onSecondary2,
 }) {
+  const tileStyle = { '--tile-fg': tileFg, '--tile-bg': tileBg };
   return (
-    <div className="bg-dark-400 border border-dark-600 rounded-2xl p-5 flex flex-col gap-3">
+    <div className="card-elevated p-5 flex flex-col gap-3">
 
       {/* Header: icon + title + skill pill */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-3">
-          <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${iconBg}`}>
-            <Icon size={22} className={iconColor} />
+          <div className="icon-tile" style={tileStyle}>
+            <Icon size={22} />
           </div>
           <h2 className="text-base font-bold text-ink leading-tight">{title}</h2>
         </div>
-        <span
-          className="text-[11px] font-semibold px-2.5 py-1 rounded-full whitespace-nowrap shrink-0"
-          style={{ backgroundColor: 'rgba(24,95,165,0.10)', color: '#185FA5' }}
-        >
-          {skillTag}
-        </span>
+        <span className="tag-pill" style={tileStyle}>{skillTag}</span>
       </div>
 
       {/* Description */}
@@ -90,8 +84,8 @@ function TrainCard({
         )}
         <button
           onClick={onCta}
-          className="text-white text-sm font-semibold px-6 rounded-xl active:scale-[0.98] transition-transform"
-          style={{ backgroundColor: '#185FA5', minHeight: '44px' }}
+          className="btn-gradient text-sm px-6"
+          style={{ minHeight: '44px' }}
         >
           {ctaLabel}
         </button>
@@ -145,8 +139,8 @@ export default function TrainPage() {
         <div className="space-y-3">
           <TrainCard
             icon={RotateCcw}
-            iconBg="bg-teal-500/15"
-            iconColor="text-teal-400"
+            tileFg="#2E7D6B"
+            tileBg="#F0FAF7"
             title="Pressure Reset"
             skillTag={hi ? 'तनाव और घबराहट' : 'Tension & nerves'}
             desc={hi
@@ -163,8 +157,8 @@ export default function TrainPage() {
           />
           <TrainCard
             icon={Eye}
-            iconBg="bg-brand-500/15"
-            iconColor="text-brand-400"
+            tileFg="#6366F1"
+            tileBg="#EEF2FF"
             title="Visualization"
             skillTag={hi ? 'मानसिक रिहर्सल' : 'Mental rehearsal'}
             desc={hi
@@ -182,8 +176,8 @@ export default function TrainPage() {
         <div className="space-y-3">
           <TrainCard
             icon={ClipboardList}
-            iconBg="bg-saffron-500/15"
-            iconColor="text-saffron-400"
+            tileFg="#1E3A5F"
+            tileBg="#EFF6FF"
             title={hi ? 'After Match / Training' : 'After Match / Training'}
             skillTag={hi ? 'मैच के बाद' : 'After match'}
             desc={hi
@@ -201,8 +195,8 @@ export default function TrainPage() {
         <div className="space-y-3">
           <TrainCard
             icon={GraduationCap}
-            iconBg="bg-brand-500/15"
-            iconColor="text-brand-400"
+            tileFg="#185FA5"
+            tileBg="#EBF3FC"
             title="Focus / Focus Words"
             skillTag={hi ? 'सीखो' : 'Learn'}
             desc={hi
@@ -215,8 +209,8 @@ export default function TrainPage() {
           />
           <TrainCard
             icon={Layers}
-            iconBg="bg-brand-500/15"
-            iconColor="text-brand-400"
+            tileFg="#185FA5"
+            tileBg="#EBF3FC"
             title="Focus Card Builder"
             skillTag={hi ? 'फोकस और दबाव' : 'Focus & pressure'}
             desc={hi
@@ -239,6 +233,8 @@ export default function TrainPage() {
             <div key={game.id} className="flex-1">
               <GameCard
                 icon={game.icon}
+                tileFg={game.tileFg}
+                tileBg={game.tileBg}
                 title={mr.cards[game.id].title}
                 purpose={mr.cards[game.id].purpose}
                 skillTag={mr.cards[game.id].skillTag}

@@ -6,7 +6,6 @@ import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
 import { ArjunLogo } from '../components/ArjunLogo';
 import ConsentBanner, { needsGuardianConsent } from '../components/ConsentBanner';
-import { useTheme } from '../hooks/useTheme';
 import { parseArjunMessage, APP_TOOL_CONFIG } from '../utils/parseArjunMessage';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -119,13 +118,12 @@ function ArjunText({ text, isStreaming }) {
                 return (
                   <div
                     key={lIdx}
+                    className="font-medium rounded-md"
                     style={{
-                      background: '#FEF9F0',
+                      background: 'rgba(217,139,43,0.12)',
                       borderLeft: '3px solid #D98B2B',
                       padding: '8px 10px',
-                      borderRadius: '6px',
                       color: '#D98B2B',
-                      fontWeight: 500,
                       marginTop: lIdx > 0 ? '6px' : 0,
                     }}
                   >
@@ -191,62 +189,41 @@ function ArjunText({ text, isStreaming }) {
 
 // ─── AppToolCard: tappable tool card rendered below Arjun's text ──────────────
 
-function AppToolCard({ toolId, isDark }) {
+function AppToolCard({ toolId }) {
   const config = APP_TOOL_CONFIG[toolId];
   const navigate = useNavigate();
   if (!config) return null;
 
   const IconComponent = ICON_MAP[config.icon];
+  const tileStyle = { '--tile-fg': config.iconColor, '--tile-bg': config.iconColor + '22' };
 
   return (
     <div
       onClick={() => navigate(config.route)}
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '6px',
-        padding: '10px 12px',
-        background: isDark ? 'rgba(255,255,255,0.05)' : config.bgColor,
-        border: `1px solid ${isDark ? 'rgba(255,255,255,0.10)' : config.iconColor + '22'}`,
-        borderRadius: '10px',
-        cursor: 'pointer',
-        flex: 1,
-        minWidth: 0,
-        WebkitTapHighlightColor: 'transparent',
-      }}
+      className="tool-card flex-1 min-w-0 flex flex-col gap-1.5 p-2.5 cursor-pointer"
+      style={{ '--tool-bg': config.bgColor, '--tool-border': config.iconColor + '22' }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-        <div
-          style={{
-            width: '32px',
-            height: '32px',
-            minWidth: '32px',
-            borderRadius: '8px',
-            background: config.iconColor + (isDark ? '26' : '22'),
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          {IconComponent && <IconComponent size={16} color={config.iconColor} />}
+      <div className="flex items-center gap-2.5">
+        <div className="icon-tile w-8 h-8 rounded-lg" style={tileStyle}>
+          {IconComponent && <IconComponent size={16} />}
         </div>
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontSize: '13px', fontWeight: 600, color: isDark ? 'var(--ink)' : '#172033', lineHeight: 1.2 }}>
+        <div className="min-w-0 flex-1">
+          <div className="text-[13px] font-semibold text-ink leading-tight">
             {config.label}
           </div>
-          <div style={{ fontSize: '11px', color: isDark ? 'var(--slt)' : '#64748B', marginTop: '2px' }}>
+          <div className="text-[11px] text-slt mt-0.5">
             {config.sub}
           </div>
         </div>
       </div>
       {config.why && (
-        <div style={{ fontSize: '11px', color: isDark ? 'var(--slt)' : '#64748B', lineHeight: 1.35 }}>
+        <div className="text-[11px] text-slt leading-snug">
           {config.why}
         </div>
       )}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: config.iconColor, fontSize: '12px', fontWeight: 600 }}>
+      <div className="flex items-center gap-1 text-xs font-semibold" style={{ color: config.iconColor }}>
         {config.cta || 'Open'}
-        <span style={{ fontSize: '14px', lineHeight: 1 }}>›</span>
+        <span className="text-sm leading-none">›</span>
       </div>
     </div>
   );
@@ -255,10 +232,6 @@ function AppToolCard({ toolId, isDark }) {
 // ─── ArjunBubble: full assistant message bubble with text + tool cards ─────────
 
 function ArjunBubble({ message, isStreaming }) {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark' ||
-    (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-
   // Guardrail: only ever render a card for a tool id that's in the active
   // registry. An unrecognised tag (Arjun inventing a name, or a stale tag
   // from an old saved message) is dropped silently from the UI — never
@@ -280,10 +253,10 @@ function ArjunBubble({ message, isStreaming }) {
         </div>
         {hasTools && (
           <>
-            <div style={{ height: '1px', background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)', margin: '0 12px' }} />
-            <div style={{ padding: '8px 10px', display: 'flex', gap: '8px' }}>
+            <div className="h-px bg-dark-600 mx-3" />
+            <div className="p-2 flex gap-2">
               {appTools.map(toolId => (
-                <AppToolCard key={toolId} toolId={toolId} isDark={isDark} />
+                <AppToolCard key={toolId} toolId={toolId} />
               ))}
             </div>
           </>
@@ -768,7 +741,7 @@ function ChatPage() {
                         <button
                           key={s}
                           onClick={() => sendMessage(s)}
-                          className="text-xs font-medium px-3 py-1.5 rounded-full border border-dark-500 bg-dark-700 text-slt hover:border-brand-500 hover:text-brand-400 active:scale-95 transition-all"
+                          className="chip"
                         >
                           {s}
                         </button>
