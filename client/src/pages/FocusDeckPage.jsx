@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Star, Plus } from 'lucide-react';
+import { ArrowLeft, Star, Plus, Target } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiFetch } from '../api';
 import { translations } from '../i18n/translations';
+import FocusWordChip from '../components/train/FocusWordChip';
 
 const MATCH_CONTEXTS = [
   { key: 'pre_match',    labelEn: 'Pre-match',    labelHi: 'Match से पहले' },
@@ -11,6 +12,9 @@ const MATCH_CONTEXTS = [
   { key: 'training',     labelEn: 'Training',      labelHi: 'Training में' },
   { key: 'after_match',  labelEn: 'After match',   labelHi: 'Match के बाद' },
 ];
+
+// Display-only examples of strong Focus Words — short, action-first cues.
+const POPULAR_FOCUS_WORDS = ['Next action', 'Watch', 'Steady', 'Attack', 'Reset', 'Lock in'];
 
 export default function FocusDeckPage() {
   const { token, language } = useAuth();
@@ -133,6 +137,52 @@ export default function FocusDeckPage() {
         )}
       </div>
 
+      {/* Hero */}
+      <div className="px-4 pb-5">
+        <span className="tag-pill inline-block mb-3" style={{ '--tile-fg': '#185FA5', '--tile-bg': 'rgb(var(--brand-50))' }}>
+          {hi ? 'Focus Words' : 'Focus Words'}
+        </span>
+        <h2 className="text-2xl font-black text-ink leading-tight mb-2">
+          {hi ? 'Power words से अपना focus ट्रेन करो।' : 'Train your focus with power words.'}
+        </h2>
+        <p className="text-sm text-slt leading-relaxed mb-4">
+          {hi
+            ? 'एक Focus Word तुम्हारे मन को वापस अगले एक्शन पर लाता है — ट्रेनिंग में भी, कॉम्पिटिशन में भी।'
+            : 'A Focus Word brings your mind back to the next action — in training and in competition.'}
+        </p>
+
+        {/* Popular focus words */}
+        <p className="text-[10px] font-bold text-muted uppercase tracking-wider mb-2">
+          {hi ? 'लोकप्रिय Focus Words' : 'Popular Focus Words'}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {POPULAR_FOCUS_WORDS.map(w => <FocusWordChip key={w} word={w} />)}
+        </div>
+      </div>
+
+      {/* How it works — shown until the athlete has cards of their own */}
+      {cards.length === 0 && (
+        <div className="mx-4 mb-5 card-surface p-4">
+          <p className="text-xs font-bold text-slt uppercase tracking-widest mb-3">
+            {hi ? 'यह कैसे काम करता है' : 'How it works'}
+          </p>
+          <div className="space-y-2.5">
+            {[
+              hi ? 'Focus Card Builder में अपनी situation डालो।' : 'Build a Focus Card from your own pressure situation.',
+              hi ? 'अपने Focus Word और Reset Word के साथ card save करो।' : 'Save it with your Focus Word, Reset Word, and mantra.',
+              hi ? 'Focus Lock में अपने word को distraction के बीच ट्रेन करो।' : 'Train your word under distraction in Focus Lock.',
+            ].map((s, i) => (
+              <div key={i} className="flex items-start gap-2.5">
+                <div className="w-6 h-6 rounded-lg bg-brand-500/15 flex items-center justify-center shrink-0">
+                  <span className="text-brand-400 text-xs font-bold">{i + 1}</span>
+                </div>
+                <p className="text-sm text-slt leading-snug">{s}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Max cards banner */}
       {activeCount >= 5 && (
         <div className="mx-4 mb-3 bg-amber-500/10 border border-amber-500/30 rounded-xl px-3 py-2">
@@ -142,12 +192,12 @@ export default function FocusDeckPage() {
 
       {/* Empty state */}
       {cards.length === 0 && (
-        <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
-          <div className="text-4xl mb-4">🎯</div>
+        <div className="flex flex-col items-center justify-center px-6 py-8 text-center">
           <h3 className="text-base font-bold text-ink mb-2">{t.emptyTitle}</h3>
           <button
             onClick={() => navigate('/self-talk')}
-            className="mt-4 bg-brand-500 text-white font-bold py-3 px-8 rounded-2xl active:scale-95"
+            className="btn-gradient mt-4 py-3 px-8"
+            style={{ minHeight: '48px' }}
           >
             {t.emptyBtn}
           </button>
@@ -155,6 +205,9 @@ export default function FocusDeckPage() {
       )}
 
       {/* Cards */}
+      {cards.length > 0 && (
+        <p className="section-label px-4">{hi ? 'Saved Focus Cards' : 'Saved Focus Cards'}</p>
+      )}
       <div className="px-4 space-y-3">
         {cards.map(card => {
           const isExpanded = expandedId === card.id;
@@ -309,6 +362,20 @@ export default function FocusDeckPage() {
           );
         })}
       </div>
+
+      {/* Start Focus Session — practise your Focus Word in Focus Lock */}
+      {cards.length > 0 && (
+        <div className="px-4 pt-5">
+          <button
+            onClick={() => navigate('/games/focus-lock')}
+            className="btn-gradient w-full py-3.5 flex items-center justify-center gap-2"
+            style={{ minHeight: '52px' }}
+          >
+            <Target size={18} />
+            {hi ? 'Focus Session शुरू करो' : 'Start Focus Session'}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

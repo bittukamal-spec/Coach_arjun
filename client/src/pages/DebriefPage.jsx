@@ -4,6 +4,7 @@ import { ClipboardList } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
+import ToolIntroLayout from '../components/train/ToolIntroLayout';
 
 // ── Self-abuse keyword guard ──────────────────────────────────────────────────
 const ABUSE_WORDS = ['stupid', 'idiot', 'useless', 'pathetic', 'worthless', 'loser', 'failure', 'terrible', 'worst', 'hate myself'];
@@ -385,11 +386,18 @@ export default function DebriefPage() {
           </div>
         </header>
 
-        <main className="flex-1 max-w-lg mx-auto w-full px-4 py-10">
-          <div className="text-center mb-8">
-            <div className="text-4xl mb-3">🧠</div>
-            <h2 className="text-xl font-bold text-ink mb-2">{t.entry.prompt}</h2>
-          </div>
+        <main className="flex-1 max-w-lg mx-auto w-full px-4 py-6">
+          <ToolIntroLayout
+            icon={ClipboardList}
+            variant="amber"
+            tag={hi ? 'मैच के बाद' : 'After match'}
+            title={t.entry.prompt}
+            stats={[
+              { label: hi ? 'समय' : 'Duration', value: hi ? '2–4 मिनट' : '2–4 min' },
+              { label: hi ? 'किसके लिए' : 'Best for', value: hi ? 'मैच या ट्रेनिंग के बाद' : 'After match or training' },
+              { label: hi ? 'लक्ष्य' : 'Goal', value: hi ? 'एक साफ सीख' : 'One clear takeaway' },
+            ]}
+          />
 
           <div className="flex flex-col gap-3">
             {[
@@ -399,7 +407,7 @@ export default function DebriefPage() {
               <button
                 key={key}
                 onClick={() => { setMode(key); setScreen('s1'); }}
-                className="bg-dark-800 border border-dark-600 hover:border-brand-400 rounded-2xl px-5 py-4 text-left transition-colors active:scale-[0.98]"
+                className="card-elevated hover:border-brand-400 px-5 py-4 text-left transition-colors active:scale-[0.98]"
               >
                 <p className="font-bold text-ink mb-0.5">{title}</p>
                 <p className="text-sm text-slt">{sub}</p>

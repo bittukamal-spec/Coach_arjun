@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, MessageSquare } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiFetch } from '../api';
 import { translations } from '../i18n/translations';
 import HelplineList from '../components/HelplineList';
+import ToolIntroLayout from '../components/train/ToolIntroLayout';
 
 export default function SelfTalkPage() {
   const { user, token, language } = useAuth();
@@ -166,22 +167,22 @@ export default function SelfTalkPage() {
     <div className="min-h-screen bg-dark-900 flex flex-col">
       <Header />
       <div className="flex-1 px-4 pt-2 pb-8 overflow-y-auto">
-        <div className="inline-flex items-center gap-1.5 bg-brand-500/15 text-brand-400 text-xs font-semibold px-3 py-1 rounded-full mb-3">
-          <span>✦</span> {t.learn.duration}
-        </div>
-        <h1 className="text-2xl font-bold text-ink mb-3">{t.learn.title}</h1>
-        <p className="text-sm text-slt mb-6">{t.learn.desc}</p>
-
-        <div className="space-y-3 mb-6">
-          {[t.learn.benefit1, t.learn.benefit2, t.learn.benefit3].map((b, i) => (
-            <div key={i} className="flex items-start gap-3 bg-dark-800 rounded-2xl p-3.5">
-              <div className="w-7 h-7 rounded-xl bg-brand-500/20 flex items-center justify-center shrink-0 mt-0.5">
-                <span className="text-brand-400 text-sm font-bold">{i + 1}</span>
-              </div>
-              <p className="text-sm text-slt leading-snug">{b}</p>
-            </div>
-          ))}
-        </div>
+        <ToolIntroLayout
+          icon={MessageSquare}
+          variant="blue"
+          tag={t.learn.duration}
+          title={t.learn.title}
+          desc={t.learn.desc}
+          stats={[
+            { label: hi ? 'समय' : 'Duration', value: t.learn.duration },
+            { label: hi ? 'किसके लिए' : 'Best for', value: hi ? 'दबाव वाली सोच' : 'Pressure thoughts' },
+            { label: hi ? 'लक्ष्य' : 'Goal', value: hi ? 'अपना Focus Card' : 'Your own Focus Card' },
+          ]}
+          checklist={{
+            title: hi ? 'क्या उम्मीद करें' : 'What to expect',
+            items: [t.learn.benefit1, t.learn.benefit2, t.learn.benefit3],
+          }}
+        />
 
         <div className="bg-dark-800 rounded-2xl p-4 mb-8">
           <p className="text-xs font-semibold text-brand-400 uppercase tracking-wider mb-1">{t.learn.educTitle}</p>
@@ -211,7 +212,8 @@ export default function SelfTalkPage() {
       <div className="px-4 pb-8 pt-2">
         <button
           onClick={() => setScreen(2)}
-          className="w-full bg-brand-500 text-white font-bold py-3.5 rounded-2xl active:scale-95 transition-transform"
+          className="btn-gradient w-full py-3.5"
+          style={{ minHeight: '52px' }}
         >
           {t.learn.startBtn}
         </button>
@@ -512,23 +514,31 @@ export default function SelfTalkPage() {
         <p className="text-xs text-slt mb-1">{t.card.progress}</p>
         <h2 className="text-xl font-bold text-ink mb-4">{t.card.heading}</h2>
 
-        <div className="bg-brand-500/10 border border-brand-500/30 rounded-3xl p-5 mb-4">
-          <div className="flex flex-col items-center mb-4">
-            <p className="text-[10px] font-semibold text-brand-400 uppercase tracking-wider mb-1">{t.card.focusWordLabel}</p>
-            <p className="font-bold text-center" style={{ fontSize: '28px', color: '#185FA5' }}>{card.focusWord}</p>
-            <div className="h-3" />
-            <p className="text-[10px] font-semibold text-amber-500 uppercase tracking-wider mb-1">{t.card.resetWordLabel}</p>
-            <p className="font-bold text-center" style={{ fontSize: '22px', color: '#D98B2B' }}>{card.resetWord}</p>
+        <div className="rounded-3xl overflow-hidden mb-4 card-elevated">
+          {/* Gradient crown band */}
+          <div
+            className="px-5 pt-5 pb-4 text-center text-white"
+            style={{ background: 'linear-gradient(135deg, #185FA5 0%, #8B5CF6 100%)' }}
+          >
+            <p className="text-[10px] font-semibold text-white/80 uppercase tracking-widest mb-1">{t.card.focusWordLabel}</p>
+            <p className="font-black leading-tight" style={{ fontSize: '30px' }}>{card.focusWord}</p>
           </div>
 
-          <div className="mb-3">
-            <p className="text-[10px] font-semibold text-slt uppercase tracking-wider mb-1">{t.card.powerLineLabel}</p>
-            <p className="text-sm font-semibold text-ink italic">"{card.powerLine}"</p>
-          </div>
+          <div className="p-5">
+            <div className="text-center mb-4">
+              <p className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: '#D98B2B' }}>{t.card.resetWordLabel}</p>
+              <p className="font-bold" style={{ fontSize: '22px', color: '#D98B2B' }}>{card.resetWord}</p>
+            </div>
 
-          <div>
-            <p className="text-[10px] font-semibold text-slt uppercase tracking-wider mb-1">{t.card.reminderLabel}</p>
-            <p className="text-sm text-slt">{card.performanceReminder}</p>
+            <div className="border-t border-dark-600 pt-4 mb-3">
+              <p className="text-[10px] font-semibold text-slt uppercase tracking-wider mb-1">{t.card.powerLineLabel}</p>
+              <p className="text-sm font-semibold text-ink italic">"{card.powerLine}"</p>
+            </div>
+
+            <div>
+              <p className="text-[10px] font-semibold text-slt uppercase tracking-wider mb-1">{t.card.reminderLabel}</p>
+              <p className="text-sm text-slt">{card.performanceReminder}</p>
+            </div>
           </div>
         </div>
 
@@ -549,7 +559,8 @@ export default function SelfTalkPage() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="w-full bg-brand-500 text-white font-bold py-3.5 rounded-2xl active:scale-95 transition-transform disabled:opacity-60 flex items-center justify-center gap-2"
+          className="btn-gradient w-full py-3.5"
+          style={{ minHeight: '52px' }}
         >
           {saving ? <><Loader2 size={16} className="animate-spin" />{t.card.saving}</> : t.card.saveBtn}
         </button>
