@@ -5,6 +5,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { apiFetch } from '../api';
 import { translations } from '../i18n/translations';
 import HelplineList from '../components/HelplineList';
+import GradientIconTile from '../components/train/GradientIconTile';
+import InfoStatCard from '../components/train/InfoStatCard';
+import ChecklistCard from '../components/train/ChecklistCard';
 
 const CRISIS_KEYWORDS = [
   'suicide', 'kill myself', 'end my life', 'self harm', 'hurt myself',
@@ -401,30 +404,35 @@ export default function BodyResetPage() {
       <div className="min-h-screen bg-dark-900">
         <Header />
         <div className="px-4 pb-24">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-10 h-10 bg-teal-500/15 rounded-2xl flex items-center justify-center">
-              <Wind size={20} className="text-teal-400" />
-            </div>
-            <span className="text-xs font-semibold text-teal-400 bg-teal-500/10 px-2 py-1 rounded-full">
+
+          {/* Hero */}
+          <div className="flex items-center gap-3 mb-5">
+            <GradientIconTile icon={Wind} variant="teal" size={26} />
+            <span className="tag-pill" style={{ '--tile-fg': '#2E7D6B', '--tile-bg': 'rgba(46,125,107,0.12)' }}>
               {t.learn.duration}
             </span>
           </div>
-          <h2 className="text-2xl font-black text-ink mb-2">{t.learn.desc}</h2>
-          <div className="space-y-2 mb-6">
-            {[t.learn.benefit1, t.learn.benefit2, t.learn.benefit3].map((b, i) => (
-              <div key={i} className="flex items-start gap-2">
-                <span className="text-teal-400 mt-0.5">✓</span>
-                <p className="text-sm text-slt">{b}</p>
-              </div>
-            ))}
+          <h2 className="text-2xl font-black text-ink mb-2 leading-tight">{t.learn.desc}</h2>
+
+          {/* Duration / Best for / Goal */}
+          <div className="flex gap-2.5 mb-6">
+            <InfoStatCard label={hi ? 'समय' : 'Duration'} value={t.learn.duration} />
+            <InfoStatCard label={hi ? 'किसके लिए' : 'Best for'} value={hi ? 'घबराया हुआ, तना हुआ' : 'Nervous, tight, or overloaded'} />
+            <InfoStatCard label={hi ? 'लक्ष्य' : 'Goal'} value={hi ? 'अगले एक्शन पर वापसी' : 'Return to the next action'} />
           </div>
-          <div className="bg-dark-800 border border-dark-600 rounded-2xl p-4 mb-6">
+
+          <ChecklistCard
+            title={hi ? 'क्या उम्मीद करें' : 'What to expect'}
+            items={[t.learn.benefit1, t.learn.benefit2, t.learn.benefit3]}
+          />
+
+          <div className="bg-dark-800 border border-dark-600 rounded-2xl p-4 my-6">
             <p className="text-xs font-bold text-slt uppercase tracking-widest mb-2">{t.learn.educTitle}</p>
             <p className="text-sm text-slt leading-relaxed whitespace-pre-line">{t.learn.educBody}</p>
           </div>
 
           {showSoftGate && (
-            <div className="bg-teal-500/10 border border-teal-500/30 rounded-2xl p-4 mb-6">
+            <div className="card-surface p-4 mb-6" style={{ borderColor: 'rgba(46,125,107,0.3)' }}>
               <p className="text-sm text-ink mb-3">{tSkill.softGate.message}</p>
               <div className="flex items-center gap-3">
                 <button
@@ -445,9 +453,15 @@ export default function BodyResetPage() {
 
           <button
             onClick={() => setScreen(2)}
-            className="w-full bg-teal-500 text-white font-bold py-4 rounded-2xl text-base active:scale-[0.98]"
+            className="w-full bg-teal-500 text-white font-bold py-4 rounded-2xl text-base active:scale-[0.98] transition-transform shadow-sm"
           >
             {t.learn.startBtn}
+          </button>
+          <button
+            onClick={() => navigate('/body-reset/history')}
+            className="w-full text-center text-xs text-muted font-medium mt-3 active:opacity-70"
+          >
+            {hi ? 'Reset history देखो →' : 'View history →'}
           </button>
         </div>
       </div>

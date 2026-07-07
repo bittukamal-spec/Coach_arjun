@@ -260,4 +260,27 @@
       border-color: rgba(255, 255, 255, 0.10);
     }
   }
+
+  /* ── Train home redesign: hero + gradient-tile tokens ────────────────────
+     Used only for the single "hero" tool card on Train and tool-intro
+     hero areas — deliberately not applied everywhere, to keep the 80/20
+     clean-app-vs-gradient-polish balance. Gradient direction/colours set
+     per instance via --grad-from/--grad-to so one class serves every
+     accent (teal for reset/recovery tools, blue→purple for focus/mental
+     skill tools, amber for reflection). */
+  .card-hero {
+    @apply rounded-3xl border;
+    background: linear-gradient(135deg, var(--grad-from, theme('colors.brand.500')) 0%, var(--grad-to, theme('colors.purple.500')) 100%);
+    border-color: transparent;
+  }
+  .icon-tile-gradient {
+    @apply w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 text-white;
+    background: linear-gradient(135deg, var(--grad-from, theme('colors.brand.500')) 0%, var(--grad-to, theme('colors.purple.500')) 100%);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  }
+
+  /* Info-stat mini tile — duration / best-for / goal row on tool intros */
+  .info-stat {
+    @apply flex-1 rounded-2xl border border-dark-600 bg-dark-800 px-3 py-2.5 text-center;
+  }
 }

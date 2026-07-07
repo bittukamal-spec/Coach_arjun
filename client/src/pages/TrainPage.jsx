@@ -5,8 +5,11 @@ import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
 import GameCard from '../components/games/GameCard';
+import SectionHeader from '../components/train/SectionHeader';
+import FeatureToolCard from '../components/train/FeatureToolCard';
+import SmallToolRow from '../components/train/SmallToolRow';
 import {
-  RotateCcw, Eye, ClipboardList, Layers, GraduationCap, Target, RefreshCw,
+  RotateCcw, Eye, ClipboardList, GraduationCap, MessageSquare, Layers, Target, RefreshCw,
 } from 'lucide-react';
 
 // Accent colours reused verbatim from parseArjunMessage.js's APP_TOOL_CONFIG
@@ -22,78 +25,6 @@ const DEFAULT_GAME_STATUS = {
   totalToday: 0,
   totalLimit: 5,
 };
-
-function SectionLabel({ children }) {
-  return <p className="section-label mt-8">{children}</p>;
-}
-
-function TrainCard({
-  icon: Icon, tileFg, tileBg,
-  title, skillTag, desc, duration, bestFor,
-  ctaLabel, onCta,
-  secondaryLabel, onSecondary,
-  secondaryLabel2, onSecondary2,
-}) {
-  const tileStyle = { '--tile-fg': tileFg, '--tile-bg': tileBg };
-  return (
-    <div className="card-elevated p-5 flex flex-col gap-3">
-
-      {/* Header: icon + title + skill pill */}
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-3">
-          <div className="icon-tile" style={tileStyle}>
-            <Icon size={22} />
-          </div>
-          <h2 className="text-base font-bold text-ink leading-tight">{title}</h2>
-        </div>
-        <span className="tag-pill" style={tileStyle}>{skillTag}</span>
-      </div>
-
-      {/* Description */}
-      <p className="text-sm text-slt leading-relaxed">{desc}</p>
-
-      {/* Duration + Best for */}
-      <div className="flex items-center gap-1.5 text-xs text-muted">
-        <span>{duration}</span>
-        <span>·</span>
-        <span>{bestFor}</span>
-      </div>
-
-      {/* CTA row */}
-      <div className={`flex items-center mt-1 ${(secondaryLabel || secondaryLabel2) ? 'justify-between' : 'justify-end'}`}>
-        {(secondaryLabel || secondaryLabel2) && (
-          <div className="flex items-center gap-3">
-            {secondaryLabel && (
-              <button
-                onClick={onSecondary}
-                className="text-xs font-semibold text-brand-400 active:opacity-70 py-1"
-              >
-                {secondaryLabel}
-              </button>
-            )}
-            {secondaryLabel && secondaryLabel2 && <span className="text-xs text-muted">·</span>}
-            {secondaryLabel2 && (
-              <button
-                onClick={onSecondary2}
-                className="text-xs font-semibold text-brand-400 active:opacity-70 py-1"
-              >
-                {secondaryLabel2}
-              </button>
-            )}
-          </div>
-        )}
-        <button
-          onClick={onCta}
-          className="btn-gradient text-sm px-6"
-          style={{ minHeight: '44px' }}
-        >
-          {ctaLabel}
-        </button>
-      </div>
-
-    </div>
-  );
-}
 
 export default function TrainPage() {
   const navigate = useNavigate();
@@ -124,7 +55,7 @@ export default function TrainPage() {
     <div className="min-h-screen bg-dark-900">
       <Navbar />
 
-      <main className="max-w-lg mx-auto px-4 pt-20 pb-24 animate-fade-in">
+      <main className="max-w-lg md:max-w-2xl mx-auto px-4 pt-20 pb-24 animate-fade-in">
 
         {/* Page header */}
         <div className="pt-4 mb-2">
@@ -135,115 +66,114 @@ export default function TrainPage() {
         </div>
 
         {/* ── PRE-MATCH / TRAINING ────────────────────────────────────────── */}
-        <SectionLabel>{hi ? 'मैच / ट्रेनिंग से पहले' : 'Pre-match / Training'}</SectionLabel>
-        <div className="space-y-3">
-          <TrainCard
-            icon={RotateCcw}
-            tileFg="#2E7D6B"
-            tileBg="#F0FAF7"
-            title="Pressure Reset"
-            skillTag={hi ? 'तनाव और घबराहट' : 'Tension & nerves'}
-            desc={hi
-              ? 'टॉप एथलीट्स कंट्रोल्ड ब्रीदिंग का इस्तेमाल करते हैं ताकि शरीर को स्थिर रखें, तनाव कम करें, और ट्रेनिंग या कॉम्पिटिशन से पहले ध्यान वापस अगले एक्शन पर लाएं।'
-              : 'Top athletes use controlled breathing to steady their body, lower tension, and bring attention back to the next action before training or competition.'}
-            duration="3 min"
-            bestFor={hi ? 'घबराया हुआ, तना हुआ, या ओवरलोडेड' : 'Nervous, tight, or overloaded'}
-            ctaLabel={hi ? 'शुरू करो' : 'Start'}
-            onCta={() => navigate('/body-reset')}
-            secondaryLabel={!pressureResetLearned ? (hi ? 'पहले सीखो' : 'Learn first') : undefined}
-            onSecondary={() => navigate('/skills/pressure-reset')}
-            secondaryLabel2={hi ? 'Reset history देखो →' : 'View reset history →'}
-            onSecondary2={() => navigate('/body-reset/history')}
-          />
-          <TrainCard
+        <SectionHeader className="mt-8">{hi ? 'मैच / ट्रेनिंग से पहले' : 'Pre-match / Training'}</SectionHeader>
+        <div className="space-y-3 md:grid md:grid-cols-2 md:gap-3 md:space-y-0">
+          <div className="md:col-span-2">
+            <FeatureToolCard
+              hero
+              variant="teal"
+              icon={RotateCcw}
+              title="Pressure Reset"
+              tag={hi ? 'तनाव और घबराहट' : 'Tension & nerves'}
+              desc={hi
+                ? 'शरीर को स्थिर करो, तनाव कम करो, और ट्रेनिंग या कॉम्पिटिशन से पहले ध्यान वापस अगले एक्शन पर लाओ।'
+                : 'Steady your body before the next action.'}
+              meta="3 min · Nervous, tight, or overloaded"
+              ctaLabel={hi ? 'शुरू करो' : 'Start'}
+              onCta={() => navigate('/body-reset')}
+              secondaryLabel={!pressureResetLearned ? (hi ? 'पहले सीखो' : 'Learn first') : undefined}
+              onSecondary={() => navigate('/skills/pressure-reset')}
+              secondaryLabel2={hi ? 'Reset history देखो →' : 'View history →'}
+              onSecondary2={() => navigate('/body-reset/history')}
+            />
+          </div>
+          <FeatureToolCard
             icon={Eye}
-            tileFg="#6366F1"
-            tileBg="#EEF2FF"
+            variant="purple"
             title="Visualization"
-            skillTag={hi ? 'मानसिक रिहर्सल' : 'Mental rehearsal'}
+            tag={hi ? 'मानसिक रिहर्सल' : 'Mental rehearsal'}
             desc={hi
               ? 'ट्रेनिंग या कॉम्पिटिशन से पहले एक मुख्य पल को मन में रिहर्स करो।'
               : 'Rehearse one key moment before training or competition.'}
-            duration="4 min"
-            bestFor={hi ? 'प्रदर्शन से पहले' : 'Before performance'}
+            meta="4 min · Before performance"
             ctaLabel={hi ? 'शुरू करो' : 'Start Visualizing'}
             onCta={() => navigate('/visualization')}
           />
         </div>
 
         {/* ── POST-MATCH / TRAINING ───────────────────────────────────────── */}
-        <SectionLabel>{hi ? 'मैच / ट्रेनिंग के बाद' : 'Post-match / Training'}</SectionLabel>
+        <SectionHeader className="mt-8">{hi ? 'मैच / ट्रेनिंग के बाद' : 'Post-match / Training'}</SectionHeader>
         <div className="space-y-3">
-          <TrainCard
+          <FeatureToolCard
             icon={ClipboardList}
-            tileFg="#1E3A5F"
-            tileBg="#EFF6FF"
+            variant="amber"
             title={hi ? 'After Match / Training' : 'After Match / Training'}
-            skillTag={hi ? 'मैच के बाद' : 'After match'}
+            tag={hi ? 'मैच के बाद' : 'After match'}
             desc={hi
               ? 'सेशन के बाद रिफ्लेक्ट करो और आगे सुधारने के लिए एक चीज़ चुनो।'
               : 'Reflect after a session and choose one thing to improve next.'}
-            duration="4 min"
-            bestFor={hi ? 'मैच या ट्रेनिंग के बाद' : 'After match or training'}
+            meta="4 min · After match or training"
             ctaLabel={hi ? 'रिव्यू शुरू करो' : 'Start Review'}
             onCta={() => navigate('/debrief')}
           />
         </div>
 
         {/* ── BUILD MENTAL SKILLS ──────────────────────────────────────────── */}
-        <SectionLabel>{hi ? 'मानसिक स्किल बनाओ' : 'Build Mental Skills'}</SectionLabel>
-        <div className="space-y-3">
-          <TrainCard
+        <SectionHeader className="mt-8">{hi ? 'मानसिक स्किल बनाओ' : 'Build Mental Skills'}</SectionHeader>
+        <div className="space-y-2.5 md:grid md:grid-cols-2 md:gap-2.5 md:space-y-0">
+          <SmallToolRow
             icon={GraduationCap}
-            tileFg="#185FA5"
-            tileBg="#EBF3FC"
             title="Focus / Focus Words"
-            skillTag={hi ? 'सीखो' : 'Learn'}
-            desc={hi
-              ? 'सीखो कि अपने मन को एक काम के Focus Word पर कैसे वापस लाओ।'
-              : 'Learn how to bring your mind back to one useful focus word.'}
-            duration="5 min"
-            bestFor={hi ? 'फोकस खोना' : 'Losing focus'}
-            ctaLabel={hi ? 'अभी शुरू करो' : 'Start now'}
-            onCta={() => navigate('/skills/focus-self-talk')}
+            desc={hi ? 'सीखो कि अपने मन को एक Focus Word पर कैसे वापस लाओ।' : 'Learn how to bring your mind back to one focus word.'}
+            onClick={() => navigate('/skills/focus-self-talk')}
           />
-          <TrainCard
-            icon={Layers}
-            tileFg="#185FA5"
-            tileBg="#EBF3FC"
+          <SmallToolRow
+            icon={MessageSquare}
             title="Focus Card Builder"
-            skillTag={hi ? 'फोकस और दबाव' : 'Focus & pressure'}
-            desc={hi
-              ? 'दबाव वाली सोच को ऐसे शब्दों में बदलो जो ट्रेनिंग और कॉम्पिटिशन में काम आएं।'
-              : 'Turn pressure thoughts into words you can use in training and competition.'}
-            duration="5 min"
-            bestFor={hi ? 'फोकस, आत्मविश्वास, दबाव' : 'Focus, confidence, pressure'}
-            ctaLabel={hi ? 'Focus Card बनाओ' : 'Build Focus Card'}
-            onCta={() => navigate('/self-talk')}
-            secondaryLabel={hi ? 'Focus Cards देखो →' : 'View Focus Cards →'}
-            onSecondary={() => navigate('/focus-deck')}
+            desc={hi ? 'दबाव वाली सोच को एक Focus Card में बदलो।' : 'Turn pressure thoughts into a Focus Card.'}
+            onClick={() => navigate('/self-talk')}
+          />
+          <SmallToolRow
+            icon={Layers}
+            title={hi ? 'Focus Deck' : 'Focus Deck'}
+            desc={hi ? 'अपने saved Focus Cards देखो और अभ्यास करो।' : 'Review and practise your saved Focus Cards.'}
+            onClick={() => navigate('/focus-deck')}
           />
         </div>
 
         {/* ── GAMES ────────────────────────────────────────────────────────── */}
-        <SectionLabel>{hi ? 'गेम्स' : 'Games'}</SectionLabel>
+        <SectionHeader className="mt-8">{hi ? 'गेम्स' : 'Games'}</SectionHeader>
         <p className="text-sm text-slt mb-3">{mr.subtitle}</p>
         <div className="flex flex-col sm:flex-row gap-3">
-          {GAMES.map(game => (
-            <div key={game.id} className="flex-1">
-              <GameCard
-                icon={game.icon}
-                tileFg={game.tileFg}
-                tileBg={game.tileBg}
-                title={mr.cards[game.id].title}
-                purpose={mr.cards[game.id].purpose}
-                skillTag={mr.cards[game.id].skillTag}
-                playsToday={gameStatus[game.id].playsToday}
-                limit={gameStatus[game.id].limit}
-                onPlay={() => navigate(game.path)}
-              />
-            </div>
-          ))}
+          <div className="flex-1">
+            <GameCard
+              icon={GAMES[0].icon}
+              tileFg={GAMES[0].tileFg}
+              tileBg={GAMES[0].tileBg}
+              moment={hi ? 'खेलने से पहले' : 'Before you play'}
+              title={mr.cards.focusLock.title}
+              purpose={mr.cards.focusLock.purpose}
+              skillTag={mr.cards.focusLock.skillTag}
+              duration="60 sec"
+              playsToday={gameStatus.focusLock.playsToday}
+              limit={gameStatus.focusLock.limit}
+              onPlay={() => navigate(GAMES[0].path)}
+            />
+          </div>
+          <div className="flex-1">
+            <GameCard
+              icon={GAMES[1].icon}
+              tileFg={GAMES[1].tileFg}
+              tileBg={GAMES[1].tileBg}
+              title={mr.cards.resetRally.title}
+              purpose={mr.cards.resetRally.purpose}
+              skillTag={mr.cards.resetRally.skillTag}
+              duration="60–90 sec"
+              playsToday={gameStatus.resetRally.playsToday}
+              limit={gameStatus.resetRally.limit}
+              onPlay={() => navigate(GAMES[1].path)}
+            />
+          </div>
         </div>
         <p className="text-center text-xs text-muted pt-3">
           {mr.repsDone(gameStatus.totalToday, gameStatus.totalLimit)}
