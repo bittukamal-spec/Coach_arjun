@@ -646,8 +646,8 @@ export default function Dashboard() {
                 </div>
                 <p className="text-xs text-slt leading-relaxed">
                   {hi
-                    ? '❄️ स्ट्रीक फ्रीज: अगर कल मिस हो गया तो फ्रीज से स्ट्रीक बचाएं। हर 7 दिन पर नया फ्रीज मिलता है।'
-                    : '❄️ Streak Freeze: missed yesterday? Use a freeze to save your streak. Earn a new freeze every 7 days.'}
+                    ? '❄️ Restore: तरक्की वापस लौटने से आती है, perfection से नहीं। चाहें तो restore से स्ट्रीक जारी रख सकते हैं — हर 7 दिन आने पर एक restore मिलता है।'
+                    : '❄️ Restores: progress comes from returning, not perfection. If you want, a restore keeps your streak connected — you earn one for every 7 days of showing up.'}
                 </p>
               </div>
             )}

@@ -9,7 +9,7 @@ import SectionHeader from '../components/train/SectionHeader';
 import FeatureToolCard from '../components/train/FeatureToolCard';
 import SmallToolRow from '../components/train/SmallToolRow';
 import {
-  RotateCcw, Eye, ClipboardList, GraduationCap, MessageSquare, Layers, Target, RefreshCw, Zap, BookOpen,
+  RotateCcw, ClipboardList, MessageSquare, Target, RefreshCw, Zap, BookOpen,
 } from 'lucide-react';
 
 // Accent colours reused verbatim from parseArjunMessage.js's APP_TOOL_CONFIG
@@ -87,17 +87,11 @@ export default function TrainPage() {
               onSecondary2={() => navigate('/body-reset/history')}
             />
           </div>
-          <FeatureToolCard
-            icon={Eye}
-            variant="purple"
-            title="Visualization"
-            tag={hi ? 'मानसिक रिहर्सल' : 'Mental rehearsal'}
-            desc={hi
-              ? 'ट्रेनिंग या कॉम्पिटिशन से पहले एक मुख्य पल को मन में रिहर्स करो।'
-              : 'Rehearse one key moment before training or competition.'}
-            meta="4 min · Before performance"
-            ctaLabel={hi ? 'शुरू करो' : 'Start Visualizing'}
-            onCta={() => navigate('/visualization')}
+          <SmallToolRow
+            icon={Target}
+            title={hi ? 'Practice Focus' : 'Practice Focus'}
+            desc={hi ? 'ट्रेनिंग से पहले मन सेट करने के लिए 4 मिनट का रेप।' : 'A 4-minute rep to set your mind before training.'}
+            onClick={() => navigate('/mental-rep', { state: { context: 'training' } })}
           />
         </div>
 
@@ -107,26 +101,26 @@ export default function TrainPage() {
           <FeatureToolCard
             icon={ClipboardList}
             variant="amber"
-            title={hi ? 'After Match / Training' : 'After Match / Training'}
+            title={hi ? 'Match & Practice Reflection' : 'Match & Practice Reflection'}
             tag={hi ? 'मैच के बाद' : 'After match'}
             desc={hi
-              ? 'सेशन के बाद रिफ्लेक्ट करो और आगे सुधारने के लिए एक चीज़ चुनो।'
-              : 'Reflect after a session and choose one thing to improve next.'}
+              ? 'जो हुआ उसे log करो और अगली बार के लिए एक useful insight लो।'
+              : 'Log what happened and get one useful insight for next time.'}
             meta="4 min · After match or training"
-            ctaLabel={hi ? 'रिव्यू शुरू करो' : 'Start Review'}
+            ctaLabel={hi ? 'रिफ्लेक्ट करो' : 'Reflect'}
             onCta={() => navigate('/debrief')}
+          />
+          <SmallToolRow
+            icon={RefreshCw}
+            title={hi ? 'Next Play Reset' : 'Next Play Reset'}
+            desc={hi ? 'गलती के बाद reset की practice — अगला एक्शन साफ रखो।' : 'Practise the reset after a mistake — keep the next action clean.'}
+            onClick={() => navigate('/games/reset-rally')}
           />
         </div>
 
         {/* ── BUILD MENTAL SKILLS ──────────────────────────────────────────── */}
         <SectionHeader className="mt-8">{hi ? 'मानसिक स्किल बनाओ' : 'Build Mental Skills'}</SectionHeader>
         <div className="space-y-2.5 md:grid md:grid-cols-2 md:gap-2.5 md:space-y-0">
-          <SmallToolRow
-            icon={GraduationCap}
-            title="Focus / Focus Words"
-            desc={hi ? 'सीखो कि अपने मन को एक Focus Word पर कैसे वापस लाओ।' : 'Learn how to bring your mind back to one focus word.'}
-            onClick={() => navigate('/skills/focus-self-talk')}
-          />
           <SmallToolRow
             icon={Zap}
             title={hi ? 'Daily Mental Rep' : 'Daily Mental Rep'}
@@ -136,14 +130,8 @@ export default function TrainPage() {
           <SmallToolRow
             icon={MessageSquare}
             title="Focus Card Builder"
-            desc={hi ? 'दबाव वाली सोच को एक Focus Card में बदलो।' : 'Turn pressure thoughts into a Focus Card.'}
+            desc={hi ? 'दबाव वाली सोच को एक cue में बदलो — ट्रेनिंग या मैच के लिए।' : 'Turn pressure thoughts into one cue you can use in training or match.'}
             onClick={() => navigate('/self-talk')}
-          />
-          <SmallToolRow
-            icon={Layers}
-            title={hi ? 'Focus Deck' : 'Focus Deck'}
-            desc={hi ? 'अपने saved Focus Cards देखो और अभ्यास करो।' : 'Review and practise your saved Focus Cards.'}
-            onClick={() => navigate('/focus-deck')}
           />
           <SmallToolRow
             icon={BookOpen}
