@@ -84,6 +84,8 @@ export default function Dashboard() {
   const [showFreezeConfirm, setShowFreezeConfirm] = useState(false);
   const [freezeLoading,     setFreezeLoading]     = useState(false);
   const [loaded,            setLoaded]            = useState(false);
+  const [plan,              setPlan]              = useState(null);
+  const [completingSession, setCompletingSession] = useState(false);
   const [missedDismissed,   setMissedDismissed]   = useState(
     () => localStorage.getItem('arjun_missed_dismissed') === new Date().toISOString().slice(0, 10)
   );
@@ -106,6 +108,12 @@ export default function Dashboard() {
       .then(r => r.ok ? r.json() : null)
       .then(data => setMfsEntry(data?.entry || false))
       .catch(() => setMfsEntry(false));
+
+    // Coach-led starter plan — lazily generated server-side on first call
+    apiFetch('/api/plan/current', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => setPlan(data?.plan || false))
+      .catch(() => setPlan(false));
   }, [token]);
 
   // ── handlers ───────────────────────────────────────────────────────────────
@@ -133,6 +141,23 @@ export default function Dashboard() {
   function dismissMissed() {
     localStorage.setItem('arjun_missed_dismissed', new Date().toISOString().slice(0, 10));
     setMissedDismissed(true);
+  }
+
+  // Marks today's plan session done and advances the plan. Basic for now —
+  // later prompts will let each tool call this automatically on completion.
+  async function completeTodaySession() {
+    if (!plan?.todaySession || completingSession) return;
+    setCompletingSession(true);
+    try {
+      const res = await apiFetch(`/api/plan/session/${plan.todaySession.id}/complete`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.plan) setPlan(data.plan);
+    } catch { /* keep current plan state */ } finally {
+      setCompletingSession(false);
+    }
   }
 
   // ── derived ────────────────────────────────────────────────────────────────
@@ -226,6 +251,124 @@ export default function Dashboard() {
               )}
             </div>
 
+
+            {/* ── TODAY'S MENTAL REP (coach-led plan) ────────────────────────── */}
+            {plan && plan.todaySession && (
+              <div className="mb-6">
+                <SectionLabel>{hi ? 'आज का मेंटल रेप' : "Today's Mental Rep"}</SectionLabel>
+                <div className="card-elevated p-5">
+                  <div className="flex items-start justify-between gap-2 mb-1.5">
+                    <h2 className="text-lg font-bold text-ink leading-tight">{plan.todaySession.title}</h2>
+                    <span className="tag-pill" style={{ '--tile-fg': '#185FA5', '--tile-bg': 'rgb(var(--brand-50))' }}>
+                      {plan.todaySession.skillLabel}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted mb-2.5">
+                    {hi
+                      ? `सेशन ${plan.todaySession.sessionNumber}/${plan.totalSessions} · ${plan.todaySession.durationMinutes} मिनट`
+                      : `Session ${plan.todaySession.sessionNumber} of ${plan.totalSessions} · ${plan.todaySession.durationMinutes} min`}
+                  </p>
+                  {plan.todaySession.personalizedReason && (
+                    <p className="text-sm text-slt leading-relaxed mb-4">{plan.todaySession.personalizedReason}</p>
+                  )}
+                  <button
+                    onClick={() => navigate(plan.todaySession.toolRoute)}
+                    className="btn-gradient w-full py-3 text-sm"
+                    style={{ minHeight: '48px' }}
+                  >
+                    {hi ? 'आज का मेंटल रेप शुरू करो' : "Start Today's Mental Rep"}
+                  </button>
+                  <button
+                    onClick={completeTodaySession}
+                    disabled={completingSession}
+                    className="w-full text-center text-xs text-muted font-medium mt-2.5 active:opacity-70 disabled:opacity-40"
+                  >
+                    {hi ? 'हो गया — done मार्क करो' : 'Mark as done'}
+                  </button>
+                </div>
+
+                {/* Arjun coach note */}
+                {plan.coachNote && (
+                  <div className="mt-3 card-surface p-4 flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-brand-500/15 flex items-center justify-center shrink-0">
+                      <ArjunLogo size={16} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold text-brand-400 uppercase tracking-widest mb-1">
+                        {hi ? 'Arjun का कोच नोट' : "Arjun's coach note"}
+                      </p>
+                      <p className="text-sm text-slt leading-relaxed">{plan.coachNote}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Starter plan progress list */}
+                <div className="mt-3 card-surface p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-xs font-bold text-slt uppercase tracking-widest">
+                      {hi ? 'तुम्हारा स्टार्टर प्लान' : 'Your Starter Plan'}
+                    </p>
+                    <span className="text-xs font-semibold text-muted">
+                      {hi ? `${plan.doneCount}/${plan.totalSessions} पूरे` : `${plan.doneCount}/${plan.totalSessions} complete`}
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    {plan.sessions.map((s, i) => {
+                      const firstLockedIdx = plan.sessions.findIndex(x => x.status === 'locked');
+                      const statusLabel =
+                        s.status === 'done'   ? (hi ? 'हो गया' : 'Done')
+                        : s.status === 'today'  ? (hi ? 'आज' : 'Today')
+                        : i === firstLockedIdx  ? (hi ? 'अगला' : 'Up next')
+                        : (hi ? 'लॉक्ड' : 'Locked');
+                      const statusClass =
+                        s.status === 'done'  ? 'text-teal-400'
+                        : s.status === 'today' ? 'text-brand-400'
+                        : 'text-muted';
+                      return (
+                        <div key={s.id} className="flex items-center gap-2.5">
+                          <span className={`w-5 text-xs font-bold ${statusClass}`}>{s.sessionNumber}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-sm leading-tight truncate ${s.status === 'done' ? 'text-muted line-through' : 'text-ink font-medium'}`}>
+                              {s.title}
+                            </p>
+                            <p className="text-[11px] text-muted truncate">{s.toolLabel} · {s.skillLabel}</p>
+                          </div>
+                          <span className={`text-[11px] font-semibold shrink-0 ${statusClass}`}>{statusLabel}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Quick help — direct routes for right-now moments */}
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  {[
+                    { label: hi ? 'मैं nervous हूं' : "I'm nervous",          to: '/body-reset' },
+                    { label: hi ? 'गलती हो गई' : 'I made a mistake',          to: '/games/reset-rally' },
+                    { label: hi ? 'फोकस चाहिए' : 'I need focus',              to: '/skills/focus-self-talk' },
+                    { label: hi ? 'confidence कम है' : 'I feel low confidence', to: '/self-talk' },
+                  ].map(q => (
+                    <button
+                      key={q.to}
+                      onClick={() => navigate(q.to)}
+                      className="chip justify-center text-center py-2.5"
+                    >
+                      {q.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Plan finished — small completion note */}
+            {plan && !plan.todaySession && plan.status === 'completed' && (
+              <div className="mb-6 card-surface p-4 flex items-center gap-3">
+                <CheckCircle2 size={18} className="text-teal-400 shrink-0" />
+                <p className="text-sm text-slt">
+                  {hi ? 'स्टार्टर प्लान पूरा! अगला प्लान जल्द आ रहा है — तब तक Train में practice जारी रखो।' : 'Starter plan complete! Your next plan is coming soon — keep practising in Train meanwhile.'}
+                </p>
+              </div>
+            )}
 
             {/* ── MIND JOURNAL HERO CARD ─────────────────────────────────────── */}
             <div className="mb-6">
@@ -335,8 +478,16 @@ export default function Dashboard() {
                   <ArjunLogo size={20} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-ink">{hi ? 'Arjun से बात करो' : 'Talk to Arjun'}</p>
-                  <p className="text-xs text-slt mt-0.5">{hi ? 'जो भी मन में है, यहाँ बोलो' : 'Whatever\'s on your mind'}</p>
+                  <p className="text-sm font-semibold text-ink">
+                    {plan && plan.todaySession
+                      ? (hi ? 'Arjun से इस प्लान के बारे में पूछो' : 'Ask Arjun about this plan')
+                      : (hi ? 'Arjun से बात करो' : 'Talk to Arjun')}
+                  </p>
+                  <p className="text-xs text-slt mt-0.5">
+                    {plan && plan.todaySession
+                      ? (hi ? 'तुम्हारा कोच तुम्हारा प्लान जानता है' : 'Your coach knows your plan')
+                      : (hi ? 'जो भी मन में है, यहाँ बोलो' : 'Whatever\'s on your mind')}
+                  </p>
                 </div>
                 <ChevronRight size={16} className="text-muted shrink-0" />
               </button>

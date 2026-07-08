@@ -72,6 +72,7 @@ app.use('/api/weekly-reports',  require('./routes/weeklyReports'));
 app.use('/api/self-talk',       require('./routes/selfTalk'));
 app.use('/api/body-reset',      require('./routes/bodyReset'));
 app.use('/api/skills',          require('./routes/skills'));
+app.use('/api/plan',            require('./routes/plan'));
 app.use('/api/founder',         require('./routes/founder'));
 app.use('/api/safety',          require('./routes/safety'));
 

@@ -301,6 +301,13 @@ router.patch('/me/onboarding', authenticate, async (req, res) => {
       },
       select: SAFE_SELECT,
     });
+
+    // Coach-led foundation: generate the starter plan in the background.
+    // Fire-and-forget — a plan-generation failure must never break
+    // onboarding; GET /api/plan/current also backfills lazily.
+    require('../services/planGenerator').ensureStarterPlan(req.userId)
+      .catch(err => console.error('[auth] starter plan generation failed:', err?.message));
+
     res.json({ user: parseGoals(user) });
   } catch {
     res.status(500).json({ error: 'Server error' });

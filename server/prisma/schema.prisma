@@ -107,6 +107,7 @@ model User {
   selfTalkCards          SelfTalkCard[]
   bodyResetSessions      BodyResetSession[]
   skillProgress          SkillProgress[]
+  plans                  Plan[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -347,6 +348,63 @@ model SafetyEvent {
 
   @@index([createdAt])
   @@index([userId, createdAt])
+}
+
+// ── Coach-led plan system (Prompt 1 foundation) ─────────────────────────────
+// A Plan is a coach-authored sequence of tool sessions. planType is a string
+// (not an enum) so future weekly/monthly/ongoing coaching plans need no
+// schema change. profileSnapshot freezes the User fields the generator saw,
+// so a later profile edit doesn't silently rewrite why a plan was built.
+model Plan {
+  id                  String    @id @default(cuid())
+  userId              String
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  planType            String    @default("starter") // "starter" | "weekly" | "monthly" | "ongoing" (future)
+  title               String
+  status              String    @default("active")  // "active" | "completed" | "archived"
+  currentSessionNum   Int       @default(1)
+
+  primarySkillFocus   String?
+  secondarySkillFocus String?
+  coachNote           String?
+  generatedReason     String?
+  source              String    @default("onboarding")
+  profileSnapshot     Json?
+
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  completedAt         DateTime?
+
+  sessions            PlanSession[]
+
+  @@index([userId, status])
+  @@index([userId, planType, createdAt])
+}
+
+model PlanSession {
+  id                 String    @id @default(cuid())
+  planId             String
+  plan               Plan      @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  sessionNumber      Int
+  title              String
+  toolId             String    // "pressure_reset" | "focus_words" | ... (see services/planGenerator.js)
+  toolRoute          String    // client route, e.g. "/body-reset"
+  skillKey           String    // plan-level skill label, e.g. "pressure_control"
+  durationMinutes    Int       @default(3)
+
+  status             String    @default("locked") // "locked" | "today" | "done" | "skipped"
+  personalizedReason String?
+  coachInstruction   String?
+  outputType         String?
+
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  completedAt        DateTime?
+
+  @@index([planId, sessionNumber])
+  @@index([planId, status])
 }
 
 model BodyResetSession {

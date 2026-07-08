@@ -136,7 +136,7 @@ Be warm and curious. Ask one natural follow-up question per response.`,
 // ── Helper: build personalised system prompt ─────────────────────────────
 
 function buildSystemPrompt(user, checkIns = [], memories = [], sessionType = null, extra = {}) {
-  const { recentDebriefs = [], todayDrill = null, achievementCount = 0, recentDrills = [], gameSessions = [], ritual = null, mfsEntry = null, mfsHistory = [], mfsReport = null, toolReports = [], isQuickChat = false, skillHint = null } = extra;
+  const { recentDebriefs = [], todayDrill = null, achievementCount = 0, recentDrills = [], gameSessions = [], ritual = null, mfsEntry = null, mfsHistory = [], mfsReport = null, toolReports = [], isQuickChat = false, skillHint = null, activePlan = null, focusCards = [] } = extra;
 
   // Quick chat: minimal prompt — no memory, no history context, no tool reports
   if (isQuickChat) {
@@ -401,6 +401,33 @@ No recent check-ins — the athlete hasn't tracked their mental state yet.`;
     toolSection = `\n\n## Recent Mental Tool Activity\n${toolLines}\nIMPORTANT: If the athlete's message clearly relates to one of these tool sessions, reference it specifically — connect it to their ongoing practice of that skill (e.g. "You built a cue for focus. Use it for one set in training, not the whole session."), not just a generic acknowledgement. Do NOT ask basic questions whose answers are already here.`;
   }
 
+  // ── Coach-led plan context (Prompt 1) — the athlete's active plan.
+  // Data only: Arjun should anchor recommendations to the current plan
+  // session instead of picking tools at random, but every rule elsewhere
+  // in this prompt (safety above all, tool discipline, tag registry)
+  // stays in charge of HOW to respond.
+  let planSection = '';
+  if (activePlan && activePlan.sessions?.length) {
+    const PLAN_SKILL_LABELS = { pressure_control: 'Pressure control', focus_clarity: 'Focus', confidence_self_talk: 'Confident self-talk', mistake_recovery: 'Mistake recovery', reflection: 'Reflection' };
+    const done = activePlan.sessions.filter(s => s.status === 'done');
+    const current = activePlan.sessions.find(s => s.status === 'today') || null;
+    const remaining = activePlan.sessions.filter(s => s.status === 'locked');
+    const sessionLine = s => `  ${s.sessionNumber}. ${s.title} (${PLAN_SKILL_LABELS[s.skillKey] || s.skillKey})`;
+    planSection = `\n\n## Athlete's Current Training Plan\nPlan: "${activePlan.title}" — primary focus: ${PLAN_SKILL_LABELS[activePlan.primarySkillFocus] || activePlan.primarySkillFocus}. Progress: ${done.length}/${activePlan.sessions.length} sessions done.${activePlan.coachNote ? `\nCoach note behind this plan: "${activePlan.coachNote}"` : ''}${current ? `\nToday's session: "${current.title}" — ${current.personalizedReason || ''}` : '\nAll sessions complete.'}${done.length ? `\nCompleted:\n${done.map(sessionLine).join('\n')}` : ''}${remaining.length ? `\nComing up:\n${remaining.map(sessionLine).join('\n')}` : ''}\nWhen the athlete asks what to do next, or when a tool genuinely fits, prefer pointing them to today's plan session over an unrelated tool — one clear next action. Refer to the plan naturally ("your next rep", "session ${current ? current.sessionNumber : ''} of your plan"), not like reading a database. Never invent plan sessions that aren't listed here.`;
+  }
+
+  // ── Active Focus Cards (full contents, max 5) — previously chat only saw
+  // the save event via ToolReport; this gives Arjun the athlete's actual
+  // words so he can reference them instead of suggesting new ones.
+  let focusCardSection = '';
+  if (focusCards.length) {
+    const cardLines = focusCards.map(c => {
+      const when = c.performanceMoment || c.situationCategory || null;
+      return `- Focus Word: "${c.focusWord}" · Reset Word: "${c.resetWord}" · Mantra: "${c.powerLine}"${when ? ` · For: ${when}` : ''}${c.lastUsedAt ? ` · Last practised: ${new Date(c.lastUsedAt).toISOString().slice(0, 10)}` : ''}`;
+    }).join('\n');
+    focusCardSection = `\n\n## Athlete's Saved Focus Cards (${focusCards.length} active)\n${cardLines}\nThese are the athlete's OWN words. When focus, pressure, or confidence comes up, remind them to use an existing Focus Word or Card before suggesting they build a new one. Quote their words exactly — never rewrite them.`;
+  }
+
   // ── Skill recommendation hint (from rule-based intent detection on this
   // message) — a suggestion for Arjun to weigh, never a command. Safety
   // instructions elsewhere in this prompt always take priority over this.
@@ -409,7 +436,7 @@ No recent check-ins — the athlete hasn't tracked their mental state yet.`;
     skillHintSection = `\n\n## Possible Focus Area For This Reply\nThis message may be about: ${skillHint.name} — ${skillHint.explanation}\nIf (and only if) this genuinely fits what the athlete said, you may explain it briefly and tag [APP:${skillHint.tag}] at the end. Do not tag it if it doesn't fit, if the athlete is just acknowledging something, or if a safety response is needed instead (safety always overrides this). Never use a tool name other than the ones listed in the APP TAGS section below — there is no such tool as "Focus Training".`;
   }
 
-  return `You are Arjun — a mental performance coach for Indian athletes across sports: cricket, football, badminton, athletics, kabaddi, tennis, swimming, basketball, boxing, and more. Arjun helps with focus, confidence, pressure, reset, self-talk, body control, visualization, routines, and reflection. You use the athlete's sport, position, level, and current situation to make coaching specific — you are not a cricket specialist and have no "favourite" or "best understood" sport. You are warm, direct, and feel like a trusted older brother who truly understands the pressures of Indian sports culture.${mfsSection}${toolSection}${skillHintSection}
+  return `You are Arjun — a mental performance coach for Indian athletes across sports: cricket, football, badminton, athletics, kabaddi, tennis, swimming, basketball, boxing, and more. Arjun helps with focus, confidence, pressure, reset, self-talk, body control, visualization, routines, and reflection. You use the athlete's sport, position, level, and current situation to make coaching specific — you are not a cricket specialist and have no "favourite" or "best understood" sport. You are warm, direct, and feel like a trusted older brother who truly understands the pressures of Indian sports culture.${mfsSection}${toolSection}${planSection}${focusCardSection}${skillHintSection}
 
 ## Athlete Profile
 - **Name:** ${user.name}
@@ -817,6 +844,20 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
       select: { toolType: true, summary: true, arjunResponse: true, createdAt: true, skillKey: true },
     }).catch(() => []);
 
+    // ── Coach-led plan context (Prompt 1) — active plan + full active
+    // Focus Cards, skipped for quick chat like the other rich context.
+    const activePlan = isQuickChat ? null : await prisma.plan.findFirst({
+      where: { userId: req.userId, status: 'active' },
+      orderBy: { createdAt: 'desc' },
+      include: { sessions: { orderBy: { sessionNumber: 'asc' } } },
+    }).catch(() => null);
+    const focusCards = isQuickChat ? [] : await prisma.selfTalkCard.findMany({
+      where: { userId: req.userId, isArchived: false, isActive: true },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+      select: { focusWord: true, resetWord: true, powerLine: true, performanceMoment: true, situationCategory: true, lastUsedAt: true, createdAt: true },
+    }).catch(() => []);
+
     // ── Skill recommendation loop: rule-based intent detection on this
     // message, personalized against whether the athlete has an active
     // Self-Talk (focus) card, and throttled so an ignored recommendation
@@ -898,7 +939,7 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
     const stream = anthropic.messages.stream({
       model: process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001',
       max_tokens: 800,
-      system: buildSystemPrompt(user, recentCheckIns, memories, sessionType, { recentDebriefs, todayDrill, achievementCount, recentDrills, gameSessions, ritual, arjunMsgCount, mfsEntry, mfsHistory, mfsReport: null, toolReports, isQuickChat, skillHint }),
+      system: buildSystemPrompt(user, recentCheckIns, memories, sessionType, { recentDebriefs, todayDrill, achievementCount, recentDrills, gameSessions, ritual, arjunMsgCount, mfsEntry, mfsHistory, mfsReport: null, toolReports, isQuickChat, skillHint, activePlan, focusCards }),
       messages: conversationHistory,
     });
 
