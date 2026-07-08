@@ -85,7 +85,6 @@ export default function Dashboard() {
   const [freezeLoading,     setFreezeLoading]     = useState(false);
   const [loaded,            setLoaded]            = useState(false);
   const [plan,              setPlan]              = useState(null);
-  const [completingSession, setCompletingSession] = useState(false);
   const [missedDismissed,   setMissedDismissed]   = useState(
     () => localStorage.getItem('arjun_missed_dismissed') === new Date().toISOString().slice(0, 10)
   );
@@ -141,23 +140,6 @@ export default function Dashboard() {
   function dismissMissed() {
     localStorage.setItem('arjun_missed_dismissed', new Date().toISOString().slice(0, 10));
     setMissedDismissed(true);
-  }
-
-  // Marks today's plan session done and advances the plan. Basic for now —
-  // later prompts will let each tool call this automatically on completion.
-  async function completeTodaySession() {
-    if (!plan?.todaySession || completingSession) return;
-    setCompletingSession(true);
-    try {
-      const res = await apiFetch(`/api/plan/session/${plan.todaySession.id}/complete`, {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (data.plan) setPlan(data.plan);
-    } catch { /* keep current plan state */ } finally {
-      setCompletingSession(false);
-    }
   }
 
   // ── derived ────────────────────────────────────────────────────────────────
@@ -278,13 +260,6 @@ export default function Dashboard() {
                   >
                     {hi ? 'आज का मेंटल रेप शुरू करो' : "Start Today's Mental Rep"}
                   </button>
-                  <button
-                    onClick={completeTodaySession}
-                    disabled={completingSession}
-                    className="w-full text-center text-xs text-muted font-medium mt-2.5 active:opacity-70 disabled:opacity-40"
-                  >
-                    {hi ? 'हो गया — done मार्क करो' : 'Mark as done'}
-                  </button>
                 </div>
 
                 {/* Arjun coach note */}
@@ -312,13 +287,11 @@ export default function Dashboard() {
                       {hi ? `${plan.doneCount}/${plan.totalSessions} पूरे` : `${plan.doneCount}/${plan.totalSessions} complete`}
                     </span>
                   </div>
-                  <div className="space-y-2">
-                    {plan.sessions.map((s, i) => {
-                      const firstLockedIdx = plan.sessions.findIndex(x => x.status === 'locked');
+                  <div className="space-y-2.5">
+                    {plan.sessions.map((s) => {
                       const statusLabel =
-                        s.status === 'done'   ? (hi ? 'हो गया' : 'Done')
-                        : s.status === 'today'  ? (hi ? 'आज' : 'Today')
-                        : i === firstLockedIdx  ? (hi ? 'अगला' : 'Up next')
+                        s.status === 'done'  ? (hi ? 'हो गया' : 'Done')
+                        : s.status === 'today' ? (hi ? 'आज' : 'Today')
                         : (hi ? 'लॉक्ड' : 'Locked');
                       const statusClass =
                         s.status === 'done'  ? 'text-teal-400'
@@ -326,14 +299,38 @@ export default function Dashboard() {
                         : 'text-muted';
                       return (
                         <div key={s.id} className="flex items-center gap-2.5">
-                          <span className={`w-5 text-xs font-bold ${statusClass}`}>{s.sessionNumber}</span>
+                          <span className={`w-5 text-xs font-bold shrink-0 ${statusClass}`}>{s.sessionNumber}</span>
                           <div className="flex-1 min-w-0">
-                            <p className={`text-sm leading-tight truncate ${s.status === 'done' ? 'text-muted line-through' : 'text-ink font-medium'}`}>
+                            <p className={`text-sm leading-tight truncate ${s.status === 'done' ? 'text-muted' : 'text-ink font-medium'}`}>
                               {s.title}
                             </p>
-                            <p className="text-[11px] text-muted truncate">{s.toolLabel} · {s.skillLabel}</p>
+                            {s.status === 'locked' ? (
+                              <p className="text-[11px] text-muted truncate">
+                                {hi ? 'पहले पिछला सेशन पूरा करो' : 'Complete the previous session first'}
+                              </p>
+                            ) : (
+                              <p className="text-[11px] text-muted truncate">{s.toolLabel} · {s.skillLabel}</p>
+                            )}
                           </div>
-                          <span className={`text-[11px] font-semibold shrink-0 ${statusClass}`}>{statusLabel}</span>
+                          <div className="shrink-0 flex items-center gap-2">
+                            <span className={`text-[11px] font-semibold ${statusClass}`}>{statusLabel}</span>
+                            {s.status === 'done' && (
+                              <button
+                                onClick={() => navigate(s.toolRoute)}
+                                className="text-[11px] font-semibold text-brand-400 active:opacity-70"
+                              >
+                                {hi ? 'फिर से practice करो' : 'Practice again'}
+                              </button>
+                            )}
+                            {s.status === 'today' && (
+                              <button
+                                onClick={() => navigate(s.toolRoute)}
+                                className="text-[11px] font-semibold text-brand-400 active:opacity-70"
+                              >
+                                {hi ? 'शुरू करो' : 'Start'}
+                              </button>
+                            )}
+                          </div>
                         </div>
                       );
                     })}
