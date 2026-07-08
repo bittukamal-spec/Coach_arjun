@@ -30,6 +30,8 @@ import PressureResetSkillPath from './pages/skills/PressureResetSkillPath';
 import FocusDeckPage from './pages/FocusDeckPage';
 import BodyResetPage from './pages/BodyResetPage';
 import ResetHistoryPage from './pages/ResetHistoryPage';
+import MentalRepPage from './pages/MentalRepPage';
+import PlaybookPage from './pages/PlaybookPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import BottomNav from './components/BottomNav';
 import { translations } from './i18n/translations';
@@ -232,6 +234,27 @@ function App() {
         element={
           <ProtectedRoute requireOnboarding={true}>
             <PressureResetSkillPath />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Daily Mental Rep — full screen, no BottomNav */}
+      <Route
+        path="/mental-rep"
+        element={
+          <ProtectedRoute requireOnboarding={true}>
+            <MentalRepPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Mental Playbook — private library, with BottomNav */}
+      <Route
+        path="/playbook"
+        element={
+          <ProtectedRoute requireOnboarding={true}>
+            <PlaybookPage />
+            <BottomNav />
           </ProtectedRoute>
         }
       />

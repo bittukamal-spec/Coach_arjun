@@ -9,9 +9,10 @@ import { apiFetch } from '../api';
 import {
   Flame, Zap, CheckCircle2, Snowflake, ChevronRight,
   RotateCcw, Target, CircleDot, Waves, Activity,
-  Gamepad2, ClipboardList, MessageSquare, X,
+  Gamepad2, ClipboardList, MessageSquare, X, Sparkles, BookOpen,
 } from 'lucide-react';
 import { isActiveToolRoute } from '../constants/activeTools';
+import { insightText } from '../utils/insightCopy';
 
 function getSportIcon(sport) {
   const s = (sport || '').toLowerCase();
@@ -85,6 +86,15 @@ export default function Dashboard() {
   const [freezeLoading,     setFreezeLoading]     = useState(false);
   const [loaded,            setLoaded]            = useState(false);
   const [plan,              setPlan]              = useState(null);
+  const [playbook,          setPlaybook]          = useState(null);
+  // Today's context (training / match / recovery / just_rep) — remembered
+  // for the rest of the day so the recommended tool stays stable.
+  const [dayContext,        setDayContext]        = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('arjun_day_context') || 'null');
+      return saved?.date === new Date().toISOString().slice(0, 10) ? saved.context : null;
+    } catch { return null; }
+  });
   const [missedDismissed,   setMissedDismissed]   = useState(
     () => localStorage.getItem('arjun_missed_dismissed') === new Date().toISOString().slice(0, 10)
   );
@@ -113,7 +123,18 @@ export default function Dashboard() {
       .then(r => r.ok ? r.json() : null)
       .then(data => setPlan(data?.plan || false))
       .catch(() => setPlan(false));
+
+    // Playbook summary — today's cue, recent insight, saved cues
+    apiFetch('/api/playbook', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => setPlaybook(data || false))
+      .catch(() => setPlaybook(false));
   }, [token]);
+
+  function pickContext(ctx) {
+    setDayContext(ctx);
+    localStorage.setItem('arjun_day_context', JSON.stringify({ date: new Date().toISOString().slice(0, 10), context: ctx }));
+  }
 
   // ── handlers ───────────────────────────────────────────────────────────────
   async function useFreeze() {
@@ -146,6 +167,17 @@ export default function Dashboard() {
   const missedYesterday = streak === 0 && mfsEntry === false && totalCheckIns > 0;
   const sport = user?.sport ? user.sport.charAt(0).toUpperCase() + user.sport.slice(1) : 'Sport';
   const firstName = (user?.name || '').split(' ')[0] || (hi ? 'एथलीट' : 'Athlete');
+
+  // Context-aware recommended tool — existing tools only, urgent tools
+  // never gated. "Just a rep" needs no extra recommendation (the rep is it).
+  const CONTEXT_REC = {
+    match:    { title: 'Pressure Reset', desc: hi ? 'खेलने से पहले एक cue lock करो।' : 'Lock in one cue before you play.', to: '/body-reset', Icon: RotateCcw },
+    training: { title: 'Focus Lock', desc: hi ? 'प्रैक्टिस से पहले फोकस तेज़ करो।' : 'Sharpen your focus before practice.', to: '/games/focus-lock', Icon: Target },
+    recovery: { title: hi ? 'Reflect' : 'Reflect Like an Athlete', desc: hi ? 'जो काम किया उसे log करो।' : 'Log what worked and one thing to improve.', to: '/debrief', Icon: ClipboardList },
+  };
+  const contextRec = dayContext ? CONTEXT_REC[dayContext] || null : null;
+  const todayCueCard = playbook?.focusCards?.[0] || null;
+  const insightLine = playbook ? insightText(playbook.insight, hi) : null;
 
   // ── render ─────────────────────────────────────────────────────────────────
   return (
@@ -234,33 +266,136 @@ export default function Dashboard() {
             </div>
 
 
-            {/* ── TODAY'S MENTAL REP (coach-led plan) ────────────────────────── */}
+            {/* ── TODAY'S MENTAL REP — the core daily habit ──────────────────── */}
+            <div className="mb-6">
+              <SectionLabel>{hi ? 'आज का मेंटल रेप' : "Today's Mental Rep"}</SectionLabel>
+              <div className="card-elevated p-5">
+                <h2 className="text-lg font-bold text-ink leading-tight mb-1">
+                  {hi ? 'आज का मेंटल रेप' : "Today's Mental Rep"}
+                </h2>
+                <p className="text-sm text-slt mb-4">
+                  {hi ? 'मन को तैयार करने के लिए 4 मिनट।' : '4 minutes to get your mind ready.'}
+                </p>
+
+                {/* Context picker — simple, per-day, no calendar */}
+                <p className="text-[10px] font-bold text-muted uppercase tracking-wider mb-2">
+                  {hi ? 'आज क्या है?' : "What's today?"}
+                </p>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {[
+                    { id: 'training', en: 'Training today', hi: 'आज ट्रेनिंग' },
+                    { id: 'match',    en: 'Match today',    hi: 'आज मैच' },
+                    { id: 'recovery', en: 'Recovery day',   hi: 'आराम का दिन' },
+                    { id: 'just_rep', en: 'Just a rep',     hi: 'बस एक रेप' },
+                  ].map(c => (
+                    <button
+                      key={c.id}
+                      onClick={() => pickContext(c.id)}
+                      className={`chip ${dayContext === c.id ? '!border-brand-500 !text-brand-400' : ''}`}
+                    >
+                      {hi ? c.hi : c.en}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => navigate('/mental-rep', dayContext ? { state: { context: dayContext } } : undefined)}
+                  className="btn-gradient w-full py-3 text-sm"
+                  style={{ minHeight: '48px' }}
+                >
+                  {hi ? 'रेप शुरू करो' : 'Start Rep'}
+                </button>
+              </div>
+
+              {/* Context-aware recommended tool */}
+              {contextRec && (
+                <button
+                  onClick={() => navigate(contextRec.to)}
+                  className="mt-3 w-full card-surface p-4 flex items-center gap-3 text-left active:scale-[0.98] transition-transform"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-brand-500/15 flex items-center justify-center shrink-0">
+                    <contextRec.Icon size={16} className="text-brand-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-ink">{contextRec.title}</p>
+                    <p className="text-xs text-slt truncate">{contextRec.desc}</p>
+                  </div>
+                  <ChevronRight size={16} className="text-muted shrink-0" />
+                </button>
+              )}
+
+              {/* Today's cue — the athlete's main saved Focus Card */}
+              {todayCueCard && (
+                <button
+                  onClick={() => navigate('/focus-deck')}
+                  className="mt-3 w-full card-surface p-4 flex items-center gap-3 text-left active:scale-[0.98] transition-transform"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-brand-500/15 flex items-center justify-center shrink-0">
+                    <Target size={16} className="text-brand-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-ink">
+                      {hi ? 'आज का cue: ' : "Today's cue: "}
+                      <span style={{ color: '#185FA5' }}>{todayCueCard.focusWord}</span>
+                    </p>
+                    <p className="text-xs text-slt">{hi ? 'Focus Card खोलो' : 'Open Focus Card'}</p>
+                  </div>
+                  <ChevronRight size={16} className="text-muted shrink-0" />
+                </button>
+              )}
+
+              {/* Recent insight — one useful pattern, no scores */}
+              {insightLine && (
+                <div className="mt-3 card-surface p-4 flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-brand-500/15 flex items-center justify-center shrink-0">
+                    <Sparkles size={15} className="text-brand-400" />
+                  </div>
+                  <p className="text-sm text-slt leading-relaxed">{insightLine}</p>
+                </div>
+              )}
+
+              {/* Mental Playbook entry */}
+              <button
+                onClick={() => navigate('/playbook')}
+                className="mt-3 w-full card-surface p-4 flex items-center gap-3 text-left active:scale-[0.98] transition-transform"
+              >
+                <div className="w-9 h-9 rounded-xl bg-brand-500/15 flex items-center justify-center shrink-0">
+                  <BookOpen size={16} className="text-brand-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-ink">{hi ? 'Mental Playbook' : 'Mental Playbook'}</p>
+                  <p className="text-xs text-slt truncate">
+                    {playbook && playbook.weekRepCount > 0
+                      ? (hi ? `इस हफ्ते ${playbook.weekRepCount} मेंटल रेप पूरे किए।` : `You've completed ${playbook.weekRepCount} mental rep${playbook.weekRepCount === 1 ? '' : 's'} this week.`)
+                      : (hi ? 'तुम्हारे cues, cards और reflections' : 'Your cues, cards, and reflections')}
+                  </p>
+                </div>
+                <ChevronRight size={16} className="text-muted shrink-0" />
+              </button>
+
+              {/* Quick help — urgent tools, always one tap away */}
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                {[
+                  { label: hi ? 'मैं nervous हूं' : "I'm nervous",            to: '/body-reset' },
+                  { label: hi ? 'गलती हो गई' : 'I made a mistake',            to: '/games/reset-rally' },
+                  { label: hi ? 'फोकस चाहिए' : 'I need focus',                to: '/skills/focus-self-talk' },
+                  { label: hi ? 'confidence कम है' : 'I feel low confidence', to: '/self-talk' },
+                ].map(q => (
+                  <button
+                    key={q.to}
+                    onClick={() => navigate(q.to)}
+                    className="chip justify-center text-center py-2.5"
+                  >
+                    {q.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* ── YOUR STARTER PLAN (coach-led journey) ──────────────────────── */}
             {plan && plan.todaySession && (
               <div className="mb-6">
-                <SectionLabel>{hi ? 'आज का मेंटल रेप' : "Today's Mental Rep"}</SectionLabel>
-                <div className="card-elevated p-5">
-                  <div className="flex items-start justify-between gap-2 mb-1.5">
-                    <h2 className="text-lg font-bold text-ink leading-tight">{plan.todaySession.title}</h2>
-                    <span className="tag-pill" style={{ '--tile-fg': '#185FA5', '--tile-bg': 'rgb(var(--brand-50))' }}>
-                      {plan.todaySession.skillLabel}
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted mb-2.5">
-                    {hi
-                      ? `सेशन ${plan.todaySession.sessionNumber}/${plan.totalSessions} · ${plan.todaySession.durationMinutes} मिनट`
-                      : `Session ${plan.todaySession.sessionNumber} of ${plan.totalSessions} · ${plan.todaySession.durationMinutes} min`}
-                  </p>
-                  {plan.todaySession.personalizedReason && (
-                    <p className="text-sm text-slt leading-relaxed mb-4">{plan.todaySession.personalizedReason}</p>
-                  )}
-                  <button
-                    onClick={() => navigate(plan.todaySession.toolRoute)}
-                    className="btn-gradient w-full py-3 text-sm"
-                    style={{ minHeight: '48px' }}
-                  >
-                    {hi ? 'आज का मेंटल रेप शुरू करो' : "Start Today's Mental Rep"}
-                  </button>
-                </div>
+                <SectionLabel>{hi ? 'तुम्हारा स्टार्टर प्लान' : 'Your Starter Plan'}</SectionLabel>
 
                 {/* Arjun coach note */}
                 {plan.coachNote && (
@@ -281,7 +416,7 @@ export default function Dashboard() {
                 <div className="mt-3 card-surface p-4">
                   <div className="flex items-center justify-between mb-3">
                     <p className="text-xs font-bold text-slt uppercase tracking-widest">
-                      {hi ? 'तुम्हारा स्टार्टर प्लान' : 'Your Starter Plan'}
+                      {hi ? '5 सेशन' : '5 sessions'}
                     </p>
                     <span className="text-xs font-semibold text-muted">
                       {hi ? `${plan.doneCount}/${plan.totalSessions} पूरे` : `${plan.doneCount}/${plan.totalSessions} complete`}
@@ -335,24 +470,6 @@ export default function Dashboard() {
                       );
                     })}
                   </div>
-                </div>
-
-                {/* Quick help — direct routes for right-now moments */}
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  {[
-                    { label: hi ? 'मैं nervous हूं' : "I'm nervous",          to: '/body-reset' },
-                    { label: hi ? 'गलती हो गई' : 'I made a mistake',          to: '/games/reset-rally' },
-                    { label: hi ? 'फोकस चाहिए' : 'I need focus',              to: '/skills/focus-self-talk' },
-                    { label: hi ? 'confidence कम है' : 'I feel low confidence', to: '/self-talk' },
-                  ].map(q => (
-                    <button
-                      key={q.to}
-                      onClick={() => navigate(q.to)}
-                      className="chip justify-center text-center py-2.5"
-                    >
-                      {q.label}
-                    </button>
-                  ))}
                 </div>
               </div>
             )}

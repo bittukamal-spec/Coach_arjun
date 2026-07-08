@@ -9,7 +9,7 @@ import SectionHeader from '../components/train/SectionHeader';
 import FeatureToolCard from '../components/train/FeatureToolCard';
 import SmallToolRow from '../components/train/SmallToolRow';
 import {
-  RotateCcw, Eye, ClipboardList, GraduationCap, MessageSquare, Layers, Target, RefreshCw,
+  RotateCcw, Eye, ClipboardList, GraduationCap, MessageSquare, Layers, Target, RefreshCw, Zap, BookOpen,
 } from 'lucide-react';
 
 // Accent colours reused verbatim from parseArjunMessage.js's APP_TOOL_CONFIG
@@ -128,6 +128,12 @@ export default function TrainPage() {
             onClick={() => navigate('/skills/focus-self-talk')}
           />
           <SmallToolRow
+            icon={Zap}
+            title={hi ? 'Daily Mental Rep' : 'Daily Mental Rep'}
+            desc={hi ? '4 मिनट में मन तैयार करो और एक cue लेकर निकलो।' : 'A 4-minute rep that ends with one cue you take to training.'}
+            onClick={() => navigate('/mental-rep')}
+          />
+          <SmallToolRow
             icon={MessageSquare}
             title="Focus Card Builder"
             desc={hi ? 'दबाव वाली सोच को एक Focus Card में बदलो।' : 'Turn pressure thoughts into a Focus Card.'}
@@ -138,6 +144,12 @@ export default function TrainPage() {
             title={hi ? 'Focus Deck' : 'Focus Deck'}
             desc={hi ? 'अपने saved Focus Cards देखो और अभ्यास करो।' : 'Review and practise your saved Focus Cards.'}
             onClick={() => navigate('/focus-deck')}
+          />
+          <SmallToolRow
+            icon={BookOpen}
+            title={hi ? 'Mental Playbook' : 'Mental Playbook'}
+            desc={hi ? 'तुम्हारे cues, cards और reflections — private.' : 'Your cues, cards, and reflections — private.'}
+            onClick={() => navigate('/playbook')}
           />
         </div>
 

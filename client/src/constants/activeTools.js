@@ -18,6 +18,8 @@ export const ACTIVE_TOOL_ROUTES = [
   '/train',
   '/skills/focus-self-talk',
   '/skills/pressure-reset',
+  '/mental-rep',
+  '/playbook',
 ];
 
 export function isActiveToolRoute(route) {
