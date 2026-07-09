@@ -619,7 +619,7 @@ export default function Dashboard() {
               <h3 className="text-base font-bold text-ink">
                 {infoPopup === 'streak'  && (hi ? 'ट्रेनिंग स्ट्रीक'     : 'Training Streak')}
                 {infoPopup === 'xp'      && (hi ? 'मानसिक XP (MXP)'     : 'Mental XP (MXP)')}
-                {infoPopup === 'fitness' && (hi ? 'मानसिक फिटनेस स्कोर' : 'Mental Fitness Score')}
+                {infoPopup === 'fitness' && (hi ? 'माइंडसेट चेक-इन' : 'Mindset Check-in')}
               </h3>
               <button onClick={() => setInfoPopup(null)} className="text-slt hover:text-ink text-xl leading-none">×</button>
             </div>
@@ -679,8 +679,13 @@ export default function Dashboard() {
               <div className="space-y-3">
                 <p className="text-sm text-ink leading-relaxed">
                   {hi
-                    ? 'मानसिक फिटनेस स्कोर पिछले 7 दिनों के मूड, फोकस और आत्मविश्वास के औसत पर आधारित है।'
-                    : 'Mental Fitness Score is based on your average mood, focus, and confidence over the last 7 days.'}
+                    ? 'यह पिछले 7 दिनों के मूड, फोकस और आत्मविश्वास के औसत पर आधारित है।'
+                    : 'This is based on your average mood, focus, and confidence over the last 7 days.'}
+                </p>
+                <p className="text-xs text-slt leading-relaxed">
+                  {hi
+                    ? 'यह आपकी मानसिक ताकत का स्कोर नहीं है। यह Arjun को यह समझने में मदद करता है कि आज आपको किस तरह के सपोर्ट की ज़रूरत है।'
+                    : 'This is not a score of your mental strength. It helps Arjun understand what kind of support you need today.'}
                 </p>
                 <div className="bg-dark-700 rounded-xl px-4 py-3 space-y-1.5">
                   {[
