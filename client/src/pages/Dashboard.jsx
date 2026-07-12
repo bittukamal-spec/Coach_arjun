@@ -8,7 +8,7 @@ import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
 import {
   Flame, Zap, CheckCircle2, Snowflake, ChevronRight,
-  RotateCcw, Target, CircleDot, Waves, Activity,
+  RotateCcw, Target, CircleDot, Waves, Activity, Trophy,
   Gamepad2, ClipboardList, MessageSquare, X, Sparkles, BookOpen,
 } from 'lucide-react';
 import { isActiveToolRoute } from '../constants/activeTools';

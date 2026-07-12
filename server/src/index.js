@@ -83,6 +83,13 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', app: 'Arjun API', version: '1.0.0' });
 });
 
-app.listen(PORT, () => {
-  console.log(`\n🧠 Arjun server running → http://localhost:${PORT}\n`);
-});
+// Only start listening when this file is run directly (production entry
+// point / `npm start`) — not when imported, so tests can load `app` without
+// booting a real server.
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`\n🧠 Arjun server running → http://localhost:${PORT}\n`);
+  });
+}
+
+module.exports = app;
