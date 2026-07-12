@@ -1,6 +1,6 @@
 # ARJUN MVP SPECIFICATION
 
-**Version:** 1.1 · **Date:** 2026-07-11 · **Status:** Approved — Frozen MVP
+**Version:** 1.2 · **Date:** 2026-07-12 · **Status:** Approved — Frozen MVP
 **Source of truth:** `arjun-mvp-research-pack.md` (frozen MVP decision + three research reports)
 **Standing rule:** Scope is frozen. Any proposed addition is a post-launch conversation by default. This spec defines what ships to the 5-athlete pilot — nothing more.
 
@@ -11,6 +11,8 @@
 This specification turns the frozen MVP decision into implementation-ready definition. It does **not** contain the engineering plan (task breakdown, file-level changes, sequencing) — that is produced separately after this spec is approved. Where a requirement already exists in the app, the spec says so; where current behaviour must change, it is listed as a **gate** (§6) or marked **[CHANGE]**.
 
 Decisions resolved at approval: next-open follow-up only (no notifications in pilot) · Quick Chat hidden, not deleted · Mental Rep = prescription-delivery mechanism, daily-habit framing paused · pilot is free, guardian consent still mandatory · focus & mistake-recovery mapped to routines + cues, not games · strict one-prescription rule (no pairing exceptions) · hybrid AI-assisted + founder-led safety review with pre-pilot professional protocol review · pilot results classified as promising/weak/inconclusive, never as market validation · file lives at `docs/ARJUN-MVP-SPEC.md`.
+
+Decisions resolved 2026-07-12 (v1.2), following the pre-pilot engineering gap review: SafetyEvent stores structured fields only — safety category, risk level, surface, timestamp, athlete/user reference, chat/session reference, review status and review timestamp — never message content or a persistent AI-written narrative (a temporary AI-assisted summary may be generated for founder review but is not saved) · pre-performance preparation uses the existing dedicated Ritual flow, not the Mental Rep flow · the Progress tab is hidden for the pilot, with the Mental Playbook as the athlete's sole progress-review surface (old Progress code may remain dormant, undeleted) · backend XP accrual may continue silently but is fully invisible to athletes, does not gate anything, and is never a success metric or coaching input.
 
 ## §1. Product definition
 
@@ -91,7 +93,7 @@ Format per flow: **Entry → Steps → Exit → Data written → Acceptance crit
 **AC:** exactly one recommendation — never a menu, never a second practice in the same cycle · explanation ≤2 lines · every prescription names the real-world application situation · a null prescription (coach-only conversation) is permitted and leaves no open record.
 
 ### 4.5 Mental Rep completion
-**Entry:** Athlete opens the prescribed tool. **Steps:** Completes the existing tool flow (Pressure Reset / Focus Card / prep / debrief / guided rehearsal). Output artifact (cue, card, routine, reflection) is saved.
+**Entry:** Athlete opens the prescribed tool. **Steps:** Completes the existing tool flow (Pressure Reset / Focus Card / the dedicated Ritual pre-performance flow, §4.7 / debrief / guided rehearsal). Output artifact (cue, card, routine, reflection) is saved.
 **Exit:** Rep done; artifact in Playbook; prescription status: practised (still open until discussed at follow-up). **Data:** tool report, artifact, prescription update.
 **AC:** completing a prescribed tool always writes to the Playbook · Arjun's next conversation knows the rep happened · no XP/score/streak surface appears anywhere in the pilot experience · **[CHANGE]** dashboard shows no daily-rep obligation (daily-habit framing paused).
 
@@ -101,9 +103,9 @@ Format per flow: **Entry → Steps → Exit → Data written → Acceptance crit
 **AC:** with an open prescription, the follow-up is Arjun's *first* conversational move on next open · outcome recorded before any new problem/prescription cycle begins · a "didn't try it yet" response keeps the prescription open without shame language ("progress comes from returning" tone, never guilt).
 
 ### 4.7 Pre-performance preparation
-**Entry:** Athlete opens prep ahead of a match/session (internal trigger — never a notification). **Steps:** Short flow: settle (breathing, if trained) → their focus cue → their routine → one-line intention. Under 4 minutes.
+**Entry:** Athlete opens the dedicated pre-performance preparation flow (Ritual) ahead of a match/session (internal trigger — never a notification). **[RESOLVED 2026-07-12]** The pilot uses this existing dedicated flow, not the general Mental Rep flow — Mental Rep stays reserved for chat-prescribed practice. **Steps:** Short flow, dedicated to the upcoming moment: settle (breathing, if trained) → their saved focus cue → their personal routine → one-line intention. Under approximately 4 minutes.
 **Exit:** Athlete leaves the app for their sport. **Data:** prep completion, cue used.
-**AC:** completable in ≤4 minutes · surfaces *their* saved cue/routine (personalized, not generic) · ends by sending the athlete out of the app, not deeper in.
+**AC:** completable in ≤4 minutes · surfaces *their* saved cue/routine (personalized, not generic) · ends by sending the athlete out of the app, not deeper in · the flow may be improved during implementation but must not expand into a course, content library, or complex routine builder.
 
 ### 4.8 Post-performance reflection
 **Entry:** Athlete opens debrief after a match/session. **Steps:** Existing debrief flow: what went well → what to do differently → next focus; Arjun adds one short insight. Mastery-focused, brief.
@@ -111,14 +113,14 @@ Format per flow: **Entry → Steps → Exit → Data written → Acceptance crit
 **AC:** ≤4 minutes · output is exactly one next-focus lesson · anti-rumination: no dwelling loops, no re-litigating the whole match · feeds the follow-up conversation if a prescription is open.
 
 ### 4.9 Mental Playbook
-**Entry:** From dashboard/nav. **Steps:** Read-only review of *their* accumulation: focus cards/cues, prescriptions tried + outcomes, reflection lessons. **Portable by design** — valuable even if they stop using Arjun.
+**Entry:** From dashboard/nav. **[RESOLVED 2026-07-12]** With the Progress tab hidden for the pilot (§7), the Playbook is the athlete's **only** pilot-facing place to review progress: cues and Focus Cards, completed practices, prescription outcomes, and reflection lessons. **Steps:** Read-only review of *their* accumulation. **Portable by design** — valuable even if they stop using Arjun.
 **Exit:** Athlete reviews before training/matches. **Data:** none (read).
-**AC:** everything the athlete built is present and correct · zero comparative/scoring elements · empty state explains what will accumulate, without shame.
+**AC:** everything the athlete built is present and correct · zero comparative/scoring elements · empty state explains what will accumulate, without shame · no XP, streak, badge, level, score, or rating appears anywhere in this view.
 
 ### 4.10 Safety escalation
-**Entry:** Any chat message hitting a red-line topic (§5.6). **Steps:** Coaching stops → warm, non-judgmental safety response → helplines surfaced (iCall 9152987821, KIRAN 1800-599-0019, emergency 112) → conversation does not continue coaching the topic → **SafetyEvent logged with an AI-generated incident summary and risk flag → founder reviews flagged conversations same-day (pilot SLA) → serious or unclear cases escalated to the named safety-protocol professional via the agreed contact arrangement (§6 G5) → guardian escalation per the consent-form protocol for imminent-risk events.**
-**Exit:** Athlete has help pathways; event awaiting human review. **Data:** safety event record + AI incident summary.
-**AC:** triggers on all red-line categories, EN + Hinglish · helplines on every safety surface (KIRAN included — closes the known gap) · zero safety events reach coaching continuation · every event is logged, AI-summarized, and founder-reviewed same-day during the pilot · serious/unclear cases have a defined escalation path with expected response time — **no 24/7 availability is implied anywhere** · guardian protocol documented in the signed consent form · **applies to 100% of live chat surfaces** (see gate G4).
+**Entry:** Any chat message hitting a red-line topic (§5.6). **Steps:** Coaching stops → warm, non-judgmental safety response → helplines surfaced (iCall 9152987821, KIRAN 1800-599-0019, emergency 112) → conversation does not continue coaching the topic → **SafetyEvent logged as structured data only (safety category, risk level, surface, timestamp, athlete/user reference, chat/session reference, review status and review timestamp — never message content or a persistent AI-written narrative) [RESOLVED 2026-07-12] → during founder review, AI may generate a temporary summary from the referenced conversation to assist the review, but this summary is never saved permanently → founder reviews flagged conversations same-day (pilot SLA) → serious or unclear cases escalated to the named safety-protocol professional via the agreed contact arrangement (§6 G5) → guardian escalation per the consent-form protocol for imminent-risk events.**
+**Exit:** Athlete has help pathways; event awaiting human review. **Data:** structured safety event record only (no persisted message content or AI narrative).
+**AC:** triggers on all red-line categories, EN + Hinglish · helplines on every safety surface (KIRAN included — closes the known gap) · zero safety events reach coaching continuation · every event is logged as structured data and founder-reviewed same-day during the pilot · no incident summary or message content is ever stored permanently · serious/unclear cases have a defined escalation path with expected response time — **no 24/7 availability is implied anywhere** · guardian protocol documented in the signed consent form · **applies to 100% of live chat surfaces** (see gate G4).
 
 ### 4.11 Data deletion
 **Entry:** Account page. **Steps:** Full deletion: existing flow (Razorpay cancel → messages → sessions → cascade → confirmation email). Selective deletion: **[CHANGE — gate G7]** "check-in history" must delete *all* check-in data including `CheckIn` rows with free text, not only `MentalFitnessEntry`.
@@ -151,7 +153,7 @@ Every gate must pass before athlete #1 logs in. **Requirement → current state 
 | G2 | Guardian as contracting party | Pilot is free — deferred | Specified for paid launch: ToS name guardian as subscriber/payer for under-18s (spec'd now, built post-pilot) |
 | G3 | AI disclosure (Anthropic policy — binding now) | Partial ("not therapy" positioning exists) | Explicit AI disclosure at onboarding + recurring in-chat; public child-safety statement on site |
 | G4 | Safety parity on every chat surface | **FAILS — Quick Chat has zero safety (RED 1)** | **[CHANGE]** Quick Chat hidden/disabled for pilot (not deleted); main chat is the only conversational surface; safety blocks verified there in EN + Hinglish |
-| G5 | Safety review process (hybrid) | SafetyEvent logging built; review process undefined | **AI-assisted, founder-led, professionally anchored:** (a) AI drafts the safety protocol, flags risky conversations, generates incident summaries, and prepares review checklists; (b) the founder reviews all flagged conversations same-day during the pilot; (c) **before the pilot**, a named qualified sport psychologist or licensed mental-health professional reviews and signs off the safety protocol; (d) a written escalation arrangement exists for serious or unclear cases — who is contacted, how (phone/WhatsApp/email), and their expected response time (e.g., within 24 hours) — with **no implication of 24/7 availability**; the arrangement and its limits are stated honestly in the pilot protocol and consent form |
+| G5 | Safety review process (hybrid) | SafetyEvent logging built; review process undefined | **AI-assisted, founder-led, professionally anchored, privacy-preserving [RESOLVED 2026-07-12]:** (a) SafetyEvent stores structured data only — safety category, risk level, surface, timestamp, athlete/user reference, chat/session reference, review status and review timestamp — never message content and never a persistent AI-written narrative or summary; (b) during review, AI may generate a *temporary* summary from the referenced conversation to help the founder assess it, but that summary is not saved; (c) the founder reviews all flagged conversations same-day during the pilot; (d) **before the pilot**, a named qualified sport psychologist or licensed mental-health professional reviews and signs off the safety protocol; (e) a written escalation arrangement exists for serious or unclear cases — who is contacted, how (phone/WhatsApp/email), and their expected response time (e.g., within 24 hours) — with **no implication of 24/7 availability**; the arrangement and its limits are stated honestly in the pilot protocol and consent form |
 | G6 | Guardian escalation protocol | Does not exist | Written protocol (what triggers guardian contact, how, by whom) included in the signed consent form |
 | G7 | Working deletion | **FAILS — selective deletion leaves `CheckIn` free text (RED 3)** | **[CHANGE]** bug fixed; full + selective deletion verified end-to-end |
 | G8 | No tracking/ads for minors | Passes today (no analytics/ad SDKs wired) | Keep: zero third-party analytics/ad SDKs; no targeted ads ever; memory/reports documented as user-requested service features, user-visible and deletable |
@@ -166,7 +168,7 @@ Every gate must pass before athlete #1 logs in. **Requirement → current state 
 3. The full coaching loop works end-to-end: problem → questions → barrier → one prescription → rep completion → Playbook entry → next-open follow-up.
 4. Pre-performance prep and post-performance reflection run ≤4 minutes each on mobile.
 5. All pilot-visible copy passes the tone rules (§5.7) in EN and Hinglish.
-6. Paused features are invisible to pilot athletes (games, skill paths, streaks/XP, weekly reports, visualization entry points, daily-rep dashboard obligation, Quick Chat).
+6. Paused features are invisible to pilot athletes: games, skill paths, streaks/XP/badges/levels/scores/ratings/milestones/reward animations, weekly reports, visualization entry points, daily-rep dashboard obligation, Quick Chat, and **[RESOLVED 2026-07-12]** the entire Progress tab (hidden — no pilot-visible navigation or entry point; old route/code may remain dormant, undeleted). Backend XP accrual may continue silently (to minimize backend risk) but must never be visible, must never gate or unlock anything, must never influence coaching recommendations, and must never be used as a pilot-success metric.
 7. Written pilot protocol exists: scope, duration, incident-response runbook, same-day safety-review SLA, escalation arrangement (G5d), pilot-data deletion date, guardian debrief at end.
 8. Safety protocol reviewed and signed off by the named qualified professional (G5c); escalation arrangement agreed and documented (G5d).
 9. Athlete roster: 5 names, sports, ages, guardian contacts, signed forms.
@@ -186,7 +188,8 @@ Every gate must pass before athlete #1 logs in. **Requirement → current state 
 | Games (Focus Lock, Reset Rally) | Practice happens in real sport; barriers remapped (§3.2) |
 | Formal personality profiling / OCEAN | Post-launch bet; personality informs *tone*, not a system — **OCEAN removed, not paused** |
 | Complex analytics/charts | Nothing to analyze before real usage exists |
-| Streaks / XP surfaces | Healthy Hook ethics: clarity is the reward, not numbers |
+| Streaks / XP surfaces (visible) | Healthy Hook ethics: clarity is the reward, not numbers. **[RESOLVED 2026-07-12]** Backend XP accrual may continue silently to minimize backend risk, but no XP, streak, badge, level, score, rating, milestone, or reward animation may be visible, gate any feature, affect coaching, or serve as a pilot-success metric; no new gamification functionality may be built |
+| Progress tab (pilot) | **[RESOLVED 2026-07-12]** Hidden entirely for the pilot — the Mental Playbook (§4.9) is the sole athlete-facing progress-review surface; the existing Progress route/code may remain dormant, undeleted, but has no pilot-visible navigation or entry point |
 | Standalone visualization tool | Rehearsal lives inside the loop as guided practice |
 | Content library | Just-in-time explanation only |
 | Weekly reports | Post-pilot; behavioural-monitoring ambiguity under DPDP |
@@ -200,6 +203,8 @@ Every gate must pass before athlete #1 logs in. **Requirement → current state 
 
 **Resolved at approval (2026-07-11):** next-open follow-up only · Quick Chat hidden not deleted · Mental Rep = prescription mechanism, daily framing paused · pilot free, consent mandatory, guardian-payer at launch · focus → cue + attentional routine, mistake recovery → reset routine + cue, acclimatization via chat homework · **strict one-prescription rule (rev 1.1)** · **hybrid safety review: AI-assisted flagging/summaries, founder same-day review, pre-pilot professional protocol sign-off, defined escalation arrangement with honest availability limits (rev 1.1)** · **pilot results classified promising/weak/inconclusive, never market validation (rev 1.1)** · spec lives at `docs/ARJUN-MVP-SPEC.md`.
 
+**Resolved 2026-07-12 (v1.2), following the pre-pilot engineering gap review:** SafetyEvent privacy design — structured fields only (safety category, risk level, surface, timestamp, athlete/user reference, chat/session reference, review status, review timestamp); no persisted message content, no persistent AI-written incident narrative or summary; a temporary AI-assisted summary may be generated during founder review but is never saved · pre-performance preparation uses the existing dedicated Ritual flow, not the Mental Rep flow, and must not expand into a course, content library, or complex routine builder · the Progress tab is hidden entirely for the pilot; the Mental Playbook is the athlete's sole progress-review surface; the old Progress route/code may remain dormant without deletion · backend XP accrual may continue silently to minimize backend risk, but must be fully invisible, non-gating, non-coaching-affecting, and never used as a pilot-success metric — no new gamification functionality may be built.
+
 **Open (operational, non-blocking to spec approval — blocking to pilot start):**
 1. Safety-protocol reviewer: which named qualified sport psychologist or licensed mental-health professional will review the protocol pre-pilot, and the agreed escalation arrangement (contact method + expected response time).
 2. Guardian consent form: drafting (covers consent, AI disclosure, escalation protocol and its availability limits, data use + deletion date) — legal-lite template acceptable for a 5-person pilot.
@@ -209,4 +214,4 @@ Every gate must pass before athlete #1 logs in. **Requirement → current state 
 
 ---
 
-**End of specification — v1.1 (Approved — Frozen MVP).**
+**End of specification — v1.2 (Approved — Frozen MVP).**
