@@ -2,6 +2,7 @@ const express = require('express');
 const Anthropic = require('@anthropic-ai/sdk');
 const { PrismaClient } = require('@prisma/client');
 const authenticate = require('../middleware/authenticate');
+const requireGuardianConsent = require('../middleware/requireGuardianConsent');
 const { aiLimiter } = require('../middleware/rateLimits');
 const { awardXP, checkCheckInAchievements } = require('../services/gamification');
 const { isTrialActive } = require('./chat');
@@ -24,7 +25,7 @@ function startOfTodayUTC() {
 const MFS_DIMS = ['focus', 'confidence', 'drive', 'calm', 'selftalk', 'bounce'];
 
 // POST /api/mental-fitness — submit combined check-in + MFS
-router.post('/', authenticate, aiLimiter, async (req, res) => {
+router.post('/', authenticate, aiLimiter, requireGuardianConsent, async (req, res) => {
   const raw = req.body;
 
   // Validate mood (1–5)

@@ -2,6 +2,7 @@ const express = require('express');
 const Anthropic = require('@anthropic-ai/sdk');
 const { PrismaClient } = require('@prisma/client');
 const authenticate = require('../middleware/authenticate');
+const requireGuardianConsent = require('../middleware/requireGuardianConsent');
 const { isTrialActive } = require('./chat');
 
 const router = express.Router();
@@ -124,7 +125,7 @@ router.post('/', authenticate, async (req, res) => {
 // ── POST /end-stale — auto-end sessions from previous days ───────────────
 // Must be registered BEFORE /:id routes to avoid "end-stale" being treated as an id
 
-router.post('/end-stale', authenticate, async (req, res) => {
+router.post('/end-stale', authenticate, requireGuardianConsent, async (req, res) => {
   try {
     const todayStart = new Date();
     todayStart.setUTCHours(0, 0, 0, 0);
@@ -196,7 +197,7 @@ router.get('/:id/messages', authenticate, async (req, res) => {
 
 // ── POST /:id/end — end a session and generate summary ────────────────────
 
-router.post('/:id/end', authenticate, async (req, res) => {
+router.post('/:id/end', authenticate, requireGuardianConsent, async (req, res) => {
   try {
     const session = await prisma.chatSession.findUnique({
       where: { id: req.params.id },
