@@ -385,6 +385,7 @@ function LandingPage() {
           <div className="flex items-center gap-4">
             <button onClick={() => navigate('/privacy')} className="text-xs text-slt hover:text-ink transition-colors">Privacy</button>
             <button onClick={() => navigate('/terms')} className="text-xs text-slt hover:text-ink transition-colors">Terms</button>
+            <button onClick={() => navigate('/terms#ai-child-safety')} className="text-xs text-slt hover:text-ink transition-colors">Child Safety</button>
             <button onClick={() => navigate('/refund')} className="text-xs text-slt hover:text-ink transition-colors">Refund</button>
             <a href="mailto:kamal.prabhanshu@outlook.com" className="text-xs text-slt hover:text-ink transition-colors">Support</a>
             <button onClick={toggleLanguage} className="text-xs text-slt hover:text-ink transition-colors">
