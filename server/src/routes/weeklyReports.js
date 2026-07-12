@@ -2,6 +2,7 @@ const express = require('express');
 const Anthropic = require('@anthropic-ai/sdk');
 const { PrismaClient } = require('@prisma/client');
 const authenticate = require('../middleware/authenticate');
+const requireGuardianConsent = require('../middleware/requireGuardianConsent');
 const { aiLimiter } = require('../middleware/rateLimits');
 const { isTrialActive } = require('./chat');
 
@@ -85,7 +86,7 @@ async function maybeGenerateLastWeekReport(userId) {
 
 // ── GET / — return last 8 reports, lazily generating last week's if missing ───
 
-router.get('/', authenticate, aiLimiter, async (req, res) => {
+router.get('/', authenticate, aiLimiter, requireGuardianConsent, async (req, res) => {
   try {
     // Fire-and-forget: try to generate last week's report if not yet created.
     // Errors are suppressed so they never block the response.
