@@ -191,6 +191,13 @@ function AuthPage() {
               </form>
 
               {tab === 'signup' && (
+                <div className="mt-4 bg-brand-500/10 border border-brand-500/30 rounded-xl px-3.5 py-3">
+                  <p className="text-xs text-slt leading-relaxed">{t.auth.aiDisclosure}</p>
+                  <p className="text-xs text-slt leading-relaxed mt-2">{t.auth.aiDisclosureSafety}</p>
+                </div>
+              )}
+
+              {tab === 'signup' && (
                 <p className="text-center text-xs text-slt mt-4">
                   By signing up you agree to our{' '}
                   <button onClick={() => navigate('/terms')} className="underline hover:text-slt transition-colors">Terms</button>

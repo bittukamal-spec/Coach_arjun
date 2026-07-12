@@ -174,7 +174,10 @@ function OnboardingPage() {
         {step === 1 && (
           <div className="animate-fade-in">
             <h1 className="text-3xl font-bold text-ink mb-1">{t.sportTitle}</h1>
-            <p className="text-slt mb-8">{t.sportSubtitle}</p>
+            <p className="text-slt mb-4">{t.sportSubtitle}</p>
+            <div className="bg-brand-500/10 border border-brand-500/30 rounded-2xl px-4 py-3 mb-6">
+              <p className="text-xs text-slt leading-relaxed">{t.aiDisclosure}</p>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               {SPORTS.map(sport => (
                 <OptionRow

@@ -89,6 +89,8 @@ export const translations = {
       guardianEmailPlaceholder: 'parent@example.com',
       guardianEmailHint: 'Because you are under 18, we need parent/guardian consent before you can use Arjun\'s coaching tools. We\'ll email them a consent link.',
       underageError: 'Arjun is for athletes aged 13 and above. You cannot create an account yet.',
+      aiDisclosure: 'Arjun is an AI mental-performance coach, not a human coach, doctor, or therapist. It can support performance skills, but it cannot provide medical care, therapy, or emergency help.',
+      aiDisclosureSafety: 'If you feel unsafe or need urgent help, contact a trusted adult or use the emergency and support contacts shown in Arjun.',
     },
     consent: {
       pendingTitle: 'Waiting for parent/guardian consent',
@@ -246,6 +248,7 @@ export const translations = {
       sportTitle: 'What sport do you play?',
       sportSubtitle: 'Your coach will personalise your training around your sport.',
       sportOther: 'Other',
+      aiDisclosure: 'Arjun is an AI coach — not a human coach or therapist. It helps with the mental side of your sport.',
       // Step 2
       levelTitle: 'How would you describe your game?',
       levelSubtitle: 'Be honest — there\'s no wrong answer. Your coach adapts to where you are.',
@@ -1485,6 +1488,8 @@ export const translations = {
       guardianEmailPlaceholder: 'parent@example.com',
       guardianEmailHint: 'तुम 18 साल से कम उम्र के हो, इसलिए Arjun के कोचिंग टूल्स इस्तेमाल करने से पहले माता-पिता/अभिभावक की सहमति ज़रूरी है। हम उन्हें एक सहमति लिंक ईमेल करेंगे।',
       underageError: 'Arjun 13 साल और उससे बड़े खिलाड़ियों के लिए है। तुम अभी खाता नहीं बना सकते।',
+      aiDisclosure: 'Arjun एक AI मानसिक-प्रदर्शन कोच है — कोई इंसान कोच, डॉक्टर, या थेरेपिस्ट नहीं। यह खेल से जुड़े मानसिक कौशल में मदद कर सकता है, लेकिन मेडिकल केयर, थेरेपी, या इमरजेंसी मदद नहीं दे सकता।',
+      aiDisclosureSafety: 'अगर तुम्हें असुरक्षित महसूस हो या तुरंत मदद चाहिए, तो किसी भरोसेमंद बड़े व्यक्ति से बात करो या Arjun में दिए गए इमरजेंसी और सहायता संपर्कों का इस्तेमाल करो।',
     },
     consent: {
       pendingTitle: 'माता-पिता/अभिभावक की सहमति का इंतज़ार है',
@@ -1650,6 +1655,7 @@ export const translations = {
       sportTitle: 'आप कौन सा खेल खेलते हैं?',
       sportSubtitle: 'आपका कोच आपके खेल के अनुसार प्रशिक्षण देगा।',
       sportOther: 'अन्य',
+      aiDisclosure: 'Arjun एक AI कोच है — कोई इंसान कोच या थेरेपिस्ट नहीं। यह आपके खेल के मानसिक पहलू में मदद करता है।',
       // Step 2
       levelTitle: 'आप अपने खेल को कैसे बताएंगे?',
       levelSubtitle: 'ईमानदार रहें — कोई गलत जवाब नहीं है। आपका कोच आपके स्तर के अनुसार काम करेगा।',
