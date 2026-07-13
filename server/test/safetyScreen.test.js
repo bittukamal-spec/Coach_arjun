@@ -109,11 +109,31 @@ test("negative cases: everyday athlete language never flags", () => {
   }
 });
 
-// ── Contextual: urgent current breathing emergency ────────────────────────
-// Bounded phrase+context rule: fires only when a breathing-distress phrase
-// co-occurs with an immediacy/danger-context phrase — never on either alone.
+// ── Breathing emergencies ──────────────────────────────────────────────────
+// Two tiers: (1) direct present-tense statements fire STANDALONE, gated
+// only by hedge/habitual-framing exclusions; (2) milder/vaguer phrasing
+// still requires a separate immediacy/danger-context phrase. Never a
+// single isolated "breathe"/"saans" token in either tier.
 
-const BREATHING_EMERGENCY_POSITIVE = [
+const BREATHING_STANDALONE_POSITIVE = [
+  "I can't breathe",
+  'I cannot breathe',
+  "I'm struggling to breathe",
+  'saans nahi aa rahi',
+  'mujhe saans nahi aa rahi',
+  'सांस नहीं आ रही',
+  'मुझे सांस नहीं आ रही',
+];
+
+test('breathing emergency: direct present-tense statements fire standalone, no context phrase required (EN / Hinglish / Devanagari)', () => {
+  for (const text of BREATHING_STANDALONE_POSITIVE) {
+    const result = screenSafetyText(text);
+    assert.equal(result.flagged, true, `should flag: "${text}"`);
+    assert.equal(result.category, 'injury', `wrong category for: "${text}"`);
+  }
+});
+
+const BREATHING_CONTEXTUAL_POSITIVE = [
   "I can't breathe right now",
   "I was hit in the chest and can't breathe",
   'I am struggling to breathe and feel faint',
@@ -123,8 +143,8 @@ const BREATHING_EMERGENCY_POSITIVE = [
   'छाती में लगा है और सांस नहीं आ रही',                // Devanagari: "hit in the chest, can't breathe"
 ];
 
-test('breathing emergency: fires when distress + immediacy/danger context co-occur (EN / Hinglish / Devanagari)', () => {
-  for (const text of BREATHING_EMERGENCY_POSITIVE) {
+test('breathing emergency: still fires when distress + immediacy/danger context co-occur (EN / Hinglish / Devanagari)', () => {
+  for (const text of BREATHING_CONTEXTUAL_POSITIVE) {
     const result = screenSafetyText(text);
     assert.equal(result.flagged, true, `should flag: "${text}"`);
     assert.equal(result.category, 'injury', `wrong category for: "${text}"`);
@@ -132,15 +152,18 @@ test('breathing emergency: fires when distress + immediacy/danger context co-occ
 });
 
 const BREATHING_EMERGENCY_NEGATIVE = [
-  'Before matches I feel nervous and struggle to breathe',   // anxiety framing, no immediacy/danger marker
-  'That sprint took my breath away',                          // figurative, matches neither group
-  "I've been working on my breath control in training",       // general breath-control discussion
-  'can\'t breathe',                                            // distress alone, no context — must not fire
+  "Before matches I sometimes feel like I can't breathe",     // hedged/habitual framing — excluded despite containing "can't breathe" verbatim
+  'When I get nervous, breathing feels difficult',             // anxiety framing, different wording entirely
+  'I used to struggle to breathe before games',                // historical framing; also a different verb form ("struggle" vs "struggling")
+  'That sprint took my breath away',                           // figurative, matches no distress phrase
+  'What are some good breathing exercises before a match?',    // general question about breathing exercises
+  'Before matches I feel nervous and struggle to breathe',     // anxiety framing, no immediacy/danger marker, different verb form
+  "I've been working on my breath control in training",        // general breath-control discussion
   'right now I am feeling great',                              // context alone, no distress — must not fire
   'I feel faint sometimes when I skip breakfast',              // context alone, no breathing-distress phrase
 ];
 
-test('breathing emergency: does not fire on distress alone, context alone, or figurative/anxiety framing', () => {
+test('breathing emergency: hedged/habitual/historical framing and figurative or context-only mentions never fire', () => {
   for (const text of BREATHING_EMERGENCY_NEGATIVE) {
     const result = screenSafetyText(text);
     assert.equal(result.flagged, false, `should NOT flag: "${text}"`);

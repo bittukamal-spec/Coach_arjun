@@ -24,13 +24,18 @@ function screenSafetyText(input) {
     }
   }
 
-  // Contextual rules: fire only when BOTH groups match (e.g. a breathing-
-  // distress phrase together with an immediacy/danger-context phrase) —
-  // never on a single isolated token.
+  // Contextual rules: fire when `anyOf` matches AND (no `withAnyOf` or it
+  // also matches) AND NOT (`excludeIfAnyOf` present and it matches). This
+  // covers both a bounded phrase+context requirement (e.g. a milder
+  // breathing-distress phrase together with an immediacy/danger-context
+  // phrase) and a bounded phrase+exclusion requirement (e.g. a direct
+  // present-tense breathing-distress statement, suppressed only by
+  // explicit hedged/habitual framing) — never a single isolated token.
   for (const rule of CONTEXTUAL_RULES) {
-    if (matchesAnyOf(text, rule.anyOf) && matchesAnyOf(text, rule.withAnyOf)) {
-      return { flagged: true, category: rule.category, riskLevel: rule.riskLevel };
-    }
+    if (!matchesAnyOf(text, rule.anyOf)) continue;
+    if (rule.withAnyOf && !matchesAnyOf(text, rule.withAnyOf)) continue;
+    if (rule.excludeIfAnyOf && matchesAnyOf(text, rule.excludeIfAnyOf)) continue;
+    return { flagged: true, category: rule.category, riskLevel: rule.riskLevel };
   }
 
   return NOT_FLAGGED;

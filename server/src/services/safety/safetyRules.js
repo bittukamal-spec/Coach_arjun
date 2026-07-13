@@ -10,25 +10,28 @@
 //   text. Devanagari phrases use substring matching: \b is ASCII-only in JS
 //   and unreliable for Devanagari, and these multi-word phrases are
 //   distinctive enough not to need it.
-// - Breathing-distress phrases are NOT screened as bare/standalone matches.
-//   "I feel like I can't breathe before matches" is the single most common
-//   way athletes describe pre-match nerves, so a rule firing on "can't
-//   breathe" alone would misfire constantly. Instead, breathing emergencies
-//   use a bounded CONTEXTUAL rule (see CONTEXTUAL_RULES below): it requires
-//   a breathing-distress phrase together with an immediacy or danger-context
-//   phrase in the same text (e.g. "right now", "hit in the chest", "feel
-//   faint") — never a single isolated "breathe" token. Plain anxiety-framed
-//   or figurative mentions ("struggle to breathe before matches", "took my
-//   breath away") still fall to the prompt layer, which can read full
-//   context.
+// - Breathing-distress phrases: the strongest, unambiguous, present-tense
+//   statements ("I can't breathe", "I'm struggling to breathe", "saans nahi
+//   aa rahi") trigger STANDALONE — a direct present-tense breathing
+//   emergency must not require a second phrase to be believed. This is
+//   bounded by EXCLUSION phrases (BREATHING_HEDGE_EXCLUSIONS): hedged,
+//   habitual, or historical framing of the same words — "I sometimes feel
+//   like I can't breathe", "before matches ... can't breathe", "I used to
+//   struggle to breathe" — suppresses the standalone rule even though the
+//   underlying phrase matches. Milder/vaguer phrasing ("trouble breathing",
+//   "difficulty breathing") still requires a separate immediacy or
+//   danger-context phrase in the same text (e.g. "right now", "hit in the
+//   chest", "feel faint") — see CONTEXTUAL_RULES below. Never a single
+//   isolated "breathe"/"saans" token in any of these.
 // - Matching text is never returned to callers and never persisted.
 
 // Each simple rule: { category, riskLevel, script, pattern }
 // script: 'latin' → regex with word boundaries; 'devanagari' → substring.
 //
-// Each contextual rule: { category, riskLevel, anyOf: [...], withAnyOf: [...] }
-// Fires only when at least one entry from BOTH groups matches — bounded
-// phrase + context, never a single isolated token.
+// Each contextual rule: { category, riskLevel, anyOf, withAnyOf?, excludeIfAnyOf? }
+// Fires when `anyOf` matches AND (no `withAnyOf` or it also matches) AND
+// NOT (`excludeIfAnyOf` present and it matches) — bounded phrase (+ context
+// and/or exclusion), never a single isolated token.
 
 function latin(phrase) {
   // Escape regex specials, allow flexible whitespace between words,
@@ -135,34 +138,39 @@ const RULES = [
   ].map(p => ({ category: 'injury', riskLevel: 'medium', script: 'devanagari', pattern: p })),
 ];
 
-// ── Contextual: urgent current breathing emergency ────────────────────────
-// Fires ONLY when a breathing-distress phrase co-occurs with an immediacy
-// or danger-context phrase in the same text. Neither group alone triggers
-// anything — this is what keeps "struggle to breathe before matches" (pure
-// anxiety framing, no immediacy/danger marker) and "took my breath away"
-// (figurative, matches neither group) safely unflagged, while catching
-// "I can't breathe right now", "hit in the chest and can't breathe", and
-// "struggling to breathe and feel faint".
+// ── Breathing emergencies ──────────────────────────────────────────────────
+// Two tiers:
+//   1. STANDALONE_BREATHING_DISTRESS — strong, unambiguous, present-tense
+//      statements. Fire on their own; suppressed only by
+//      BREATHING_HEDGE_EXCLUSIONS (hedged/habitual/historical framing).
+//   2. CONTEXTUAL_BREATHING_DISTRESS — milder/vaguer phrasing. Still
+//      requires an IMMEDIACY_OR_DANGER_CONTEXT phrase in the same text.
 
-const BREATHING_DISTRESS = [
+const STANDALONE_BREATHING_DISTRESS = [
   // English
   { script: 'latin', pattern: latin("can't breathe") },
   { script: 'latin', pattern: latin('cannot breathe') },
   { script: 'latin', pattern: latin('can not breathe') },
   { script: 'latin', pattern: latin('struggling to breathe') },
-  { script: 'latin', pattern: latin('trouble breathing') },
-  { script: 'latin', pattern: latin('difficulty breathing') },
-  { script: 'latin', pattern: latin('hard to breathe') },
   // Romanized Hindi / Hinglish
   { script: 'latin', pattern: latin('saans nahi aa raha') },
   { script: 'latin', pattern: latin('saans nahi aa rahi') },
   { script: 'latin', pattern: latin('saans nahi le pa raha') },
   { script: 'latin', pattern: latin('saans nahi le pa rahi') },
-  { script: 'latin', pattern: latin('saans lene mein taklif') },
-  { script: 'latin', pattern: latin('saans lene me taklif') },
   // Devanagari Hindi
   { script: 'devanagari', pattern: 'सांस नहीं आ रहा' },
   { script: 'devanagari', pattern: 'सांस नहीं आ रही' },
+];
+
+const CONTEXTUAL_BREATHING_DISTRESS = [
+  // English
+  { script: 'latin', pattern: latin('trouble breathing') },
+  { script: 'latin', pattern: latin('difficulty breathing') },
+  { script: 'latin', pattern: latin('hard to breathe') },
+  // Romanized Hindi / Hinglish
+  { script: 'latin', pattern: latin('saans lene mein taklif') },
+  { script: 'latin', pattern: latin('saans lene me taklif') },
+  // Devanagari Hindi
   { script: 'devanagari', pattern: 'सांस लेने में तकलीफ' },
 ];
 
@@ -193,11 +201,49 @@ const IMMEDIACY_OR_DANGER_CONTEXT = [
   { script: 'devanagari', pattern: 'चक्कर आ रही' },
 ];
 
+// Hedged / habitual / historical framing that suppresses the STANDALONE
+// breathing rule even though the underlying distress phrase matches —
+// recurring pre-match anxiety talk, not a current emergency. E.g. "Before
+// matches I sometimes feel like I can't breathe" contains "can't breathe"
+// verbatim but is clearly habitual framing, not a present emergency.
+const BREATHING_HEDGE_EXCLUSIONS = [
+  // English
+  { script: 'latin', pattern: latin("feel like i can't breathe") },
+  { script: 'latin', pattern: latin('feel like i cannot breathe') },
+  { script: 'latin', pattern: latin('sometimes feel like') },
+  { script: 'latin', pattern: latin('before matches') },
+  { script: 'latin', pattern: latin('before games') },
+  { script: 'latin', pattern: latin('before a match') },
+  { script: 'latin', pattern: latin('before a game') },
+  { script: 'latin', pattern: latin('used to') },
+  { script: 'latin', pattern: latin('when i get nervous') },
+  { script: 'latin', pattern: latin('took my breath away') },
+  // Romanized Hindi / Hinglish
+  { script: 'latin', pattern: latin('match se pehle') },
+  { script: 'latin', pattern: latin('kabhi kabhi lagta hai') },
+  { script: 'latin', pattern: latin('kabhi kabhi aisa lagta') },
+  { script: 'latin', pattern: latin('pehle bhi hota tha') },
+  // Devanagari Hindi
+  { script: 'devanagari', pattern: 'मैच से पहले' },
+  { script: 'devanagari', pattern: 'कभी कभी लगता है' },
+  { script: 'devanagari', pattern: 'पहले भी होता था' },
+];
+
 const CONTEXTUAL_RULES = [
   {
+    // Direct, present-tense breathing emergency — no separate context
+    // phrase required; suppressed only by explicit hedge/habitual framing.
     category: 'injury',
     riskLevel: 'high',
-    anyOf: BREATHING_DISTRESS,
+    anyOf: STANDALONE_BREATHING_DISTRESS,
+    excludeIfAnyOf: BREATHING_HEDGE_EXCLUSIONS,
+  },
+  {
+    // Milder/vaguer breathing-distress phrasing — still requires an
+    // immediacy or danger-context phrase in the same text.
+    category: 'injury',
+    riskLevel: 'high',
+    anyOf: CONTEXTUAL_BREATHING_DISTRESS,
     withAnyOf: IMMEDIACY_OR_DANGER_CONTEXT,
   },
 ];
