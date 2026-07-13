@@ -5,6 +5,7 @@ const authenticate = require('../middleware/authenticate');
 const requireGuardianConsent = require('../middleware/requireGuardianConsent');
 const { aiLimiter } = require('../middleware/rateLimits');
 const { isTrialActive } = require('./chat');
+const { screenSafetyText, recordSafetyEvent } = require('../services/safety');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -67,6 +68,19 @@ router.get('/', authenticate, aiLimiter, requireGuardianConsent, async (req, res
 
     // Trial gate: expired-trial free users get the static fallback intro (no Claude call, no cache).
     if (!(await isTrialActive(req.userId))) {
+      return res.json({ intro: fallback, cached: false });
+    }
+
+    // Deterministic pre-LLM safety screen. The only athlete-authored free
+    // text this prompt includes is the name (everything else is fixed chip
+    // values). A hit here is almost certainly noise, but the rule stands:
+    // flagged content never reaches Anthropic. The athlete gets the normal
+    // static fallback intro (this surface is a profile blurb, not a
+    // disclosure channel, so crisis guidance in the intro slot would be
+    // wrong); a structured SafetyEvent (no content) is still recorded.
+    const nameScreen = screenSafetyText(user.name || '');
+    if (nameScreen.flagged) {
+      recordSafetyEvent(req.userId, 'profile_intro', nameScreen.category);
       return res.json({ intro: fallback, cached: false });
     }
 

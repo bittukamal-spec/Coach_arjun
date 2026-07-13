@@ -5,6 +5,7 @@ const authenticate = require('../middleware/authenticate');
 const requireGuardianConsent = require('../middleware/requireGuardianConsent');
 const { aiLimiter } = require('../middleware/rateLimits');
 const { isTrialActive } = require('./chat');
+const { screenSafetyText } = require('../services/safety');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -56,7 +57,16 @@ async function maybeGenerateLastWeekReport(userId) {
 
   if (messages.length < 3) return; // not enough data for a meaningful report
 
-  const messageBlock = messages
+  // Deterministic pre-LLM safety filter on DERIVED content: any stored
+  // message that trips the screen is excluded from what gets sent to
+  // Anthropic. Deliberately NO SafetyEvent here — the originating chat
+  // message already produced guidance and an event at send time, and this
+  // function re-runs on every page load until a report exists, so eventing
+  // here would duplicate endlessly.
+  const safeMessages = messages.filter(m => !screenSafetyText(m.content).flagged);
+  if (safeMessages.length < 3) return; // not enough safe content for a report
+
+  const messageBlock = safeMessages
     .map(m => `[${m.createdAt.toISOString().slice(0, 10)}] ${m.content}`)
     .join('\n');
 
@@ -79,7 +89,7 @@ async function maybeGenerateLastWeekReport(userId) {
       weekStart: lastWeekStart,
       weekEnd: lastWeekEnd,
       content: res.content[0].text,
-      messageCount: messages.length,
+      messageCount: safeMessages.length,
     },
   });
 }

@@ -6,6 +6,7 @@ const requireGuardianConsent = require('../middleware/requireGuardianConsent');
 const { aiLimiter } = require('../middleware/rateLimits');
 const { isTrialActive } = require('./chat');
 const { markSkillProgress } = require('../services/skillProgress');
+const { screenSafetyFields, recordSafetyEvent, getSafetyGuidance } = require('../services/safety');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -84,6 +85,17 @@ router.post('/', authenticate, aiLimiter, requireGuardianConsent, async (req, re
     }
 
     let arjunInsight = null;
+    // Deterministic pre-LLM safety screen on the athlete's free text. On a
+    // hit: the debrief still saves (it is the athlete's own reflection —
+    // normal app data), but nothing is sent to Anthropic; the insight slot
+    // carries the fixed safety guidance instead, and a structured
+    // SafetyEvent (no content) is recorded.
+    const legacyScreen = screenSafetyFields(wentWell, doDifferently, nextFocus);
+    if (legacyScreen.flagged) {
+      recordSafetyEvent(req.userId, 'debrief', legacyScreen.category);
+      const u = await prisma.user.findUnique({ where: { id: req.userId }, select: { language: true } }).catch(() => null);
+      arjunInsight = getSafetyGuidance(legacyScreen.category, u?.language);
+    } else
     // Trial gate: skip AI insight for expired-trial free users; debrief still saves.
     if (await isTrialActive(req.userId)) try {
       const msg = await anthropic.messages.create({
@@ -166,6 +178,15 @@ router.post('/', authenticate, aiLimiter, requireGuardianConsent, async (req, re
   // AI insight
   let insight = null;
   let pattern = null;
+  // Deterministic pre-LLM safety screen on the athlete's free text (chips
+  // are fixed app values; nextFocus is typed). Same behavior as the legacy
+  // flow: debrief saves, Anthropic is skipped, guidance fills the insight,
+  // structured SafetyEvent recorded (no content).
+  const structScreen = screenSafetyFields(wentWellText, wouldChangeText, nextFocus);
+  if (structScreen.flagged) {
+    recordSafetyEvent(req.userId, 'debrief', structScreen.category);
+    insight = getSafetyGuidance(structScreen.category, user?.language);
+  } else
   // Trial gate: skip AI insight for expired-trial free users; debrief still saves.
   if (await isTrialActive(req.userId)) try {
     const prompt = buildInsightPrompt(

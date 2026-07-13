@@ -6,6 +6,7 @@ const requireGuardianConsent = require('../middleware/requireGuardianConsent');
 const { aiLimiter } = require('../middleware/rateLimits');
 const { checkFreeLimit } = require('./chat');
 const { markSkillProgress } = require('../services/skillProgress');
+const { screenSafetyFields, recordSafetyEvent } = require('../services/safety');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -47,6 +48,18 @@ router.post('/generate', authenticate, aiLimiter, requireGuardianConsent, checkF
 
   if (!situationCategory || !oldThought) {
     return res.status(400).json({ error: 'situationCategory and oldThought are required' });
+  }
+
+  // Deterministic pre-LLM safety screen on the athlete-authored fields.
+  // On a hit: nothing is sent to Anthropic; the response reuses this
+  // surface's existing safetyFlag protocol (the client already renders its
+  // safety screen with helplines for it); a structured SafetyEvent (no
+  // content) is recorded. The LLM safety_flag classifier below remains the
+  // second defensive layer.
+  const preScreen = screenSafetyFields(oldThought, situationText, performanceMoment, roleOrPosition, skillContext);
+  if (preScreen.flagged) {
+    recordSafetyEvent(req.userId, 'self_talk', preScreen.category);
+    return res.json({ safetyFlag: 'needs_support' });
   }
 
   const contextLines = [

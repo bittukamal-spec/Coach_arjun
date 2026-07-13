@@ -5,6 +5,7 @@ import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
 import { VIZ_FALLBACKS } from '../data/vizFallbacks';
 import { Zap, AlertCircle, HelpCircle, Battery, Brain, CheckCircle2, Eye } from 'lucide-react';
+import HelplineList from '../components/HelplineList';
 
 const C = {
   lightBg:   'var(--bg)',      // page bg follows theme
@@ -56,6 +57,7 @@ export default function VisualizationPage() {
 
   const [showInfo, setShowInfo]            = useState(true);
   const [screen, setScreen]               = useState('entry');
+  const [safetyMsg, setSafetyMsg]         = useState(null);
   const [specificMoment, setSpecificMoment] = useState('');
   const [currentState, setCurrentState]   = useState('');
   const [setupType, setSetupType]         = useState('CLEAN_SETUP');
@@ -148,6 +150,12 @@ export default function VisualizationPage() {
       });
       if (res.ok) {
         const data = await res.json();
+        if (data.safetyFlag === 'needs_support') {
+          // Server-side safety screen fired — show guidance, not a script.
+          setSafetyMsg(data.message);
+          setScriptReady(true);
+          return;
+        }
         if (data.lines?.length > 0) {
           setScript({ lines: data.lines, totalDurationSeconds: data.totalDurationSeconds || 150, cueWordLine: data.cueWordLine ?? -1 });
           if (data.xp !== undefined && updateUser) updateUser({ xp: data.xp });
@@ -256,6 +264,24 @@ export default function VisualizationPage() {
   }
 
   // ── ENTRY SCREEN ─────────────────────────────────────────────────────────────
+  if (safetyMsg) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center px-6" style={{ background: C.lightBg }}>
+        <div className="w-full max-w-sm rounded-2xl border p-5" style={{ background: C.cardBg, borderColor: 'rgba(24,95,165,0.3)' }}>
+          <p className="text-sm leading-relaxed mb-4" style={{ color: C.textDark }}>{safetyMsg}</p>
+          <HelplineList />
+          <button
+            onClick={() => navigate('/train')}
+            className="mt-5 w-full py-3 rounded-xl font-semibold text-sm text-white"
+            style={{ background: C.blue }}
+          >
+            {language === 'hi' ? 'वापस जाओ' : 'Back to Train'}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (screen === 'entry') {
     return (
       <div style={{ minHeight: '100vh', background: C.lightBg, padding: '0 16px 40px' }}>

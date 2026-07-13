@@ -6,6 +6,7 @@ const requireGuardianConsent = require('../middleware/requireGuardianConsent');
 const { aiLimiter } = require('../middleware/rateLimits');
 const { checkFreeLimit } = require('./chat');
 const { markSkillProgress } = require('../services/skillProgress');
+const { screenSafetyFields, recordSafetyEvent, getSafetyGuidance } = require('../services/safety');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -28,6 +29,18 @@ router.post('/arjun-note', authenticate, aiLimiter, requireGuardianConsent, chec
     tensionAfter  != null ? `Body tension after: ${tensionAfter}/10`   : null,
     sport       ? `Sport: ${sport}`                             : null,
   ].filter(Boolean).join('\n');
+
+  // Deterministic pre-LLM safety screen on the athlete-authored fields
+  // (feeling/context can carry custom free text; the client's own keyword
+  // check remains, this is the server-side backstop). On a hit: nothing is
+  // sent to Anthropic; the note slot carries the fixed guidance; a
+  // structured SafetyEvent (no content) is recorded.
+  const preScreen = screenSafetyFields(feeling, context, focusWordUsed);
+  if (preScreen.flagged) {
+    recordSafetyEvent(req.userId, 'body_reset', preScreen.category);
+    const u = await prisma.user.findUnique({ where: { id: req.userId }, select: { language: true } }).catch(() => null);
+    return res.json({ arjunNote: getSafetyGuidance(preScreen.category, u?.language), tags: ['support'], safetyFlag: 'needs_support' });
+  }
 
   try {
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
