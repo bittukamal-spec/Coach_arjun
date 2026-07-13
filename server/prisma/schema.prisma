@@ -108,9 +108,10 @@ model User {
   bodyResetSessions      BodyResetSession[]
   skillProgress          SkillProgress[]
   plans                  Plan[]
-  coachingState          UserCoachingState?
-  coachingCycles         CoachingCycle[]
-  prescriptions          Prescription[]
+  coachingState            UserCoachingState?
+  coachingCycles           CoachingCycle[]
+  prescriptions            Prescription[]
+  activeCoachingSelections ActiveCoachingSelection[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -498,58 +499,78 @@ enum PrescriptionStatus {
   SUPERSEDED
 }
 
-// One row per user — the single pointer to whichever coaching cycle and
-// prescription are currently "live" for that athlete. This table only
-// tracks what's active right now; historical CoachingCycle/Prescription
-// rows are never deleted or overwritten when these pointers move on, and
-// there is no automatic abandonment or expiry of either pointer.
+// One row per user — the anchor for whichever coaching cycle and
+// prescription are currently "live" for that athlete. The actual active
+// pointers live on ActiveCoachingSelection below (see its doc comment for
+// why); this table only tracks that a state exists per user. Historical
+// CoachingCycle/Prescription rows are never deleted or overwritten when the
+// active selection moves on, and there is no automatic abandonment or
+// expiry of it.
 model UserCoachingState {
   id     String @id @default(cuid())
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // Database-enforced: a given cycle/prescription can be the active pointer
-  // for at most one UserCoachingState row (Postgres unique index — multiple
-  // NULLs, i.e. "no active cycle/prescription yet", are not a conflict).
-  //
-  // Both active pointers below are COMPOSITE foreign keys that also include
-  // userId, targeting a composite unique key on the owner side
-  // (CoachingCycle/Prescription `@@unique([id, userId, ...])`). Postgres's
-  // default composite-FK matching (MATCH SIMPLE) skips the check only when
-  // the whole row's referencing columns are absent; since userId is always
-  // present here, any non-null activeCycleId/activePrescriptionId is forced
-  // to resolve to a CoachingCycle/Prescription owned by this same user —
-  // structurally ruling out a cross-user active pointer. onDelete is
-  // Restrict (never SetNull): userId is required and can never be nulled,
-  // so the underlying cycle/prescription must have its active pointer
-  // cleared by the app before it could ever be deleted.
-  activeCycleId String?
-  activeCycle   CoachingCycle? @relation("ActiveCoachingCycle", fields: [activeCycleId, userId], references: [id, userId], onDelete: Restrict)
+  // Optional 1:1 — absent entirely when the athlete has no active cycle.
+  activeSelection ActiveCoachingSelection?
 
-  // Composite FK also includes activeCycleId, targeting Prescription's
-  // (id, cycleId, userId) — so a non-null activePrescriptionId must belong
-  // to both this same user AND the cycle identified by activeCycleId. A
-  // state row where the active prescription's cycle/user differs from the
-  // active cycle/user is structurally impossible to persist.
-  activePrescriptionId String?
-  activePrescription   Prescription? @relation("ActivePrescription", fields: [activePrescriptionId, activeCycleId, userId], references: [id, cycleId, userId], onDelete: Restrict)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// The active pointer previously lived directly on UserCoachingState as two
+// independent nullable composite FKs (activeCycleId, activePrescriptionId).
+// That design could not fully prevent a partial-null bypass: PostgreSQL's
+// composite-FK matching (MATCH SIMPLE) skips the ownership check entirely
+// as soon as ANY column in the FK is null, so a row with a non-null
+// activePrescriptionId but a null activeCycleId would satisfy the
+// (activePrescriptionId, activeCycleId, userId) FK trivially — the
+// three-way check never ran at all.
+//
+// This model fixes that by making cycleId and userId REQUIRED here, with
+// only prescriptionId nullable. A selection row exists at all only when
+// there's an active cycle (cycleId can't be left unset), so "prescription
+// active, no active cycle" can no longer be represented, let alone bypass a
+// check — there's nowhere to store an active prescription without a cycle.
+// When prescriptionId IS set, cycleId/userId are guaranteed present, so
+// MATCH SIMPLE's null-column skip can only ever apply to prescriptionId
+// itself — never a partial match on cycle/user.
+model ActiveCoachingSelection {
+  id String @id @default(cuid())
+
+  // 1:1 back to the owning state row — at most one selection per state.
+  userCoachingStateId String            @unique
+  userCoachingState   UserCoachingState @relation(fields: [userCoachingStateId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // At most one active selection per cycle. Composite FK: (cycleId, userId)
+  // → CoachingCycle(id, userId) — the selected cycle must belong to userId.
+  cycleId String
+  cycle   CoachingCycle @relation("SelectedCycle", fields: [cycleId, userId], references: [id, userId], onDelete: Restrict)
+
+  // At most one active selection per prescription. Composite FK:
+  // (prescriptionId, cycleId, userId) → Prescription(id, cycleId, userId).
+  // cycleId/userId are required fields on THIS row, so a non-null
+  // prescriptionId always resolves the full triple — it can never bypass
+  // cycle/user consistency via a null cycleId, because cycleId is simply
+  // never null here.
+  prescriptionId String?
+  prescription   Prescription? @relation("SelectedPrescription", fields: [prescriptionId, cycleId, userId], references: [id, cycleId, userId], onDelete: Restrict)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Global uniqueness — preserved from the original design: a given cycle
-  // (or prescription) can never be the active pointer for more than one
-  // UserCoachingState row, full stop.
-  @@unique([activeCycleId])
-  @@unique([activePrescriptionId])
-  // Composite uniques required by Prisma as the "one" side of each 1:1
-  // composite relation above. These add no new constraint beyond the
-  // singles above (userId is already globally unique on this model, so any
-  // composite that includes it is trivially unique too) — they exist only
-  // because Prisma requires an exact-matching @@unique for a multi-field
-  // relation target.
-  @@unique([activeCycleId, userId])
-  @@unique([activePrescriptionId, activeCycleId, userId])
+  // Global: at most one active selection per cycle / per prescription.
+  @@unique([cycleId])
+  @@unique([prescriptionId])
+  // Composite uniques required by Prisma as the exact-matching "one" side
+  // of each composite relation above — add no constraint beyond the
+  // singles (cycleId/prescriptionId are already globally unique here, so
+  // any composite that includes them is trivially unique too).
+  @@unique([cycleId, userId])
+  @@unique([prescriptionId, cycleId, userId])
 }
 
 // One historical record per problem cycle an athlete brings to Arjun: the
@@ -577,8 +598,8 @@ model CoachingCycle {
   sourceChatSessionId String?
   sourceChatSession   ChatSession? @relation(fields: [sourceChatSessionId], references: [id])
 
-  prescriptions  Prescription[]     @relation("PrescriptionCycle")
-  activeForState UserCoachingState? @relation("ActiveCoachingCycle")
+  prescriptions   Prescription[]           @relation("PrescriptionCycle")
+  activeSelection ActiveCoachingSelection? @relation("SelectedCycle")
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -587,8 +608,8 @@ model CoachingCycle {
 
   @@index([userId, status])
   @@index([userId, createdAt])
-  // Composite-relation targets (never queried directly): let Prescription's
-  // (cycleId, userId) FK and UserCoachingState's (activeCycleId, userId) FK
+  // Composite-relation target (never queried directly): lets Prescription's
+  // (cycleId, userId) FK and ActiveCoachingSelection's (cycleId, userId) FK
   // both require the referenced cycle to be owned by that same userId.
   @@unique([id, userId])
 }
@@ -630,7 +651,7 @@ model Prescription {
   sourceChatSessionId String?
   sourceChatSession   ChatSession? @relation(fields: [sourceChatSessionId], references: [id])
 
-  activeForState UserCoachingState? @relation("ActivePrescription")
+  activeSelection ActiveCoachingSelection? @relation("SelectedPrescription")
 
   prescribedAt DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
@@ -640,8 +661,7 @@ model Prescription {
   @@index([userId, status])
   @@index([cycleId])
   // Composite-relation target (never queried directly): lets
-  // UserCoachingState's activePrescription FK require the active
-  // prescription to belong to both this same user AND the cycle identified
-  // by activeCycleId.
+  // ActiveCoachingSelection's prescription FK require the active
+  // prescription to belong to both this same user AND the selected cycle.
   @@unique([id, cycleId, userId])
 }
