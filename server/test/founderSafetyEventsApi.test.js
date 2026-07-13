@@ -2,7 +2,16 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const { SafetyReviewStatus, SafetyReviewOutcome } = require('@prisma/client');
 const { createFounderSafetyEventsRouter } = require('../src/routes/founderSafetyEvents');
+
+test('reviewStatus and reviewOutcome are database-constrained Prisma enums, not free strings', () => {
+  assert.deepEqual(Object.values(SafetyReviewStatus).sort(), ['REVIEWED', 'UNREVIEWED']);
+  assert.deepEqual(
+    Object.values(SafetyReviewOutcome).sort(),
+    ['ESCALATED', 'FALSE_POSITIVE', 'FOLLOW_UP_REQUIRED', 'NO_ACTION']
+  );
+});
 
 // Real HTTP requests against a Prisma stub — no database is ever touched.
 // The founder session token is a real jsonwebtoken signed with a test

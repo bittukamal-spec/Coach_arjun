@@ -15,7 +15,13 @@ function makeDbStub({ messages = [], existingReport = null }) {
     db: {
       weeklyReport: {
         findUnique: async () => existingReport,
-        create: async (args) => { created.push(args.data); return args.data; },
+        create: async (args) => {
+          created.push(args.data);
+          // A real Prisma create() always returns the persisted row,
+          // including its generated id — the stub mirrors that so
+          // production code can reference report.id.
+          return { id: `wr-${created.length}`, ...args.data };
+        },
       },
       message: {
         findMany: async () => messages,
@@ -103,15 +109,35 @@ test('raw athlete text is never passed to the event writer', async () => {
   await generate('user-4');
 
   assert.equal(eventCalls.length, 1);
-  const [userId, surface, category] = eventCalls[0];
+  const [userId, surface, category, source] = eventCalls[0];
   assert.equal(userId, 'user-4');
   assert.equal(surface, 'weekly_report');
   assert.equal(category, 'crisis');
-  // No fourth argument, and none of the three args contain the athlete's text.
-  assert.equal(eventCalls[0].length, 3);
+  // A 4th argument (structured source) is now passed, but it must only ever
+  // carry structured references — never the athlete's raw text.
+  assert.equal(eventCalls[0].length, 4);
   for (const arg of eventCalls[0]) {
     assert.doesNotMatch(String(arg), /end my life/);
   }
+  assert.doesNotMatch(JSON.stringify(source), /end my life/);
+});
+
+test('the event writer receives the real, already-persisted fallback report id as sourceRecordId — never an invented one', async () => {
+  const { db, created } = makeDbStub({ messages: messagesOf('safe one', 'safe two', 'I want to end my life') });
+  const eventCalls = [];
+  const generate = createMaybeGenerateLastWeekReport({
+    db,
+    recordEvent: (...args) => { eventCalls.push(args); },
+    createAnthropicClient: () => ({ messages: { create: async () => { throw new Error('must not be called'); } } }),
+  });
+
+  await generate('user-4b');
+
+  assert.equal(created.length, 1, 'the fallback report must already be persisted before the event is recorded');
+  const [, , , source] = eventCalls[0];
+  assert.equal(source.sourceType, 'weekly_report');
+  assert.equal(source.sourceRecordId, 'wr-1');
+  assert.equal(source.riskLevel, 'high');
 });
 
 test('event writer failure still prevents Anthropic and still writes the fallback report', async () => {

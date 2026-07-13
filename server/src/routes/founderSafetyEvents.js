@@ -1,5 +1,5 @@
 const express = require('express');
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient, SafetyReviewStatus, SafetyReviewOutcome } = require('@prisma/client');
 const founderAuthenticate = require('../middleware/founderAuthenticate');
 
 // Founder-only SafetyEvent review API (PR-6). Guarded exclusively by the new
@@ -16,8 +16,10 @@ const founderAuthenticate = require('../middleware/founderAuthenticate');
 // requireGuardianConsent/recordSafetyEvent/weeklyReports); the default
 // export always uses the real Prisma client.
 
-const REVIEW_STATUSES = ['UNREVIEWED', 'REVIEWED'];
-const REVIEW_OUTCOMES = ['NO_ACTION', 'FOLLOW_UP_REQUIRED', 'ESCALATED', 'FALSE_POSITIVE'];
+// Sourced from the Prisma-generated enums (schema.prisma) so validation can
+// never drift out of sync with the database-constrained values.
+const REVIEW_STATUSES = Object.values(SafetyReviewStatus);
+const REVIEW_OUTCOMES = Object.values(SafetyReviewOutcome);
 const MAX_LIMIT = 50;
 const DEFAULT_LIMIT = 20;
 

@@ -58,7 +58,10 @@ router.post('/generate', authenticate, aiLimiter, requireGuardianConsent, checkF
   // second defensive layer.
   const preScreen = screenSafetyFields(oldThought, situationText, performanceMoment, roleOrPosition, skillContext);
   if (preScreen.flagged) {
-    recordSafetyEvent(req.userId, 'self_talk', preScreen.category);
+    recordSafetyEvent(req.userId, 'self_talk', preScreen.category, {
+      riskLevel: preScreen.riskLevel,
+      sourceType: 'self_talk_generate',
+    });
     return res.json({ safetyFlag: 'needs_support' });
   }
 

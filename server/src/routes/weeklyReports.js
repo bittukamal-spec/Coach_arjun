@@ -82,15 +82,10 @@ function createMaybeGenerateLastWeekReport({
     // avoided by the same mechanism that already prevents re-generation.
     const flaggedMessage = messages.find(m => screenText(m.content).flagged);
     if (flaggedMessage) {
-      const category = screenText(flaggedMessage.content).category;
-      // Fire-and-forget, defensively caught here too: a failing writer —
-      // whether it throws synchronously or returns a rejected promise — must
-      // never let generation fall through to Anthropic.
-      try {
-        Promise.resolve(recordEvent(userId, 'weekly_report', category)).catch(() => {});
-      } catch { /* writer failure must not block the fallback report below */ }
+      const screen = screenText(flaggedMessage.content);
+      const category = screen.category;
       const user = await db.user.findUnique({ where: { id: userId }, select: { language: true } }).catch(() => null);
-      await db.weeklyReport.create({
+      const report = await db.weeklyReport.create({
         data: {
           userId,
           weekStart: lastWeekStart,
@@ -99,6 +94,18 @@ function createMaybeGenerateLastWeekReport({
           messageCount: messages.length,
         },
       });
+      // Fire-and-forget, defensively caught here too: a failing writer —
+      // whether it throws synchronously or returns a rejected promise — must
+      // never affect the fallback report already written above. Runs after
+      // the report create so sourceRecordId can reference the real,
+      // already-persisted WeeklyReport row rather than an invented id.
+      try {
+        Promise.resolve(recordEvent(userId, 'weekly_report', category, {
+          riskLevel: screen.riskLevel,
+          sourceType: 'weekly_report',
+          sourceRecordId: report?.id || null,
+        })).catch(() => {});
+      } catch { /* writer failure must not surface to the caller */ }
       return; // zero Anthropic calls
     }
 

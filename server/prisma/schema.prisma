@@ -337,6 +337,22 @@ model ProcessedWebhookEvent {
   createdAt DateTime @default(now())
 }
 
+// Founder review lifecycle for a SafetyEvent (PR-6). A constrained enum,
+// not free text — the review workflow never accepts an arbitrary status.
+enum SafetyReviewStatus {
+  UNREVIEWED
+  REVIEWED
+}
+
+// Founder review outcome (PR-6). Deliberately a small fixed set, not free
+// text — there is no founder-notes field anywhere on this model.
+enum SafetyReviewOutcome {
+  NO_ACTION
+  FOLLOW_UP_REQUIRED
+  ESCALATED
+  FALSE_POSITIVE
+}
+
 // Minimal safety-incident log — deliberately stores NO message content or free text.
 model SafetyEvent {
   id          String   @id @default(cuid())
@@ -350,13 +366,13 @@ model SafetyEvent {
   // Deliberately still no free-text field of any kind — never a raw message,
   // matched excerpt, or AI-generated summary.
   riskLevel      String?   // "high" | "medium" | "low" — from the deterministic screen
-  sourceType     String?   // "message" | "chat_session" | "self_talk_card" | "body_reset_session" | etc.
-  sourceRecordId String?   // id of the record that produced the screened text
+  sourceType     String?   // "chat_message" | "visualization_wizard" | "session_summary" | "weekly_report" | "debrief_legacy" | "debrief_structured" | "self_talk_generate" | "body_reset_arjun_note" | "profile_name"
+  sourceRecordId String?   // id of the record that produced the screened text, when one is genuinely available
   chatSessionId  String?   // originating chat session, when the surface is chat-based
   userMessageId  String?   // originating Message id, when the surface is message-based
 
-  reviewStatus  String    @default("UNREVIEWED") // "UNREVIEWED" | "REVIEWED"
-  reviewOutcome String?   // "NO_ACTION" | "FOLLOW_UP_REQUIRED" | "ESCALATED" | "FALSE_POSITIVE"
+  reviewStatus  SafetyReviewStatus  @default(UNREVIEWED)
+  reviewOutcome SafetyReviewOutcome?
   reviewedAt    DateTime?
   reviewedBy    String?   // founder identifier — no founder user table exists yet
 
