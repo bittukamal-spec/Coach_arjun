@@ -5,6 +5,7 @@ const authenticate = require('../middleware/authenticate');
 const requireGuardianConsent = require('../middleware/requireGuardianConsent');
 const { aiLimiter } = require('../middleware/rateLimits');
 const { isTrialActive } = require('./chat');
+const { screenSafetyText, recordSafetyEvent, getSafetyGuidance } = require('../services/safety');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -68,6 +69,20 @@ router.get('/', authenticate, aiLimiter, requireGuardianConsent, async (req, res
     // Trial gate: expired-trial free users get the static fallback intro (no Claude call, no cache).
     if (!(await isTrialActive(req.userId))) {
       return res.json({ intro: fallback, cached: false });
+    }
+
+    // Deterministic pre-LLM safety screen. The only athlete-authored free
+    // text this prompt includes is the name field — and it is genuinely
+    // unconstrained (no length or content validation in auth.js), so it is
+    // capable of carrying a disclosure. On a hit: nothing is sent to
+    // Anthropic, and — matching every other screened surface in this PR —
+    // the athlete sees the category-appropriate safety guidance in the
+    // intro slot, not a normal-looking fallback with a silently-recorded
+    // event behind it. A structured SafetyEvent (no content) is recorded.
+    const nameScreen = screenSafetyText(user.name || '');
+    if (nameScreen.flagged) {
+      recordSafetyEvent(req.userId, 'profile_intro', nameScreen.category);
+      return res.json({ intro: getSafetyGuidance(nameScreen.category, lang), cached: false, safetyFlag: 'needs_support' });
     }
 
     try {

@@ -4,6 +4,7 @@ const { PrismaClient } = require('@prisma/client');
 const authenticate = require('../middleware/authenticate');
 const requireGuardianConsent = require('../middleware/requireGuardianConsent');
 const { isTrialActive } = require('./chat');
+const { screenSafetyText, recordSafetyEvent } = require('../services/safety');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -31,13 +32,32 @@ function generateTitle(sessionType) {
 
 // ── Summary generation helper ──────────────────────────────────────────────
 
-async function generateSessionSummary(sessionId) {
+async function generateSessionSummary(sessionId, userId) {
   const msgs = await prisma.message.findMany({
     where: { chatSessionId: sessionId },
     orderBy: { createdAt: 'asc' },
     select: { role: true, content: true },
   });
   if (msgs.length < 3) return null;
+
+  // Deterministic pre-LLM safety screen on the athlete's side of the
+  // DERIVED transcript. On a hit: the transcript is never sent to
+  // Anthropic; the session gets the same neutral date summary as the
+  // existing AI-failure fallback; one structured SafetyEvent (no content)
+  // is recorded — summaries run once per session, so this cannot spam.
+  const athleteText = msgs.filter(m => m.role !== 'assistant').map(m => m.content).join('\n');
+  const summaryScreen = screenSafetyText(athleteText);
+  if (summaryScreen.flagged) {
+    if (userId) recordSafetyEvent(userId, 'session_summary', summaryScreen.category);
+    const s = await prisma.chatSession.findUnique({
+      where: { id: sessionId },
+      select: { createdAt: true },
+    });
+    const dateStr = s?.createdAt
+      ? new Date(s.createdAt).toLocaleDateString('en-IN')
+      : 'this date';
+    return `Session on ${dateStr}.`;
+  }
 
   const transcript = msgs.map(m =>
     `[${m.role === 'assistant' ? 'Arjun' : 'Athlete'}]: ${m.content}`
@@ -151,7 +171,7 @@ router.post('/end-stale', authenticate, requireGuardianConsent, async (req, res)
     // Trial gate: skip the AI summaries for expired-trial free users; sessions still end.
     if (await isTrialActive(req.userId)) {
       Promise.all(ids.map(async id => {
-        const summary = await generateSessionSummary(id);
+        const summary = await generateSessionSummary(id, req.userId);
         if (summary) {
           await prisma.chatSession.update({ where: { id }, data: { summary } });
         }
@@ -216,7 +236,7 @@ router.post('/:id/end', authenticate, requireGuardianConsent, async (req, res) =
     let summary = null;
     // Trial gate: skip the AI summary for expired-trial free users; the session still ends.
     if (await isTrialActive(req.userId)) try {
-      summary = await generateSessionSummary(req.params.id);
+      summary = await generateSessionSummary(req.params.id, req.userId);
       if (summary) {
         await prisma.chatSession.update({ where: { id: req.params.id }, data: { summary } });
       }

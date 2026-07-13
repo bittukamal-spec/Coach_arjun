@@ -7,6 +7,7 @@ const { aiLimiter } = require('../middleware/rateLimits');
 const { detectSkill } = require('../services/skillDetection');
 const { getSkill, resolveTagForSkill } = require('../config/skillRegistry');
 const { markSkillProgress, getLastRecommendedAt, getSkillProgress } = require('../services/skillProgress');
+const { screenSafetyText, recordSafetyEvent, getSafetyGuidance } = require('../services/safety');
 
 // How long a suppressed (ignored) skill recommendation stays suppressed
 // before it can be primed again — a lightweight stand-in for "session".
@@ -760,6 +761,40 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
     return res.status(400).json({ error: 'Message too long (max 2000 characters)' });
   }
 
+  // ── Deterministic pre-LLM safety screen (session-start markers are
+  // app-generated, never athlete text). On a hit: the triggering content is
+  // never sent to Anthropic and never persisted; a structured SafetyEvent is
+  // recorded (no content); the category-appropriate guidance is streamed in
+  // the surface's native SSE protocol and persisted as an assistant message
+  // (fixed Arjun copy) so it survives a reload. The prompt-layer safety
+  // blocks below remain the second defensive layer for indirect distress.
+  if (!isSessionStart) {
+    const screen = screenSafetyText(content);
+    if (screen.flagged) {
+      recordSafetyEvent(req.userId, 'chat', screen.category);
+      let guidance;
+      try {
+        const u = await prisma.user.findUnique({ where: { id: req.userId }, select: { language: true } });
+        guidance = getSafetyGuidance(screen.category, u?.language);
+      } catch {
+        guidance = getSafetyGuidance(screen.category, null);
+      }
+      let saved = null;
+      try {
+        saved = await prisma.message.create({
+          data: { userId: req.userId, role: 'assistant', content: guidance, sessionType: sessionType || null, chatSessionId: chatSessionId || null },
+        });
+      } catch { /* guidance still streams below even if persistence fails */ }
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      res.flushHeaders();
+      res.write(`data: ${JSON.stringify({ t: 'd', c: guidance })}\n\n`);
+      res.write(`data: ${JSON.stringify({ t: 'end', id: saved?.id || 'safety-' + Date.now() })}\n\n`);
+      return res.end();
+    }
+  }
+
   try {
     // Fetch user profile for the system prompt
     const user = await prisma.user.findUnique({
@@ -999,6 +1034,16 @@ router.post('/wizard', authenticate, aiLimiter, requireGuardianConsent, checkFre
     let systemPrompt, maxTokens;
     if (wizardType === 'visualization') {
       const { specificMoment, currentState, setupType, cueWord: cw, userName, oceanProfile } = req.body;
+
+      // Deterministic pre-LLM safety screen on the athlete-authored moment
+      // description. On a hit: nothing is sent to Anthropic; the client
+      // shows the guidance via the safetyFlag protocol.
+      const wizardScreen = screenSafetyText(specificMoment || '');
+      if (wizardScreen.flagged) {
+        recordSafetyEvent(req.userId, 'visualization', wizardScreen.category);
+        return res.json({ safetyFlag: 'needs_support', message: getSafetyGuidance(wizardScreen.category, lang) });
+      }
+
       const effectiveCue = cw || 'Next action';
       const stateDesc = {
         nervous: 'nervous and needs calming',
