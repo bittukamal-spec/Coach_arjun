@@ -108,6 +108,9 @@ model User {
   bodyResetSessions      BodyResetSession[]
   skillProgress          SkillProgress[]
   plans                  Plan[]
+  coachingState          UserCoachingState?
+  coachingCycles         CoachingCycle[]
+  prescriptions          Prescription[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -214,6 +217,12 @@ model ChatSession {
   createdAt   DateTime  @default(now())
   endedAt     DateTime?
   messages    Message[]
+
+  // Optional origin reference for a coaching cycle/prescription that was
+  // opened during this session (PR-8). Nullable on the child side — see
+  // CoachingCycle.sourceChatSession / Prescription.sourceChatSession.
+  coachingCycles CoachingCycle[]
+  prescriptions  Prescription[]
 
   @@index([userId, mode])
 }
@@ -462,4 +471,133 @@ model BodyResetSession {
   completedAt      DateTime  @default(now())
 
   @@index([userId, completedAt])
+}
+
+// ── Coaching-cycle and prescription foundations (PR-8) ──────────────────────
+// Database foundation for Arjun's core coaching loop (problem → barrier →
+// one prescription → follow-up, docs/ARJUN-MVP-SPEC.md §2, §4.3-4.6).
+// Additive only — no route, prompt, or chat-behavior changes ship in this PR.
+
+enum CoachingCycleStatus {
+  ACTIVE
+  RESOLVED
+  ABANDONED
+}
+
+// Whether the athlete has confirmed, corrected, or not yet responded to
+// Arjun's barrier hypothesis for a cycle (§4.3 — "sounds like… does that fit?").
+enum BarrierConfirmationStatus {
+  PENDING
+  CONFIRMED
+  CORRECTED
+}
+
+enum PrescriptionStatus {
+  ACTIVE
+  COMPLETED
+  SUPERSEDED
+}
+
+// One row per user — the single pointer to whichever coaching cycle and
+// prescription are currently "live" for that athlete. This table only
+// tracks what's active right now; historical CoachingCycle/Prescription
+// rows are never deleted or overwritten when these pointers move on, and
+// there is no automatic abandonment or expiry of either pointer.
+model UserCoachingState {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Database-enforced: a given cycle/prescription can be the active pointer
+  // for at most one UserCoachingState row (Postgres unique index — multiple
+  // NULLs, i.e. "no active cycle/prescription yet", are not a conflict).
+  activeCycleId String?        @unique
+  activeCycle   CoachingCycle? @relation("ActiveCoachingCycle", fields: [activeCycleId], references: [id])
+
+  activePrescriptionId String?       @unique
+  activePrescription   Prescription? @relation("ActivePrescription", fields: [activePrescriptionId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// One historical record per problem cycle an athlete brings to Arjun: the
+// real situation described, Arjun's single barrier hypothesis, and whether
+// the athlete confirmed or corrected it (§4.3). Many cycles accumulate per
+// user over time — only one is ever pointed to as "active", via
+// UserCoachingState.activeCycleId.
+model CoachingCycle {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // The athlete's real performance problem or situation, as they described it.
+  problemStatement String
+
+  // Arjun's single barrier hypothesis (one of the seven barriers, §3.1) —
+  // free text, not an enum, since the barrier is named conversationally and
+  // the internal vocabulary may evolve without a schema change.
+  barrierHypothesis         String
+  barrierConfirmationStatus BarrierConfirmationStatus @default(PENDING)
+
+  status CoachingCycleStatus @default(ACTIVE)
+
+  // Optional originating chat session, when the cycle can be traced to one.
+  sourceChatSessionId String?
+  sourceChatSession   ChatSession? @relation(fields: [sourceChatSessionId], references: [id])
+
+  prescriptions  Prescription[]
+  activeForState UserCoachingState? @relation("ActiveCoachingCycle")
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  resolvedAt  DateTime?
+  abandonedAt DateTime? // set only on an explicit abandon action — never automatic
+
+  @@index([userId, status])
+  @@index([userId, createdAt])
+}
+
+// One prescribed practice within a coaching cycle (§3.2, §4.4). Stores the
+// exact athlete-visible card content at prescription time so a later
+// follow-up or Playbook entry can render byte-identical to what the athlete
+// actually saw — cardContent is never regenerated or reconstructed from
+// other fields. No expiry field exists; a prescription only leaves ACTIVE
+// through an explicit completed/superseded transition.
+model Prescription {
+  id      String        @id @default(cuid())
+  userId  String
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cycleId String
+  cycle   CoachingCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+
+  // Practice identity from the approved set (§3.2) — e.g. "pressure_reset",
+  // "focus_cue_building". Free text, not an enum, matching the existing
+  // skillKey/toolId convention (SkillProgress, PlanSession) so an addition
+  // to the approved practice set never needs a schema change.
+  practiceKey String
+
+  // The athlete's real situation this practice was prescribed for.
+  situation String
+
+  // Exact athlete-visible practice/card content at prescription time.
+  cardContent String
+
+  cueWord String?
+
+  status PrescriptionStatus @default(ACTIVE)
+
+  // Optional originating chat session, when the prescription can be traced to one.
+  sourceChatSessionId String?
+  sourceChatSession   ChatSession? @relation(fields: [sourceChatSessionId], references: [id])
+
+  activeForState UserCoachingState? @relation("ActivePrescription")
+
+  prescribedAt DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  completedAt  DateTime?
+  supersededAt DateTime? // set only on an explicit re-prescription — never automatic
+
+  @@index([userId, status])
+  @@index([cycleId])
 }
