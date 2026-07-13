@@ -108,6 +108,10 @@ model User {
   bodyResetSessions      BodyResetSession[]
   skillProgress          SkillProgress[]
   plans                  Plan[]
+  coachingState            UserCoachingState?
+  coachingCycles           CoachingCycle[]
+  prescriptions            Prescription[]
+  activeCoachingSelections ActiveCoachingSelection[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -214,6 +218,12 @@ model ChatSession {
   createdAt   DateTime  @default(now())
   endedAt     DateTime?
   messages    Message[]
+
+  // Optional origin reference for a coaching cycle/prescription that was
+  // opened during this session (PR-8). Nullable on the child side — see
+  // CoachingCycle.sourceChatSession / Prescription.sourceChatSession.
+  coachingCycles CoachingCycle[]
+  prescriptions  Prescription[]
 
   @@index([userId, mode])
 }
@@ -462,4 +472,211 @@ model BodyResetSession {
   completedAt      DateTime  @default(now())
 
   @@index([userId, completedAt])
+}
+
+// ── Coaching-cycle and prescription foundations (PR-8) ──────────────────────
+// Database foundation for Arjun's core coaching loop (problem → barrier →
+// one prescription → follow-up, docs/ARJUN-MVP-SPEC.md §2, §4.3-4.6).
+// Additive only — no route, prompt, or chat-behavior changes ship in this PR.
+
+enum CoachingCycleStatus {
+  ACTIVE
+  RESOLVED
+  ABANDONED
+}
+
+// Whether the athlete has confirmed, corrected, or not yet responded to
+// Arjun's barrier hypothesis for a cycle (§4.3 — "sounds like… does that fit?").
+enum BarrierConfirmationStatus {
+  PENDING
+  CONFIRMED
+  CORRECTED
+}
+
+enum PrescriptionStatus {
+  ACTIVE
+  COMPLETED
+  SUPERSEDED
+}
+
+// One row per user — the anchor for whichever coaching cycle and
+// prescription are currently "live" for that athlete. The actual active
+// pointers live on ActiveCoachingSelection below (see its doc comment for
+// why); this table only tracks that a state exists per user. Historical
+// CoachingCycle/Prescription rows are never deleted or overwritten when the
+// active selection moves on, and there is no automatic abandonment or
+// expiry of it.
+model UserCoachingState {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Optional 1:1 — absent entirely when the athlete has no active cycle.
+  activeSelection ActiveCoachingSelection?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Composite-relation target (never queried directly): lets
+  // ActiveCoachingSelection's userCoachingState FK require the selection to
+  // belong to both this same state row AND this same user — closing the
+  // last gap where a selection could otherwise carry a userId belonging to
+  // a different user than the state it's attached to.
+  @@unique([id, userId])
+}
+
+// The active pointer previously lived directly on UserCoachingState as two
+// independent nullable composite FKs (activeCycleId, activePrescriptionId).
+// That design could not fully prevent a partial-null bypass: PostgreSQL's
+// composite-FK matching (MATCH SIMPLE) skips the ownership check entirely
+// as soon as ANY column in the FK is null, so a row with a non-null
+// activePrescriptionId but a null activeCycleId would satisfy the
+// (activePrescriptionId, activeCycleId, userId) FK trivially — the
+// three-way check never ran at all.
+//
+// This model fixes that by making cycleId and userId REQUIRED here, with
+// only prescriptionId nullable. A selection row exists at all only when
+// there's an active cycle (cycleId can't be left unset), so "prescription
+// active, no active cycle" can no longer be represented, let alone bypass a
+// check — there's nowhere to store an active prescription without a cycle.
+// When prescriptionId IS set, cycleId/userId are guaranteed present, so
+// MATCH SIMPLE's null-column skip can only ever apply to prescriptionId
+// itself — never a partial match on cycle/user.
+model ActiveCoachingSelection {
+  id String @id @default(cuid())
+
+  // 1:1 back to the owning state row — at most one selection per state.
+  // Composite FK: (userCoachingStateId, userId) → UserCoachingState(id,
+  // userId) — a selection row cannot carry a userId different from the
+  // state it belongs to. Without this, a selection's userId (used by the
+  // cycle/prescription composite FKs below) could point to a different
+  // user than its own userCoachingState, letting User A's state reference
+  // User B's userId, cycle, or prescription.
+  userCoachingStateId String            @unique
+  userCoachingState   UserCoachingState @relation(fields: [userCoachingStateId, userId], references: [id, userId], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // At most one active selection per cycle. Composite FK: (cycleId, userId)
+  // → CoachingCycle(id, userId) — the selected cycle must belong to userId.
+  cycleId String
+  cycle   CoachingCycle @relation("SelectedCycle", fields: [cycleId, userId], references: [id, userId], onDelete: Restrict)
+
+  // At most one active selection per prescription. Composite FK:
+  // (prescriptionId, cycleId, userId) → Prescription(id, cycleId, userId).
+  // cycleId/userId are required fields on THIS row, so a non-null
+  // prescriptionId always resolves the full triple — it can never bypass
+  // cycle/user consistency via a null cycleId, because cycleId is simply
+  // never null here.
+  prescriptionId String?
+  prescription   Prescription? @relation("SelectedPrescription", fields: [prescriptionId, cycleId, userId], references: [id, cycleId, userId], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Global: at most one active selection per cycle / per prescription.
+  @@unique([cycleId])
+  @@unique([prescriptionId])
+  // Composite uniques required by Prisma as the exact-matching "one" side
+  // of each composite relation above — add no constraint beyond the
+  // singles (userCoachingStateId/cycleId/prescriptionId are already
+  // globally unique here, so any composite that includes them is trivially
+  // unique too).
+  @@unique([userCoachingStateId, userId])
+  @@unique([cycleId, userId])
+  @@unique([prescriptionId, cycleId, userId])
+}
+
+// One historical record per problem cycle an athlete brings to Arjun: the
+// real situation described, Arjun's single barrier hypothesis, and whether
+// the athlete confirmed or corrected it (§4.3). Many cycles accumulate per
+// user over time — only one is ever pointed to as "active", via
+// UserCoachingState.activeCycleId.
+model CoachingCycle {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // The athlete's real performance problem or situation, as they described it.
+  problemStatement String
+
+  // Arjun's single barrier hypothesis (one of the seven barriers, §3.1) —
+  // free text, not an enum, since the barrier is named conversationally and
+  // the internal vocabulary may evolve without a schema change.
+  barrierHypothesis         String
+  barrierConfirmationStatus BarrierConfirmationStatus @default(PENDING)
+
+  status CoachingCycleStatus @default(ACTIVE)
+
+  // Optional originating chat session, when the cycle can be traced to one.
+  sourceChatSessionId String?
+  sourceChatSession   ChatSession? @relation(fields: [sourceChatSessionId], references: [id])
+
+  prescriptions   Prescription[]           @relation("PrescriptionCycle")
+  activeSelection ActiveCoachingSelection? @relation("SelectedCycle")
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  resolvedAt  DateTime?
+  abandonedAt DateTime? // set only on an explicit abandon action — never automatic
+
+  @@index([userId, status])
+  @@index([userId, createdAt])
+  // Composite-relation target (never queried directly): lets Prescription's
+  // (cycleId, userId) FK and ActiveCoachingSelection's (cycleId, userId) FK
+  // both require the referenced cycle to be owned by that same userId.
+  @@unique([id, userId])
+}
+
+// One prescribed practice within a coaching cycle (§3.2, §4.4). Stores the
+// exact athlete-visible card content at prescription time so a later
+// follow-up or Playbook entry can render byte-identical to what the athlete
+// actually saw — cardContent is never regenerated or reconstructed from
+// other fields. No expiry field exists; a prescription only leaves ACTIVE
+// through an explicit completed/superseded transition.
+model Prescription {
+  id      String        @id @default(cuid())
+  userId  String
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cycleId String
+  // Composite FK: (cycleId, userId) → CoachingCycle(id, userId) — a
+  // Prescription cannot reference a cycle owned by a different user. A
+  // plain independent cycleId FK could not express this; the pair must
+  // resolve together to one CoachingCycle row.
+  cycle   CoachingCycle @relation("PrescriptionCycle", fields: [cycleId, userId], references: [id, userId], onDelete: Cascade)
+
+  // Practice identity from the approved set (§3.2) — e.g. "pressure_reset",
+  // "focus_cue_building". Free text, not an enum, matching the existing
+  // skillKey/toolId convention (SkillProgress, PlanSession) so an addition
+  // to the approved practice set never needs a schema change.
+  practiceKey String
+
+  // The athlete's real situation this practice was prescribed for.
+  situation String
+
+  // Exact athlete-visible practice/card content at prescription time.
+  cardContent String
+
+  cueWord String?
+
+  status PrescriptionStatus @default(ACTIVE)
+
+  // Optional originating chat session, when the prescription can be traced to one.
+  sourceChatSessionId String?
+  sourceChatSession   ChatSession? @relation(fields: [sourceChatSessionId], references: [id])
+
+  activeSelection ActiveCoachingSelection? @relation("SelectedPrescription")
+
+  prescribedAt DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  completedAt  DateTime?
+  supersededAt DateTime? // set only on an explicit re-prescription — never automatic
+
+  @@index([userId, status])
+  @@index([cycleId])
+  // Composite-relation target (never queried directly): lets
+  // ActiveCoachingSelection's prescription FK require the active
+  // prescription to belong to both this same user AND the selected cycle.
+  @@unique([id, cycleId, userId])
 }
