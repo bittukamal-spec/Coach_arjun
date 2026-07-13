@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Info, Eye, RotateCcw, ClipboardList, MessageSquare, Target, RefreshCw, Layers, Dumbbell, GraduationCap, EyeOff, ChevronLeft } from 'lucide-react';
+import { Info, Eye, RotateCcw, ClipboardList, MessageSquare, Target, RefreshCw, Layers, Dumbbell, GraduationCap, ChevronLeft, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
 import { ArjunLogo } from '../components/ArjunLogo';
 import ConsentBanner, { needsGuardianConsent } from '../components/ConsentBanner';
 import { parseArjunMessage, APP_TOOL_CONFIG } from '../utils/parseArjunMessage';
+import { shouldShowAiReminder, BREAK_REMINDER_MS } from '../utils/chatReminders';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -292,6 +293,7 @@ function ChatPage() {
   const [recentSessions, setRecentSessions]       = useState([]);
   const [sessionSummary, setSessionSummary]       = useState(null);
   const [chatMode, setChatMode]                   = useState('main');
+  const [showBreakReminder, setShowBreakReminder] = useState(false);
 
   const bottomRef               = useRef(null);
   const inputRef                = useRef(null);
@@ -408,6 +410,15 @@ function ChatPage() {
   useEffect(() => { chatSessionIdRef.current = chatSessionId; }, [chatSessionId]);
   useEffect(() => { chatModeRef.current = chatMode; }, [chatMode]);
 
+  // ── Gentle break reminder — client-only, fires once ~30 min after this
+  // page mounted, cleared on unmount so no timer keeps running after the
+  // athlete leaves the chat. ─────────────────────────────────────────────
+
+  useEffect(() => {
+    const timer = setTimeout(() => setShowBreakReminder(true), BREAK_REMINDER_MS);
+    return () => clearTimeout(timer);
+  }, []);
+
   // ── Clear sessionStorage cache when component unmounts ────────────────────
   // Sessions are NOT ended here — end-stale handles previous-day cleanup on next mount
 
@@ -496,11 +507,6 @@ function ChatPage() {
     } else {
       await createSession('general', 'main');
     }
-  }
-
-  async function handleStartQuick() {
-    setChatMode('quick');
-    await createSession('general', 'quick');
   }
 
   // ── Send message ──────────────────────────────────────────────────────────
@@ -672,20 +678,16 @@ function ChatPage() {
       <div className="flex-1 overflow-y-auto px-2 py-4">
         <div className="max-w-2xl mx-auto flex flex-col gap-3">
 
-          {/* Quick chat — not saved banner */}
-          {chatMode === 'quick' && (
-            <div className="flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl bg-dark-700 border border-dark-600 text-xs text-slt">
-              <EyeOff size={11} className="shrink-0" />
-              <span>{t.mode.notSaved}</span>
-            </div>
-          )}
-
           {/* Entry choice screen — shown when no session is active */}
           {showStartScreen && !waitingForFirst && (
             <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 animate-fade-in">
               {consentPending && <div className="w-full"><ConsentBanner /></div>}
               <h2 className="text-[22px] font-bold text-ink mb-2 text-center">{t.entry.heading}</h2>
-              <p className="text-[15px] text-slt text-center mb-8 leading-relaxed max-w-xs">{t.entry.description}</p>
+              <p className="text-[15px] text-slt text-center mb-6 leading-relaxed max-w-xs">{t.entry.description}</p>
+              <div className="w-full bg-brand-500/10 border border-brand-500/30 rounded-2xl px-4 py-3 mb-6">
+                <p className="text-xs text-slt leading-relaxed">{t.entryDisclosure}</p>
+                <p className="text-xs text-slt leading-relaxed mt-2">{t.entryDisclosureSafety}</p>
+              </div>
               <div className="w-full flex flex-col gap-2">
                 <button
                   onClick={handleContinueMain}
@@ -695,15 +697,6 @@ function ChatPage() {
                   {t.entry.continue.label}
                 </button>
                 <p className="text-[13px] text-slt text-center">{t.entry.continue.sub}</p>
-                <div className="h-3" />
-                <button
-                  onClick={handleStartQuick}
-                  disabled={atLimit || consentPending}
-                  className="w-full py-4 border border-dark-500 text-ink rounded-2xl font-semibold text-sm active:scale-[0.98] transition-all disabled:opacity-40"
-                >
-                  {t.entry.quick.label}
-                </button>
-                <p className="text-[13px] text-slt text-center">{t.entry.quick.sub}</p>
               </div>
             </div>
           )}
@@ -726,11 +719,19 @@ function ChatPage() {
           {/* Message list */}
           {!showStartScreen && (() => {
             const lastArjunIdx = messages.reduce((acc, m, i) => m.role === 'assistant' ? i : acc, -1);
+            let assistantReplyIndex = 0;
             return messages.map((msg, i) => {
               const prevMsg = messages[i - 1];
               const showDivider = msg.sessionType && msg.sessionType !== prevMsg?.sessionType && i > 0;
               const showChips = i === lastArjunIdx && !streaming && !waitingForFirst
                 && msg.suggestions?.length > 0 && !atLimit;
+              // Recurring AI-coach reminder: purely a render-time notice —
+              // never added to `messages`, never sent to the server, and it
+              // never touches arjunMsgCountRef (the count coaching logic
+              // uses server-side).
+              if (msg.role === 'assistant' && !msg.streaming) assistantReplyIndex += 1;
+              const showAiReminder = msg.role === 'assistant' && !msg.streaming
+                && shouldShowAiReminder(assistantReplyIndex);
               return (
                 <div key={msg.id} className="flex flex-col gap-2">
                   {showDivider && <SessionDivider sessionKey={msg.sessionType} date={msg.createdAt} t={t} />}
@@ -746,6 +747,13 @@ function ChatPage() {
                           {s}
                         </button>
                       ))}
+                    </div>
+                  )}
+                  {showAiReminder && (
+                    <div className="flex justify-center my-1">
+                      <p className="text-[11px] text-slt bg-dark-700/60 rounded-full px-3 py-1 text-center">
+                        {t.reminderAiCoach}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -781,6 +789,19 @@ function ChatPage() {
               </p>
               <button onClick={() => navigate('/pricing')} className="text-xs font-semibold text-white bg-brand-600 hover:bg-brand-700 px-4 py-2 rounded-xl transition-colors whitespace-nowrap">
                 {t.upgrade}
+              </button>
+            </div>
+          )}
+
+          {showBreakReminder && (
+            <div className="mb-3 flex items-center gap-2 bg-dark-700 border border-dark-500 rounded-2xl px-4 py-3">
+              <p className="text-xs text-slt flex-1 leading-relaxed">{t.breakReminder}</p>
+              <button
+                onClick={() => setShowBreakReminder(false)}
+                aria-label="Dismiss"
+                className="shrink-0 text-slt hover:text-ink transition-colors"
+              >
+                <X size={14} />
               </button>
             </div>
           )}
