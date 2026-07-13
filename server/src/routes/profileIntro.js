@@ -5,7 +5,7 @@ const authenticate = require('../middleware/authenticate');
 const requireGuardianConsent = require('../middleware/requireGuardianConsent');
 const { aiLimiter } = require('../middleware/rateLimits');
 const { isTrialActive } = require('./chat');
-const { screenSafetyText, recordSafetyEvent } = require('../services/safety');
+const { screenSafetyText, recordSafetyEvent, getSafetyGuidance } = require('../services/safety');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -72,16 +72,17 @@ router.get('/', authenticate, aiLimiter, requireGuardianConsent, async (req, res
     }
 
     // Deterministic pre-LLM safety screen. The only athlete-authored free
-    // text this prompt includes is the name (everything else is fixed chip
-    // values). A hit here is almost certainly noise, but the rule stands:
-    // flagged content never reaches Anthropic. The athlete gets the normal
-    // static fallback intro (this surface is a profile blurb, not a
-    // disclosure channel, so crisis guidance in the intro slot would be
-    // wrong); a structured SafetyEvent (no content) is still recorded.
+    // text this prompt includes is the name field — and it is genuinely
+    // unconstrained (no length or content validation in auth.js), so it is
+    // capable of carrying a disclosure. On a hit: nothing is sent to
+    // Anthropic, and — matching every other screened surface in this PR —
+    // the athlete sees the category-appropriate safety guidance in the
+    // intro slot, not a normal-looking fallback with a silently-recorded
+    // event behind it. A structured SafetyEvent (no content) is recorded.
     const nameScreen = screenSafetyText(user.name || '');
     if (nameScreen.flagged) {
       recordSafetyEvent(req.userId, 'profile_intro', nameScreen.category);
-      return res.json({ intro: fallback, cached: false });
+      return res.json({ intro: getSafetyGuidance(nameScreen.category, lang), cached: false, safetyFlag: 'needs_support' });
     }
 
     try {

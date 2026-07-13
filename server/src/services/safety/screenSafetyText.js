@@ -5,7 +5,7 @@
 // through this return value.
 
 const { normalizeSafetyText } = require('./normalizeSafetyText');
-const { RULES } = require('./safetyRules');
+const { RULES, CONTEXTUAL_RULES, matchesAnyOf } = require('./safetyRules');
 
 // Category priority when multiple rules match: crisis outranks abuse
 // outranks injury (rules are already grouped in that order).
@@ -23,6 +23,16 @@ function screenSafetyText(input) {
       return { flagged: true, category: rule.category, riskLevel: rule.riskLevel };
     }
   }
+
+  // Contextual rules: fire only when BOTH groups match (e.g. a breathing-
+  // distress phrase together with an immediacy/danger-context phrase) —
+  // never on a single isolated token.
+  for (const rule of CONTEXTUAL_RULES) {
+    if (matchesAnyOf(text, rule.anyOf) && matchesAnyOf(text, rule.withAnyOf)) {
+      return { flagged: true, category: rule.category, riskLevel: rule.riskLevel };
+    }
+  }
+
   return NOT_FLAGGED;
 }
 

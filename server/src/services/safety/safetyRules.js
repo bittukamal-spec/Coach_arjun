@@ -10,21 +10,37 @@
 //   text. Devanagari phrases use substring matching: \b is ASCII-only in JS
 //   and unreliable for Devanagari, and these multi-word phrases are
 //   distinctive enough not to need it.
-// - Deliberate exclusion: "can't breathe" is NOT in the deterministic lists.
-//   It is the single most common way athletes describe pre-match nerves
-//   ("I feel like I can't breathe before matches"), and a deterministic rule
-//   cannot tell that apart from a medical emergency. The prompt layer, which
-//   can read context, keeps covering it (chat.js lists it in both blocks).
+// - Breathing-distress phrases are NOT screened as bare/standalone matches.
+//   "I feel like I can't breathe before matches" is the single most common
+//   way athletes describe pre-match nerves, so a rule firing on "can't
+//   breathe" alone would misfire constantly. Instead, breathing emergencies
+//   use a bounded CONTEXTUAL rule (see CONTEXTUAL_RULES below): it requires
+//   a breathing-distress phrase together with an immediacy or danger-context
+//   phrase in the same text (e.g. "right now", "hit in the chest", "feel
+//   faint") — never a single isolated "breathe" token. Plain anxiety-framed
+//   or figurative mentions ("struggle to breathe before matches", "took my
+//   breath away") still fall to the prompt layer, which can read full
+//   context.
 // - Matching text is never returned to callers and never persisted.
 
-// Each rule: { category, riskLevel, script, pattern }
+// Each simple rule: { category, riskLevel, script, pattern }
 // script: 'latin' → regex with word boundaries; 'devanagari' → substring.
+//
+// Each contextual rule: { category, riskLevel, anyOf: [...], withAnyOf: [...] }
+// Fires only when at least one entry from BOTH groups matches — bounded
+// phrase + context, never a single isolated token.
 
 function latin(phrase) {
   // Escape regex specials, allow flexible whitespace between words,
   // and require word boundaries at both ends.
   const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
   return new RegExp(`\\b${escaped}\\b`, 'u');
+}
+
+function matchesAnyOf(text, group) {
+  return group.some(({ script, pattern }) =>
+    script === 'devanagari' ? text.includes(pattern) : pattern.test(text)
+  );
 }
 
 const RULES = [
@@ -119,4 +135,71 @@ const RULES = [
   ].map(p => ({ category: 'injury', riskLevel: 'medium', script: 'devanagari', pattern: p })),
 ];
 
-module.exports = { RULES };
+// ── Contextual: urgent current breathing emergency ────────────────────────
+// Fires ONLY when a breathing-distress phrase co-occurs with an immediacy
+// or danger-context phrase in the same text. Neither group alone triggers
+// anything — this is what keeps "struggle to breathe before matches" (pure
+// anxiety framing, no immediacy/danger marker) and "took my breath away"
+// (figurative, matches neither group) safely unflagged, while catching
+// "I can't breathe right now", "hit in the chest and can't breathe", and
+// "struggling to breathe and feel faint".
+
+const BREATHING_DISTRESS = [
+  // English
+  { script: 'latin', pattern: latin("can't breathe") },
+  { script: 'latin', pattern: latin('cannot breathe') },
+  { script: 'latin', pattern: latin('can not breathe') },
+  { script: 'latin', pattern: latin('struggling to breathe') },
+  { script: 'latin', pattern: latin('trouble breathing') },
+  { script: 'latin', pattern: latin('difficulty breathing') },
+  { script: 'latin', pattern: latin('hard to breathe') },
+  // Romanized Hindi / Hinglish
+  { script: 'latin', pattern: latin('saans nahi aa raha') },
+  { script: 'latin', pattern: latin('saans nahi aa rahi') },
+  { script: 'latin', pattern: latin('saans nahi le pa raha') },
+  { script: 'latin', pattern: latin('saans nahi le pa rahi') },
+  { script: 'latin', pattern: latin('saans lene mein taklif') },
+  { script: 'latin', pattern: latin('saans lene me taklif') },
+  // Devanagari Hindi
+  { script: 'devanagari', pattern: 'सांस नहीं आ रहा' },
+  { script: 'devanagari', pattern: 'सांस नहीं आ रही' },
+  { script: 'devanagari', pattern: 'सांस लेने में तकलीफ' },
+];
+
+const IMMEDIACY_OR_DANGER_CONTEXT = [
+  // English
+  { script: 'latin', pattern: latin('right now') },
+  { script: 'latin', pattern: latin('just now') },
+  { script: 'latin', pattern: latin('hit in the chest') },
+  { script: 'latin', pattern: latin('hit my chest') },
+  { script: 'latin', pattern: latin('feel faint') },
+  { script: 'latin', pattern: latin('feeling faint') },
+  { script: 'latin', pattern: latin('about to faint') },
+  { script: 'latin', pattern: latin('chest hurts') },
+  { script: 'latin', pattern: latin('chest is hurting') },
+  // Romanized Hindi / Hinglish
+  { script: 'latin', pattern: latin('abhi is waqt') },
+  { script: 'latin', pattern: latin('abhi') },
+  { script: 'latin', pattern: latin('chest mein laga') },
+  { script: 'latin', pattern: latin('seene mein laga') },
+  { script: 'latin', pattern: latin('chakkar aa raha') },
+  { script: 'latin', pattern: latin('chakkar aa rahi') },
+  { script: 'latin', pattern: latin('behosh jaisa') },
+  // Devanagari Hindi
+  { script: 'devanagari', pattern: 'अभी' },
+  { script: 'devanagari', pattern: 'छाती में लगा' },
+  { script: 'devanagari', pattern: 'सीने में लगा' },
+  { script: 'devanagari', pattern: 'चक्कर आ रहा' },
+  { script: 'devanagari', pattern: 'चक्कर आ रही' },
+];
+
+const CONTEXTUAL_RULES = [
+  {
+    category: 'injury',
+    riskLevel: 'high',
+    anyOf: BREATHING_DISTRESS,
+    withAnyOf: IMMEDIACY_OR_DANGER_CONTEXT,
+  },
+];
+
+module.exports = { RULES, CONTEXTUAL_RULES, matchesAnyOf };

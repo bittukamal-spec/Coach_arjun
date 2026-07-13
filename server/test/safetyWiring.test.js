@@ -23,8 +23,8 @@ const SCREENED_FILES = [
   { file: 'debrief.js', note: 'legacy + structured free-text fields (direct input)' },
   { file: 'selfTalk.js', note: 'oldThought/situationText/etc (direct input); LLM safety_flag classifier retained as layer 2' },
   { file: 'bodyReset.js', note: 'feeling/context/focusWordUsed (direct input); client keyword check retained' },
-  { file: 'profileIntro.js', note: 'user.name — the only athlete-authored field in that prompt' },
-  { file: 'weeklyReports.js', note: 'derived stored messages — flagged ones filtered out of the block (no event: source already evented at send time)' },
+  { file: 'profileIntro.js', note: 'user.name — the only athlete-authored field in that prompt; unconstrained (no length/content validation), so a hit returns safety guidance in the intro slot, not a normal-looking fallback' },
+  { file: 'weeklyReports.js', note: 'derived stored messages — a flagged message short-circuits the whole request (zero Anthropic calls, one event, fallback report row reusing the existing per-week dedup key)' },
   { file: 'sessions.js', note: 'derived transcript — athlete side screened; neutral date fallback on flag' },
 ];
 
@@ -50,7 +50,12 @@ test('screened files import the shared safety service and screen before their ma
   for (const { file } of SCREENED_FILES) {
     const src = read(file);
     assert.match(src, /require\('\.\.\/services\/safety'\)/, `${file}: missing shared safety-service import`);
-    const screenIdx = src.search(/screenSafety(Text|Fields)\(/);
+    // weeklyReports.js injects the screen function under a local alias
+    // (screenText = screenSafetyText) so its generator is testable with a
+    // stub; every other screened file calls screenSafetyText/Fields
+    // directly. Both call spellings are accepted here.
+    const screenAnchor = file === 'weeklyReports.js' ? /screenText\(/ : /screenSafety(Text|Fields)\(/;
+    const screenIdx = src.search(screenAnchor);
     // chat.js defines the memory-extraction helper (its own messages.create)
     // ABOVE the /message handler in the file; extraction only ever runs
     // after a successful (i.e. non-flagged) stream, so the meaningful
@@ -61,6 +66,26 @@ test('screened files import the shared safety service and screen before their ma
     assert.ok(llmIdx !== -1, `${file}: no Anthropic call found (manifest stale?)`);
     assert.ok(screenIdx < llmIdx, `${file}: screening must run before the main Anthropic call`);
   }
+});
+
+test('weeklyReports.js: flagged content short-circuits before Anthropic is even constructed (not filtered-and-continued)', () => {
+  const src = read('weeklyReports.js');
+  const flagBlockStart = src.indexOf('if (flaggedMessage)');
+  const flagBlockEnd = src.indexOf('return; // zero Anthropic calls');
+  assert.ok(flagBlockStart !== -1 && flagBlockEnd !== -1, 'expected short-circuit block not found');
+  const block = src.slice(flagBlockStart, flagBlockEnd);
+  assert.doesNotMatch(block, /createAnthropicClient\(\)/, 'Anthropic client must not be constructed on the flagged path');
+  assert.match(block, /recordEvent\(/, 'expected a SafetyEvent to be recorded on the flagged path');
+});
+
+test('profileIntro.js: a flagged name returns safety guidance, not a normal-looking fallback intro alongside a silently-recorded event', () => {
+  const src = read('profileIntro.js');
+  const flagBlockStart = src.indexOf('if (nameScreen.flagged)');
+  const flagBlockEnd = src.indexOf('}', src.indexOf('recordSafetyEvent(', flagBlockStart)) + 1;
+  const block = src.slice(flagBlockStart, flagBlockEnd + 40);
+  assert.match(block, /recordSafetyEvent\(/, 'expected a SafetyEvent to be recorded');
+  assert.match(block, /getSafetyGuidance\(nameScreen\.category/, 'expected guidance to be shown, not the normal fallback');
+  assert.doesNotMatch(block, /intro:\s*fallback/, 'must not silently return the normal fallback intro on a flagged name');
 });
 
 test('exempt file takes no athlete free text into its Anthropic prompt', () => {

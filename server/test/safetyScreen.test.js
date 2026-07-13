@@ -96,14 +96,52 @@ const NEGATIVE = [
   'I choked in the final over',
   'meri body toot rahi hai training se',  // normal soreness talk
   'खूब मेहनत की आज',                        // worked hard today
-  // Deliberate exclusion (documented in safetyRules.js): breathlessness is
-  // the most common pre-match nerves description — the deterministic layer
-  // leaves it to the contextual prompt layer.
+  // Anxiety-framed breathlessness with no immediacy/danger-context marker —
+  // the bounded contextual rule requires both, so this stays with the
+  // prompt layer, which can read full context.
   "I feel like I can't breathe before matches",
 ];
 
 test("negative cases: everyday athlete language never flags", () => {
   for (const text of NEGATIVE) {
+    const result = screenSafetyText(text);
+    assert.equal(result.flagged, false, `should NOT flag: "${text}"`);
+  }
+});
+
+// ── Contextual: urgent current breathing emergency ────────────────────────
+// Bounded phrase+context rule: fires only when a breathing-distress phrase
+// co-occurs with an immediacy/danger-context phrase — never on either alone.
+
+const BREATHING_EMERGENCY_POSITIVE = [
+  "I can't breathe right now",
+  "I was hit in the chest and can't breathe",
+  'I am struggling to breathe and feel faint',
+  'mujhe abhi saans nahi aa raha',                 // "I can't breathe right now"
+  'chest mein laga hai aur saans nahi aa rahi',    // "hit in the chest and can't breathe"
+  'मुझे अभी सांस नहीं आ रहा',                          // Devanagari: "I can't breathe right now"
+  'छाती में लगा है और सांस नहीं आ रही',                // Devanagari: "hit in the chest, can't breathe"
+];
+
+test('breathing emergency: fires when distress + immediacy/danger context co-occur (EN / Hinglish / Devanagari)', () => {
+  for (const text of BREATHING_EMERGENCY_POSITIVE) {
+    const result = screenSafetyText(text);
+    assert.equal(result.flagged, true, `should flag: "${text}"`);
+    assert.equal(result.category, 'injury', `wrong category for: "${text}"`);
+  }
+});
+
+const BREATHING_EMERGENCY_NEGATIVE = [
+  'Before matches I feel nervous and struggle to breathe',   // anxiety framing, no immediacy/danger marker
+  'That sprint took my breath away',                          // figurative, matches neither group
+  "I've been working on my breath control in training",       // general breath-control discussion
+  'can\'t breathe',                                            // distress alone, no context — must not fire
+  'right now I am feeling great',                              // context alone, no distress — must not fire
+  'I feel faint sometimes when I skip breakfast',              // context alone, no breathing-distress phrase
+];
+
+test('breathing emergency: does not fire on distress alone, context alone, or figurative/anxiety framing', () => {
+  for (const text of BREATHING_EMERGENCY_NEGATIVE) {
     const result = screenSafetyText(text);
     assert.equal(result.flagged, false, `should NOT flag: "${text}"`);
   }
