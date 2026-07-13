@@ -18,6 +18,13 @@ const prisma = new PrismaClient();
 //
 // `createRecordSafetyEvent` is injectable for tests (same pattern as
 // requireGuardianConsent); the default export always uses the real client.
+//
+// PR-6 adds an optional 4th `source` argument carrying structured
+// references only (riskLevel, sourceType, sourceRecordId, chatSessionId,
+// userMessageId) — never message content or a matched excerpt. It is
+// entirely optional: every existing 3-argument call site is unaffected and
+// simply produces rows where these fields are null, exactly like the
+// pre-PR-6 rows already in the table.
 
 const CATEGORY_TO_TRIGGER = {
   crisis: 'crisis_keyword',
@@ -25,11 +32,17 @@ const CATEGORY_TO_TRIGGER = {
   injury: 'injury_keyword',
 };
 
+const SOURCE_FIELDS = ['riskLevel', 'sourceType', 'sourceRecordId', 'chatSessionId', 'userMessageId'];
+
 function createRecordSafetyEvent(client = prisma) {
-  return function recordSafetyEvent(userId, surface, category) {
+  return function recordSafetyEvent(userId, surface, category, source = {}) {
     const triggerType = CATEGORY_TO_TRIGGER[category] || 'crisis_keyword';
+    const data = { userId, surface, triggerType };
+    for (const key of SOURCE_FIELDS) {
+      if (source && source[key] !== undefined) data[key] = source[key];
+    }
     return client.safetyEvent
-      .create({ data: { userId, surface, triggerType } })
+      .create({ data })
       .catch(err => console.error(`[safety] event write failed (${surface}):`, err?.message));
   };
 }

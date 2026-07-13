@@ -344,10 +344,27 @@ model SafetyEvent {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   surface     String   // "chat" | "self_talk" | "body_reset" | "bounce_back"
   triggerType String   // "helpline_response" | "needs_support" | "crisis_keyword" | "intensity_max"
+
+  // ── Structured source references + founder review state (PR-6) ───────────
+  // All nullable: existing rows predate this data and are left untouched.
+  // Deliberately still no free-text field of any kind — never a raw message,
+  // matched excerpt, or AI-generated summary.
+  riskLevel      String?   // "high" | "medium" | "low" — from the deterministic screen
+  sourceType     String?   // "message" | "chat_session" | "self_talk_card" | "body_reset_session" | etc.
+  sourceRecordId String?   // id of the record that produced the screened text
+  chatSessionId  String?   // originating chat session, when the surface is chat-based
+  userMessageId  String?   // originating Message id, when the surface is message-based
+
+  reviewStatus  String    @default("UNREVIEWED") // "UNREVIEWED" | "REVIEWED"
+  reviewOutcome String?   // "NO_ACTION" | "FOLLOW_UP_REQUIRED" | "ESCALATED" | "FALSE_POSITIVE"
+  reviewedAt    DateTime?
+  reviewedBy    String?   // founder identifier — no founder user table exists yet
+
   createdAt   DateTime @default(now())
 
   @@index([createdAt])
   @@index([userId, createdAt])
+  @@index([reviewStatus, createdAt])
 }
 
 // ── Coach-led plan system (Prompt 1 foundation) ─────────────────────────────

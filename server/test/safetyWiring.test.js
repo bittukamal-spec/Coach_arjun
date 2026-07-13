@@ -100,7 +100,10 @@ test('exempt file takes no athlete free text into its Anthropic prompt', () => {
 
 test('deterministic layer never persists athlete text: SafetyEvent writes carry no content fields', () => {
   const writer = readFileSync(path.join(__dirname, '../src/services/safety/recordSafetyEvent.js'), 'utf8');
-  assert.match(writer, /data: \{ userId, surface, triggerType \}/);
+  // PR-6 builds the payload progressively (base fields, then an allowlisted
+  // set of optional structured source fields) rather than one inline
+  // literal — the base three required fields must still always be present.
+  assert.match(writer, /const data = \{ userId, surface, triggerType \}/);
   // Strip comments (which legitimately *explain* that no content is stored)
   // before asserting that no code path passes content-like fields.
   const codeOnly = writer.split('\n').filter(l => !l.trim().startsWith('//')).join('\n');
