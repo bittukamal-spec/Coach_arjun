@@ -78,6 +78,60 @@ test('UserCoachingState relates to User, and to CoachingCycle/Prescription via n
   assert.equal(activePrescription.relationName, 'ActivePrescription');
 });
 
+// ── Composite-relation ownership enforcement ─────────────────────────────────
+// A plain independent userId + cycleId/activeCycleId/activePrescriptionId FK
+// pair would let a Prescription (or an active pointer) reference a cycle/
+// prescription owned by a *different* user — the userId columns would never
+// be cross-checked against each other. Including userId as part of each
+// composite `fields`/`references` pair forces Postgres to resolve the whole
+// tuple against one matching row, making a cross-user mismatch structurally
+// impossible to persist, not just application-validated.
+
+test("Prescription's cycle relation is a composite FK on (cycleId, userId) — not an independent pair", () => {
+  const cycle = getField(getModel('Prescription'), 'cycle');
+  assert.deepEqual(cycle.relationFromFields, ['cycleId', 'userId']);
+  assert.deepEqual(cycle.relationToFields, ['id', 'userId']);
+});
+
+test('activeCycle is a composite FK on (activeCycleId, userId) — the active cycle must belong to this user', () => {
+  const activeCycle = getField(getModel('UserCoachingState'), 'activeCycle');
+  assert.deepEqual(activeCycle.relationFromFields, ['activeCycleId', 'userId']);
+  assert.deepEqual(activeCycle.relationToFields, ['id', 'userId']);
+});
+
+test('activePrescription is a composite FK on (activePrescriptionId, activeCycleId, userId) — the active prescription must belong to both this user and the active cycle', () => {
+  const activePrescription = getField(getModel('UserCoachingState'), 'activePrescription');
+  assert.deepEqual(activePrescription.relationFromFields, ['activePrescriptionId', 'activeCycleId', 'userId']);
+  assert.deepEqual(activePrescription.relationToFields, ['id', 'cycleId', 'userId']);
+});
+
+test('mismatched user/cycle relationships are structurally impossible: every composite FK target is backed by a matching composite unique constraint', () => {
+  // A composite FK can only be declared against a genuinely unique
+  // combination on the referenced side — these are exactly the
+  // (id, ...ownership-fields) uniques each composite relation above targets.
+  assert.deepEqual(
+    getModel('CoachingCycle').uniqueFields.some((f) => f.join(',') === 'id,userId'),
+    true,
+    'CoachingCycle must expose a (id, userId) composite unique for Prescription.cycle / UserCoachingState.activeCycle to target'
+  );
+  assert.deepEqual(
+    getModel('Prescription').uniqueFields.some((f) => f.join(',') === 'id,cycleId,userId'),
+    true,
+    'Prescription must expose a (id, cycleId, userId) composite unique for UserCoachingState.activePrescription to target'
+  );
+});
+
+test('delete behavior on every composite relation is Restrict, never SetNull (userId can never be nulled)', () => {
+  const cycle = getField(getModel('Prescription'), 'cycle');
+  assert.equal(cycle.relationOnDelete, 'Cascade'); // unchanged parent-owns-child behavior, not SetNull
+
+  const activeCycle = getField(getModel('UserCoachingState'), 'activeCycle');
+  assert.equal(activeCycle.relationOnDelete, 'Restrict');
+
+  const activePrescription = getField(getModel('UserCoachingState'), 'activePrescription');
+  assert.equal(activePrescription.relationOnDelete, 'Restrict');
+});
+
 test('CoachingCycle belongs to one User and optionally references a source ChatSession', () => {
   const cycle = getModel('CoachingCycle');
   const user = getField(cycle, 'user');
@@ -147,7 +201,16 @@ test('CoachingCycle.userId is not unique — a user can have many historical cyc
   const field = getField(getModel('CoachingCycle'), 'userId');
   assert.equal(field.isUnique, false);
   const cycle = getModel('CoachingCycle');
-  assert.equal(cycle.uniqueFields.length, 0, 'no @@unique constraint should limit cycles-per-user');
+  // A (id, userId) composite unique exists solely as the relation target for
+  // Prescription.cycle / UserCoachingState.activeCycle (§ composite
+  // ownership tests above) — that's not a per-user limit, since `id` is
+  // already globally unique on its own. What WOULD limit cycles-per-user is
+  // any @@unique constraint whose field list is [userId] alone; there must
+  // be none.
+  assert.ok(
+    !cycle.uniqueFields.some((f) => f.length === 1 && f[0] === 'userId'),
+    'no standalone @@unique([userId]) should limit cycles-per-user'
+  );
 });
 
 test('User.coachingCycles is a list relation (not a single/unique pointer)', () => {
@@ -205,9 +268,19 @@ test('Prescription stores byte-consistent card content, not a raw chat transcrip
 });
 
 // ── DB-enforced uniqueness at the schema-source level (belt and suspenders) ──
+// Global uniqueness (a cycle/prescription can be the active pointer for at
+// most one UserCoachingState row) is expressed as a single-column @@unique
+// block now that activeCycleId/activePrescriptionId also participate in the
+// composite relations above — inline `String? @unique` and a block-form
+// `@@unique([activeCycleId])` are equivalent, but only the block form can
+// coexist with the composite @@unique entries the relations require.
 
-test('activeCycleId and activePrescriptionId are declared @unique in the Prisma source', () => {
+test('activeCycleId and activePrescriptionId each still carry a standalone global @@unique constraint', () => {
+  const state = getModel('UserCoachingState');
+  assert.deepEqual(state.uniqueFields.some((f) => f.join(',') === 'activeCycleId'), true);
+  assert.deepEqual(state.uniqueFields.some((f) => f.join(',') === 'activePrescriptionId'), true);
+
   const block = schemaSrc.slice(schemaSrc.indexOf('model UserCoachingState'), schemaSrc.indexOf('model CoachingCycle'));
-  assert.match(block, /activeCycleId\s+String\?\s+@unique/);
-  assert.match(block, /activePrescriptionId\s+String\?\s+@unique/);
+  assert.match(block, /@@unique\(\[activeCycleId\]\)/);
+  assert.match(block, /@@unique\(\[activePrescriptionId\]\)/);
 });

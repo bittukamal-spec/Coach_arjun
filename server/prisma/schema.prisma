@@ -511,14 +511,45 @@ model UserCoachingState {
   // Database-enforced: a given cycle/prescription can be the active pointer
   // for at most one UserCoachingState row (Postgres unique index — multiple
   // NULLs, i.e. "no active cycle/prescription yet", are not a conflict).
-  activeCycleId String?        @unique
-  activeCycle   CoachingCycle? @relation("ActiveCoachingCycle", fields: [activeCycleId], references: [id])
+  //
+  // Both active pointers below are COMPOSITE foreign keys that also include
+  // userId, targeting a composite unique key on the owner side
+  // (CoachingCycle/Prescription `@@unique([id, userId, ...])`). Postgres's
+  // default composite-FK matching (MATCH SIMPLE) skips the check only when
+  // the whole row's referencing columns are absent; since userId is always
+  // present here, any non-null activeCycleId/activePrescriptionId is forced
+  // to resolve to a CoachingCycle/Prescription owned by this same user —
+  // structurally ruling out a cross-user active pointer. onDelete is
+  // Restrict (never SetNull): userId is required and can never be nulled,
+  // so the underlying cycle/prescription must have its active pointer
+  // cleared by the app before it could ever be deleted.
+  activeCycleId String?
+  activeCycle   CoachingCycle? @relation("ActiveCoachingCycle", fields: [activeCycleId, userId], references: [id, userId], onDelete: Restrict)
 
-  activePrescriptionId String?       @unique
-  activePrescription   Prescription? @relation("ActivePrescription", fields: [activePrescriptionId], references: [id])
+  // Composite FK also includes activeCycleId, targeting Prescription's
+  // (id, cycleId, userId) — so a non-null activePrescriptionId must belong
+  // to both this same user AND the cycle identified by activeCycleId. A
+  // state row where the active prescription's cycle/user differs from the
+  // active cycle/user is structurally impossible to persist.
+  activePrescriptionId String?
+  activePrescription   Prescription? @relation("ActivePrescription", fields: [activePrescriptionId, activeCycleId, userId], references: [id, cycleId, userId], onDelete: Restrict)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // Global uniqueness — preserved from the original design: a given cycle
+  // (or prescription) can never be the active pointer for more than one
+  // UserCoachingState row, full stop.
+  @@unique([activeCycleId])
+  @@unique([activePrescriptionId])
+  // Composite uniques required by Prisma as the "one" side of each 1:1
+  // composite relation above. These add no new constraint beyond the
+  // singles above (userId is already globally unique on this model, so any
+  // composite that includes it is trivially unique too) — they exist only
+  // because Prisma requires an exact-matching @@unique for a multi-field
+  // relation target.
+  @@unique([activeCycleId, userId])
+  @@unique([activePrescriptionId, activeCycleId, userId])
 }
 
 // One historical record per problem cycle an athlete brings to Arjun: the
@@ -546,7 +577,7 @@ model CoachingCycle {
   sourceChatSessionId String?
   sourceChatSession   ChatSession? @relation(fields: [sourceChatSessionId], references: [id])
 
-  prescriptions  Prescription[]
+  prescriptions  Prescription[]     @relation("PrescriptionCycle")
   activeForState UserCoachingState? @relation("ActiveCoachingCycle")
 
   createdAt   DateTime  @default(now())
@@ -556,6 +587,10 @@ model CoachingCycle {
 
   @@index([userId, status])
   @@index([userId, createdAt])
+  // Composite-relation targets (never queried directly): let Prescription's
+  // (cycleId, userId) FK and UserCoachingState's (activeCycleId, userId) FK
+  // both require the referenced cycle to be owned by that same userId.
+  @@unique([id, userId])
 }
 
 // One prescribed practice within a coaching cycle (§3.2, §4.4). Stores the
@@ -569,7 +604,11 @@ model Prescription {
   userId  String
   user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   cycleId String
-  cycle   CoachingCycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  // Composite FK: (cycleId, userId) → CoachingCycle(id, userId) — a
+  // Prescription cannot reference a cycle owned by a different user. A
+  // plain independent cycleId FK could not express this; the pair must
+  // resolve together to one CoachingCycle row.
+  cycle   CoachingCycle @relation("PrescriptionCycle", fields: [cycleId, userId], references: [id, userId], onDelete: Cascade)
 
   // Practice identity from the approved set (§3.2) — e.g. "pressure_reset",
   // "focus_cue_building". Free text, not an enum, matching the existing
@@ -600,4 +639,9 @@ model Prescription {
 
   @@index([userId, status])
   @@index([cycleId])
+  // Composite-relation target (never queried directly): lets
+  // UserCoachingState's activePrescription FK require the active
+  // prescription to belong to both this same user AND the cycle identified
+  // by activeCycleId.
+  @@unique([id, cycleId, userId])
 }
