@@ -516,6 +516,13 @@ model UserCoachingState {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // Composite-relation target (never queried directly): lets
+  // ActiveCoachingSelection's userCoachingState FK require the selection to
+  // belong to both this same state row AND this same user — closing the
+  // last gap where a selection could otherwise carry a userId belonging to
+  // a different user than the state it's attached to.
+  @@unique([id, userId])
 }
 
 // The active pointer previously lived directly on UserCoachingState as two
@@ -539,8 +546,14 @@ model ActiveCoachingSelection {
   id String @id @default(cuid())
 
   // 1:1 back to the owning state row — at most one selection per state.
+  // Composite FK: (userCoachingStateId, userId) → UserCoachingState(id,
+  // userId) — a selection row cannot carry a userId different from the
+  // state it belongs to. Without this, a selection's userId (used by the
+  // cycle/prescription composite FKs below) could point to a different
+  // user than its own userCoachingState, letting User A's state reference
+  // User B's userId, cycle, or prescription.
   userCoachingStateId String            @unique
-  userCoachingState   UserCoachingState @relation(fields: [userCoachingStateId], references: [id], onDelete: Cascade)
+  userCoachingState   UserCoachingState @relation(fields: [userCoachingStateId, userId], references: [id, userId], onDelete: Cascade)
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -567,8 +580,10 @@ model ActiveCoachingSelection {
   @@unique([prescriptionId])
   // Composite uniques required by Prisma as the exact-matching "one" side
   // of each composite relation above — add no constraint beyond the
-  // singles (cycleId/prescriptionId are already globally unique here, so
-  // any composite that includes them is trivially unique too).
+  // singles (userCoachingStateId/cycleId/prescriptionId are already
+  // globally unique here, so any composite that includes them is trivially
+  // unique too).
+  @@unique([userCoachingStateId, userId])
   @@unique([cycleId, userId])
   @@unique([prescriptionId, cycleId, userId])
 }

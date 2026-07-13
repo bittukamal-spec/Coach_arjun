@@ -128,6 +128,23 @@ test('ActiveCoachingSelection exists with required user/state/cycle fields and a
   assert.equal(prescriptionIdField.isRequired, false, 'prescriptionId alone is nullable — no prescription yet is valid');
 });
 
+test('ActiveCoachingSelection.userCoachingState is a composite FK on (userCoachingStateId, userId) — a selection cannot carry a userId different from its own state', () => {
+  const state = getField(getModel('ActiveCoachingSelection'), 'userCoachingState');
+  assert.deepEqual(state.relationFromFields, ['userCoachingStateId', 'userId']);
+  assert.deepEqual(state.relationToFields, ['id', 'userId']);
+});
+
+test('UserCoachingState exposes the (id, userId) composite unique target for ActiveCoachingSelection.userCoachingState', () => {
+  const stateModel = getModel('UserCoachingState');
+  assert.deepEqual(
+    stateModel.uniqueFields.some((f) => f.join(',') === 'id,userId'),
+    true,
+    'UserCoachingState must expose a (id, userId) composite unique for ActiveCoachingSelection.userCoachingState to target'
+  );
+  // userId alone must still be unique — one UserCoachingState per user.
+  assert.equal(getField(stateModel, 'userId').isUnique, true);
+});
+
 test('ActiveCoachingSelection.cycle is a composite FK on (cycleId, userId) — the selected cycle must belong to this user', () => {
   const cycle = getField(getModel('ActiveCoachingSelection'), 'cycle');
   assert.deepEqual(cycle.relationFromFields, ['cycleId', 'userId']);
@@ -168,10 +185,15 @@ test('one selection per state, per cycle, and per prescription is enforced', () 
   assert.equal(getField(selection, 'prescriptionId').isUnique, true);
 });
 
-test('mismatched user/cycle relationships are structurally impossible: every composite FK target is backed by a matching composite unique constraint', () => {
+test('mismatched user/state/cycle relationships are structurally impossible: every composite FK target is backed by a matching composite unique constraint', () => {
   // A composite FK can only be declared against a genuinely unique
   // combination on the referenced side — these are exactly the
   // (id, ...ownership-fields) uniques each composite relation above targets.
+  assert.deepEqual(
+    getModel('UserCoachingState').uniqueFields.some((f) => f.join(',') === 'id,userId'),
+    true,
+    'UserCoachingState must expose a (id, userId) composite unique for ActiveCoachingSelection.userCoachingState to target'
+  );
   assert.deepEqual(
     getModel('CoachingCycle').uniqueFields.some((f) => f.join(',') === 'id,userId'),
     true,
