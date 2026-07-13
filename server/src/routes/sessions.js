@@ -48,7 +48,16 @@ async function generateSessionSummary(sessionId, userId) {
   const athleteText = msgs.filter(m => m.role !== 'assistant').map(m => m.content).join('\n');
   const summaryScreen = screenSafetyText(athleteText);
   if (summaryScreen.flagged) {
-    if (userId) recordSafetyEvent(userId, 'session_summary', summaryScreen.category);
+    // sessionId is the real, already-persisted ChatSession id being
+    // summarized — a genuine identifier, not an invented one.
+    if (userId) {
+      recordSafetyEvent(userId, 'session_summary', summaryScreen.category, {
+        riskLevel: summaryScreen.riskLevel,
+        sourceType: 'session_summary',
+        sourceRecordId: sessionId,
+        chatSessionId: sessionId,
+      });
+    }
     const s = await prisma.chatSession.findUnique({
       where: { id: sessionId },
       select: { createdAt: true },

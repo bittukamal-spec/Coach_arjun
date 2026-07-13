@@ -771,7 +771,15 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
   if (!isSessionStart) {
     const screen = screenSafetyText(content);
     if (screen.flagged) {
-      recordSafetyEvent(req.userId, 'chat', screen.category);
+      // The flagged content itself is never persisted (by design), so there
+      // is no real Message id to reference — chatSessionId is the one
+      // genuinely available identifier here (the same value already used
+      // to persist the guidance message below).
+      recordSafetyEvent(req.userId, 'chat', screen.category, {
+        riskLevel: screen.riskLevel,
+        sourceType: 'chat_message',
+        chatSessionId: chatSessionId || null,
+      });
       let guidance;
       try {
         const u = await prisma.user.findUnique({ where: { id: req.userId }, select: { language: true } });
@@ -1040,7 +1048,12 @@ router.post('/wizard', authenticate, aiLimiter, requireGuardianConsent, checkFre
       // shows the guidance via the safetyFlag protocol.
       const wizardScreen = screenSafetyText(specificMoment || '');
       if (wizardScreen.flagged) {
-        recordSafetyEvent(req.userId, 'visualization', wizardScreen.category);
+        // No chat session or persisted record backs this wizard step — the
+        // moment description is never saved.
+        recordSafetyEvent(req.userId, 'visualization', wizardScreen.category, {
+          riskLevel: wizardScreen.riskLevel,
+          sourceType: 'visualization_wizard',
+        });
         return res.json({ safetyFlag: 'needs_support', message: getSafetyGuidance(wizardScreen.category, lang) });
       }
 

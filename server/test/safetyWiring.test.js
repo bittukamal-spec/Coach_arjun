@@ -81,8 +81,13 @@ test('weeklyReports.js: flagged content short-circuits before Anthropic is even 
 test('profileIntro.js: a flagged name returns safety guidance, not a normal-looking fallback intro alongside a silently-recorded event', () => {
   const src = read('profileIntro.js');
   const flagBlockStart = src.indexOf('if (nameScreen.flagged)');
-  const flagBlockEnd = src.indexOf('}', src.indexOf('recordSafetyEvent(', flagBlockStart)) + 1;
-  const block = src.slice(flagBlockStart, flagBlockEnd + 40);
+  // PR-6 made the recordSafetyEvent call span multiple lines (structured
+  // source object), so a generous fixed window past its start — rather than
+  // "first closing brace" — is what reliably reaches the return statement
+  // that follows it, without reaching into the unrelated catch-block
+  // fallback much further down the file.
+  const recordIdx = src.indexOf('recordSafetyEvent(', flagBlockStart);
+  const block = src.slice(flagBlockStart, recordIdx + 400);
   assert.match(block, /recordSafetyEvent\(/, 'expected a SafetyEvent to be recorded');
   assert.match(block, /getSafetyGuidance\(nameScreen\.category/, 'expected guidance to be shown, not the normal fallback');
   assert.doesNotMatch(block, /intro:\s*fallback/, 'must not silently return the normal fallback intro on a flagged name');
@@ -100,7 +105,10 @@ test('exempt file takes no athlete free text into its Anthropic prompt', () => {
 
 test('deterministic layer never persists athlete text: SafetyEvent writes carry no content fields', () => {
   const writer = readFileSync(path.join(__dirname, '../src/services/safety/recordSafetyEvent.js'), 'utf8');
-  assert.match(writer, /data: \{ userId, surface, triggerType \}/);
+  // PR-6 builds the payload progressively (base fields, then an allowlisted
+  // set of optional structured source fields) rather than one inline
+  // literal — the base three required fields must still always be present.
+  assert.match(writer, /const data = \{ userId, surface, triggerType \}/);
   // Strip comments (which legitimately *explain* that no content is stored)
   // before asserting that no code path passes content-like fields.
   const codeOnly = writer.split('\n').filter(l => !l.trim().startsWith('//')).join('\n');

@@ -37,7 +37,10 @@ router.post('/arjun-note', authenticate, aiLimiter, requireGuardianConsent, chec
   // structured SafetyEvent (no content) is recorded.
   const preScreen = screenSafetyFields(feeling, context, focusWordUsed);
   if (preScreen.flagged) {
-    recordSafetyEvent(req.userId, 'body_reset', preScreen.category);
+    recordSafetyEvent(req.userId, 'body_reset', preScreen.category, {
+      riskLevel: preScreen.riskLevel,
+      sourceType: 'body_reset_arjun_note',
+    });
     const u = await prisma.user.findUnique({ where: { id: req.userId }, select: { language: true } }).catch(() => null);
     return res.json({ arjunNote: getSafetyGuidance(preScreen.category, u?.language), tags: ['support'], safetyFlag: 'needs_support' });
   }

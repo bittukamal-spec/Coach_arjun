@@ -81,7 +81,10 @@ router.get('/', authenticate, aiLimiter, requireGuardianConsent, async (req, res
     // event behind it. A structured SafetyEvent (no content) is recorded.
     const nameScreen = screenSafetyText(user.name || '');
     if (nameScreen.flagged) {
-      recordSafetyEvent(req.userId, 'profile_intro', nameScreen.category);
+      recordSafetyEvent(req.userId, 'profile_intro', nameScreen.category, {
+        riskLevel: nameScreen.riskLevel,
+        sourceType: 'profile_name',
+      });
       return res.json({ intro: getSafetyGuidance(nameScreen.category, lang), cached: false, safetyFlag: 'needs_support' });
     }
 

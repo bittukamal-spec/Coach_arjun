@@ -92,7 +92,13 @@ router.post('/', authenticate, aiLimiter, requireGuardianConsent, async (req, re
     // SafetyEvent (no content) is recorded.
     const legacyScreen = screenSafetyFields(wentWell, doDifferently, nextFocus);
     if (legacyScreen.flagged) {
-      recordSafetyEvent(req.userId, 'debrief', legacyScreen.category);
+      // The Debrief row is created later in this handler (after the AI
+      // insight step) — no real Debrief id exists yet at this point, so
+      // sourceRecordId is left unset rather than invented.
+      recordSafetyEvent(req.userId, 'debrief', legacyScreen.category, {
+        riskLevel: legacyScreen.riskLevel,
+        sourceType: 'debrief_legacy',
+      });
       const u = await prisma.user.findUnique({ where: { id: req.userId }, select: { language: true } }).catch(() => null);
       arjunInsight = getSafetyGuidance(legacyScreen.category, u?.language);
     } else
@@ -184,7 +190,12 @@ router.post('/', authenticate, aiLimiter, requireGuardianConsent, async (req, re
   // structured SafetyEvent recorded (no content).
   const structScreen = screenSafetyFields(wentWellText, wouldChangeText, nextFocus);
   if (structScreen.flagged) {
-    recordSafetyEvent(req.userId, 'debrief', structScreen.category);
+    // Same reasoning as the legacy branch above: the Debrief row doesn't
+    // exist yet at this point in the handler, so no sourceRecordId is set.
+    recordSafetyEvent(req.userId, 'debrief', structScreen.category, {
+      riskLevel: structScreen.riskLevel,
+      sourceType: 'debrief_structured',
+    });
     insight = getSafetyGuidance(structScreen.category, user?.language);
   } else
   // Trial gate: skip AI insight for expired-trial free users; debrief still saves.
