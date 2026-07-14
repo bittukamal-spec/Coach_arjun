@@ -52,6 +52,11 @@ test('no-active-selection: may mention offer_quick_replies for one focused quest
   assert.match(section, /offer_quick_replies/);
 });
 
+test('no-active-selection: calling offer_quick_replies is REQUIRED (not merely optional) whenever the bounded-question test is met', () => {
+  const section = buildCoachingStateSection(NO_STATE);
+  assert.match(section, /calling the tool is REQUIRED whenever that bounded-question test is met, not merely optional/i);
+});
+
 // ── Pending barrier ──────────────────────────────────────────────────────────
 
 test('pending-barrier: requires explicit acceptance before prescribe_mental_rep may be called', () => {
@@ -89,6 +94,13 @@ test('pending-barrier: may offer confirm/correct quick replies after presenting 
   assert.match(section, /do not call offer_quick_replies in that same reply/i);
 });
 
+test('pending-barrier: presenting a barrier hypothesis for confirmation NORMALLY REQUIRES offer_quick_replies (not merely "may"), and a bare "Not quite" tap is never treated as confirmation/CORRECTED', () => {
+  const section = buildCoachingStateSection(PENDING_STATE);
+  assert.match(section, /is normally required/i);
+  assert.match(section, /Tapping "Not quite" is only a rejection, never a correction and never CONFIRMED\/CORRECTED by itself/i);
+  assert.match(section, /the athlete must still explain or accept a revised barrier before prescribe_mental_rep may be called/i);
+});
+
 // ── Active prescription ──────────────────────────────────────────────────────
 
 test('active-prescription: forbids another prescription and forbids starting a new cycle', () => {
@@ -114,6 +126,38 @@ test('buildQuickReplySection: covers good uses, forbidden uses, and the client-o
   assert.match(section, /same reply as a new prescription/i);
   assert.match(section, /never include "Other", "Something else", or "Write my own"/i);
   assert.match(section, /follow the current conversation language/i);
+});
+
+test('buildQuickReplySection: the tool is mandatory for a clearly bounded 2-3 option question, with concrete required-chip examples', () => {
+  const section = buildQuickReplySection();
+  assert.match(section, /you MUST call offer_quick_replies in the same request/i);
+  assert.match(section, /do not merely write the options inside your message text/i);
+  assert.match(section, /are you thinking more about the bowler and your shot, or more about the result and getting out/i);
+  assert.match(section, /The bowler, field, or shot/);
+  assert.match(section, /The result or getting out/);
+  assert.match(section, /Does this happen more in matches, training, or both/i);
+  assert.match(section, /Mostly in matches/);
+  assert.match(section, /Mostly in training/);
+  assert.match(section, /"Both"/);
+});
+
+test('buildQuickReplySection: open-ended and over-three-answer questions are explicitly exempt, with concrete text-only examples', () => {
+  const section = buildQuickReplySection();
+  assert.match(section, /For open-ended or sensitive questions, do not call the tool at all/i);
+  assert.match(section, /when the question is open-ended, with no small fixed set of likely answers, or when the athlete needs to explain something in their own words/i);
+  assert.match(section, /when there are more than three meaningfully different answers/i);
+  assert.match(section, /What was going through your mind at that moment/i);
+  assert.match(section, /Tell me what happened after the mistake/i);
+  assert.match(section, /What would you like to handle differently next time/i);
+});
+
+test('buildQuickReplySection: chips support but never replace free text, use athlete-language not clinical labels, avoid near-duplicates, and cap at three', () => {
+  const section = buildQuickReplySection();
+  assert.match(section, /Chips support the question but never replace free-text input/i);
+  assert.match(section, /in the athlete's own words rather than clinical labels/i);
+  assert.match(section, /Avoid near-duplicate choices/i);
+  assert.match(section, /never include an explanation inside a chip label/i);
+  assert.match(section, /maximum three replies/i);
 });
 
 // ── No context (quick chat / not wired) ──────────────────────────────────────
