@@ -673,6 +673,20 @@ model Prescription {
   completedAt  DateTime?
   supersededAt DateTime? // set only on an explicit re-prescription — never automatic
 
+  // Deterministic next-open follow-up opener (PR-11) — "Last time you
+  // planned to try [practice] in [situation]. How did it go?", posted at
+  // most once per prescription. followUpOpenerClaimedAt is the atomic
+  // once-only claim guard (conditional update WHERE this is null);
+  // followUpOpenerMessageId is the real persisted assistant Message id the
+  // opener was written to. Plain scalars, not relations — a
+  // sourceChatSession-style named relation on both models would be the only
+  // clean way to add one here, and isn't needed for a nullable audit trail.
+  // No expiry, no automatic abandonment, no outcome/rating field — this PR
+  // is opener delivery only.
+  followUpOpenerClaimedAt DateTime?
+  followUpOpenerMessageId String?   @unique
+  followUpOpenerSessionId String?
+
   @@index([userId, status])
   @@index([cycleId])
   // Composite-relation target (never queried directly): lets

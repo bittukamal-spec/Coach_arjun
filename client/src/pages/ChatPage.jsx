@@ -376,6 +376,12 @@ function ChatPage() {
   const pendingChatSessionIdRef = useRef(location.state?.chatSessionId ?? null);
   const chatSessionIdRef        = useRef(null);
   const chatModeRef             = useRef('main');
+  // Per-entry guard: at most one claim-opener request per main ChatSession
+  // per mount, no matter how many times a render/effect re-runs. Server
+  // atomicity (the conditional updateMany in claimPrescriptionFollowUp) is
+  // the real duplicate-prevention guarantee — this just avoids firing
+  // redundant browser requests.
+  const followUpClaimedSessionsRef = useRef(new Set());
 
   // ── Load on mount ─────────────────────────────────────────────────────────
 
@@ -422,6 +428,7 @@ function ChatPage() {
               }
               if (sess?.summary) setSessionSummary(sess.summary);
               await fetchSessionMessages(pendingId);
+              await claimFollowUpOpener(pendingId);
               sessionLoaded = true;
             } else if (sessions.length > 0) {
               // Auto-load the most recent main session — sessions are ordered createdAt desc
@@ -433,6 +440,7 @@ function ChatPage() {
               }
               if (mainSession.summary) setSessionSummary(mainSession.summary);
               await fetchSessionMessages(mainSession.id);
+              await claimFollowUpOpener(mainSession.id);
               sessionLoaded = true;
             }
           } else {
@@ -555,6 +563,30 @@ function ChatPage() {
     } catch { /* ignore */ }
   }
 
+  // Claim the deterministic next-open prescription follow-up opener (PR-11)
+  // for a main ChatSession the athlete is genuinely entering/continuing.
+  // Never called for Quick Chat, never called merely for viewing the entry
+  // screen, and never blocks chat entry on failure — the server's atomic
+  // claim is the real duplicate-prevention guarantee; this is just an
+  // in-flight guard against firing the request more than once per session
+  // per mount. On a win, messages are reloaded from the server so the
+  // opener renders from real persisted history — never appended locally.
+  async function claimFollowUpOpener(sessionId) {
+    if (!sessionId || consentPending) return;
+    if (followUpClaimedSessionsRef.current.has(sessionId)) return;
+    followUpClaimedSessionsRef.current.add(sessionId);
+    try {
+      const res = await apiFetch('/api/prescriptions/claim-opener', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ chatSessionId: sessionId }),
+      });
+      if (!res.ok) return;
+      const data = await res.json().catch(() => ({}));
+      if (data.claimed) await fetchSessionMessages(sessionId);
+    } catch { /* a claim failure must never block chat entry */ }
+  }
+
   async function createSession(type = 'general', mode = chatMode) {
     const res = await apiFetch('/api/sessions', {
       method: 'POST',
@@ -581,9 +613,11 @@ function ChatPage() {
       }
       if (existingSession.summary) setSessionSummary(existingSession.summary);
       await fetchSessionMessages(existingSession.id);
+      await claimFollowUpOpener(existingSession.id);
       setShowStartScreen(false);
     } else {
-      await createSession('general', 'main');
+      const id = await createSession('general', 'main');
+      await claimFollowUpOpener(id);
     }
   }
 
