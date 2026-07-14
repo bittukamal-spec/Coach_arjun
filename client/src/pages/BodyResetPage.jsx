@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, ChevronRight, Wind } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiFetch } from '../api';
@@ -51,10 +51,22 @@ function TensionPicker({ value, onChange, low, high }) {
 
 export default function BodyResetPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { token, language, user } = useAuth();
   const t = translations[language]?.bodyReset || translations.en.bodyReset;
   const tSkill = translations[language]?.skillPathPressure || translations.en.skillPathPressure;
   const hi = language === 'hi';
+
+  // Carries the exact prescriptionId + practiceKey when this session was
+  // launched from a prescribed Mental Rep card (PR-12) — read once on
+  // mount, same ephemeral route-state mechanism ChatPage already uses for
+  // pendingChatSessionIdRef. Generic (non-prescribed) practice sessions
+  // simply have no state here, and behave exactly as before.
+  const prescriptionLinkRef = useRef(
+    location.state?.prescriptionId && location.state?.practiceKey === 'pressure_reset'
+      ? { prescriptionId: location.state.prescriptionId, practiceKey: location.state.practiceKey }
+      : null
+  );
 
   const [screen, setScreen] = useState(1);
   const [showSoftGate, setShowSoftGate] = useState(false);
@@ -280,6 +292,20 @@ export default function BodyResetPage() {
     return () => { cancelledRef.current = true; };
   }, [screen]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Fire-and-forget exact prescription completion (PR-12) — only when this
+  // session was genuinely launched from a prescribed pressure_reset card.
+  // Never awaited: a failed/slow linkage request must never delay or block
+  // the athlete from seeing the existing save/done screens.
+  function completePrescriptionLink() {
+    const link = prescriptionLinkRef.current;
+    if (!link) return;
+    apiFetch(`/api/prescriptions/${link.prescriptionId}/complete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ practiceKey: link.practiceKey }),
+    }).catch(() => {});
+  }
+
   // ── Save session ─────────────────────────────────────────────────────────────
   async function saveSession() {
     setSaving(true);
@@ -305,6 +331,7 @@ export default function BodyResetPage() {
           aiModel: arjunAiModel,
         }),
       }).then(r => r.json());
+      completePrescriptionLink();
       setScreen(11);
     } catch {
       setScreen(11);

@@ -22,6 +22,14 @@ const {
   claimPrescriptionFollowUp,
   InvalidChatSessionError,
 } = require('./claimPrescriptionFollowUp');
+const {
+  createCompleteActivePrescription,
+  completeActivePrescription,
+  createLoadActivePrescription,
+  loadActivePrescription,
+  PrescriptionNotFoundError,
+  PrescriptionMismatchError,
+} = require('./completeActivePrescription');
 
 module.exports = {
   runBufferedToolLoop,
@@ -45,4 +53,10 @@ module.exports = {
   createClaimPrescriptionFollowUp,
   claimPrescriptionFollowUp,
   InvalidChatSessionError,
+  createCompleteActivePrescription,
+  completeActivePrescription,
+  createLoadActivePrescription,
+  loadActivePrescription,
+  PrescriptionNotFoundError,
+  PrescriptionMismatchError,
 };

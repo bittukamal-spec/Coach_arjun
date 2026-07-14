@@ -676,15 +676,18 @@ model Prescription {
   // Deterministic next-open follow-up opener (PR-11) — "Last time you
   // planned to try [practice] in [situation]. How did it go?", posted at
   // most once per prescription. followUpOpenerClaimedAt is the atomic
-  // once-only claim guard (conditional update WHERE this is null);
+  // once-only claim guard (conditional update WHERE this is null — the
+  // real duplicate-prevention guarantee, not a schema constraint);
   // followUpOpenerMessageId is the real persisted assistant Message id the
-  // opener was written to. Plain scalars, not relations — a
-  // sourceChatSession-style named relation on both models would be the only
-  // clean way to add one here, and isn't needed for a nullable audit trail.
-  // No expiry, no automatic abandonment, no outcome/rating field — this PR
-  // is opener delivery only.
+  // opener was written to, kept as a plain nullable scalar with no unique
+  // constraint (a Message row is never shared across Prescriptions in
+  // practice, but nothing here depends on the database enforcing that).
+  // Plain scalars, not relations — a sourceChatSession-style named relation
+  // on both models would be the only clean way to add one here, and isn't
+  // needed for a nullable audit trail. No expiry, no automatic abandonment,
+  // no outcome/rating field — this PR is opener delivery only.
   followUpOpenerClaimedAt DateTime?
-  followUpOpenerMessageId String?   @unique
+  followUpOpenerMessageId String?
   followUpOpenerSessionId String?
 
   @@index([userId, status])

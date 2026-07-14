@@ -81,7 +81,7 @@ test('ChatPage: ServerCardBubble is a distinct component, not merged into ArjunT
 test('ChatPage: server cards are rendered from their own state array, not appended to messages', () => {
   assert.match(chatPageSrc, /const \[serverCards, setServerCards\]\s*=\s*useState\(\[\]\)/);
   assert.match(chatPageSrc, /serverCards\.map\(card => \(/);
-  assert.match(chatPageSrc, /<ServerCardBubble key=\{card\.prescriptionId\} card=\{card\} \/>/);
+  assert.match(chatPageSrc, /<ServerCardBubble key=\{card\.prescriptionId\} card=\{card\} t=\{t\} \/>/);
 });
 
 test('ChatPage: a card event is never routed through setMessages', () => {

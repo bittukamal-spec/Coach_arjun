@@ -28,11 +28,17 @@ test('Prescription gains followUpOpenerClaimedAt: a nullable DateTime, never req
   assert.equal(field.isUnique, false);
 });
 
-test('Prescription gains followUpOpenerMessageId: a nullable, globally unique String (the real persisted Message id)', () => {
+test('Prescription gains followUpOpenerMessageId: a nullable, non-unique String (the real persisted Message id)', () => {
   const field = getField(getModel('Prescription'), 'followUpOpenerMessageId');
   assert.equal(field.type, 'String');
   assert.equal(field.isRequired, false);
-  assert.equal(field.isUnique, true, 'a Message can be the follow-up opener for at most one Prescription');
+  // Deliberately NOT a unique constraint: the once-only guarantee comes
+  // entirely from the transactional conditional claim on
+  // followUpOpenerClaimedAt (WHERE it is null), not from a database
+  // constraint on this field. A unique index here would also force
+  // `prisma db push` to require --accept-data-loss on deploy, which this
+  // repo's rollout must never pass.
+  assert.equal(field.isUnique, false, 'uniqueness is not required for the atomic claim or duplicate prevention');
 });
 
 test('Prescription gains followUpOpenerSessionId: a nullable String, not a hard relation', () => {
