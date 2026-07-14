@@ -1,9 +1,12 @@
 // Source-text checks for PR-11's deterministic prescription follow-up
 // opener client wiring, amended so the claim only ever fires from an
 // explicit "enter the main conversation" action (handleContinueMain) —
-// never from passive session discovery on mount. ChatPage.jsx contains
-// JSX and cannot be imported directly by node:test without a transform,
-// so — matching the pattern established by serverCardWiring.test.js and
+// never from passive session discovery on mount — and so the per-entry
+// guard resets whenever the UI genuinely returns to the chat-entry screen
+// (so a claimed:false before a prescription exists can never permanently
+// suppress a later genuine entry). ChatPage.jsx contains JSX and cannot be
+// imported directly by node:test without a transform, so — matching the
+// pattern established by serverCardWiring.test.js and
 // quickReplyWiring.test.js — these are source-text assertions.
 
 import test from 'node:test';
@@ -166,4 +169,51 @@ test('ChatPage: createSession is only ever called in a main-mode context, so the
   for (const args of matches) {
     assert.match(args, /'main'/, `createSession call "${args}" must be main-mode only`);
   }
+});
+
+// ── 9. Per-entry guard: reset only on a genuine return to the entry screen ──
+
+test('ChatPage: returning to the chat-entry screen resets the per-entry follow-up-claim guard', () => {
+  assert.match(
+    chatPageSrc,
+    /useEffect\(\(\) => \{\s*\n\s*if \(showStartScreen\) followUpClaimedSessionsRef\.current\.clear\(\);\s*\n\s*\}, \[showStartScreen\]\);/,
+    'expected an effect that clears the guard whenever showStartScreen becomes true, keyed only on showStartScreen'
+  );
+});
+
+test('ChatPage: the guard-reset effect depends only on showStartScreen, so ordinary rerenders inside the same conversation never clear it', () => {
+  const idx = chatPageSrc.indexOf('followUpClaimedSessionsRef.current.clear()');
+  assert.ok(idx !== -1);
+  const depsMatch = chatPageSrc.slice(idx, idx + 150).match(/\}, \[([^\]]*)\]\);/);
+  assert.ok(depsMatch, 'expected a dependency array on the guard-reset effect');
+  assert.equal(
+    depsMatch[1].trim(),
+    'showStartScreen',
+    'must depend on exactly showStartScreen — nothing that changes during ordinary conversation rerenders (messages, streaming, etc.)'
+  );
+});
+
+test('ChatPage: a claimed:false result before a prescription exists cannot permanently suppress a later genuine entry — a second, screen-level reset exists beyond the two failure-path deletes', () => {
+  // claimFollowUpOpener itself clears the guard on exactly the two failure
+  // paths (non-ok response, thrown error) — proven above. The THIRD, and
+  // only remaining, place the guard clears is the screen-level reset
+  // effect: that is what makes a prior claimed:false non-permanent once the
+  // athlete leaves the conversation and genuinely re-enters, rather than
+  // requiring a fresh page mount.
+  const inFunctionDeletes = (fnBody('claimFollowUpOpener').match(/followUpClaimedSessionsRef\.current\.delete/g) || []).length;
+  assert.equal(inFunctionDeletes, 2, 'the claim function itself still only clears the guard on failure, never on a definitive claimed:false');
+  assert.match(chatPageSrc, /if \(showStartScreen\) followUpClaimedSessionsRef\.current\.clear\(\);/);
+});
+
+test('ChatPage: pressing Continue again on a later genuine entry can call the claim endpoint again for the same chatSessionId', () => {
+  // handleContinueMain always calls claimFollowUpOpener unconditionally for
+  // the resolved session id on every invocation — nothing in this handler
+  // itself remembers a prior outcome. Whether a given call actually reaches
+  // the network depends solely on followUpClaimedSessionsRef, which the
+  // screen-level reset effect clears between entries — so a repeated
+  // Continue tap after returning to the entry screen is free to retry.
+  const start = chatPageSrc.indexOf('async function handleContinueMain()');
+  const end = chatPageSrc.indexOf('\n  }', start);
+  const body = chatPageSrc.slice(start, end);
+  assert.doesNotMatch(body, /if \([^)]*followUpClaimedSessionsRef[^)]*\)/, 'handleContinueMain must not itself gate on prior claim outcomes — only claimFollowUpOpener/the reset effect do');
 });
