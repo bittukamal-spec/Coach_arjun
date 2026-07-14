@@ -105,8 +105,26 @@ test('the helpline safety event and background memory extraction still run on th
   assert.match(mainSlice, /extractAndStoreMemories\(req\.userId, conversationHistory, finalText\)/);
 });
 
-test('buildSystemPrompt (Arjun\'s brain) is called exactly as before — not modified, not bypassed', () => {
-  assert.match(handler, /buildSystemPrompt\(user, recentCheckIns, memories, sessionType, \{ recentDebriefs, todayDrill/);
+test("buildSystemPrompt (Arjun's brain) is still called for both the quick-chat and main-chat paths, not bypassed", () => {
+  assert.match(handler, /const promptExtra = \{ recentDebriefs, todayDrill/);
+  const calls = [...handler.matchAll(/buildSystemPrompt\(user, recentCheckIns, memories, sessionType, ([^)]+)\)/g)].map((m) => m[1]);
+  assert.equal(calls.length, 2, 'expected one call in the quick-chat branch and one in the main-chat branch');
+  assert.ok(calls.includes('promptExtra'), 'quick chat must pass promptExtra unchanged');
+  assert.ok(calls.some((c) => c.includes('...promptExtra') && c.includes('coachingContext')), 'main chat must extend promptExtra with coachingContext');
+});
+
+test('coachingContext is loaded before buildSystemPrompt is called on the main-chat path, so it reaches the model on the first round', () => {
+  const loadIdx = handler.indexOf('const coachingContext = await loadCoachingContext(req.userId);');
+  const mainPromptIdx = handler.indexOf('buildSystemPrompt(user, recentCheckIns, memories, sessionType, { ...promptExtra, coachingContext })');
+  assert.ok(loadIdx !== -1 && mainPromptIdx !== -1);
+  assert.ok(loadIdx < mainPromptIdx, 'coachingContext must be loaded before it is threaded into the system prompt');
+});
+
+test('quick chat never loads or threads coachingContext (dormant path unaffected by PR-10 correction 1)', () => {
+  const quickIdx = handler.indexOf('if (isQuickChat)');
+  const quickEnd = handler.indexOf('// ── Main coaching chat');
+  const quickSlice = handler.slice(quickIdx, quickEnd);
+  assert.doesNotMatch(quickSlice, /coachingContext/);
 });
 
 test('legacy historical [APP:...] handling is not removed from the codebase (client keeps parsing old messages)', () => {
@@ -117,4 +135,52 @@ test('legacy historical [APP:...] handling is not removed from the codebase (cli
 test('the persisted-equals-emitted invariant holds structurally: the same finalText identifier is passed to commit and to the d event', () => {
   assert.match(handler, /finalText,\s*\n\s*transition: loop\.transition/);
   assert.match(handler, /\{ t: 'd', c: finalText \}/);
+});
+
+// ── Correction 3: retry persistence invariant ────────────────────────────────
+
+test('emitDeterministicRetry persists the retry message BEFORE writing it to the SSE stream', () => {
+  const idx = handler.indexOf('const emitDeterministicRetry = async () => {');
+  assert.ok(idx !== -1);
+  const block = handler.slice(idx, handler.indexOf('};', idx));
+  const persistIdx = block.indexOf('prisma.message.create(');
+  const emitIdx = block.indexOf("{ t: 'd', c: retryText }");
+  assert.ok(persistIdx !== -1 && emitIdx !== -1);
+  assert.ok(persistIdx < emitIdx, 'the retry message must be persisted before it is streamed');
+});
+
+test('emitDeterministicRetry emits and persists the identical retryText value (byte-equality by construction, not by two independent computations)', () => {
+  const idx = handler.indexOf('const emitDeterministicRetry = async () => {');
+  const block = handler.slice(idx, handler.indexOf('};', idx));
+  assert.match(block, /const retryText = getRetryMessage\(user\?\.language\);/);
+  assert.match(block, /content: retryText/);
+  assert.match(block, /\{ t: 'd', c: retryText \}/);
+  // Only one retryText is ever computed in this function — no second/divergent copy.
+  assert.equal((block.match(/getRetryMessage\(/g) || []).length, 1);
+});
+
+test('emitDeterministicRetry writes no coaching-state record — only the assistant Message', () => {
+  const idx = handler.indexOf('const emitDeterministicRetry = async () => {');
+  const block = handler.slice(idx, handler.indexOf('};', idx));
+  assert.doesNotMatch(block, /coachingCycle|activeCoachingSelection|prescription\.create|commitCoachingTransition/i);
+  assert.doesNotMatch(block, /t: 'card'/, 'no card may ever be emitted on the retry path');
+  assert.match(block, /res\.end\(\)/, 'the stream must end cleanly');
+});
+
+test('all three retry triggers (round cap, empty/missing final text, commit conflict) route through the same emitDeterministicRetry function', () => {
+  const triggers = [
+    "if (!finalText) return emitDeterministicRetry();",
+    'return emitDeterministicRetry();', // inside the commit catch block for a staged transition
+  ];
+  for (const trigger of triggers) {
+    assert.ok(handler.includes(trigger), `expected to find: ${trigger}`);
+  }
+  // Confirm the empty-final-text branch is fed by both round-cap exhaustion and sanitizer rejection.
+  assert.match(handler, /const finalText = loop\.exceededRounds \? null : sanitizeFinalText\(loop\.finalText\);/);
+});
+
+test('a commit failure without a staged transition (plain message persistence failure) is NOT swallowed into a silent retry — it still surfaces via the existing error handler', () => {
+  const catchIdx = handler.indexOf('} catch (commitErr) {');
+  const catchBlock = handler.slice(catchIdx, catchIdx + 700);
+  assert.match(catchBlock, /throw commitErr;/, 'a plain (non-transition) commit failure must still propagate to the outer catch');
 });

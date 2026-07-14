@@ -31,9 +31,24 @@ const MAX_FINAL_TEXT_LENGTH = 6000;
 // this only fires if the model echoes marker syntax into its prose.
 const INTERNAL_MARKER_RE = /<\/?(?:tool_use|tool_result|function_calls?|invoke|antml:[a-z_]+)\b[^>]*>/gi;
 
+// Legacy card/chip markers must never appear in a NEW buffered coaching-loop
+// response — this loop uses only the structured t:"card" SSE event
+// (client/src/utils/serverCardEvent.js). Historical stored messages still
+// use these tags and the client still renders them as-is (parseArjunMessage.js,
+// ChatPage.jsx's extractSuggestions) — that path is untouched; this only
+// strips the tags from brand-new buffered text before it is ever emitted or
+// persisted. The patterns intentionally mirror the client's own tag grammar
+// exactly, so only a COMPLETE, well-formed tag is removed — never a
+// partial bracket fragment or unrelated athlete-visible bracket text (e.g.
+// "(see you [next week])" is left alone).
+const LEGACY_APP_TAG_RE = /\[APP:[a-z-]+\]/g;         // mirrors parseArjunMessage.js
+const LEGACY_SUGGEST_TAG_RE = /\n?\[SUGGEST:\s*[^\]]+\]/; // mirrors ChatPage.jsx's extractSuggestions
+
 function sanitizeFinalText(raw) {
   if (typeof raw !== 'string') return null;
-  let text = raw.replace(INTERNAL_MARKER_RE, '').trim();
+  let text = raw.replace(INTERNAL_MARKER_RE, '');
+  text = text.replace(LEGACY_APP_TAG_RE, '').replace(LEGACY_SUGGEST_TAG_RE, '');
+  text = text.trim();
   if (!text) return null;
   if (text.length > MAX_FINAL_TEXT_LENGTH) text = text.slice(0, MAX_FINAL_TEXT_LENGTH).trimEnd();
   return text;

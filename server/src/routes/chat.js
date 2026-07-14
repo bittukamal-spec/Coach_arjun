@@ -138,10 +138,46 @@ Be warm and curious. Ask one natural follow-up question per response.`,
   post_checkin: `The athlete just completed their Daily Pulse check-in and wants to discuss how they're doing today. Their specific mood, focus, and confidence scores are in the "Recent Mental State" section above. Start by directly referencing their exact scores — acknowledge what they mean, validate any low numbers, then ask ONE specific follow-up question about what is driving those numbers today. Be concrete, not generic.`,
 };
 
+// ── Coaching-state instructions for the buffered tool loop (PR-10) ────────
+// Exactly one of these three blocks applies per request, based on the same
+// coachingContext snapshot the tool validators (coachingTools.js) re-check
+// server-side at commit time — the prompt and the enforcement never
+// disagree about what state the athlete is in. Quick chat never calls this
+// (it returns its own prompt before coachingContext is even loaded).
+function buildCoachingStateSection(coachingContext) {
+  if (!coachingContext) return '';
+  const { hasActiveSelection, hasPrescription } = coachingContext;
+
+  if (!hasActiveSelection) {
+    return `## Coaching State: No Active Coaching Cycle
+The athlete has no open coaching cycle right now.
+- Understand ONE real performance problem the athlete is bringing right now — not a hypothetical.
+- Ask focused, targeted questions before proposing anything. Normally ask 2–4 focused questions in total before you have enough to hypothesize. Do not immediately advise, coach a fix, or prescribe a practice — get the real picture first.
+- When you have enough, call the propose_barrier tool with exactly ONE tentative barrier.
+- After propose_barrier is accepted, your visible reply must frame that barrier as a hypothesis in plain language ("sounds like… does that fit?") and ask the athlete to confirm or correct it. Do NOT prescribe a practice, mention a specific tool, or offer any menu of options in that reply — confirmation comes first, with no card of any kind.`;
+  }
+
+  if (!hasPrescription) {
+    return `## Coaching State: Barrier Awaiting Confirmation
+A barrier hypothesis is open on this cycle and awaiting the athlete's confirmation.
+- Focus on confirming or correcting the CURRENT hypothesis. Do not open a second cycle or drift to a new problem while this one is open.
+- If the athlete rejects the hypothesis, that rejection alone is not a correction and is not grounds to prescribe anything. Ask no more than two more useful follow-up questions where needed, then present exactly ONE revised hypothesis and ask the athlete to confirm it.
+- Call prescribe_mental_rep only after the athlete has explicitly accepted a working barrier — either the original (use CONFIRMED) or a revised one they accepted after correcting the first (use CORRECTED). CORRECTED means a revised barrier was proposed and accepted — never merely that the original was rejected.
+- practiceKey must be one of the approved Mental Rep practices in the prescribe_mental_rep tool's schema — never a game (Focus Lock, Reset Rally), a Skill Path, or any invented practice.
+- When you call prescribe_mental_rep, your visible reply must: explain the barrier in no more than 1–2 short lines; prescribe exactly ONE approved practice; name the real training or competition situation where the athlete will try it; and never offer a menu, a second practice, or alternatives. The app shows the practice card to the athlete automatically — do not write [APP:...] or [SUGGEST:...] tags in this reply.`;
+  }
+
+  return `## Coaching State: Prescription Already Active
+The athlete already has an open Mental Rep prescription from the current coaching cycle.
+- Do NOT create or suggest another prescription, and do not call prescribe_mental_rep again this cycle.
+- Do NOT start a new coaching cycle or propose a new barrier while this one is still open.
+- Keep coaching the athlete conversationally around their existing practice, or about anything else they bring up. Follow-up and completion handling for this practice are built in a later update — for now, simply retain it as their current active Mental Rep and do not re-prescribe or re-diagnose.`;
+}
+
 // ── Helper: build personalised system prompt ─────────────────────────────
 
 function buildSystemPrompt(user, checkIns = [], memories = [], sessionType = null, extra = {}) {
-  const { recentDebriefs = [], todayDrill = null, achievementCount = 0, recentDrills = [], gameSessions = [], ritual = null, mfsEntry = null, mfsHistory = [], mfsReport = null, toolReports = [], isQuickChat = false, skillHint = null, activePlan = null, focusCards = [] } = extra;
+  const { recentDebriefs = [], todayDrill = null, achievementCount = 0, recentDrills = [], gameSessions = [], ritual = null, mfsEntry = null, mfsHistory = [], mfsReport = null, toolReports = [], isQuickChat = false, skillHint = null, activePlan = null, focusCards = [], coachingContext = null } = extra;
 
   // Quick chat: minimal prompt — no memory, no history context, no tool reports
   if (isQuickChat) {
@@ -359,7 +395,9 @@ No recent check-ins — the athlete hasn't tracked their mental state yet.`;
     ? `## Active Session\n${SESSION_INSTRUCTIONS[sessionType]}\n\nFor this session: Ask ONE focused question at a time. Do not give advice, techniques, or solutions until you fully understand the athlete's situation.`
     : '';
 
-  const extraSections = [patternSection].filter(Boolean).join('\n\n');
+  const coachingStateSection = buildCoachingStateSection(coachingContext);
+
+  const extraSections = [coachingStateSection, patternSection].filter(Boolean).join('\n\n');
 
   const actionBridgeSection = (extra.arjunMsgCount ?? 0) >= 4
     ? `\n\n## Natural Action Offer\nYou are ${extra.arjunMsgCount} responses into this session. If you feel you have addressed the athlete's main concern, naturally offer ONE specific next step they can try right now — for example a 2-minute breathing exercise, building a pre-match routine together, or a quick visualisation drill. Keep it to one casual sentence such as "Want to try a quick breathing exercise right now?" Only offer this once — if you have already suggested a next action in this session, do not repeat it.`
@@ -982,11 +1020,12 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
 
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const model = process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001';
-    const systemPrompt = buildSystemPrompt(user, recentCheckIns, memories, sessionType, { recentDebriefs, todayDrill, achievementCount, recentDrills, gameSessions, ritual, arjunMsgCount, mfsEntry, mfsHistory, mfsReport: null, toolReports, isQuickChat, skillHint, activePlan, focusCards });
+    const promptExtra = { recentDebriefs, todayDrill, achievementCount, recentDrills, gameSessions, ritual, arjunMsgCount, mfsEntry, mfsHistory, mfsReport: null, toolReports, isQuickChat, skillHint, activePlan, focusCards };
 
     if (isQuickChat) {
       // ── Dormant Quick Chat path — legacy incremental streaming, unchanged
       // (hidden from athletes since PR-4; deliberately not redesigned here).
+      const systemPrompt = buildSystemPrompt(user, recentCheckIns, memories, sessionType, promptExtra);
       let fullText = '';
       const stream = anthropic.messages.stream({
         model,
@@ -1024,7 +1063,15 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
     // emitted. The staged transition (if any) commits in ONE transaction
     // together with the exact visible assistant text; only then does the
     // SSE stream emit d → card (new prescription only) → end.
+    //
+    // coachingContext is loaded BEFORE the system prompt is built so the
+    // model is explicitly told, on the very first Anthropic round, whether
+    // the athlete has no active selection, a pending barrier, or an active
+    // prescription (buildCoachingStateSection) — this is the same context
+    // the tool validators re-check server-side, and it is included
+    // identically on every round of the loop below.
     const coachingContext = await loadCoachingContext(req.userId);
+    const systemPrompt = buildSystemPrompt(user, recentCheckIns, memories, sessionType, { ...promptExtra, coachingContext });
     const loop = await runBufferedToolLoop({
       anthropic,
       model,
@@ -1253,3 +1300,5 @@ Also include a "report" field: {"report":{"moment":"<1-sentence: what moment the
 module.exports = router;
 module.exports.checkFreeLimit = checkFreeLimit;
 module.exports.isTrialActive  = isTrialActive;
+module.exports.buildSystemPrompt = buildSystemPrompt;
+module.exports.buildCoachingStateSection = buildCoachingStateSection;

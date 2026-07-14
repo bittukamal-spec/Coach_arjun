@@ -277,7 +277,32 @@ test('sanitizeFinalText: enforces the maximum length', () => {
   assert.ok(sanitizeFinalText(long).length <= 6000);
 });
 
-test('sanitizeFinalText: leaves normal coaching text (including legacy tags) untouched', () => {
+test('sanitizeFinalText: leaves normal coaching text untouched', () => {
+  const text = 'Try this before the match.';
+  assert.equal(sanitizeFinalText(text), text);
+});
+
+test('sanitizeFinalText: strips complete legacy [APP:...] and [SUGGEST:...] markers from new buffered text, preserving surrounding prose', () => {
   const text = 'Try this before the match. [APP:body-reset]\n[SUGGEST: Yes | Tell me more]';
+  const clean = sanitizeFinalText(text);
+  assert.equal(clean, 'Try this before the match.');
+  assert.ok(!clean.includes('[APP:'));
+  assert.ok(!clean.includes('[SUGGEST:'));
+});
+
+test('sanitizeFinalText: strips multiple [APP:...] tags', () => {
+  const text = 'Two options here. [APP:body-reset] [APP:self-talk]';
+  const clean = sanitizeFinalText(text);
+  assert.ok(!clean.includes('[APP:'));
+  assert.equal(clean, 'Two options here.');
+});
+
+test('sanitizeFinalText: does not touch unrelated bracket text that is not a well-formed tag', () => {
+  const text = 'See you [next week] and keep at it.';
+  assert.equal(sanitizeFinalText(text), text);
+});
+
+test('sanitizeFinalText: a marker-like but malformed fragment (no closing bracket) is left alone, not broadly deleted', () => {
+  const text = 'This mentions [APP: without a proper close and continues normally.';
   assert.equal(sanitizeFinalText(text), text);
 });
