@@ -8,6 +8,10 @@ const { detectSkill } = require('../services/skillDetection');
 const { getSkill, resolveTagForSkill } = require('../config/skillRegistry');
 const { markSkillProgress, getLastRecommendedAt, getSkillProgress } = require('../services/skillProgress');
 const { screenSafetyText, recordSafetyEvent, getSafetyGuidance } = require('../services/safety');
+const {
+  runBufferedToolLoop, sanitizeFinalText,
+  loadCoachingContext, commitCoachingTransition, getRetryMessage,
+} = require('../services/coaching');
 
 // How long a suppressed (ignored) skill recommendation stays suppressed
 // before it can be primed again — a lightweight stand-in for "session".
@@ -977,40 +981,113 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
     res.flushHeaders();
 
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-    let fullText = '';
+    const model = process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001';
+    const systemPrompt = buildSystemPrompt(user, recentCheckIns, memories, sessionType, { recentDebriefs, todayDrill, achievementCount, recentDrills, gameSessions, ritual, arjunMsgCount, mfsEntry, mfsHistory, mfsReport: null, toolReports, isQuickChat, skillHint, activePlan, focusCards });
 
-    const stream = anthropic.messages.stream({
-      model: process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001',
-      max_tokens: 800,
-      system: buildSystemPrompt(user, recentCheckIns, memories, sessionType, { recentDebriefs, todayDrill, achievementCount, recentDrills, gameSessions, ritual, arjunMsgCount, mfsEntry, mfsHistory, mfsReport: null, toolReports, isQuickChat, skillHint, activePlan, focusCards }),
+    if (isQuickChat) {
+      // ── Dormant Quick Chat path — legacy incremental streaming, unchanged
+      // (hidden from athletes since PR-4; deliberately not redesigned here).
+      let fullText = '';
+      const stream = anthropic.messages.stream({
+        model,
+        max_tokens: 800,
+        system: systemPrompt,
+        messages: conversationHistory,
+      });
+
+      stream.on('text', (text) => {
+        fullText += text;
+        res.write(`data: ${JSON.stringify({ t: 'd', c: text })}\n\n`);
+      });
+
+      await stream.finalMessage();
+
+      const assistantMsg = await prisma.message.create({
+        data: { userId: req.userId, role: 'assistant', content: fullText, sessionType: sessionType || null, chatSessionId: chatSessionId || null },
+      });
+
+      res.write(`data: ${JSON.stringify({ t: 'end', id: assistantMsg.id })}\n\n`);
+      res.end();
+
+      if (/9152987821|1800-599-0019/.test(fullText)) {
+        prisma.safetyEvent.create({
+          data: { userId: req.userId, surface: 'chat', triggerType: 'helpline_response' },
+        }).catch(err => console.error('[safety] chat event failed:', err?.message));
+      }
+      extractAndStoreMemories(req.userId, conversationHistory, fullText).catch(() => {});
+      return;
+    }
+
+    // ── Main coaching chat: fully buffered tool loop (PR-10). No Claude
+    // text reaches the athlete while tool calls are still in flight —
+    // intermediate drafts, tool JSON, and rejected transitions are never
+    // emitted. The staged transition (if any) commits in ONE transaction
+    // together with the exact visible assistant text; only then does the
+    // SSE stream emit d → card (new prescription only) → end.
+    const coachingContext = await loadCoachingContext(req.userId);
+    const loop = await runBufferedToolLoop({
+      anthropic,
+      model,
+      maxTokens: 800,
+      system: systemPrompt,
       messages: conversationHistory,
+      coachingContext,
     });
 
-    stream.on('text', (text) => {
-      fullText += text;
-      res.write(`data: ${JSON.stringify({ t: 'd', c: text })}\n\n`);
-    });
+    const finalText = loop.exceededRounds ? null : sanitizeFinalText(loop.finalText);
 
-    await stream.finalMessage();
+    // Deterministic fallback (fixed copy, never model text): used when the
+    // loop hit its round cap, produced empty text, or the staged transition
+    // could not be committed. Nothing has been written in those cases.
+    const emitDeterministicRetry = async () => {
+      const retryText = getRetryMessage(user?.language);
+      const saved = await prisma.message.create({
+        data: { userId: req.userId, role: 'assistant', content: retryText, sessionType: sessionType || null, chatSessionId: chatSessionId || null },
+      }).catch(() => null);
+      res.write(`data: ${JSON.stringify({ t: 'd', c: retryText })}\n\n`);
+      res.write(`data: ${JSON.stringify({ t: 'end', id: saved?.id || 'retry-' + Date.now() })}\n\n`);
+      res.end();
+    };
 
-    // Save the complete assistant response
-    const assistantMsg = await prisma.message.create({
-      data: { userId: req.userId, role: 'assistant', content: fullText, sessionType: sessionType || null, chatSessionId: chatSessionId || null },
-    });
+    if (!finalText) return emitDeterministicRetry();
 
-    res.write(`data: ${JSON.stringify({ t: 'end', id: assistantMsg.id })}\n\n`);
+    let committed;
+    try {
+      committed = await commitCoachingTransition({
+        userId: req.userId,
+        chatSessionId: chatSessionId || null,
+        sessionType: sessionType || null,
+        finalText,
+        transition: loop.transition,
+      });
+    } catch (commitErr) {
+      if (loop.transition) {
+        // Conflict or transaction failure on a staged transition: the
+        // rollback left no partial records; never emit the model's
+        // prescription text or a card for an uncommitted prescription.
+        console.error('[chat] coaching transition commit failed:', commitErr?.message);
+        return emitDeterministicRetry();
+      }
+      throw commitErr; // plain message persistence failure → existing error path
+    }
+
+    res.write(`data: ${JSON.stringify({ t: 'd', c: finalText })}\n\n`);
+    if (committed.card) {
+      res.write(`data: ${JSON.stringify({ t: 'card', card: committed.card })}\n\n`);
+    }
+    res.write(`data: ${JSON.stringify({ t: 'end', id: committed.message.id })}\n\n`);
     res.end();
 
     // Safety visibility: if the reply contains a crisis/injury helpline, the
     // safety block fired — log a minimal event (no message content stored).
-    if (/9152987821|1800-599-0019/.test(fullText)) {
+    if (/9152987821|1800-599-0019/.test(finalText)) {
       prisma.safetyEvent.create({
         data: { userId: req.userId, surface: 'chat', triggerType: 'helpline_response' },
       }).catch(err => console.error('[safety] chat event failed:', err?.message));
     }
 
     // Run memory extraction in background — don't await
-    extractAndStoreMemories(req.userId, conversationHistory, fullText).catch(() => {});
+    extractAndStoreMemories(req.userId, conversationHistory, finalText).catch(() => {});
 
   } catch (err) {
     console.error('[chat] Anthropic error:', err?.message || err);
