@@ -1084,15 +1084,29 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
     const finalText = loop.exceededRounds ? null : sanitizeFinalText(loop.finalText);
 
     // Deterministic fallback (fixed copy, never model text): used when the
-    // loop hit its round cap, produced empty text, or the staged transition
-    // could not be committed. Nothing has been written in those cases.
+    // loop hit its round cap, produced empty text, or ANY commit failed —
+    // whether that commit staged a coaching transition or was a plain
+    // message-only persist. Nothing has been written to CoachingCycle,
+    // Prescription, or ActiveCoachingSelection in any of these cases (a
+    // transition commit failure rolls its transaction back entirely).
     const emitDeterministicRetry = async () => {
       const retryText = getRetryMessage(user?.language);
-      const saved = await prisma.message.create({
-        data: { userId: req.userId, role: 'assistant', content: retryText, sessionType: sessionType || null, chatSessionId: chatSessionId || null },
-      }).catch(() => null);
+      let saved;
+      try {
+        saved = await prisma.message.create({
+          data: { userId: req.userId, role: 'assistant', content: retryText, sessionType: sessionType || null, chatSessionId: chatSessionId || null },
+        });
+      } catch (retryPersistErr) {
+        // The retry message itself could not be persisted either. Never
+        // fabricate an id or claim it was saved, never emit model text or
+        // a card here, and never recursively retry the write — fall back
+        // to the same safe generic stream error/end the outer catch uses.
+        console.error('[chat] deterministic retry message persistence failed:', retryPersistErr?.message);
+        res.write(`data: ${JSON.stringify({ t: 'error', message: 'AI response failed. Please try again.' })}\n\n`);
+        return res.end();
+      }
       res.write(`data: ${JSON.stringify({ t: 'd', c: retryText })}\n\n`);
-      res.write(`data: ${JSON.stringify({ t: 'end', id: saved?.id || 'retry-' + Date.now() })}\n\n`);
+      res.write(`data: ${JSON.stringify({ t: 'end', id: saved.id })}\n\n`);
       res.end();
     };
 
@@ -1108,14 +1122,14 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
         transition: loop.transition,
       });
     } catch (commitErr) {
-      if (loop.transition) {
-        // Conflict or transaction failure on a staged transition: the
-        // rollback left no partial records; never emit the model's
-        // prescription text or a card for an uncommitted prescription.
-        console.error('[chat] coaching transition commit failed:', commitErr?.message);
-        return emitDeterministicRetry();
-      }
-      throw commitErr; // plain message persistence failure → existing error path
+      // Any commit failure — a staged coaching-transition conflict, or a
+      // plain message-only commit failure for a normal response with no
+      // transition — must never emit the model's text or a card, and must
+      // never leave partial coaching-state records. Both cases route
+      // through the identical deterministic retry path; the outer generic
+      // error handler must never be the one to speak here.
+      console.error('[chat] coaching commit failed:', commitErr?.message);
+      return emitDeterministicRetry();
     }
 
     res.write(`data: ${JSON.stringify({ t: 'd', c: finalText })}\n\n`);

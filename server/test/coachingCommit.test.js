@@ -119,6 +119,16 @@ test('no transition: persists only the assistant message, byte-for-byte, and ret
   assert.equal(message.content, finalText);
 });
 
+test('no transition, message persistence fails: the commit itself throws (nothing is silently swallowed here) so the route can route to its deterministic retry', async () => {
+  const db = { $transaction: (fn) => fn({ message: { create: async () => { throw new Error('db write failed'); } } }) };
+  const commit = createCommitCoachingTransition(db);
+
+  await assert.rejects(
+    () => commit({ userId: 'user-1', chatSessionId: null, sessionType: null, finalText: 'Plain reply.', transition: null }),
+    /db write failed/
+  );
+});
+
 // ── propose_barrier ──────────────────────────────────────────────────────────
 
 test('propose_barrier: creates state (when absent), an ACTIVE-default cycle with the problem + hypothesis, a selection with no prescription, and the exact message', async () => {

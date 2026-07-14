@@ -54,7 +54,7 @@ test('SSE emit order in the buffered path: transaction commit, then d, then card
   assert.match(guardSlice, /if \(committed\.card\)/);
 });
 
-test('commit failures on a staged transition fall back to the deterministic retry message, never the model text', () => {
+test('ANY commit failure — staged transition or plain message-only — falls back to the deterministic retry message, never the model text', () => {
   assert.match(handler, /const emitDeterministicRetry = async \(\) => \{/);
   assert.match(handler, /getRetryMessage\(user\?\.language\)/);
   // Round-cap/empty-text path and commit-failure path both use it.
@@ -62,7 +62,10 @@ test('commit failures on a staged transition fall back to the deterministic retr
   const catchIdx = handler.indexOf('} catch (commitErr) {');
   assert.ok(catchIdx !== -1);
   const catchBlock = handler.slice(catchIdx, catchIdx + 700);
-  assert.match(catchBlock, /if \(loop\.transition\)/);
+  // No branching on loop.transition here — every commit failure, with or
+  // without a staged transition, routes through the same retry.
+  assert.doesNotMatch(catchBlock, /if \(loop\.transition\)/);
+  assert.doesNotMatch(catchBlock, /throw commitErr/);
   assert.match(catchBlock, /return emitDeterministicRetry\(\)/);
 });
 
@@ -179,8 +182,24 @@ test('all three retry triggers (round cap, empty/missing final text, commit conf
   assert.match(handler, /const finalText = loop\.exceededRounds \? null : sanitizeFinalText\(loop\.finalText\);/);
 });
 
-test('a commit failure without a staged transition (plain message persistence failure) is NOT swallowed into a silent retry — it still surfaces via the existing error handler', () => {
+test('a commit failure for a NORMAL response with no staged transition also routes through the deterministic retry — never the outer generic error handler with a different message', () => {
   const catchIdx = handler.indexOf('} catch (commitErr) {');
   const catchBlock = handler.slice(catchIdx, catchIdx + 700);
-  assert.match(catchBlock, /throw commitErr;/, 'a plain (non-transition) commit failure must still propagate to the outer catch');
+  assert.doesNotMatch(catchBlock, /throw commitErr/, 'a plain (non-transition) commit failure must not propagate to the outer catch');
+  assert.match(catchBlock, /return emitDeterministicRetry\(\)/);
+});
+
+test('emitDeterministicRetry itself falls back to the safe generic stream error/end if the retry message cannot be persisted, without fabricating an id or recursing', () => {
+  const idx = handler.indexOf('const emitDeterministicRetry = async () => {');
+  const block = handler.slice(idx, handler.indexOf('\n    };', idx));
+  assert.match(block, /} catch \(retryPersistErr\) \{/, 'a persistence failure for the retry message itself must be caught separately');
+  const catchIdx = block.indexOf('} catch (retryPersistErr) {');
+  const innerCatch = block.slice(catchIdx, block.indexOf('return res.end();', catchIdx) + 'return res.end();'.length);
+  assert.match(innerCatch, /t: 'error', message: 'AI response failed\. Please try again\.'/);
+  assert.match(innerCatch, /return res\.end\(\);/);
+  assert.doesNotMatch(innerCatch, /t: 'd'|t: 'card'/, 'no model text or card may be emitted when the retry itself fails to persist');
+  assert.doesNotMatch(innerCatch, /prisma\.message\.create/, 'no recursive retry of the write');
+  // The success path only runs (and only references saved.id, never a fabricated fallback) once persistence succeeded.
+  assert.doesNotMatch(block, /'retry-' \+ Date\.now\(\)/, 'must never fabricate an id and claim the retry was persisted');
+  assert.match(block, /id: saved\.id/);
 });
