@@ -100,8 +100,8 @@ test('ChatPage: rendered server cards are never sent back to the server (no fetc
 // ── 5. Session-switch resets temporary card state ────────────────────────────
 
 test('ChatPage: server cards reset when chatSessionId changes (no leak across sessions)', () => {
-  const idx = chatPageSrc.indexOf('Reset temporary server-issued card state on session switch');
+  const idx = chatPageSrc.indexOf('Reset temporary server-issued card / quick-reply state on session switch');
   assert.ok(idx !== -1, 'expected a documented reset effect');
   const block = chatPageSrc.slice(idx, idx + 350);
-  assert.match(block, /useEffect\(\(\) => \{ setServerCards\(\[\]\); \}, \[chatSessionId\]\)/);
+  assert.match(block, /useEffect\(\(\) => \{ setServerCards\(\[\]\); setQuickReplies\(null\); \}, \[chatSessionId\]\)/);
 });

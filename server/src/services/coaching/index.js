@@ -1,12 +1,12 @@
 // Barrel for the buffered coaching tool loop (PR-10). Route usage:
 //
 //   const {
-//     runBufferedToolLoop, sanitizeFinalText,
+//     runBufferedToolLoop, sanitizeFinalText, buildQuickReplyPayload,
 //     loadCoachingContext, commitCoachingTransition,
 //     CoachingStateConflictError, getRetryMessage,
 //   } = require('../services/coaching');
 
-const { runBufferedToolLoop, sanitizeFinalText, MAX_ROUNDS, MAX_FINAL_TEXT_LENGTH } = require('./bufferedToolLoop');
+const { runBufferedToolLoop, sanitizeFinalText, buildQuickReplyPayload, MAX_ROUNDS, MAX_FINAL_TEXT_LENGTH } = require('./bufferedToolLoop');
 const {
   createLoadCoachingContext,
   createCommitCoachingTransition,
@@ -15,12 +15,13 @@ const {
   CoachingStateConflictError,
   getRetryMessage,
 } = require('./commitCoachingTransition');
-const { COACHING_TOOLS, PROPOSE_BARRIER, PRESCRIBE_MENTAL_REP } = require('./coachingTools');
+const { COACHING_TOOLS, PROPOSE_BARRIER, PRESCRIBE_MENTAL_REP, OFFER_QUICK_REPLIES, QUICK_REPLY_LIMITS } = require('./coachingTools');
 const { APPROVED_PRACTICE_KEYS, isApprovedPracticeKey } = require('./practiceRegistry');
 
 module.exports = {
   runBufferedToolLoop,
   sanitizeFinalText,
+  buildQuickReplyPayload,
   MAX_ROUNDS,
   MAX_FINAL_TEXT_LENGTH,
   createLoadCoachingContext,
@@ -32,6 +33,8 @@ module.exports = {
   COACHING_TOOLS,
   PROPOSE_BARRIER,
   PRESCRIBE_MENTAL_REP,
+  OFFER_QUICK_REPLIES,
+  QUICK_REPLY_LIMITS,
   APPROVED_PRACTICE_KEYS,
   isApprovedPracticeKey,
 };

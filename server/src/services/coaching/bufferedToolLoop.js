@@ -19,8 +19,10 @@ const {
   COACHING_TOOLS,
   PROPOSE_BARRIER,
   PRESCRIBE_MENTAL_REP,
+  OFFER_QUICK_REPLIES,
   validateProposeBarrier,
   validatePrescribeMentalRep,
+  validateOfferQuickReplies,
 } = require('./coachingTools');
 
 const MAX_ROUNDS = 4;
@@ -54,11 +56,37 @@ function sanitizeFinalText(raw) {
   return text;
 }
 
-function handleToolUse(block, context, heldTransition) {
+// held: { transition, quickReplies } — independent trackers. offer_quick_replies
+// is a presentation tool, not a coaching-state transition: it can coexist
+// with a staged transition in the same request, but at most one of each may
+// be staged.
+function handleToolUse(block, context, held) {
+  if (block.name === OFFER_QUICK_REPLIES) {
+    if (held.quickReplies) {
+      return {
+        accepted: false,
+        result: {
+          accepted: false,
+          error: 'Only one offer_quick_replies call is allowed per athlete message, and one is already staged.',
+        },
+      };
+    }
+    const qv = validateOfferQuickReplies(block.input);
+    if (!qv.ok) return { accepted: false, result: { accepted: false, error: qv.error } };
+    return {
+      accepted: true,
+      quickReplies: qv.replies,
+      result: {
+        accepted: true,
+        note: 'Quick replies staged. The app renders these as tappable chips after your final reply — do not repeat them as text, and do not call this tool again this turn.',
+      },
+    };
+  }
+
   if (block.name !== PROPOSE_BARRIER && block.name !== PRESCRIBE_MENTAL_REP) {
     return { accepted: false, result: { accepted: false, error: `Unknown tool: ${block.name}.` } };
   }
-  if (heldTransition) {
+  if (held.transition) {
     return {
       accepted: false,
       result: {
@@ -106,7 +134,10 @@ function handleToolUse(block, context, heldTransition) {
 }
 
 // anthropic is injected (real client in production, a stub in tests).
-// Returns { finalText, transition, rounds, exceededRounds }.
+// Returns { finalText, transition, quickReplies, rounds, exceededRounds }.
+// quickReplies (when staged and accepted) is an array of trimmed label
+// strings — ephemeral ids are assigned only at emission time
+// (buildQuickReplyPayload), never persisted.
 async function runBufferedToolLoop({
   anthropic,
   model,
@@ -118,6 +149,7 @@ async function runBufferedToolLoop({
 }) {
   const working = [...messages];
   let transition = null;
+  let quickReplies = null;
 
   for (let round = 1; round <= maxRounds; round++) {
     const response = await anthropic.messages.create({
@@ -134,15 +166,18 @@ async function runBufferedToolLoop({
     if (toolUses.length === 0) {
       // Final response — the only text that may ever reach the athlete.
       const finalText = content.filter((b) => b.type === 'text').map((b) => b.text).join('');
-      return { finalText, transition, rounds: round, exceededRounds: false };
+      return { finalText, transition, quickReplies, rounds: round, exceededRounds: false };
     }
 
     // Intermediate response: its text blocks are drafts and are never read.
     working.push({ role: 'assistant', content });
 
     const toolResults = toolUses.map((block) => {
-      const outcome = handleToolUse(block, coachingContext, transition);
-      if (outcome.accepted) transition = outcome.transition;
+      const outcome = handleToolUse(block, coachingContext, { transition, quickReplies });
+      if (outcome.accepted) {
+        if (outcome.transition) transition = outcome.transition;
+        if (outcome.quickReplies) quickReplies = outcome.quickReplies;
+      }
       return {
         type: 'tool_result',
         tool_use_id: block.id,
@@ -155,7 +190,16 @@ async function runBufferedToolLoop({
 
   // Round cap hit while the model was still calling tools: discard
   // everything — the caller emits the deterministic retry message.
-  return { finalText: null, transition: null, rounds: maxRounds, exceededRounds: true };
+  return { finalText: null, transition: null, quickReplies: null, rounds: maxRounds, exceededRounds: true };
 }
 
-module.exports = { runBufferedToolLoop, sanitizeFinalText, MAX_ROUNDS, MAX_FINAL_TEXT_LENGTH };
+// Assigns ephemeral, request-scoped ids to staged quick-reply labels for the
+// t:"quick_replies" SSE event. These ids are never persisted and need not be
+// globally unique — they only need to be stable within this one response.
+// Returns null when there is nothing to emit (so callers can `if (payload)`).
+function buildQuickReplyPayload(labels) {
+  if (!Array.isArray(labels) || labels.length === 0) return null;
+  return labels.map((label, i) => ({ id: `reply_${i + 1}`, label }));
+}
+
+module.exports = { runBufferedToolLoop, sanitizeFinalText, buildQuickReplyPayload, MAX_ROUNDS, MAX_FINAL_TEXT_LENGTH };

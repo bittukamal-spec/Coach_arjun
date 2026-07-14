@@ -50,8 +50,19 @@ test('SSE emit order in the buffered path: transaction commit, then d, then card
   assert.ok(commitIdx !== -1 && dIdx !== -1 && cardIdx !== -1 && endIdx !== -1, 'all four stages must exist');
   assert.ok(commitIdx < dIdx && dIdx < cardIdx && cardIdx < endIdx, 'order must be commit → d → card → end');
   // The card emission is guarded — it only fires for a newly committed prescription.
-  const guardSlice = handler.slice(cardIdx - 80, cardIdx);
-  assert.match(guardSlice, /if \(committed\.card\)/);
+  const ifCardIdx = handler.lastIndexOf('if (committed.card)', cardIdx);
+  assert.ok(ifCardIdx !== -1 && ifCardIdx < cardIdx, 'card emission must be guarded by if (committed.card)');
+});
+
+test('quick replies emit only in the else branch of the card guard (never alongside a card), before end', () => {
+  const cardIdx = handler.indexOf("{ t: 'card', card: committed.card }");
+  const quickRepliesIdx = handler.indexOf("{ t: 'quick_replies', replies: quickReplies }");
+  const endIdx = handler.indexOf("{ t: 'end', id: committed.message.id }");
+  assert.ok(quickRepliesIdx !== -1, 'expected a quick_replies emission');
+  assert.ok(cardIdx < quickRepliesIdx && quickRepliesIdx < endIdx, 'quick_replies must sit between the card branch and end');
+  const elseIdx = handler.indexOf('} else {', cardIdx);
+  assert.ok(elseIdx !== -1 && elseIdx < quickRepliesIdx, 'quick replies must be in the else branch of the card check');
+  assert.match(handler, /buildQuickReplyPayload\(loop\.quickReplies\)/);
 });
 
 test('ANY commit failure — staged transition or plain message-only — falls back to the deterministic retry message, never the model text', () => {
@@ -80,7 +91,7 @@ test('no raw tool payload can reach the SSE stream: every res.write in the handl
   const writes = [...handler.matchAll(/res\.write\(`data: \$\{JSON\.stringify\((\{[^}]*\})\)/g)].map((m) => m[1]);
   assert.ok(writes.length >= 6, 'expected the full set of protocol writes');
   for (const payload of writes) {
-    assert.match(payload, /t: '(d|end|error|card)'/, `unexpected SSE payload shape: ${payload}`);
+    assert.match(payload, /t: '(d|end|error|card|quick_replies)'/, `unexpected SSE payload shape: ${payload}`);
     assert.doesNotMatch(payload, /tool_use|tool_result|loop\.|transition/, `tool internals must never be written: ${payload}`);
   }
 });
@@ -202,4 +213,30 @@ test('emitDeterministicRetry itself falls back to the safe generic stream error/
   // The success path only runs (and only references saved.id, never a fabricated fallback) once persistence succeeded.
   assert.doesNotMatch(block, /'retry-' \+ Date\.now\(\)/, 'must never fabricate an id and claim the retry was persisted');
   assert.match(block, /id: saved\.id/);
+});
+
+// ── Quick reply chip suppression ─────────────────────────────────────────────
+
+test('chat.js imports buildQuickReplyPayload from the coaching services barrel', () => {
+  assert.match(handler, /buildQuickReplyPayload/);
+});
+
+test('emitDeterministicRetry never emits a quick_replies event — used by round-limit, empty-text, commit-failure, and retry-persistence-failure paths alike', () => {
+  const idx = handler.indexOf('const emitDeterministicRetry = async () => {');
+  const block = handler.slice(idx, handler.indexOf('\n    };', idx));
+  assert.doesNotMatch(block, /quick_replies/, 'the deterministic retry path must never emit quick replies');
+});
+
+test('the deterministic safety-screen block never emits quick_replies (it returns before the buffered loop even runs)', () => {
+  const screenIdx = handler.indexOf('screenSafetyText(content)');
+  const safetyBlockEnd = handler.indexOf('return res.end();', screenIdx) + 'return res.end();'.length;
+  const safetyBlock = handler.slice(screenIdx, safetyBlockEnd);
+  assert.doesNotMatch(safetyBlock, /quick_replies/);
+});
+
+test('the dormant Quick Chat branch never references quick_replies or offer_quick_replies', () => {
+  const quickIdx = handler.indexOf('if (isQuickChat)');
+  const quickEnd = handler.indexOf('// ── Main coaching chat');
+  const quickSlice = handler.slice(quickIdx, quickEnd);
+  assert.doesNotMatch(quickSlice, /quick_replies|offer_quick_replies/);
 });
