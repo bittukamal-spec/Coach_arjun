@@ -17,6 +17,11 @@ const {
 } = require('./commitCoachingTransition');
 const { COACHING_TOOLS, PROPOSE_BARRIER, PRESCRIBE_MENTAL_REP, OFFER_QUICK_REPLIES, QUICK_REPLY_LIMITS } = require('./coachingTools');
 const { APPROVED_PRACTICE_KEYS, isApprovedPracticeKey } = require('./practiceRegistry');
+const {
+  createClaimPrescriptionFollowUp,
+  claimPrescriptionFollowUp,
+  InvalidChatSessionError,
+} = require('./claimPrescriptionFollowUp');
 
 module.exports = {
   runBufferedToolLoop,
@@ -37,4 +42,7 @@ module.exports = {
   QUICK_REPLY_LIMITS,
   APPROVED_PRACTICE_KEYS,
   isApprovedPracticeKey,
+  createClaimPrescriptionFollowUp,
+  claimPrescriptionFollowUp,
+  InvalidChatSessionError,
 };

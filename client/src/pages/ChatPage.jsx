@@ -376,6 +376,17 @@ function ChatPage() {
   const pendingChatSessionIdRef = useRef(location.state?.chatSessionId ?? null);
   const chatSessionIdRef        = useRef(null);
   const chatModeRef             = useRef('main');
+  // Per-entry guard: at most one claim-opener request per main ChatSession
+  // for the current conversation entry, no matter how many times a
+  // render/effect re-runs. Scoped to ONE entry, not the whole mount — it is
+  // cleared whenever the UI genuinely returns to the chat-entry screen (see
+  // the showStartScreen effect below), so a later genuine "Continue with
+  // Arjun" tap can claim again for the same session (e.g. a prescription
+  // that didn't exist yet on an earlier entry may exist by the next one).
+  // Server atomicity (the conditional updateMany in
+  // claimPrescriptionFollowUp) is the real duplicate-prevention guarantee —
+  // this just avoids firing redundant browser requests within one entry.
+  const followUpClaimedSessionsRef = useRef(new Set());
 
   // ── Load on mount ─────────────────────────────────────────────────────────
 
@@ -421,6 +432,10 @@ function ChatPage() {
                 setActiveSession(sess.sessionType);
               }
               if (sess?.summary) setSessionSummary(sess.summary);
+              // No follow-up claim here — this is passive discovery of an
+              // already-ongoing session on mount, not the athlete explicitly
+              // choosing to enter the main conversation. Claiming happens
+              // only from an explicit entry action (handleContinueMain).
               await fetchSessionMessages(pendingId);
               sessionLoaded = true;
             } else if (sessions.length > 0) {
@@ -432,6 +447,7 @@ function ChatPage() {
                 setActiveSession(mainSession.sessionType);
               }
               if (mainSession.summary) setSessionSummary(mainSession.summary);
+              // No follow-up claim here either — same reasoning as above.
               await fetchSessionMessages(mainSession.id);
               sessionLoaded = true;
             }
@@ -487,6 +503,18 @@ function ChatPage() {
   // live for the current loaded session, so switching sessions must not
   // leak them.
   useEffect(() => { setServerCards([]); setQuickReplies(null); }, [chatSessionId]);
+
+  // ── Reset the per-entry follow-up-claim guard when the UI genuinely
+  // returns to the chat-entry screen (PR-11 correction). Ordinary rerenders
+  // while the athlete stays inside the same conversation never flip
+  // showStartScreen back to true, so this effect does not fire during them
+  // — only an actual return to the entry screen does. A later "Continue
+  // with Arjun" tap is then free to claim again for the same chatSessionId;
+  // the server's atomic claim (not this guard) is what actually prevents a
+  // duplicate opener.
+  useEffect(() => {
+    if (showStartScreen) followUpClaimedSessionsRef.current.clear();
+  }, [showStartScreen]);
 
   // ── Gentle break reminder — client-only, fires once ~30 min after this
   // page mounted, cleared on unmount so no timer keeps running after the
@@ -555,6 +583,48 @@ function ChatPage() {
     } catch { /* ignore */ }
   }
 
+  // Claim the deterministic next-open prescription follow-up opener (PR-11).
+  // Called ONLY from an explicit "enter the main conversation" action
+  // (handleContinueMain) — never from passive session discovery on mount,
+  // never for Quick Chat, never merely for viewing the entry screen, and
+  // never blocks chat entry on failure.
+  //
+  // The in-flight guard (followUpClaimedSessionsRef) exists only to stop a
+  // duplicate request during the SAME entry — the server's atomic claim
+  // (the conditional updateMany in claimPrescriptionFollowUp) is the real
+  // duplicate-prevention guarantee. On a network/server error the guard for
+  // this session is cleared immediately so a later genuine entry can retry;
+  // nothing here retries automatically within this same call. A definitive
+  // server answer — claimed:true or claimed:false — leaves the guard set
+  // for the REST of this entry (it cannot change again until the athlete
+  // leaves and genuinely re-enters); the showStartScreen effect above is
+  // what clears it once that next entry begins, so claimed:false before a
+  // prescription exists can never permanently suppress a later eligible
+  // claim. On a win, messages are reloaded from the server so the opener
+  // renders from real persisted history — never appended locally.
+  async function claimFollowUpOpener(sessionId) {
+    if (!sessionId || consentPending) return;
+    if (followUpClaimedSessionsRef.current.has(sessionId)) return;
+    followUpClaimedSessionsRef.current.add(sessionId);
+    try {
+      const res = await apiFetch('/api/prescriptions/claim-opener', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ chatSessionId: sessionId }),
+      });
+      if (!res.ok) {
+        followUpClaimedSessionsRef.current.delete(sessionId);
+        return;
+      }
+      const data = await res.json().catch(() => ({}));
+      if (data.claimed) await fetchSessionMessages(sessionId);
+    } catch {
+      // Network/server error — never blocks chat entry, and clears the
+      // guard so a later genuine entry can retry.
+      followUpClaimedSessionsRef.current.delete(sessionId);
+    }
+  }
+
   async function createSession(type = 'general', mode = chatMode) {
     const res = await apiFetch('/api/sessions', {
       method: 'POST',
@@ -581,9 +651,11 @@ function ChatPage() {
       }
       if (existingSession.summary) setSessionSummary(existingSession.summary);
       await fetchSessionMessages(existingSession.id);
+      await claimFollowUpOpener(existingSession.id);
       setShowStartScreen(false);
     } else {
-      await createSession('general', 'main');
+      const id = await createSession('general', 'main');
+      await claimFollowUpOpener(id);
     }
   }
 
