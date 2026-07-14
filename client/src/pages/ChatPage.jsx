@@ -10,6 +10,7 @@ import { parseArjunMessage, APP_TOOL_CONFIG } from '../utils/parseArjunMessage';
 import { shouldShowAiReminder, BREAK_REMINDER_MS } from '../utils/chatReminders';
 import { parseServerCardEvent, mergeUniqueServerCard } from '../utils/serverCardEvent';
 import { parseQuickRepliesEvent } from '../utils/quickReplyEvent';
+import { practiceRouteFor } from '../utils/prescriptionPractice';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -238,7 +239,15 @@ function AppToolCard({ toolId }) {
 // merged into an assistant message's `content`, never sent back to the
 // server, never added to the athlete's typed-message history.
 
-function ServerCardBubble({ card }) {
+function ServerCardBubble({ card, t }) {
+  const navigate = useNavigate();
+  // Only practice keys with a real, existing completion flow (PR-12) get a
+  // launch link — see prescriptionPractice.js for exactly which ones and
+  // why the rest are intentionally absent. Carries the real persisted
+  // prescriptionId + practiceKey via route state, the smallest mechanism
+  // already used elsewhere in this app (e.g. pendingChatSessionIdRef).
+  const practiceRoute = practiceRouteFor(card.practiceKey);
+
   return (
     <div className="flex justify-start">
       <div className="max-w-[92%] bg-dark-400 border border-dark-600 shadow-sm rounded-2xl rounded-bl-md overflow-hidden">
@@ -262,6 +271,16 @@ function ServerCardBubble({ card }) {
             >
               {card.cueWord}
             </div>
+          )}
+          {practiceRoute && (
+            <button
+              onClick={() => navigate(practiceRoute, {
+                state: { prescriptionId: card.prescriptionId, practiceKey: card.practiceKey },
+              })}
+              className="mt-1 self-start text-xs font-bold text-brand-400 hover:text-brand-300"
+            >
+              {t.startPractice} ›
+            </button>
           )}
         </div>
       </div>
@@ -937,7 +956,7 @@ function ChatPage() {
           {/* Server-issued Mental Rep cards (PR-9) — kept separate from
               ordinary assistant text; scoped to the current session only. */}
           {!showStartScreen && serverCards.map(card => (
-            <ServerCardBubble key={card.prescriptionId} card={card} />
+            <ServerCardBubble key={card.prescriptionId} card={card} t={t} />
           ))}
 
           {/* Structured optional reply chips — shown only once the response

@@ -67,3 +67,49 @@ test('an unauthenticated claim-opener request returns 401, not 400/403/404', asy
     await stopTestServer(server);
   }
 });
+
+// ── PR-12: exact prescription completion linkage ─────────────────────────
+
+test('POST /api/prescriptions/:prescriptionId/complete requires authenticate then requireGuardianConsent', () => {
+  const router = findMountedRouter('/api/prescriptions');
+  const route = findRouteLayer(router, '/:prescriptionId/complete', 'POST');
+  const handles = middlewareNames(route);
+
+  assert.ok(handles.includes(authenticate), 'missing authenticate');
+  assert.ok(handles.includes(requireGuardianConsent), 'missing requireGuardianConsent');
+  assert.ok(
+    handles.indexOf(authenticate) < handles.indexOf(requireGuardianConsent),
+    'authenticate must run before requireGuardianConsent'
+  );
+});
+
+test('GET /api/prescriptions/active requires authenticate (a pure read, same pattern as GET /api/sessions)', () => {
+  const router = findMountedRouter('/api/prescriptions');
+  const route = findRouteLayer(router, '/active', 'GET');
+  const handles = middlewareNames(route);
+  assert.ok(handles.includes(authenticate), 'missing authenticate');
+});
+
+test('an unauthenticated complete request returns 401, not 400/403/404/409', async () => {
+  const { server, baseUrl } = await startTestServer();
+  try {
+    const res = await fetch(`${baseUrl}/api/prescriptions/presc-1/complete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ practiceKey: 'pressure_reset' }),
+    });
+    assert.equal(res.status, 401);
+  } finally {
+    await stopTestServer(server);
+  }
+});
+
+test('an unauthenticated active-prescription lookup returns 401', async () => {
+  const { server, baseUrl } = await startTestServer();
+  try {
+    const res = await fetch(`${baseUrl}/api/prescriptions/active`);
+    assert.equal(res.status, 401);
+  } finally {
+    await stopTestServer(server);
+  }
+});

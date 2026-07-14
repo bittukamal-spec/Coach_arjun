@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ClipboardList } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
@@ -80,6 +80,18 @@ export default function DebriefPage() {
   const t  = translations[language].atm;
   const hi = language === 'hi';
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Carries the exact prescriptionId + practiceKey when this reflection was
+  // launched from a prescribed Mental Rep card (PR-12) — same ephemeral
+  // route-state mechanism as BodyResetPage/ChatPage. Generic (non-
+  // prescribed) debriefs simply have no state here, and behave exactly as
+  // before.
+  const prescriptionLinkRef = useRef(
+    location.state?.prescriptionId && location.state?.practiceKey === 'post_performance_reflection'
+      ? { prescriptionId: location.state.prescriptionId, practiceKey: location.state.practiceKey }
+      : null
+  );
 
   // ── State ─────────────────────────────────────────────────────────────────
   const [showInfo,        setShowInfo]        = useState(true);
@@ -151,6 +163,20 @@ export default function DebriefPage() {
     return () => clearTimeout(tid);
   }, [result]);
 
+  // Fire-and-forget exact prescription completion (PR-12) — only when this
+  // reflection was genuinely launched from a prescribed
+  // post_performance_reflection card. Never awaited: a failed/slow linkage
+  // request must never delay or block the athlete from seeing their result.
+  function completePrescriptionLink() {
+    const link = prescriptionLinkRef.current;
+    if (!link) return;
+    apiFetch(`/api/prescriptions/${link.prescriptionId}/complete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ practiceKey: link.practiceKey }),
+    }).catch(() => {});
+  }
+
   // ── API call ──────────────────────────────────────────────────────────────
   async function submitDebrief() {
     setSubmitting(true);
@@ -186,6 +212,7 @@ export default function DebriefPage() {
       }
       if (!res.ok) { setApiError('Could not save. Try again.'); return; }
       const data = await res.json();
+      completePrescriptionLink();
       setResult(data);
       if (updateUser && data.xp !== undefined) updateUser({ xp: data.xp });
     } catch {
