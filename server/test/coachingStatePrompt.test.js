@@ -135,13 +135,14 @@ test('buildSystemPrompt: includes the structured reply-chip tool guidance whenev
   assert.match(prompt, /## Structured Reply-Chip Tool \(offer_quick_replies\)/);
 });
 
-test('buildSystemPrompt: the new structured reply-chip section is named distinctly from the pre-existing legacy [SUGGEST:] "## Quick Reply Chips" section', () => {
+test('buildSystemPrompt: the main (non-quick-chat) prompt contains offer_quick_replies guidance and NO instruction to generate legacy [SUGGEST:...] tags', () => {
   const prompt = buildSystemPrompt(baseUser(), [], [], null, { coachingContext: NO_STATE });
-  // Both sections legitimately coexist in the full prompt (the legacy one
-  // pre-dates PR-10 and isn't in scope to remove) — what matters is they
-  // are two distinct, unambiguous headings, not a naming collision.
-  assert.match(prompt, /## Quick Reply Chips\n/, 'the pre-existing legacy SUGGEST-tag section is untouched');
-  assert.match(prompt, /## Structured Reply-Chip Tool \(offer_quick_replies\)/, 'the new tool section has its own distinct heading');
+  assert.match(prompt, /## Structured Reply-Chip Tool \(offer_quick_replies\)/, 'the new tool section must be present');
+  // The legacy "## Quick Reply Chips" generation section has been removed
+  // from the main template entirely — offer_quick_replies is now the only
+  // mechanism for new main-chat reply chips.
+  assert.doesNotMatch(prompt, /## Quick Reply Chips\n/, 'the legacy SUGGEST-tag generation section must not exist in the main prompt');
+  assert.doesNotMatch(prompt, /\[SUGGEST:\s*option1/i, 'the main prompt must never instruct the model to write a [SUGGEST:...] tag');
 });
 
 test('buildSystemPrompt: omits the coaching-state AND structured reply-chip sections entirely when coachingContext is absent', () => {
@@ -155,6 +156,15 @@ test('buildSystemPrompt: the dormant quick-chat prompt is unaffected even if coa
   assert.doesNotMatch(prompt, /Coaching State:/);
   assert.doesNotMatch(prompt, /Structured Reply-Chip Tool/);
   assert.match(prompt, /This is a quick chat/);
+});
+
+test('buildSystemPrompt: Quick Chat keeps its own legacy [SUGGEST:...] generation instruction unchanged — only the main prompt had it removed', () => {
+  const quickPrompt = buildSystemPrompt(baseUser(), [], [], null, { isQuickChat: true });
+  assert.match(quickPrompt, /\[SUGGEST: option1 \| option2 \| option3\]/, 'Quick Chat must still instruct the model to emit its own [SUGGEST:...] tag');
+  assert.doesNotMatch(quickPrompt, /offer_quick_replies/, 'Quick Chat does not use the new structured tool');
+
+  const mainPrompt = buildSystemPrompt(baseUser(), [], [], null, { coachingContext: NO_STATE });
+  assert.doesNotMatch(mainPrompt, /\[SUGGEST: option1 \| option2 \| option3\]/, 'the main prompt must not carry the quick-chat-style SUGGEST instruction');
 });
 
 test('buildSystemPrompt: existing profile context, language rules, and safety blocks are preserved alongside the new section', () => {

@@ -181,12 +181,19 @@ The athlete already has an open Mental Rep prescription from the current coachin
 // Shared across all three coaching states above — general rules for when
 // chips help versus when they don't, kept in one place rather than
 // repeated per state. Only shown alongside the coaching-state section
-// (main chat with a coachingContext), never in quick chat. Named distinctly
-// from the pre-existing "## Quick Reply Chips" section below (which governs
-// the legacy [SUGGEST:...] tag) — these are two different mechanisms; the
-// buffered coaching loop strips any [SUGGEST:...]/[APP:...] tags from its
-// own output regardless (sanitizeFinalText), so only offer_quick_replies
-// ever reaches the athlete from this loop.
+// (main chat with a coachingContext), never in quick chat.
+//
+// The main (non-quick-chat) prompt intentionally contains NO instruction to
+// generate legacy [SUGGEST:...] tags — that generation instruction lived in
+// a "## Quick Reply Chips" section which has been removed from this
+// template; offer_quick_replies is now the ONLY mechanism for new main-chat
+// reply chips, so there is nothing left to conflict with it. Quick chat's
+// own separate, self-contained prompt template (the early return above)
+// still asks for [SUGGEST:...] — untouched, since it doesn't use tools at
+// all. The server sanitizer (sanitizeFinalText) still strips any
+// [SUGGEST:...]/[APP:...] text defensively regardless of what a model
+// produces, and the client still parses/renders [SUGGEST:...] on old
+// stored messages (extractSuggestions in ChatPage.jsx) — both untouched.
 function buildQuickReplySection() {
   return `## Structured Reply-Chip Tool (offer_quick_replies)
 Use the offer_quick_replies tool selectively — only when a question genuinely has 2-3 short, plausible answers the athlete could tap instead of typing. Good uses: identifying the athlete's immediate thought, choosing between a couple of simple situations, confirming or rejecting a barrier hypothesis, or (later) a quick outcome question like whether a practice helped.
@@ -196,7 +203,7 @@ Do NOT offer quick replies:
 - when a detailed personal explanation is needed;
 - when the choices themselves would lead or diagnose the athlete;
 - in the same reply as a new prescription (prescribe_mental_rep) — the practice card takes that reply's place.
-The app always adds its own "Write my own" option after your choices — never include "Other", "Something else", or "Write my own" yourself. Labels must be short and follow the current conversation language (see the Language rules above). Call offer_quick_replies at most once per reply. This is a separate mechanism from the [SUGGEST:...] tag described later in this prompt — do not use both for the same reply.`;
+The app always adds its own "Write my own" option after your choices — never include "Other", "Something else", or "Write my own" yourself. Labels must be short and follow the current conversation language (see the Language rules above). Call offer_quick_replies at most once per reply. This is the ONLY way to offer reply chips in this conversation — never write a [SUGGEST:...] tag.`;
 }
 
 // ── Helper: build personalised system prompt ─────────────────────────────
@@ -286,8 +293,8 @@ End each reply with a new line containing exactly [SUGGEST: option1 | option2 | 
 
   const langInstruction =
     user.language === 'hi'
-      ? 'CRITICAL: Respond ONLY in Hindi (Devanagari script). Never switch to English unless the athlete writes in English first. This rule applies to ALL text including [SUGGEST:] quick-reply tags. You may use common English sports terms Indian athletes regularly use (e.g. "focus", "confidence", "performance").'
-      : 'CRITICAL: Respond ONLY in English. Never switch to Hindi unless the athlete writes in Hindi first. This rule applies to ALL text including [SUGGEST:] quick-reply tags. You may occasionally weave in a culturally resonant Hindi phrase (like "जय हो") where it feels truly natural, but the sentence itself must be English.';
+      ? 'CRITICAL: Respond ONLY in Hindi (Devanagari script). Never switch to English unless the athlete writes in English first. This rule applies to ALL text, including any offer_quick_replies chip labels. You may use common English sports terms Indian athletes regularly use (e.g. "focus", "confidence", "performance").'
+      : 'CRITICAL: Respond ONLY in English. Never switch to Hindi unless the athlete writes in Hindi first. This rule applies to ALL text, including any offer_quick_replies chip labels. You may occasionally weave in a culturally resonant Hindi phrase (like "जय हो") where it feels truly natural, but the sentence itself must be English.';
 
   // ── Check-in summary ──────────────────────────────────────────────────────
   let checkInSection;
@@ -552,7 +559,7 @@ These are the only tools that exist. Never invent a tool name (there is no "Focu
 - Focus / Focus Words Skill Path — first-time learning before building focus words, only for an athlete who hasn't passed its quick check yet (see the Possible Focus Area section above if this applies right now) → [APP:skill-focus-self-talk]
 - Pressure Reset Skill Path — first-time learning before using the reset, only for an athlete who hasn't passed its quick check yet (see the Possible Focus Area section above if this applies right now) → [APP:skill-pressure-reset]
 - Train — fallback only, when a tool would help but none of the above clearly fits → [APP:train]
-Tag syntax: exactly [APP:tag-id] on its own line, using only the tag ids above. Maximum 2 tags per reply, only when genuinely relevant. If you also include a [SUGGEST:...] quick-reply tag (see Quick Reply Chips below), put any [APP:] tag(s) first and the [SUGGEST:] tag last, each on its own line.
+Tag syntax: exactly [APP:tag-id] on its own line, using only the tag ids above. Maximum 2 tags per reply, only when genuinely relevant, each on its own line.
 
 ## Tool Recommendation Discipline
 - Maximum one tool card per reply (two tags only in the rare case both are genuinely distinct and useful).
@@ -632,15 +639,6 @@ RESPONSE LENGTH:
 - Casual conversation: 1–3 sentences only
 - Coaching response: 60–100 words maximum, never more than 120 words
 - Never more than 3 numbered steps if you do list steps
-
-## Quick Reply Chips
-End most replies with a new line containing exactly [SUGGEST: option1 | option2 | option3] — this is required app syntax, NOT markdown, so it is exempt from the "no markdown" rule above: it never displays as visible text, it becomes tappable quick-reply chip buttons under your message.
-Rules:
-- 2–3 options, each short and specific (2–5 words).
-- If you asked a specific clarification question, the options must directly answer that exact question (e.g. you asked "which sport should we focus on?" → options are sport names, not "yes"/"okay").
-- If your reply was open-ended (no question asked), the options are concrete next steps the athlete might want — a specific tool, a specific topic — never generic filler like "yes", "okay", "ready to begin", "anything else", "tell me more".
-- Skip the tag entirely only when genuinely nothing useful fits — e.g. right after a safety/crisis/injury response, or the athlete only said "thanks" and the conversation is naturally closed.
-- Never include a tool name in a chip unless that tool is in the Active Tool Registry above.
 
 ## Injury and physical safety
 
