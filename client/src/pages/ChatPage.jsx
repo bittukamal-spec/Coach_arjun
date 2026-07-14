@@ -427,8 +427,11 @@ function ChatPage() {
                 setActiveSession(sess.sessionType);
               }
               if (sess?.summary) setSessionSummary(sess.summary);
+              // No follow-up claim here — this is passive discovery of an
+              // already-ongoing session on mount, not the athlete explicitly
+              // choosing to enter the main conversation. Claiming happens
+              // only from an explicit entry action (handleContinueMain).
               await fetchSessionMessages(pendingId);
-              await claimFollowUpOpener(pendingId);
               sessionLoaded = true;
             } else if (sessions.length > 0) {
               // Auto-load the most recent main session — sessions are ordered createdAt desc
@@ -439,8 +442,8 @@ function ChatPage() {
                 setActiveSession(mainSession.sessionType);
               }
               if (mainSession.summary) setSessionSummary(mainSession.summary);
+              // No follow-up claim here either — same reasoning as above.
               await fetchSessionMessages(mainSession.id);
-              await claimFollowUpOpener(mainSession.id);
               sessionLoaded = true;
             }
           } else {
@@ -563,14 +566,22 @@ function ChatPage() {
     } catch { /* ignore */ }
   }
 
-  // Claim the deterministic next-open prescription follow-up opener (PR-11)
-  // for a main ChatSession the athlete is genuinely entering/continuing.
-  // Never called for Quick Chat, never called merely for viewing the entry
-  // screen, and never blocks chat entry on failure — the server's atomic
-  // claim is the real duplicate-prevention guarantee; this is just an
-  // in-flight guard against firing the request more than once per session
-  // per mount. On a win, messages are reloaded from the server so the
-  // opener renders from real persisted history — never appended locally.
+  // Claim the deterministic next-open prescription follow-up opener (PR-11).
+  // Called ONLY from an explicit "enter the main conversation" action
+  // (handleContinueMain) — never from passive session discovery on mount,
+  // never for Quick Chat, never merely for viewing the entry screen, and
+  // never blocks chat entry on failure.
+  //
+  // The in-flight guard (followUpClaimedSessionsRef) exists only to stop a
+  // duplicate request during the SAME entry — the server's atomic claim
+  // (the conditional updateMany in claimPrescriptionFollowUp) is the real
+  // duplicate-prevention guarantee. On a network/server error the guard for
+  // this session is cleared so a later genuine entry can retry; nothing
+  // here retries automatically within this same call. A definitive server
+  // answer — claimed:true or claimed:false — leaves the guard set, since
+  // that answer cannot change again during this same entry. On a win,
+  // messages are reloaded from the server so the opener renders from real
+  // persisted history — never appended locally.
   async function claimFollowUpOpener(sessionId) {
     if (!sessionId || consentPending) return;
     if (followUpClaimedSessionsRef.current.has(sessionId)) return;
@@ -581,10 +592,17 @@ function ChatPage() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ chatSessionId: sessionId }),
       });
-      if (!res.ok) return;
+      if (!res.ok) {
+        followUpClaimedSessionsRef.current.delete(sessionId);
+        return;
+      }
       const data = await res.json().catch(() => ({}));
       if (data.claimed) await fetchSessionMessages(sessionId);
-    } catch { /* a claim failure must never block chat entry */ }
+    } catch {
+      // Network/server error — never blocks chat entry, and clears the
+      // guard so a later genuine entry can retry.
+      followUpClaimedSessionsRef.current.delete(sessionId);
+    }
   }
 
   async function createSession(type = 'general', mode = chatMode) {

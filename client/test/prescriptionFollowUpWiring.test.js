@@ -1,8 +1,10 @@
 // Source-text checks for PR-11's deterministic prescription follow-up
-// opener client wiring. ChatPage.jsx contains JSX and cannot be imported
-// directly by node:test without a transform, so — matching the pattern
-// established by serverCardWiring.test.js and quickReplyWiring.test.js —
-// these are source-text assertions.
+// opener client wiring, amended so the claim only ever fires from an
+// explicit "enter the main conversation" action (handleContinueMain) —
+// never from passive session discovery on mount. ChatPage.jsx contains
+// JSX and cannot be imported directly by node:test without a transform,
+// so — matching the pattern established by serverCardWiring.test.js and
+// quickReplyWiring.test.js — these are source-text assertions.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -22,31 +24,46 @@ function fnBody(name) {
   return chatPageSrc.slice(start, end);
 }
 
-// ── 1. Claim happens when continuing/entering the main chat ────────────────
+// ── 1. Mounting / discovering the ongoing session never claims ─────────────
 
-test('ChatPage: the mount auto-load path claims the follow-up opener for both the pending-session and most-recent-session branches', () => {
+test('ChatPage: opening/mounting the chat-entry screen sends no claim request — the init effect never calls claimFollowUpOpener', () => {
+  const initStart = chatPageSrc.indexOf('async function init()');
+  const initEnd = chatPageSrc.indexOf('\n    init();');
+  const initBody = chatPageSrc.slice(initStart, initEnd);
+  assert.doesNotMatch(initBody, /claimFollowUpOpener/, 'the mount/init effect must never call claimFollowUpOpener');
+});
+
+test('ChatPage: auto-loading the ongoing ChatSession (pending-session and most-recent-session branches) sends no claim request', () => {
   const initStart = chatPageSrc.indexOf('async function init()');
   const initEnd = chatPageSrc.indexOf('\n    init();');
   const initBody = chatPageSrc.slice(initStart, initEnd);
 
   const pendingIdx = initBody.indexOf('await fetchSessionMessages(pendingId);');
+  assert.ok(pendingIdx !== -1);
   const pendingBlock = initBody.slice(pendingIdx, pendingIdx + 150);
-  assert.match(pendingBlock, /await claimFollowUpOpener\(pendingId\);/);
+  assert.doesNotMatch(pendingBlock, /claimFollowUpOpener/);
 
   const mainIdx = initBody.indexOf('await fetchSessionMessages(mainSession.id);');
+  assert.ok(mainIdx !== -1);
   const mainBlock = initBody.slice(mainIdx, mainIdx + 150);
-  assert.match(mainBlock, /await claimFollowUpOpener\(mainSession\.id\);/);
+  assert.doesNotMatch(mainBlock, /claimFollowUpOpener/);
 });
 
-test('ChatPage: handleContinueMain claims the follow-up opener for both an existing session and a freshly created one', () => {
+// ── 2. Explicit "Continue with Arjun" is the only claim trigger ─────────────
+
+test('ChatPage: clicking Continue (handleContinueMain) triggers exactly one claim for either an existing session or a freshly created one', () => {
   const start = chatPageSrc.indexOf('async function handleContinueMain()');
   const end = chatPageSrc.indexOf('\n  }', start);
   const body = chatPageSrc.slice(start, end);
+
+  const existingSessionMatches = body.match(/claimFollowUpOpener\(existingSession\.id\)/g) || [];
+  assert.equal(existingSessionMatches.length, 1, 'exactly one claim call for the existing-session branch');
   assert.match(body, /await fetchSessionMessages\(existingSession\.id\);\s*\n\s*await claimFollowUpOpener\(existingSession\.id\);/);
+
+  const newSessionMatches = body.match(/claimFollowUpOpener\(id\)/g) || [];
+  assert.equal(newSessionMatches.length, 1, 'exactly one claim call for the freshly-created-session branch');
   assert.match(body, /const id = await createSession\('general', 'main'\);\s*\n\s*await claimFollowUpOpener\(id\);/);
 });
-
-// ── 2. Not called merely for viewing the entry screen ───────────────────────
 
 test('ChatPage: claimFollowUpOpener is never referenced inside the entry-choice screen JSX render', () => {
   const idx = chatPageSrc.indexOf('{/* Entry choice screen');
@@ -55,8 +72,8 @@ test('ChatPage: claimFollowUpOpener is never referenced inside the entry-choice 
   assert.doesNotMatch(block, /claimFollowUpOpener/, 'the entry screen must only ever call handleContinueMain on tap, never claim on render');
 });
 
-test('ChatPage: claimFollowUpOpener is not wired to a showStartScreen-keyed effect', () => {
-  assert.doesNotMatch(chatPageSrc, /useEffect\([^;]*claimFollowUpOpener[^;]*\[showStartScreen\]/s);
+test('ChatPage: claimFollowUpOpener is not wired to any render-time effect', () => {
+  assert.doesNotMatch(chatPageSrc, /useEffect\([^;]*claimFollowUpOpener/s);
 });
 
 // ── 3. Consent gate ──────────────────────────────────────────────────────────
@@ -83,11 +100,24 @@ test('ChatPage: a successful claim refreshes messages from the server instead of
   assert.doesNotMatch(body, /setMessages/, 'the opener must only ever arrive via a persisted-message reload, never a direct setMessages call');
 });
 
-// ── 6. Claim failure never blocks chat entry ────────────────────────────────
+// ── 6. Claim failure never blocks chat entry, and can retry later ──────────
 
-test('ChatPage: a claim failure is swallowed and never re-thrown, never blocking chat entry', () => {
+test('ChatPage: a non-ok claim response clears the in-flight guard for that session (allows a later genuine entry to retry) without throwing', () => {
   const body = fnBody('claimFollowUpOpener');
-  assert.match(body, /catch \{ \/\* a claim failure must never block chat entry \*\/ \}/);
+  assert.match(
+    body,
+    /if \(!res\.ok\) \{\s*\n\s*followUpClaimedSessionsRef\.current\.delete\(sessionId\);\s*\n\s*return;\s*\n\s*\}/,
+    'a non-ok response must clear the guard and return without throwing'
+  );
+});
+
+test('ChatPage: a network/fetch failure clears the in-flight guard for that session and never re-throws', () => {
+  const body = fnBody('claimFollowUpOpener');
+  assert.match(
+    body,
+    /catch \{[^}]*followUpClaimedSessionsRef\.current\.delete\(sessionId\);[^}]*\}/s,
+    'the catch block must clear the guard for this session'
+  );
 });
 
 test('ChatPage: handleContinueMain reveals the chat regardless of what claimFollowUpOpener does', () => {
@@ -100,13 +130,22 @@ test('ChatPage: handleContinueMain reveals the chat regardless of what claimFoll
   assert.match(body, /await claimFollowUpOpener\(existingSession\.id\);\s*\n\s*setShowStartScreen\(false\);/);
 });
 
-// ── 7. Idempotent per session per mount ─────────────────────────────────────
+// ── 7. One claim per entry; a definitive answer does not retry ─────────────
 
-test('ChatPage: a per-session ref guards against firing the claim request more than once per mount', () => {
+test('ChatPage: a per-session ref guards against firing more than one claim request during the same entry', () => {
   assert.match(chatPageSrc, /const followUpClaimedSessionsRef\s*=\s*useRef\(new Set\(\)\);/);
   const body = fnBody('claimFollowUpOpener');
   assert.match(body, /if \(followUpClaimedSessionsRef\.current\.has\(sessionId\)\) return;/);
   assert.match(body, /followUpClaimedSessionsRef\.current\.add\(sessionId\);/);
+});
+
+test('ChatPage: a definitive server answer (ok response, claimed true or false) leaves the guard set rather than clearing it', () => {
+  const body = fnBody('claimFollowUpOpener');
+  // The only two `.delete(sessionId)` call sites are the !res.ok branch and
+  // the catch block — the success path (res.ok, whether claimed true or
+  // false) has no matching delete, so the guard stays set for this entry.
+  const deleteCalls = body.match(/followUpClaimedSessionsRef\.current\.delete\(sessionId\)/g) || [];
+  assert.equal(deleteCalls.length, 2, 'exactly two failure paths clear the guard — not the success path');
 });
 
 // ── 8. Quick Chat is unaffected ──────────────────────────────────────────────
