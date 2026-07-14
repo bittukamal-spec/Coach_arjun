@@ -8,6 +8,7 @@ import { ArjunLogo } from '../components/ArjunLogo';
 import ConsentBanner, { needsGuardianConsent } from '../components/ConsentBanner';
 import { parseArjunMessage, APP_TOOL_CONFIG } from '../utils/parseArjunMessage';
 import { shouldShowAiReminder, BREAK_REMINDER_MS } from '../utils/chatReminders';
+import { parseServerCardEvent, mergeUniqueServerCard } from '../utils/serverCardEvent';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -230,6 +231,43 @@ function AppToolCard({ toolId }) {
   );
 }
 
+// ─── ServerCardBubble: renders a structured server-issued Mental Rep card ──────
+// (PR-9). Kept visually consistent with ArjunBubble's card container and
+// ArjunText's cue-line highlight, but rendered as its own bubble — never
+// merged into an assistant message's `content`, never sent back to the
+// server, never added to the athlete's typed-message history.
+
+function ServerCardBubble({ card }) {
+  return (
+    <div className="flex justify-start">
+      <div className="max-w-[92%] bg-dark-400 border border-dark-600 shadow-sm rounded-2xl rounded-bl-md overflow-hidden">
+        <div className="px-3.5 py-2.5 flex flex-col gap-1.5">
+          <p className="text-[10px] uppercase tracking-widest text-brand-400 font-bold">
+            Mental Rep
+          </p>
+          <p className="text-sm leading-relaxed text-ink whitespace-pre-wrap">
+            {card.cardContent}
+          </p>
+          {card.cueWord && (
+            <div
+              className="font-medium rounded-md"
+              style={{
+                background: 'rgba(217,139,43,0.12)',
+                borderLeft: '3px solid #D98B2B',
+                padding: '8px 10px',
+                color: '#D98B2B',
+                marginTop: '2px',
+              }}
+            >
+              {card.cueWord}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── ArjunBubble: full assistant message bubble with text + tool cards ─────────
 
 function ArjunBubble({ message, isStreaming }) {
@@ -294,6 +332,7 @@ function ChatPage() {
   const [sessionSummary, setSessionSummary]       = useState(null);
   const [chatMode, setChatMode]                   = useState('main');
   const [showBreakReminder, setShowBreakReminder] = useState(false);
+  const [serverCards, setServerCards]             = useState([]);
 
   const bottomRef               = useRef(null);
   const inputRef                = useRef(null);
@@ -409,6 +448,11 @@ function ChatPage() {
 
   useEffect(() => { chatSessionIdRef.current = chatSessionId; }, [chatSessionId]);
   useEffect(() => { chatModeRef.current = chatMode; }, [chatMode]);
+
+  // ── Reset temporary server-issued card state on session switch ──────────
+  // Server cards (PR-9) are never persisted — they only live for the
+  // current loaded session, so switching sessions must not leak them.
+  useEffect(() => { setServerCards([]); }, [chatSessionId]);
 
   // ── Gentle break reminder — client-only, fires once ~30 min after this
   // page mounted, cleared on unmount so no timer keeps running after the
@@ -582,6 +626,14 @@ function ChatPage() {
             } else if (data.t === 'error') {
               setMessages(prev => prev.filter(m => m.id !== streamId));
               setError(data.message || t.errorRetry);
+            } else if (data.t === 'card') {
+              // Structured server-issued Mental Rep card (PR-9). Validated
+              // and deduplicated by prescriptionId; never merged into
+              // assistant text, never added to messages, never sent back.
+              // A malformed/incomplete payload is silently ignored — the
+              // stream keeps processing later events.
+              const card = parseServerCardEvent(data);
+              if (card) setServerCards(prev => mergeUniqueServerCard(prev, card));
             }
           } catch { /* malformed chunk */ }
         }
@@ -760,6 +812,12 @@ function ChatPage() {
               );
             });
           })()}
+
+          {/* Server-issued Mental Rep cards (PR-9) — kept separate from
+              ordinary assistant text; scoped to the current session only. */}
+          {!showStartScreen && serverCards.map(card => (
+            <ServerCardBubble key={card.prescriptionId} card={card} />
+          ))}
 
           {/* Typing indicator */}
           {waitingForFirst && <TypingIndicator />}
