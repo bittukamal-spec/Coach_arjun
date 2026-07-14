@@ -9,6 +9,7 @@ import ConsentBanner, { needsGuardianConsent } from '../components/ConsentBanner
 import { parseArjunMessage, APP_TOOL_CONFIG } from '../utils/parseArjunMessage';
 import { shouldShowAiReminder, BREAK_REMINDER_MS } from '../utils/chatReminders';
 import { parseServerCardEvent, mergeUniqueServerCard } from '../utils/serverCardEvent';
+import { parseQuickRepliesEvent } from '../utils/quickReplyEvent';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -268,6 +269,37 @@ function ServerCardBubble({ card }) {
   );
 }
 
+// ─── QuickReplyChips: optional contextual reply chips + client "Write my own" ──
+// Renders up to three server-offered chips (already validated: 2-3 items,
+// unique ids, short non-empty labels) plus one translated "Write my own"
+// chip the client always adds itself. Tapping a contextual chip reuses the
+// existing normal message-submit path — only its label is ever sent, never
+// its id. The text box stays visible and usable regardless.
+
+function QuickReplyChips({ replies, onSelect, onWriteMyOwn, t }) {
+  return (
+    <div className="flex flex-wrap gap-1.5 pl-1">
+      {replies.map(reply => (
+        <button
+          key={reply.id}
+          type="button"
+          onClick={() => onSelect(reply.label)}
+          className="chip"
+        >
+          {reply.label}
+        </button>
+      ))}
+      <button
+        type="button"
+        onClick={onWriteMyOwn}
+        className="chip"
+      >
+        {t.writeMyOwn}
+      </button>
+    </div>
+  );
+}
+
 // ─── ArjunBubble: full assistant message bubble with text + tool cards ─────────
 
 function ArjunBubble({ message, isStreaming }) {
@@ -333,6 +365,7 @@ function ChatPage() {
   const [chatMode, setChatMode]                   = useState('main');
   const [showBreakReminder, setShowBreakReminder] = useState(false);
   const [serverCards, setServerCards]             = useState([]);
+  const [quickReplies, setQuickReplies]           = useState(null);
 
   const bottomRef               = useRef(null);
   const inputRef                = useRef(null);
@@ -449,10 +482,11 @@ function ChatPage() {
   useEffect(() => { chatSessionIdRef.current = chatSessionId; }, [chatSessionId]);
   useEffect(() => { chatModeRef.current = chatMode; }, [chatMode]);
 
-  // ── Reset temporary server-issued card state on session switch ──────────
-  // Server cards (PR-9) are never persisted — they only live for the
-  // current loaded session, so switching sessions must not leak them.
-  useEffect(() => { setServerCards([]); }, [chatSessionId]);
+  // ── Reset temporary server-issued card / quick-reply state on session switch
+  // Server cards (PR-9) and quick replies are never persisted — they only
+  // live for the current loaded session, so switching sessions must not
+  // leak them.
+  useEffect(() => { setServerCards([]); setQuickReplies(null); }, [chatSessionId]);
 
   // ── Gentle break reminder — client-only, fires once ~30 min after this
   // page mounted, cleared on unmount so no timer keeps running after the
@@ -565,6 +599,10 @@ function ChatPage() {
 
     if (!overrideContent) setInput('');
     setError('');
+    // Clear any offered quick-reply chips immediately — whether this send
+    // came from typing, tapping a contextual chip, or tapping "Write my
+    // own". A new response (if any) will offer its own fresh set.
+    setQuickReplies(null);
 
     if (!isSessionStart) {
       setMessages(prev => [...prev, { id: 'user-' + Date.now(), role: 'user', content: trimmed }]);
@@ -626,6 +664,7 @@ function ChatPage() {
             } else if (data.t === 'error') {
               setMessages(prev => prev.filter(m => m.id !== streamId));
               setError(data.message || t.errorRetry);
+              setQuickReplies(null);
             } else if (data.t === 'card') {
               // Structured server-issued Mental Rep card (PR-9). Validated
               // and deduplicated by prescriptionId; never merged into
@@ -634,6 +673,15 @@ function ChatPage() {
               // stream keeps processing later events.
               const card = parseServerCardEvent(data);
               if (card) setServerCards(prev => mergeUniqueServerCard(prev, card));
+            } else if (data.t === 'quick_replies') {
+              // Structured optional reply chips. Validated (2-3 items,
+              // unique non-empty ids, short non-empty labels) and stored
+              // separately from messages/cards — never persisted, never
+              // sent back to the server, never merged into assistant text.
+              // A malformed payload is silently ignored — the stream keeps
+              // processing later events.
+              const replies = parseQuickRepliesEvent(data);
+              if (replies) setQuickReplies(replies);
             }
           } catch { /* malformed chunk */ }
         }
@@ -642,6 +690,7 @@ function ChatPage() {
       setWaitingForFirst(false);
       setMessages(prev => prev.filter(m => !m.streaming));
       setError(err.message || t.errorRetry);
+      setQuickReplies(null);
     } finally {
       setStreaming(false);
       setWaitingForFirst(false);
@@ -818,6 +867,17 @@ function ChatPage() {
           {!showStartScreen && serverCards.map(card => (
             <ServerCardBubble key={card.prescriptionId} card={card} />
           ))}
+
+          {/* Structured optional reply chips — shown only once the response
+              has fully finished, never mid-stream. */}
+          {!showStartScreen && !streaming && !waitingForFirst && quickReplies && (
+            <QuickReplyChips
+              replies={quickReplies}
+              onSelect={(label) => sendMessage(label)}
+              onWriteMyOwn={() => { setQuickReplies(null); inputRef.current?.focus(); }}
+              t={t}
+            />
+          )}
 
           {/* Typing indicator */}
           {waitingForFirst && <TypingIndicator />}

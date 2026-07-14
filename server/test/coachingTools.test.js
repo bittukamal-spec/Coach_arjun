@@ -6,8 +6,10 @@ const assert = require('node:assert/strict');
 const {
   COACHING_TOOLS,
   LIMITS,
+  QUICK_REPLY_LIMITS,
   validateProposeBarrier,
   validatePrescribeMentalRep,
+  validateOfferQuickReplies,
 } = require('../src/services/coaching/coachingTools');
 const { APPROVED_PRACTICE_KEYS, isApprovedPracticeKey } = require('../src/services/coaching/practiceRegistry');
 
@@ -50,13 +52,17 @@ test('games and paused tools are not approved practice keys', () => {
   assert.equal(isApprovedPracticeKey('hasOwnProperty'), false, 'prototype names must not slip through');
 });
 
-test('both coaching tools are defined with the expected names and required fields', () => {
+test('all three coaching tools are defined with the expected names and required fields', () => {
   const names = COACHING_TOOLS.map((t) => t.name);
-  assert.deepEqual(names, ['propose_barrier', 'prescribe_mental_rep']);
+  assert.deepEqual(names, ['propose_barrier', 'prescribe_mental_rep', 'offer_quick_replies']);
   const propose = COACHING_TOOLS[0];
   assert.deepEqual(propose.input_schema.required, ['problemStatement', 'barrierHypothesis']);
   const prescribe = COACHING_TOOLS[1];
   assert.deepEqual(prescribe.input_schema.required, ['barrierConfirmationStatus', 'finalBarrierHypothesis', 'practiceKey', 'situation', 'cardContent']);
+  const offerQuickReplies = COACHING_TOOLS[2];
+  assert.deepEqual(offerQuickReplies.input_schema.required, ['replies']);
+  assert.equal(offerQuickReplies.input_schema.properties.replies.minItems, 2);
+  assert.equal(offerQuickReplies.input_schema.properties.replies.maxItems, 3);
 });
 
 // ── propose_barrier ──────────────────────────────────────────────────────────
@@ -150,4 +156,77 @@ test('prescribe_mental_rep: rejected when the selection already has an active pr
   const v = validatePrescribeMentalRep(validPrescription(), { ...PENDING_STATE, hasPrescription: true });
   assert.equal(v.ok, false);
   assert.match(v.error, /already has an active prescription/i);
+});
+
+// ── offer_quick_replies ──────────────────────────────────────────────────────
+
+test('offer_quick_replies: accepts a valid 2-label payload', () => {
+  const v = validateOfferQuickReplies({ replies: ["I'm going to get out", "I can't bat today"] });
+  assert.equal(v.ok, true);
+  assert.deepEqual(v.replies, ["I'm going to get out", "I can't bat today"]);
+});
+
+test('offer_quick_replies: accepts a valid 3-label payload', () => {
+  const v = validateOfferQuickReplies({ replies: ['Yes, that feels right', 'Not quite', 'It happens before every match'] });
+  assert.equal(v.ok, true);
+  assert.equal(v.replies.length, 3);
+});
+
+test('offer_quick_replies: trims whitespace from each label', () => {
+  const v = validateOfferQuickReplies({ replies: ['  Yes, that feels right  ', ' Not quite '] });
+  assert.equal(v.ok, true);
+  assert.deepEqual(v.replies, ['Yes, that feels right', 'Not quite']);
+});
+
+test('offer_quick_replies: rejects fewer than 2 or more than 3 replies', () => {
+  assert.equal(validateOfferQuickReplies({ replies: [] }).ok, false);
+  assert.equal(validateOfferQuickReplies({ replies: ['Only one'] }).ok, false);
+  assert.equal(validateOfferQuickReplies({ replies: ['One', 'Two', 'Three', 'Four'] }).ok, false);
+  assert.equal(QUICK_REPLY_LIMITS.min, 2);
+  assert.equal(QUICK_REPLY_LIMITS.max, 3);
+});
+
+test('offer_quick_replies: rejects empty or blank labels', () => {
+  assert.equal(validateOfferQuickReplies({ replies: ['', 'Not quite'] }).ok, false);
+  assert.equal(validateOfferQuickReplies({ replies: ['   ', 'Not quite'] }).ok, false);
+});
+
+test('offer_quick_replies: rejects duplicate labels (case-insensitive)', () => {
+  assert.equal(validateOfferQuickReplies({ replies: ['Yes', 'Yes'] }).ok, false);
+  assert.equal(validateOfferQuickReplies({ replies: ['Yes', 'yes'] }).ok, false, 'duplicates must be caught case-insensitively');
+});
+
+test('offer_quick_replies: rejects labels over the length limit', () => {
+  const long = 'a'.repeat(QUICK_REPLY_LIMITS.maxLabelLength + 1);
+  assert.equal(validateOfferQuickReplies({ replies: [long, 'Not quite'] }).ok, false);
+  const atLimit = 'a'.repeat(QUICK_REPLY_LIMITS.maxLabelLength);
+  assert.equal(validateOfferQuickReplies({ replies: [atLimit, 'Not quite'] }).ok, true);
+});
+
+test('offer_quick_replies: rejects labels containing legacy markers, tool/JSON syntax, HTML, or control characters', () => {
+  const badLabels = [
+    '[APP:body-reset]',
+    '[SUGGEST: Yes | No]',
+    '<script>alert(1)</script>',
+    '{"tool":"x"}',
+    'Line one\nline two',
+    'Tab\there',
+  ];
+  for (const bad of badLabels) {
+    const v = validateOfferQuickReplies({ replies: [bad, 'Not quite'] });
+    assert.equal(v.ok, false, `expected "${bad}" to be rejected`);
+  }
+});
+
+test('offer_quick_replies: rejects "Other" / "Something else" / "Write my own" — the client adds that itself', () => {
+  for (const reserved of ['Other', 'other', 'Something else', 'Write my own', 'write my own answer']) {
+    const v = validateOfferQuickReplies({ replies: ['Yes, that feels right', reserved] });
+    assert.equal(v.ok, false, `expected "${reserved}" to be rejected`);
+  }
+});
+
+test('offer_quick_replies: rejects malformed payloads', () => {
+  for (const input of [null, undefined, {}, { replies: 'not an array' }, { replies: [1, 2] }, 'text', 42]) {
+    assert.equal(validateOfferQuickReplies(input).ok, false);
+  }
 });

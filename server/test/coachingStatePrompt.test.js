@@ -5,7 +5,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { buildSystemPrompt, buildCoachingStateSection } = require('../src/routes/chat');
+const { buildSystemPrompt, buildCoachingStateSection, buildQuickReplySection } = require('../src/routes/chat');
 
 function baseUser(overrides = {}) {
   return {
@@ -47,6 +47,11 @@ test('no-active-selection: propose_barrier yields exactly one tentative barrier 
   assert.match(section, /Do NOT prescribe a practice, mention a specific tool, or offer any menu/i);
 });
 
+test('no-active-selection: may mention offer_quick_replies for one focused question', () => {
+  const section = buildCoachingStateSection(NO_STATE);
+  assert.match(section, /offer_quick_replies/);
+});
+
 // ── Pending barrier ──────────────────────────────────────────────────────────
 
 test('pending-barrier: requires explicit acceptance before prescribe_mental_rep may be called', () => {
@@ -76,6 +81,14 @@ test('pending-barrier: the prescription reply must not use legacy card/chip synt
   assert.match(section, /do not write \[APP:\.\.\.\] or \[SUGGEST:\.\.\.\] tags/i);
 });
 
+test('pending-barrier: may offer confirm/correct quick replies after presenting the hypothesis, but never alongside prescribe_mental_rep', () => {
+  const section = buildCoachingStateSection(PENDING_STATE);
+  assert.match(section, /offer_quick_replies with confirm\/correct choices/i);
+  assert.match(section, /Yes, that feels right/i);
+  assert.match(section, /Not quite/i);
+  assert.match(section, /do not call offer_quick_replies in that same reply/i);
+});
+
 // ── Active prescription ──────────────────────────────────────────────────────
 
 test('active-prescription: forbids another prescription and forbids starting a new cycle', () => {
@@ -84,6 +97,23 @@ test('active-prescription: forbids another prescription and forbids starting a n
   assert.match(section, /Do NOT create or suggest another prescription/i);
   assert.match(section, /do not call prescribe_mental_rep again/i);
   assert.match(section, /Do NOT start a new coaching cycle or propose a new barrier/i);
+});
+
+// ── Quick Reply Chips general guidance ───────────────────────────────────────
+
+test('buildQuickReplySection: covers good uses, forbidden uses, and the client-owned "Write my own" rule', () => {
+  const section = buildQuickReplySection();
+  assert.match(section, /offer_quick_replies/);
+  assert.match(section, /identifying the athlete's immediate thought/i);
+  assert.match(section, /choosing between a couple of simple situations/i);
+  assert.match(section, /confirming or rejecting a barrier hypothesis/i);
+  assert.match(section, /on every message — most replies need none/i);
+  assert.match(section, /crisis, abuse, injury, or immediate-danger/i);
+  assert.match(section, /detailed personal explanation is needed/i);
+  assert.match(section, /lead or diagnose the athlete/i);
+  assert.match(section, /same reply as a new prescription/i);
+  assert.match(section, /never include "Other", "Something else", or "Write my own"/i);
+  assert.match(section, /follow the current conversation language/i);
 });
 
 // ── No context (quick chat / not wired) ──────────────────────────────────────
@@ -100,14 +130,30 @@ test('buildSystemPrompt: includes the coaching-state section when coachingContex
   assert.match(prompt, /## Coaching State: No Active Coaching Cycle/);
 });
 
-test('buildSystemPrompt: omits the coaching-state section entirely when coachingContext is absent', () => {
+test('buildSystemPrompt: includes the structured reply-chip tool guidance whenever coachingContext is supplied', () => {
+  const prompt = buildSystemPrompt(baseUser(), [], [], null, { coachingContext: NO_STATE });
+  assert.match(prompt, /## Structured Reply-Chip Tool \(offer_quick_replies\)/);
+});
+
+test('buildSystemPrompt: the new structured reply-chip section is named distinctly from the pre-existing legacy [SUGGEST:] "## Quick Reply Chips" section', () => {
+  const prompt = buildSystemPrompt(baseUser(), [], [], null, { coachingContext: NO_STATE });
+  // Both sections legitimately coexist in the full prompt (the legacy one
+  // pre-dates PR-10 and isn't in scope to remove) — what matters is they
+  // are two distinct, unambiguous headings, not a naming collision.
+  assert.match(prompt, /## Quick Reply Chips\n/, 'the pre-existing legacy SUGGEST-tag section is untouched');
+  assert.match(prompt, /## Structured Reply-Chip Tool \(offer_quick_replies\)/, 'the new tool section has its own distinct heading');
+});
+
+test('buildSystemPrompt: omits the coaching-state AND structured reply-chip sections entirely when coachingContext is absent', () => {
   const prompt = buildSystemPrompt(baseUser(), [], [], null, {});
   assert.doesNotMatch(prompt, /## Coaching State:/);
+  assert.doesNotMatch(prompt, /## Structured Reply-Chip Tool/);
 });
 
 test('buildSystemPrompt: the dormant quick-chat prompt is unaffected even if coachingContext is passed', () => {
   const prompt = buildSystemPrompt(baseUser(), [], [], null, { isQuickChat: true, coachingContext: PENDING_STATE });
   assert.doesNotMatch(prompt, /Coaching State:/);
+  assert.doesNotMatch(prompt, /Structured Reply-Chip Tool/);
   assert.match(prompt, /This is a quick chat/);
 });
 

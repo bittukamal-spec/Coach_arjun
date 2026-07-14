@@ -6,8 +6,22 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { runBufferedToolLoop, sanitizeFinalText } = require('../src/services/coaching/bufferedToolLoop');
+const { runBufferedToolLoop, sanitizeFinalText, buildQuickReplyPayload } = require('../src/services/coaching/bufferedToolLoop');
 const { createCommitCoachingTransition } = require('../src/services/coaching/commitCoachingTransition');
+
+// Mirrors chat.js's emission logic exactly: d, then EITHER a card (if one
+// was newly committed) OR quick replies (never both), then end.
+function emitLikeRoute({ finalText, committed, loopQuickReplies }) {
+  const emitted = [{ t: 'd', c: finalText }];
+  if (committed.card) {
+    emitted.push({ t: 'card', card: committed.card });
+  } else {
+    const quickReplies = buildQuickReplyPayload(loopQuickReplies);
+    if (quickReplies) emitted.push({ t: 'quick_replies', replies: quickReplies });
+  }
+  emitted.push({ t: 'end', id: committed.message.id });
+  return emitted;
+}
 
 function makeAnthropicStub(responses) {
   let i = 0;
@@ -27,11 +41,28 @@ function makeDbStub(state) {
   let idCounter = 0;
   const nextId = (prefix) => `${prefix}-${++idCounter}`;
   const tx = {
-    userCoachingState: { findUnique: async () => state },
+    userCoachingState: {
+      findUnique: async () => state,
+      create: async ({ data }) => {
+        const row = { id: nextId('state'), ...data };
+        writes.push({ op: 'userCoachingState.create', data });
+        return row;
+      },
+    },
     coachingCycle: {
+      create: async ({ data }) => {
+        const row = { id: nextId('cycle'), ...data };
+        writes.push({ op: 'coachingCycle.create', data });
+        return row;
+      },
       update: async (args) => { writes.push({ op: 'coachingCycle.update', ...args }); return { id: args.where.id, ...args.data }; },
     },
     activeCoachingSelection: {
+      create: async ({ data }) => {
+        const row = { id: nextId('sel'), ...data };
+        writes.push({ op: 'activeCoachingSelection.create', data });
+        return row;
+      },
       update: async (args) => { writes.push({ op: 'activeCoachingSelection.update', ...args }); return { id: args.where.id, ...args.data }; },
     },
     prescription: {
@@ -125,3 +156,104 @@ test('accepted prescription end to end: legacy markers stripped, exactly one car
   assert.equal(message.content, finalText, 'persisted assistant text must be byte-for-byte the emitted text');
   assert.ok(!message.content.includes('[APP:') && !message.content.includes('[SUGGEST:'), 'no legacy marker in the persisted message');
 });
+
+test('accepted prescription: even if the model also staged quick replies, only the card is emitted — never both', async () => {
+  const anthropic = makeAnthropicStub([
+    {
+      stop_reason: 'tool_use',
+      content: [
+        { type: 'text', text: 'draft' },
+        { type: 'tool_use', id: 'tu-1', name: 'prescribe_mental_rep', input: PRESCRIBE_INPUT },
+        { type: 'tool_use', id: 'tu-2', name: 'offer_quick_replies', input: { replies: ['Got it', 'Not sure'] } },
+      ],
+    },
+    { stop_reason: 'end_turn', content: [{ type: 'text', text: 'Here is your one practice for this week.' }] },
+  ]);
+
+  const coachingContext = { hasActiveSelection: true, cycleStatus: 'ACTIVE', barrierConfirmationStatus: 'PENDING', hasPrescription: false };
+  const loop = await runBufferedToolLoop({
+    anthropic, model: 'test-model', maxTokens: 800, system: 'sys',
+    messages: [{ role: 'user', content: 'Yes, that is exactly it' }],
+    coachingContext,
+  });
+  assert.equal(loop.transition.type, 'prescribe_mental_rep');
+  assert.deepEqual(loop.quickReplies, ['Got it', 'Not sure'], 'the model did stage quick replies this turn');
+
+  const finalText = sanitizeFinalText(loop.finalText);
+  const { db } = makeDbStub(pendingState());
+  const commit = createCommitCoachingTransition(db);
+  const committed = await commit({ userId: 'user-1', chatSessionId: 'cs-1', sessionType: null, finalText, transition: loop.transition });
+
+  const emitted = emitLikeRoute({ finalText, committed, loopQuickReplies: loop.quickReplies });
+
+  assert.deepEqual(emitted.map((e) => e.t), ['d', 'card', 'end'], 'quick replies must never be emitted alongside a newly committed card');
+});
+
+test('normal response with quick replies (no coaching transition): emits d, then quick_replies, then end', async () => {
+  const anthropic = makeAnthropicStub([
+    quickTool('draft', ['Tell me more', 'Not really'], 'tu-1'),
+    { stop_reason: 'end_turn', content: [{ type: 'text', text: 'How has training felt this week?' }] },
+  ]);
+
+  const coachingContext = { hasActiveSelection: false, cycleStatus: null, barrierConfirmationStatus: null, hasPrescription: false };
+  const loop = await runBufferedToolLoop({
+    anthropic, model: 'test-model', maxTokens: 800, system: 'sys',
+    messages: [{ role: 'user', content: 'Training has been tough' }],
+    coachingContext,
+  });
+  assert.equal(loop.transition, null);
+  assert.deepEqual(loop.quickReplies, ['Tell me more', 'Not really']);
+
+  const finalText = sanitizeFinalText(loop.finalText);
+  const { db } = makeDbStub(null);
+  const commit = createCommitCoachingTransition(db);
+  const committed = await commit({ userId: 'user-1', chatSessionId: 'cs-1', sessionType: null, finalText, transition: loop.transition });
+
+  const emitted = emitLikeRoute({ finalText, committed, loopQuickReplies: loop.quickReplies });
+  assert.deepEqual(emitted.map((e) => e.t), ['d', 'quick_replies', 'end']);
+  assert.deepEqual(emitted[1].replies, [{ id: 'reply_1', label: 'Tell me more' }, { id: 'reply_2', label: 'Not really' }]);
+  assert.equal(emitted[2].id, committed.message.id);
+});
+
+test('barrier proposal can emit confirmation quick replies without a card', async () => {
+  const anthropic = makeAnthropicStub([
+    {
+      stop_reason: 'tool_use',
+      content: [
+        { type: 'text', text: 'draft' },
+        { type: 'tool_use', id: 'tu-1', name: 'propose_barrier', input: { problemStatement: 'Freezes on penalties', barrierHypothesis: 'Fear of failure' } },
+        { type: 'tool_use', id: 'tu-2', name: 'offer_quick_replies', input: { replies: ['Yes, that feels right', 'Not quite'] } },
+      ],
+    },
+    { stop_reason: 'end_turn', content: [{ type: 'text', text: 'Sounds like fear of failure — does that fit?' }] },
+  ]);
+
+  const coachingContext = { hasActiveSelection: false, cycleStatus: null, barrierConfirmationStatus: null, hasPrescription: false };
+  const loop = await runBufferedToolLoop({
+    anthropic, model: 'test-model', maxTokens: 800, system: 'sys',
+    messages: [{ role: 'user', content: 'I keep freezing on penalties' }],
+    coachingContext,
+  });
+  assert.equal(loop.transition.type, 'propose_barrier');
+  assert.deepEqual(loop.quickReplies, ['Yes, that feels right', 'Not quite']);
+
+  const finalText = sanitizeFinalText(loop.finalText);
+  const { db } = makeDbStub(null);
+  const commit = createCommitCoachingTransition(db);
+  const committed = await commit({ userId: 'user-1', chatSessionId: 'cs-1', sessionType: null, finalText, transition: loop.transition });
+
+  assert.equal(committed.card, null, 'a barrier proposal never produces a card');
+  const emitted = emitLikeRoute({ finalText, committed, loopQuickReplies: loop.quickReplies });
+  assert.deepEqual(emitted.map((e) => e.t), ['d', 'quick_replies', 'end']);
+  assert.equal(emitted[0].c, 'Sounds like fear of failure — does that fit?');
+});
+
+function quickTool(draftText, replies, id) {
+  return {
+    stop_reason: 'tool_use',
+    content: [
+      { type: 'text', text: draftText },
+      { type: 'tool_use', id, name: 'offer_quick_replies', input: { replies } },
+    ],
+  };
+}
