@@ -65,6 +65,35 @@ test('all three coaching tools are defined with the expected names and required 
   assert.equal(offerQuickReplies.input_schema.properties.replies.maxItems, 3);
 });
 
+// ── offer_quick_replies tool description: mandatory bounded-question rule ───
+
+test('offer_quick_replies tool description: mandatory for a clearly bounded 2-3 option question', () => {
+  const description = COACHING_TOOLS.find((t) => t.name === 'offer_quick_replies').description;
+  assert.match(description, /REQUIRED whenever your final question has exactly 2 or 3 clear, short, non-sensitive answer categories/i);
+  assert.match(description, /call it in the same request rather than merely writing the options in your message text/i);
+});
+
+test('offer_quick_replies tool description: open-ended, over-three-answer, and sensitive/safety questions are explicitly exempt', () => {
+  const description = COACHING_TOOLS.find((t) => t.name === 'offer_quick_replies').description;
+  assert.match(description, /when the question is open-ended with no small fixed set of likely answers/i);
+  assert.match(description, /when the athlete needs to explain something in their own words/i);
+  assert.match(description, /when there are more than three meaningfully different answers/i);
+  assert.match(description, /crisis, abuse, injury, or immediate-danger discussion/i);
+});
+
+test('offer_quick_replies tool description: prohibits chips alongside a new prescription card', () => {
+  const description = COACHING_TOOLS.find((t) => t.name === 'offer_quick_replies').description;
+  assert.match(description, /Do not call this in the same reply as prescribe_mental_rep/i);
+  assert.match(description, /the practice card takes that reply's place, never chips/i);
+});
+
+test('offer_quick_replies tool description: labels are athlete-language not clinical, avoid near-duplicates, and "Write my own" stays client-owned', () => {
+  const description = COACHING_TOOLS.find((t) => t.name === 'offer_quick_replies').description;
+  assert.match(description, /in the athlete's own words rather than clinical labels/i);
+  assert.match(description, /avoid near-duplicates/i);
+  assert.match(description, /never include "Other", "Something else", or "Write my own" yourself/i);
+});
+
 // ── propose_barrier ──────────────────────────────────────────────────────────
 
 test('propose_barrier: accepts a valid payload when no active selection exists', () => {

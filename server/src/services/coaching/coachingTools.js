@@ -115,13 +115,14 @@ const COACHING_TOOLS = [
   {
     name: OFFER_QUICK_REPLIES,
     description:
-      'Offer 2 or 3 short, plausible reply choices the athlete can tap, when a question genuinely has that few natural answers — for example: ' +
-      'identifying their immediate thought, choosing between a couple of simple situations, confirming or rejecting a barrier hypothesis, or a later outcome question like whether a practice helped. ' +
-      'Do not use this on every message — most replies need none. Do not use it for sensitive disclosures, or anywhere near a crisis, abuse, injury, or immediate-danger discussion. ' +
-      'Do not use it when a detailed personal explanation is needed, or when the choices themselves would lead or diagnose the athlete. ' +
+      'REQUIRED whenever your final question has exactly 2 or 3 clear, short, non-sensitive answer categories the athlete could tap instead of typing — call it in the same request rather than merely writing the options in your message text. ' +
+      'Examples: identifying their immediate thought between a couple of distinct focuses, choosing between a couple of simple situations (e.g. matches, training, or both), confirming or rejecting a barrier hypothesis ("Yes, that feels right" / "Not quite"), or a later outcome question like whether a practice helped. ' +
+      'Do not use this on every message — most replies need none. Do not use it when the question is open-ended with no small fixed set of likely answers, when the athlete needs to explain something in their own words, or when there are more than three meaningfully different answers. ' +
+      'Do not use it for sensitive disclosures, or anywhere near a crisis, abuse, injury, or immediate-danger discussion. ' +
+      'Do not use it when a detailed personal explanation or reflection is needed, or when the choices themselves would lead or diagnose the athlete, or would pressure them toward an answer. ' +
       'Do not call this in the same reply as prescribe_mental_rep — the practice card takes that reply\'s place, never chips. ' +
       'The app always adds its own "Write my own" option after your choices — never include "Other", "Something else", or "Write my own" yourself. ' +
-      'Labels must be short and in the athlete\'s current conversation language. This does not change any coaching state — it only offers optional quick replies. Call at most once per reply.',
+      'Labels must be short, in the athlete\'s own words rather than clinical labels, avoid near-duplicates, and match the athlete\'s current conversation language. This does not change any coaching state — it only offers optional quick replies. Call at most once per reply.',
     input_schema: {
       type: 'object',
       properties: {
