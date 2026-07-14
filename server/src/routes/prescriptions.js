@@ -99,7 +99,7 @@ router.post('/:prescriptionId/complete', authenticate, requireGuardianConsent, a
 });
 
 // ── GET /active — the athlete's current selected Prescription, if any ──────
-router.get('/active', authenticate, async (req, res) => {
+router.get('/active', authenticate, requireGuardianConsent, async (req, res) => {
   try {
     const prescription = await loadActivePrescription(req.userId);
     res.json({ prescription });

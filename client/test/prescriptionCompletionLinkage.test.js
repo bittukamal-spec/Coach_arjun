@@ -57,6 +57,28 @@ test('ChatPage: the practice launch link only renders when practiceRouteFor reso
   assert.match(body, /\{practiceRoute && \(/);
 });
 
+test('ChatPage: the Mental Rep card\'s situation/card content and cue are rendered unconditionally — never gated behind whether a launch link exists', () => {
+  const start = chatPageSrc.indexOf('function ServerCardBubble');
+  const end = chatPageSrc.indexOf('\n}', start);
+  const body = chatPageSrc.slice(start, end);
+  const cardContentIdx = body.indexOf('{card.cardContent}');
+  const cueWordIdx = body.indexOf('card.cueWord &&');
+  const practiceRouteIdx = body.indexOf('{practiceRoute && (');
+  assert.ok(cardContentIdx !== -1 && cardContentIdx < practiceRouteIdx, 'cardContent must render before (outside) the practice-route conditional');
+  assert.ok(cueWordIdx !== -1 && cueWordIdx < practiceRouteIdx, 'cueWord must render before (outside) the practice-route conditional');
+});
+
+test('ChatPage: an unsupported approved practice key (no real route) shows the card with no launch action, without inventing a route or falling back to a generic tool', () => {
+  const start = chatPageSrc.indexOf('function ServerCardBubble');
+  const end = chatPageSrc.indexOf('\n}', start);
+  const body = chatPageSrc.slice(start, end);
+  // The ONLY source of the route is practiceRouteFor(card.practiceKey) — no
+  // hardcoded fallback route, no unconditional navigate() call exists here.
+  const navigateCalls = [...body.matchAll(/navigate\(/g)];
+  assert.equal(navigateCalls.length, 1, 'exactly one navigate() call site, reached only through the practiceRoute-gated button');
+  assert.doesNotMatch(body, /navigate\('\/train'\)|navigate\('\/'\)/, 'no silent fallback to a generic tool/home route');
+});
+
 // ── 3. Completion calls the exact Prescription endpoint ────────────────────
 
 function assertCallsExactEndpoint(src, fnName) {
