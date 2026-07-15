@@ -199,6 +199,16 @@ test('buildQuickReplySection: chips support but never replace free text, use ath
   assert.match(section, /maximum three replies/i);
 });
 
+test('buildQuickReplySection: instructs Claude to call offer_quick_replies once, then never call it again in the same request once its tool_result confirms staging — write the final question text instead (production retry-loop bugfix)', () => {
+  const section = buildQuickReplySection();
+  assert.match(section, /once its tool_result confirms your choices are staged, do not call it again in this same request/i);
+  assert.match(section, /write your final natural-language question text right away instead/i);
+  // The bounded-question requirement itself must not be weakened by this addition.
+  assert.match(section, /you MUST call offer_quick_replies in the same request/i);
+  // The legacy marker must still never be restored.
+  assert.match(section, /never write a \[SUGGEST:\.\.\.\] tag/i);
+});
+
 // ── No context (quick chat / not wired) ──────────────────────────────────────
 
 test('no coachingContext supplied: section is empty (no accidental instructions leak into other callers)', () => {

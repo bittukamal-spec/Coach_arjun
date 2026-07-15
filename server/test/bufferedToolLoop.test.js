@@ -287,7 +287,7 @@ test('offer_quick_replies receives a normal tool_result and the loop continues t
   assert.equal(JSON.parse(toolResultTurn.content[0].content).accepted, true);
 });
 
-test('at most one offer_quick_replies call is accepted per request — a second call in a later round is rejected', async () => {
+test('at most one offer_quick_replies STAGING is accepted per request — a second call in a later round is idempotent (non-error), never rejected as an error', async () => {
   const stub = makeAnthropicStub([
     quickRepliesToolResponse('draft 1', ['Yes, that feels right', 'Not quite'], 'tu-1'),
     quickRepliesToolResponse('draft 2', ['Different set', 'Another one'], 'tu-2'),
@@ -296,9 +296,64 @@ test('at most one offer_quick_replies call is accepted per request — a second 
   const result = await run(stub, NO_STATE);
   assert.equal(stub.calls.length, 3);
   const secondRoundResult = stub.calls[2].messages[stub.calls[2].messages.length - 1].content[0];
-  assert.equal(secondRoundResult.is_error, true);
-  assert.match(JSON.parse(secondRoundResult.content).error, /Only one offer_quick_replies call/i);
-  // The FIRST staged set is retained — never overwritten by the rejected second call.
+  // The fix: a duplicate offer_quick_replies call must NEVER be an error —
+  // treating it as one risked pushing the model to keep retrying the tool
+  // call instead of finishing, burning through MAX_ROUNDS in production.
+  assert.equal(secondRoundResult.is_error, false);
+  const parsed = JSON.parse(secondRoundResult.content);
+  assert.equal(parsed.accepted, true);
+  assert.match(parsed.note, /already staged/i);
+  assert.match(parsed.note, /do not call offer_quick_replies again/i);
+  assert.match(parsed.note, /produce the final response text now/i);
+  // The FIRST staged set is retained — never overwritten by the second
+  // (differently-worded) call's payload.
+  assert.deepEqual(result.quickReplies, ['Yes, that feels right', 'Not quite']);
+});
+
+test('the request succeeds without reaching the round limit when Claude repeats offer_quick_replies then finishes on round 3', async () => {
+  const stub = makeAnthropicStub([
+    quickRepliesToolResponse('draft 1', ['Yes, that feels right', 'Not quite'], 'tu-1'),
+    quickRepliesToolResponse('draft 2', ['Yes, that feels right', 'Not quite'], 'tu-2'),
+    textResponse('Does that sound right?'),
+  ]);
+  const result = await run(stub, NO_STATE);
+  assert.equal(result.exceededRounds, false);
+  assert.equal(result.rounds, 3);
+  assert.equal(result.finalText, 'Does that sound right?');
+  assert.deepEqual(result.quickReplies, ['Yes, that feels right', 'Not quite']);
+});
+
+test('the first successful offer_quick_replies staging ALSO instructs not to call it again and to produce final text now', async () => {
+  const stub = makeAnthropicStub([
+    quickRepliesToolResponse('draft', ['Yes, that feels right', 'Not quite'], 'tu-1'),
+    textResponse('Final.'),
+  ]);
+  await run(stub, NO_STATE);
+  const firstResult = stub.calls[1].messages[stub.calls[1].messages.length - 1].content[0];
+  assert.equal(firstResult.is_error, false);
+  const parsed = JSON.parse(firstResult.content);
+  assert.match(parsed.note, /Reply choices are staged/i);
+  assert.match(parsed.note, /do not call offer_quick_replies again in this request/i);
+  assert.match(parsed.note, /produce the final response text now/i);
+});
+
+test('three or more duplicate offer_quick_replies calls across rounds all stay idempotent and never exhaust the round cap on their own', async () => {
+  const stub = makeAnthropicStub([
+    quickRepliesToolResponse('draft 1', ['Yes, that feels right', 'Not quite'], 'tu-1'),
+    quickRepliesToolResponse('draft 2', ['Another set', 'Different'], 'tu-2'),
+    quickRepliesToolResponse('draft 3', ['Yet another', 'Something else entirely'], 'tu-3'),
+    textResponse('Final.'),
+  ]);
+  const result = await run(stub, NO_STATE);
+  assert.equal(result.exceededRounds, false);
+  assert.equal(result.finalText, 'Final.');
+  // Every round's tool_result is a non-error idempotent confirmation.
+  for (let round = 1; round <= 3; round++) {
+    const toolResult = stub.calls[round].messages[stub.calls[round].messages.length - 1].content[0];
+    assert.equal(toolResult.is_error, false, `round ${round} must not be an error`);
+  }
+  // The very first staged set is what survives, regardless of how many
+  // different payloads later duplicate calls carried.
   assert.deepEqual(result.quickReplies, ['Yes, that feels right', 'Not quite']);
 });
 

@@ -65,11 +65,24 @@ function sanitizeFinalText(raw) {
 function handleToolUse(block, context, held) {
   if (block.name === OFFER_QUICK_REPLIES) {
     if (held.quickReplies) {
+      // Idempotent duplicate — never an error. The main-chat prompt makes
+      // offer_quick_replies REQUIRED for a bounded question, and Claude can
+      // call it again in a later round even after a successful first call
+      // (e.g. still perceiving the question as needing chips). Rejecting
+      // that second call with is_error:true previously risked the model
+      // retrying the tool call instead of finishing its reply — burning
+      // through every round until the hard cap forced the deterministic
+      // "couldn't save that" retry message even though nothing was ever
+      // actually wrong. Returning a plain non-error tool_result that firmly
+      // redirects to finishing the reply breaks that loop. Deliberately no
+      // `quickReplies` key here — the ORIGINAL first staged set in `held`
+      // is left completely untouched, regardless of what this second call's
+      // payload contained.
       return {
-        accepted: false,
+        accepted: true,
         result: {
-          accepted: false,
-          error: 'Only one offer_quick_replies call is allowed per athlete message, and one is already staged.',
+          accepted: true,
+          note: 'Reply choices are already staged. Do not call offer_quick_replies again in this request. Produce the final response text now.',
         },
       };
     }
@@ -80,7 +93,7 @@ function handleToolUse(block, context, held) {
       quickReplies: qv.replies,
       result: {
         accepted: true,
-        note: 'Quick replies staged. The app renders these as tappable chips after your final reply — do not repeat them as text, and do not call this tool again this turn.',
+        note: 'Reply choices are staged. Do not call offer_quick_replies again in this request. Produce the final response text now.',
       },
     };
   }
