@@ -13,6 +13,7 @@ const {
   loadCoachingContext, commitCoachingTransition, getRetryMessage,
   CoachingStateConflictError,
 } = require('../services/coaching');
+const loadMindJournalContext = require('../services/mindJournal/loadMindJournalContext');
 
 // How long a suppressed (ignored) skill recommendation stays suppressed
 // before it can be primed again — a lightweight stand-in for "session".
@@ -228,10 +229,39 @@ Examples that stay text-only: "What was going through your mind at that moment?"
 Chips support the question but never replace free-text input — the athlete can always type instead. Labels must be short, in the athlete's own words rather than clinical labels, and follow the current conversation language (see the Language rules above). Avoid near-duplicate choices, and never include an explanation inside a chip label — maximum three replies. The app always adds its own "Write my own" option after your choices — never include "Other", "Something else", or "Write my own" yourself. Call offer_quick_replies at most once per reply: once its tool_result confirms your choices are staged, do not call it again in this same request — write your final natural-language question text right away instead. This is the ONLY way to offer reply chips in this conversation — never write a [SUGGEST:...] tag.`;
 }
 
+// ── Optional Mind Journal context (score-free rollout) ───────────────────
+// Only ever populated for the main coaching chat, and only when the
+// athlete has BOTH opted in (User.mindJournalContextEnabled) AND has at
+// least one entry — loadMindJournalContext returns null otherwise, and this
+// whole section is omitted rather than shown empty. Never included in Quick
+// Chat, profile-intro, weekly reports, visualization, self-talk generation,
+// body reset, or debrief generation.
+function buildMindJournalContextSection(mindJournalEntries) {
+  if (!mindJournalEntries || !mindJournalEntries.length) return '';
+  const lines = mindJournalEntries.map((e) => {
+    const when = new Date(e.createdAt).toISOString().slice(0, 10);
+    const states = e.states.join(', ');
+    return `- ${when}: ${states}${e.note ? ` — note: "${e.note}"` : ''}`;
+  }).join('\n');
+
+  return `## Optional Mind Journal Context — athlete opted in
+The athlete opted in to share their latest Mind Journal entries as background context only:
+${lines}
+This is optional background context only, nothing more:
+- Do not calculate or infer a score from these states.
+- Do not diagnose or profile the athlete from this list.
+- Do not treat a journal state as proof of a barrier, and never confirm a barrier from journal entries alone.
+- Do not automatically prescribe a Mental Rep from journal entries — a prescription still requires the normal coaching-state flow.
+- Do not gate any feature, tool, or progress on journal entries.
+- If something here seems relevant, ask the athlete directly rather than assuming it still applies.
+- What the athlete says in THIS conversation always takes priority over this context.
+- Never say a state is objectively good or bad — "nervous" and "tired" are simply what the athlete noticed, not problems to fix by default.`;
+}
+
 // ── Helper: build personalised system prompt ─────────────────────────────
 
 function buildSystemPrompt(user, checkIns = [], memories = [], sessionType = null, extra = {}) {
-  const { recentDebriefs = [], todayDrill = null, achievementCount = 0, recentDrills = [], gameSessions = [], ritual = null, mfsEntry = null, mfsHistory = [], mfsReport = null, toolReports = [], isQuickChat = false, skillHint = null, activePlan = null, focusCards = [], coachingContext = null } = extra;
+  const { recentDebriefs = [], todayDrill = null, achievementCount = 0, recentDrills = [], gameSessions = [], ritual = null, mfsEntry = null, mfsHistory = [], mfsReport = null, toolReports = [], isQuickChat = false, skillHint = null, activePlan = null, focusCards = [], coachingContext = null, mindJournalEntries = null } = extra;
 
   // Quick chat: minimal prompt — no memory, no history context, no tool reports
   if (isQuickChat) {
@@ -451,8 +481,9 @@ No recent check-ins — the athlete hasn't tracked their mental state yet.`;
 
   const coachingStateSection = buildCoachingStateSection(coachingContext);
   const quickReplySection = coachingContext ? buildQuickReplySection() : '';
+  const mindJournalSection = buildMindJournalContextSection(mindJournalEntries);
 
-  const extraSections = [coachingStateSection, quickReplySection, patternSection].filter(Boolean).join('\n\n');
+  const extraSections = [coachingStateSection, quickReplySection, patternSection, mindJournalSection].filter(Boolean).join('\n\n');
 
   const actionBridgeSection = (extra.arjunMsgCount ?? 0) >= 4
     ? `\n\n## Natural Action Offer\nYou are ${extra.arjunMsgCount} responses into this session. If you feel you have addressed the athlete's main concern, naturally offer ONE specific next step they can try right now — for example a 2-minute breathing exercise, building a pre-match routine together, or a quick visualisation drill. Keep it to one casual sentence such as "Want to try a quick breathing exercise right now?" Only offer this once — if you have already suggested a next action in this session, do not repeat it.`
@@ -1122,7 +1153,11 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
     // the tool validators re-check server-side, and it is included
     // identically on every round of the loop below.
     const coachingContext = await loadCoachingContext(req.userId);
-    const systemPrompt = buildSystemPrompt(user, recentCheckIns, memories, sessionType, { ...promptExtra, coachingContext });
+    // Main coaching chat only — never threaded into Quick Chat above, and
+    // never loaded for any other AI surface (profile-intro, weekly reports,
+    // visualization, self-talk, body reset, debrief).
+    const mindJournalEntries = await loadMindJournalContext(req.userId);
+    const systemPrompt = buildSystemPrompt(user, recentCheckIns, memories, sessionType, { ...promptExtra, coachingContext, mindJournalEntries });
     const loop = await runBufferedToolLoop({
       anthropic,
       model,

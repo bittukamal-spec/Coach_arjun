@@ -91,6 +91,10 @@ model User {
   // DB-enforced right now. Lookup uses findFirst, not findUnique.
   guardianConsentToken  String?   // one-time consent-link token
 
+  // Mind Journal — score-free, opt-in-only Arjun context (Mental Fitness
+  // scoring replacement rollout). Default false for existing and new users.
+  mindJournalContextEnabled Boolean @default(false)
+
   messages               Message[]
   safetyEvents           SafetyEvent[]
   checkIns               CheckIn[]
@@ -112,6 +116,7 @@ model User {
   coachingCycles           CoachingCycle[]
   prescriptions            Prescription[]
   activeCoachingSelections ActiveCoachingSelection[]
+  mindJournalEntries       MindJournalEntry[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -254,6 +259,23 @@ model MentalFitnessEntry {
   createdAt      DateTime @default(now())
 
   @@unique([userId, date])
+}
+
+// Score-free Mind Journal (replaces the visible Mental Fitness scoring
+// experience). Deliberately no score/rating/percentage/level/streak/XP/
+// reward/aggregate field, and no automatic-interpretation or AI-generated
+// summary field — states + an optional note are the athlete's own words.
+// MentalFitnessEntry above is untouched and kept temporarily for
+// compatibility; this is a separate, additive model.
+model MindJournalEntry {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  states    String[]
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
 }
 
 model ToolReport {

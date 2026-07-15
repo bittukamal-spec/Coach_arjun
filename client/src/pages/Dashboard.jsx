@@ -551,7 +551,7 @@ export default function Dashboard() {
                         </p>
                         {/* Start button */}
                         <button
-                          onClick={() => navigate('/mental-fitness')}
+                          onClick={() => navigate('/mind-journal')}
                           className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-sm font-bold active:scale-[0.98] transition-all"
                         >
                           {hi ? 'शुरू करें' : 'Start'}

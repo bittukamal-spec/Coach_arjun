@@ -22,7 +22,7 @@ import ResetPasswordPage from './pages/ResetPasswordPage';
 import GuardianConsentPage from './pages/GuardianConsentPage';
 import PricingPage from './pages/PricingPage';
 import PaymentSuccessPage from './pages/PaymentSuccessPage';
-import MentalFitnessCheckin from './pages/MentalFitnessCheckin';
+import MindJournalPage from './pages/MindJournalPage';
 import VisualizationPage from './pages/VisualizationPage';
 import SelfTalkPage from './pages/SelfTalkPage';
 import FocusSelfTalkSkillPath from './pages/skills/FocusSelfTalkSkillPath';
@@ -164,15 +164,20 @@ function App() {
           </ProtectedRoute>
         }
       />
-      {/* Mental Fitness check-in — full screen, no BottomNav */}
+      {/* Mind Journal — score-free, replaces the old scored Mental Fitness
+          check-in. Full screen, no BottomNav. */}
       <Route
-        path="/mental-fitness"
+        path="/mind-journal"
         element={
           <ProtectedRoute requireOnboarding={true}>
-            <MentalFitnessCheckin />
+            <MindJournalPage />
           </ProtectedRoute>
         }
       />
+      {/* Old bookmarked Mental Fitness link — redirect to the new score-free
+          experience for compatibility. The legacy server endpoint and data
+          are untouched; this route just stops opening the old scored UI. */}
+      <Route path="/mental-fitness" element={<Navigate to="/mind-journal" replace />} />
 
       {/* Payment flows — no BottomNav */}
       <Route
