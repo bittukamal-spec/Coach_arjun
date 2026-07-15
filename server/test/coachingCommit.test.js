@@ -366,7 +366,7 @@ function makeOutcomeDbStub({ selection = null, cycleRow = null, prescriptionRow 
       updateMany: async ({ where, data }) => {
         writes.push({ op: 'prescription.updateMany', where, data });
         if (!prescriptionRow || prescriptionRow.id !== where.id) return { count: 0 };
-        const stillOpen = !prescriptionRow.outcomeStatus || prescriptionRow.outcomeStatus === 'NOT_TRIED';
+        const stillOpen = !prescriptionRow.outcomeStatus || ['NOT_TRIED', 'HELPED_A_LITTLE'].includes(prescriptionRow.outcomeStatus);
         if (!stillOpen) return { count: 0 };
         if (failAt === 'prescriptionUpdateMany') throw new Error('prescription updateMany failed');
         Object.assign(prescriptionRow, data);
@@ -477,9 +477,12 @@ test('HELPED: preserves an existing completedAt (already set via PR-12\'s practi
   assert.equal(prescWrite.data.completedAt.getTime(), existingCompletedAt.getTime());
 });
 
-test('HELPED_A_LITTLE: keeps CoachingCycle ACTIVE and ActiveCoachingSelection linked, leaves Prescription.status untouched', async () => {
+test('HELPED_A_LITTLE: keeps CoachingCycle ACTIVE and ActiveCoachingSelection linked, leaves Prescription.status untouched, and resets the follow-up-opener claim fields', async () => {
   const { db, writes } = makeOutcomeDbStub({
-    selection: activeOutcomeSelection(), cycleRow: activeOutcomeCycle(), prescriptionRow: activeOutcomePrescription(),
+    selection: activeOutcomeSelection(), cycleRow: activeOutcomeCycle(),
+    prescriptionRow: activeOutcomePrescription({
+      followUpOpenerClaimedAt: new Date('2026-07-01T00:00:00Z'), followUpOpenerMessageId: 'msg-old', followUpOpenerSessionId: 'cs-old',
+    }),
   });
   const commit = createCommitCoachingTransition(db);
   const lesson = 'The reset helped a little, but pressure still pulled your attention toward the result.';
@@ -488,9 +491,98 @@ test('HELPED_A_LITTLE: keeps CoachingCycle ACTIVE and ActiveCoachingSelection li
   const prescWrite = writes.find((w) => w.op === 'prescription.updateMany');
   assert.equal(prescWrite.data.outcomeStatus, 'HELPED_A_LITTLE');
   assert.equal(prescWrite.data.outcomeLesson, lesson);
-  assert.equal(prescWrite.data.status, undefined, 'status must not be touched');
+  assert.equal(prescWrite.data.status, undefined, 'status must not be touched — ACTIVE or COMPLETED is preserved as-is');
+  assert.equal(prescWrite.data.followUpOpenerClaimedAt, null, 'the opener claim must reset so a later genuine entry can ask again');
+  assert.equal(prescWrite.data.followUpOpenerMessageId, null);
+  assert.equal(prescWrite.data.followUpOpenerSessionId, null);
   assert.ok(!writes.some((w) => w.op === 'coachingCycle.update'), 'cycle stays exactly as-is — no write');
   assert.ok(!writes.some((w) => w.op === 'activeCoachingSelection.delete' || w.op === 'activeCoachingSelection.update'), 'selection stays linked — no write');
+  assert.ok(!writes.some((w) => w.op === 'prescription.create'), 'no automatic new Prescription');
+});
+
+test('HELPED_A_LITTLE preserves the Prescription\'s existing COMPLETED status (from PR-12\'s practice-page completion) rather than reverting or changing it', async () => {
+  const { db, writes } = makeOutcomeDbStub({
+    selection: activeOutcomeSelection(), cycleRow: activeOutcomeCycle(),
+    prescriptionRow: activeOutcomePrescription({ status: 'COMPLETED', completedAt: new Date('2026-07-01T00:00:00Z') }),
+  });
+  const commit = createCommitCoachingTransition(db);
+  const lesson = 'It helped a little.';
+  await commit({ userId: 'user-1', chatSessionId: 'cs-1', sessionType: null, finalText: lesson, transition: outcomeTransition({ outcomeStatus: 'HELPED_A_LITTLE', lessonText: lesson }) });
+
+  const prescWrite = writes.find((w) => w.op === 'prescription.updateMany');
+  assert.equal(prescWrite.data.status, undefined, 'status is left untouched — still COMPLETED on the row afterward');
+});
+
+test('HELPED_A_LITTLE followed by a later genuine entry: the follow-up-opener claim succeeds again (reset, not permanently stuck)', async () => {
+  const prescription = activeOutcomePrescription({
+    followUpOpenerClaimedAt: new Date('2026-07-01T00:00:00Z'), followUpOpenerMessageId: 'msg-old', followUpOpenerSessionId: 'cs-old',
+  });
+  const { db, writes } = makeOutcomeDbStub({ selection: activeOutcomeSelection(), cycleRow: activeOutcomeCycle(), prescriptionRow: prescription });
+  const commit = createCommitCoachingTransition(db);
+  const lesson = 'It helped a little.';
+  await commit({ userId: 'user-1', chatSessionId: 'cs-1', sessionType: null, finalText: lesson, transition: outcomeTransition({ outcomeStatus: 'HELPED_A_LITTLE', lessonText: lesson }) });
+
+  // The mutable stub row now reflects the reset opener-claim fields —
+  // exactly what claimPrescriptionFollowUp reads on a later genuine entry.
+  assert.equal(prescription.followUpOpenerClaimedAt, null);
+  assert.equal(prescription.outcomeStatus, 'HELPED_A_LITTLE');
+  assert.ok(!writes.some((w) => w.op === 'prescription.create'));
+});
+
+test('a later HELPED after a prior HELPED_A_LITTLE resolves the cycle normally (completes Prescription, resolves cycle, deletes selection)', async () => {
+  const { db, writes } = makeOutcomeDbStub({
+    selection: activeOutcomeSelection(), cycleRow: activeOutcomeCycle(),
+    prescriptionRow: activeOutcomePrescription({ outcomeStatus: 'HELPED_A_LITTLE' }),
+  });
+  const commit = createCommitCoachingTransition(db);
+  const lesson = 'This time it really helped.';
+  await commit({ userId: 'user-1', chatSessionId: 'cs-1', sessionType: null, finalText: lesson, transition: outcomeTransition({ outcomeStatus: 'HELPED', lessonText: lesson }) });
+
+  const prescWrite = writes.find((w) => w.op === 'prescription.updateMany');
+  assert.equal(prescWrite.data.outcomeStatus, 'HELPED');
+  assert.equal(prescWrite.data.status, 'COMPLETED');
+  assert.ok(writes.some((w) => w.op === 'coachingCycle.update' && w.data.status === 'RESOLVED'));
+  assert.ok(writes.some((w) => w.op === 'activeCoachingSelection.delete'));
+});
+
+test('a later DID_NOT_HELP after a prior HELPED_A_LITTLE supersedes the Prescription and clears the selected prescriptionId normally', async () => {
+  const { db, writes } = makeOutcomeDbStub({
+    selection: activeOutcomeSelection(), cycleRow: activeOutcomeCycle(),
+    prescriptionRow: activeOutcomePrescription({ outcomeStatus: 'HELPED_A_LITTLE' }),
+  });
+  const commit = createCommitCoachingTransition(db);
+  const lesson = 'On reflection, this did not really help.';
+  await commit({ userId: 'user-1', chatSessionId: 'cs-1', sessionType: null, finalText: lesson, transition: outcomeTransition({ outcomeStatus: 'DID_NOT_HELP', lessonText: lesson }) });
+
+  const prescWrite = writes.find((w) => w.op === 'prescription.updateMany');
+  assert.equal(prescWrite.data.outcomeStatus, 'DID_NOT_HELP');
+  assert.equal(prescWrite.data.status, 'SUPERSEDED');
+  assert.ok(prescWrite.data.supersededAt instanceof Date);
+  const selUpdate = writes.find((w) => w.op === 'activeCoachingSelection.update');
+  assert.equal(selUpdate.data.prescriptionId, null);
+});
+
+test('concurrent submissions after a prior HELPED_A_LITTLE still permit only one transition against the previously loaded state', async () => {
+  const { db, writes } = makeOutcomeDbStub({
+    selection: activeOutcomeSelection(), cycleRow: activeOutcomeCycle(),
+    prescriptionRow: activeOutcomePrescription({ outcomeStatus: 'HELPED_A_LITTLE' }),
+  });
+  const commit = createCommitCoachingTransition(db);
+  const helpedLesson = 'It really helped this time.';
+  const didNotHelpLesson = 'It did not help after all.';
+
+  const results = await Promise.allSettled([
+    commit({ userId: 'user-1', chatSessionId: 'cs-1', sessionType: null, finalText: helpedLesson, transition: outcomeTransition({ outcomeStatus: 'HELPED', lessonText: helpedLesson }) }),
+    commit({ userId: 'user-1', chatSessionId: 'cs-1', sessionType: null, finalText: didNotHelpLesson, transition: outcomeTransition({ outcomeStatus: 'DID_NOT_HELP', lessonText: didNotHelpLesson }) }),
+  ]);
+
+  const fulfilled = results.filter((r) => r.status === 'fulfilled');
+  const rejected = results.filter((r) => r.status === 'rejected');
+  assert.equal(fulfilled.length, 1, 'exactly one submission succeeds');
+  assert.equal(rejected.length, 1);
+
+  const updateManyWrites = writes.filter((w) => w.op === 'prescription.updateMany');
+  assert.equal(updateManyWrites.length, 2, 'both attempt the conditional update; only one actually flips the row');
 });
 
 test('DID_NOT_HELP: supersedes the Prescription, clears the selection\'s prescriptionId, keeps CoachingCycle ACTIVE, creates no new Prescription in the same request', async () => {
@@ -564,18 +656,34 @@ test('the final text must contain the exact lessonText verbatim — rejected wit
   assert.equal(writes.length, 0);
 });
 
-test('commit-time revalidation rejects when a final outcome was already recorded, even though the staged transition itself was well-formed', async () => {
-  const { db, writes } = makeOutcomeDbStub({
-    selection: activeOutcomeSelection(), cycleRow: activeOutcomeCycle(),
-    prescriptionRow: activeOutcomePrescription({ outcomeStatus: 'HELPED_A_LITTLE' }),
-  });
-  const commit = createCommitCoachingTransition(db);
-  const lesson = 'It helped.';
-  await assert.rejects(
-    () => commit({ userId: 'user-1', chatSessionId: 'cs-1', sessionType: null, finalText: lesson, transition: outcomeTransition({ outcomeStatus: 'HELPED', lessonText: lesson }) }),
-    CoachingStateConflictError
-  );
-  assert.equal(writes.length, 0);
+test('commit-time revalidation rejects when a FINAL outcome (HELPED or DID_NOT_HELP) was already recorded, even though the staged transition itself was well-formed', async () => {
+  for (const priorOutcome of ['HELPED', 'DID_NOT_HELP']) {
+    const { db, writes } = makeOutcomeDbStub({
+      selection: activeOutcomeSelection(), cycleRow: activeOutcomeCycle(),
+      prescriptionRow: activeOutcomePrescription({ outcomeStatus: priorOutcome }),
+    });
+    const commit = createCommitCoachingTransition(db);
+    const lesson = 'It helped.';
+    await assert.rejects(
+      () => commit({ userId: 'user-1', chatSessionId: 'cs-1', sessionType: null, finalText: lesson, transition: outcomeTransition({ outcomeStatus: 'HELPED', lessonText: lesson }) }),
+      CoachingStateConflictError,
+      `prior outcome ${priorOutcome} must block a new one`
+    );
+    assert.equal(writes.length, 0, `prior outcome ${priorOutcome} must write nothing`);
+  }
+});
+
+test('commit-time revalidation ALLOWS a new outcome when the prior one was HELPED_A_LITTLE or NOT_TRIED (both provisional, not final)', async () => {
+  for (const priorOutcome of ['HELPED_A_LITTLE', 'NOT_TRIED']) {
+    const { db, writes } = makeOutcomeDbStub({
+      selection: activeOutcomeSelection(), cycleRow: activeOutcomeCycle(),
+      prescriptionRow: activeOutcomePrescription({ outcomeStatus: priorOutcome }),
+    });
+    const commit = createCommitCoachingTransition(db);
+    const lesson = 'It helped.';
+    await commit({ userId: 'user-1', chatSessionId: 'cs-1', sessionType: null, finalText: lesson, transition: outcomeTransition({ outcomeStatus: 'HELPED', lessonText: lesson }) });
+    assert.ok(writes.some((w) => w.op === 'prescription.updateMany'), `prior outcome ${priorOutcome} must allow the new one to be written`);
+  }
 });
 
 test('commit-time revalidation rejects when there is no matching active selection/prescription/cycle/ownership — zero writes in every variant', async () => {

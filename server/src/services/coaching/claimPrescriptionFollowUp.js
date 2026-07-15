@@ -80,10 +80,14 @@ function buildOutcomeChoices(language) {
   return language === 'hi' ? OUTCOME_CHOICES_HI : OUTCOME_CHOICES_EN;
 }
 
-// An outcome is still pending — no final result recorded yet — when
-// outcomeStatus is null or NOT_TRIED (NOT_TRIED is explicitly replaceable).
+// An outcome is still pending — no FINAL result recorded yet — when
+// outcomeStatus is null, NOT_TRIED, or HELPED_A_LITTLE. All three are
+// explicitly replaceable by a later real outcome (record_prescription_outcome's
+// OUTCOME_STILL_OPEN guard); only HELPED and DID_NOT_HELP are final.
 function isOutcomePending(prescription) {
-  return !prescription.outcomeStatus || prescription.outcomeStatus === 'NOT_TRIED';
+  return !prescription.outcomeStatus
+    || prescription.outcomeStatus === 'NOT_TRIED'
+    || prescription.outcomeStatus === 'HELPED_A_LITTLE';
 }
 
 function createClaimPrescriptionFollowUp(db = prisma) {
@@ -102,15 +106,30 @@ function createClaimPrescriptionFollowUp(db = prisma) {
         throw new InvalidChatSessionError('chat session not found for this athlete');
       }
 
-      // 2. Current active selection + active prescription.
+      // 2. Current active selection + eligible prescription. Eligible means
+      // status ACTIVE or COMPLETED (the genuine practice-completion flow —
+      // PR-12 — sets COMPLETED before the athlete ever reports an outcome,
+      // so a completed practice must still be able to receive its
+      // deterministic follow-up), the selected CoachingCycle is ACTIVE, and
+      // no FINAL outcome has been recorded yet. In the normal lifecycle a
+      // FINAL outcome already makes this prescription unreachable here —
+      // HELPED deletes the selection entirely and DID_NOT_HELP clears
+      // prescriptionId — but the isOutcomePending check is kept explicit
+      // rather than relying solely on that structural guarantee.
       const state = await tx.userCoachingState.findUnique({
         where: { userId },
-        include: { activeSelection: { include: { prescription: true } } },
+        include: { activeSelection: { include: { cycle: true, prescription: true } } },
       });
       const selection = state?.activeSelection || null;
       const prescription = selection?.prescription || null;
 
-      if (!selection || !prescription || prescription.status !== 'ACTIVE') {
+      if (
+        !selection ||
+        !prescription ||
+        selection.cycle?.status !== 'ACTIVE' ||
+        !['ACTIVE', 'COMPLETED'].includes(prescription.status) ||
+        !isOutcomePending(prescription)
+      ) {
         return { claimed: false };
       }
 

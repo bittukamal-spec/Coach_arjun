@@ -324,7 +324,9 @@ function validateRecordPrescriptionOutcome(input, context) {
   if (!['ACTIVE', 'COMPLETED'].includes(context.prescriptionStatus)) {
     return { ok: false, error: 'This prescription is not in a state that can receive an outcome.' };
   }
-  if (context.prescriptionOutcomeStatus && context.prescriptionOutcomeStatus !== 'NOT_TRIED') {
+  // NOT_TRIED and HELPED_A_LITTLE are both provisional and replaceable by a
+  // later real outcome — only HELPED and DID_NOT_HELP are final.
+  if (context.prescriptionOutcomeStatus && !['NOT_TRIED', 'HELPED_A_LITTLE'].includes(context.prescriptionOutcomeStatus)) {
     return { ok: false, error: 'A final outcome has already been recorded for this prescription.' };
   }
   return { ok: true };

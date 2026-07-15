@@ -77,18 +77,20 @@ function makeDbStub({ session = null, state = null, failAt = null } = {}) {
 
 const MAIN_SESSION = { userId: 'user-1', mode: 'main' };
 
-function activePrescriptionState(overrides = {}) {
+function activePrescriptionState(overrides = {}, cycleStatus = 'ACTIVE') {
   return {
     userId: 'user-1',
     activeSelection: {
       id: 'sel-A',
       prescriptionId: 'presc-A',
+      cycle: { status: cycleStatus },
       prescription: {
         id: 'presc-A',
         userId: 'user-1',
         practiceKey: 'pressure_reset',
         situation: 'Free throws in the final quarter',
         status: 'ACTIVE',
+        outcomeStatus: null,
         followUpOpenerClaimedAt: null,
         followUpOpenerMessageId: null,
         ...overrides,
@@ -181,8 +183,44 @@ test('a second claim attempt (already claimed, outcome still unanswered) returns
   assert.equal(writes[0].op, 'prescription.updateMany');
 });
 
-test('a second claim attempt after a FINAL outcome was already recorded returns bare claimed:false — no outcome choices', async () => {
+test('a second claim attempt after a FINAL outcome (HELPED) was already recorded returns bare claimed:false — no outcome choices', async () => {
   const { db, writes } = makeDbStub({
+    session: MAIN_SESSION,
+    state: activePrescriptionState({
+      followUpOpenerClaimedAt: new Date('2026-07-01T00:00:00Z'),
+      followUpOpenerMessageId: 'msg-existing',
+      outcomeStatus: 'HELPED',
+    }),
+  });
+  const claim = createClaimPrescriptionFollowUp(db);
+
+  const result = await claim({ userId: 'user-1', chatSessionId: 'cs-1', language: 'en' });
+
+  assert.deepEqual(result, { claimed: false });
+  // The isOutcomePending gate now rejects before ever attempting the
+  // conditional updateMany — a final outcome means nothing is written.
+  assert.equal(writes.length, 0);
+});
+
+test('a second claim attempt after a FINAL outcome (DID_NOT_HELP) was already recorded returns bare claimed:false — no outcome choices', async () => {
+  const { db, writes } = makeDbStub({
+    session: MAIN_SESSION,
+    state: activePrescriptionState({
+      followUpOpenerClaimedAt: new Date('2026-07-01T00:00:00Z'),
+      followUpOpenerMessageId: 'msg-existing',
+      outcomeStatus: 'DID_NOT_HELP',
+    }),
+  });
+  const claim = createClaimPrescriptionFollowUp(db);
+
+  const result = await claim({ userId: 'user-1', chatSessionId: 'cs-1', language: 'en' });
+
+  assert.deepEqual(result, { claimed: false });
+  assert.equal(writes.length, 0);
+});
+
+test('a second claim attempt while the outcome is HELPED_A_LITTLE still offers the choices again (provisional, not final)', async () => {
+  const { db } = makeDbStub({
     session: MAIN_SESSION,
     state: activePrescriptionState({
       followUpOpenerClaimedAt: new Date('2026-07-01T00:00:00Z'),
@@ -194,8 +232,9 @@ test('a second claim attempt after a FINAL outcome was already recorded returns 
 
   const result = await claim({ userId: 'user-1', chatSessionId: 'cs-1', language: 'en' });
 
-  assert.deepEqual(result, { claimed: false });
-  assert.equal(writes.length, 1);
+  assert.equal(result.claimed, false);
+  assert.equal(result.outcomePending, true);
+  assert.ok(Array.isArray(result.outcomeChoices));
 });
 
 test('a second claim attempt while the outcome is NOT_TRIED still offers the choices again (NOT_TRIED is replaceable, not final)', async () => {
@@ -305,13 +344,53 @@ test('a selection with no prescription returns claimed:false', async () => {
   assert.equal(writes.length, 0);
 });
 
-test('a non-ACTIVE (completed/superseded) prescription returns claimed:false', async () => {
-  for (const status of ['COMPLETED', 'SUPERSEDED']) {
-    const { db, writes } = makeDbStub({ session: MAIN_SESSION, state: activePrescriptionState({ status }) });
+test('a SUPERSEDED prescription is ineligible — returns claimed:false and writes nothing', async () => {
+  const { db, writes } = makeDbStub({ session: MAIN_SESSION, state: activePrescriptionState({ status: 'SUPERSEDED' }) });
+  const claim = createClaimPrescriptionFollowUp(db);
+  assert.deepEqual(await claim({ userId: 'user-1', chatSessionId: 'cs-1', language: 'en' }), { claimed: false });
+  assert.equal(writes.length, 0);
+});
+
+// ── Completed prescription follow-up eligibility (amendment) ──────────────
+// The genuine practice-completion flow (PR-12) sets Prescription.status to
+// COMPLETED before the athlete ever reports an outcome via chat — a
+// COMPLETED prescription with no outcome recorded yet must still be able
+// to receive its deterministic opener.
+
+test('an ACTIVE prescription with no outcome recorded is eligible for the opener', async () => {
+  const { db, writes } = makeDbStub({ session: MAIN_SESSION, state: activePrescriptionState({ status: 'ACTIVE' }) });
+  const claim = createClaimPrescriptionFollowUp(db);
+  const result = await claim({ userId: 'user-1', chatSessionId: 'cs-1', language: 'en' });
+  assert.equal(result.claimed, true);
+  assert.ok(writes.some((w) => w.op === 'message.create'));
+});
+
+test('a COMPLETED prescription with no outcome recorded is ALSO eligible for the opener (PR-12 practice-page completion happened first)', async () => {
+  const { db, writes } = makeDbStub({ session: MAIN_SESSION, state: activePrescriptionState({ status: 'COMPLETED' }) });
+  const claim = createClaimPrescriptionFollowUp(db);
+  const result = await claim({ userId: 'user-1', chatSessionId: 'cs-1', language: 'en' });
+  assert.equal(result.claimed, true);
+  assert.ok(writes.some((w) => w.op === 'message.create'));
+});
+
+test('a COMPLETED prescription with a FINAL outcome (HELPED or DID_NOT_HELP) already recorded is ineligible for a fresh claim', async () => {
+  for (const outcomeStatus of ['HELPED', 'DID_NOT_HELP']) {
+    const { db, writes } = makeDbStub({
+      session: MAIN_SESSION,
+      state: activePrescriptionState({ status: 'COMPLETED', outcomeStatus }),
+    });
     const claim = createClaimPrescriptionFollowUp(db);
-    assert.deepEqual(await claim({ userId: 'user-1', chatSessionId: 'cs-1', language: 'en' }), { claimed: false }, `status ${status}`);
-    assert.equal(writes.length, 0, `status ${status} must write nothing`);
+    const result = await claim({ userId: 'user-1', chatSessionId: 'cs-1', language: 'en' });
+    assert.equal(result.claimed, false, `outcomeStatus ${outcomeStatus}`);
+    assert.equal(writes.length, 0, `outcomeStatus ${outcomeStatus} must write nothing`);
   }
+});
+
+test('a resolved (non-ACTIVE) CoachingCycle makes the prescription ineligible even if the prescription row itself looks fine', async () => {
+  const { db, writes } = makeDbStub({ session: MAIN_SESSION, state: activePrescriptionState({}, 'RESOLVED') });
+  const claim = createClaimPrescriptionFollowUp(db);
+  assert.deepEqual(await claim({ userId: 'user-1', chatSessionId: 'cs-1', language: 'en' }), { claimed: false });
+  assert.equal(writes.length, 0);
 });
 
 // ── Failure ordering (rollback is a real-transaction guarantee; here we

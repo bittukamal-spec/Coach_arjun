@@ -361,13 +361,23 @@ test('record_prescription_outcome: rejects a SUPERSEDED prescription (not ACTIVE
   assert.equal(v.ok, false);
 });
 
-test('record_prescription_outcome: an existing FINAL outcome cannot be overwritten', () => {
-  for (const priorOutcome of ['HELPED', 'HELPED_A_LITTLE', 'DID_NOT_HELP']) {
+test('record_prescription_outcome: an existing FINAL outcome (HELPED or DID_NOT_HELP) cannot be overwritten', () => {
+  for (const priorOutcome of ['HELPED', 'DID_NOT_HELP']) {
     const v = validateRecordPrescriptionOutcome(
       { outcomeStatus: 'HELPED', lessonText: 'ok' },
       { ...ACTIVE_PRESCRIPTION_OUTCOME_STATE, prescriptionOutcomeStatus: priorOutcome }
     );
     assert.equal(v.ok, false, `a prior ${priorOutcome} outcome must not be overwritable`);
+  }
+});
+
+test('record_prescription_outcome: HELPED_A_LITTLE is provisional and CAN be replaced by a later real outcome', () => {
+  for (const nextOutcome of ['HELPED', 'DID_NOT_HELP', 'HELPED_A_LITTLE']) {
+    const v = validateRecordPrescriptionOutcome(
+      { outcomeStatus: nextOutcome, lessonText: 'ok' },
+      { ...ACTIVE_PRESCRIPTION_OUTCOME_STATE, prescriptionOutcomeStatus: 'HELPED_A_LITTLE' }
+    );
+    assert.equal(v.ok, true, `a prior HELPED_A_LITTLE outcome must be replaceable by ${nextOutcome}`);
   }
 });
 

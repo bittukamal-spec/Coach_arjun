@@ -17,9 +17,11 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { PROPOSE_BARRIER, PRESCRIBE_MENTAL_REP, RECORD_PRESCRIPTION_OUTCOME } = require('./coachingTools');
 
-// An outcome is still open (never finally recorded) when null or NOT_TRIED
-// — the one outcome value that may later be replaced by a real result.
-const OUTCOME_STILL_OPEN = { OR: [{ outcomeStatus: null }, { outcomeStatus: 'NOT_TRIED' }] };
+// An outcome is still open (not yet FINAL) when null, NOT_TRIED, or
+// HELPED_A_LITTLE — all three are provisional and may later be replaced by
+// a real result. Only HELPED and DID_NOT_HELP are final and unwritable.
+const OUTCOME_STILL_OPEN = { OR: [{ outcomeStatus: null }, { outcomeStatus: 'NOT_TRIED' }, { outcomeStatus: 'HELPED_A_LITTLE' }] };
+const OUTCOME_REPLACEABLE_VALUES = ['NOT_TRIED', 'HELPED_A_LITTLE'];
 
 class CoachingStateConflictError extends Error {
   constructor(message) {
@@ -173,7 +175,7 @@ function createCommitCoachingTransition(db = prisma) {
         ) {
           throw new CoachingStateConflictError('no matching active prescription to record an outcome against');
         }
-        if (prescription.outcomeStatus && prescription.outcomeStatus !== 'NOT_TRIED') {
+        if (prescription.outcomeStatus && !OUTCOME_REPLACEABLE_VALUES.includes(prescription.outcomeStatus)) {
           throw new CoachingStateConflictError('a final outcome has already been recorded for this prescription');
         }
         // The exact persisted-visible-text invariant, enforced structurally:
@@ -197,17 +199,21 @@ function createCommitCoachingTransition(db = prisma) {
           outcomeSpecificData = { status: 'COMPLETED', completedAt: prescription.completedAt ?? now };
         } else if (transition.outcomeStatus === 'DID_NOT_HELP') {
           outcomeSpecificData = { status: 'SUPERSEDED', supersededAt: now };
-        } else if (transition.outcomeStatus === 'NOT_TRIED') {
-          // Clear the follow-up-opener claim so a later genuine entry may
-          // receive another deterministic follow-up question.
+        } else if (transition.outcomeStatus === 'NOT_TRIED' || transition.outcomeStatus === 'HELPED_A_LITTLE') {
+          // Both are provisional (OUTCOME_REPLACEABLE_VALUES): clear the
+          // follow-up-opener claim so a later genuine entry may receive
+          // another deterministic follow-up question and, eventually,
+          // report a real outcome. Prescription.status is left untouched
+          // for HELPED_A_LITTLE — whatever it already was (ACTIVE or
+          // COMPLETED) is preserved, never downgraded or upgraded here.
           outcomeSpecificData = {
             followUpOpenerClaimedAt: null,
             followUpOpenerMessageId: null,
             followUpOpenerSessionId: null,
           };
         }
-        // HELPED_A_LITTLE: no extra Prescription field changes — status,
-        // cycle, and selection all stay exactly as they are.
+        // Cycle and selection always stay exactly as they are for
+        // HELPED_A_LITTLE and NOT_TRIED — no automatic new Prescription.
 
         // Atomic once-only claim — the WHERE clause (still-open outcome) is
         // the whole guard. A concurrent winner flips outcomeStatus first,
