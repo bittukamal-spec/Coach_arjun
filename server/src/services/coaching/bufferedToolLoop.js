@@ -30,6 +30,12 @@ const {
 const MAX_ROUNDS = 4;
 const MAX_FINAL_TEXT_LENGTH = 6000;
 
+// Hidden, server-created continuation used only for the bounded final-text
+// recovery attempt below — never persisted, never emitted over SSE, never
+// shown to the athlete. It exists purely to ask Claude to finish the reply
+// after a tool it already called has been accepted.
+const FINAL_TEXT_RECOVERY_INSTRUCTION = 'Your tool action has already been accepted. Produce the final athlete-facing response text now. Do not call another tool. Do not output JSON, tool syntax, [APP:] or [SUGGEST:] markers.';
+
 // Internal/tool markup that must never reach the athlete. Anthropic returns
 // tool calls as separate content blocks (never inline text), so in practice
 // this only fires if the model echoes marker syntax into its prose.
@@ -170,10 +176,11 @@ function handleToolUse(block, context, held) {
 }
 
 // anthropic is injected (real client in production, a stub in tests).
-// Returns { finalText, transition, quickReplies, rounds, exceededRounds }.
-// quickReplies (when staged and accepted) is an array of trimmed label
-// strings — ephemeral ids are assigned only at emission time
-// (buildQuickReplyPayload), never persisted.
+// Returns { finalText, transition, quickReplies, rounds, exceededRounds,
+// finalTextRecoveryAttempted, finalTextRecoverySucceeded }. quickReplies
+// (when staged and accepted) is an array of trimmed label strings —
+// ephemeral ids are assigned only at emission time (buildQuickReplyPayload),
+// never persisted.
 async function runBufferedToolLoop({
   anthropic,
   model,
@@ -202,7 +209,48 @@ async function runBufferedToolLoop({
     if (toolUses.length === 0) {
       // Final response — the only text that may ever reach the athlete.
       const finalText = content.filter((b) => b.type === 'text').map((b) => b.text).join('');
-      return { finalText, transition, quickReplies, rounds: round, exceededRounds: false };
+
+      // Bounded final-text recovery: a production failure mode where
+      // offer_quick_replies (or a coaching-state transition) is accepted,
+      // but Claude's very next end_turn response has no usable text — the
+      // model apparently treated the tool call itself as the complete
+      // turn. Rather than discard the already-staged tool result and fall
+      // back to the deterministic retry, ask ONCE more for the missing
+      // text, with no tools available so nothing can be staged or restaged.
+      // This is NOT another tool-loop round (round/maxRounds is untouched)
+      // — it is a single bounded no-tools completion, attempted at most
+      // once per athlete message.
+      if (!sanitizeFinalText(finalText) && (transition || quickReplies)) {
+        const recoveryMessages = [
+          ...working,
+          { role: 'assistant', content },
+          { role: 'user', content: FINAL_TEXT_RECOVERY_INSTRUCTION },
+        ];
+        const recoveryResponse = await anthropic.messages.create({
+          model,
+          max_tokens: maxTokens,
+          system,
+          messages: recoveryMessages,
+          // Deliberately no `tools` key — Claude cannot call
+          // offer_quick_replies or any transition tool again here.
+        });
+        const recoveryContent = Array.isArray(recoveryResponse.content) ? recoveryResponse.content : [];
+        const recoveryText = recoveryContent.filter((b) => b.type === 'text').map((b) => b.text).join('');
+        return {
+          finalText: recoveryText,
+          transition,
+          quickReplies,
+          rounds: round,
+          exceededRounds: false,
+          finalTextRecoveryAttempted: true,
+          finalTextRecoverySucceeded: !!sanitizeFinalText(recoveryText),
+        };
+      }
+
+      return {
+        finalText, transition, quickReplies, rounds: round, exceededRounds: false,
+        finalTextRecoveryAttempted: false, finalTextRecoverySucceeded: false,
+      };
     }
 
     // Intermediate response: its text blocks are drafts and are never read.
@@ -226,7 +274,10 @@ async function runBufferedToolLoop({
 
   // Round cap hit while the model was still calling tools: discard
   // everything — the caller emits the deterministic retry message.
-  return { finalText: null, transition: null, quickReplies: null, rounds: maxRounds, exceededRounds: true };
+  return {
+    finalText: null, transition: null, quickReplies: null, rounds: maxRounds, exceededRounds: true,
+    finalTextRecoveryAttempted: false, finalTextRecoverySucceeded: false,
+  };
 }
 
 // Assigns ephemeral, request-scoped ids to staged quick-reply labels for the
@@ -238,4 +289,11 @@ function buildQuickReplyPayload(labels) {
   return labels.map((label, i) => ({ id: `reply_${i + 1}`, label }));
 }
 
-module.exports = { runBufferedToolLoop, sanitizeFinalText, buildQuickReplyPayload, MAX_ROUNDS, MAX_FINAL_TEXT_LENGTH };
+module.exports = {
+  runBufferedToolLoop,
+  sanitizeFinalText,
+  buildQuickReplyPayload,
+  MAX_ROUNDS,
+  MAX_FINAL_TEXT_LENGTH,
+  FINAL_TEXT_RECOVERY_INSTRUCTION,
+};

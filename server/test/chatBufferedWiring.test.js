@@ -276,7 +276,22 @@ test('logDeterministicRetry logs only safe operational fields — reasonCode, ro
 test('logDeterministicRetry never logs athlete/assistant text, card content, situation, prompt content, tool payloads, or raw records', () => {
   const idx = handler.indexOf('const logDeterministicRetry = (reasonCode, err) => {');
   const block = handler.slice(idx, handler.indexOf('};', idx) + 1);
-  assert.doesNotMatch(block, /retryText|finalText|content\b|cardContent|situation|systemPrompt|committed\.|loop\.finalText/);
+  // Word-boundaried so the new safe boolean flags (finalTextRecoveryAttempted
+  // / finalTextRecoverySucceeded — booleans about recovery, never text
+  // itself) are not mistaken for a bare finalText/content reference.
+  assert.doesNotMatch(block, /\bretryText\b|\bfinalText\b|\bcontent\b|\bcardContent\b|\bsituation\b|\bsystemPrompt\b|\bcommitted\./);
+});
+
+test('logDeterministicRetry also logs the final-text-recovery flags (production EMPTY_FINAL_TEXT bugfix)', () => {
+  const idx = handler.indexOf('const logDeterministicRetry = (reasonCode, err) => {');
+  const block = handler.slice(idx, handler.indexOf('};', idx) + 1);
+  assert.ok(block.includes('finalTextRecoveryAttempted: !!loop.finalTextRecoveryAttempted'));
+  assert.ok(block.includes('finalTextRecoverySucceeded: !!loop.finalTextRecoverySucceeded'));
+});
+
+test('chat.js never references the hidden final-text-recovery instruction directly — recovery is entirely internal to bufferedToolLoop.js', () => {
+  assert.doesNotMatch(src, /Your tool action has already been accepted/);
+  assert.doesNotMatch(src, /FINAL_TEXT_RECOVERY_INSTRUCTION/);
 });
 
 test('every deterministic-retry trigger passes a fixed reason code through emitDeterministicRetry to the logger', () => {
