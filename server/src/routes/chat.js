@@ -11,6 +11,7 @@ const { screenSafetyText, recordSafetyEvent, getSafetyGuidance } = require('../s
 const {
   runBufferedToolLoop, sanitizeFinalText, buildQuickReplyPayload,
   loadCoachingContext, commitCoachingTransition, getRetryMessage,
+  CoachingStateConflictError,
 } = require('../services/coaching');
 
 // How long a suppressed (ignored) skill recommendation stays suppressed
@@ -224,7 +225,7 @@ Do NOT offer quick replies:
 - when the choices themselves would lead or diagnose the athlete, or would pressure them toward an answer;
 - in the same reply as a new prescription (prescribe_mental_rep) — the practice card takes that reply's place, never chips.
 Examples that stay text-only: "What was going through your mind at that moment?", "Tell me what happened after the mistake.", "What would you like to handle differently next time?"
-Chips support the question but never replace free-text input — the athlete can always type instead. Labels must be short, in the athlete's own words rather than clinical labels, and follow the current conversation language (see the Language rules above). Avoid near-duplicate choices, and never include an explanation inside a chip label — maximum three replies. The app always adds its own "Write my own" option after your choices — never include "Other", "Something else", or "Write my own" yourself. Call offer_quick_replies at most once per reply. This is the ONLY way to offer reply chips in this conversation — never write a [SUGGEST:...] tag.`;
+Chips support the question but never replace free-text input — the athlete can always type instead. Labels must be short, in the athlete's own words rather than clinical labels, and follow the current conversation language (see the Language rules above). Avoid near-duplicate choices, and never include an explanation inside a chip label — maximum three replies. The app always adds its own "Write my own" option after your choices — never include "Other", "Something else", or "Write my own" yourself. Call offer_quick_replies at most once per reply: once its tool_result confirms your choices are staged, do not call it again in this same request — write your final natural-language question text right away instead. This is the ONLY way to offer reply chips in this conversation — never write a [SUGGEST:...] tag.`;
 }
 
 // ── Helper: build personalised system prompt ─────────────────────────────
@@ -1133,13 +1134,29 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
 
     const finalText = loop.exceededRounds ? null : sanitizeFinalText(loop.finalText);
 
+    // Safe operational diagnostics for deterministic-retry occurrences —
+    // fixed reason codes and structural facts only. NEVER the athlete's
+    // message, assistant text, card content, situation, prompt content,
+    // tool payloads, raw DB records, or any secret/token/PIN.
+    const logDeterministicRetry = (reasonCode, err) => {
+      console.error('[chat] deterministic_retry', JSON.stringify({
+        reasonCode,
+        rounds: loop.rounds,
+        transitionStaged: !!loop.transition,
+        quickRepliesStaged: !!loop.quickReplies,
+        errorName: err?.name || null,
+        errorCode: err?.code || null,
+      }));
+    };
+
     // Deterministic fallback (fixed copy, never model text): used when the
     // loop hit its round cap, produced empty text, or ANY commit failed —
     // whether that commit staged a coaching transition or was a plain
     // message-only persist. Nothing has been written to CoachingCycle,
     // Prescription, or ActiveCoachingSelection in any of these cases (a
     // transition commit failure rolls its transaction back entirely).
-    const emitDeterministicRetry = async () => {
+    const emitDeterministicRetry = async (reasonCode, err) => {
+      logDeterministicRetry(reasonCode, err);
       const retryText = getRetryMessage(user?.language);
       let saved;
       try {
@@ -1151,7 +1168,7 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
         // fabricate an id or claim it was saved, never emit model text or
         // a card here, and never recursively retry the write — fall back
         // to the same safe generic stream error/end the outer catch uses.
-        console.error('[chat] deterministic retry message persistence failed:', retryPersistErr?.message);
+        logDeterministicRetry('RETRY_PERSIST_FAILURE', retryPersistErr);
         res.write(`data: ${JSON.stringify({ t: 'error', message: 'AI response failed. Please try again.' })}\n\n`);
         return res.end();
       }
@@ -1160,7 +1177,7 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
       res.end();
     };
 
-    if (!finalText) return emitDeterministicRetry();
+    if (!finalText) return emitDeterministicRetry(loop.exceededRounds ? 'ROUND_LIMIT' : 'EMPTY_FINAL_TEXT');
 
     let committed;
     try {
@@ -1179,8 +1196,8 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
       // never leave partial coaching-state records. Both cases route
       // through the identical deterministic retry path; the outer generic
       // error handler must never be the one to speak here.
-      console.error('[chat] coaching commit failed:', commitErr?.message);
-      return emitDeterministicRetry();
+      const reasonCode = commitErr instanceof CoachingStateConflictError ? 'COACHING_STATE_CONFLICT' : 'COMMIT_FAILURE';
+      return emitDeterministicRetry(reasonCode, commitErr);
     }
 
     res.write(`data: ${JSON.stringify({ t: 'd', c: finalText })}\n\n`);

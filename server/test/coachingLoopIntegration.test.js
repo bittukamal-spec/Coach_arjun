@@ -248,6 +248,84 @@ test('barrier proposal can emit confirmation quick replies without a card', asyn
   assert.equal(emitted[0].c, 'Sounds like fear of failure — does that fit?');
 });
 
+// ── Production bugfix: repeated offer_quick_replies must not exhaust the
+// round cap and force the deterministic retry (see bufferedToolLoop.test.js
+// for the pure-loop-level proof; this reproduces the FULL route sequence:
+// loop → sanitize → commit → SSE emission, exactly as chat.js does). ──────
+
+test('Claude calling offer_quick_replies twice (round 1, then again in round 2) before finishing in round 3 succeeds end to end: no round-limit retry, exactly one quick_replies event, byte-equal persisted/emitted text', async () => {
+  const anthropic = makeAnthropicStub([
+    quickTool('draft 1', ['Yes, that feels right', 'Not quite'], 'tu-1'),
+    quickTool('draft 2', ['Yes, that feels right', 'Not quite'], 'tu-2'), // the production repro: a duplicate call
+    { stop_reason: 'end_turn', content: [{ type: 'text', text: 'Does that sound right?' }] },
+  ]);
+
+  const coachingContext = { hasActiveSelection: false, cycleStatus: null, barrierConfirmationStatus: null, hasPrescription: false };
+  const loop = await runBufferedToolLoop({
+    anthropic, model: 'test-model', maxTokens: 800, system: 'sys',
+    messages: [{ role: 'user', content: 'I keep thinking about the result' }],
+    coachingContext,
+  });
+
+  // The bug this fixes: without the idempotent duplicate handling, this
+  // scenario used to exhaust MAX_ROUNDS (loop.exceededRounds === true,
+  // loop.finalText === null), forcing chat.js's deterministic
+  // "I couldn't save that coaching step" retry even though nothing was
+  // ever actually wrong.
+  assert.equal(loop.exceededRounds, false, 'must not exhaust the round cap on a duplicate presentation-tool call');
+  assert.equal(loop.rounds, 3);
+  assert.equal(loop.finalText, 'Does that sound right?');
+  assert.deepEqual(loop.quickReplies, ['Yes, that feels right', 'Not quite']);
+
+  const finalText = sanitizeFinalText(loop.finalText);
+  assert.ok(finalText, 'sanitizeFinalText must not discard a real, non-empty response');
+
+  const { db } = makeDbStub(null);
+  const commit = createCommitCoachingTransition(db);
+  const committed = await commit({ userId: 'user-1', chatSessionId: 'cs-1', sessionType: null, finalText, transition: loop.transition });
+
+  // This is the same emitDeterministicRetry-avoidance chat.js relies on:
+  // `if (!finalText) return emitDeterministicRetry(...)` is never reached
+  // because finalText is real text, not null.
+  assert.ok(finalText, 'chat.js\'s "if (!finalText)" deterministic-retry branch is never taken');
+
+  const emitted = emitLikeRoute({ finalText, committed, loopQuickReplies: loop.quickReplies });
+  assert.deepEqual(emitted.map((e) => e.t), ['d', 'quick_replies', 'end'], 'normal order: d, then quick_replies, then end');
+  assert.equal(emitted.filter((e) => e.t === 'quick_replies').length, 1, 'exactly one quick_replies event');
+  assert.equal(emitted[0].c, finalText, 'the emitted d event carries the exact final text');
+  assert.equal(committed.message.content, finalText, 'persisted assistant text is byte-for-byte the emitted text');
+  assert.equal(emitted[1].replies.length, 2);
+});
+
+test('different reply-label payloads on the duplicate offer_quick_replies call never replace the first staged set, even across a full commit', async () => {
+  const anthropic = makeAnthropicStub([
+    quickTool('draft 1', ['Mostly in matches', 'Mostly in training', 'Both'], 'tu-1'),
+    quickTool('draft 2', ['Completely different', 'Another option'], 'tu-2'),
+    { stop_reason: 'end_turn', content: [{ type: 'text', text: 'Got it, thanks for clarifying.' }] },
+  ]);
+
+  const coachingContext = { hasActiveSelection: false, cycleStatus: null, barrierConfirmationStatus: null, hasPrescription: false };
+  const loop = await runBufferedToolLoop({
+    anthropic, model: 'test-model', maxTokens: 800, system: 'sys',
+    messages: [{ role: 'user', content: 'It happens in both' }],
+    coachingContext,
+  });
+
+  assert.equal(loop.exceededRounds, false);
+  assert.deepEqual(loop.quickReplies, ['Mostly in matches', 'Mostly in training', 'Both'], 'the FIRST staged set survives, never the duplicate\'s different payload');
+
+  const finalText = sanitizeFinalText(loop.finalText);
+  const { db } = makeDbStub(null);
+  const commit = createCommitCoachingTransition(db);
+  const committed = await commit({ userId: 'user-1', chatSessionId: 'cs-1', sessionType: null, finalText, transition: loop.transition });
+  const emitted = emitLikeRoute({ finalText, committed, loopQuickReplies: loop.quickReplies });
+
+  assert.deepEqual(
+    emitted.find((e) => e.t === 'quick_replies').replies.map((r) => r.label),
+    ['Mostly in matches', 'Mostly in training', 'Both']
+  );
+});
+
 function quickTool(draftText, replies, id) {
   return {
     stop_reason: 'tool_use',

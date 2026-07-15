@@ -66,10 +66,10 @@ test('quick replies emit only in the else branch of the card guard (never alongs
 });
 
 test('ANY commit failure — staged transition or plain message-only — falls back to the deterministic retry message, never the model text', () => {
-  assert.match(handler, /const emitDeterministicRetry = async \(\) => \{/);
+  assert.match(handler, /const emitDeterministicRetry = async \(reasonCode, err\) => \{/);
   assert.match(handler, /getRetryMessage\(user\?\.language\)/);
   // Round-cap/empty-text path and commit-failure path both use it.
-  assert.match(handler, /if \(!finalText\) return emitDeterministicRetry\(\)/);
+  assert.match(handler, /if \(!finalText\) return emitDeterministicRetry\(loop\.exceededRounds \? 'ROUND_LIMIT' : 'EMPTY_FINAL_TEXT'\)/);
   const catchIdx = handler.indexOf('} catch (commitErr) {');
   assert.ok(catchIdx !== -1);
   const catchBlock = handler.slice(catchIdx, catchIdx + 700);
@@ -77,7 +77,7 @@ test('ANY commit failure — staged transition or plain message-only — falls b
   // without a staged transition, routes through the same retry.
   assert.doesNotMatch(catchBlock, /if \(loop\.transition\)/);
   assert.doesNotMatch(catchBlock, /throw commitErr/);
-  assert.match(catchBlock, /return emitDeterministicRetry\(\)/);
+  assert.match(catchBlock, /return emitDeterministicRetry\(reasonCode, commitErr\)/);
 });
 
 test('the round cap discards everything: exceededRounds forces the retry path before any commit', () => {
@@ -154,7 +154,7 @@ test('the persisted-equals-emitted invariant holds structurally: the same finalT
 // ── Correction 3: retry persistence invariant ────────────────────────────────
 
 test('emitDeterministicRetry persists the retry message BEFORE writing it to the SSE stream', () => {
-  const idx = handler.indexOf('const emitDeterministicRetry = async () => {');
+  const idx = handler.indexOf('const emitDeterministicRetry = async (reasonCode, err) => {');
   assert.ok(idx !== -1);
   const block = handler.slice(idx, handler.indexOf('};', idx));
   const persistIdx = block.indexOf('prisma.message.create(');
@@ -164,7 +164,7 @@ test('emitDeterministicRetry persists the retry message BEFORE writing it to the
 });
 
 test('emitDeterministicRetry emits and persists the identical retryText value (byte-equality by construction, not by two independent computations)', () => {
-  const idx = handler.indexOf('const emitDeterministicRetry = async () => {');
+  const idx = handler.indexOf('const emitDeterministicRetry = async (reasonCode, err) => {');
   const block = handler.slice(idx, handler.indexOf('};', idx));
   assert.match(block, /const retryText = getRetryMessage\(user\?\.language\);/);
   assert.match(block, /content: retryText/);
@@ -174,7 +174,7 @@ test('emitDeterministicRetry emits and persists the identical retryText value (b
 });
 
 test('emitDeterministicRetry writes no coaching-state record — only the assistant Message', () => {
-  const idx = handler.indexOf('const emitDeterministicRetry = async () => {');
+  const idx = handler.indexOf('const emitDeterministicRetry = async (reasonCode, err) => {');
   const block = handler.slice(idx, handler.indexOf('};', idx));
   assert.doesNotMatch(block, /coachingCycle|activeCoachingSelection|prescription\.create|commitCoachingTransition/i);
   assert.doesNotMatch(block, /t: 'card'/, 'no card may ever be emitted on the retry path');
@@ -183,8 +183,8 @@ test('emitDeterministicRetry writes no coaching-state record — only the assist
 
 test('all three retry triggers (round cap, empty/missing final text, commit conflict) route through the same emitDeterministicRetry function', () => {
   const triggers = [
-    "if (!finalText) return emitDeterministicRetry();",
-    'return emitDeterministicRetry();', // inside the commit catch block for a staged transition
+    "if (!finalText) return emitDeterministicRetry(loop.exceededRounds ? 'ROUND_LIMIT' : 'EMPTY_FINAL_TEXT');",
+    'return emitDeterministicRetry(reasonCode, commitErr);', // inside the commit catch block for a staged transition
   ];
   for (const trigger of triggers) {
     assert.ok(handler.includes(trigger), `expected to find: ${trigger}`);
@@ -197,11 +197,11 @@ test('a commit failure for a NORMAL response with no staged transition also rout
   const catchIdx = handler.indexOf('} catch (commitErr) {');
   const catchBlock = handler.slice(catchIdx, catchIdx + 700);
   assert.doesNotMatch(catchBlock, /throw commitErr/, 'a plain (non-transition) commit failure must not propagate to the outer catch');
-  assert.match(catchBlock, /return emitDeterministicRetry\(\)/);
+  assert.match(catchBlock, /return emitDeterministicRetry\(reasonCode, commitErr\)/);
 });
 
 test('emitDeterministicRetry itself falls back to the safe generic stream error/end if the retry message cannot be persisted, without fabricating an id or recursing', () => {
-  const idx = handler.indexOf('const emitDeterministicRetry = async () => {');
+  const idx = handler.indexOf('const emitDeterministicRetry = async (reasonCode, err) => {');
   const block = handler.slice(idx, handler.indexOf('\n    };', idx));
   assert.match(block, /} catch \(retryPersistErr\) \{/, 'a persistence failure for the retry message itself must be caught separately');
   const catchIdx = block.indexOf('} catch (retryPersistErr) {');
@@ -222,7 +222,7 @@ test('chat.js imports buildQuickReplyPayload from the coaching services barrel',
 });
 
 test('emitDeterministicRetry never emits a quick_replies event — used by round-limit, empty-text, commit-failure, and retry-persistence-failure paths alike', () => {
-  const idx = handler.indexOf('const emitDeterministicRetry = async () => {');
+  const idx = handler.indexOf('const emitDeterministicRetry = async (reasonCode, err) => {');
   const block = handler.slice(idx, handler.indexOf('\n    };', idx));
   assert.doesNotMatch(block, /quick_replies/, 'the deterministic retry path must never emit quick replies');
 });
@@ -260,4 +260,39 @@ test('userMessageId is null for an invisible session-start marker (no user messa
   const block = handler.slice(idx, idx + 400);
   assert.match(block, /if \(!isSessionStart\) \{/);
   assert.match(block, /userMessageId = savedUserMessage\.id;/);
+});
+
+// ── Safe retry diagnostics (production retry-loop bugfix) ─────────────────
+
+test('logDeterministicRetry logs only safe operational fields — reasonCode, rounds, staged flags, and error name/code', () => {
+  const idx = handler.indexOf('const logDeterministicRetry = (reasonCode, err) => {');
+  assert.ok(idx !== -1, 'expected a dedicated safe-diagnostics logger');
+  const block = handler.slice(idx, handler.indexOf('};', idx) + 1);
+  for (const field of ['reasonCode', 'rounds: loop.rounds', 'transitionStaged: !!loop.transition', 'quickRepliesStaged: !!loop.quickReplies', 'errorName: err?.name', 'errorCode: err?.code']) {
+    assert.ok(block.includes(field), `expected the log payload to include "${field}"`);
+  }
+});
+
+test('logDeterministicRetry never logs athlete/assistant text, card content, situation, prompt content, tool payloads, or raw records', () => {
+  const idx = handler.indexOf('const logDeterministicRetry = (reasonCode, err) => {');
+  const block = handler.slice(idx, handler.indexOf('};', idx) + 1);
+  assert.doesNotMatch(block, /retryText|finalText|content\b|cardContent|situation|systemPrompt|committed\.|loop\.finalText/);
+});
+
+test('every deterministic-retry trigger passes a fixed reason code through emitDeterministicRetry to the logger', () => {
+  assert.match(handler, /return emitDeterministicRetry\(loop\.exceededRounds \? 'ROUND_LIMIT' : 'EMPTY_FINAL_TEXT'\);/);
+  assert.match(handler, /const reasonCode = commitErr instanceof CoachingStateConflictError \? 'COACHING_STATE_CONFLICT' : 'COMMIT_FAILURE';/);
+  assert.match(handler, /return emitDeterministicRetry\(reasonCode, commitErr\);/);
+  assert.match(handler, /logDeterministicRetry\('RETRY_PERSIST_FAILURE', retryPersistErr\);/);
+});
+
+test('emitDeterministicRetry logs before attempting to persist the retry message — a log always happens even if persistence later fails', () => {
+  const idx = handler.indexOf('const emitDeterministicRetry = async (reasonCode, err) => {');
+  const logIdx = handler.indexOf('logDeterministicRetry(reasonCode, err);', idx);
+  const persistIdx = handler.indexOf('prisma.message.create(', idx);
+  assert.ok(logIdx !== -1 && persistIdx !== -1 && logIdx < persistIdx);
+});
+
+test('CoachingStateConflictError is imported from the coaching services barrel for the reason-code check', () => {
+  assert.match(src, /const \{[^}]*CoachingStateConflictError[^}]*\} = require\('\.\.\/services\/coaching'\);/s);
 });
