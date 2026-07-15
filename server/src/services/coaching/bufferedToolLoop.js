@@ -20,9 +20,11 @@ const {
   PROPOSE_BARRIER,
   PRESCRIBE_MENTAL_REP,
   OFFER_QUICK_REPLIES,
+  RECORD_PRESCRIPTION_OUTCOME,
   validateProposeBarrier,
   validatePrescribeMentalRep,
   validateOfferQuickReplies,
+  validateRecordPrescriptionOutcome,
 } = require('./coachingTools');
 
 const MAX_ROUNDS = 4;
@@ -83,7 +85,11 @@ function handleToolUse(block, context, held) {
     };
   }
 
-  if (block.name !== PROPOSE_BARRIER && block.name !== PRESCRIBE_MENTAL_REP) {
+  if (
+    block.name !== PROPOSE_BARRIER &&
+    block.name !== PRESCRIBE_MENTAL_REP &&
+    block.name !== RECORD_PRESCRIPTION_OUTCOME
+  ) {
     return { accepted: false, result: { accepted: false, error: `Unknown tool: ${block.name}.` } };
   }
   if (held.transition) {
@@ -113,22 +119,39 @@ function handleToolUse(block, context, held) {
     };
   }
 
-  const v = validatePrescribeMentalRep(block.input, context);
+  if (block.name === PRESCRIBE_MENTAL_REP) {
+    const v = validatePrescribeMentalRep(block.input, context);
+    if (!v.ok) return { accepted: false, result: { accepted: false, error: v.error } };
+    return {
+      accepted: true,
+      transition: {
+        type: PRESCRIBE_MENTAL_REP,
+        barrierConfirmationStatus: block.input.barrierConfirmationStatus,
+        finalBarrierHypothesis: block.input.finalBarrierHypothesis.trim(),
+        practiceKey: block.input.practiceKey,
+        situation: block.input.situation.trim(),
+        cardContent: block.input.cardContent.trim(),
+        cueWord: typeof block.input.cueWord === 'string' && block.input.cueWord.trim() ? block.input.cueWord.trim() : null,
+      },
+      result: {
+        accepted: true,
+        note: 'Prescription staged. Now write the athlete-facing reply: deliver the practice with a one-line why and the follow-up contract. The practice card itself is shown to the athlete automatically — do not repeat the full card text.',
+      },
+    };
+  }
+
+  const v = validateRecordPrescriptionOutcome(block.input, context);
   if (!v.ok) return { accepted: false, result: { accepted: false, error: v.error } };
   return {
     accepted: true,
     transition: {
-      type: PRESCRIBE_MENTAL_REP,
-      barrierConfirmationStatus: block.input.barrierConfirmationStatus,
-      finalBarrierHypothesis: block.input.finalBarrierHypothesis.trim(),
-      practiceKey: block.input.practiceKey,
-      situation: block.input.situation.trim(),
-      cardContent: block.input.cardContent.trim(),
-      cueWord: typeof block.input.cueWord === 'string' && block.input.cueWord.trim() ? block.input.cueWord.trim() : null,
+      type: RECORD_PRESCRIPTION_OUTCOME,
+      outcomeStatus: block.input.outcomeStatus,
+      lessonText: block.input.lessonText.trim(),
     },
     result: {
       accepted: true,
-      note: 'Prescription staged. Now write the athlete-facing reply: deliver the practice with a one-line why and the follow-up contract. The practice card itself is shown to the athlete automatically — do not repeat the full card text.',
+      note: 'Outcome staged. Now write the athlete-facing reply: it must include the exact lessonText verbatim, and must not prescribe a new practice in this same reply.',
     },
   };
 }

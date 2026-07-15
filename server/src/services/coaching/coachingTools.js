@@ -12,6 +12,7 @@ const { APPROVED_PRACTICE_KEYS, isApprovedPracticeKey } = require('./practiceReg
 const PROPOSE_BARRIER = 'propose_barrier';
 const PRESCRIBE_MENTAL_REP = 'prescribe_mental_rep';
 const OFFER_QUICK_REPLIES = 'offer_quick_replies';
+const RECORD_PRESCRIPTION_OUTCOME = 'record_prescription_outcome';
 
 // Length bounds for every athlete-visible or stored field. Anything outside
 // these is a malformed payload — rejected, never truncated silently.
@@ -22,9 +23,17 @@ const LIMITS = {
   situation: 500,
   cardContent: 2000,
   cueWord: 60,
+  lessonText: 400,
 };
 
 const CONFIRMATION_VALUES = ['CONFIRMED', 'CORRECTED'];
+
+// Must match the PrescriptionOutcomeStatus Prisma enum exactly (PR-13).
+const OUTCOME_STATUS_VALUES = ['HELPED', 'HELPED_A_LITTLE', 'DID_NOT_HELP', 'NOT_TRIED'];
+
+// A lesson is short athlete-visible prose — reject the same markup/tool-
+// syntax/control-character shapes forbidden in quick-reply labels.
+const FORBIDDEN_LESSON_RE = /\[APP:|\[SUGGEST:|<[a-zA-Z!/]|[{}]|[\x00-\x1F\x7F]/;
 
 // offer_quick_replies is a presentation tool, not a coaching-state
 // transition — it never touches CoachingCycle/Prescription/
@@ -137,6 +146,31 @@ const COACHING_TOOLS = [
       required: ['replies'],
     },
   },
+  {
+    name: RECORD_PRESCRIPTION_OUTCOME,
+    description:
+      "Record the athlete's reported result for their current active Mental Rep prescription — call this as soon as they tell you how it went (helped, helped a little, did not help, or that they haven't tried it), whether replying to the app's own automatic follow-up question or bringing it up on their own. " +
+      'outcomeStatus must exactly match what they reported — never infer a more positive or negative result than they actually said. ' +
+      'lessonText is a short (max 400 characters), athlete-visible, grounded statement based only on what they reported — it must never diagnose, score, or profile the athlete, and must never claim the practice is clinically effective. ' +
+      'Your visible reply after this tool is accepted must include that exact lessonText, and must NOT prescribe a new practice in the same reply — acknowledging the result is enough for now; a new prescription (if any) comes only in a later reply, through prescribe_mental_rep, after asking 1-2 focused questions. ' +
+      'Call this at most once per athlete message, and never in the same message as propose_barrier or prescribe_mental_rep.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        outcomeStatus: {
+          type: 'string',
+          enum: OUTCOME_STATUS_VALUES,
+          description: 'Exactly what the athlete reported: HELPED, HELPED_A_LITTLE, DID_NOT_HELP, or NOT_TRIED (they have not tried it yet).',
+        },
+        lessonText: {
+          type: 'string',
+          description: 'A short, concrete, athlete-visible lesson grounded only in what the athlete reported. Never a diagnosis, score, or profile.',
+          maxLength: LIMITS.lessonText,
+        },
+      },
+      required: ['outcomeStatus', 'lessonText'],
+    },
+  },
 ];
 
 function nonEmptyBounded(value, max) {
@@ -197,7 +231,14 @@ function validatePrescribeMentalRep(input, context) {
   if (context.cycleStatus !== 'ACTIVE') {
     return { ok: false, error: 'The open coaching cycle is not active, so nothing can be prescribed against it.' };
   }
-  if (context.barrierConfirmationStatus !== 'PENDING') {
+  // Normally the barrier must still be PENDING confirmation. The one other
+  // allowed state (PR-13): the barrier was already CONFIRMED/CORRECTED for
+  // this cycle AND there is currently no prescription — meaning a prior
+  // Prescription's outcome was DID_NOT_HELP (which clears prescriptionId
+  // but never reverts barrierConfirmationStatus). hasPrescription is
+  // checked separately right below either way, so this never permits a
+  // second concurrent prescription.
+  if (!['PENDING', 'CONFIRMED', 'CORRECTED'].includes(context.barrierConfirmationStatus)) {
     return { ok: false, error: 'The barrier for the open cycle is not awaiting confirmation, so a new prescription is not valid here.' };
   }
   if (context.hasPrescription) {
@@ -252,15 +293,55 @@ function validateOfferQuickReplies(input) {
   return { ok: true, replies: trimmed };
 }
 
+// context here additionally carries: hasPrescription, prescriptionStatus
+// (the active selection's Prescription.status, or null), and
+// prescriptionOutcomeStatus (its outcomeStatus, or null) — see
+// loadCoachingContext in commitCoachingTransition.js. The live re-check at
+// commit time (commitCoachingTransition.js) is the true source of truth;
+// this is the same staged pre-check pattern as the other tools.
+function validateRecordPrescriptionOutcome(input, context) {
+  if (!input || typeof input !== 'object') {
+    return { ok: false, error: 'Malformed payload: expected an object with outcomeStatus and lessonText.' };
+  }
+  if (!OUTCOME_STATUS_VALUES.includes(input.outcomeStatus)) {
+    return { ok: false, error: `outcomeStatus must be one of: ${OUTCOME_STATUS_VALUES.join(', ')}.` };
+  }
+  if (!nonEmptyBounded(input.lessonText, LIMITS.lessonText)) {
+    return { ok: false, error: `lessonText must be a non-empty string of at most ${LIMITS.lessonText} characters.` };
+  }
+  if (FORBIDDEN_LESSON_RE.test(input.lessonText.trim())) {
+    return { ok: false, error: 'lessonText may not contain markup, tool syntax, or control characters.' };
+  }
+  if (!context.hasActiveSelection) {
+    return { ok: false, error: 'No active coaching cycle — there is no prescription to record an outcome against.' };
+  }
+  if (context.cycleStatus !== 'ACTIVE') {
+    return { ok: false, error: 'The coaching cycle is not active.' };
+  }
+  if (!context.hasPrescription) {
+    return { ok: false, error: 'The active selection has no prescription to record an outcome against.' };
+  }
+  if (!['ACTIVE', 'COMPLETED'].includes(context.prescriptionStatus)) {
+    return { ok: false, error: 'This prescription is not in a state that can receive an outcome.' };
+  }
+  if (context.prescriptionOutcomeStatus && context.prescriptionOutcomeStatus !== 'NOT_TRIED') {
+    return { ok: false, error: 'A final outcome has already been recorded for this prescription.' };
+  }
+  return { ok: true };
+}
+
 module.exports = {
   COACHING_TOOLS,
   PROPOSE_BARRIER,
   PRESCRIBE_MENTAL_REP,
   OFFER_QUICK_REPLIES,
+  RECORD_PRESCRIPTION_OUTCOME,
   LIMITS,
   QUICK_REPLY_LIMITS,
   CONFIRMATION_VALUES,
+  OUTCOME_STATUS_VALUES,
   validateProposeBarrier,
   validatePrescribeMentalRep,
   validateOfferQuickReplies,
+  validateRecordPrescriptionOutcome,
 };

@@ -15,7 +15,15 @@ const {
   CoachingStateConflictError,
   getRetryMessage,
 } = require('./commitCoachingTransition');
-const { COACHING_TOOLS, PROPOSE_BARRIER, PRESCRIBE_MENTAL_REP, OFFER_QUICK_REPLIES, QUICK_REPLY_LIMITS } = require('./coachingTools');
+const {
+  COACHING_TOOLS,
+  PROPOSE_BARRIER,
+  PRESCRIBE_MENTAL_REP,
+  OFFER_QUICK_REPLIES,
+  RECORD_PRESCRIPTION_OUTCOME,
+  QUICK_REPLY_LIMITS,
+  OUTCOME_STATUS_VALUES,
+} = require('./coachingTools');
 const { APPROVED_PRACTICE_KEYS, isApprovedPracticeKey } = require('./practiceRegistry');
 const {
   createClaimPrescriptionFollowUp,
@@ -47,7 +55,9 @@ module.exports = {
   PROPOSE_BARRIER,
   PRESCRIBE_MENTAL_REP,
   OFFER_QUICK_REPLIES,
+  RECORD_PRESCRIPTION_OUTCOME,
   QUICK_REPLY_LIMITS,
+  OUTCOME_STATUS_VALUES,
   APPROVED_PRACTICE_KEYS,
   isApprovedPracticeKey,
   createClaimPrescriptionFollowUp,

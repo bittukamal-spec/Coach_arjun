@@ -385,6 +385,12 @@ function ChatPage() {
   const [showBreakReminder, setShowBreakReminder] = useState(false);
   const [serverCards, setServerCards]             = useState([]);
   const [quickReplies, setQuickReplies]           = useState(null);
+  // Deterministic prescription-outcome follow-up choices (PR-13) — a
+  // SEPARATE temporary state from quickReplies/offer_quick_replies. These
+  // come from claim-opener's response, never from the model, and are
+  // rendered with the same QuickReplyChips component but never confused
+  // with the model-driven 2-3 reply contract.
+  const [outcomeChoices, setOutcomeChoices]       = useState(null);
 
   const bottomRef               = useRef(null);
   const inputRef                = useRef(null);
@@ -517,22 +523,26 @@ function ChatPage() {
   useEffect(() => { chatSessionIdRef.current = chatSessionId; }, [chatSessionId]);
   useEffect(() => { chatModeRef.current = chatMode; }, [chatMode]);
 
-  // ── Reset temporary server-issued card / quick-reply state on session switch
-  // Server cards (PR-9) and quick replies are never persisted — they only
+  // ── Reset temporary server-issued card / quick-reply / outcome-choice
+  // state on session switch. Server cards (PR-9), quick replies, and
+  // deterministic outcome choices (PR-13) are never persisted — they only
   // live for the current loaded session, so switching sessions must not
   // leak them.
-  useEffect(() => { setServerCards([]); setQuickReplies(null); }, [chatSessionId]);
+  useEffect(() => { setServerCards([]); setQuickReplies(null); setOutcomeChoices(null); }, [chatSessionId]);
 
-  // ── Reset the per-entry follow-up-claim guard when the UI genuinely
-  // returns to the chat-entry screen (PR-11 correction). Ordinary rerenders
-  // while the athlete stays inside the same conversation never flip
-  // showStartScreen back to true, so this effect does not fire during them
-  // — only an actual return to the entry screen does. A later "Continue
-  // with Arjun" tap is then free to claim again for the same chatSessionId;
-  // the server's atomic claim (not this guard) is what actually prevents a
-  // duplicate opener.
+  // ── Reset the per-entry follow-up-claim guard, and any still-showing
+  // outcome choices, when the UI genuinely returns to the chat-entry screen
+  // (PR-11 correction / PR-13). Ordinary rerenders while the athlete stays
+  // inside the same conversation never flip showStartScreen back to true,
+  // so this effect does not fire during them — only an actual return to the
+  // entry screen does. A later "Continue with Arjun" tap is then free to
+  // claim again for the same chatSessionId; the server's atomic claim (not
+  // this guard) is what actually prevents a duplicate opener.
   useEffect(() => {
-    if (showStartScreen) followUpClaimedSessionsRef.current.clear();
+    if (showStartScreen) {
+      followUpClaimedSessionsRef.current.clear();
+      setOutcomeChoices(null);
+    }
   }, [showStartScreen]);
 
   // ── Gentle break reminder — client-only, fires once ~30 min after this
@@ -637,6 +647,14 @@ function ChatPage() {
       }
       const data = await res.json().catch(() => ({}));
       if (data.claimed) await fetchSessionMessages(sessionId);
+      // Deterministic prescription-outcome choices (PR-13) — present
+      // whenever an outcome is still pending for the opener just claimed,
+      // OR for an opener claimed earlier this entry that the athlete
+      // hasn't answered yet. Never present once a final outcome has been
+      // recorded server-side.
+      if (data.outcomePending && Array.isArray(data.outcomeChoices)) {
+        setOutcomeChoices(data.outcomeChoices);
+      }
     } catch {
       // Network/server error — never blocks chat entry, and clears the
       // guard so a later genuine entry can retry.
@@ -690,10 +708,12 @@ function ChatPage() {
 
     if (!overrideContent) setInput('');
     setError('');
-    // Clear any offered quick-reply chips immediately — whether this send
-    // came from typing, tapping a contextual chip, or tapping "Write my
-    // own". A new response (if any) will offer its own fresh set.
+    // Clear any offered quick-reply chips and deterministic outcome choices
+    // immediately — whether this send came from typing, tapping a
+    // contextual chip, an outcome choice, or tapping "Write my own". A new
+    // response (if any) will offer its own fresh set.
     setQuickReplies(null);
+    setOutcomeChoices(null);
 
     if (!isSessionStart) {
       setMessages(prev => [...prev, { id: 'user-' + Date.now(), role: 'user', content: trimmed }]);
@@ -756,6 +776,7 @@ function ChatPage() {
               setMessages(prev => prev.filter(m => m.id !== streamId));
               setError(data.message || t.errorRetry);
               setQuickReplies(null);
+              setOutcomeChoices(null);
             } else if (data.t === 'card') {
               // Structured server-issued Mental Rep card (PR-9). Validated
               // and deduplicated by prescriptionId; never merged into
@@ -782,6 +803,7 @@ function ChatPage() {
       setMessages(prev => prev.filter(m => !m.streaming));
       setError(err.message || t.errorRetry);
       setQuickReplies(null);
+      setOutcomeChoices(null);
     } finally {
       setStreaming(false);
       setWaitingForFirst(false);
@@ -966,6 +988,19 @@ function ChatPage() {
               replies={quickReplies}
               onSelect={(label) => sendMessage(label)}
               onWriteMyOwn={() => { setQuickReplies(null); inputRef.current?.focus(); }}
+              t={t}
+            />
+          )}
+
+          {/* Deterministic prescription-outcome choices (PR-13) — a
+              separate mechanism from offer_quick_replies above; tapping one
+              sends only its label through the normal chat path, same as any
+              other chip. */}
+          {!showStartScreen && !streaming && !waitingForFirst && outcomeChoices && (
+            <QuickReplyChips
+              replies={outcomeChoices}
+              onSelect={(label) => sendMessage(label)}
+              onWriteMyOwn={() => { setOutcomeChoices(null); inputRef.current?.focus(); }}
               t={t}
             />
           )}

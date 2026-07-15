@@ -174,11 +174,11 @@ test('ChatPage: createSession is only ever called in a main-mode context, so the
 // ── 9. Per-entry guard: reset only on a genuine return to the entry screen ──
 
 test('ChatPage: returning to the chat-entry screen resets the per-entry follow-up-claim guard', () => {
-  assert.match(
-    chatPageSrc,
-    /useEffect\(\(\) => \{\s*\n\s*if \(showStartScreen\) followUpClaimedSessionsRef\.current\.clear\(\);\s*\n\s*\}, \[showStartScreen\]\);/,
-    'expected an effect that clears the guard whenever showStartScreen becomes true, keyed only on showStartScreen'
-  );
+  const idx = chatPageSrc.indexOf('followUpClaimedSessionsRef.current.clear()');
+  assert.ok(idx !== -1);
+  const block = chatPageSrc.slice(Math.max(0, idx - 60), idx + 200);
+  assert.match(block, /if \(showStartScreen\) \{/, 'expected the clear to be gated on showStartScreen becoming true');
+  assert.match(block, /\}, \[showStartScreen\]\);/, 'expected the effect to depend only on showStartScreen');
 });
 
 test('ChatPage: the guard-reset effect depends only on showStartScreen, so ordinary rerenders inside the same conversation never clear it', () => {
@@ -202,7 +202,9 @@ test('ChatPage: a claimed:false result before a prescription exists cannot perma
   // requiring a fresh page mount.
   const inFunctionDeletes = (fnBody('claimFollowUpOpener').match(/followUpClaimedSessionsRef\.current\.delete/g) || []).length;
   assert.equal(inFunctionDeletes, 2, 'the claim function itself still only clears the guard on failure, never on a definitive claimed:false');
-  assert.match(chatPageSrc, /if \(showStartScreen\) followUpClaimedSessionsRef\.current\.clear\(\);/);
+  const idx = chatPageSrc.indexOf('followUpClaimedSessionsRef.current.clear()');
+  assert.ok(idx !== -1);
+  assert.match(chatPageSrc.slice(Math.max(0, idx - 60), idx), /if \(showStartScreen\) \{/);
 });
 
 test('ChatPage: pressing Continue again on a later genuine entry can call the claim endpoint again for the same chatSessionId', () => {

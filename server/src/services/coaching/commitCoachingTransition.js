@@ -15,7 +15,11 @@
 
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-const { PROPOSE_BARRIER, PRESCRIBE_MENTAL_REP } = require('./coachingTools');
+const { PROPOSE_BARRIER, PRESCRIBE_MENTAL_REP, RECORD_PRESCRIPTION_OUTCOME } = require('./coachingTools');
+
+// An outcome is still open (never finally recorded) when null or NOT_TRIED
+// — the one outcome value that may later be replaced by a real result.
+const OUTCOME_STILL_OPEN = { OR: [{ outcomeStatus: null }, { outcomeStatus: 'NOT_TRIED' }] };
 
 class CoachingStateConflictError extends Error {
   constructor(message) {
@@ -37,20 +41,25 @@ function createLoadCoachingContext(db = prisma) {
   return async function loadCoachingContext(userId) {
     const state = await db.userCoachingState.findUnique({
       where: { userId },
-      include: { activeSelection: { include: { cycle: true } } },
+      include: { activeSelection: { include: { cycle: true, prescription: true } } },
     });
     const selection = state?.activeSelection || null;
+    const prescription = selection?.prescription || null;
     return {
       hasActiveSelection: !!selection,
       cycleStatus: selection?.cycle?.status || null,
       barrierConfirmationStatus: selection?.cycle?.barrierConfirmationStatus || null,
       hasPrescription: !!selection?.prescriptionId,
+      // PR-13 additions — additive only, every existing field above is
+      // unchanged in name and meaning.
+      prescriptionStatus: prescription?.status || null,
+      prescriptionOutcomeStatus: prescription?.outcomeStatus || null,
     };
   };
 }
 
 function createCommitCoachingTransition(db = prisma) {
-  return function commitCoachingTransition({ userId, chatSessionId = null, sessionType = null, finalText, transition = null }) {
+  return function commitCoachingTransition({ userId, chatSessionId = null, sessionType = null, finalText, transition = null, userMessageId = null }) {
     return db.$transaction(async (tx) => {
       const messageData = {
         userId,
@@ -97,11 +106,17 @@ function createCommitCoachingTransition(db = prisma) {
           include: { activeSelection: { include: { cycle: true } } },
         });
         const selection = state?.activeSelection || null;
+        // Normally the barrier must still be PENDING. The one other allowed
+        // state (PR-13): CONFIRMED/CORRECTED with no current prescriptionId
+        // — a prior Prescription's outcome was DID_NOT_HELP, which clears
+        // prescriptionId but never reverts barrierConfirmationStatus. The
+        // prescriptionId check right above already rules out a second
+        // concurrent prescription either way.
         if (
           !selection ||
           selection.prescriptionId ||
           selection.cycle?.status !== 'ACTIVE' ||
-          selection.cycle?.barrierConfirmationStatus !== 'PENDING'
+          !['PENDING', 'CONFIRMED', 'CORRECTED'].includes(selection.cycle?.barrierConfirmationStatus)
         ) {
           throw new CoachingStateConflictError('no matching active pending coaching cycle');
         }
@@ -138,6 +153,88 @@ function createCommitCoachingTransition(db = prisma) {
             cueWord: prescription.cueWord ?? null,
           },
         };
+      }
+
+      if (transition.type === RECORD_PRESCRIPTION_OUTCOME) {
+        const state = await tx.userCoachingState.findUnique({
+          where: { userId },
+          include: { activeSelection: { include: { cycle: true, prescription: true } } },
+        });
+        const selection = state?.activeSelection || null;
+        const prescription = selection?.prescription || null;
+
+        if (
+          !selection ||
+          !prescription ||
+          prescription.userId !== userId ||
+          prescription.cycleId !== selection.cycleId ||
+          selection.cycle?.status !== 'ACTIVE' ||
+          !['ACTIVE', 'COMPLETED'].includes(prescription.status)
+        ) {
+          throw new CoachingStateConflictError('no matching active prescription to record an outcome against');
+        }
+        if (prescription.outcomeStatus && prescription.outcomeStatus !== 'NOT_TRIED') {
+          throw new CoachingStateConflictError('a final outcome has already been recorded for this prescription');
+        }
+        // The exact persisted-visible-text invariant, enforced structurally:
+        // the athlete-facing reply must contain the lesson verbatim.
+        if (!finalText.includes(transition.lessonText)) {
+          throw new CoachingStateConflictError('the final reply must include the exact lesson text verbatim');
+        }
+
+        const now = new Date();
+        const baseOutcomeData = {
+          outcomeStatus: transition.outcomeStatus,
+          outcomeLesson: transition.lessonText,
+          outcomeRecordedAt: now,
+          outcomeSourceMessageId: userMessageId || null,
+          outcomeSourceSessionId: chatSessionId || null,
+        };
+
+        // Outcome-specific Prescription fields — the lifecycle mapping.
+        let outcomeSpecificData = {};
+        if (transition.outcomeStatus === 'HELPED') {
+          outcomeSpecificData = { status: 'COMPLETED', completedAt: prescription.completedAt ?? now };
+        } else if (transition.outcomeStatus === 'DID_NOT_HELP') {
+          outcomeSpecificData = { status: 'SUPERSEDED', supersededAt: now };
+        } else if (transition.outcomeStatus === 'NOT_TRIED') {
+          // Clear the follow-up-opener claim so a later genuine entry may
+          // receive another deterministic follow-up question.
+          outcomeSpecificData = {
+            followUpOpenerClaimedAt: null,
+            followUpOpenerMessageId: null,
+            followUpOpenerSessionId: null,
+          };
+        }
+        // HELPED_A_LITTLE: no extra Prescription field changes — status,
+        // cycle, and selection all stay exactly as they are.
+
+        // Atomic once-only claim — the WHERE clause (still-open outcome) is
+        // the whole guard. A concurrent winner flips outcomeStatus first,
+        // so every other simultaneous call here matches zero rows.
+        const claim = await tx.prescription.updateMany({
+          where: { id: prescription.id, ...OUTCOME_STILL_OPEN },
+          data: { ...baseOutcomeData, ...outcomeSpecificData },
+        });
+        if (claim.count === 0) {
+          throw new CoachingStateConflictError('prescription outcome could not be recorded (already finalized)');
+        }
+
+        if (transition.outcomeStatus === 'HELPED') {
+          await tx.coachingCycle.update({
+            where: { id: selection.cycleId },
+            data: { status: 'RESOLVED', resolvedAt: now },
+          });
+          await tx.activeCoachingSelection.delete({ where: { id: selection.id } });
+        } else if (transition.outcomeStatus === 'DID_NOT_HELP') {
+          await tx.activeCoachingSelection.update({
+            where: { id: selection.id },
+            data: { prescriptionId: null },
+          });
+        }
+
+        const message = await tx.message.create({ data: messageData });
+        return { message, card: null };
       }
 
       throw new CoachingStateConflictError(`unknown transition type: ${transition.type}`);

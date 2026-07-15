@@ -240,3 +240,24 @@ test('the dormant Quick Chat branch never references quick_replies or offer_quic
   const quickSlice = handler.slice(quickIdx, quickEnd);
   assert.doesNotMatch(quickSlice, /quick_replies|offer_quick_replies/);
 });
+
+// ── userMessageId threading for record_prescription_outcome (PR-13) ────────
+
+test('the real created user Message id is captured, never invented, and threaded into commitCoachingTransition as userMessageId', () => {
+  const saveIdx = handler.indexOf("role: 'user', content: content.trim()");
+  assert.ok(saveIdx !== -1, 'expected the user message persistence to still exist');
+  const beforeSave = handler.slice(0, saveIdx);
+  assert.match(beforeSave.slice(-400), /const savedUserMessage = await prisma\.message\.create/, 'the create call\'s real return value must be captured');
+
+  const commitIdx = handler.indexOf('committed = await commitCoachingTransition(');
+  const commitCallBlock = handler.slice(commitIdx, handler.indexOf('});', commitIdx));
+  assert.match(commitCallBlock, /userMessageId,/, 'commitCoachingTransition must receive the real captured id');
+});
+
+test('userMessageId is null for an invisible session-start marker (no user message is ever persisted for one)', () => {
+  const idx = handler.indexOf('let userMessageId = null;');
+  assert.ok(idx !== -1);
+  const block = handler.slice(idx, idx + 400);
+  assert.match(block, /if \(!isSessionStart\) \{/);
+  assert.match(block, /userMessageId = savedUserMessage\.id;/);
+});

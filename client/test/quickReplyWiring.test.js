@@ -106,9 +106,9 @@ test('ChatPage: "Write my own" clears the chips and focuses the text input witho
 });
 
 test('ChatPage: quick replies reset when chatSessionId changes (no leak across sessions)', () => {
-  const idx = chatPageSrc.indexOf('Reset temporary server-issued card / quick-reply state on session switch');
+  const idx = chatPageSrc.indexOf('Reset temporary server-issued card / quick-reply / outcome-choice');
   assert.ok(idx !== -1, 'expected a documented reset effect covering quick replies too');
-  const block = chatPageSrc.slice(idx, idx + 350);
+  const block = chatPageSrc.slice(idx, idx + 500);
   assert.match(block, /setQuickReplies\(null\)/);
 });
 

@@ -7,9 +7,25 @@ import { insightText } from '../utils/insightCopy';
 import SectionHeader from '../components/train/SectionHeader';
 
 // ─── Mental Playbook — the private library / reward surface ─────────────────
-// Focus Cards, saved reset cues, reflections, and one rule-based insight.
-// "Progress without pressure": plain counts, no scores, no streak shame,
-// no comparison. Entirely read-only over GET /api/playbook.
+// Focus Cards, saved reset cues, reflections, one rule-based insight, and
+// (PR-13) recent prescription outcomes/lessons. "Progress without
+// pressure": plain counts and short athlete-visible lessons, no scores, no
+// streak shame, no comparison. Entirely read-only over GET /api/playbook.
+
+// Translated outcome labels for practiceOutcomes[].outcomeStatus — deliberately
+// no percentage/score language, just a plain result label.
+const OUTCOME_LABELS = {
+  HELPED: { en: 'It helped', hi: 'इससे मदद मिली' },
+  HELPED_A_LITTLE: { en: 'Helped a little', hi: 'थोड़ी मदद मिली' },
+  DID_NOT_HELP: { en: 'Did not help', hi: 'मदद नहीं मिली' },
+  NOT_TRIED: { en: 'Not tried yet', hi: 'अभी कोशिश नहीं की' },
+};
+
+function outcomeLabel(status, hi) {
+  const entry = OUTCOME_LABELS[status];
+  if (!entry) return status;
+  return hi ? entry.hi : entry.en;
+}
 
 export default function PlaybookPage() {
   const { token, language } = useAuth();
@@ -157,6 +173,28 @@ export default function PlaybookPage() {
         <button onClick={() => navigate('/debrief')} className="text-xs font-semibold text-brand-400 active:opacity-70 mb-6 flex items-center gap-1">
           {hi ? 'नया reflection शुरू करो' : 'Start a reflection'} <ChevronRight size={12} />
         </button>
+
+        {/* ── What I'm learning (prescription outcomes, PR-13) ────────────── */}
+        <SectionHeader>{hi ? 'मैं क्या सीख रहा हूँ' : "What I'm learning"}</SectionHeader>
+        {data?.practiceOutcomes?.length ? (
+          <div className="space-y-2.5 mb-2">
+            {data.practiceOutcomes.map(o => (
+              <div key={o.prescriptionId} className="card-surface p-4">
+                <p className="text-[11px] text-muted mb-1">
+                  {new Date(o.outcomeRecordedAt).toLocaleDateString(hi ? 'hi-IN' : 'en-IN', { day: 'numeric', month: 'short' })}
+                  {' · '}{o.practiceName}
+                </p>
+                {o.situation && <p className="text-xs text-slt mb-1">{o.situation}</p>}
+                <p className="text-sm font-bold mb-1" style={{ color: '#185FA5' }}>{outcomeLabel(o.outcomeStatus, hi)}</p>
+                {o.lesson && <p className="text-sm text-ink leading-relaxed">{o.lesson}</p>}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-slt mb-6">
+            {hi ? 'अभी कोई सीख दर्ज नहीं हुई।' : "You haven't recorded any lessons yet."}
+          </p>
+        )}
       </div>
     </div>
   );

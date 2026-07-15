@@ -1,20 +1,29 @@
 // Mental Playbook — the private reward/progress surface of the Healthy
 // Hook loop. Read-only aggregation over models that already exist
-// (ToolReport, SelfTalkCard, Debrief) — zero schema changes, no AI call.
-// Insight detection is deliberately rule-based and returns a KEY (plus
-// params), not prose, so the client renders it bilingually and copy stays
-// in one place. "Progress without pressure": plain counts only — no
-// scores, no streak shame, no ranking.
+// (ToolReport, SelfTalkCard, Debrief, and — since PR-13 — Prescription's
+// outcome fields), no AI call. Insight detection is deliberately rule-based
+// and returns a KEY (plus params), not prose, so the client renders it
+// bilingually and copy stays in one place. "Progress without pressure":
+// plain counts and short athlete-visible lessons only — no scores, no
+// streak shame, no ranking, no raw chat message bodies.
 
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const authenticate = require('../middleware/authenticate');
+const { APPROVED_PRACTICES } = require('../services/coaching/practiceRegistry');
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
+const OUTCOME_HISTORY_LIMIT = 10;
+const NEUTRAL_PRACTICE_FALLBACK = 'Mental Rep';
+
 function parseDetails(raw) {
   try { return JSON.parse(raw || '{}'); } catch { return {}; }
+}
+
+function practiceDisplayName(practiceKey) {
+  return APPROVED_PRACTICES[practiceKey]?.label || NEUTRAL_PRACTICE_FALLBACK;
 }
 
 function topEntry(counts) {
@@ -27,7 +36,7 @@ router.get('/', authenticate, async (req, res) => {
     const weekAgo  = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-    const [reports, focusCards, reflections] = await Promise.all([
+    const [reports, focusCards, reflections, outcomePrescriptions] = await Promise.all([
       prisma.toolReport.findMany({
         where: { userId: req.userId, createdAt: { gte: monthAgo } },
         orderBy: { createdAt: 'desc' },
@@ -44,6 +53,24 @@ router.get('/', authenticate, async (req, res) => {
         orderBy: { createdAt: 'desc' },
         take: 5,
         select: { id: true, eventType: true, resultType: true, nextFocus: true, arjunInsight: true, createdAt: true },
+      }),
+      // Prescription outcomes (PR-13) — "What I'm learning". Newest first,
+      // bounded, this athlete's records only. Never the raw chat message
+      // (outcomeLesson is a separate, short, athlete-visible field) and
+      // never internal tool/cycle data beyond the cycle's bare status.
+      prisma.prescription.findMany({
+        where: { userId: req.userId, outcomeStatus: { not: null } },
+        orderBy: { outcomeRecordedAt: 'desc' },
+        take: OUTCOME_HISTORY_LIMIT,
+        select: {
+          id: true,
+          practiceKey: true,
+          situation: true,
+          outcomeStatus: true,
+          outcomeLesson: true,
+          outcomeRecordedAt: true,
+          cycle: { select: { status: true } },
+        },
       }),
     ]);
 
@@ -86,6 +113,17 @@ router.get('/', authenticate, async (req, res) => {
       insight = { key: 'cue_repeat', cue: topCue.value };
     }
 
+    const practiceOutcomes = outcomePrescriptions.map(p => ({
+      prescriptionId: p.id,
+      practiceKey: p.practiceKey,
+      practiceName: practiceDisplayName(p.practiceKey),
+      situation: p.situation,
+      outcomeStatus: p.outcomeStatus,
+      lesson: p.outcomeLesson,
+      outcomeRecordedAt: p.outcomeRecordedAt,
+      cycleStatus: p.cycle?.status || null,
+    }));
+
     res.json({
       weekRepCount,
       weekResetCount,
@@ -95,6 +133,7 @@ router.get('/', authenticate, async (req, res) => {
       focusCards,
       reflections,
       insight,
+      practiceOutcomes,
     });
   } catch (err) {
     console.error('[playbook] GET error:', err?.message);
@@ -103,3 +142,8 @@ router.get('/', authenticate, async (req, res) => {
 });
 
 module.exports = router;
+// Exported for direct unit testing (same pattern as
+// requireGuardianConsent's createRequireGuardianConsent) — attaching a
+// named property to the router function/object doesn't change how
+// index.js consumes it as Express middleware.
+module.exports.practiceDisplayName = practiceDisplayName;

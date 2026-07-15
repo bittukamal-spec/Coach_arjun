@@ -6,7 +6,9 @@
 // call is made here, the athlete's outcome is not captured yet, and the
 // coaching cycle/prescription is never resolved, abandoned, or superseded
 // by this module — it only ever claims the follow-up opener and persists
-// the one assistant Message.
+// the one assistant Message. The returned outcomePending/outcomeChoices
+// (PR-13) are read-only, deterministic, never-persisted derived fields —
+// they never affect the atomic claim above, which is unchanged.
 //
 // Atomicity: the claim is a conditional updateMany (WHERE
 // followUpOpenerClaimedAt IS NULL) run inside a single transaction, so
@@ -57,6 +59,33 @@ function buildFollowUpOpener({ practiceKey, situation, language }) {
     : `Last time you planned to try ${practice} in ${situationText}. How did it go?`;
 }
 
+// Deterministic prescription-outcome follow-up choices (PR-13) — never
+// model-generated, never persisted. Tapping one just sends its label
+// through the normal main-chat message path; the app never calls a direct
+// outcome endpoint from a chip. Ids are stable strings, not DB ids.
+const OUTCOME_CHOICES_EN = [
+  { id: 'helped', label: 'It helped' },
+  { id: 'helped_a_little', label: 'It helped a little' },
+  { id: 'did_not_help', label: 'It did not help' },
+  { id: 'not_tried', label: 'I did not try it' },
+];
+const OUTCOME_CHOICES_HI = [
+  { id: 'helped', label: 'इससे मदद मिली' },
+  { id: 'helped_a_little', label: 'थोड़ी मदद मिली' },
+  { id: 'did_not_help', label: 'इससे मदद नहीं मिली' },
+  { id: 'not_tried', label: 'मैंने कोशिश नहीं की' },
+];
+
+function buildOutcomeChoices(language) {
+  return language === 'hi' ? OUTCOME_CHOICES_HI : OUTCOME_CHOICES_EN;
+}
+
+// An outcome is still pending — no final result recorded yet — when
+// outcomeStatus is null or NOT_TRIED (NOT_TRIED is explicitly replaceable).
+function isOutcomePending(prescription) {
+  return !prescription.outcomeStatus || prescription.outcomeStatus === 'NOT_TRIED';
+}
+
 function createClaimPrescriptionFollowUp(db = prisma) {
   return async function claimPrescriptionFollowUp({ userId, chatSessionId, language }) {
     if (!chatSessionId || typeof chatSessionId !== 'string') {
@@ -93,6 +122,12 @@ function createClaimPrescriptionFollowUp(db = prisma) {
         data: { followUpOpenerClaimedAt: new Date(), followUpOpenerSessionId: chatSessionId },
       });
       if (claim.count === 0) {
+        // Already claimed earlier (this entry or a prior one). Still offer
+        // the deterministic outcome choices again if the athlete never
+        // answered — but never once a final outcome has been recorded.
+        if (isOutcomePending(prescription)) {
+          return { claimed: false, outcomePending: true, outcomeChoices: buildOutcomeChoices(language) };
+        }
         return { claimed: false };
       }
 
@@ -114,7 +149,9 @@ function createClaimPrescriptionFollowUp(db = prisma) {
         data: { followUpOpenerMessageId: message.id },
       });
 
-      return { claimed: true, message };
+      // A brand-new opener always has its outcome pending — nothing has
+      // been recorded against it yet.
+      return { claimed: true, message, outcomePending: true, outcomeChoices: buildOutcomeChoices(language) };
     });
   };
 }
@@ -124,4 +161,5 @@ module.exports = {
   claimPrescriptionFollowUp: createClaimPrescriptionFollowUp(),
   InvalidChatSessionError,
   buildFollowUpOpener,
+  buildOutcomeChoices,
 };
