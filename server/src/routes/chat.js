@@ -1144,6 +1144,8 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
         rounds: loop.rounds,
         transitionStaged: !!loop.transition,
         quickRepliesStaged: !!loop.quickReplies,
+        finalTextRecoveryAttempted: !!loop.finalTextRecoveryAttempted,
+        finalTextRecoverySucceeded: !!loop.finalTextRecoverySucceeded,
         errorName: err?.name || null,
         errorCode: err?.code || null,
       }));

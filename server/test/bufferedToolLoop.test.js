@@ -3,7 +3,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { runBufferedToolLoop, sanitizeFinalText, MAX_ROUNDS } = require('../src/services/coaching/bufferedToolLoop');
+const { runBufferedToolLoop, sanitizeFinalText, MAX_ROUNDS, FINAL_TEXT_RECOVERY_INSTRUCTION } = require('../src/services/coaching/bufferedToolLoop');
 
 const NO_STATE = { hasActiveSelection: false, cycleStatus: null, barrierConfirmationStatus: null, hasPrescription: false };
 const PENDING_STATE = { hasActiveSelection: true, cycleStatus: 'ACTIVE', barrierConfirmationStatus: 'PENDING', hasPrescription: false };
@@ -494,6 +494,121 @@ test('record_prescription_outcome and offer_quick_replies may coexist in the sam
   assert.equal(toolResults[1].is_error, false);
   assert.equal(result.transition.type, 'record_prescription_outcome');
   assert.deepEqual(result.quickReplies, ['Sounds good', 'Not quite']);
+});
+
+// ── 8. Bounded final-text recovery (production EMPTY_FINAL_TEXT fix) ────────
+// Reproduces the exact confirmed production sequence: offer_quick_replies is
+// accepted in round 1, then round 2 returns end_turn with no usable text.
+// Rather than exhaust the round cap and fall back to the deterministic
+// retry, the loop asks once more (with no tools) for the missing text.
+
+test('empty end_turn text after an accepted offer_quick_replies triggers one no-tools recovery call that returns valid text — the request succeeds without hitting the round limit', async () => {
+  const stub = makeAnthropicStub([
+    quickRepliesToolResponse('draft', ['Yes, that feels right', 'Not quite'], 'tu-1'),
+    textResponse('   '), // whitespace-only — sanitizes to nothing
+    textResponse('Got it — how did the reset feel in that moment?'),
+  ]);
+  const result = await run(stub, NO_STATE);
+
+  assert.equal(stub.calls.length, 3, 'round 1 (tool call), round 2 (empty end_turn), and exactly one recovery call');
+  assert.equal(result.finalText, 'Got it — how did the reset feel in that moment?');
+  assert.equal(result.exceededRounds, false);
+  assert.equal(result.finalTextRecoveryAttempted, true);
+  assert.equal(result.finalTextRecoverySucceeded, true);
+  assert.deepEqual(result.quickReplies, ['Yes, that feels right', 'Not quite'], 'the originally staged replies survive recovery unchanged');
+});
+
+test('the recovery request omits the tools key entirely — Claude cannot call offer_quick_replies or any transition tool during recovery', async () => {
+  const stub = makeAnthropicStub([
+    quickRepliesToolResponse('draft', ['Yes, that feels right', 'Not quite']),
+    textResponse(''),
+    textResponse('Final recovered text.'),
+  ]);
+  await run(stub, NO_STATE);
+  const recoveryCall = stub.calls[2];
+  assert.equal(recoveryCall.tools, undefined, 'no tools array on the recovery call');
+});
+
+test('the hidden recovery instruction is the exact fixed string and is the last message sent — never athlete-visible text', async () => {
+  const stub = makeAnthropicStub([
+    quickRepliesToolResponse('draft', ['Yes, that feels right', 'Not quite']),
+    textResponse(''),
+    textResponse('Final recovered text.'),
+  ]);
+  await run(stub, NO_STATE);
+  const recoveryCall = stub.calls[2];
+  const lastMessage = recoveryCall.messages[recoveryCall.messages.length - 1];
+  assert.equal(lastMessage.role, 'user');
+  assert.equal(lastMessage.content, FINAL_TEXT_RECOVERY_INSTRUCTION);
+});
+
+test('a staged barrier proposal survives empty-text recovery and is returned only alongside valid recovered final text', async () => {
+  const stub = makeAnthropicStub([
+    toolResponse('draft', 'propose_barrier', PROPOSE_INPUT),
+    textResponse(''),
+    textResponse('Sounds like fear of failure — does that fit?'),
+  ]);
+  const result = await run(stub, NO_STATE);
+  assert.equal(result.transition.type, 'propose_barrier');
+  assert.equal(result.finalText, 'Sounds like fear of failure — does that fit?');
+  assert.equal(result.finalTextRecoverySucceeded, true);
+});
+
+test('a staged prescription survives recovery — the transition is still returned, ready for exactly one real card on commit', async () => {
+  const stub = makeAnthropicStub([
+    toolResponse('draft', 'prescribe_mental_rep', PRESCRIBE_INPUT),
+    textResponse(''),
+    textResponse('Here is your one practice for the week.'),
+  ]);
+  const result = await run(stub, PENDING_STATE);
+  assert.equal(result.transition.type, 'prescribe_mental_rep');
+  assert.equal(result.finalText, 'Here is your one practice for the week.');
+});
+
+test('a second empty recovery response leaves finalText empty — the caller\'s existing EMPTY_FINAL_TEXT retry still fires, recovery is not retried again', async () => {
+  const stub = makeAnthropicStub([
+    quickRepliesToolResponse('draft', ['Yes, that feels right', 'Not quite']),
+    textResponse(''),
+    textResponse('   '), // recovery also comes back empty
+  ]);
+  const result = await run(stub, NO_STATE);
+  assert.equal(stub.calls.length, 3, 'no third Anthropic call — recovery is attempted at most once');
+  assert.equal(sanitizeFinalText(result.finalText), null);
+  assert.equal(result.finalTextRecoveryAttempted, true);
+  assert.equal(result.finalTextRecoverySucceeded, false);
+});
+
+test('recovery is never attempted when no tool was staged at all — a genuinely empty first response returns immediately with no extra call', async () => {
+  const stub = makeAnthropicStub([textResponse('')]);
+  const result = await run(stub, NO_STATE);
+  assert.equal(stub.calls.length, 1);
+  assert.equal(result.finalTextRecoveryAttempted, false);
+  assert.equal(sanitizeFinalText(result.finalText), null);
+});
+
+test('a normal response with valid text and a staged tool makes no additional (recovery) Anthropic call', async () => {
+  const stub = makeAnthropicStub([
+    quickRepliesToolResponse('draft', ['Yes, that feels right', 'Not quite']),
+    textResponse('Here is the real reply.'),
+  ]);
+  const result = await run(stub, NO_STATE);
+  assert.equal(stub.calls.length, 2, 'only the tool round and the final round — no recovery call needed');
+  assert.equal(result.finalTextRecoveryAttempted, false);
+  assert.equal(result.finalText, 'Here is the real reply.');
+});
+
+test('the true round-limit path is unaffected by recovery — a model that never stops calling tools is still cut off at the hard cap', async () => {
+  const stub = makeAnthropicStub([
+    toolResponse('draft 1', 'propose_barrier', PROPOSE_INPUT, 'tu-1'),
+    toolResponse('draft 2', 'propose_barrier', PROPOSE_INPUT, 'tu-2'),
+    toolResponse('draft 3', 'propose_barrier', PROPOSE_INPUT, 'tu-3'),
+    toolResponse('draft 4', 'propose_barrier', PROPOSE_INPUT, 'tu-4'),
+  ]);
+  const result = await run(stub, NO_STATE, 4);
+  assert.equal(result.exceededRounds, true);
+  assert.equal(result.finalText, null);
+  assert.equal(result.finalTextRecoveryAttempted, false);
+  assert.equal(stub.calls.length, 4, 'exactly maxRounds calls — recovery never applies when every round called a tool');
 });
 
 // ── sanitizeFinalText ────────────────────────────────────────────────────────

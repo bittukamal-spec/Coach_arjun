@@ -326,6 +326,108 @@ test('different reply-label payloads on the duplicate offer_quick_replies call n
   );
 });
 
+// ── Production bugfix: empty final text after an accepted tool call must
+// recover, not exhaust rounds into the deterministic retry. Reproduces the
+// exact confirmed production sequence end to end (loop → sanitize → commit
+// → SSE emission), mirroring the log that surfaced it:
+// { reasonCode: "EMPTY_FINAL_TEXT", rounds: 2, transitionStaged: false,
+//   quickRepliesStaged: true }. ──────────────────────────────────────────
+
+test('offer_quick_replies staged, then an empty end_turn response: one no-tools recovery call returns real text, the request succeeds, exactly one quick_replies event, byte-equal persisted/emitted text, no deterministic retry', async () => {
+  const anthropic = makeAnthropicStub([
+    quickTool('draft', ['Yes, that feels right', 'Not quite'], 'tu-1'),
+    { stop_reason: 'end_turn', content: [{ type: 'text', text: '' }] }, // the production repro: no usable text
+    { stop_reason: 'end_turn', content: [{ type: 'text', text: 'Got it — does that sound right to you?' }] }, // recovery
+  ]);
+
+  const coachingContext = { hasActiveSelection: false, cycleStatus: null, barrierConfirmationStatus: null, hasPrescription: false };
+  const loop = await runBufferedToolLoop({
+    anthropic, model: 'test-model', maxTokens: 800, system: 'sys',
+    messages: [{ role: 'user', content: 'I keep thinking about the result' }],
+    coachingContext,
+  });
+
+  assert.equal(loop.exceededRounds, false, 'recovery must never be mistaken for a round-limit failure');
+  assert.equal(loop.finalTextRecoveryAttempted, true);
+  assert.equal(loop.finalTextRecoverySucceeded, true);
+  assert.equal(loop.finalText, 'Got it — does that sound right to you?');
+  assert.deepEqual(loop.quickReplies, ['Yes, that feels right', 'Not quite'], 'the originally staged replies survive recovery');
+
+  // This is exactly the check chat.js performs: with recovered text, the
+  // `if (!finalText) return emitDeterministicRetry(...)` branch is never
+  // reached — no "I couldn't save that coaching step" retry is emitted.
+  const finalText = sanitizeFinalText(loop.finalText);
+  assert.ok(finalText, 'no deterministic retry: recovered text is real and non-empty');
+
+  const { db } = makeDbStub(null);
+  const commit = createCommitCoachingTransition(db);
+  const committed = await commit({ userId: 'user-1', chatSessionId: 'cs-1', sessionType: null, finalText, transition: loop.transition });
+
+  const emitted = emitLikeRoute({ finalText, committed, loopQuickReplies: loop.quickReplies });
+  assert.deepEqual(emitted.map((e) => e.t), ['d', 'quick_replies', 'end'], 'normal protocol order: d, then quick_replies, then end');
+  assert.equal(emitted.filter((e) => e.t === 'quick_replies').length, 1, 'exactly one quick_replies event');
+  assert.equal(emitted[0].c, finalText);
+  assert.equal(committed.message.content, finalText, 'persisted assistant text is byte-for-byte the emitted text');
+  // The hidden recovery instruction is server-internal to the Anthropic
+  // call only — it never appears in what gets emitted or persisted.
+  assert.ok(!emitted[0].c.includes('Your tool action has already been accepted'));
+  assert.ok(!committed.message.content.includes('Your tool action has already been accepted'));
+});
+
+test('a staged prescription survives empty-text recovery and emits exactly one real card, byte-equal persisted/emitted text', async () => {
+  const anthropic = makeAnthropicStub([
+    {
+      stop_reason: 'tool_use',
+      content: [
+        { type: 'text', text: 'draft' },
+        { type: 'tool_use', id: 'tu-1', name: 'prescribe_mental_rep', input: PRESCRIBE_INPUT },
+      ],
+    },
+    { stop_reason: 'end_turn', content: [{ type: 'text', text: '   ' }] }, // whitespace-only
+    { stop_reason: 'end_turn', content: [{ type: 'text', text: 'Here is your one practice for this week.' }] }, // recovery
+  ]);
+
+  const coachingContext = { hasActiveSelection: true, cycleStatus: 'ACTIVE', barrierConfirmationStatus: 'PENDING', hasPrescription: false };
+  const loop = await runBufferedToolLoop({
+    anthropic, model: 'test-model', maxTokens: 800, system: 'sys',
+    messages: [{ role: 'user', content: 'Yes, that is exactly it' }],
+    coachingContext,
+  });
+  assert.equal(loop.transition.type, 'prescribe_mental_rep');
+  assert.equal(loop.finalTextRecoverySucceeded, true);
+
+  const finalText = sanitizeFinalText(loop.finalText);
+  const { db, writes } = makeDbStub(pendingState());
+  const commit = createCommitCoachingTransition(db);
+  const committed = await commit({ userId: 'user-1', chatSessionId: 'cs-1', sessionType: null, finalText, transition: loop.transition });
+
+  const emitted = emitLikeRoute({ finalText, committed, loopQuickReplies: loop.quickReplies });
+  assert.deepEqual(emitted.map((e) => e.t), ['d', 'card', 'end']);
+  assert.equal(emitted.filter((e) => e.t === 'card').length, 1, 'exactly one real card');
+  assert.equal(writes.filter((w) => w.op === 'prescription.create').length, 1, 'exactly one prescription record');
+  assert.equal(committed.message.content, finalText);
+});
+
+test('a second empty recovery response still produces the EMPTY_FINAL_TEXT deterministic-retry condition — sanitizeFinalText(loop.finalText) is null, exactly as chat.js checks', async () => {
+  const anthropic = makeAnthropicStub([
+    quickTool('draft', ['Yes, that feels right', 'Not quite'], 'tu-1'),
+    { stop_reason: 'end_turn', content: [{ type: 'text', text: '' }] },
+    { stop_reason: 'end_turn', content: [{ type: 'text', text: '' }] }, // recovery also empty
+  ]);
+  const coachingContext = { hasActiveSelection: false, cycleStatus: null, barrierConfirmationStatus: null, hasPrescription: false };
+  const loop = await runBufferedToolLoop({
+    anthropic, model: 'test-model', maxTokens: 800, system: 'sys',
+    messages: [{ role: 'user', content: 'I keep thinking about the result' }],
+    coachingContext,
+  });
+  assert.equal(loop.exceededRounds, false, 'this is an EMPTY_FINAL_TEXT case, not a ROUND_LIMIT case');
+  assert.equal(loop.finalTextRecoveryAttempted, true);
+  assert.equal(loop.finalTextRecoverySucceeded, false);
+  // Exactly chat.js's own check: `sanitizeFinalText(loop.finalText)` null
+  // means `if (!finalText) return emitDeterministicRetry(... 'EMPTY_FINAL_TEXT')`.
+  assert.equal(sanitizeFinalText(loop.finalText), null);
+});
+
 function quickTool(draftText, replies, id) {
   return {
     stop_reason: 'tool_use',
