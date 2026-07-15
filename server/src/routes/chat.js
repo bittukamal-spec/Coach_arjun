@@ -146,7 +146,7 @@ Be warm and curious. Ask one natural follow-up question per response.`,
 // (it returns its own prompt before coachingContext is even loaded).
 function buildCoachingStateSection(coachingContext) {
   if (!coachingContext) return '';
-  const { hasActiveSelection, hasPrescription } = coachingContext;
+  const { hasActiveSelection, hasPrescription, barrierConfirmationStatus } = coachingContext;
 
   if (!hasActiveSelection) {
     return `## Coaching State: No Active Coaching Cycle
@@ -159,6 +159,17 @@ The athlete has no open coaching cycle right now.
   }
 
   if (!hasPrescription) {
+    if (barrierConfirmationStatus !== 'PENDING') {
+      // PR-13: the previous Prescription on this cycle was reported
+      // DID_NOT_HELP — record_prescription_outcome already cleared
+      // prescriptionId and acknowledged the result in an earlier reply.
+      // The barrier itself (CONFIRMED/CORRECTED) was never reopened.
+      return `## Coaching State: Continuing After a Practice That Did Not Help
+The previous Mental Rep for this barrier did not help. That result has already been acknowledged in an earlier reply — do not re-acknowledge it again unless the athlete brings it up themselves.
+- Do NOT prescribe another practice immediately. Ask at most 1–2 focused questions to understand what specifically didn't work, or what's changed, before proposing anything.
+- Once you have enough, you may call prescribe_mental_rep again for this same barrier (barrierConfirmationStatus CONFIRMED or CORRECTED, matching what was already agreed) — never open a new cycle, never propose a new barrier.
+- This is still exactly one new prescription, same rules as any other: never automatically replace the practice without asking first, and never offer a menu of practices.`;
+    }
     return `## Coaching State: Barrier Awaiting Confirmation
 A barrier hypothesis is open on this cycle and awaiting the athlete's confirmation.
 - Focus on confirming or correcting the CURRENT hypothesis. Do not open a second cycle or drift to a new problem while this one is open.
@@ -173,7 +184,9 @@ A barrier hypothesis is open on this cycle and awaiting the athlete's confirmati
 The athlete already has an open Mental Rep prescription from the current coaching cycle.
 - Do NOT create or suggest another prescription, and do not call prescribe_mental_rep again this cycle.
 - Do NOT start a new coaching cycle or propose a new barrier while this one is still open.
-- Keep coaching the athlete conversationally around their existing practice, or about anything else they bring up. Follow-up and completion handling for this practice are built in a later update — for now, simply retain it as their current active Mental Rep and do not re-prescribe or re-diagnose.
+- If the athlete reports how the practice went — it helped, helped a little, did not help, or that they haven't tried it yet — whether replying to the app's own automatic follow-up question or bringing it up on their own, call record_prescription_outcome with the matching outcomeStatus and a short, athlete-visible lessonText grounded only in what they actually said. Your visible reply must include that exact lessonText verbatim. Never diagnose, score, or profile the athlete in the lesson, and never claim the practice is clinically effective — state only what happened and what it suggests for next time.
+- Do NOT prescribe a new practice in the same reply as record_prescription_outcome — acknowledging the result is enough for now.
+- Otherwise, keep coaching the athlete conversationally around their existing practice, or about anything else they bring up — do not re-prescribe or re-diagnose.
 - Ordinary conversation may still use offer_quick_replies where it genuinely fits (see the Structured Reply-Chip Tool section below).`;
 }
 
@@ -1001,11 +1014,16 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
       }
     }
 
-    // Save the user's message (skip invisible session-start markers)
+    // Save the user's message (skip invisible session-start markers).
+    // The real created id is threaded through to commitCoachingTransition
+    // as outcomeSourceMessageId (PR-13) when a prescription outcome is
+    // recorded this turn — never an invented identifier.
+    let userMessageId = null;
     if (!isSessionStart) {
-      await prisma.message.create({
+      const savedUserMessage = await prisma.message.create({
         data: { userId: req.userId, role: 'user', content: content.trim(), sessionType: sessionType || null, chatSessionId: chatSessionId || null },
       });
+      userMessageId = savedUserMessage.id;
     }
 
     // Fetch recent history to provide context to Claude
@@ -1152,6 +1170,7 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
         sessionType: sessionType || null,
         finalText,
         transition: loop.transition,
+        userMessageId,
       });
     } catch (commitErr) {
       // Any commit failure — a staged coaching-transition conflict, or a

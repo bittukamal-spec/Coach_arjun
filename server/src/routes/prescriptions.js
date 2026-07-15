@@ -1,5 +1,8 @@
 // Deterministic next-open prescription follow-up (PR-11) + exact prescription
-// completion linkage (PR-12). No Anthropic call anywhere in this file.
+// completion linkage (PR-12) + deterministic outcome follow-up choices
+// (PR-13, on claim-opener's response). No Anthropic call anywhere in this
+// file. Outcome capture itself (record_prescription_outcome) happens through
+// the normal main coaching chat, not a route in this file.
 
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
@@ -35,7 +38,15 @@ router.post('/claim-opener', authenticate, requireGuardianConsent, async (req, r
       language: user.language,
     });
 
-    if (!result.claimed) return res.json({ claimed: false });
+    // outcomePending/outcomeChoices (PR-13) are deterministic, never
+    // persisted, and present on EITHER branch — a brand-new opener always
+    // has its outcome pending, and an already-claimed opener may still be
+    // unanswered. They are absent once a final outcome has been recorded.
+    const outcomeFields = result.outcomePending
+      ? { outcomePending: true, outcomeChoices: result.outcomeChoices }
+      : {};
+
+    if (!result.claimed) return res.json({ claimed: false, ...outcomeFields });
 
     res.json({
       claimed: true,
@@ -45,6 +56,7 @@ router.post('/claim-opener', authenticate, requireGuardianConsent, async (req, r
         content: result.message.content,
         createdAt: result.message.createdAt,
       },
+      ...outcomeFields,
     });
   } catch (err) {
     if (err instanceof InvalidChatSessionError) {

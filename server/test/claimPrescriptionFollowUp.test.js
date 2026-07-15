@@ -16,6 +16,7 @@ const {
   createClaimPrescriptionFollowUp,
   InvalidChatSessionError,
   buildFollowUpOpener,
+  buildOutcomeChoices,
 } = require('../src/services/coaching/claimPrescriptionFollowUp');
 
 function makeDbStub({ session = null, state = null, failAt = null } = {}) {
@@ -76,18 +77,20 @@ function makeDbStub({ session = null, state = null, failAt = null } = {}) {
 
 const MAIN_SESSION = { userId: 'user-1', mode: 'main' };
 
-function activePrescriptionState(overrides = {}) {
+function activePrescriptionState(overrides = {}, cycleStatus = 'ACTIVE') {
   return {
     userId: 'user-1',
     activeSelection: {
       id: 'sel-A',
       prescriptionId: 'presc-A',
+      cycle: { status: cycleStatus },
       prescription: {
         id: 'presc-A',
         userId: 'user-1',
         practiceKey: 'pressure_reset',
         situation: 'Free throws in the final quarter',
         status: 'ACTIVE',
+        outcomeStatus: null,
         followUpOpenerClaimedAt: null,
         followUpOpenerMessageId: null,
         ...overrides,
@@ -108,6 +111,16 @@ test('eligible active prescription creates exactly one deterministic opener, no 
   assert.equal(result.message.content, 'Last time you planned to try Pressure Reset in Free throws in the final quarter. How did it go?');
   const ops = writes.map((w) => w.op);
   assert.deepEqual(ops, ['prescription.updateMany', 'message.create', 'prescription.update']);
+});
+
+test('a brand-new claim also returns outcomePending:true and the four deterministic outcome choices', async () => {
+  const { db } = makeDbStub({ session: MAIN_SESSION, state: activePrescriptionState() });
+  const claim = createClaimPrescriptionFollowUp(db);
+  const result = await claim({ userId: 'user-1', chatSessionId: 'cs-1', language: 'en' });
+
+  assert.equal(result.outcomePending, true);
+  assert.equal(result.outcomeChoices.length, 4);
+  assert.deepEqual(result.outcomeChoices.map((c) => c.id), ['helped', 'helped_a_little', 'did_not_help', 'not_tried']);
 });
 
 test('opener uses the registry practice label and the exact persisted situation', () => {
@@ -154,7 +167,7 @@ test('claim timestamp and the real created Message id are stored on the Prescrip
 
 // ── Once-only claim ───────────────────────────────────────────────────────
 
-test('a second claim attempt (already claimed) returns claimed:false and writes nothing', async () => {
+test('a second claim attempt (already claimed, outcome still unanswered) returns claimed:false but still offers the deterministic outcome choices again, and writes nothing', async () => {
   const { db, writes } = makeDbStub({
     session: MAIN_SESSION,
     state: activePrescriptionState({ followUpOpenerClaimedAt: new Date('2026-07-01T00:00:00Z'), followUpOpenerMessageId: 'msg-existing' }),
@@ -163,9 +176,83 @@ test('a second claim attempt (already claimed) returns claimed:false and writes 
 
   const result = await claim({ userId: 'user-1', chatSessionId: 'cs-1', language: 'en' });
 
-  assert.deepEqual(result, { claimed: false });
+  assert.equal(result.claimed, false);
+  assert.equal(result.outcomePending, true);
+  assert.deepEqual(result.outcomeChoices, buildOutcomeChoices('en'));
   assert.equal(writes.length, 1, 'only the failed conditional updateMany attempt, no message/link write');
   assert.equal(writes[0].op, 'prescription.updateMany');
+});
+
+test('a second claim attempt after a FINAL outcome (HELPED) was already recorded returns bare claimed:false — no outcome choices', async () => {
+  const { db, writes } = makeDbStub({
+    session: MAIN_SESSION,
+    state: activePrescriptionState({
+      followUpOpenerClaimedAt: new Date('2026-07-01T00:00:00Z'),
+      followUpOpenerMessageId: 'msg-existing',
+      outcomeStatus: 'HELPED',
+    }),
+  });
+  const claim = createClaimPrescriptionFollowUp(db);
+
+  const result = await claim({ userId: 'user-1', chatSessionId: 'cs-1', language: 'en' });
+
+  assert.deepEqual(result, { claimed: false });
+  // The isOutcomePending gate now rejects before ever attempting the
+  // conditional updateMany — a final outcome means nothing is written.
+  assert.equal(writes.length, 0);
+});
+
+test('a second claim attempt after a FINAL outcome (DID_NOT_HELP) was already recorded returns bare claimed:false — no outcome choices', async () => {
+  const { db, writes } = makeDbStub({
+    session: MAIN_SESSION,
+    state: activePrescriptionState({
+      followUpOpenerClaimedAt: new Date('2026-07-01T00:00:00Z'),
+      followUpOpenerMessageId: 'msg-existing',
+      outcomeStatus: 'DID_NOT_HELP',
+    }),
+  });
+  const claim = createClaimPrescriptionFollowUp(db);
+
+  const result = await claim({ userId: 'user-1', chatSessionId: 'cs-1', language: 'en' });
+
+  assert.deepEqual(result, { claimed: false });
+  assert.equal(writes.length, 0);
+});
+
+test('a second claim attempt while the outcome is HELPED_A_LITTLE still offers the choices again (provisional, not final)', async () => {
+  const { db } = makeDbStub({
+    session: MAIN_SESSION,
+    state: activePrescriptionState({
+      followUpOpenerClaimedAt: new Date('2026-07-01T00:00:00Z'),
+      followUpOpenerMessageId: 'msg-existing',
+      outcomeStatus: 'HELPED_A_LITTLE',
+    }),
+  });
+  const claim = createClaimPrescriptionFollowUp(db);
+
+  const result = await claim({ userId: 'user-1', chatSessionId: 'cs-1', language: 'en' });
+
+  assert.equal(result.claimed, false);
+  assert.equal(result.outcomePending, true);
+  assert.ok(Array.isArray(result.outcomeChoices));
+});
+
+test('a second claim attempt while the outcome is NOT_TRIED still offers the choices again (NOT_TRIED is replaceable, not final)', async () => {
+  const { db } = makeDbStub({
+    session: MAIN_SESSION,
+    state: activePrescriptionState({
+      followUpOpenerClaimedAt: new Date('2026-07-01T00:00:00Z'),
+      followUpOpenerMessageId: 'msg-existing',
+      outcomeStatus: 'NOT_TRIED',
+    }),
+  });
+  const claim = createClaimPrescriptionFollowUp(db);
+
+  const result = await claim({ userId: 'user-1', chatSessionId: 'cs-1', language: 'en' });
+
+  assert.equal(result.claimed, false);
+  assert.equal(result.outcomePending, true);
+  assert.ok(Array.isArray(result.outcomeChoices));
 });
 
 test('simulated competing claims (two sequential calls against the same stub state): exactly one Message is created', async () => {
@@ -181,7 +268,11 @@ test('simulated competing claims (two sequential calls against the same stub sta
   const losers = [first, second].filter((r) => !r.claimed);
   assert.equal(winners.length, 1, 'exactly one request must win');
   assert.equal(losers.length, 1);
-  assert.deepEqual(losers[0], { claimed: false });
+  assert.equal(losers[0].claimed, false);
+  // The loser still sees the outcome as pending (nothing has been answered
+  // yet) and gets the same deterministic choices as the winner.
+  assert.equal(losers[0].outcomePending, true);
+  assert.ok(Array.isArray(losers[0].outcomeChoices));
 
   const messageWrites = writes.filter((w) => w.op === 'message.create');
   assert.equal(messageWrites.length, 1, 'no duplicate assistant messages remain');
@@ -253,13 +344,53 @@ test('a selection with no prescription returns claimed:false', async () => {
   assert.equal(writes.length, 0);
 });
 
-test('a non-ACTIVE (completed/superseded) prescription returns claimed:false', async () => {
-  for (const status of ['COMPLETED', 'SUPERSEDED']) {
-    const { db, writes } = makeDbStub({ session: MAIN_SESSION, state: activePrescriptionState({ status }) });
+test('a SUPERSEDED prescription is ineligible — returns claimed:false and writes nothing', async () => {
+  const { db, writes } = makeDbStub({ session: MAIN_SESSION, state: activePrescriptionState({ status: 'SUPERSEDED' }) });
+  const claim = createClaimPrescriptionFollowUp(db);
+  assert.deepEqual(await claim({ userId: 'user-1', chatSessionId: 'cs-1', language: 'en' }), { claimed: false });
+  assert.equal(writes.length, 0);
+});
+
+// ── Completed prescription follow-up eligibility (amendment) ──────────────
+// The genuine practice-completion flow (PR-12) sets Prescription.status to
+// COMPLETED before the athlete ever reports an outcome via chat — a
+// COMPLETED prescription with no outcome recorded yet must still be able
+// to receive its deterministic opener.
+
+test('an ACTIVE prescription with no outcome recorded is eligible for the opener', async () => {
+  const { db, writes } = makeDbStub({ session: MAIN_SESSION, state: activePrescriptionState({ status: 'ACTIVE' }) });
+  const claim = createClaimPrescriptionFollowUp(db);
+  const result = await claim({ userId: 'user-1', chatSessionId: 'cs-1', language: 'en' });
+  assert.equal(result.claimed, true);
+  assert.ok(writes.some((w) => w.op === 'message.create'));
+});
+
+test('a COMPLETED prescription with no outcome recorded is ALSO eligible for the opener (PR-12 practice-page completion happened first)', async () => {
+  const { db, writes } = makeDbStub({ session: MAIN_SESSION, state: activePrescriptionState({ status: 'COMPLETED' }) });
+  const claim = createClaimPrescriptionFollowUp(db);
+  const result = await claim({ userId: 'user-1', chatSessionId: 'cs-1', language: 'en' });
+  assert.equal(result.claimed, true);
+  assert.ok(writes.some((w) => w.op === 'message.create'));
+});
+
+test('a COMPLETED prescription with a FINAL outcome (HELPED or DID_NOT_HELP) already recorded is ineligible for a fresh claim', async () => {
+  for (const outcomeStatus of ['HELPED', 'DID_NOT_HELP']) {
+    const { db, writes } = makeDbStub({
+      session: MAIN_SESSION,
+      state: activePrescriptionState({ status: 'COMPLETED', outcomeStatus }),
+    });
     const claim = createClaimPrescriptionFollowUp(db);
-    assert.deepEqual(await claim({ userId: 'user-1', chatSessionId: 'cs-1', language: 'en' }), { claimed: false }, `status ${status}`);
-    assert.equal(writes.length, 0, `status ${status} must write nothing`);
+    const result = await claim({ userId: 'user-1', chatSessionId: 'cs-1', language: 'en' });
+    assert.equal(result.claimed, false, `outcomeStatus ${outcomeStatus}`);
+    assert.equal(writes.length, 0, `outcomeStatus ${outcomeStatus} must write nothing`);
   }
+});
+
+test('a resolved (non-ACTIVE) CoachingCycle makes the prescription ineligible even if the prescription row itself looks fine', async () => {
+  const { db, writes } = makeDbStub({ session: MAIN_SESSION, state: activePrescriptionState({}, 'RESOLVED') });
+  const claim = createClaimPrescriptionFollowUp(db);
+  assert.deepEqual(await claim({ userId: 'user-1', chatSessionId: 'cs-1', language: 'en' }), { claimed: false });
+  assert.equal(writes.length, 0);
 });
 
 // ── Failure ordering (rollback is a real-transaction guarantee; here we
@@ -297,4 +428,31 @@ test('a successful claim never touches coachingCycle or activeCoachingSelection 
   await claim({ userId: 'user-1', chatSessionId: 'cs-1', language: 'en' });
   assert.ok(!writes.some((w) => w.op.startsWith('coachingCycle')), 'no coachingCycle write of any kind');
   assert.ok(!writes.some((w) => w.op.startsWith('activeCoachingSelection')), 'no activeCoachingSelection write of any kind');
+});
+
+// ── Deterministic outcome follow-up choices (PR-13, section B) ───────────
+
+test('buildOutcomeChoices: exactly four deterministic English choices with the required ids', () => {
+  const choices = buildOutcomeChoices('en');
+  assert.deepEqual(choices, [
+    { id: 'helped', label: 'It helped' },
+    { id: 'helped_a_little', label: 'It helped a little' },
+    { id: 'did_not_help', label: 'It did not help' },
+    { id: 'not_tried', label: 'I did not try it' },
+  ]);
+});
+
+test('buildOutcomeChoices: exactly four deterministic Hindi choices with the same ids, differing labels', () => {
+  const en = buildOutcomeChoices('en');
+  const hi = buildOutcomeChoices('hi');
+  assert.deepEqual(hi.map((c) => c.id), en.map((c) => c.id));
+  for (let i = 0; i < en.length; i++) {
+    assert.notEqual(en[i].label, hi[i].label);
+    assert.ok(hi[i].label.length > 0);
+  }
+});
+
+test('buildOutcomeChoices: is a pure deterministic function — same language always yields the same choices', () => {
+  assert.deepEqual(buildOutcomeChoices('en'), buildOutcomeChoices('en'));
+  assert.deepEqual(buildOutcomeChoices('hi'), buildOutcomeChoices('hi'));
 });

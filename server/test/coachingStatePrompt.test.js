@@ -111,6 +111,45 @@ test('active-prescription: forbids another prescription and forbids starting a n
   assert.match(section, /Do NOT start a new coaching cycle or propose a new barrier/i);
 });
 
+test('active-prescription: instructs record_prescription_outcome for a reported result, requires the lesson verbatim, and forbids a new prescription in the same reply (PR-13)', () => {
+  const section = buildCoachingStateSection(ACTIVE_PRESCRIPTION_STATE);
+  assert.match(section, /call record_prescription_outcome with the matching outcomeStatus/i);
+  assert.match(section, /Your visible reply must include that exact lessonText verbatim/i);
+  assert.match(section, /Never diagnose, score, or profile the athlete in the lesson/i);
+  assert.match(section, /never claim the practice is clinically effective/i);
+  assert.match(section, /Do NOT prescribe a new practice in the same reply as record_prescription_outcome/i);
+});
+
+// ── Continuing after DID_NOT_HELP (PR-13) ─────────────────────────────────
+
+const POST_DID_NOT_HELP_STATE = { hasActiveSelection: true, cycleStatus: 'ACTIVE', barrierConfirmationStatus: 'CONFIRMED', hasPrescription: false };
+
+test('continuing-after-did-not-help: a confirmed/corrected barrier with no current prescription gets its own distinct coaching state', () => {
+  const section = buildCoachingStateSection(POST_DID_NOT_HELP_STATE);
+  assert.match(section, /Continuing After a Practice That Did Not Help/);
+  assert.doesNotMatch(section, /Barrier Awaiting Confirmation/, 'must not be confused with the pristine pending-barrier state');
+});
+
+test('continuing-after-did-not-help: does not re-prescribe immediately, asks at most 1-2 focused questions first, then allows exactly one new prescription', () => {
+  const section = buildCoachingStateSection(POST_DID_NOT_HELP_STATE);
+  assert.match(section, /Do NOT prescribe another practice immediately/i);
+  assert.match(section, /at most 1–2 focused questions/i);
+  assert.match(section, /you may call prescribe_mental_rep again for this same barrier/i);
+  assert.match(section, /never open a new cycle, never propose a new barrier/i);
+  assert.match(section, /never offer a menu of practices/i);
+});
+
+test('a CORRECTED barrier with no prescription also lands in the continuing-after-did-not-help state (not just CONFIRMED)', () => {
+  const section = buildCoachingStateSection({ ...POST_DID_NOT_HELP_STATE, barrierConfirmationStatus: 'CORRECTED' });
+  assert.match(section, /Continuing After a Practice That Did Not Help/);
+});
+
+test('a truly PENDING barrier with no prescription still gets the original Barrier Awaiting Confirmation state, not the DID_NOT_HELP continuation', () => {
+  const section = buildCoachingStateSection(PENDING_STATE);
+  assert.match(section, /Barrier Awaiting Confirmation/);
+  assert.doesNotMatch(section, /Continuing After a Practice That Did Not Help/);
+});
+
 // ── Quick Reply Chips general guidance ───────────────────────────────────────
 
 test('buildQuickReplySection: covers good uses, forbidden uses, and the client-owned "Write my own" rule', () => {

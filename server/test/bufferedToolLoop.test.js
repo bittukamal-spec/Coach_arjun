@@ -116,7 +116,7 @@ test('every Anthropic call carries the coaching tools', async () => {
   ]);
   await run(stub, NO_STATE);
   for (const call of stub.calls) {
-    assert.deepEqual(call.tools.map((t) => t.name), ['propose_barrier', 'prescribe_mental_rep', 'offer_quick_replies']);
+    assert.deepEqual(call.tools.map((t) => t.name), ['propose_barrier', 'prescribe_mental_rep', 'offer_quick_replies', 'record_prescription_outcome']);
   }
 });
 
@@ -354,6 +354,91 @@ test('a normal response with no tool calls at all has quickReplies null (nothing
   const stub = makeAnthropicStub([textResponse('Just coaching text.')]);
   const result = await run(stub, NO_STATE);
   assert.equal(result.quickReplies, null);
+});
+
+// ── 7. record_prescription_outcome (PR-13) ───────────────────────────────────
+
+const ACTIVE_PRESCRIPTION_OUTCOME_STATE = {
+  hasActiveSelection: true, cycleStatus: 'ACTIVE', barrierConfirmationStatus: 'CONFIRMED', hasPrescription: true,
+  prescriptionStatus: 'ACTIVE', prescriptionOutcomeStatus: null,
+};
+const OUTCOME_INPUT = { outcomeStatus: 'HELPED', lessonText: '  Resetting to the next ball helped you regain your attention.  ' };
+
+test('an accepted record_prescription_outcome call stages the trimmed transition and discards its draft text', async () => {
+  const stub = makeAnthropicStub([
+    toolResponse('draft, never shown', 'record_prescription_outcome', OUTCOME_INPUT),
+    textResponse('That\'s great — resetting to the next ball helped you regain your attention.'),
+  ]);
+  const result = await run(stub, ACTIVE_PRESCRIPTION_OUTCOME_STATE);
+  assert.deepEqual(result.transition, {
+    type: 'record_prescription_outcome',
+    outcomeStatus: 'HELPED',
+    lessonText: 'Resetting to the next ball helped you regain your attention.',
+  });
+  assert.equal(result.finalText, 'That\'s great — resetting to the next ball helped you regain your attention.');
+});
+
+test('record_prescription_outcome receives a normal (non-error) tool_result', async () => {
+  const stub = makeAnthropicStub([
+    toolResponse('draft', 'record_prescription_outcome', OUTCOME_INPUT, 'tu-outcome'),
+    textResponse('Final.'),
+  ]);
+  await run(stub, ACTIVE_PRESCRIPTION_OUTCOME_STATE);
+  const toolResultTurn = stub.calls[1].messages[stub.calls[1].messages.length - 1];
+  assert.equal(toolResultTurn.content[0].tool_use_id, 'tu-outcome');
+  assert.equal(toolResultTurn.content[0].is_error, false);
+  assert.equal(JSON.parse(toolResultTurn.content[0].content).accepted, true);
+});
+
+test('a malformed record_prescription_outcome payload is rejected and stages nothing', async () => {
+  const stub = makeAnthropicStub([
+    toolResponse('draft', 'record_prescription_outcome', { outcomeStatus: 'MAYBE', lessonText: 'x' }),
+    textResponse('Recovered.'),
+  ]);
+  const result = await run(stub, ACTIVE_PRESCRIPTION_OUTCOME_STATE);
+  const toolResultTurn = stub.calls[1].messages[stub.calls[1].messages.length - 1];
+  assert.equal(toolResultTurn.content[0].is_error, true);
+  assert.equal(result.transition, null);
+});
+
+test('record_prescription_outcome and prescribe_mental_rep in the SAME response: the first is staged, the second rejected — never both a new outcome and a new prescription in one athlete request', async () => {
+  const stub = makeAnthropicStub([
+    {
+      stop_reason: 'tool_use',
+      content: [
+        { type: 'text', text: 'draft' },
+        { type: 'tool_use', id: 'tu-1', name: 'record_prescription_outcome', input: OUTCOME_INPUT },
+        { type: 'tool_use', id: 'tu-2', name: 'prescribe_mental_rep', input: PRESCRIBE_INPUT },
+      ],
+    },
+    textResponse('Final.'),
+  ]);
+  const result = await run(stub, ACTIVE_PRESCRIPTION_OUTCOME_STATE);
+  const toolResults = stub.calls[1].messages[stub.calls[1].messages.length - 1].content;
+  assert.equal(toolResults[0].is_error, false);
+  assert.equal(toolResults[1].is_error, true);
+  assert.match(JSON.parse(toolResults[1].content).error, /one coaching-state transition/i);
+  assert.equal(result.transition.type, 'record_prescription_outcome');
+});
+
+test('record_prescription_outcome and offer_quick_replies may coexist in the same response — independent trackers', async () => {
+  const stub = makeAnthropicStub([
+    {
+      stop_reason: 'tool_use',
+      content: [
+        { type: 'text', text: 'draft' },
+        { type: 'tool_use', id: 'tu-1', name: 'record_prescription_outcome', input: OUTCOME_INPUT },
+        { type: 'tool_use', id: 'tu-2', name: 'offer_quick_replies', input: { replies: ['Sounds good', 'Not quite'] } },
+      ],
+    },
+    textResponse('Final.'),
+  ]);
+  const result = await run(stub, ACTIVE_PRESCRIPTION_OUTCOME_STATE);
+  const toolResults = stub.calls[1].messages[stub.calls[1].messages.length - 1].content;
+  assert.equal(toolResults[0].is_error, false);
+  assert.equal(toolResults[1].is_error, false);
+  assert.equal(result.transition.type, 'record_prescription_outcome');
+  assert.deepEqual(result.quickReplies, ['Sounds good', 'Not quite']);
 });
 
 // ── sanitizeFinalText ────────────────────────────────────────────────────────

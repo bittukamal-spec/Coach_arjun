@@ -7,14 +7,20 @@ const {
   COACHING_TOOLS,
   LIMITS,
   QUICK_REPLY_LIMITS,
+  OUTCOME_STATUS_VALUES,
   validateProposeBarrier,
   validatePrescribeMentalRep,
   validateOfferQuickReplies,
+  validateRecordPrescriptionOutcome,
 } = require('../src/services/coaching/coachingTools');
 const { APPROVED_PRACTICE_KEYS, isApprovedPracticeKey } = require('../src/services/coaching/practiceRegistry');
 
 const NO_STATE = { hasActiveSelection: false, cycleStatus: null, barrierConfirmationStatus: null, hasPrescription: false };
 const PENDING_STATE = { hasActiveSelection: true, cycleStatus: 'ACTIVE', barrierConfirmationStatus: 'PENDING', hasPrescription: false };
+const ACTIVE_PRESCRIPTION_OUTCOME_STATE = {
+  hasActiveSelection: true, cycleStatus: 'ACTIVE', barrierConfirmationStatus: 'CONFIRMED', hasPrescription: true,
+  prescriptionStatus: 'ACTIVE', prescriptionOutcomeStatus: null,
+};
 
 function validPrescription(overrides = {}) {
   return {
@@ -52,9 +58,9 @@ test('games and paused tools are not approved practice keys', () => {
   assert.equal(isApprovedPracticeKey('hasOwnProperty'), false, 'prototype names must not slip through');
 });
 
-test('all three coaching tools are defined with the expected names and required fields', () => {
+test('all four coaching tools are defined with the expected names and required fields', () => {
   const names = COACHING_TOOLS.map((t) => t.name);
-  assert.deepEqual(names, ['propose_barrier', 'prescribe_mental_rep', 'offer_quick_replies']);
+  assert.deepEqual(names, ['propose_barrier', 'prescribe_mental_rep', 'offer_quick_replies', 'record_prescription_outcome']);
   const propose = COACHING_TOOLS[0];
   assert.deepEqual(propose.input_schema.required, ['problemStatement', 'barrierHypothesis']);
   const prescribe = COACHING_TOOLS[1];
@@ -63,6 +69,9 @@ test('all three coaching tools are defined with the expected names and required 
   assert.deepEqual(offerQuickReplies.input_schema.required, ['replies']);
   assert.equal(offerQuickReplies.input_schema.properties.replies.minItems, 2);
   assert.equal(offerQuickReplies.input_schema.properties.replies.maxItems, 3);
+  const recordOutcome = COACHING_TOOLS[3];
+  assert.deepEqual(recordOutcome.input_schema.required, ['outcomeStatus', 'lessonText']);
+  assert.deepEqual(recordOutcome.input_schema.properties.outcomeStatus.enum, ['HELPED', 'HELPED_A_LITTLE', 'DID_NOT_HELP', 'NOT_TRIED']);
 });
 
 // ── offer_quick_replies tool description: mandatory bounded-question rule ───
@@ -176,9 +185,23 @@ test('prescribe_mental_rep: rejected without an active pending cycle', () => {
     false
   );
   assert.equal(
-    validatePrescribeMentalRep(validPrescription(), { ...PENDING_STATE, barrierConfirmationStatus: 'CONFIRMED' }).ok,
+    validatePrescribeMentalRep(validPrescription(), { ...PENDING_STATE, barrierConfirmationStatus: 'SOMETHING_ELSE' }).ok,
     false
   );
+});
+
+test('prescribe_mental_rep: accepted again when the barrier is already CONFIRMED/CORRECTED and there is no current prescription (PR-13: continuing after a DID_NOT_HELP outcome)', () => {
+  for (const barrierConfirmationStatus of ['CONFIRMED', 'CORRECTED']) {
+    const v = validatePrescribeMentalRep(validPrescription(), { ...PENDING_STATE, barrierConfirmationStatus, hasPrescription: false });
+    assert.equal(v.ok, true, `barrierConfirmationStatus ${barrierConfirmationStatus} with no current prescription must be accepted`);
+  }
+});
+
+test('prescribe_mental_rep: still rejected when CONFIRMED/CORRECTED but a prescription is already active (never a second concurrent prescription)', () => {
+  for (const barrierConfirmationStatus of ['CONFIRMED', 'CORRECTED']) {
+    const v = validatePrescribeMentalRep(validPrescription(), { ...PENDING_STATE, barrierConfirmationStatus, hasPrescription: true });
+    assert.equal(v.ok, false);
+  }
 });
 
 test('prescribe_mental_rep: rejected when the selection already has an active prescription', () => {
@@ -257,5 +280,117 @@ test('offer_quick_replies: rejects "Other" / "Something else" / "Write my own" �
 test('offer_quick_replies: rejects malformed payloads', () => {
   for (const input of [null, undefined, {}, { replies: 'not an array' }, { replies: [1, 2] }, 'text', 42]) {
     assert.equal(validateOfferQuickReplies(input).ok, false);
+  }
+});
+
+// ── record_prescription_outcome ───────────────────────────────────────────
+
+test('record_prescription_outcome: all four outcomeStatus values validate against an eligible ACTIVE prescription', () => {
+  for (const outcomeStatus of OUTCOME_STATUS_VALUES) {
+    const v = validateRecordPrescriptionOutcome(
+      { outcomeStatus, lessonText: 'Resetting to the next ball helped you regain your attention.' },
+      ACTIVE_PRESCRIPTION_OUTCOME_STATE
+    );
+    assert.equal(v.ok, true, `outcomeStatus ${outcomeStatus} must validate`);
+  }
+});
+
+test('record_prescription_outcome: also validates against a COMPLETED prescription (already completed via the practice page)', () => {
+  const v = validateRecordPrescriptionOutcome(
+    { outcomeStatus: 'HELPED', lessonText: 'The reset helped you regain focus.' },
+    { ...ACTIVE_PRESCRIPTION_OUTCOME_STATE, prescriptionStatus: 'COMPLETED' }
+  );
+  assert.equal(v.ok, true);
+});
+
+test('record_prescription_outcome: rejects a malformed or unknown outcomeStatus', () => {
+  for (const bad of [null, undefined, '', 'helped', 'MAYBE', 42, {}]) {
+    const v = validateRecordPrescriptionOutcome({ outcomeStatus: bad, lessonText: 'Some lesson.' }, ACTIVE_PRESCRIPTION_OUTCOME_STATE);
+    assert.equal(v.ok, false, `expected outcomeStatus ${JSON.stringify(bad)} to be rejected`);
+  }
+});
+
+test('record_prescription_outcome: rejects empty, over-length, or markup-carrying lessonText', () => {
+  const empty = validateRecordPrescriptionOutcome({ outcomeStatus: 'HELPED', lessonText: '   ' }, ACTIVE_PRESCRIPTION_OUTCOME_STATE);
+  assert.equal(empty.ok, false);
+
+  const tooLong = validateRecordPrescriptionOutcome(
+    { outcomeStatus: 'HELPED', lessonText: 'x'.repeat(LIMITS.lessonText + 1) },
+    ACTIVE_PRESCRIPTION_OUTCOME_STATE
+  );
+  assert.equal(tooLong.ok, false);
+
+  for (const bad of ['[APP:body-reset]', '[SUGGEST: Yes | No]', '<script>alert(1)</script>', '{"tool":"x"}', 'Line one\nline two']) {
+    const v = validateRecordPrescriptionOutcome({ outcomeStatus: 'HELPED', lessonText: bad }, ACTIVE_PRESCRIPTION_OUTCOME_STATE);
+    assert.equal(v.ok, false, `expected lessonText "${bad}" to be rejected`);
+  }
+});
+
+test('record_prescription_outcome: accepts lessonText exactly at the length limit', () => {
+  const atLimit = 'x'.repeat(LIMITS.lessonText);
+  const v = validateRecordPrescriptionOutcome({ outcomeStatus: 'HELPED', lessonText: atLimit }, ACTIVE_PRESCRIPTION_OUTCOME_STATE);
+  assert.equal(v.ok, true);
+});
+
+test('record_prescription_outcome: requires the exact active Prescription and cycle — rejected with no active selection, no prescription, or an inactive cycle', () => {
+  assert.equal(
+    validateRecordPrescriptionOutcome({ outcomeStatus: 'HELPED', lessonText: 'ok' }, NO_STATE).ok,
+    false
+  );
+  assert.equal(
+    validateRecordPrescriptionOutcome(
+      { outcomeStatus: 'HELPED', lessonText: 'ok' },
+      { ...ACTIVE_PRESCRIPTION_OUTCOME_STATE, hasPrescription: false, prescriptionStatus: null }
+    ).ok,
+    false
+  );
+  assert.equal(
+    validateRecordPrescriptionOutcome(
+      { outcomeStatus: 'HELPED', lessonText: 'ok' },
+      { ...ACTIVE_PRESCRIPTION_OUTCOME_STATE, cycleStatus: 'RESOLVED' }
+    ).ok,
+    false
+  );
+});
+
+test('record_prescription_outcome: rejects a SUPERSEDED prescription (not ACTIVE or COMPLETED)', () => {
+  const v = validateRecordPrescriptionOutcome(
+    { outcomeStatus: 'HELPED', lessonText: 'ok' },
+    { ...ACTIVE_PRESCRIPTION_OUTCOME_STATE, prescriptionStatus: 'SUPERSEDED' }
+  );
+  assert.equal(v.ok, false);
+});
+
+test('record_prescription_outcome: an existing FINAL outcome (HELPED or DID_NOT_HELP) cannot be overwritten', () => {
+  for (const priorOutcome of ['HELPED', 'DID_NOT_HELP']) {
+    const v = validateRecordPrescriptionOutcome(
+      { outcomeStatus: 'HELPED', lessonText: 'ok' },
+      { ...ACTIVE_PRESCRIPTION_OUTCOME_STATE, prescriptionOutcomeStatus: priorOutcome }
+    );
+    assert.equal(v.ok, false, `a prior ${priorOutcome} outcome must not be overwritable`);
+  }
+});
+
+test('record_prescription_outcome: HELPED_A_LITTLE is provisional and CAN be replaced by a later real outcome', () => {
+  for (const nextOutcome of ['HELPED', 'DID_NOT_HELP', 'HELPED_A_LITTLE']) {
+    const v = validateRecordPrescriptionOutcome(
+      { outcomeStatus: nextOutcome, lessonText: 'ok' },
+      { ...ACTIVE_PRESCRIPTION_OUTCOME_STATE, prescriptionOutcomeStatus: 'HELPED_A_LITTLE' }
+    );
+    assert.equal(v.ok, true, `a prior HELPED_A_LITTLE outcome must be replaceable by ${nextOutcome}`);
+  }
+});
+
+test('record_prescription_outcome: NOT_TRIED may later be replaced by a real outcome', () => {
+  const v = validateRecordPrescriptionOutcome(
+    { outcomeStatus: 'HELPED', lessonText: 'ok' },
+    { ...ACTIVE_PRESCRIPTION_OUTCOME_STATE, prescriptionOutcomeStatus: 'NOT_TRIED' }
+  );
+  assert.equal(v.ok, true);
+});
+
+test('record_prescription_outcome: rejects malformed payloads', () => {
+  for (const input of [null, undefined, 'text', 42, {}, { outcomeStatus: 'HELPED' }, { lessonText: 'ok' }]) {
+    assert.equal(validateRecordPrescriptionOutcome(input, ACTIVE_PRESCRIPTION_OUTCOME_STATE).ok, false);
   }
 });

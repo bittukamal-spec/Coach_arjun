@@ -6,7 +6,9 @@
 // call is made here, the athlete's outcome is not captured yet, and the
 // coaching cycle/prescription is never resolved, abandoned, or superseded
 // by this module — it only ever claims the follow-up opener and persists
-// the one assistant Message.
+// the one assistant Message. The returned outcomePending/outcomeChoices
+// (PR-13) are read-only, deterministic, never-persisted derived fields —
+// they never affect the atomic claim above, which is unchanged.
 //
 // Atomicity: the claim is a conditional updateMany (WHERE
 // followUpOpenerClaimedAt IS NULL) run inside a single transaction, so
@@ -57,6 +59,37 @@ function buildFollowUpOpener({ practiceKey, situation, language }) {
     : `Last time you planned to try ${practice} in ${situationText}. How did it go?`;
 }
 
+// Deterministic prescription-outcome follow-up choices (PR-13) — never
+// model-generated, never persisted. Tapping one just sends its label
+// through the normal main-chat message path; the app never calls a direct
+// outcome endpoint from a chip. Ids are stable strings, not DB ids.
+const OUTCOME_CHOICES_EN = [
+  { id: 'helped', label: 'It helped' },
+  { id: 'helped_a_little', label: 'It helped a little' },
+  { id: 'did_not_help', label: 'It did not help' },
+  { id: 'not_tried', label: 'I did not try it' },
+];
+const OUTCOME_CHOICES_HI = [
+  { id: 'helped', label: 'इससे मदद मिली' },
+  { id: 'helped_a_little', label: 'थोड़ी मदद मिली' },
+  { id: 'did_not_help', label: 'इससे मदद नहीं मिली' },
+  { id: 'not_tried', label: 'मैंने कोशिश नहीं की' },
+];
+
+function buildOutcomeChoices(language) {
+  return language === 'hi' ? OUTCOME_CHOICES_HI : OUTCOME_CHOICES_EN;
+}
+
+// An outcome is still pending — no FINAL result recorded yet — when
+// outcomeStatus is null, NOT_TRIED, or HELPED_A_LITTLE. All three are
+// explicitly replaceable by a later real outcome (record_prescription_outcome's
+// OUTCOME_STILL_OPEN guard); only HELPED and DID_NOT_HELP are final.
+function isOutcomePending(prescription) {
+  return !prescription.outcomeStatus
+    || prescription.outcomeStatus === 'NOT_TRIED'
+    || prescription.outcomeStatus === 'HELPED_A_LITTLE';
+}
+
 function createClaimPrescriptionFollowUp(db = prisma) {
   return async function claimPrescriptionFollowUp({ userId, chatSessionId, language }) {
     if (!chatSessionId || typeof chatSessionId !== 'string') {
@@ -73,15 +106,30 @@ function createClaimPrescriptionFollowUp(db = prisma) {
         throw new InvalidChatSessionError('chat session not found for this athlete');
       }
 
-      // 2. Current active selection + active prescription.
+      // 2. Current active selection + eligible prescription. Eligible means
+      // status ACTIVE or COMPLETED (the genuine practice-completion flow —
+      // PR-12 — sets COMPLETED before the athlete ever reports an outcome,
+      // so a completed practice must still be able to receive its
+      // deterministic follow-up), the selected CoachingCycle is ACTIVE, and
+      // no FINAL outcome has been recorded yet. In the normal lifecycle a
+      // FINAL outcome already makes this prescription unreachable here —
+      // HELPED deletes the selection entirely and DID_NOT_HELP clears
+      // prescriptionId — but the isOutcomePending check is kept explicit
+      // rather than relying solely on that structural guarantee.
       const state = await tx.userCoachingState.findUnique({
         where: { userId },
-        include: { activeSelection: { include: { prescription: true } } },
+        include: { activeSelection: { include: { cycle: true, prescription: true } } },
       });
       const selection = state?.activeSelection || null;
       const prescription = selection?.prescription || null;
 
-      if (!selection || !prescription || prescription.status !== 'ACTIVE') {
+      if (
+        !selection ||
+        !prescription ||
+        selection.cycle?.status !== 'ACTIVE' ||
+        !['ACTIVE', 'COMPLETED'].includes(prescription.status) ||
+        !isOutcomePending(prescription)
+      ) {
         return { claimed: false };
       }
 
@@ -93,6 +141,12 @@ function createClaimPrescriptionFollowUp(db = prisma) {
         data: { followUpOpenerClaimedAt: new Date(), followUpOpenerSessionId: chatSessionId },
       });
       if (claim.count === 0) {
+        // Already claimed earlier (this entry or a prior one). Still offer
+        // the deterministic outcome choices again if the athlete never
+        // answered — but never once a final outcome has been recorded.
+        if (isOutcomePending(prescription)) {
+          return { claimed: false, outcomePending: true, outcomeChoices: buildOutcomeChoices(language) };
+        }
         return { claimed: false };
       }
 
@@ -114,7 +168,9 @@ function createClaimPrescriptionFollowUp(db = prisma) {
         data: { followUpOpenerMessageId: message.id },
       });
 
-      return { claimed: true, message };
+      // A brand-new opener always has its outcome pending — nothing has
+      // been recorded against it yet.
+      return { claimed: true, message, outcomePending: true, outcomeChoices: buildOutcomeChoices(language) };
     });
   };
 }
@@ -124,4 +180,5 @@ module.exports = {
   claimPrescriptionFollowUp: createClaimPrescriptionFollowUp(),
   InvalidChatSessionError,
   buildFollowUpOpener,
+  buildOutcomeChoices,
 };

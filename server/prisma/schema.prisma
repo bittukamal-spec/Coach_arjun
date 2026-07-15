@@ -499,6 +499,16 @@ enum PrescriptionStatus {
   SUPERSEDED
 }
 
+// The athlete's reported result for a prescribed Mental Rep (PR-13).
+// NOT_TRIED is a genuine, replaceable outcome — the athlete may report a
+// real outcome later, which supersedes it (see Prescription.outcomeStatus).
+enum PrescriptionOutcomeStatus {
+  HELPED
+  HELPED_A_LITTLE
+  DID_NOT_HELP
+  NOT_TRIED
+}
+
 // One row per user — the anchor for whichever coaching cycle and
 // prescription are currently "live" for that athlete. The actual active
 // pointers live on ActiveCoachingSelection below (see its doc comment for
@@ -684,11 +694,22 @@ model Prescription {
   // practice, but nothing here depends on the database enforcing that).
   // Plain scalars, not relations — a sourceChatSession-style named relation
   // on both models would be the only clean way to add one here, and isn't
-  // needed for a nullable audit trail. No expiry, no automatic abandonment,
-  // no outcome/rating field — this PR is opener delivery only.
+  // needed for a nullable audit trail. No expiry, no automatic abandonment.
   followUpOpenerClaimedAt DateTime?
   followUpOpenerMessageId String?
   followUpOpenerSessionId String?
+
+  // Reported outcome for this prescription (PR-13) — set at most once with
+  // a final (non-NOT_TRIED) value; NOT_TRIED may later be replaced by a
+  // real outcome. outcomeLesson is a short, athlete-visible statement only
+  // — never the athlete's full raw reply (that already exists as the
+  // persisted user Message referenced by outcomeSourceMessageId). No
+  // score, rating, XP, streak, or reward field.
+  outcomeStatus          PrescriptionOutcomeStatus?
+  outcomeLesson          String?
+  outcomeRecordedAt      DateTime?
+  outcomeSourceMessageId String?
+  outcomeSourceSessionId String?
 
   @@index([userId, status])
   @@index([cycleId])
