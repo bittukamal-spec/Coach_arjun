@@ -129,7 +129,7 @@ test("buildSystemPrompt (Arjun's brain) is still called for both the quick-chat 
 
 test('coachingContext is loaded before buildSystemPrompt is called on the main-chat path, so it reaches the model on the first round', () => {
   const loadIdx = handler.indexOf('const coachingContext = await loadCoachingContext(req.userId);');
-  const mainPromptIdx = handler.indexOf('buildSystemPrompt(user, recentCheckIns, memories, sessionType, { ...promptExtra, coachingContext })');
+  const mainPromptIdx = handler.indexOf('buildSystemPrompt(user, recentCheckIns, memories, sessionType, { ...promptExtra, coachingContext, mindJournalEntries })');
   assert.ok(loadIdx !== -1 && mainPromptIdx !== -1);
   assert.ok(loadIdx < mainPromptIdx, 'coachingContext must be loaded before it is threaded into the system prompt');
 });

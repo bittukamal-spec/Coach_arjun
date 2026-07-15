@@ -131,7 +131,7 @@ function OnboardingPage() {
       }
       const { user } = await res.json();
       updateUser(user);
-      navigate('/mental-fitness', { replace: true, state: { fromOnboarding: true } });
+      navigate('/mind-journal', { replace: true, state: { fromOnboarding: true } });
     } catch (err) {
       setError(err.message);
       setSubmitting(false);
