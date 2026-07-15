@@ -37,4 +37,24 @@ function validateNote(note) {
   return { valid: true, value: trimmed };
 }
 
-module.exports = { validateStates, validateNote, MAX_NOTE_LENGTH };
+// A plain JSON object — never an array, null, or a non-object (string,
+// number, boolean) body.
+function isPlainObject(value) {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+// Strict request-shape guard: the body must be a plain object containing
+// ONLY the allowed top-level keys — extra fields like score/rating/progress
+// are rejected outright rather than silently ignored.
+function validateAllowedKeys(body, allowedKeys) {
+  if (!isPlainObject(body)) {
+    return { valid: false, error: 'request body must be a JSON object' };
+  }
+  const unexpected = Object.keys(body).filter((k) => !allowedKeys.includes(k));
+  if (unexpected.length > 0) {
+    return { valid: false, error: `unexpected field(s): ${unexpected.join(', ')}` };
+  }
+  return { valid: true };
+}
+
+module.exports = { validateStates, validateNote, validateAllowedKeys, isPlainObject, MAX_NOTE_LENGTH };

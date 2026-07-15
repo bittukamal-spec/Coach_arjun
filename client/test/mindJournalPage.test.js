@@ -1,14 +1,17 @@
-// Source-text checks for the score-free Mind Journal client rollout.
-// MindJournalPage.jsx/App.jsx/Dashboard.jsx contain JSX and cannot be
-// imported directly by node:test without a transform — matching the
-// established pattern elsewhere in this suite (vizSafety.test.js,
-// playbookOutcomes.test.js), these are source-text assertions.
+// Source-text checks for the score-free Mind Journal client rollout, plus
+// full English/Hindi localization coverage. MindJournalPage.jsx/App.jsx/
+// Dashboard.jsx contain JSX and cannot be imported directly by node:test
+// without a transform — matching the established pattern elsewhere in this
+// suite (vizSafety.test.js, playbookOutcomes.test.js), these are
+// source-text assertions. translations.js is a plain module and is
+// imported directly.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { translations } from '../src/i18n/translations.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, '..');
@@ -17,13 +20,92 @@ const page = readFileSync(path.join(root, 'src/pages/MindJournalPage.jsx'), 'utf
 const app = readFileSync(path.join(root, 'src/App.jsx'), 'utf8');
 const dashboard = readFileSync(path.join(root, 'src/pages/Dashboard.jsx'), 'utf8');
 
-// ── State chips ──────────────────────────────────────────────────────────
+const STATE_KEYS = ['calm', 'focused', 'confident', 'motivated', 'nervous', 'frustrated', 'distracted', 'tired'];
+const DEVANAGARI_RE = /[ऀ-ॿ]/;
 
-test('MindJournalPage: all 8 allowed states have both English and Hindi labels', () => {
-  for (const key of ['calm', 'focused', 'confident', 'motivated', 'nervous', 'frustrated', 'distracted', 'tired']) {
-    assert.match(page, new RegExp(`${key}:\\s*\\{\\s*en:`), `expected an English label for ${key}`);
+// ── Localization (section 1) ────────────────────────────────────────────────
+
+test('MindJournalPage: imports and uses the shared translation system, not a hardcoded second language', () => {
+  assert.match(page, /import \{ translations \} from '\.\.\/i18n\/translations'/);
+  assert.match(page, /const t = translations\[language\];/);
+  assert.match(page, /const mj = t\.mindJournal;/);
+  // No page-local hardcoded copy ternary, and no raw Devanagari text in the
+  // component — every visible string comes from mj.*. formatDate's Intl
+  // locale codes ('hi-IN'/'en-IN') are locale identifiers, not copy, so
+  // they're excluded before checking for hardcoded ternary copy / Devanagari.
+  const codeOnly = page.split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
+  const withoutLocaleCodes = codeOnly.replace(/'hi-IN'|'en-IN'/g, '');
+  assert.doesNotMatch(withoutLocaleCodes, /language === 'hi' \? '/, 'must not hardcode a second-language ternary in the component');
+  assert.doesNotMatch(withoutLocaleCodes, DEVANAGARI_RE, 'no hardcoded Devanagari text may appear in the page component');
+});
+
+test('translations.js: every Mind Journal athlete-visible string exists in both English and Hindi', () => {
+  const REQUIRED_KEYS = [
+    'title', 'subtitle', 'pickHint', 'notePlaceholder', 'saveBtn', 'saving', 'saved',
+    'errorGeneric', 'errorNetwork', 'recentHeading', 'emptyState', 'loadError', 'retryBtn',
+    'contextLabel', 'contextDisclosure', 'contextError',
+  ];
+  for (const lang of ['en', 'hi']) {
+    const mj = translations[lang].mindJournal;
+    assert.ok(mj, `translations.${lang}.mindJournal must exist`);
+    for (const key of REQUIRED_KEYS) {
+      assert.equal(typeof mj[key], 'string', `translations.${lang}.mindJournal.${key} must be a non-empty string`);
+      assert.ok(mj[key].length > 0, `translations.${lang}.mindJournal.${key} must not be empty`);
+    }
+    assert.equal(typeof mj.safety.heading, 'string');
+    assert.equal(typeof mj.safety.okBtn, 'string');
   }
 });
+
+test('translations.js: every one of the 8 fixed state keys has both an English and a Hindi (Devanagari) label', () => {
+  for (const key of STATE_KEYS) {
+    const en = translations.en.mindJournal.states[key];
+    const hi = translations.hi.mindJournal.states[key];
+    assert.equal(typeof en, 'string', `English label missing for state "${key}"`);
+    assert.ok(en.length > 0, `English label empty for state "${key}"`);
+    assert.equal(typeof hi, 'string', `Hindi label missing for state "${key}"`);
+    assert.match(hi, DEVANAGARI_RE, `Hindi label for "${key}" must be natural Devanagari script, got: ${hi}`);
+  }
+});
+
+test('translations.js: Hindi Mind Journal copy is genuine Devanagari, not English left untranslated', () => {
+  const hi = translations.hi.mindJournal;
+  for (const key of ['title', 'subtitle', 'pickHint', 'notePlaceholder', 'saveBtn', 'saving', 'saved', 'recentHeading', 'emptyState', 'loadError', 'retryBtn', 'contextLabel', 'contextDisclosure', 'contextError']) {
+    assert.match(hi[key], DEVANAGARI_RE, `translations.hi.mindJournal.${key} must contain Devanagari script, got: ${hi[key]}`);
+  }
+  assert.match(hi.safety.heading, DEVANAGARI_RE);
+  assert.match(hi.safety.okBtn, DEVANAGARI_RE);
+});
+
+test('MindJournalPage: renders translated state labels via mj.states[key], never the raw internal key text', () => {
+  const idx = page.indexOf('STATE_KEYS.map(key =>');
+  const block = page.slice(idx, idx + 700);
+  assert.match(block, /\{mj\.states\[key\]\}/, 'chip label must come from the translation table');
+  assert.doesNotMatch(block, />\{key\}</, 'must never render the raw internal key as the visible label');
+});
+
+test('MindJournalPage: recent-history items render translated labels via mj.states[k], never a raw key fallback', () => {
+  const idx = page.indexOf('entries.map(entry =>');
+  const block = page.slice(idx, idx + 700);
+  assert.match(block, /entry\.states\.map\(k => mj\.states\[k\]\)/, 'must map through the translation table with no `|| k` raw-key fallback');
+});
+
+test('switching language never changes the API values submitted — the request body always uses internal state keys, not translated labels', () => {
+  // The POST body is built from `selected` (populated by toggleState from
+  // STATE_KEYS, the internal keys) — never from mj.states or any label text.
+  const idx = page.indexOf('async function handleSave');
+  const block = page.slice(idx, page.indexOf('setSaving(false);', idx));
+  assert.match(block, /body: JSON\.stringify\(\{ states: selected, note:/, 'POST body must serialize the raw `selected` keys');
+  assert.doesNotMatch(block, /mj\.states/, 'the save request must never reference translated label text');
+
+  // toggleState only ever pushes STATE_KEYS entries (internal keys) into
+  // `selected`, regardless of which language is active.
+  const toggleIdx = page.indexOf('function toggleState');
+  const toggleBlock = page.slice(toggleIdx, page.indexOf('\n  }', toggleIdx));
+  assert.doesNotMatch(toggleBlock, /language|mj\./, 'state selection must be language-independent');
+});
+
+// ── State chips ──────────────────────────────────────────────────────────
 
 test('MindJournalPage: state chips are accessible <button> elements with aria-pressed reflecting selection', () => {
   const idx = page.indexOf('STATE_KEYS.map(key =>');
@@ -66,10 +148,11 @@ test('MindJournalPage: Save POSTs to the new /api/mind-journal endpoint only —
   assert.doesNotMatch(page, /\/api\/mental-fitness/, 'must never call the legacy scored endpoint');
 });
 
-test('MindJournalPage: handles loading, error, and success states for the save action', () => {
-  assert.match(page, /saving \? \(hi \? 'सेव हो रहा है…' : 'Saving…'\)/, 'loading state');
-  assert.match(page, /setSaveError\(/, 'error state');
+test('MindJournalPage: handles loading, error, and success states for the save action, all from translations', () => {
+  assert.match(page, /saving \? mj\.saving : mj\.saveBtn/, 'loading state');
+  assert.match(page, /setSaveError\(data\?\.error \|\| mj\.errorGeneric\)/, 'error state');
   assert.match(page, /setSavedJustNow\(true\)/, 'success state');
+  assert.match(page, /\{mj\.saved\}/, 'success confirmation copy must come from translations');
 });
 
 // ── Safety guidance ──────────────────────────────────────────────────────
@@ -79,7 +162,6 @@ test('MindJournalPage: a safetyFlag response shows guidance + helplines instead 
   const block = page.slice(idx, page.indexOf('setSaving(false);', idx));
   assert.match(block, /data\?\.safetyFlag === 'needs_support'/);
   assert.match(block, /setSafetyGuidance\(data\.guidance/);
-  // The safety branch must be checked before the entry/success branch.
   const safetyIdx = block.indexOf("data?.safetyFlag === 'needs_support'");
   const successIdx = block.indexOf('data?.entry');
   assert.ok(safetyIdx !== -1 && successIdx !== -1 && safetyIdx < successIdx);
@@ -88,7 +170,9 @@ test('MindJournalPage: a safetyFlag response shows guidance + helplines instead 
   const renderIdx = page.indexOf('safetyGuidance ? (');
   const renderBlock = page.slice(renderIdx, renderIdx + 800);
   assert.match(renderBlock, /<HelplineList \/>/);
-  assert.doesNotMatch(renderBlock, /सेव हो गया|Saved ✓/, 'must never show a save-success confirmation on the safety branch');
+  assert.match(renderBlock, /\{mj\.safety\.heading\}/);
+  assert.match(renderBlock, /\{mj\.safety\.okBtn\}/);
+  assert.doesNotMatch(renderBlock, /\{mj\.saved\}/, 'must never show a save-success confirmation on the safety branch');
 });
 
 // ── Recent entries: empty / loading / error / populated, no scores ───────
@@ -109,16 +193,9 @@ test('MindJournalPage: each recent entry shows only translated state labels, opt
   assert.doesNotMatch(block, /score|rating|percentage|streak/i);
 });
 
-test('MindJournalPage: no chart, numerical rating, streak, mental fitness level, progress percentage, or reward animation appears in the actual code (the file\'s own comments only ever mention these words to say they were deliberately left out)', () => {
+test('MindJournalPage: no chart, numerical rating, streak, mental fitness level, progress percentage, score, or reward animation appears in the actual code', () => {
   const codeOnly = page.split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
-  assert.doesNotMatch(codeOnly, /chart|rating|streak|percentage|reward|confetti|xpEarned|fitnessLevel|avgPct|\d+\/100/i);
-  // Every mention of the word "score" in actual code is part of a "not
-  // scored" / "not used to score" disclaimer, never a numeric display.
-  const scoreMentions = codeOnly.match(/.{0,25}score.{0,10}/gi) || [];
-  assert.ok(scoreMentions.length > 0, 'expected the intentional "not scored" disclaimer copy to be present');
-  for (const mention of scoreMentions) {
-    assert.match(mention, /कोई score नहीं|not scored|not used to score|उपयोग score/, `unexpected "score" mention: ${mention}`);
-  }
+  assert.doesNotMatch(codeOnly, /chart|rating|streak|percentage|reward|confetti|xpEarned|fitnessLevel|avgPct|\d+\/100|score/i);
 });
 
 // ── Optional Arjun context opt-in ──────────────────────────────────────────
@@ -142,7 +219,7 @@ test('MindJournalPage: the opt-in is off by default (component state) and only f
   assert.match(page, /const \[contextEnabled, setContextEnabled\] = useState\(false\);/);
 });
 
-// ── Routing / product language (section H) ────────────────────────────────
+// ── Routing / product language ────────────────────────────────────────────
 
 test('App.jsx: /mind-journal route renders MindJournalPage', () => {
   assert.match(app, /import MindJournalPage from '\.\/pages\/MindJournalPage'/);

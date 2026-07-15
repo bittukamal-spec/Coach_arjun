@@ -13,6 +13,28 @@ const express = require('express');
 const authenticate = require('../src/middleware/authenticate');
 const { createRequireGuardianConsent } = require('../src/middleware/requireGuardianConsent');
 const { createMindJournalRouter } = require('../src/routes/mindJournal');
+const { validateAllowedKeys, isPlainObject } = require('../src/services/mindJournal/validateEntry');
+
+// ── Pure unit tests for the strict request-shape guard ──────────────────────
+
+test('validateAllowedKeys: accepts a plain object containing only allowed keys', () => {
+  assert.deepEqual(validateAllowedKeys({ states: ['calm'], note: 'x' }, ['states', 'note']), { valid: true });
+  assert.deepEqual(validateAllowedKeys({}, ['enabled']), { valid: true });
+});
+
+test('validateAllowedKeys: rejects any unexpected top-level key', () => {
+  for (const bad of [{ states: ['calm'], score: 5 }, { enabled: true, rating: 1 }, { foo: 'bar' }]) {
+    const result = validateAllowedKeys(bad, ['states', 'note']);
+    assert.equal(result.valid, false);
+  }
+});
+
+test('validateAllowedKeys / isPlainObject: rejects arrays, null, and scalar bodies', () => {
+  for (const bad of [['calm'], null, 'calm', 42, true, undefined]) {
+    assert.equal(isPlainObject(bad), false, `expected isPlainObject(${JSON.stringify(bad)}) to be false`);
+    assert.equal(validateAllowedKeys(bad, ['states']).valid, false);
+  }
+});
 
 const TEST_JWT_SECRET = 'mind-journal-api-test-secret';
 const ORIGINAL_JWT_SECRET = process.env.JWT_SECRET;
@@ -181,7 +203,7 @@ test('POST /api/mind-journal: an empty (whitespace-only) note trims to null', as
   });
 });
 
-test('POST /api/mind-journal: unexpected score/rating fields in the payload are ignored, never persisted', async () => {
+test('POST /api/mind-journal: unexpected score/rating/mood fields are rejected outright (400), not silently ignored', async () => {
   const client = makeFakeClient({ usersById: { 'u4': adult() } });
   await withApp(client, async (baseUrl) => {
     const res = await fetch(`${baseUrl}/api/mind-journal`, {
@@ -189,15 +211,8 @@ test('POST /api/mind-journal: unexpected score/rating fields in the payload are 
       headers: { Authorization: `Bearer ${tokenFor('u4')}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ states: ['calm'], score: 99, rating: 5, mood: 3 }),
     });
-    assert.equal(res.status, 200);
-    const body = await res.json();
-    assert.equal(body.entry.score, undefined);
-    assert.equal(body.entry.rating, undefined);
-    assert.equal(body.entry.mood, undefined);
-    const stored = Object.values(client.__entriesById)[0];
-    assert.equal(stored.score, undefined);
-    assert.equal(stored.rating, undefined);
-    assert.equal(stored.mood, undefined);
+    assert.equal(res.status, 400);
+    assert.equal(Object.keys(client.__entriesById).length, 0, 'no MindJournalEntry may be created for a rejected payload');
   });
 });
 
@@ -275,6 +290,69 @@ test('POST /api/mind-journal: a malformed note (non-string) is rejected', async 
   });
 });
 
+// ── Strict request shape: unexpected top-level fields ───────────────────────
+
+for (const field of ['score', 'rating', 'progress', 'interpretation', 'foo']) {
+  test(`POST /api/mind-journal: an unexpected top-level field ("${field}") is rejected with 400 and creates no entry`, async () => {
+    const client = makeFakeClient({ usersById: { [`field-${field}`]: adult() } });
+    await withApp(client, async (baseUrl) => {
+      const res = await fetch(`${baseUrl}/api/mind-journal`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${tokenFor(`field-${field}`)}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ states: ['calm'], [field]: field === 'foo' ? 'bar' : 5 }),
+      });
+      assert.equal(res.status, 400);
+      assert.equal(Object.keys(client.__entriesById).length, 0);
+    });
+  });
+}
+
+test('POST /api/mind-journal: an array body is rejected with 400, not treated as an object', async () => {
+  const client = makeFakeClient({ usersById: { 'arr-body': adult() } });
+  await withApp(client, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('arr-body')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(['calm']),
+    });
+    assert.equal(res.status, 400);
+    assert.equal(Object.keys(client.__entriesById).length, 0);
+  });
+});
+
+test('POST /api/mind-journal: a null body is rejected with 400', async () => {
+  const client = makeFakeClient({ usersById: { 'null-body': adult() } });
+  await withApp(client, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('null-body')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(null),
+    });
+    assert.equal(res.status, 400);
+    assert.equal(Object.keys(client.__entriesById).length, 0);
+  });
+});
+
+test('POST /api/mind-journal: a bare string or number body is rejected with 400', async () => {
+  const client = makeFakeClient({ usersById: { 'scalar-body': adult() } });
+  await withApp(client, async (baseUrl) => {
+    const resString = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('scalar-body')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify('calm'),
+    });
+    assert.equal(resString.status, 400);
+
+    const resNumber = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('scalar-body')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(42),
+    });
+    assert.equal(resNumber.status, 400);
+    assert.equal(Object.keys(client.__entriesById).length, 0);
+  });
+});
+
 // ── GET /api/mind-journal ────────────────────────────────────────────────────
 
 test('GET /api/mind-journal: returns entries newest-first, bounded to 20, scoped to the authenticated athlete only', async () => {
@@ -340,5 +418,74 @@ test('PATCH /api/mind-journal/context: rejects a non-boolean value', async () =>
       body: JSON.stringify({ enabled: 'yes' }),
     });
     assert.equal(res.status, 400);
+  });
+});
+
+test('PATCH /api/mind-journal/context: rejects any unexpected top-level field and updates nothing', async () => {
+  const client = makeFakeClient({ usersById: { 'patch-extra': adult() } });
+  await withApp(client, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/mind-journal/context`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${tokenFor('patch-extra')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled: true, score: 5 }),
+    });
+    assert.equal(res.status, 400);
+    assert.notEqual(client.__usersById['patch-extra'].mindJournalContextEnabled, true, 'the preference must not be updated on a rejected payload');
+  });
+});
+
+test('PATCH /api/mind-journal/context: rejects an array body', async () => {
+  const client = makeFakeClient({ usersById: { 'patch-arr': adult() } });
+  await withApp(client, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/mind-journal/context`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${tokenFor('patch-arr')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify([true]),
+    });
+    assert.equal(res.status, 400);
+    assert.notEqual(client.__usersById['patch-arr'].mindJournalContextEnabled, true);
+  });
+});
+
+test('PATCH /api/mind-journal/context: rejects a null body', async () => {
+  const client = makeFakeClient({ usersById: { 'patch-null': adult() } });
+  await withApp(client, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/mind-journal/context`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${tokenFor('patch-null')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(null),
+    });
+    assert.equal(res.status, 400);
+  });
+});
+
+// ── Valid payloads still succeed after the strict-shape change ─────────────
+
+test('regression: a valid POST payload (states + note, nothing else) still succeeds after the strict-shape change', async () => {
+  const client = makeFakeClient({ usersById: { 'still-valid': adult() } });
+  await withApp(client, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('still-valid')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ states: ['calm', 'tired'], note: 'Good session' }),
+    });
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.deepEqual(body.entry.states, ['calm', 'tired']);
+    assert.equal(body.entry.note, 'Good session');
+  });
+});
+
+test('regression: a valid PATCH payload ({ enabled }, nothing else) still succeeds after the strict-shape change', async () => {
+  const client = makeFakeClient({ usersById: { 'still-valid-patch': adult() } });
+  await withApp(client, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/mind-journal/context`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${tokenFor('still-valid-patch')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled: true }),
+    });
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.contextEnabled, true);
   });
 });

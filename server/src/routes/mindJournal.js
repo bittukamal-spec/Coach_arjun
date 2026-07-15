@@ -8,11 +8,13 @@ const { PrismaClient } = require('@prisma/client');
 const authenticate = require('../middleware/authenticate');
 const requireGuardianConsent = require('../middleware/requireGuardianConsent');
 const { screenSafetyText, recordSafetyEvent, getSafetyGuidance } = require('../services/safety');
-const { validateStates, validateNote } = require('../services/mindJournal/validateEntry');
+const { validateStates, validateNote, validateAllowedKeys } = require('../services/mindJournal/validateEntry');
 
 const prisma = new PrismaClient();
 
 const MAX_ENTRIES = 20;
+const POST_ALLOWED_KEYS = ['states', 'note'];
+const CONTEXT_ALLOWED_KEYS = ['enabled'];
 
 function serializeEntry(entry) {
   return { id: entry.id, states: entry.states, note: entry.note, createdAt: entry.createdAt };
@@ -27,7 +29,9 @@ function createMindJournalRouter(client = prisma, consentMiddleware = requireGua
   const router = express.Router();
 
   router.post('/', authenticate, consentMiddleware, async (req, res) => {
-    const body = req.body || {};
+    const keysCheck = validateAllowedKeys(req.body, POST_ALLOWED_KEYS);
+    if (!keysCheck.valid) return res.status(400).json({ error: keysCheck.error });
+    const body = req.body;
 
     const statesCheck = validateStates(body.states);
     if (!statesCheck.valid) return res.status(400).json({ error: statesCheck.error });
@@ -78,7 +82,9 @@ function createMindJournalRouter(client = prisma, consentMiddleware = requireGua
   });
 
   router.patch('/context', authenticate, consentMiddleware, async (req, res) => {
-    const { enabled } = req.body || {};
+    const keysCheck = validateAllowedKeys(req.body, CONTEXT_ALLOWED_KEYS);
+    if (!keysCheck.valid) return res.status(400).json({ error: keysCheck.error });
+    const { enabled } = req.body;
     if (typeof enabled !== 'boolean') {
       return res.status(400).json({ error: 'enabled must be a boolean' });
     }
