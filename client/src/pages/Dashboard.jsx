@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import ConsentBanner from '../components/ConsentBanner';
 import { ArjunLogo } from '../components/ArjunLogo';
@@ -213,21 +213,23 @@ export default function Dashboard() {
             </div>
 
             {/* ── NEED HELP RIGHT NOW — a fully separate section from the
-                 Today's Mental Rep context picker above. Each of these four
-                 buttons only ever calls navigate('/coaching', ...); it never
-                 touches dayContext or pickContext. */}
+                 Today's Mental Rep context picker above. Real <Link>
+                 elements, not onClick+navigate — same primitive BottomNav
+                 already uses for its Coach tab. Each carries its own route
+                 state and nothing else; none of them touch dayContext,
+                 pickContext, or any tool/game/skill-path route. */}
             <div className="mb-6">
               <SectionLabel>{hi ? 'अभी मदद चाहिए?' : 'Need help right now?'}</SectionLabel>
               <div className="grid grid-cols-2 gap-2">
                 {PROBLEM_SHORTCUTS.map(q => (
-                  <button
+                  <Link
                     key={q.id}
-                    type="button"
-                    onClick={() => navigate('/coaching', { state: { prefillMsg: q.prefill[hi ? 'hi' : 'en'] } })}
+                    to="/coaching"
+                    state={{ prefillMsg: q.prefill[hi ? 'hi' : 'en'] }}
                     className="chip justify-center text-center py-2.5"
                   >
                     {q.label[hi ? 'hi' : 'en']}
-                  </button>
+                  </Link>
                 ))}
               </div>
             </div>

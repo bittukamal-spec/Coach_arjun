@@ -70,10 +70,12 @@ test('Dashboard: no visible games or skill-path entry points', () => {
 
 // ── 2. Dashboard: all four problem shortcuts enter Coach with a prefill ────
 
-test('Dashboard: all four problem shortcuts navigate to /coaching with a visible, unsent prefill', () => {
+test('Dashboard: all four problem shortcuts are real <Link> elements to /coaching with a visible, unsent prefill', () => {
   const idx = dashboard.indexOf('PROBLEM_SHORTCUTS');
   assert.ok(idx !== -1, 'expected a PROBLEM_SHORTCUTS definition');
-  assert.match(dashboard, /navigate\('\/coaching', \{ state: \{ prefillMsg: q\.prefill\[hi \? 'hi' : 'en'\] \} \}\)/);
+  // A real <Link>, not onClick+navigate — see hotfix/dashboard-shortcut-navigation.
+  assert.match(dashboard, /import \{ useNavigate, Link \} from 'react-router-dom'/);
+  assert.match(dashboard, /<Link[\s\S]{0,80}to="\/coaching"[\s\S]{0,80}state=\{\{ prefillMsg: q\.prefill\[hi \? 'hi' : 'en'\] \}\}/);
   // Exactly 4 stable shortcut ids, matching the approved product decision.
   for (const id of ['nervous', 'mistake', 'focus', 'confidence']) {
     assert.match(dashboard, new RegExp(`id:\\s*'${id}'`));

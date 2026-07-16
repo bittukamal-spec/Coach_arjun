@@ -1,21 +1,24 @@
-// Real render + click interaction tests for the Dashboard problem
-// shortcuts (PR-1 bug fix). Unlike the rest of the suite (source-text
-// assertions on raw file contents, because plain node:test can't run
-// JSX), this file runs under vitest + jsdom + React Testing Library so
-// we can actually click the buttons and observe navigation/state,
-// exactly like an athlete would.
+// Real ROUTER integration tests for the Dashboard problem shortcuts
+// (hotfix for the production bug reported after PR-24: shortcuts appeared
+// to change Dashboard content instead of leaving Home).
+//
+// Unlike the rest of the suite (source-text assertions on raw file
+// contents, because plain node:test can't run JSX), this file runs under
+// vitest + jsdom + React Testing Library. Crucially, this version does
+// NOT mock useNavigate/react-router-dom — it mounts a real <MemoryRouter>
+// with real <Routes>, so a click has to travel through the actual
+// react-router-dom machinery (Link → history push → route match →
+// component swap → useLocation) exactly as it does in production. A test
+// that only mocks useNavigate and asserts the mock was called proves the
+// onClick handler *ran*; it never proves a real <a>/click actually landed
+// on that DOM node, or that the app actually ended up on a different
+// route with the right location.state. This file proves the latter.
 
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
+import { useState } from 'react';
 import { render, screen, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
-
-const mockNavigate = vi.fn();
-
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
-  return { ...actual, useNavigate: () => mockNavigate };
-});
+import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom';
 
 vi.mock('../src/contexts/AuthContext', () => ({
   useAuth: () => ({
@@ -35,65 +38,65 @@ vi.mock('../src/api', () => ({
 // Real component, mounted for real.
 const { default: Dashboard } = await import('../src/pages/Dashboard.jsx');
 
-function renderDashboard() {
-  return render(
-    <MemoryRouter initialEntries={['/dashboard']}>
-      <Dashboard />
+// A minimal stand-in for the real /coaching destination. It mirrors the
+// exact contract ChatPage's prefillMsgRef mechanism promises: the
+// composer starts pre-filled with location.state.prefillMsg, visibly, and
+// nothing sends automatically. ChatPage's own real prefillMsgRef source is
+// separately verified in test/pilotVisibilityCleanup.test.js; this probe
+// exists only to prove ROUTING + STATE TRANSFER actually happen for real.
+let sendMock;
+function CoachingProbe() {
+  const location = useLocation();
+  const [composer, setComposer] = useState(location.state?.prefillMsg ?? '');
+  return (
+    <div>
+      <p data-testid="pathname">{location.pathname}</p>
+      <p data-testid="prefill-raw">{JSON.stringify(location.state ?? null)}</p>
+      <textarea aria-label="composer" value={composer} onChange={(e) => setComposer(e.target.value)} />
+      <button onClick={() => sendMock(composer)}>Send</button>
+    </div>
+  );
+}
+
+function TestApp({ initialEntries = ['/dashboard'] }) {
+  return (
+    <MemoryRouter initialEntries={initialEntries}>
+      <Routes>
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/coaching" element={<CoachingProbe />} />
+      </Routes>
     </MemoryRouter>
   );
 }
 
 beforeEach(() => {
-  mockNavigate.mockClear();
   localStorage.clear();
+  sendMock = vi.fn();
 });
 
 afterEach(() => {
   cleanup();
 });
 
-describe('Dashboard problem shortcuts — real click + navigation', () => {
-  test('shortcuts render in their own "Need help right now?" section, structurally separate from Today\'s Mental Rep', async () => {
-    const { apiFetch } = await import('../src/api');
-    apiFetch.mockImplementation(() => Promise.resolve({ ok: true, json: async () => ({}) }));
+async function mockPlaybook() {
+  const { apiFetch } = await import('../src/api');
+  apiFetch.mockImplementation(() => Promise.resolve({ ok: true, json: async () => ({}) }));
+}
 
-    renderDashboard();
+describe('Dashboard problem shortcuts — real router integration', () => {
+  test('shortcuts render as real links in their own "Need help right now?" section, structurally separate from Today\'s Mental Rep', async () => {
+    await mockPlaybook();
+    render(<TestApp />);
 
     const heading = await screen.findByText('Need help right now?');
-    const nervousButton = await screen.findByRole('button', { name: "I'm nervous" });
+    const nervousLink = await screen.findByRole('link', { name: "I'm nervous" });
     const trainingChip = await screen.findByRole('button', { name: 'Training today' });
 
-    // The shortcut lives after its own section heading, and the context
-    // picker chip is a different DOM subtree entirely (not a shared parent
-    // beyond <main>).
-    expect(heading.compareDocumentPosition(nervousButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(nervousButton.closest('main')).toBe(trainingChip.closest('main'));
-    expect(nervousButton.parentElement).not.toBe(trainingChip.parentElement);
-  });
-
-
-  // Dashboard renders its content only once `loaded` is true, which
-  // normally waits on the /api/playbook fetch. Since that fetch never
-  // resolves in this test, exercise the loading-skeleton branch is
-  // skipped — instead we assert the shortcuts render once loaded by
-  // driving `loaded` via a resolvable apiFetch per-test where needed.
-  test('all four shortcuts are present and distinct from the day-context picker', async () => {
-    const { apiFetch } = await import('../src/api');
-    apiFetch.mockImplementation(() => Promise.resolve({ ok: true, json: async () => ({}) }));
-
-    renderDashboard();
-
-    // Context picker chips (must remain, unaffected)
-    expect(await screen.findByRole('button', { name: 'Training today' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Match today' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Recovery day' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Just a rep' })).toBeTruthy();
-
-    // Problem shortcuts — separate buttons, separate labels
-    expect(screen.getByRole('button', { name: "I'm nervous" })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'I made a mistake' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'I need focus' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'I feel low confidence' })).toBeTruthy();
+    expect(nervousLink.tagName).toBe('A');
+    expect(nervousLink.getAttribute('href')).toBe('/coaching');
+    expect(heading.compareDocumentPosition(nervousLink) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(nervousLink.closest('main')).toBe(trainingChip.closest('main'));
+    expect(nervousLink.parentElement).not.toBe(trainingChip.parentElement);
   });
 
   const CASES = [
@@ -104,106 +107,86 @@ describe('Dashboard problem shortcuts — real click + navigation', () => {
   ];
 
   for (const { label, prefillContains } of CASES) {
-    test(`clicking "${label}" navigates to /coaching with its own visible prefill, and nothing else`, async () => {
-      const { apiFetch } = await import('../src/api');
-      apiFetch.mockImplementation(() => Promise.resolve({ ok: true, json: async () => ({}) }));
-
-      renderDashboard();
+    test(`clicking "${label}" performs a REAL route transition: /dashboard → /coaching with the correct prefill`, async () => {
+      await mockPlaybook();
+      render(<TestApp />);
       const user = userEvent.setup();
 
-      const button = await screen.findByRole('button', { name: label });
-      await user.click(button);
+      // 1. Render starts at /dashboard.
+      expect((await screen.findAllByText(/Today's Mental Rep/)).length).toBeGreaterThan(0);
+      expect(screen.queryByTestId('pathname')).toBeNull();
 
-      expect(mockNavigate).toHaveBeenCalledTimes(1);
-      const [to, options] = mockNavigate.mock.calls[0];
-      expect(to).toBe('/coaching');
-      expect(options).toBeTruthy();
-      expect(options.state).toBeTruthy();
-      expect(typeof options.state.prefillMsg).toBe('string');
-      expect(options.state.prefillMsg.length).toBeGreaterThan(0);
-      expect(options.state.prefillMsg.toLowerCase()).toContain(prefillContains);
+      const link = await screen.findByRole('link', { name: label });
+      await user.click(link);
 
-      // No day-context side effect and no localStorage write from a
-      // problem-shortcut click — that's the context picker's job only.
+      // 2. Clicking the exact visible shortcut changes pathname to /coaching.
+      expect((await screen.findByTestId('pathname')).textContent).toBe('/coaching');
+      // Dashboard itself is gone — this is a real navigation, not a local
+      // re-render (the earlier reported bug: "Dashboard content changes").
+      expect(screen.queryAllByText(/Today's Mental Rep/).length).toBe(0);
+      expect(screen.queryByText('Need help right now?')).toBeNull();
+
+      // 3. location.state.prefillMsg contains the correct shortcut-specific message.
+      const composer = screen.getByLabelText('composer');
+      expect(composer.value.length).toBeGreaterThan(0);
+      expect(composer.value.toLowerCase()).toContain(prefillContains);
+
+      // 4. dayContext does not change.
       expect(localStorage.getItem('arjun_day_context')).toBeNull();
+
+      // 6. No message-send function is called.
+      expect(sendMock).not.toHaveBeenCalled();
     });
   }
 
-  test('clicking a problem shortcut does not change the Dashboard context/recommended-tool state', async () => {
-    const { apiFetch } = await import('../src/api');
-    apiFetch.mockImplementation(() => Promise.resolve({ ok: true, json: async () => ({}) }));
-
-    renderDashboard();
-    const user = userEvent.setup();
-
-    // No context picked yet, so no recommended-tool card should exist.
-    expect(screen.queryByText('Pressure Reset')).toBeNull();
-    expect(screen.queryByText('Reflect Like an Athlete')).toBeNull();
-
-    await user.click(await screen.findByRole('button', { name: "I'm nervous" }));
-
-    // Still no recommended-tool card after the shortcut click — proves
-    // the shortcut never touched dayContext.
-    expect(screen.queryByText('Pressure Reset')).toBeNull();
-    expect(screen.queryByText('Reflect Like an Athlete')).toBeNull();
-  });
-
-  test('the day-context picker still works and is unaffected by the shortcuts existing', async () => {
-    const { apiFetch } = await import('../src/api');
-    apiFetch.mockImplementation(() => Promise.resolve({ ok: true, json: async () => ({}) }));
-
-    renderDashboard();
-    const user = userEvent.setup();
-
-    await user.click(await screen.findByRole('button', { name: 'Match today' }));
-
-    // Picking a context is a same-page state update, not a navigation.
-    expect(mockNavigate).not.toHaveBeenCalled();
-    expect(localStorage.getItem('arjun_day_context')).toContain('match');
-    expect(await screen.findByText('Pressure Reset')).toBeTruthy();
-  });
-
-  test('shortcuts still work correctly when a day-context (and its recommended-tool card) is already picked', async () => {
-    // Reproduces the exact reported scenario: dayContext is already
-    // persisted from earlier in the day (as it would be for a returning
-    // athlete), so the recommended-tool card renders above the
-    // shortcuts row before any shortcut is ever clicked.
+  test('5. no context-recommendation-card change happens on Dashboard before/because of the shortcut click — the click leaves the page entirely', async () => {
+    // Pre-existing context, so the recommended-tool card is already on
+    // screen — the exact scenario the production bug was reported in.
     localStorage.setItem('arjun_day_context', JSON.stringify({
       date: new Date().toISOString().slice(0, 10),
       context: 'match',
     }));
-    const { apiFetch } = await import('../src/api');
-    apiFetch.mockImplementation(() => Promise.resolve({ ok: true, json: async () => ({}) }));
-
-    renderDashboard();
+    await mockPlaybook();
+    render(<TestApp />);
     const user = userEvent.setup();
 
-    // Sanity: the recommended-tool card is indeed present, same as a
-    // real returning athlete would see.
     expect(await screen.findByText('Pressure Reset')).toBeTruthy();
 
-    await user.click(await screen.findByRole('button', { name: "I'm nervous" }));
+    await user.click(await screen.findByRole('link', { name: "I'm nervous" }));
 
-    expect(mockNavigate).toHaveBeenCalledTimes(1);
-    const [to, options] = mockNavigate.mock.calls[0];
-    expect(to).toBe('/coaching');
-    expect(options.state.prefillMsg.toLowerCase()).toContain('nervous');
-    // The pre-existing context selection must be untouched by the click.
+    // Real navigation happened — Dashboard (and its recommended-tool
+    // card) is unmounted, not merely re-rendered with different content.
+    expect((await screen.findByTestId('pathname')).textContent).toBe('/coaching');
+    expect(screen.queryByText('Pressure Reset')).toBeNull();
+    // The pre-existing context selection itself is untouched in storage.
     expect(JSON.parse(localStorage.getItem('arjun_day_context')).context).toBe('match');
   });
 
-  test('no problem shortcut ever navigates to a game, Pressure Reset, or a skill path', async () => {
-    const { apiFetch } = await import('../src/api');
-    apiFetch.mockImplementation(() => Promise.resolve({ ok: true, json: async () => ({}) }));
-
-    renderDashboard();
+  test('7. context picker buttons remain real buttons on /dashboard and only update dayContext, never navigating', async () => {
+    await mockPlaybook();
+    render(<TestApp />);
     const user = userEvent.setup();
 
+    const matchChip = await screen.findByRole('button', { name: 'Match today' });
+    expect(matchChip.tagName).toBe('BUTTON');
+    expect(matchChip.getAttribute('href')).toBeNull();
+
+    await user.click(matchChip);
+
+    // Still on /dashboard — no route probe mounted.
+    expect(screen.queryByTestId('pathname')).toBeNull();
+    expect((await screen.findAllByText(/Today's Mental Rep/)).length).toBeGreaterThan(0);
+    expect(localStorage.getItem('arjun_day_context')).toContain('match');
+    expect(await screen.findByText('Pressure Reset')).toBeTruthy();
+  });
+
+  test('no problem shortcut ever targets a game, Pressure Reset, or a skill path', async () => {
+    await mockPlaybook();
+    render(<TestApp />);
+
     for (const { label } of CASES) {
-      mockNavigate.mockClear();
-      await user.click(await screen.findByRole('button', { name: label }));
-      const [to] = mockNavigate.mock.calls[0];
-      expect(to).not.toMatch(/\/games\/|\/skills\/|\/body-reset|\/self-talk/);
+      const link = await screen.findByRole('link', { name: label });
+      expect(link.getAttribute('href')).toBe('/coaching');
     }
   });
 });
