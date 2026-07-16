@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Star, Plus, Target } from 'lucide-react';
+import { ArrowLeft, Star, Plus } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiFetch } from '../api';
 import { translations } from '../i18n/translations';
@@ -363,19 +363,6 @@ export default function FocusDeckPage() {
         })}
       </div>
 
-      {/* Start Focus Session — practise your Focus Word in Focus Lock */}
-      {cards.length > 0 && (
-        <div className="px-4 pt-5">
-          <button
-            onClick={() => navigate('/games/focus-lock')}
-            className="btn-gradient w-full py-3.5 flex items-center justify-center gap-2"
-            style={{ minHeight: '52px' }}
-          >
-            <Target size={18} />
-            {hi ? 'Focus Session शुरू करो' : 'Start Focus Session'}
-          </button>
-        </div>
-      )}
     </div>
   );
 }
