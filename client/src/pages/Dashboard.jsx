@@ -127,6 +127,7 @@ export default function Dashboard() {
                   ].map(c => (
                     <button
                       key={c.id}
+                      type="button"
                       onClick={() => pickContext(c.id)}
                       className={`chip ${dayContext === c.id ? '!border-brand-500 !text-brand-400' : ''}`}
                     >
@@ -209,12 +210,19 @@ export default function Dashboard() {
                 </div>
                 <ChevronRight size={16} className="text-muted shrink-0" />
               </button>
+            </div>
 
-              {/* Quick help — all four enter Coach with a visible, unsent prefill */}
-              <div className="mt-3 grid grid-cols-2 gap-2">
+            {/* ── NEED HELP RIGHT NOW — a fully separate section from the
+                 Today's Mental Rep context picker above. Each of these four
+                 buttons only ever calls navigate('/coaching', ...); it never
+                 touches dayContext or pickContext. */}
+            <div className="mb-6">
+              <SectionLabel>{hi ? 'अभी मदद चाहिए?' : 'Need help right now?'}</SectionLabel>
+              <div className="grid grid-cols-2 gap-2">
                 {PROBLEM_SHORTCUTS.map(q => (
                   <button
                     key={q.id}
+                    type="button"
                     onClick={() => navigate('/coaching', { state: { prefillMsg: q.prefill[hi ? 'hi' : 'en'] } })}
                     className="chip justify-center text-center py-2.5"
                   >
@@ -223,7 +231,6 @@ export default function Dashboard() {
                 ))}
               </div>
             </div>
-
 
             {/* ── MIND JOURNAL — quiet entry row, no scores ────────────────────── */}
             <div className="mb-6">
