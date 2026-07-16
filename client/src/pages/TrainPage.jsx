@@ -50,7 +50,7 @@ export default function TrainPage() {
           <SmallToolRow
             icon={Trophy}
             title="Ritual"
-            desc={hi ? 'खेलने से पहले की तुम्हारी routine।' : 'Your routine before you play.'}
+            desc={hi ? 'खेलने से पहले की अपनी रूटीन।' : 'Your routine before you play.'}
             onClick={() => navigate('/ritual')}
           />
         </div>

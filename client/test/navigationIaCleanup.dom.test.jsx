@@ -171,7 +171,7 @@ describe('TrainPage — Ritual entry, real router integration', () => {
     authState.language = 'hi';
     render(<TrainApp />);
     expect(screen.getByRole('button', { name: /Ritual/i })).toBeTruthy();
-    expect(screen.getByText('खेलने से पहले की तुम्हारी routine।')).toBeTruthy();
+    expect(screen.getByText('खेलने से पहले की अपनी रूटीन।')).toBeTruthy();
   });
 
   test('does not reintroduce Practice Focus, Next Play Reset, Games, Focus Lock, Reset Rally, Mental Playbook row, or skill-path links', async () => {
