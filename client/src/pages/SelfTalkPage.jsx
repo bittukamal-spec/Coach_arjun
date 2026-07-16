@@ -11,11 +11,9 @@ export default function SelfTalkPage() {
   const { user, token, language } = useAuth();
   const navigate = useNavigate();
   const t = translations[language]?.selfTalk || translations.en.selfTalk;
-  const tSkill = translations[language]?.skillPathFocus || translations.en.skillPathFocus;
   const hi = language === 'hi';
 
   const [screen, setScreen] = useState(1);
-  const [showSoftGate, setShowSoftGate] = useState(false);
   const [form, setForm] = useState({
     sport: user?.sport || '',
     roleOrPosition: user?.position || '',
@@ -40,16 +38,6 @@ export default function SelfTalkPage() {
   const cancelledRef = useRef(false);
 
   const setField = (key, val) => setForm(f => ({ ...f, [key]: val }));
-
-  // ── Soft gate: has the athlete passed the Focus/Self-Talk Quick Check? ──
-  useEffect(() => {
-    apiFetch('/api/skills/focus_self_talk', {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(r => r.json())
-      .then(data => setShowSoftGate(!data?.quickCheckPassedAt))
-      .catch(() => setShowSoftGate(false));
-  }, [token]);
 
   // ── Generate (screen 5) ──────────────────────────────────────────────────
   useEffect(() => {
@@ -189,25 +177,6 @@ export default function SelfTalkPage() {
           <p className="text-sm text-slt">{t.learn.educBody}</p>
         </div>
 
-        {showSoftGate && (
-          <div className="bg-brand-500/10 border border-brand-500/30 rounded-2xl p-4 mb-6">
-            <p className="text-sm text-ink mb-3">{tSkill.softGate.message}</p>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => navigate('/skills/focus-self-talk')}
-                className="text-sm font-semibold text-white bg-brand-500 px-4 py-2 rounded-xl active:scale-95 transition-transform"
-              >
-                {tSkill.softGate.learnFirst}
-              </button>
-              <button
-                onClick={() => setShowSoftGate(false)}
-                className="text-sm font-medium text-slt active:opacity-70"
-              >
-                {tSkill.softGate.continueAnyway}
-              </button>
-            </div>
-          </div>
-        )}
       </div>
       <div className="px-4 pb-8 pt-2">
         <button
