@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Dumbbell, MessageCircle, TrendingUp, User } from 'lucide-react';
+import { Home, Dumbbell, MessageCircle, BookOpen, User } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 
@@ -7,7 +7,7 @@ const NAV_ITEMS = [
   { icon: Home,          labelKey: 'home',     path: '/dashboard' },
   { icon: Dumbbell,      labelKey: 'train',    path: '/train'     },
   { icon: MessageCircle, labelKey: 'coach',    path: '/coaching'  },
-  { icon: TrendingUp,    labelKey: 'progress', path: '/progress'  },
+  { icon: BookOpen,      labelKey: 'playbook', path: '/playbook'  },
   { icon: User,          labelKey: 'profile',  path: '/account'   },
 ];
 
@@ -19,14 +19,15 @@ function BottomNav() {
   if (pathname.startsWith('/coaching')) return null;
 
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-50 sm:hidden bg-dark-900/97 backdrop-blur-md border-t border-dark-600">
-      <div className="flex items-stretch h-16 px-2">
+    <nav className="fixed bottom-0 inset-x-0 z-50 bg-dark-900/97 backdrop-blur-md border-t border-dark-600">
+      <div className="flex items-stretch h-16 px-2 max-w-lg mx-auto">
         {NAV_ITEMS.map(({ icon: Icon, labelKey, path }) => {
           const active = pathname === path || (path !== '/dashboard' && pathname.startsWith(path));
           return (
             <Link
               key={path}
               to={path}
+              aria-current={active ? 'page' : undefined}
               className="flex-1 flex flex-col items-center justify-center"
             >
               <div className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-2xl transition-colors ${

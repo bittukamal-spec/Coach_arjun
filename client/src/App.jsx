@@ -9,7 +9,6 @@ import RefundPage from './pages/RefundPage';
 import Dashboard from './pages/Dashboard';
 import OnboardingPage from './pages/OnboardingPage';
 import ChatPage from './pages/ChatPage';
-import ProgressPage from './pages/ProgressPage';
 import AccountPage from './pages/AccountPage';
 import RitualPage from './pages/RitualPage';
 import MentalGameProfilePage from './pages/MentalGameProfilePage';
@@ -104,15 +103,11 @@ function App() {
         }
       />
       <Route path="/checkin" element={<Navigate to="/mental-fitness" replace />} />
-      <Route
-        path="/progress"
-        element={
-          <ProtectedRoute requireOnboarding={true}>
-            <ProgressPage />
-            <BottomNav />
-          </ProtectedRoute>
-        }
-      />
+      {/* Progress is no longer a primary athlete-facing destination — the
+          Mental Playbook replaces it in navigation. ProgressPage.jsx and
+          its backend endpoints are untouched; only this route entry
+          changed, so direct links/bookmarks still land somewhere useful. */}
+      <Route path="/progress" element={<Navigate to="/playbook" replace />} />
       <Route
         path="/account"
         element={

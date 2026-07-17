@@ -5,7 +5,7 @@ import SectionHeader from '../components/train/SectionHeader';
 import FeatureToolCard from '../components/train/FeatureToolCard';
 import SmallToolRow from '../components/train/SmallToolRow';
 import {
-  RotateCcw, ClipboardList, Zap, MessageSquare,
+  RotateCcw, ClipboardList, Zap, MessageSquare, Trophy,
 } from 'lucide-react';
 
 export default function TrainPage() {
@@ -47,6 +47,12 @@ export default function TrainPage() {
               onSecondary2={() => navigate('/body-reset/history')}
             />
           </div>
+          <SmallToolRow
+            icon={Trophy}
+            title="Ritual"
+            desc={hi ? 'खेलने से पहले की अपनी रूटीन।' : 'Your routine before you play.'}
+            onClick={() => navigate('/ritual')}
+          />
         </div>
 
         {/* ── POST-MATCH / TRAINING ───────────────────────────────────────── */}
