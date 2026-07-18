@@ -2,17 +2,47 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import ConsentBanner from '../components/ConsentBanner';
-import { ArjunLogo } from '../components/ArjunLogo';
 import { useAuth } from '../contexts/AuthContext';
 import { apiFetch } from '../api';
-import {
-  ChevronRight, RotateCcw, Target, ClipboardList, Sparkles, BookOpen, Pencil,
-} from 'lucide-react';
-import { insightText } from '../utils/insightCopy';
+import { ChevronRight, BookOpen, Pencil } from 'lucide-react';
 
 function SectionLabel({ children }) {
   return <p className="section-label">{children}</p>;
 }
+
+// Day-context picker — remembered for the rest of the day so the single
+// adaptive primary action stays stable.
+const DAY_CONTEXTS = [
+  { id: 'training', en: 'Training today', hi: 'आज ट्रेनिंग' },
+  { id: 'match',    en: 'Match today',    hi: 'आज मैच' },
+  { id: 'recovery', en: 'Recovery day',   hi: 'आराम का दिन' },
+  { id: 'just_rep', en: 'Just a rep',     hi: 'बस एक रेप' },
+];
+
+// The ONE adaptive primary action card — never more than one. Training,
+// "just a rep", and no pick yet all fall back to the default Mental Rep
+// action (the rep is the point, per product decision); only a match or a
+// recovery day swap what the single card's own action is.
+const PRIMARY_ACTION = {
+  default: {
+    title: { en: "Today's Mental Rep", hi: 'आज का मेंटल रेप' },
+    desc:   { en: '4 minutes to get your mind ready.', hi: 'मन को तैयार करने के लिए 4 मिनट।' },
+    cta:    { en: 'Start Rep', hi: 'रेप शुरू करो' },
+    to: '/mental-rep',
+  },
+  match: {
+    title: { en: 'Pressure Reset', hi: 'Pressure Reset' },
+    desc:   { en: 'Lock in one cue before you play.', hi: 'खेलने से पहले एक cue lock करो।' },
+    cta:    { en: 'Open Pressure Reset', hi: 'Pressure Reset खोलो' },
+    to: '/body-reset',
+  },
+  recovery: {
+    title: { en: 'Reflect Like an Athlete', hi: 'Reflect करो' },
+    desc:   { en: 'Log what worked and one thing to improve.', hi: 'जो काम किया उसे log करो।' },
+    cta:    { en: 'Start Reflection', hi: 'Reflection शुरू करो' },
+    to: '/debrief',
+  },
+};
 
 // Problem shortcuts — all four now enter Coach with a visible, unsent
 // prefill instead of jumping straight to a tool. Stable internal starter
@@ -62,17 +92,16 @@ export default function Dashboard() {
 
   // ── derived ────────────────────────────────────────────────────────────────
   const firstName = (user?.name || '').split(' ')[0] || (hi ? 'एथलीट' : 'Athlete');
+  const lang = hi ? 'hi' : 'en';
 
-  // Context-aware recommended tool — existing tools only, urgent tools
-  // never gated. "Just a rep" needs no extra recommendation (the rep is it).
-  // "training" has no entry here for now — its tool was a hidden game.
-  const CONTEXT_REC = {
-    match:    { title: 'Pressure Reset', desc: hi ? 'खेलने से पहले एक cue lock करो।' : 'Lock in one cue before you play.', to: '/body-reset', Icon: RotateCcw },
-    recovery: { title: hi ? 'Reflect' : 'Reflect Like an Athlete', desc: hi ? 'जो काम किया उसे log करो।' : 'Log what worked and one thing to improve.', to: '/debrief', Icon: ClipboardList },
-  };
-  const contextRec = dayContext ? CONTEXT_REC[dayContext] || null : null;
-  const todayCueCard = playbook?.focusCards?.[0] || null;
-  const insightLine = playbook ? insightText(playbook.insight, hi) : null;
+  // The single adaptive primary action — see PRIMARY_ACTION above. Only the
+  // default action (Mental Rep) ever carries dayContext as route state,
+  // matching its own page's existing contract; the match/recovery actions
+  // navigate to their tool with no extra state, same as before.
+  const primaryAction = PRIMARY_ACTION[dayContext] || PRIMARY_ACTION.default;
+  const primaryActionState = primaryAction.to === '/mental-rep' && dayContext
+    ? { state: { context: dayContext } }
+    : undefined;
 
   // ── render ─────────────────────────────────────────────────────────────────
   return (
@@ -95,23 +124,25 @@ export default function Dashboard() {
             {/* ── Guardian consent pending (under-18 accounts) ──────────────── */}
             <ConsentBanner />
 
-            {/* ── HERO GREETING ──────────────────────────────────────────────── */}
+            {/* ── 1. GREETING ───────────────────────────────────────────────── */}
             <div className="pt-1 mb-5">
               <p className="text-2xl font-black text-ink leading-tight">
                 {hi ? `हाय, ${firstName}` : `Hi, ${firstName}`}
               </p>
             </div>
 
-
-            {/* ── TODAY'S MENTAL REP — the core daily habit ──────────────────── */}
+            {/* ── 2. ONE ADAPTIVE PRIMARY ACTION CARD — never more than one.
+                 Its own title/description/CTA swap with the athlete's
+                 "What's today?" pick; training/just-a-rep/no pick all fall
+                 back to the default Mental Rep action. ──────────────────── */}
             <div className="mb-6">
-              <SectionLabel>{hi ? 'आज का मेंटल रेप' : "Today's Mental Rep"}</SectionLabel>
+              <SectionLabel>{hi ? 'आज' : 'Today'}</SectionLabel>
               <div className="card-elevated p-5">
                 <h2 className="text-lg font-bold text-ink leading-tight mb-1">
-                  {hi ? 'आज का मेंटल रेप' : "Today's Mental Rep"}
+                  {primaryAction.title[lang]}
                 </h2>
                 <p className="text-sm text-slt mb-4">
-                  {hi ? 'मन को तैयार करने के लिए 4 मिनट।' : '4 minutes to get your mind ready.'}
+                  {primaryAction.desc[lang]}
                 </p>
 
                 {/* Context picker — simple, per-day, no calendar */}
@@ -119,105 +150,34 @@ export default function Dashboard() {
                   {hi ? 'आज क्या है?' : "What's today?"}
                 </p>
                 <div className="flex flex-wrap gap-2 mb-4">
-                  {[
-                    { id: 'training', en: 'Training today', hi: 'आज ट्रेनिंग' },
-                    { id: 'match',    en: 'Match today',    hi: 'आज मैच' },
-                    { id: 'recovery', en: 'Recovery day',   hi: 'आराम का दिन' },
-                    { id: 'just_rep', en: 'Just a rep',     hi: 'बस एक रेप' },
-                  ].map(c => (
+                  {DAY_CONTEXTS.map(c => (
                     <button
                       key={c.id}
                       type="button"
                       onClick={() => pickContext(c.id)}
                       className={`chip ${dayContext === c.id ? '!border-brand-500 !text-brand-400' : ''}`}
                     >
-                      {hi ? c.hi : c.en}
+                      {c[lang]}
                     </button>
                   ))}
                 </div>
 
                 <button
-                  onClick={() => navigate('/mental-rep', dayContext ? { state: { context: dayContext } } : undefined)}
+                  onClick={() => navigate(primaryAction.to, primaryActionState)}
                   className="btn-gradient w-full py-3 text-sm"
                   style={{ minHeight: '48px' }}
                 >
-                  {hi ? 'रेप शुरू करो' : 'Start Rep'}
+                  {primaryAction.cta[lang]}
                 </button>
               </div>
-
-              {/* Context-aware recommended tool */}
-              {contextRec && (
-                <button
-                  onClick={() => navigate(contextRec.to)}
-                  className="mt-3 w-full card-surface p-4 flex items-center gap-3 text-left active:scale-[0.98] transition-transform"
-                >
-                  <div className="w-9 h-9 rounded-xl bg-brand-500/15 flex items-center justify-center shrink-0">
-                    <contextRec.Icon size={16} className="text-brand-400" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-ink">{contextRec.title}</p>
-                    <p className="text-xs text-slt truncate">{contextRec.desc}</p>
-                  </div>
-                  <ChevronRight size={16} className="text-muted shrink-0" />
-                </button>
-              )}
-
-              {/* Today's cue — the athlete's main saved Focus Card */}
-              {todayCueCard && (
-                <button
-                  onClick={() => navigate('/focus-deck')}
-                  className="mt-3 w-full card-surface p-4 flex items-center gap-3 text-left active:scale-[0.98] transition-transform"
-                >
-                  <div className="w-9 h-9 rounded-xl bg-brand-500/15 flex items-center justify-center shrink-0">
-                    <Target size={16} className="text-brand-400" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-ink">
-                      {hi ? 'आज का cue: ' : "Today's cue: "}
-                      <span style={{ color: '#185FA5' }}>{todayCueCard.focusWord}</span>
-                    </p>
-                    <p className="text-xs text-slt">{hi ? 'Focus Card खोलो' : 'Open Focus Card'}</p>
-                  </div>
-                  <ChevronRight size={16} className="text-muted shrink-0" />
-                </button>
-              )}
-
-              {/* Recent insight — one useful pattern, no scores */}
-              {insightLine && (
-                <div className="mt-3 card-surface p-4 flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-brand-500/15 flex items-center justify-center shrink-0">
-                    <Sparkles size={15} className="text-brand-400" />
-                  </div>
-                  <p className="text-sm text-slt leading-relaxed">{insightLine}</p>
-                </div>
-              )}
-
-              {/* Mental Playbook entry */}
-              <button
-                onClick={() => navigate('/playbook')}
-                className="mt-3 w-full card-surface p-4 flex items-center gap-3 text-left active:scale-[0.98] transition-transform"
-              >
-                <div className="w-9 h-9 rounded-xl bg-brand-500/15 flex items-center justify-center shrink-0">
-                  <BookOpen size={16} className="text-brand-400" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-ink">{hi ? 'Mental Playbook' : 'Mental Playbook'}</p>
-                  <p className="text-xs text-slt truncate">
-                    {playbook && playbook.weekRepCount > 0
-                      ? (hi ? `इस हफ्ते ${playbook.weekRepCount} मेंटल रेप पूरे किए।` : `You've completed ${playbook.weekRepCount} mental rep${playbook.weekRepCount === 1 ? '' : 's'} this week.`)
-                      : (hi ? 'तुम्हारे cues, cards और reflections' : 'Your cues, cards, and reflections')}
-                  </p>
-                </div>
-                <ChevronRight size={16} className="text-muted shrink-0" />
-              </button>
             </div>
 
-            {/* ── NEED HELP RIGHT NOW — a fully separate section from the
-                 Today's Mental Rep context picker above. Real <Link>
-                 elements, not onClick+navigate — same primitive BottomNav
-                 already uses for its Coach tab. Each carries its own route
-                 state and nothing else; none of them touch dayContext,
-                 pickContext, or any tool/game/skill-path route. */}
+            {/* ── 3. NEED HELP RIGHT NOW — a fully separate section from the
+                 primary action card above. Real <Link> elements, not
+                 onClick+navigate — same primitive BottomNav already uses for
+                 its Coach tab. Each carries its own route state and nothing
+                 else; none of them touch dayContext, pickContext, or any
+                 tool/game/skill-path route. ──────────────────────────────── */}
             <div className="mb-6">
               <SectionLabel>{hi ? 'अभी मदद चाहिए?' : 'Need help right now?'}</SectionLabel>
               <div className="grid grid-cols-2 gap-2">
@@ -234,7 +194,29 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* ── MIND JOURNAL — quiet entry row, no scores ────────────────────── */}
+            {/* ── 4. MENTAL PLAYBOOK — quiet entry row, no scores ─────────────── */}
+            <div className="mb-6">
+              <SectionLabel>{hi ? 'Mental Playbook' : 'Mental Playbook'}</SectionLabel>
+              <button
+                onClick={() => navigate('/playbook')}
+                className="w-full card-surface p-4 flex items-center gap-3 text-left active:scale-[0.98] transition-transform"
+              >
+                <div className="w-9 h-9 rounded-xl bg-brand-500/15 flex items-center justify-center shrink-0">
+                  <BookOpen size={16} className="text-brand-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-ink">{hi ? 'Mental Playbook' : 'Mental Playbook'}</p>
+                  <p className="text-xs text-slt truncate">
+                    {playbook && playbook.weekRepCount > 0
+                      ? (hi ? `इस हफ्ते ${playbook.weekRepCount} मेंटल रेप पूरे किए।` : `You've completed ${playbook.weekRepCount} mental rep${playbook.weekRepCount === 1 ? '' : 's'} this week.`)
+                      : (hi ? 'तुम्हारे cues, cards और reflections' : 'Your cues, cards, and reflections')}
+                  </p>
+                </div>
+                <ChevronRight size={16} className="text-muted shrink-0" />
+              </button>
+            </div>
+
+            {/* ── 5. MIND JOURNAL — quiet entry row, no scores ────────────────── */}
             <div className="mb-6">
               <SectionLabel>{hi ? 'माइंड जर्नल' : 'Mind Journal'}</SectionLabel>
               <button
@@ -248,27 +230,6 @@ export default function Dashboard() {
                   <p className="text-sm font-semibold text-ink">{hi ? 'माइंड जर्नल' : 'Mind Journal'}</p>
                   <p className="text-xs text-slt truncate">
                     {hi ? 'तुम्हारी feelings का एक निजी नोट। कोई स्कोर नहीं।' : "A private note of how you're feeling. No scores."}
-                  </p>
-                </div>
-                <ChevronRight size={16} className="text-muted shrink-0" />
-              </button>
-            </div>
-
-            {/* ── CHAT ENTRY ─────────────────────────────────────────────────── */}
-            <div className="mb-6">
-              <button
-                onClick={() => navigate('/coaching')}
-                className="w-full card p-4 flex items-center gap-3 text-left hover:border-dark-500 active:scale-[0.98] transition-all"
-              >
-                <div className="w-10 h-10 rounded-xl bg-brand-500/15 flex items-center justify-center shrink-0">
-                  <ArjunLogo size={20} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-ink">
-                    {hi ? 'Arjun से बात करो' : 'Talk to Arjun'}
-                  </p>
-                  <p className="text-xs text-slt mt-0.5">
-                    {hi ? 'जो भी मन में है, यहाँ बोलो' : 'Whatever\'s on your mind'}
                   </p>
                 </div>
                 <ChevronRight size={16} className="text-muted shrink-0" />

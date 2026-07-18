@@ -167,6 +167,10 @@ describe('Dashboard problem shortcuts — real router integration', () => {
     render(<TestApp />);
     const user = userEvent.setup();
 
+    // Stage 4: exactly one primary action card — before any pick, it shows
+    // the default Mental Rep action.
+    expect((await screen.findAllByText(/Today's Mental Rep/)).length).toBeGreaterThan(0);
+
     const matchChip = await screen.findByRole('button', { name: 'Match today' });
     expect(matchChip.tagName).toBe('BUTTON');
     expect(matchChip.getAttribute('href')).toBeNull();
@@ -175,9 +179,12 @@ describe('Dashboard problem shortcuts — real router integration', () => {
 
     // Still on /dashboard — no route probe mounted.
     expect(screen.queryByTestId('pathname')).toBeNull();
-    expect((await screen.findAllByText(/Today's Mental Rep/)).length).toBeGreaterThan(0);
     expect(localStorage.getItem('arjun_day_context')).toContain('match');
+    // The single primary action card swaps in place — it now reads
+    // "Pressure Reset" and the default "Today's Mental Rep" title is gone,
+    // never a second card stacked alongside it.
     expect(await screen.findByText('Pressure Reset')).toBeTruthy();
+    expect(screen.queryAllByText(/Today's Mental Rep/).length).toBe(0);
   });
 
   test('no problem shortcut ever targets a game, Pressure Reset, or a skill path', async () => {
