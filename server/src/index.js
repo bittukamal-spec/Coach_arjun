@@ -42,8 +42,15 @@ const envOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
 
 const allowedOrigins = Array.from(new Set([...PRODUCTION_ORIGINS, ...envOrigins]));
 
+// Vercel preview deployments get a generated origin per build, so they can't
+// be listed as exact strings. This regex is pinned to the Arjun project's
+// preview naming scheme AND the trusted Vercel team slug, so it can't match
+// unrelated or look-alike projects under other teams.
+const ARJUN_VERCEL_PREVIEW_ORIGIN =
+  /^https:\/\/ai-mental-coach-wvcw-[a-z0-9-]+-bittukamal-specs-projects\.vercel\.app$/;
+
 const corsOptions = {
-  origin: allowedOrigins,
+  origin: [...allowedOrigins, ARJUN_VERCEL_PREVIEW_ORIGIN],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
