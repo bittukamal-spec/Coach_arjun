@@ -4,8 +4,14 @@
   "autoMerge": false,
   "nextStage": 3,
   "completedStages": [1, 2],
-  "activeStageBranch": null,
-  "activePullRequest": null,
+  "activeStageBranch": "claude/arjun-pilot-stage-3",
+  "activePullRequest": {
+    "number": 28,
+    "url": "https://github.com/bittukamal-spec/Coach_arjun/pull/28",
+    "title": "[Arjun Pilot Loop] Stage 3 — Minimal UI foundation",
+    "stage": 3,
+    "draft": true
+  },
   "stages": {
     "1": {
       "id": "stage-1",
@@ -24,9 +30,11 @@
     "3": {
       "id": "stage-3",
       "title": "Minimal UI foundation",
-      "status": "next",
+      "status": "ready_for_founder_review",
       "branch": "claude/arjun-pilot-stage-3",
-      "prTitle": "[Arjun Pilot Loop] Stage 3 — Minimal UI foundation"
+      "prTitle": "[Arjun Pilot Loop] Stage 3 — Minimal UI foundation",
+      "prNumber": 28,
+      "prUrl": "https://github.com/bittukamal-spec/Coach_arjun/pull/28"
     },
     "4": {
       "id": "stage-4",
