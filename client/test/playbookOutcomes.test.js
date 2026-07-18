@@ -67,9 +67,9 @@ test('PlaybookPage: existing sections (This week, Recent insight, Focus Cards, S
   assert.match(src, /Reflections/);
 });
 
-test('PlaybookPage: does not redesign the page — SectionHeader and card-surface conventions are reused for the new section', () => {
+test('PlaybookPage: does not redesign the page — the shared section-label and flat-card conventions (Stage 3 ui primitives) are reused for the new section', () => {
   const idx = src.indexOf("What I'm learning");
   const block = src.slice(idx, idx + 900);
-  assert.match(block, /<SectionHeader>/);
-  assert.match(block, /card-surface/);
+  assert.match(block, /<SectionLabel>/);
+  assert.match(block, /<Card /);
 });

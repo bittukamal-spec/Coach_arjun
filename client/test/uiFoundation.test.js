@@ -1,8 +1,12 @@
-// Source-text checks for Stage 3 (Minimal UI foundation). ProgressPage.jsx and
+// Source-text checks for Stage 3 (Minimal UI foundation). PlaybookPage.jsx and
 // the ui primitives contain JSX and cannot be imported directly by node:test
 // without a transform — matching the established pattern in this suite
 // (pilotVisibilityCleanup.test.js, chatPageSource.test.js), these are
 // source-text assertions.
+//
+// Reference surface: the VISIBLE Mental Playbook page at /playbook.
+// (/progress was retired in PR #26 and now redirects to /playbook; the
+// dormant ProgressPage.jsx must stay untouched by this stage.)
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -19,6 +23,8 @@ const card = readFileSync(path.join(root, 'src/components/ui/Card.jsx'), 'utf8')
 const pageHeader = readFileSync(path.join(root, 'src/components/ui/PageHeader.jsx'), 'utf8');
 const sectionLabel = readFileSync(path.join(root, 'src/components/ui/SectionLabel.jsx'), 'utf8');
 const barrel = readFileSync(path.join(root, 'src/components/ui/index.js'), 'utf8');
+const app = readFileSync(path.join(root, 'src/App.jsx'), 'utf8');
+const playbook = readFileSync(path.join(root, 'src/pages/PlaybookPage.jsx'), 'utf8');
 const progress = readFileSync(path.join(root, 'src/pages/ProgressPage.jsx'), 'utf8');
 
 // ── 1. Tokens exist in the Tailwind config ──────────────────────────────────
@@ -53,10 +59,11 @@ test('Button: primary, outline and ghost variants only — no gradient variant',
   assert.doesNotMatch(button, /gradient/i);
 });
 
-test('PageHeader: sticky header with optional back link, uses type tokens', () => {
+test('PageHeader: sticky header with back link or onBack button, uses type tokens', () => {
   assert.match(pageHeader, /sticky top-0/);
   assert.match(pageHeader, /text-heading/);
   assert.match(pageHeader, /ChevronLeft/);
+  assert.match(pageHeader, /onBack/);
 });
 
 test('SectionLabel: uses the micro type token', () => {
@@ -70,32 +77,66 @@ test('barrel exports exactly the four primitives', () => {
   assert.equal((barrel.match(/export/g) || []).length, 4);
 });
 
-// ── 3. ProgressPage consumes the foundation ─────────────────────────────────
+// ── 3. /progress stays retired and redirects to /playbook ──────────────────
 
-test('ProgressPage imports the ui primitives', () => {
-  assert.match(progress, /import \{ Button, Card, PageHeader, SectionLabel \} from '\.\.\/components\/ui'/);
+test('App: /progress still redirects to /playbook', () => {
+  assert.match(app, /path="\/progress" element=\{<Navigate to="\/playbook" replace \/>\}/);
 });
 
-test('ProgressPage uses PageHeader instead of a hand-rolled header', () => {
-  assert.match(progress, /<PageHeader backTo="\/dashboard" title=\{t\.title\}/);
-  assert.doesNotMatch(progress, /<header/);
+// ── 4. The visible Playbook page consumes the foundation ────────────────────
+
+test('PlaybookPage imports the ui primitives', () => {
+  assert.match(playbook, /import \{ Card, PageHeader, SectionLabel \} from '\.\.\/components\/ui'/);
 });
 
-test('ProgressPage has exactly one gradient hero (the fitness score card)', () => {
-  const heroCount = (progress.match(/variant="hero"/g) || []).length;
+test('PlaybookPage uses PageHeader with the original navigate(-1) back behavior', () => {
+  assert.match(playbook, /<PageHeader onBack=\{\(\) => navigate\(-1\)\}/);
+});
+
+test('PlaybookPage has exactly one gradient hero (the weekly-summary card)', () => {
+  const heroCount = (playbook.match(/variant="hero"/g) || []).length;
   assert.equal(heroCount, 1);
+  assert.match(playbook, /variant="hero"[^>]*>\s*<p[^>]*>\{hi \? 'इस हफ्ते' : 'This week'\}/);
 });
 
-test('ProgressPage ordinary cards are flat Card primitives, not raw card divs', () => {
-  assert.doesNotMatch(progress, /bg-dark-800 border border-dark-600 rounded-2xl/);
+test('PlaybookPage ordinary cards are flat Card primitives — no legacy card classes', () => {
+  assert.doesNotMatch(playbook, /card-surface|card-elevated/);
 });
 
-test('ProgressPage uses semantic spacing tokens', () => {
-  assert.match(progress, /px-page/);
-  assert.match(progress, /space-y-section/);
-  assert.doesNotMatch(progress, /space-y-7/);
+test('PlaybookPage uses SectionLabel and semantic spacing, not legacy label/gutter classes', () => {
+  assert.match(playbook, /<SectionLabel>/);
+  assert.doesNotMatch(playbook, /SectionHeader/);
+  assert.match(playbook, /px-page/);
 });
 
-test('ProgressPage no longer defines its own SectionLabel', () => {
-  assert.doesNotMatch(progress, /function SectionLabel/);
+test('PlaybookPage data behavior unchanged: read-only GET /api/playbook', () => {
+  assert.match(playbook, /apiFetch\('\/api\/playbook'/);
+  assert.equal((playbook.match(/apiFetch\(/g) || []).length, 1);
+});
+
+test('PlaybookPage links unchanged: focus-deck, self-talk, mental-rep, debrief', () => {
+  assert.match(playbook, /navigate\('\/focus-deck'\)/);
+  assert.match(playbook, /navigate\(data\?\.focusCards\?\.length \? '\/focus-deck' : '\/self-talk'\)/);
+  assert.match(playbook, /navigate\('\/mental-rep'\)/);
+  assert.match(playbook, /navigate\('\/debrief'\)/);
+});
+
+test('PlaybookPage content preserved: all four sections in original order', () => {
+  const idx = [
+    playbook.indexOf("'This week'"),
+    playbook.indexOf("'Focus Cards'"),
+    playbook.indexOf("'Saved cues'"),
+    playbook.indexOf("'Reflections'"),
+    playbook.indexOf('"What I\'m learning"'),
+  ];
+  assert.ok(idx.every(i => i !== -1), 'a Playbook section heading is missing');
+  assert.deepEqual(idx, [...idx].sort((a, b) => a - b), 'Playbook section order changed');
+});
+
+// ── 5. No hidden-ProgressPage visual work remains in this PR ────────────────
+
+test('ProgressPage (dormant) is untouched: no ui-primitive imports or hero usage', () => {
+  assert.doesNotMatch(progress, /components\/ui/);
+  assert.doesNotMatch(progress, /variant="hero"/);
+  assert.doesNotMatch(progress, /px-page|space-y-section|text-micro|text-display/);
 });

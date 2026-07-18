@@ -5,8 +5,8 @@ const VARIANTS = {
   hero: 'card-hero text-white',
 };
 
-function Card({ variant = 'flat', className = '', ...props }) {
-  return <div className={`${VARIANTS[variant]} ${className}`} {...props} />;
+function Card({ as: Tag = 'div', variant = 'flat', className = '', ...props }) {
+  return <Tag className={`${VARIANTS[variant]} ${className}`} {...props} />;
 }
 
 export default Card;
