@@ -93,6 +93,21 @@ export default {
       fontFamily: {
         sans: ['Poppins', 'system-ui', 'sans-serif'],
       },
+      // ── Stage 3 foundation: minimal type scale ─────────────────────────────
+      // Size + line-height (+ tracking) only; weight stays a per-use utility.
+      fontSize: {
+        display: ['1.875rem', { lineHeight: '1.1' }],   // big stat numbers
+        title:   ['1.25rem',  { lineHeight: '1.3' }],   // card/hero titles
+        heading: ['1rem',     { lineHeight: '1.4' }],   // page header titles
+        body:    ['0.875rem', { lineHeight: '1.5' }],   // default copy
+        caption: ['0.75rem',  { lineHeight: '1.4' }],   // secondary copy
+        micro:   ['0.6875rem', { lineHeight: '1.3', letterSpacing: '0.1em' }], // section labels
+      },
+      // ── Stage 3 foundation: semantic spacing ───────────────────────────────
+      spacing: {
+        page: '1rem',      // horizontal page gutter
+        section: '1.75rem', // vertical rhythm between page sections
+      },
       boxShadow: {
         'glow-brand': '0 0 20px rgba(23, 105, 170, 0.35)',
         'glow-saffron': '0 0 20px rgba(242, 155, 56, 0.3)',
