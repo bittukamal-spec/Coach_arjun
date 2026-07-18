@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronLeft, ChevronDown, Flame, Share2 } from 'lucide-react';
+import { ChevronDown, Flame, Share2 } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import { useAuth } from '../contexts/AuthContext';
 import { apiFetch } from '../api';
@@ -15,6 +15,7 @@ import {
   Legend,
 } from 'recharts';
 import { translations } from '../i18n/translations';
+import { Button, Card, PageHeader, SectionLabel } from '../components/ui';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -283,14 +284,6 @@ function ShareModal({ onClose, user, fitnessScore, streak, xp, achievements, lan
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function SectionLabel({ children }) {
-  return (
-    <p className="text-[11px] font-bold text-slt uppercase tracking-widest mb-3">
-      {children}
-    </p>
-  );
-}
-
 function CustomTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
   return (
@@ -373,16 +366,9 @@ function ProgressPage() {
     <div className="min-h-screen bg-dark-900">
 
       {/* ── Header ── */}
-      <header className="bg-dark-900 border-b border-dark-600 px-4 py-4 sticky top-0 z-10">
-        <div className="max-w-lg mx-auto flex items-center gap-2">
-          <Link to="/dashboard" className="p-1 -ml-1 text-slt hover:text-ink transition-colors">
-            <ChevronLeft size={20} />
-          </Link>
-          <p className="font-bold text-ink">{t.title}</p>
-        </div>
-      </header>
+      <PageHeader backTo="/dashboard" title={t.title} />
 
-      <main className="max-w-lg mx-auto px-4 py-6 pb-24">
+      <main className="max-w-lg mx-auto px-page py-6 pb-24">
 
         {/* Loading */}
         {loading && (
@@ -398,76 +384,67 @@ function ProgressPage() {
 
         {/* Content */}
         {!loading && !error && data && (
-          <div className="animate-fade-in space-y-7">
+          <div className="animate-fade-in space-y-section">
 
-            {/* ── Mental Fitness Score ── */}
+            {/* ── Mental Fitness Score — the page's one gradient hero ── */}
             {data.fitnessScore !== undefined && (() => {
               const s     = data.fitnessScore;
               const label = t.fitnessLabel(s);
-              const color =
-                s >= 90 ? 'text-amber-400' :
-                s >= 75 ? 'text-win-400'   :
-                s >= 60 ? 'text-brand-400' :
-                s >= 40 ? 'text-sky-400'   : 'text-slt';
-              const ring =
-                s >= 90 ? 'border-amber-400/40' :
-                s >= 75 ? 'border-win-500/40'   :
-                s >= 60 ? 'border-brand-500/40' :
-                s >= 40 ? 'border-sky-500/40'   : 'border-dark-500';
-              const pct = s;
+              const pct   = s;
               return (
-                <div className={`bg-dark-800 border ${ring} rounded-2xl p-5 flex items-center gap-5`}>
+                <Card variant="hero" className="p-5 flex items-center gap-5">
                   <div className="relative w-20 h-20 shrink-0">
                     <svg className="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
-                      <circle cx="40" cy="40" r="34" fill="none" stroke="#1e2d27" strokeWidth="8" />
+                      <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="8" />
                       <circle
                         cx="40" cy="40" r="34" fill="none"
-                        stroke="currentColor"
+                        stroke="#FFFFFF"
                         strokeWidth="8"
                         strokeLinecap="round"
                         strokeDasharray={`${2 * Math.PI * 34}`}
                         strokeDashoffset={`${2 * Math.PI * 34 * (1 - pct / 100)}`}
-                        className={`transition-all duration-700 ${color}`}
+                        className="transition-all duration-700"
                       />
                     </svg>
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <span className={`text-2xl font-black leading-none ${color}`}>{s}</span>
+                      <span className="text-2xl font-black leading-none text-white">{s}</span>
                     </div>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[11px] font-bold text-slt uppercase tracking-widest mb-0.5">{t.fitnessScore}</p>
-                    <p className={`text-xl font-black ${color} leading-tight`}>{label}</p>
-                    <p className="text-xs text-slt mt-1 leading-relaxed">
+                    <p className="text-micro font-bold text-white/70 uppercase mb-0.5">{t.fitnessScore}</p>
+                    <p className="text-title font-black text-white leading-tight">{label}</p>
+                    <p className="text-caption text-white/70 mt-1 leading-relaxed">
                       Streak · Consistency · Mental state · Achievements
                     </p>
                   </div>
-                </div>
+                </Card>
               );
             })()}
 
             {/* ── Share button ── */}
-            <button
+            <Button
+              variant="outline"
               onClick={() => setShowShare(true)}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border border-brand-600/40 text-brand-500 text-sm font-semibold hover:bg-brand-600/10 transition-colors active:scale-[0.99]"
+              className="w-full"
             >
               <Share2 size={15} />
               {t.shareBtn}
-            </button>
+            </Button>
 
             {/* ── Stats row ── */}
             <div className="flex gap-3">
-              <div className="flex-1 bg-dark-800 border border-dark-600 rounded-2xl px-4 py-4 text-center">
-                <p className="text-3xl font-black text-ink leading-none mb-1">{data.streak}</p>
-                <p className="text-[11px] font-semibold text-slt uppercase tracking-wide flex items-center justify-center gap-1"><Flame size={11} className="text-fire-500" /> {t.streak}</p>
-              </div>
-              <div className="flex-1 bg-dark-800 border border-dark-600 rounded-2xl px-4 py-4 text-center">
-                <p className="text-3xl font-black text-ink leading-none mb-1">{data.totalCheckIns}</p>
-                <p className="text-[11px] font-semibold text-slt uppercase tracking-wide">📊 {t.totalCheckIns}</p>
-              </div>
+              <Card className="flex-1 px-4 py-4 text-center">
+                <p className="text-display font-black text-ink leading-none mb-1">{data.streak}</p>
+                <p className="text-micro font-semibold text-slt uppercase flex items-center justify-center gap-1"><Flame size={11} className="text-fire-500" /> {t.streak}</p>
+              </Card>
+              <Card className="flex-1 px-4 py-4 text-center">
+                <p className="text-display font-black text-ink leading-none mb-1">{data.totalCheckIns}</p>
+                <p className="text-micro font-semibold text-slt uppercase">📊 {t.totalCheckIns}</p>
+              </Card>
             </div>
 
             {/* ── Period toggle ── */}
-            <div className="flex bg-dark-800 border border-dark-600 rounded-2xl p-1 gap-1">
+            <Card className="flex p-1 gap-1">
               {[7, 30].map(d => (
                 <button
                   key={d}
@@ -481,12 +458,12 @@ function ProgressPage() {
                   {d === 7 ? t.days7 : t.days30}
                 </button>
               ))}
-            </div>
+            </Card>
 
             {/* ── Weekly averages ── */}
             <div>
               <SectionLabel>{t.weeklyAvg}</SectionLabel>
-              <div className="bg-dark-800 border border-dark-600 rounded-2xl p-4 space-y-4">
+              <Card className="p-4 space-y-4">
                 {METRIC_CONFIG.map(({ key, barClass, labelKey }) => {
                   const curr = data.weeklyAvg[key];
                   const prev = data.prevWeekAvg[key];
@@ -517,8 +494,8 @@ function ProgressPage() {
                     </div>
                   );
                 })}
-                <p className="text-[11px] text-slt text-center pt-1">{t.vsLastWeek}</p>
-              </div>
+                <p className="text-micro text-slt text-center pt-1">{t.vsLastWeek}</p>
+              </Card>
             </div>
 
             {/* ── Weekly Reports ── */}
@@ -529,13 +506,13 @@ function ProgressPage() {
                   <div className="w-5 h-5 border-2 border-brand-600 border-t-transparent rounded-full animate-spin" />
                 </div>
               ) : weeklyReports.length === 0 ? (
-                <div className="bg-dark-800 border border-dark-600 rounded-2xl px-5 py-8 text-center">
-                  <p className="text-sm text-slt">{t.weeklyReportEmpty}</p>
-                </div>
+                <Card className="px-5 py-8 text-center">
+                  <p className="text-body text-slt">{t.weeklyReportEmpty}</p>
+                </Card>
               ) : (
                 <div className="space-y-2">
                   {weeklyReports.map(r => (
-                    <div key={r.id} className="bg-dark-800 border border-dark-600 rounded-2xl overflow-hidden">
+                    <Card key={r.id} className="overflow-hidden">
                       <button
                         className="w-full flex items-center justify-between px-4 py-3 text-left"
                         onClick={() => setExpandedReport(expandedReport === r.id ? null : r.id)}
@@ -552,11 +529,11 @@ function ProgressPage() {
                         />
                       </button>
                       {expandedReport === r.id && (
-                        <div className="px-4 pb-4 text-sm text-slt leading-relaxed border-t border-dark-700 pt-3 whitespace-pre-wrap">
+                        <div className="px-4 pb-4 text-body text-slt leading-relaxed border-t border-dark-700 pt-3 whitespace-pre-wrap">
                           {renderBoldHeadings(r.content)}
                         </div>
                       )}
-                    </div>
+                    </Card>
                   ))}
                 </div>
               )}
@@ -566,7 +543,7 @@ function ProgressPage() {
             <div>
               <SectionLabel>{t.chartTitle}</SectionLabel>
               {hasEnoughData ? (
-                <div className="bg-dark-800 border border-dark-600 rounded-2xl p-4">
+                <Card className="p-4">
                   <ResponsiveContainer width="100%" height={240}>
                     <LineChart data={data.chartData} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#2B4157" />
@@ -606,19 +583,19 @@ function ProgressPage() {
                       ))}
                     </LineChart>
                   </ResponsiveContainer>
-                </div>
+                </Card>
               ) : (
-                <div className="bg-dark-800 border border-dark-600 rounded-2xl px-5 py-12 text-center">
+                <Card className="px-5 py-12 text-center">
                   <div className="text-4xl mb-4">📈</div>
-                  <h3 className="font-semibold text-ink mb-2">{t.noData}</h3>
-                  <p className="text-sm text-slt mb-6 max-w-xs mx-auto">{t.noDataSub}</p>
+                  <h3 className="text-heading font-semibold text-ink mb-2">{t.noData}</h3>
+                  <p className="text-body text-slt mb-6 max-w-xs mx-auto">{t.noDataSub}</p>
                   <Link
                     to="/checkin"
-                    className="inline-block bg-brand-600 text-white font-bold text-sm py-3 px-6 rounded-xl active:scale-95 transition-transform"
+                    className="inline-block bg-brand-600 text-white font-bold text-body py-3 px-6 rounded-2xl active:scale-95 transition-transform"
                   >
                     {t.startCheckin}
                   </Link>
-                </div>
+                </Card>
               )}
             </div>
 
