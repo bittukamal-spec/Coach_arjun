@@ -4,8 +4,14 @@
   "autoMerge": false,
   "nextStage": 4,
   "completedStages": [1, 2, 3],
-  "activeStageBranch": null,
-  "activePullRequest": null,
+  "activeStageBranch": "claude/arjun-pilot-stage-4",
+  "activePullRequest": {
+    "number": 30,
+    "url": "https://github.com/bittukamal-spec/Coach_arjun/pull/30",
+    "title": "[Arjun Pilot Loop] Stage 4 — Home redesign",
+    "stage": 4,
+    "draft": true
+  },
   "stages": {
     "1": {
       "id": "stage-1",
@@ -33,9 +39,11 @@
     "4": {
       "id": "stage-4",
       "title": "Home redesign",
-      "status": "in_progress",
+      "status": "ready_for_founder_review",
       "branch": "claude/arjun-pilot-stage-4",
-      "prTitle": "[Arjun Pilot Loop] Stage 4 — Home redesign"
+      "prTitle": "[Arjun Pilot Loop] Stage 4 — Home redesign",
+      "prNumber": 30,
+      "prUrl": "https://github.com/bittukamal-spec/Coach_arjun/pull/30"
     },
     "5": {
       "id": "stage-5",
