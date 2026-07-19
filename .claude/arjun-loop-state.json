@@ -5,7 +5,13 @@
   "nextStage": 8,
   "completedStages": [1, 2, 3, 4, 5, 6, 7],
   "activeStageBranch": "claude/arjun-pilot-stage-8",
-  "activePullRequest": null,
+  "activePullRequest": {
+    "number": 34,
+    "url": "https://github.com/bittukamal-spec/Coach_arjun/pull/34",
+    "title": "[Arjun Pilot Loop] Stage 8 — Reflection migration",
+    "stage": 8,
+    "draft": true
+  },
   "stages": {
     "1": {
       "id": "stage-1",
@@ -69,9 +75,11 @@
     "8": {
       "id": "stage-8",
       "title": "Reflection migration",
-      "status": "in_progress",
+      "status": "ready_for_founder_review",
       "branch": "claude/arjun-pilot-stage-8",
-      "prTitle": "[Arjun Pilot Loop] Stage 8 — Reflection migration"
+      "prTitle": "[Arjun Pilot Loop] Stage 8 — Reflection migration",
+      "prNumber": 34,
+      "prUrl": "https://github.com/bittukamal-spec/Coach_arjun/pull/34"
     },
     "9": {
       "id": "stage-9",
