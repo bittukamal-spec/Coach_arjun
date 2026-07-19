@@ -1,15 +1,18 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Zap, Wind, Target, CheckCircle2 } from 'lucide-react';
+import { Zap, Wind, Target, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiFetch } from '../api';
 import GradientIconTile from '../components/train/GradientIconTile';
+import { PracticeIntro, PracticeScreen, PracticeCompletion } from '../components/practice/PracticeShell';
 
-// ─── Daily Mental Rep — the core Healthy Hook habit ─────────────────────────
-// Flow: context → state → moment → short guided rep → one cue → save → exit.
-// Entirely rule-based (no AI call): finite, fast, and always ends by sending
-// the athlete back to real training. Saving posts one ToolReport via
-// POST /api/mental-rep/complete.
+// ─── Quick Rep (Daily Mental Rep) — the core Healthy Hook habit ────────────
+// Flow: intro → context → state → moment → short guided rep → one cue →
+// save → exit. Entirely rule-based (no AI call): finite, fast, and always
+// ends by sending the athlete back to real training. Saving posts one
+// ToolReport via POST /api/mental-rep/complete. Intro/practice/completion
+// chrome comes from the shared PracticeShell (Stage 6); the wizard logic
+// and data below are unchanged from before that migration.
 
 const CONTEXTS = [
   { id: 'training', en: 'Training today',  hi: 'आज ट्रेनिंग है' },
@@ -128,7 +131,7 @@ export default function MentalRepPage() {
   // Dashboard's context picker can pre-answer step 1.
   const preContext = CONTEXTS.some(c => c.id === location.state?.context) ? location.state.context : null;
 
-  const [step, setStep]           = useState(preContext ? 'state' : 'context');
+  const [step, setStep]           = useState('intro');
   const [context, setContext]     = useState(preContext);
   const [athleteState, setAthleteState] = useState(null);
   const [moment, setMoment]       = useState(null);
@@ -141,10 +144,14 @@ export default function MentalRepPage() {
   const sportKey = (user?.sport || '').toLowerCase();
 
   function goBack() {
-    const order = ['context', 'state', 'moment', 'rep', 'cue', 'save'];
+    const order = ['intro', 'context', 'state', 'moment', 'rep', 'cue', 'save'];
     const idx = order.indexOf(step);
     if (step === 'done') return; // exit screen has its own single way out
-    if (idx <= 0 || (step === 'state' && preContext)) { navigate('/dashboard'); return; }
+    if (idx <= 0) { navigate('/dashboard'); return; }
+    // Context was pre-answered by Dashboard's context picker, so 'context'
+    // was skipped on the way in — back from 'state' returns to 'intro',
+    // not to a screen that was never shown this session.
+    if (step === 'state' && preContext) { setStep('intro'); return; }
     setStep(order[idx - 1]);
   }
 
@@ -170,24 +177,12 @@ export default function MentalRepPage() {
   }
 
   // ── Shared bits ────────────────────────────────────────────────────────────
-  const Header = () => (
-    <div className="flex items-center gap-3 px-4 pt-4 pb-2">
-      <button onClick={goBack} className="w-9 h-9 flex items-center justify-center rounded-full bg-dark-700 active:scale-95">
-        <ArrowLeft size={18} className="text-ink" />
-      </button>
-      <p className="text-sm font-bold text-ink">{hi ? 'आज का मेंटल रेप' : "Today's Mental Rep"}</p>
-    </div>
-  );
+  const headerTitle = hi ? 'आज का मेंटल रेप' : "Today's Mental Rep";
 
   const Screen = ({ title, sub, children }) => (
-    <div className="min-h-screen bg-dark-900 flex flex-col">
-      <Header />
-      <div className="flex-1 px-4 pt-4 pb-8 max-w-lg mx-auto w-full">
-        <h1 className="text-xl font-bold text-ink mb-2 leading-snug">{title}</h1>
-        {sub && <p className="text-sm text-slt mb-6 leading-relaxed">{sub}</p>}
-        {children}
-      </div>
-    </div>
+    <PracticeScreen onBack={goBack} headerTitle={headerTitle} title={title} sub={sub}>
+      {children}
+    </PracticeScreen>
   );
 
   const ChoiceButton = ({ label, onClick, selected = false }) => (
@@ -200,6 +195,27 @@ export default function MentalRepPage() {
     >
       {label}
     </button>
+  );
+
+  // ── STEP: Intro ────────────────────────────────────────────────────────────
+  if (step === 'intro') return (
+    <PracticeIntro
+      onBack={goBack}
+      headerTitle={headerTitle}
+      icon={Zap}
+      variant="blue"
+      tag={hi ? '4 मिनट' : '4 min'}
+      title="Quick Rep"
+      desc={hi
+        ? '4 मिनट में मन तैयार करो और एक cue लेकर निकलो।'
+        : 'A 4-minute rep that ends with one cue you take to training.'}
+      whyLabel={hi ? 'यह क्यों काम करता है' : 'Why this works'}
+      whyBody={hi
+        ? 'अपनी स्थिति को पहचानना और एक साफ फोकस पॉइंट चुनना ध्यान को उस चीज़ पर लाता है जिसे तुम अभी नियंत्रित कर सकते हो — यही "process focus" तकनीक स्पोर्ट्स साइकोलॉजिस्ट दबाव के पलों से पहले इस्तेमाल करवाते हैं। एक छोटा बोला गया cue लेकर खत्म करने से उसे उस पल में याद रखना आसान हो जाता है।'
+        : 'Naming your state and picking one clear focus point narrows your attention onto what you can control right now — the same "process focus" technique sports psychologists use before high-pressure moments. Ending with one short, spoken cue makes it easy to recall in the moment.'}
+      onStart={() => setStep(preContext ? 'state' : 'context')}
+      startLabel={hi ? 'शुरू करो' : 'Start'}
+    />
   );
 
   // ── STEP: Context ──────────────────────────────────────────────────────────
@@ -330,7 +346,7 @@ export default function MentalRepPage() {
 
   // ── STEP: Save ─────────────────────────────────────────────────────────────
   if (step === 'save') return (
-    <div className="min-h-screen bg-dark-900 flex flex-col items-center justify-center px-4 text-center">
+    <PracticeCompletion>
       <GradientIconTile icon={Target} variant="blue" size={26} className="mb-5" />
       <p className="text-xs font-bold text-slt uppercase tracking-widest mb-2">{hi ? 'तुम्हारा cue' : 'Your cue'}</p>
       <p className="text-3xl font-black text-ink mb-8">"{cue}"</p>
@@ -350,12 +366,12 @@ export default function MentalRepPage() {
       >
         {hi ? 'अभी नहीं' : 'Not now'}
       </button>
-    </div>
+    </PracticeCompletion>
   );
 
   // ── STEP: Exit ─────────────────────────────────────────────────────────────
   if (step === 'done') return (
-    <div className="min-h-screen bg-dark-900 flex flex-col items-center justify-center px-4 text-center">
+    <PracticeCompletion>
       <div className="w-14 h-14 rounded-2xl bg-teal-500/15 flex items-center justify-center mb-5">
         <CheckCircle2 size={28} className="text-teal-400" />
       </div>
@@ -375,7 +391,7 @@ export default function MentalRepPage() {
         <Zap size={18} />
         {hi ? 'हो गया' : 'Done'}
       </button>
-    </div>
+    </PracticeCompletion>
   );
 
   return null;

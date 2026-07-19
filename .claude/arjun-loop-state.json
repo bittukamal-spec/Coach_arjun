@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "automationMode": "one_draft_pr_at_a_time",
   "autoMerge": false,
-  "nextStage": 5,
-  "completedStages": [1, 2, 3, 4],
-  "activeStageBranch": "claude/arjun-pilot-stage-5",
+  "nextStage": 6,
+  "completedStages": [1, 2, 3, 4, 5],
+  "activeStageBranch": "claude/arjun-pilot-stage-6",
   "activePullRequest": {
-    "number": 31,
-    "url": "https://github.com/bittukamal-spec/Coach_arjun/pull/31",
-    "title": "[Arjun Pilot Loop] Stage 5 — Train redesign",
-    "stage": 5,
+    "number": 32,
+    "url": "https://github.com/bittukamal-spec/Coach_arjun/pull/32",
+    "title": "[Arjun Pilot Loop] Stage 6 — Shared practice shell",
+    "stage": 6,
     "draft": true
   },
   "stages": {
@@ -48,7 +48,7 @@
     "5": {
       "id": "stage-5",
       "title": "Train redesign",
-      "status": "ready_for_founder_review",
+      "status": "completed",
       "branch": "claude/arjun-pilot-stage-5",
       "prTitle": "[Arjun Pilot Loop] Stage 5 — Train redesign",
       "prNumber": 31,
@@ -57,9 +57,11 @@
     "6": {
       "id": "stage-6",
       "title": "Shared practice shell",
-      "status": "pending",
+      "status": "ready_for_founder_review",
       "branch": "claude/arjun-pilot-stage-6",
-      "prTitle": "[Arjun Pilot Loop] Stage 6 — Shared practice shell"
+      "prTitle": "[Arjun Pilot Loop] Stage 6 — Shared practice shell",
+      "prNumber": 32,
+      "prUrl": "https://github.com/bittukamal-spec/Coach_arjun/pull/32"
     },
     "7": {
       "id": "stage-7",
