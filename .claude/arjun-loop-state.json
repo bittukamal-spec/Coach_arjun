@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "automationMode": "one_draft_pr_at_a_time",
   "autoMerge": false,
-  "nextStage": 3,
-  "completedStages": [1, 2],
-  "activeStageBranch": "claude/arjun-pilot-stage-3",
+  "nextStage": 4,
+  "completedStages": [1, 2, 3],
+  "activeStageBranch": "claude/arjun-pilot-stage-4",
   "activePullRequest": {
-    "number": 28,
-    "url": "https://github.com/bittukamal-spec/Coach_arjun/pull/28",
-    "title": "[Arjun Pilot Loop] Stage 3 — Minimal UI foundation",
-    "stage": 3,
+    "number": 30,
+    "url": "https://github.com/bittukamal-spec/Coach_arjun/pull/30",
+    "title": "[Arjun Pilot Loop] Stage 4 — Home redesign",
+    "stage": 4,
     "draft": true
   },
   "stages": {
@@ -30,7 +30,7 @@
     "3": {
       "id": "stage-3",
       "title": "Minimal UI foundation",
-      "status": "ready_for_founder_review",
+      "status": "completed",
       "branch": "claude/arjun-pilot-stage-3",
       "prTitle": "[Arjun Pilot Loop] Stage 3 — Minimal UI foundation",
       "prNumber": 28,
@@ -39,9 +39,11 @@
     "4": {
       "id": "stage-4",
       "title": "Home redesign",
-      "status": "pending",
+      "status": "ready_for_founder_review",
       "branch": "claude/arjun-pilot-stage-4",
-      "prTitle": "[Arjun Pilot Loop] Stage 4 — Home redesign"
+      "prTitle": "[Arjun Pilot Loop] Stage 4 — Home redesign",
+      "prNumber": 30,
+      "prUrl": "https://github.com/bittukamal-spec/Coach_arjun/pull/30"
     },
     "5": {
       "id": "stage-5",
