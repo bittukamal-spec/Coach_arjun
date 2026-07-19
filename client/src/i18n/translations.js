@@ -1099,7 +1099,7 @@ export const translations = {
         secondary: 'Talk this through with Arjun',
       },
       intro: {
-        title: 'After Match / Training',
+        title: 'Reflection',
         desc: '3 quick questions that help you learn from every game and come back stronger.',
         duration: '3–5 min',
         benefits: ['Spot what actually worked', 'Name one thing to fix', 'Set your focus for next session'],
@@ -2591,7 +2591,7 @@ export const translations = {
         secondary: 'Arjun se baat karo',
       },
       intro: {
-        title: 'मैच / ट्रेनिंग के बाद',
+        title: 'Reflection',
         desc: '3 सवाल जो हर मैच से सीखने और अगली बार मज़बूत लौटने में मदद करते हैं।',
         duration: '3–5 मिनट',
         benefits: ['जो काम आया वो पहचानो', 'एक चीज़ नाम करो जो सुधारनी है', 'अगले सेशन का फोकस सेट करो'],
