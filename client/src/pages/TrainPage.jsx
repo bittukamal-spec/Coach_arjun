@@ -77,7 +77,7 @@ export default function TrainPage() {
         <div className="space-y-2.5 md:grid md:grid-cols-2 md:gap-2.5 md:space-y-0">
           <SmallToolRow
             icon={Zap}
-            title={hi ? 'Daily Mental Rep' : 'Daily Mental Rep'}
+            title="Quick Rep"
             desc={hi ? '4 मिनट में मन तैयार करो और एक cue लेकर निकलो।' : 'A 4-minute rep that ends with one cue you take to training.'}
             onClick={() => navigate('/mental-rep')}
           />
