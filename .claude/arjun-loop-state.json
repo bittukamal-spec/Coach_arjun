@@ -5,7 +5,13 @@
   "nextStage": 5,
   "completedStages": [1, 2, 3, 4],
   "activeStageBranch": "claude/arjun-pilot-stage-5",
-  "activePullRequest": null,
+  "activePullRequest": {
+    "number": 31,
+    "url": "https://github.com/bittukamal-spec/Coach_arjun/pull/31",
+    "title": "[Arjun Pilot Loop] Stage 5 — Train redesign",
+    "stage": 5,
+    "draft": true
+  },
   "stages": {
     "1": {
       "id": "stage-1",
@@ -42,9 +48,11 @@
     "5": {
       "id": "stage-5",
       "title": "Train redesign",
-      "status": "pending",
+      "status": "ready_for_founder_review",
       "branch": "claude/arjun-pilot-stage-5",
-      "prTitle": "[Arjun Pilot Loop] Stage 5 — Train redesign"
+      "prTitle": "[Arjun Pilot Loop] Stage 5 — Train redesign",
+      "prNumber": 31,
+      "prUrl": "https://github.com/bittukamal-spec/Coach_arjun/pull/31"
     },
     "6": {
       "id": "stage-6",
