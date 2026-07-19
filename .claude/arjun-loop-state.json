@@ -5,7 +5,13 @@
   "nextStage": 6,
   "completedStages": [1, 2, 3, 4, 5],
   "activeStageBranch": "claude/arjun-pilot-stage-6",
-  "activePullRequest": null,
+  "activePullRequest": {
+    "number": 32,
+    "url": "https://github.com/bittukamal-spec/Coach_arjun/pull/32",
+    "title": "[Arjun Pilot Loop] Stage 6 — Shared practice shell",
+    "stage": 6,
+    "draft": true
+  },
   "stages": {
     "1": {
       "id": "stage-1",
@@ -51,9 +57,11 @@
     "6": {
       "id": "stage-6",
       "title": "Shared practice shell",
-      "status": "pending",
+      "status": "ready_for_founder_review",
       "branch": "claude/arjun-pilot-stage-6",
-      "prTitle": "[Arjun Pilot Loop] Stage 6 — Shared practice shell"
+      "prTitle": "[Arjun Pilot Loop] Stage 6 — Shared practice shell",
+      "prNumber": 32,
+      "prUrl": "https://github.com/bittukamal-spec/Coach_arjun/pull/32"
     },
     "7": {
       "id": "stage-7",
