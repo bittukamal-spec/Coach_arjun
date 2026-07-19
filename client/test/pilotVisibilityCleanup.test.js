@@ -120,10 +120,11 @@ test('Train: stopped client requests for removed game-status / skill-gate conten
   assert.doesNotMatch(train, /\/api\/skills\/calm_body/);
 });
 
-test('Train: retained tools still render — Pressure Reset, Match & Practice Reflection, Daily Mental Rep, Focus Card Builder', () => {
+test('Train: retained tools still render — Pressure Reset, Match & Practice Reflection, Quick Rep, Focus Card Builder', () => {
   assert.match(train, /Pressure Reset/);
   assert.match(train, /Match & Practice Reflection/);
-  assert.match(train, /Daily Mental Rep/);
+  assert.match(train, /Quick Rep/);
+  assert.doesNotMatch(train, /Daily Mental Rep/);
   assert.match(train, /Focus Card Builder/);
   assert.match(train, /navigate\('\/body-reset'\)/);
   assert.match(train, /navigate\('\/debrief'\)/);

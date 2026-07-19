@@ -159,7 +159,8 @@ describe('TrainPage — Ritual entry, real router integration', () => {
 
     expect(screen.getByText('Pressure Reset')).toBeTruthy();
     expect(screen.getByText('Match & Practice Reflection')).toBeTruthy();
-    expect(screen.getByText('Daily Mental Rep')).toBeTruthy();
+    expect(screen.getByText('Quick Rep')).toBeTruthy();
+    expect(screen.queryByText('Daily Mental Rep')).toBeNull();
     expect(screen.getByText('Focus Card Builder')).toBeTruthy();
 
     // Pressure Reset's own CTA is a "Start" button (FeatureToolCard hero pattern).
