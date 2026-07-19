@@ -1340,6 +1340,7 @@ export const translations = {
         benefit3:   'Works before matches, after mistakes, in training',
         educTitle:  'Your body talks first. Breathing answers.',
         educBody:   "When you are stressed, your body tenses up before your mind even knows why.\n\nControlled breathing resets your nervous system. It is not relaxation — it is a reset switch.",
+        whyLabel:   'Why this works',
         startBtn:   'Start',
       },
       feeling: {
@@ -2831,6 +2832,7 @@ export const translations = {
         benefit3:   'मैच से पहले, गलती के बाद, training में — हर जगह काम करता है',
         educTitle:  'पहले body बोलती है। Breathing जवाब देती है।',
         educBody:   "जब तनाव होता है, body पहले tense होती है — दिमाग़ को पता चलने से पहले।\n\nControlled breathing nervous system को reset करती है। यह relaxation नहीं — यह एक reset switch है।",
+        whyLabel:   'यह क्यों काम करता है',
         startBtn:   'शुरू करो',
       },
       feeling: {
