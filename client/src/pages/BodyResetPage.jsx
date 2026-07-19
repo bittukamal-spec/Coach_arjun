@@ -1,13 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, ChevronRight, Wind } from 'lucide-react';
+import { ChevronRight, Wind } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiFetch } from '../api';
 import { translations } from '../i18n/translations';
 import HelplineList from '../components/HelplineList';
-import GradientIconTile from '../components/train/GradientIconTile';
-import InfoStatCard from '../components/train/InfoStatCard';
-import ChecklistCard from '../components/train/ChecklistCard';
+import { PracticeIntro, PracticeScreen, PracticeCompletion } from '../components/practice/PracticeShell';
 
 const CRISIS_KEYWORDS = [
   'suicide', 'kill myself', 'end my life', 'self harm', 'hurt myself',
@@ -22,6 +20,10 @@ function hasCrisis(text) {
 }
 
 const TIPS = ['tip1', 'tip2', 'tip3', 'tip4'];
+
+// Ordered practice steps (excludes 'safety' and 'done', which are exits
+// reached only via explicit navigation, never via forward/back stepping).
+const STEP_ORDER = ['intro', 'feeling', 'mode', 'before', 'focus', 'breathing', 'note', 'after', 'card'];
 
 function TensionPicker({ value, onChange, low, high }) {
   return (
@@ -49,6 +51,18 @@ function TensionPicker({ value, onChange, low, high }) {
   );
 }
 
+// ─── Pressure Reset (formerly Body Reset) ──────────────────────────────────
+// Flow: intro → feeling+context → mode → before-rating → focus word →
+// breathing → Arjun note → after-rating → reset card → save → done.
+// Intro/practice/completion chrome comes from the shared PracticeShell
+// (Stage 6, proven first on Quick Rep). Breathing timing, crisis detection,
+// ToolReport saving (bodyReset.js), prescription-completion linkage, and
+// history are all unchanged from before this migration — only the chrome
+// around the wizard steps changes. The breathing screen keeps its own
+// full-bleed centered layout (not the shared PracticeScreen frame) since
+// its circle/timer/progress visuals need the whole viewport, not the
+// title+sub+children shape every other step uses.
+
 export default function BodyResetPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -67,7 +81,7 @@ export default function BodyResetPage() {
       : null
   );
 
-  const [screen, setScreen] = useState(1);
+  const [screen, setScreen] = useState('intro');
 
   // Minimal safety-incident log when a crisis keyword routes to the safety screen
   function reportCrisisEvent() {
@@ -134,18 +148,15 @@ export default function BodyResetPage() {
 
   // ── Back navigation ──────────────────────────────────────────────────────────
   function goBack() {
-    if (screen === 1) { navigate('/train'); return; }
-    if (screen === 'safety') { navigate('/train'); return; }
-    // Don't allow back during active breathing
-    if (screen === 7 && timerRef.current) return;
-    // Screens 2+3 are merged — skip 3 when going back from 4
-    if (screen === 4) { setScreen(2); return; }
-    if (typeof screen === 'number' && screen > 1) setScreen(s => s - 1);
+    if (screen === 'intro' || screen === 'safety') { navigate('/train'); return; }
+    const idx = STEP_ORDER.indexOf(screen);
+    if (idx <= 0) { navigate('/train'); return; }
+    setScreen(STEP_ORDER[idx - 1]);
   }
 
-  // ── Fetch Focus Cards when reaching screen 6 ─────────────────────────────────
+  // ── Fetch Focus Cards when reaching the focus-word step ─────────────────────
   useEffect(() => {
-    if (screen !== 6 || cardsFetchedRef.current) return;
+    if (screen !== 'focus' || cardsFetchedRef.current) return;
     cardsFetchedRef.current = true;
     setCardsLoading(true);
     apiFetch('/api/self-talk/cards?filter=active', {
@@ -159,7 +170,7 @@ export default function BodyResetPage() {
 
   // ── Breathing timer ───────────────────────────────────────────────────────────
   useEffect(() => {
-    if (screen !== 7) return;
+    if (screen !== 'breathing') return;
     startTimer();
     return () => stopTimer();
   }, [screen]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -193,13 +204,13 @@ export default function BodyResetPage() {
           if (mode === 'quick' && cyclesCompletedRef.current >= proto.cycles) {
             stopTimer();
             setBreathingDone(true);
-            setScreen(8);
+            setScreen('note');
             return;
           }
           if (mode === 'training' && elapsed >= proto.totalSeconds) {
             stopTimer();
             setBreathingDone(true);
-            setScreen(8);
+            setScreen('note');
             return;
           }
           phaseRef.current = 'inhale';
@@ -246,9 +257,9 @@ export default function BodyResetPage() {
     }
   }
 
-  // ── Fetch Arjun note on screen 8 ────────────────────────────────────────────
+  // ── Fetch Arjun note on the note step ────────────────────────────────────────
   useEffect(() => {
-    if (screen !== 8) return;
+    if (screen !== 'note') return;
     cancelledRef.current = false;
     setNoteLoading(true);
 
@@ -322,9 +333,9 @@ export default function BodyResetPage() {
         }),
       }).then(r => r.json());
       completePrescriptionLink();
-      setScreen(11);
+      setScreen('done');
     } catch {
-      setScreen(11);
+      setScreen('done');
     } finally {
       setSaving(false);
     }
@@ -373,19 +384,7 @@ export default function BodyResetPage() {
     return { label: `${tensionBefore} → ${tensionAfter} ${arrow}`, color };
   }
 
-  // ── Shared header with back button ───────────────────────────────────────────
-  function Header({ canGoBack = true }) {
-    return (
-      <div className="flex items-center gap-3 px-4 pt-4 pb-3 sticky top-0 bg-dark-900/95 backdrop-blur z-10">
-        {canGoBack && (
-          <button onClick={goBack} className="w-9 h-9 flex items-center justify-center rounded-full bg-dark-700 active:scale-95">
-            <ArrowLeft size={18} className="text-ink" />
-          </button>
-        )}
-        <h1 className="text-lg font-bold text-ink flex-1">{t.learn.title}</h1>
-      </div>
-    );
-  }
+  const headerTitle = t.learn.title;
 
   // ──────────────────────────────────────────────────────────────────────────────
   // SAFETY SCREEN
@@ -414,61 +413,46 @@ export default function BodyResetPage() {
   }
 
   // ──────────────────────────────────────────────────────────────────────────────
-  // SCREEN 1 — Learn
+  // INTRO — Learn
   // ──────────────────────────────────────────────────────────────────────────────
-  if (screen === 1) {
+  if (screen === 'intro') {
     return (
-      <div className="min-h-screen bg-dark-900">
-        <Header />
-        <div className="px-4 pb-24">
-
-          {/* Hero */}
-          <div className="flex items-center gap-3 mb-5">
-            <GradientIconTile icon={Wind} variant="teal" size={26} />
-            <span className="tag-pill" style={{ '--tile-fg': '#2E7D6B', '--tile-bg': 'rgba(46,125,107,0.12)' }}>
-              {t.learn.duration}
-            </span>
-          </div>
-          <h2 className="text-2xl font-black text-ink mb-2 leading-tight">{t.learn.desc}</h2>
-
-          {/* Duration / Best for / Goal */}
-          <div className="flex gap-2.5 mb-6">
-            <InfoStatCard label={hi ? 'समय' : 'Duration'} value={t.learn.duration} />
-            <InfoStatCard label={hi ? 'किसके लिए' : 'Best for'} value={hi ? 'घबराया हुआ, तना हुआ' : 'Nervous, tight, or overloaded'} />
-            <InfoStatCard label={hi ? 'लक्ष्य' : 'Goal'} value={hi ? 'अगले एक्शन पर वापसी' : 'Return to the next action'} />
-          </div>
-
-          <ChecklistCard
-            title={hi ? 'क्या उम्मीद करें' : 'What to expect'}
-            items={[t.learn.benefit1, t.learn.benefit2, t.learn.benefit3]}
-          />
-
-          <div className="bg-dark-800 border border-dark-600 rounded-2xl p-4 my-6">
-            <p className="text-xs font-bold text-slt uppercase tracking-widest mb-2">{t.learn.educTitle}</p>
-            <p className="text-sm text-slt leading-relaxed whitespace-pre-line">{t.learn.educBody}</p>
-          </div>
-
-          <button
-            onClick={() => setScreen(2)}
-            className="w-full bg-teal-500 text-white font-bold py-4 rounded-2xl text-base active:scale-[0.98] transition-transform shadow-sm"
-          >
-            {t.learn.startBtn}
-          </button>
-          <button
-            onClick={() => navigate('/body-reset/history')}
-            className="w-full text-center text-xs text-muted font-medium mt-3 active:opacity-70"
-          >
-            {hi ? 'Reset history देखो →' : 'View history →'}
-          </button>
-        </div>
-      </div>
+      <PracticeIntro
+        onBack={goBack}
+        headerTitle={headerTitle}
+        icon={Wind}
+        variant="teal"
+        tag={t.learn.duration}
+        title={t.learn.title}
+        desc={t.learn.desc}
+        stats={[
+          { label: hi ? 'समय' : 'Duration', value: t.learn.duration },
+          { label: hi ? 'किसके लिए' : 'Best for', value: hi ? 'घबराया हुआ, तना हुआ' : 'Nervous, tight, or overloaded' },
+          { label: hi ? 'लक्ष्य' : 'Goal', value: hi ? 'अगले एक्शन पर वापसी' : 'Return to the next action' },
+        ]}
+        checklist={{
+          title: hi ? 'क्या उम्मीद करें' : 'What to expect',
+          items: [t.learn.benefit1, t.learn.benefit2, t.learn.benefit3],
+        }}
+        whyLabel={t.learn.whyLabel}
+        whyBody={
+          <>
+            <p className="font-semibold text-ink mb-2">{t.learn.educTitle}</p>
+            <p className="whitespace-pre-line">{t.learn.educBody}</p>
+          </>
+        }
+        onStart={() => setScreen('feeling')}
+        startLabel={t.learn.startBtn}
+        secondaryLabel={hi ? 'Reset history देखो →' : 'View history →'}
+        onSecondary={() => navigate('/body-reset/history')}
+      />
     );
   }
 
   // ──────────────────────────────────────────────────────────────────────────────
-  // SCREEN 2 — Feeling + Context (merged)
+  // Feeling + Context (merged)
   // ──────────────────────────────────────────────────────────────────────────────
-  if (screen === 2) {
+  if (screen === 'feeling') {
     const isFeelingCustom = feeling === 'custom';
     const isContextCustom = context === 'custom';
     const feelingOk = feeling && (feeling !== 'custom' || feelingCustom.trim().length > 0);
@@ -479,25 +463,63 @@ export default function BodyResetPage() {
       if (!canContinue) return;
       if (isFeelingCustom && hasCrisis(feelingCustom)) { reportCrisisEvent(); setScreen('safety'); return; }
       if (isContextCustom && hasCrisis(contextCustom)) { reportCrisisEvent(); setScreen('safety'); return; }
-      setScreen(4);
+      setScreen('mode');
     }
 
     return (
-      <div className="min-h-screen bg-dark-900">
-        <Header />
-        <div className="px-4 pb-24">
-          <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">1 / 7</p>
+      <PracticeScreen onBack={goBack} headerTitle={headerTitle}>
+        <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">1 / 7</p>
 
-          {/* Feeling question */}
-          <h2 className="text-xl font-bold text-ink mb-1">{t.feeling.heading}</h2>
-          <p className="text-sm text-slt mb-4">{t.feeling.sub}</p>
+        {/* Feeling question */}
+        <h2 className="text-xl font-bold text-ink mb-1">{t.feeling.heading}</h2>
+        <p className="text-sm text-slt mb-4">{t.feeling.sub}</p>
+        <div className="grid grid-cols-2 gap-2 mb-2">
+          {feelingOpts.map(opt => (
+            <button
+              key={opt.val}
+              onClick={() => setFeeling(opt.val)}
+              className={`py-3 px-3 rounded-2xl text-sm font-semibold border transition-all active:scale-95 ${
+                feeling === opt.val
+                  ? 'bg-teal-500/15 border-teal-500/60 text-teal-400'
+                  : 'bg-dark-800 border-dark-600 text-slt'
+              }`}
+            >
+              {opt.key}
+            </button>
+          ))}
+          <button
+            onClick={() => setFeeling('custom')}
+            className={`col-span-2 py-2 px-3 rounded-2xl text-sm font-semibold border transition-all active:scale-95 ${
+              isFeelingCustom
+                ? 'bg-teal-500/15 border-teal-500/60 text-teal-400'
+                : 'bg-dark-800 border-dark-600 text-slt'
+            }`}
+          >
+            {t.feeling.customLabel}
+          </button>
+        </div>
+        {isFeelingCustom && (
+          <textarea
+            autoFocus
+            value={feelingCustom}
+            onChange={e => setFeelingCustom(e.target.value)}
+            placeholder={t.feeling.customPlaceholder}
+            rows={2}
+            className="w-full bg-dark-800 border border-dark-600 rounded-2xl px-4 py-3 text-sm text-ink placeholder-muted resize-none focus:outline-none focus:border-teal-500/60 mb-2"
+          />
+        )}
+
+        {/* Context question — always visible below */}
+        <div className="mt-6 mb-4">
+          <h2 className="text-xl font-bold text-ink mb-1">{t.context.heading}</h2>
+          <p className="text-sm text-slt mb-4">{t.context.sub}</p>
           <div className="grid grid-cols-2 gap-2 mb-2">
-            {feelingOpts.map(opt => (
+            {contextOpts.map(opt => (
               <button
                 key={opt.val}
-                onClick={() => setFeeling(opt.val)}
+                onClick={() => setContext(opt.val)}
                 className={`py-3 px-3 rounded-2xl text-sm font-semibold border transition-all active:scale-95 ${
-                  feeling === opt.val
+                  context === opt.val
                     ? 'bg-teal-500/15 border-teal-500/60 text-teal-400'
                     : 'bg-dark-800 border-dark-600 text-slt'
                 }`}
@@ -506,209 +528,161 @@ export default function BodyResetPage() {
               </button>
             ))}
             <button
-              onClick={() => setFeeling('custom')}
+              onClick={() => setContext('custom')}
               className={`col-span-2 py-2 px-3 rounded-2xl text-sm font-semibold border transition-all active:scale-95 ${
-                isFeelingCustom
+                isContextCustom
                   ? 'bg-teal-500/15 border-teal-500/60 text-teal-400'
                   : 'bg-dark-800 border-dark-600 text-slt'
               }`}
             >
-              {t.feeling.customLabel}
+              {t.context.customLabel}
             </button>
           </div>
-          {isFeelingCustom && (
+          {isContextCustom && (
             <textarea
-              autoFocus
-              value={feelingCustom}
-              onChange={e => setFeelingCustom(e.target.value)}
-              placeholder={t.feeling.customPlaceholder}
+              value={contextCustom}
+              onChange={e => setContextCustom(e.target.value)}
+              placeholder={t.context.customPlaceholder}
               rows={2}
               className="w-full bg-dark-800 border border-dark-600 rounded-2xl px-4 py-3 text-sm text-ink placeholder-muted resize-none focus:outline-none focus:border-teal-500/60 mb-2"
             />
           )}
-
-          {/* Context question — always visible below */}
-          <div className="mt-6 mb-4">
-            <h2 className="text-xl font-bold text-ink mb-1">{t.context.heading}</h2>
-            <p className="text-sm text-slt mb-4">{t.context.sub}</p>
-            <div className="grid grid-cols-2 gap-2 mb-2">
-              {contextOpts.map(opt => (
-                <button
-                  key={opt.val}
-                  onClick={() => setContext(opt.val)}
-                  className={`py-3 px-3 rounded-2xl text-sm font-semibold border transition-all active:scale-95 ${
-                    context === opt.val
-                      ? 'bg-teal-500/15 border-teal-500/60 text-teal-400'
-                      : 'bg-dark-800 border-dark-600 text-slt'
-                  }`}
-                >
-                  {opt.key}
-                </button>
-              ))}
-              <button
-                onClick={() => setContext('custom')}
-                className={`col-span-2 py-2 px-3 rounded-2xl text-sm font-semibold border transition-all active:scale-95 ${
-                  isContextCustom
-                    ? 'bg-teal-500/15 border-teal-500/60 text-teal-400'
-                    : 'bg-dark-800 border-dark-600 text-slt'
-                }`}
-              >
-                {t.context.customLabel}
-              </button>
-            </div>
-            {isContextCustom && (
-              <textarea
-                value={contextCustom}
-                onChange={e => setContextCustom(e.target.value)}
-                placeholder={t.context.customPlaceholder}
-                rows={2}
-                className="w-full bg-dark-800 border border-dark-600 rounded-2xl px-4 py-3 text-sm text-ink placeholder-muted resize-none focus:outline-none focus:border-teal-500/60 mb-2"
-              />
-            )}
-          </div>
-
-          <button
-            disabled={!canContinue}
-            onClick={advance}
-            className="w-full bg-teal-500 text-white font-bold py-4 rounded-2xl text-base active:scale-[0.98] disabled:opacity-40"
-          >
-            {t.feeling.nextBtn}
-          </button>
         </div>
-      </div>
+
+        <button
+          disabled={!canContinue}
+          onClick={advance}
+          className="w-full bg-teal-500 text-white font-bold py-4 rounded-2xl text-base active:scale-[0.98] disabled:opacity-40"
+        >
+          {t.feeling.nextBtn}
+        </button>
+      </PracticeScreen>
     );
   }
 
   // ──────────────────────────────────────────────────────────────────────────────
-  // SCREEN 4 — Choose Mode
+  // Choose Mode
   // ──────────────────────────────────────────────────────────────────────────────
-  if (screen === 4) {
+  if (screen === 'mode') {
     return (
-      <div className="min-h-screen bg-dark-900">
-        <Header />
-        <div className="px-4 pb-24">
-          <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">2 / 7</p>
-          <h2 className="text-xl font-bold text-ink mb-5">{t.mode.heading}</h2>
-          <div className="space-y-3">
-            {[
-              { key: 'quick', title: t.mode.quickTitle, sub: t.mode.quickSub, detail: t.mode.quickDetail },
-              { key: 'training', title: t.mode.trainingTitle, sub: t.mode.trainingSub, detail: t.mode.trainingDetail },
-            ].map(m => (
-              <button
-                key={m.key}
-                onClick={() => { setMode(m.key); setScreen(5); }}
-                className="w-full text-left bg-dark-800 border border-dark-600 hover:border-teal-500/40 rounded-2xl p-5 transition-all active:scale-[0.98] flex items-center justify-between"
-              >
-                <div>
-                  <p className="text-base font-bold text-ink mb-0.5">{m.title}</p>
-                  <p className="text-sm font-semibold text-teal-400 mb-1">{m.sub}</p>
-                  <p className="text-xs text-muted">{m.detail}</p>
-                </div>
-                <ChevronRight size={20} className="text-slt shrink-0 ml-3" />
-              </button>
-            ))}
-          </div>
+      <PracticeScreen onBack={goBack} headerTitle={headerTitle}>
+        <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">2 / 7</p>
+        <h2 className="text-xl font-bold text-ink mb-5">{t.mode.heading}</h2>
+        <div className="space-y-3">
+          {[
+            { key: 'quick', title: t.mode.quickTitle, sub: t.mode.quickSub, detail: t.mode.quickDetail },
+            { key: 'training', title: t.mode.trainingTitle, sub: t.mode.trainingSub, detail: t.mode.trainingDetail },
+          ].map(m => (
+            <button
+              key={m.key}
+              onClick={() => { setMode(m.key); setScreen('before'); }}
+              className="w-full text-left bg-dark-800 border border-dark-600 hover:border-teal-500/40 rounded-2xl p-5 transition-all active:scale-[0.98] flex items-center justify-between"
+            >
+              <div>
+                <p className="text-base font-bold text-ink mb-0.5">{m.title}</p>
+                <p className="text-sm font-semibold text-teal-400 mb-1">{m.sub}</p>
+                <p className="text-xs text-muted">{m.detail}</p>
+              </div>
+              <ChevronRight size={20} className="text-slt shrink-0 ml-3" />
+            </button>
+          ))}
         </div>
-      </div>
+      </PracticeScreen>
     );
   }
 
   // ──────────────────────────────────────────────────────────────────────────────
-  // SCREEN 5 — Before Rating
+  // Before Rating
   // ──────────────────────────────────────────────────────────────────────────────
-  if (screen === 5) {
+  if (screen === 'before') {
     return (
-      <div className="min-h-screen bg-dark-900">
-        <Header />
-        <div className="px-4 pb-24">
-          <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">3 / 7</p>
-          <h2 className="text-xl font-bold text-ink mb-5">{t.before.heading}</h2>
+      <PracticeScreen onBack={goBack} headerTitle={headerTitle}>
+        <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">3 / 7</p>
+        <h2 className="text-xl font-bold text-ink mb-5">{t.before.heading}</h2>
 
-          <div className="mb-6">
-            <p className="text-sm font-semibold text-ink mb-3">{t.before.tensionLabel}</p>
-            <TensionPicker value={tensionBefore} onChange={setTensionBefore} low={t.before.tensionLow} high={t.before.tensionHigh} />
-          </div>
-
-          <div className="mb-6">
-            <p className="text-sm font-semibold text-ink mb-3">{t.before.readinessLabel}</p>
-            <TensionPicker value={readinessBefore} onChange={setReadinessBefore} low={t.before.readinessLow} high={t.before.readinessHigh} />
-            {readinessBefore && (
-              <button onClick={() => setReadinessBefore(null)} className="text-xs text-muted mt-2 active:opacity-70">
-                {t.before.skipLink}
-              </button>
-            )}
-          </div>
-
-          <button
-            disabled={!tensionBefore}
-            onClick={() => setScreen(6)}
-            className="w-full bg-teal-500 text-white font-bold py-4 rounded-2xl text-base active:scale-[0.98] disabled:opacity-40"
-          >
-            {t.before.nextBtn}
-          </button>
+        <div className="mb-6">
+          <p className="text-sm font-semibold text-ink mb-3">{t.before.tensionLabel}</p>
+          <TensionPicker value={tensionBefore} onChange={setTensionBefore} low={t.before.tensionLow} high={t.before.tensionHigh} />
         </div>
-      </div>
-    );
-  }
 
-  // ──────────────────────────────────────────────────────────────────────────────
-  // SCREEN 6 — Focus Word
-  // ──────────────────────────────────────────────────────────────────────────────
-  if (screen === 6) {
-    return (
-      <div className="min-h-screen bg-dark-900">
-        <Header />
-        <div className="px-4 pb-24">
-          <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">4 / 7</p>
-          <h2 className="text-xl font-bold text-ink mb-1">{t.focus.heading}</h2>
-          <p className="text-sm text-slt mb-5">{t.focus.sub}</p>
-
-          {cardsLoading ? (
-            <div className="flex justify-center py-8">
-              <div className="w-7 h-7 border-2 border-teal-400 border-t-transparent rounded-full animate-spin" />
-            </div>
-          ) : cards.length === 0 ? (
-            <div className="bg-dark-800 border border-dark-600 rounded-2xl p-4 mb-4">
-              <p className="text-sm text-slt">{t.focus.noCards}</p>
-            </div>
-          ) : (
-            <div className="flex flex-wrap gap-2 mb-5">
-              {cards.map(card => (
-                <button
-                  key={card.id}
-                  onClick={() => setFocusWord(focusWord === card.focusWord ? null : card.focusWord)}
-                  className={`px-4 py-2.5 rounded-2xl text-sm font-bold border transition-all active:scale-95 ${
-                    focusWord === card.focusWord
-                      ? 'bg-teal-500 border-teal-500 text-white'
-                      : 'bg-dark-800 border-dark-600 text-slt'
-                  }`}
-                >
-                  {card.focusWord}
-                </button>
-              ))}
-            </div>
-          )}
-
-          <button
-            onClick={() => setScreen(7)}
-            className="w-full bg-teal-500 text-white font-bold py-4 rounded-2xl text-base active:scale-[0.98] mb-3"
-          >
-            {t.before.nextBtn}
-          </button>
-          {(cards.length > 0 || cardsLoading === false) && (
-            <button onClick={() => { setFocusWord(null); setScreen(7); }} className="w-full text-xs text-muted active:opacity-70 py-1">
-              {t.focus.skip}
+        <div className="mb-6">
+          <p className="text-sm font-semibold text-ink mb-3">{t.before.readinessLabel}</p>
+          <TensionPicker value={readinessBefore} onChange={setReadinessBefore} low={t.before.readinessLow} high={t.before.readinessHigh} />
+          {readinessBefore && (
+            <button onClick={() => setReadinessBefore(null)} className="text-xs text-muted mt-2 active:opacity-70">
+              {t.before.skipLink}
             </button>
           )}
         </div>
-      </div>
+
+        <button
+          disabled={!tensionBefore}
+          onClick={() => setScreen('focus')}
+          className="w-full bg-teal-500 text-white font-bold py-4 rounded-2xl text-base active:scale-[0.98] disabled:opacity-40"
+        >
+          {t.before.nextBtn}
+        </button>
+      </PracticeScreen>
     );
   }
 
   // ──────────────────────────────────────────────────────────────────────────────
-  // SCREEN 7 — Breathing
+  // Focus Word
   // ──────────────────────────────────────────────────────────────────────────────
-  if (screen === 7) {
+  if (screen === 'focus') {
+    return (
+      <PracticeScreen onBack={goBack} headerTitle={headerTitle}>
+        <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">4 / 7</p>
+        <h2 className="text-xl font-bold text-ink mb-1">{t.focus.heading}</h2>
+        <p className="text-sm text-slt mb-5">{t.focus.sub}</p>
+
+        {cardsLoading ? (
+          <div className="flex justify-center py-8">
+            <div className="w-7 h-7 border-2 border-teal-400 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : cards.length === 0 ? (
+          <div className="bg-dark-800 border border-dark-600 rounded-2xl p-4 mb-4">
+            <p className="text-sm text-slt">{t.focus.noCards}</p>
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-2 mb-5">
+            {cards.map(card => (
+              <button
+                key={card.id}
+                onClick={() => setFocusWord(focusWord === card.focusWord ? null : card.focusWord)}
+                className={`px-4 py-2.5 rounded-2xl text-sm font-bold border transition-all active:scale-95 ${
+                  focusWord === card.focusWord
+                    ? 'bg-teal-500 border-teal-500 text-white'
+                    : 'bg-dark-800 border-dark-600 text-slt'
+                }`}
+              >
+                {card.focusWord}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <button
+          onClick={() => setScreen('breathing')}
+          className="w-full bg-teal-500 text-white font-bold py-4 rounded-2xl text-base active:scale-[0.98] mb-3"
+        >
+          {t.before.nextBtn}
+        </button>
+        {(cards.length > 0 || cardsLoading === false) && (
+          <button onClick={() => { setFocusWord(null); setScreen('breathing'); }} className="w-full text-xs text-muted active:opacity-70 py-1">
+            {t.focus.skip}
+          </button>
+        )}
+      </PracticeScreen>
+    );
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────────
+  // Breathing — kept as its own full-bleed centered layout (not the shared
+  // PracticeScreen frame); the circle/timer/progress visuals need the whole
+  // viewport, and timing/interaction here are unchanged from before Stage 7.
+  // ──────────────────────────────────────────────────────────────────────────────
+  if (screen === 'breathing') {
     const progress = mode === 'training'
       ? Math.min(totalElapsed / proto.totalSeconds, 1)
       : cycleCount / proto.cycles;
@@ -717,7 +691,7 @@ export default function BodyResetPage() {
       <div className="min-h-screen bg-dark-900 flex flex-col">
         <div className="flex items-center gap-3 px-4 pt-4 pb-3">
           <div className="w-9 h-9" />
-          <h1 className="text-lg font-bold text-ink flex-1">{t.learn.title}</h1>
+          <h1 className="text-lg font-bold text-ink flex-1">{headerTitle}</h1>
         </div>
 
         <div className="flex-1 flex flex-col items-center justify-center px-4 pb-8">
@@ -779,89 +753,83 @@ export default function BodyResetPage() {
   }
 
   // ──────────────────────────────────────────────────────────────────────────────
-  // SCREEN 8 — Arjun Note
+  // Arjun Note
   // ──────────────────────────────────────────────────────────────────────────────
-  if (screen === 8) {
+  if (screen === 'note') {
     return (
-      <div className="min-h-screen bg-dark-900">
-        <Header canGoBack={false} />
-        <div className="px-4 pb-24">
-          <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">5 / 7</p>
-          <h2 className="text-xl font-bold text-ink mb-5">{t.note.heading}</h2>
+      <PracticeScreen onBack={goBack} headerTitle={headerTitle} canGoBack={false}>
+        <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">5 / 7</p>
+        <h2 className="text-xl font-bold text-ink mb-5">{t.note.heading}</h2>
 
-          {noteLoading ? (
-            <div className="flex flex-col items-center py-12 gap-3">
-              <div className="w-8 h-8 border-2 border-teal-400 border-t-transparent rounded-full animate-spin" />
-              <p className="text-sm text-slt">{t.note.loading}</p>
-            </div>
-          ) : (
-            <>
-              {focusWord && (
-                <div className="inline-flex items-center bg-teal-500/10 border border-teal-500/30 rounded-full px-3 py-1 mb-4">
-                  <p className="text-xs font-bold text-teal-400">{focusWord}</p>
-                </div>
-              )}
-              <div className="bg-brand-500/10 border border-brand-500/30 rounded-2xl p-4 mb-6">
-                <p className="text-[10px] font-bold text-brand-400 uppercase tracking-widest mb-2">
-                  {hi ? 'अर्जुन' : 'Arjun'}
-                </p>
-                <p className="text-sm text-slt leading-relaxed">{arjunNote}</p>
+        {noteLoading ? (
+          <div className="flex flex-col items-center py-12 gap-3">
+            <div className="w-8 h-8 border-2 border-teal-400 border-t-transparent rounded-full animate-spin" />
+            <p className="text-sm text-slt">{t.note.loading}</p>
+          </div>
+        ) : (
+          <>
+            {focusWord && (
+              <div className="inline-flex items-center bg-teal-500/10 border border-teal-500/30 rounded-full px-3 py-1 mb-4">
+                <p className="text-xs font-bold text-teal-400">{focusWord}</p>
               </div>
-              <button
-                onClick={() => setScreen(9)}
-                className="w-full bg-teal-500 text-white font-bold py-4 rounded-2xl text-base active:scale-[0.98]"
-              >
-                {t.note.continueBtn}
-              </button>
-            </>
+            )}
+            <div className="bg-brand-500/10 border border-brand-500/30 rounded-2xl p-4 mb-6">
+              <p className="text-[10px] font-bold text-brand-400 uppercase tracking-widest mb-2">
+                {hi ? 'अर्जुन' : 'Arjun'}
+              </p>
+              <p className="text-sm text-slt leading-relaxed">{arjunNote}</p>
+            </div>
+            <button
+              onClick={() => setScreen('after')}
+              className="w-full bg-teal-500 text-white font-bold py-4 rounded-2xl text-base active:scale-[0.98]"
+            >
+              {t.note.continueBtn}
+            </button>
+          </>
+        )}
+      </PracticeScreen>
+    );
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────────
+  // After Rating
+  // ──────────────────────────────────────────────────────────────────────────────
+  if (screen === 'after') {
+    return (
+      <PracticeScreen onBack={goBack} headerTitle={headerTitle} canGoBack={false}>
+        <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">6 / 7</p>
+        <h2 className="text-xl font-bold text-ink mb-5">{t.after.heading}</h2>
+
+        <div className="mb-6">
+          <p className="text-sm font-semibold text-ink mb-3">{t.after.tensionLabel}</p>
+          <TensionPicker value={tensionAfter} onChange={setTensionAfter} low={t.before.tensionLow} high={t.before.tensionHigh} />
+        </div>
+
+        <div className="mb-6">
+          <p className="text-sm font-semibold text-ink mb-3">{t.after.readinessLabel}</p>
+          <TensionPicker value={readinessAfter} onChange={setReadinessAfter} low={t.before.readinessLow} high={t.before.readinessHigh} />
+          {readinessAfter && (
+            <button onClick={() => setReadinessAfter(null)} className="text-xs text-muted mt-2 active:opacity-70">
+              {t.after.skipLink}
+            </button>
           )}
         </div>
-      </div>
+
+        <button
+          disabled={!tensionAfter}
+          onClick={() => setScreen('card')}
+          className="w-full bg-teal-500 text-white font-bold py-4 rounded-2xl text-base active:scale-[0.98] disabled:opacity-40"
+        >
+          {t.after.nextBtn}
+        </button>
+      </PracticeScreen>
     );
   }
 
   // ──────────────────────────────────────────────────────────────────────────────
-  // SCREEN 9 — After Rating
+  // Reset Card
   // ──────────────────────────────────────────────────────────────────────────────
-  if (screen === 9) {
-    return (
-      <div className="min-h-screen bg-dark-900">
-        <Header canGoBack={false} />
-        <div className="px-4 pb-24">
-          <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">6 / 7</p>
-          <h2 className="text-xl font-bold text-ink mb-5">{t.after.heading}</h2>
-
-          <div className="mb-6">
-            <p className="text-sm font-semibold text-ink mb-3">{t.after.tensionLabel}</p>
-            <TensionPicker value={tensionAfter} onChange={setTensionAfter} low={t.before.tensionLow} high={t.before.tensionHigh} />
-          </div>
-
-          <div className="mb-6">
-            <p className="text-sm font-semibold text-ink mb-3">{t.after.readinessLabel}</p>
-            <TensionPicker value={readinessAfter} onChange={setReadinessAfter} low={t.before.readinessLow} high={t.before.readinessHigh} />
-            {readinessAfter && (
-              <button onClick={() => setReadinessAfter(null)} className="text-xs text-muted mt-2 active:opacity-70">
-                {t.after.skipLink}
-              </button>
-            )}
-          </div>
-
-          <button
-            disabled={!tensionAfter}
-            onClick={() => setScreen(10)}
-            className="w-full bg-teal-500 text-white font-bold py-4 rounded-2xl text-base active:scale-[0.98] disabled:opacity-40"
-          >
-            {t.after.nextBtn}
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // ──────────────────────────────────────────────────────────────────────────────
-  // SCREEN 10 — Reset Card
-  // ──────────────────────────────────────────────────────────────────────────────
-  if (screen === 10) {
+  if (screen === 'card') {
     const delta = tensionDelta();
     const feelingLabel = feeling === 'custom'
       ? feelingCustom
@@ -871,73 +839,70 @@ export default function BodyResetPage() {
       : contextOpts.find(o => o.val === context)?.key || context;
 
     return (
-      <div className="min-h-screen bg-dark-900">
-        <Header canGoBack={false} />
-        <div className="px-4 pb-24">
-          <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">7 / 7</p>
-          <h2 className="text-xl font-bold text-ink mb-5">{t.card.heading}</h2>
+      <PracticeScreen onBack={goBack} headerTitle={headerTitle} canGoBack={false}>
+        <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">7 / 7</p>
+        <h2 className="text-xl font-bold text-ink mb-5">{t.card.heading}</h2>
 
-          <div className="bg-dark-800 border border-dark-600 rounded-2xl overflow-hidden mb-6">
-            <div className="flex items-center gap-2 px-4 py-3 border-b border-dark-700">
-              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                mode === 'quick' ? 'bg-teal-500/20 text-teal-400' : 'bg-brand-500/20 text-brand-400'
-              }`}>
-                {mode === 'quick' ? t.card.modeQuick : t.card.modeTraining}
-              </span>
-            </div>
-            <div className="px-4 py-3 space-y-3">
-              {feelingLabel && (
-                <div>
-                  <p className="text-[10px] font-semibold text-slt uppercase tracking-wider mb-0.5">{t.card.feelingLabel}</p>
-                  <p className="text-sm text-ink">{feelingLabel}</p>
-                </div>
-              )}
-              {contextLabel && (
-                <div>
-                  <p className="text-[10px] font-semibold text-slt uppercase tracking-wider mb-0.5">{t.card.contextLabel}</p>
-                  <p className="text-sm text-ink">{contextLabel}</p>
-                </div>
-              )}
-              {delta && (
-                <div>
-                  <p className="text-[10px] font-semibold text-slt uppercase tracking-wider mb-0.5">{t.card.tensionLabel}</p>
-                  <p className={`text-sm font-bold ${delta.color}`}>{delta.label}</p>
-                </div>
-              )}
-              {focusWord && (
-                <div>
-                  <p className="text-[10px] font-semibold text-slt uppercase tracking-wider mb-0.5">{t.card.focusWordLabel}</p>
-                  <p className="text-sm font-bold text-teal-400">{focusWord}</p>
-                </div>
-              )}
-            </div>
-            {arjunNote && (
-              <div className="px-4 py-3 border-t border-dark-700 bg-brand-500/5">
-                <p className="text-[10px] font-bold text-brand-400 uppercase tracking-wider mb-1">{t.card.noteLabel}</p>
-                <p className="text-sm text-slt leading-relaxed">{arjunNote}</p>
+        <div className="bg-dark-800 border border-dark-600 rounded-2xl overflow-hidden mb-6">
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-dark-700">
+            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+              mode === 'quick' ? 'bg-teal-500/20 text-teal-400' : 'bg-brand-500/20 text-brand-400'
+            }`}>
+              {mode === 'quick' ? t.card.modeQuick : t.card.modeTraining}
+            </span>
+          </div>
+          <div className="px-4 py-3 space-y-3">
+            {feelingLabel && (
+              <div>
+                <p className="text-[10px] font-semibold text-slt uppercase tracking-wider mb-0.5">{t.card.feelingLabel}</p>
+                <p className="text-sm text-ink">{feelingLabel}</p>
+              </div>
+            )}
+            {contextLabel && (
+              <div>
+                <p className="text-[10px] font-semibold text-slt uppercase tracking-wider mb-0.5">{t.card.contextLabel}</p>
+                <p className="text-sm text-ink">{contextLabel}</p>
+              </div>
+            )}
+            {delta && (
+              <div>
+                <p className="text-[10px] font-semibold text-slt uppercase tracking-wider mb-0.5">{t.card.tensionLabel}</p>
+                <p className={`text-sm font-bold ${delta.color}`}>{delta.label}</p>
+              </div>
+            )}
+            {focusWord && (
+              <div>
+                <p className="text-[10px] font-semibold text-slt uppercase tracking-wider mb-0.5">{t.card.focusWordLabel}</p>
+                <p className="text-sm font-bold text-teal-400">{focusWord}</p>
               </div>
             )}
           </div>
-
-          <button
-            disabled={saving}
-            onClick={saveSession}
-            className="w-full bg-teal-500 text-white font-bold py-4 rounded-2xl text-base active:scale-[0.98] disabled:opacity-60"
-          >
-            {saving ? t.card.saving : t.card.saveBtn}
-          </button>
+          {arjunNote && (
+            <div className="px-4 py-3 border-t border-dark-700 bg-brand-500/5">
+              <p className="text-[10px] font-bold text-brand-400 uppercase tracking-wider mb-1">{t.card.noteLabel}</p>
+              <p className="text-sm text-slt leading-relaxed">{arjunNote}</p>
+            </div>
+          )}
         </div>
-      </div>
+
+        <button
+          disabled={saving}
+          onClick={saveSession}
+          className="w-full bg-teal-500 text-white font-bold py-4 rounded-2xl text-base active:scale-[0.98] disabled:opacity-60"
+        >
+          {saving ? t.card.saving : t.card.saveBtn}
+        </button>
+      </PracticeScreen>
     );
   }
 
   // ──────────────────────────────────────────────────────────────────────────────
-  // SCREEN 11 — Done
+  // Done
   // ──────────────────────────────────────────────────────────────────────────────
-  if (screen === 11) {
+  if (screen === 'done') {
     const delta = tensionDelta();
     return (
-      <div className="min-h-screen bg-dark-900 flex flex-col items-center justify-center px-4 pb-8">
+      <PracticeCompletion>
         <div className="w-16 h-16 rounded-2xl bg-teal-500/15 flex items-center justify-center mb-4">
           <Wind size={28} className="text-teal-400" />
         </div>
@@ -967,7 +932,7 @@ export default function BodyResetPage() {
             {t.done.trainBtn}
           </button>
         </div>
-      </div>
+      </PracticeCompletion>
     );
   }
 
