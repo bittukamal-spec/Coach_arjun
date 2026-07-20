@@ -86,7 +86,9 @@ test('App: /progress still redirects to /playbook', () => {
 // ── 4. The visible Playbook page consumes the foundation ────────────────────
 
 test('PlaybookPage imports the ui primitives', () => {
-  assert.match(playbook, /import \{ Card, PageHeader, SectionLabel \} from '\.\.\/components\/ui'/);
+  // Refinement PR: Playbook grew its own icon SectionHeading; the shared
+  // Card + PageHeader primitives are still the foundation.
+  assert.match(playbook, /import \{ Card, PageHeader \} from '\.\.\/components\/ui'/);
 });
 
 test('PlaybookPage uses PageHeader with the original navigate(-1) back behavior', () => {
@@ -103,9 +105,9 @@ test('PlaybookPage ordinary cards are flat Card primitives — no legacy card cl
   assert.doesNotMatch(playbook, /card-surface|card-elevated/);
 });
 
-test('PlaybookPage uses SectionLabel and semantic spacing, not legacy label/gutter classes', () => {
-  assert.match(playbook, /<SectionLabel>/);
-  assert.doesNotMatch(playbook, /SectionHeader/);
+test('PlaybookPage uses its icon SectionHeading and semantic spacing, not legacy label/gutter classes', () => {
+  assert.match(playbook, /<SectionHeading/);
+  assert.doesNotMatch(playbook, /SectionHeader\b/);
   assert.match(playbook, /px-page/);
 });
 

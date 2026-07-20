@@ -31,12 +31,15 @@ test('PlaybookPage: has a Mind Journal entry point that navigates to /mind-journ
   assert.match(playbook, /onClick=\{\(\) => navigate\('\/mind-journal'\)\}/);
 });
 
-test('PlaybookPage: the Mind Journal entry point is a quiet text link, not a Card or the hero — does not compete with primary content', () => {
+test('PlaybookPage: the Mind Journal entry point is a proper quiet card — flat, never the hero, with a privacy/no-score line', () => {
+  // Refinement PR: the loose text-with-chevron row became a flat Card with
+  // a title, a short privacy/no-score explanation, and one clear action.
   const idx = playbook.indexOf("navigate('/mind-journal')");
-  const block = playbook.slice(Math.max(0, idx - 200), idx + 300);
-  assert.doesNotMatch(block, /<Card/, 'the Mind Journal entry point must not be wrapped in a Card primitive');
+  const block = playbook.slice(Math.max(0, idx - 300), idx + 700);
+  assert.match(block, /<Card/, 'the Mind Journal entry point is a quiet flat Card');
   assert.doesNotMatch(block, /variant="hero"/, 'the Mind Journal entry point must not use the hero gradient');
-  assert.match(block, /text-caption text-slt/, 'the entry point must use quiet, secondary-weight text styling');
+  assert.match(block, /text-caption text-slt/, 'the supporting line keeps quiet, secondary-weight text styling');
+  assert.match(block, /कोई स्कोर नहीं|no scores/i, 'the card explains it is score-free');
 });
 
 // ── No scores, diagnosis, profiling, or auto-prescription copy ─────────────
