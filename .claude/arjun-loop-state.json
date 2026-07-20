@@ -5,7 +5,12 @@
   "nextStage": 10,
   "completedStages": [1, 2, 3, 4, 5, 6, 7, 8, 9],
   "activeStageBranch": "claude/arjun-pilot-stage-10",
-  "activePullRequest": null,
+  "activePullRequest": {
+    "number": 36,
+    "url": "https://github.com/bittukamal-spec/Coach_arjun/pull/36",
+    "title": "[Arjun Pilot Loop] Stage 10 — Final consistency and accessibility QA",
+    "draft": true
+  },
   "stages": {
     "1": {
       "id": "stage-1",
@@ -87,9 +92,11 @@
     "10": {
       "id": "stage-10",
       "title": "Final consistency and accessibility QA",
-      "status": "in_progress",
+      "status": "ready_for_founder_review",
       "branch": "claude/arjun-pilot-stage-10",
-      "prTitle": "[Arjun Pilot Loop] Stage 10 — Final consistency and accessibility QA"
+      "prTitle": "[Arjun Pilot Loop] Stage 10 — Final consistency and accessibility QA",
+      "prNumber": 36,
+      "prUrl": "https://github.com/bittukamal-spec/Coach_arjun/pull/36"
     }
   },
   "notes": {
