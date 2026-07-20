@@ -47,7 +47,7 @@ test('Quick Chat: no "not saved" banner copy remains rendered in ChatPage', () =
 test('Quick Chat: only one athlete-facing entry action button exists on the start screen', () => {
   const startScreen = chatPageSrc.slice(
     chatPageSrc.indexOf('Entry choice screen'),
-    chatPageSrc.indexOf('Session summary — shown')
+    chatPageSrc.indexOf('Empty state — no messages')
   );
   const buttonCount = (startScreen.match(/<button/g) || []).length;
   assert.equal(buttonCount, 1, 'expected exactly one button on the chat entry screen (Continue with Arjun)');
@@ -77,7 +77,7 @@ test('ChatPage: disclosure renders in the entry-screen path, not only inside the
   const safetyPopoverStart = chatPageSrc.indexOf('showSafety &&');
   const safetyPopoverEnd = chatPageSrc.indexOf('</header>');
   const entryScreenStart = chatPageSrc.indexOf('Entry choice screen');
-  const entryScreenEnd = chatPageSrc.indexOf('Session summary — shown');
+  const entryScreenEnd = chatPageSrc.indexOf('Empty state — no messages');
 
   assert.ok(disclosureIdx > entryScreenStart && disclosureIdx < entryScreenEnd, 'disclosure must render inside the entry screen');
   assert.ok(!(disclosureIdx > safetyPopoverStart && disclosureIdx < safetyPopoverEnd), 'disclosure must not be hidden inside the Info-only popover');

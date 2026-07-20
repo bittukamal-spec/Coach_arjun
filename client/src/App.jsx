@@ -31,6 +31,7 @@ import BodyResetPage from './pages/BodyResetPage';
 import ResetHistoryPage from './pages/ResetHistoryPage';
 import MentalRepPage from './pages/MentalRepPage';
 import PlaybookPage from './pages/PlaybookPage';
+import WeeklyReviewsPage from './pages/WeeklyReviewsPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import BottomNav from './components/BottomNav';
 import { translations } from './i18n/translations';
@@ -244,6 +245,18 @@ function App() {
         element={
           <ProtectedRoute requireOnboarding={true}>
             <MentalRepPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Weekly Reviews — weekly coaching summaries, outside the live chat
+          stream. Reached from the Chat header; back goes to Coach. */}
+      <Route
+        path="/weekly-reviews"
+        element={
+          <ProtectedRoute requireOnboarding={true}>
+            <WeeklyReviewsPage />
+            <BottomNav />
           </ProtectedRoute>
         }
       />

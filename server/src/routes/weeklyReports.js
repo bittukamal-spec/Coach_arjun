@@ -7,26 +7,10 @@ const { aiLimiter } = require('../middleware/rateLimits');
 const { isTrialActive } = require('./chat');
 const { screenSafetyText, recordSafetyEvent, getSafetyGuidance } = require('../services/safety');
 
+const { getWeekStart, getWeekEnd } = require('../utils/weekBoundary');
+
 const router = express.Router();
 const prisma = new PrismaClient();
-
-// ── Date helpers ──────────────────────────────────────────────────────────────
-
-function getWeekStart(date) {
-  const d = new Date(date);
-  const day = d.getUTCDay(); // 0=Sun … 6=Sat
-  const diff = day === 0 ? -6 : 1 - day; // offset back to Monday
-  d.setUTCDate(d.getUTCDate() + diff);
-  d.setUTCHours(0, 0, 0, 0);
-  return d;
-}
-
-function getWeekEnd(weekStart) {
-  const d = new Date(weekStart);
-  d.setUTCDate(d.getUTCDate() + 6);
-  d.setUTCHours(23, 59, 59, 999);
-  return d;
-}
 
 // ── Lazy generation: generate last week's report if missing ───────────────────
 //
@@ -42,10 +26,12 @@ function createMaybeGenerateLastWeekReport({
   screenText = screenSafetyText,
   recordEvent = recordSafetyEvent,
   getGuidance = getSafetyGuidance,
+  // Injectable clock so tests can pin the week boundary deterministically —
+  // production always uses the real current time.
+  now = () => new Date(),
 } = {}) {
   return async function maybeGenerateLastWeekReport(userId) {
-    const now = new Date();
-    const thisWeekStart = getWeekStart(now);
+    const thisWeekStart = getWeekStart(now());
 
     const lastWeekStart = new Date(thisWeekStart);
     lastWeekStart.setUTCDate(lastWeekStart.getUTCDate() - 7);
@@ -117,7 +103,7 @@ function createMaybeGenerateLastWeekReport({
     const res = await anthropic.messages.create({
       model: process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001',
       max_tokens: 600,
-      system: `You are Arjun, an AI mental coach for young Indian athletes. Write a weekly coaching report based on what the athlete shared with you this week. Use a direct, encouraging coach voice — not clinical, not corporate. Write 180–250 words. Use these exact section headings in bold: **How your week looked** / **What I noticed** / **Your mental highlight** / **One thing to work on** / **Going into next week**. Bold each heading. No bullet points — flowing sentences. Address the athlete as "you". Start directly with the first section heading, no preamble.`,
+      system: `You are Arjun, an AI mental coach for young Indian athletes. Write a short Weekly Review of the athlete's coaching week based on what they shared with you. Use a direct, encouraging coach voice — not clinical, not corporate. Write 150–220 words. Use these exact section headings in bold: **What you worked on** / **Patterns Arjun noticed** / **What helped** / **Your next focus**. Bold each heading. No bullet points — flowing sentences. Address the athlete as "you". Only describe things the athlete actually said — never invent progress or make unsupported performance claims, and skip generic praise filler. Never include scores, ratings, marks, percentages, levels, diagnoses, or personality labels. If the athlete mentioned anything sensitive or unsafe, do not repeat those details. Start directly with the first section heading, no preamble.`,
       messages: [
         {
           role: 'user',
