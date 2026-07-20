@@ -4,7 +4,7 @@ import Navbar from '../components/Navbar';
 import ConsentBanner from '../components/ConsentBanner';
 import { useAuth } from '../contexts/AuthContext';
 import { apiFetch } from '../api';
-import { ChevronRight, BookOpen, Pencil } from 'lucide-react';
+import { ChevronRight, BookOpen, Pencil, CloudRain, RotateCcw, Crosshair, TrendingUp } from 'lucide-react';
 import { SectionLabel } from '../components/ui';
 
 // Day-context picker — remembered for the rest of the day so the single
@@ -41,17 +41,19 @@ const PRIMARY_ACTION = {
   },
 };
 
-// Problem shortcuts — all four now enter Coach with a visible, unsent
-// prefill instead of jumping straight to a tool. Stable internal starter
-// values, independent of the button's own display label.
+// Problem shortcuts — all four enter Coach with a visible, unsent prefill
+// instead of jumping straight to a tool. Stable internal starter values,
+// independent of the button's own display label. Each carries a small icon
+// so the shortcut tiles read as actions, visually distinct from the
+// quieter day-context selector above.
 const PROBLEM_SHORTCUTS = [
-  { id: 'nervous',    label: { en: "I'm nervous",            hi: 'मैं nervous हूं' },
+  { id: 'nervous',    icon: CloudRain,  label: { en: "I'm nervous",            hi: 'मैं nervous हूं' },
     prefill: { en: "I'm feeling nervous.", hi: 'मुझे घबराहट हो रही है।' } },
-  { id: 'mistake',    label: { en: 'I made a mistake',       hi: 'गलती हो गई' },
+  { id: 'mistake',    icon: RotateCcw,  label: { en: 'I made a mistake',       hi: 'गलती हो गई' },
     prefill: { en: "I made a mistake and can't stop thinking about it.", hi: 'मुझसे गलती हो गई और मैं उसके बारे में सोचना बंद नहीं कर पा रहा।' } },
-  { id: 'focus',      label: { en: 'I need focus',           hi: 'फोकस चाहिए' },
+  { id: 'focus',      icon: Crosshair,  label: { en: 'I need focus',           hi: 'फोकस चाहिए' },
     prefill: { en: 'I need help focusing.', hi: 'मुझे फोकस करने में मदद चाहिए।' } },
-  { id: 'confidence', label: { en: 'I feel low confidence',  hi: 'confidence कम है' },
+  { id: 'confidence', icon: TrendingUp, label: { en: 'I feel low confidence',  hi: 'confidence कम है' },
     prefill: { en: "I'm feeling low on confidence.", hi: 'मेरा confidence कम है।' } },
 ];
 
@@ -100,6 +102,15 @@ export default function Dashboard() {
     ? { state: { context: dayContext } }
     : undefined;
 
+  // One contextual line for the Playbook card — sourced ONLY from data the
+  // Dashboard already fetches (GET /api/playbook). Never a new API call,
+  // never a fake metric: with no useful data it falls back to static copy.
+  const playbookDetail = playbook && playbook.weekRepCount > 0
+    ? (hi ? `इस हफ्ते ${playbook.weekRepCount} मेंटल रेप पूरे किए।` : `${playbook.weekRepCount} mental rep${playbook.weekRepCount === 1 ? '' : 's'} completed this week.`)
+    : playbook && playbook.topCue
+      ? (hi ? `सबसे ज्यादा use हुआ cue: "${playbook.topCue.value}"` : `Your most-used cue: "${playbook.topCue.value}"`)
+      : null;
+
   // ── render ─────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-dark-900">
@@ -122,7 +133,7 @@ export default function Dashboard() {
             <ConsentBanner />
 
             {/* ── 1. GREETING ───────────────────────────────────────────────── */}
-            <div className="pt-1 mb-5">
+            <div className="pt-1 mb-6">
               <p className="text-2xl font-black text-ink leading-tight">
                 {hi ? `हाय, ${firstName}` : `Hi, ${firstName}`}
               </p>
@@ -131,28 +142,45 @@ export default function Dashboard() {
             {/* ── 2. ONE ADAPTIVE PRIMARY ACTION CARD — never more than one.
                  Its own title/description/CTA swap with the athlete's
                  "What's today?" pick; training/just-a-rep/no pick all fall
-                 back to the default Mental Rep action. ──────────────────── */}
-            <div className="mb-6">
+                 back to the default Mental Rep action. The elevated surface
+                 plus the single gradient CTA make it the unambiguous
+                 primary action on the page. ──────────────────────────────── */}
+            <div className="mb-8">
               <SectionLabel>{hi ? 'आज' : 'Today'}</SectionLabel>
               <div className="card-elevated p-5">
-                <h2 className="text-lg font-bold text-ink leading-tight mb-1">
+                <h2 className="text-xl font-black text-ink leading-tight mb-1">
                   {primaryAction.title[lang]}
                 </h2>
                 <p className="text-sm text-slt mb-4">
                   {primaryAction.desc[lang]}
                 </p>
 
-                {/* Context picker — simple, per-day, no calendar */}
+                {/* Day-context selector — a compact segmented control, NOT
+                    action cards. Quiet unselected chips inside one grouped
+                    track; a filled, clearly-selected state; ≥44px touch
+                    targets; aria-pressed for assistive tech. Deliberately
+                    styled apart from the "Need help right now?" tiles
+                    below — picking a context changes THIS card, it never
+                    navigates. */}
                 <p className="text-[10px] font-bold text-muted uppercase tracking-wider mb-2">
                   {hi ? 'आज क्या है?' : "What's today?"}
                 </p>
-                <div className="flex flex-wrap gap-2 mb-4">
+                <div
+                  role="group"
+                  aria-label={hi ? 'आज क्या है?' : "What's today?"}
+                  className="inline-flex flex-wrap gap-1 p-1 rounded-xl bg-dark-700/70 border border-dark-600 mb-4"
+                >
                   {DAY_CONTEXTS.map(c => (
                     <button
                       key={c.id}
                       type="button"
                       onClick={() => pickContext(c.id)}
-                      className={`chip ${dayContext === c.id ? '!border-brand-500 !text-brand-400' : ''}`}
+                      aria-pressed={dayContext === c.id}
+                      className={`text-caption px-3 rounded-lg min-h-[44px] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 active:scale-95 ${
+                        dayContext === c.id
+                          ? 'bg-brand-600 text-white font-semibold shadow-sm'
+                          : 'bg-transparent text-slt font-medium'
+                      }`}
                     >
                       {c[lang]}
                     </button>
@@ -174,63 +202,91 @@ export default function Dashboard() {
                  onClick+navigate — same primitive BottomNav already uses for
                  its Coach tab. Each carries its own route state and nothing
                  else; none of them touch dayContext, pickContext, or any
-                 tool/game/skill-path route. ──────────────────────────────── */}
-            <div className="mb-6">
+                 tool/game/skill-path route. Rendered as outlined shortcut
+                 tiles with small icons — a clear action affordance, visually
+                 different from the segmented day-context selector. ───────── */}
+            <div className="mb-8">
               <SectionLabel>{hi ? 'अभी मदद चाहिए?' : 'Need help right now?'}</SectionLabel>
               <div className="grid grid-cols-2 gap-2">
-                {PROBLEM_SHORTCUTS.map(q => (
-                  <Link
-                    key={q.id}
-                    to="/coaching"
-                    state={{ prefillMsg: q.prefill[hi ? 'hi' : 'en'] }}
-                    className="chip justify-center text-center py-2.5"
-                  >
-                    {q.label[hi ? 'hi' : 'en']}
-                  </Link>
-                ))}
+                {PROBLEM_SHORTCUTS.map(q => {
+                  const Icon = q.icon;
+                  return (
+                    <Link
+                      key={q.id}
+                      to="/coaching"
+                      state={{ prefillMsg: q.prefill[hi ? 'hi' : 'en'] }}
+                      className="card-surface flex items-center gap-2.5 px-3.5 py-3 min-h-[56px] active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                    >
+                      <Icon size={15} className="text-brand-400 shrink-0" aria-hidden="true" />
+                      <span className="text-caption font-semibold text-ink leading-snug">
+                        {q.label[hi ? 'hi' : 'en']}
+                      </span>
+                    </Link>
+                  );
+                })}
               </div>
             </div>
 
-            {/* ── 4. MENTAL PLAYBOOK — quiet entry row, no scores ─────────────── */}
-            <div className="mb-6">
-              <SectionLabel>{hi ? 'Mental Playbook' : 'Mental Playbook'}</SectionLabel>
-              <button
-                onClick={() => navigate('/playbook')}
-                className="w-full card-surface p-4 flex items-center gap-3 text-left active:scale-[0.98] transition-transform"
+            {/* ── 4. MENTAL PLAYBOOK — a larger informative library card, no
+                 scores. Its one contextual line comes only from the playbook
+                 data this page already fetched. ──────────────────────────── */}
+            <div className="mb-4">
+              <SectionLabel>{hi ? 'तुम्हारी लाइब्रेरी' : 'Your library'}</SectionLabel>
+              <Link
+                to="/playbook"
+                className="block card-surface p-5 active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
               >
-                <div className="w-9 h-9 rounded-xl bg-brand-500/15 flex items-center justify-center shrink-0">
-                  <BookOpen size={16} className="text-brand-400" />
+                <div className="flex items-start gap-3.5">
+                  <div className="w-11 h-11 rounded-xl bg-brand-500/15 flex items-center justify-center shrink-0">
+                    <BookOpen size={20} className="text-brand-400" aria-hidden="true" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-base font-bold text-ink mb-0.5">Mental Playbook</p>
+                    <p className="text-caption text-slt leading-relaxed">
+                      {hi
+                        ? 'तुम्हारे cues, cards, reflections और सीख — सिर्फ तुम्हारे लिए, private.'
+                        : 'Your cues, cards, reflections, and lessons — private to you.'}
+                    </p>
+                    {playbookDetail && (
+                      <p className="text-caption font-medium text-brand-400 mt-1.5">{playbookDetail}</p>
+                    )}
+                  </div>
+                  <ChevronRight size={16} className="text-muted shrink-0 mt-1" aria-hidden="true" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-ink">{hi ? 'Mental Playbook' : 'Mental Playbook'}</p>
-                  <p className="text-xs text-slt truncate">
-                    {playbook && playbook.weekRepCount > 0
-                      ? (hi ? `इस हफ्ते ${playbook.weekRepCount} मेंटल रेप पूरे किए।` : `You've completed ${playbook.weekRepCount} mental rep${playbook.weekRepCount === 1 ? '' : 's'} this week.`)
-                      : (hi ? 'तुम्हारे cues, cards और reflections' : 'Your cues, cards, and reflections')}
-                  </p>
-                </div>
-                <ChevronRight size={16} className="text-muted shrink-0" />
-              </button>
+              </Link>
             </div>
 
-            {/* ── 5. MIND JOURNAL — quiet entry row, no scores ────────────────── */}
+            {/* ── 5. MIND JOURNAL — a larger quiet card with an amber accent
+                 so it never reads as a twin of the Playbook card. No scores,
+                 no diagnosis, no pressure to write daily. ─────────────────── */}
             <div className="mb-6">
-              <SectionLabel>{hi ? 'माइंड जर्नल' : 'Mind Journal'}</SectionLabel>
-              <button
-                onClick={() => navigate('/mind-journal')}
-                className="w-full card-surface p-4 flex items-center gap-3 text-left active:scale-[0.98] transition-transform"
+              <Link
+                to="/mind-journal"
+                className="block card-surface p-5 active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
               >
-                <div className="w-9 h-9 rounded-xl bg-brand-500/15 flex items-center justify-center shrink-0">
-                  <Pencil size={16} className="text-brand-400" />
+                <div className="flex items-start gap-3.5">
+                  <div
+                    className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
+                    style={{ background: 'rgba(217,139,43,0.12)' }}
+                  >
+                    <Pencil size={20} style={{ color: '#D98B2B' }} aria-hidden="true" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-base font-bold text-ink mb-0.5">{hi ? 'माइंड जर्नल' : 'Mind Journal'}</p>
+                    <p className="text-caption text-slt leading-relaxed">
+                      {hi
+                        ? 'तुम्हारी feelings का एक निजी नोट। कोई स्कोर नहीं।'
+                        : "A private place to note how you're feeling. No scores."}
+                    </p>
+                    <p className="text-caption text-muted mt-1.5">
+                      {hi
+                        ? 'जब मन करे तब लिखो — यह सिर्फ तुम्हारे अपने शब्दों के लिए है।'
+                        : "Write whenever you feel like it — it's just a space for your own words."}
+                    </p>
+                  </div>
+                  <ChevronRight size={16} className="text-muted shrink-0 mt-1" aria-hidden="true" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-ink">{hi ? 'माइंड जर्नल' : 'Mind Journal'}</p>
-                  <p className="text-xs text-slt truncate">
-                    {hi ? 'तुम्हारी feelings का एक निजी नोट। कोई स्कोर नहीं।' : "A private note of how you're feeling. No scores."}
-                  </p>
-                </div>
-                <ChevronRight size={16} className="text-muted shrink-0" />
-              </button>
+              </Link>
             </div>
           </>
         )}

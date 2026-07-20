@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { Info, Eye, RotateCcw, ClipboardList, MessageSquare, Target, RefreshCw, Layers, Dumbbell, GraduationCap, ChevronLeft, X } from 'lucide-react';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
+import { Info, History, Eye, RotateCcw, ClipboardList, MessageSquare, Target, RefreshCw, Layers, Dumbbell, GraduationCap, ChevronLeft, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
@@ -68,27 +68,6 @@ function TypingIndicator() {
           <span className="w-2 h-2 bg-slt rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
           <span className="w-2 h-2 bg-slt rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
         </span>
-      </div>
-    </div>
-  );
-}
-
-function SummaryBubble({ summary, label }) {
-  const sentences = summary.split(/(?<=\.)\s+/).filter(Boolean);
-  return (
-    <div className="animate-fade-in mb-1">
-      <div className="rounded-2xl bg-brand-600/10 border border-brand-500/30 p-4 shadow-sm">
-        <div className="flex items-center gap-2 mb-2">
-          <div className="w-4 h-4 rounded-full bg-brand-500 flex items-center justify-center shrink-0">
-            <svg viewBox="0 0 10 10" className="w-2.5 h-2.5">
-              <path d="M1.5 5L3.5 7.5L8.5 2.5" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </div>
-          <p className="text-micro uppercase text-brand-400 font-bold">{label}</p>
-        </div>
-        <p className="text-sm leading-relaxed text-ink whitespace-pre-wrap">
-          {sentences.join('\n\n')}
-        </p>
       </div>
     </div>
   );
@@ -380,7 +359,6 @@ function ChatPage() {
   const [chatSessionId, setChatSessionId]         = useState(null);
   const [showStartScreen, setShowStartScreen]     = useState(false);
   const [recentSessions, setRecentSessions]       = useState([]);
-  const [sessionSummary, setSessionSummary]       = useState(null);
   const [chatMode, setChatMode]                   = useState('main');
   const [showBreakReminder, setShowBreakReminder] = useState(false);
   const [serverCards, setServerCards]             = useState([]);
@@ -456,7 +434,6 @@ function ChatPage() {
               if (sess?.sessionType && sess.sessionType !== 'general') {
                 setActiveSession(sess.sessionType);
               }
-              if (sess?.summary) setSessionSummary(sess.summary);
               // No follow-up claim here — this is passive discovery of an
               // already-ongoing session on mount, not the athlete explicitly
               // choosing to enter the main conversation. Claiming happens
@@ -471,7 +448,6 @@ function ChatPage() {
               if (mainSession.sessionType && mainSession.sessionType !== 'general') {
                 setActiveSession(mainSession.sessionType);
               }
-              if (mainSession.summary) setSessionSummary(mainSession.summary);
               // No follow-up claim here either — same reasoning as above.
               await fetchSessionMessages(mainSession.id);
               sessionLoaded = true;
@@ -672,7 +648,6 @@ function ChatPage() {
     const id = data.session.id;
     setChatSessionId(id);
     setShowStartScreen(false);
-    setSessionSummary(null);
     return id;
   }
 
@@ -686,7 +661,6 @@ function ChatPage() {
       if (existingSession.sessionType && existingSession.sessionType !== 'general') {
         setActiveSession(existingSession.sessionType);
       }
-      if (existingSession.summary) setSessionSummary(existingSession.summary);
       await fetchSessionMessages(existingSession.id);
       await claimFollowUpOpener(existingSession.id);
       setShowStartScreen(false);
@@ -870,6 +844,15 @@ function ChatPage() {
             </div>
           </div>
           <div className="flex items-center gap-1 shrink-0">
+            {/* Weekly Reviews — history of weekly coaching reviews, kept
+                OUTSIDE the live message stream on its own page. */}
+            <Link
+              to="/weekly-reviews"
+              className="p-2.5 text-slt hover:text-ink transition-colors rounded-lg hover:bg-dark-700"
+              aria-label={t.weeklyReviewsLabel}
+            >
+              <History size={16} />
+            </Link>
             <button
               onClick={() => setShowSafety(s => !s)}
               className="p-2.5 text-slt hover:text-ink transition-colors rounded-lg hover:bg-dark-700"
@@ -915,13 +898,10 @@ function ChatPage() {
             </div>
           )}
 
-          {/* Session summary — shown when loading an existing session that has been summarised */}
-          {!showStartScreen && sessionSummary && (
-            <SummaryBubble
-              summary={sessionSummary}
-              label={translations[language].sessionHistory.sessionSummaryLabel}
-            />
-          )}
+          {/* No weekly report or summary card is ever rendered inside the
+              live message stream — weekly coaching reviews live on their
+              own /weekly-reviews page (reached from the header icon), so
+              the stream opens at the most recent active-cycle message. */}
 
           {/* Empty state — no messages in last 7 days */}
           {!showStartScreen && messages.length === 0 && !waitingForFirst && (

@@ -49,9 +49,11 @@ test('Dashboard: no Starter Plan coach note, session list, locked-session messag
   assert.doesNotMatch(dashboard, /Complete the previous session first/);
 });
 
-test('Dashboard: renders a quiet Mind Journal row that opens /mind-journal', () => {
-  assert.match(dashboard, /onClick=\{\(\) => navigate\('\/mind-journal'\)\}/);
-  assert.match(dashboard, /A private note of how you're feeling\. No scores\./);
+test('Dashboard: renders a score-free Mind Journal card that opens /mind-journal', () => {
+  // Refinement PR: the quiet row became a larger informative card — a real
+  // <Link>, still score-free, with the founder-approved supporting copy.
+  assert.match(dashboard, /to="\/mind-journal"/);
+  assert.match(dashboard, /A private place to note how you're feeling\. No scores\./);
 });
 
 test('Dashboard: stopped requests that only supported hidden sections (Starter Plan, MFS today, progress stat pills)', () => {

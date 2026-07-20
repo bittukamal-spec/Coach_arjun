@@ -20,8 +20,11 @@ const onboarding = readFileSync(path.join(root, 'src/pages/OnboardingPage.jsx'),
 const activeTools = readFileSync(path.join(root, 'src/constants/activeTools.js'), 'utf8');
 
 test('Dashboard: the visible daily check-in action opens Mind Journal, not the old scored page', () => {
-  assert.match(dashboard, /onClick=\{\(\) => navigate\('\/mind-journal'\)\}/);
+  // Refinement PR: the quiet row became a larger informative card — a real
+  // <Link>, same primitive as the problem shortcuts, still to /mind-journal.
+  assert.match(dashboard, /to="\/mind-journal"/);
   assert.doesNotMatch(dashboard, /navigate\('\/mental-fitness'/, 'Dashboard must never navigate to the old scored route');
+  assert.doesNotMatch(dashboard, /to="\/mental-fitness"/, 'Dashboard must never link to the old scored route');
 });
 
 test('Dashboard: no active action POSTs to the legacy scored endpoint (a read of /today for legacy display is not a write and is left as-is)', () => {

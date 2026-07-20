@@ -33,7 +33,7 @@ test('PlaybookPage: renders a "What I\'m learning" section with an EN/HI heading
 
 test('PlaybookPage: shows an empty state when there are no recorded outcomes yet', () => {
   const idx = src.indexOf("What I'm learning");
-  const block = src.slice(idx, idx + 1500);
+  const block = src.slice(idx, idx + 2600);
   assert.match(block, /data\?\.practiceOutcomes\?\.length \?/);
   assert.match(block, /haven't recorded any lessons yet/i);
 });
@@ -67,9 +67,11 @@ test('PlaybookPage: existing sections (This week, Recent insight, Focus Cards, S
   assert.match(src, /Reflections/);
 });
 
-test('PlaybookPage: does not redesign the page — the shared section-label and flat-card conventions (Stage 3 ui primitives) are reused for the new section', () => {
+test('PlaybookPage: the section keeps the shared flat-card convention under its icon section heading', () => {
+  // Refinement PR: sections now carry an icon SectionHeading and wrap their
+  // content (entries AND empty state) in flat Card containers.
   const idx = src.indexOf("What I'm learning");
-  const block = src.slice(idx, idx + 900);
-  assert.match(block, /<SectionLabel>/);
+  const block = src.slice(idx, idx + 2600);
+  assert.match(block, /SectionHeading/);
   assert.match(block, /<Card /);
 });

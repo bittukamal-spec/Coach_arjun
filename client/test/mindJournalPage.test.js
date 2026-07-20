@@ -236,6 +236,8 @@ test('App.jsx: the old /mental-fitness path redirects to the new score-free expe
 });
 
 test('Dashboard.jsx: the visible check-in link now opens Mind Journal, not the old scored page', () => {
-  assert.match(dashboard, /navigate\('\/mind-journal'\)/);
+  // Refinement PR: the entry is now a real <Link to="/mind-journal"> card.
+  assert.match(dashboard, /to="\/mind-journal"/);
   assert.doesNotMatch(dashboard, /navigate\('\/mental-fitness'\)/);
+  assert.doesNotMatch(dashboard, /to="\/mental-fitness"/);
 });
