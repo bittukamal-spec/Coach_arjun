@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Loader2, MessageSquare } from 'lucide-react';
+import { Loader2, MessageSquare } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiFetch } from '../api';
 import { translations } from '../i18n/translations';
 import HelplineList from '../components/HelplineList';
 import ToolIntroLayout from '../components/train/ToolIntroLayout';
+import { PracticeHeader } from '../components/practice/PracticeShell';
 
 export default function SelfTalkPage() {
   const { user, token, language } = useAuth();
@@ -136,19 +137,8 @@ export default function SelfTalkPage() {
     setScreen('practice');
   };
 
-  // ── Shared header ────────────────────────────────────────────────────────
-  const Header = ({ progress }) => (
-    <div className="flex items-center gap-3 px-4 pt-4 pb-2">
-      <button onClick={goBack} className="w-9 h-9 flex items-center justify-center rounded-full bg-dark-700 active:scale-95">
-        <ArrowLeft size={18} className="text-ink" />
-      </button>
-      {progress && (
-        <div className="flex-1 h-1.5 bg-dark-700 rounded-full overflow-hidden">
-          <div className="h-full bg-brand-500 rounded-full transition-all duration-300" style={{ width: progress }} />
-        </div>
-      )}
-    </div>
-  );
+  // ── Shared header — the same PracticeHeader every shell-based practice uses
+  const Header = ({ progress }) => <PracticeHeader onBack={goBack} progress={progress} />;
 
   // ── SCREEN 1: Learn ──────────────────────────────────────────────────────
   if (screen === 1) return (
@@ -196,7 +186,7 @@ export default function SelfTalkPage() {
       <Header progress="28%" />
       <div className="flex-1 px-4 pt-2 pb-8 overflow-y-auto">
         <p className="text-xs text-slt mb-1">{t.sport.progress}</p>
-        <h2 className="text-xl font-bold text-ink mb-5">{t.sport.heading}</h2>
+        <h2 className="text-title font-bold text-ink mb-5">{t.sport.heading}</h2>
 
         <div className="space-y-4">
           <div>
@@ -279,7 +269,7 @@ export default function SelfTalkPage() {
       <Header progress="42%" />
       <div className="flex-1 px-4 pt-2 pb-8 overflow-y-auto">
         <p className="text-xs text-slt mb-1">{t.situation.progress}</p>
-        <h2 className="text-xl font-bold text-ink mb-5">{t.situation.heading}</h2>
+        <h2 className="text-title font-bold text-ink mb-5">{t.situation.heading}</h2>
 
         <div className="grid grid-cols-1 gap-2 mb-4">
           {SITUATION_OPTIONS.map(opt => (
@@ -340,7 +330,7 @@ export default function SelfTalkPage() {
       <Header progress="57%" />
       <div className="flex-1 px-4 pt-2 pb-8 overflow-y-auto">
         <p className="text-xs text-slt mb-1">{t.thought.progress}</p>
-        <h2 className="text-xl font-bold text-ink mb-1">{t.thought.heading}</h2>
+        <h2 className="text-title font-bold text-ink mb-1">{t.thought.heading}</h2>
         <p className="text-sm text-slt mb-4">{t.thought.sub}</p>
 
         <div className="grid grid-cols-1 gap-2 mb-4">
@@ -481,7 +471,7 @@ export default function SelfTalkPage() {
       <Header progress="85%" />
       <div className="flex-1 px-4 pt-2 pb-4 overflow-y-auto">
         <p className="text-xs text-slt mb-1">{t.card.progress}</p>
-        <h2 className="text-xl font-bold text-ink mb-4">{t.card.heading}</h2>
+        <h2 className="text-title font-bold text-ink mb-4">{t.card.heading}</h2>
 
         <div className="rounded-3xl overflow-hidden mb-4 card-elevated">
           {/* Gradient crown band */}
@@ -489,30 +479,30 @@ export default function SelfTalkPage() {
             className="px-5 pt-5 pb-4 text-center text-white"
             style={{ background: 'linear-gradient(135deg, #185FA5 0%, #8B5CF6 100%)' }}
           >
-            <p className="text-[10px] font-semibold text-white/80 uppercase tracking-widest mb-1">{t.card.focusWordLabel}</p>
-            <p className="font-black leading-tight" style={{ fontSize: '30px' }}>{card.focusWord}</p>
+            <p className="text-micro font-semibold text-white/80 uppercase mb-1">{t.card.focusWordLabel}</p>
+            <p className="text-display font-black leading-tight">{card.focusWord}</p>
           </div>
 
           <div className="p-5">
             <div className="text-center mb-4">
-              <p className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: '#D98B2B' }}>{t.card.resetWordLabel}</p>
-              <p className="font-bold" style={{ fontSize: '22px', color: '#D98B2B' }}>{card.resetWord}</p>
+              <p className="text-micro font-semibold uppercase mb-1" style={{ color: '#D98B2B' }}>{t.card.resetWordLabel}</p>
+              <p className="text-title font-bold" style={{ color: '#D98B2B' }}>{card.resetWord}</p>
             </div>
 
             <div className="border-t border-dark-600 pt-4 mb-3">
-              <p className="text-[10px] font-semibold text-slt uppercase tracking-wider mb-1">{t.card.powerLineLabel}</p>
+              <p className="text-micro font-semibold text-slt uppercase mb-1">{t.card.powerLineLabel}</p>
               <p className="text-sm font-semibold text-ink italic">"{card.powerLine}"</p>
             </div>
 
             <div>
-              <p className="text-[10px] font-semibold text-slt uppercase tracking-wider mb-1">{t.card.reminderLabel}</p>
+              <p className="text-micro font-semibold text-slt uppercase mb-1">{t.card.reminderLabel}</p>
               <p className="text-sm text-slt">{card.performanceReminder}</p>
             </div>
           </div>
         </div>
 
         <div className="bg-dark-800 rounded-2xl p-4 mb-4">
-          <p className="text-[10px] font-semibold text-brand-400 uppercase tracking-wider mb-1">{t.card.arjunNoteLabel}</p>
+          <p className="text-micro font-semibold text-brand-400 uppercase mb-1">{t.card.arjunNoteLabel}</p>
           <p className="text-sm text-slt leading-relaxed">{card.arjunNote}</p>
         </div>
 
@@ -589,7 +579,7 @@ export default function SelfTalkPage() {
       <div className="min-h-screen bg-dark-900 flex flex-col items-center justify-center px-4">
         <div className="text-center mb-8">
           <div className="text-5xl mb-4">⚡</div>
-          <h2 className="text-xl font-bold text-ink mb-2">{t.practice.doneMsg}</h2>
+          <h2 className="text-title font-bold text-ink mb-2">{t.practice.doneMsg}</h2>
         </div>
         <button onClick={() => navigate('/focus-deck')} className="w-full bg-brand-500 text-white font-bold py-3.5 rounded-2xl active:scale-95">
           {t.saved.deckBtn}

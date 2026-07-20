@@ -38,7 +38,7 @@ function SessionDivider({ sessionKey, date, t }) {
   return (
     <div className="flex items-center gap-2 my-1 animate-fade-in">
       <div className="flex-1 h-px bg-dark-600" />
-      <span className="text-[11px] text-slt whitespace-nowrap">
+      <span className="text-caption text-slt whitespace-nowrap">
         {def.icon} {def.title} · {timeAgo(date, t)}
       </span>
       <div className="flex-1 h-px bg-dark-600" />
@@ -84,7 +84,7 @@ function SummaryBubble({ summary, label }) {
               <path d="M1.5 5L3.5 7.5L8.5 2.5" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <p className="text-[10px] uppercase tracking-widest text-brand-400 font-bold">{label}</p>
+          <p className="text-micro uppercase text-brand-400 font-bold">{label}</p>
         </div>
         <p className="text-sm leading-relaxed text-ink whitespace-pre-wrap">
           {sentences.join('\n\n')}
@@ -212,16 +212,16 @@ function AppToolCard({ toolId }) {
           {IconComponent && <IconComponent size={16} />}
         </div>
         <div className="min-w-0 flex-1">
-          <div className="text-[13px] font-semibold text-ink leading-tight">
+          <div className="text-body font-semibold text-ink leading-tight">
             {config.label}
           </div>
-          <div className="text-[11px] text-slt mt-0.5">
+          <div className="text-caption text-slt mt-0.5">
             {config.sub}
           </div>
         </div>
       </div>
       {config.why && (
-        <div className="text-[11px] text-slt leading-snug">
+        <div className="text-caption text-slt leading-snug">
           {config.why}
         </div>
       )}
@@ -252,7 +252,7 @@ function ServerCardBubble({ card, t }) {
     <div className="flex justify-start">
       <div className="max-w-[92%] bg-dark-400 border border-dark-600 shadow-sm rounded-2xl rounded-bl-md overflow-hidden">
         <div className="px-3.5 py-2.5 flex flex-col gap-1.5">
-          <p className="text-[10px] uppercase tracking-widest text-brand-400 font-bold">
+          <p className="text-micro uppercase text-brand-400 font-bold">
             Mental Rep
           </p>
           <p className="text-sm leading-relaxed text-ink whitespace-pre-wrap">
@@ -859,7 +859,7 @@ function ChatPage() {
           <div className="flex items-center gap-2 min-w-0">
             <button
               onClick={() => navigate(-1)}
-              className="p-1.5 text-slt hover:text-ink transition-colors rounded-lg hover:bg-dark-700 -ml-1 shrink-0"
+              className="p-2.5 text-slt hover:text-ink transition-colors rounded-lg hover:bg-dark-700 -ml-2 shrink-0"
               aria-label="Go back"
             >
               <ChevronLeft size={20} />
@@ -872,7 +872,7 @@ function ChatPage() {
           <div className="flex items-center gap-1 shrink-0">
             <button
               onClick={() => setShowSafety(s => !s)}
-              className="p-1.5 text-slt hover:text-ink transition-colors rounded-lg hover:bg-dark-700"
+              className="p-2.5 text-slt hover:text-ink transition-colors rounded-lg hover:bg-dark-700"
               aria-label="Safety info"
             >
               <Info size={16} />
@@ -896,8 +896,8 @@ function ChatPage() {
           {showStartScreen && !waitingForFirst && (
             <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 animate-fade-in">
               {consentPending && <div className="w-full"><ConsentBanner /></div>}
-              <h2 className="text-[22px] font-bold text-ink mb-2 text-center">{t.entry.heading}</h2>
-              <p className="text-[15px] text-slt text-center mb-6 leading-relaxed max-w-xs">{t.entry.description}</p>
+              <h2 className="text-title font-bold text-ink mb-2 text-center">{t.entry.heading}</h2>
+              <p className="text-body text-slt text-center mb-6 leading-relaxed max-w-xs">{t.entry.description}</p>
               <div className="w-full bg-brand-500/10 border border-brand-500/30 rounded-2xl px-4 py-3 mb-6">
                 <p className="text-xs text-slt leading-relaxed">{t.entryDisclosure}</p>
                 <p className="text-xs text-slt leading-relaxed mt-2">{t.entryDisclosureSafety}</p>
@@ -910,7 +910,7 @@ function ChatPage() {
                 >
                   {t.entry.continue.label}
                 </button>
-                <p className="text-[13px] text-slt text-center">{t.entry.continue.sub}</p>
+                <p className="text-caption text-slt text-center">{t.entry.continue.sub}</p>
               </div>
             </div>
           )}
@@ -965,7 +965,7 @@ function ChatPage() {
                   )}
                   {showAiReminder && (
                     <div className="flex justify-center my-1">
-                      <p className="text-[11px] text-slt bg-dark-700/60 rounded-full px-3 py-1 text-center">
+                      <p className="text-caption text-slt bg-dark-700/60 rounded-full px-3 py-1 text-center">
                         {t.reminderAiCoach}
                       </p>
                     </div>
