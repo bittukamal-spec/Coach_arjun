@@ -7,63 +7,69 @@ const { aiLimiter } = require('../middleware/rateLimits');
 const { isTrialActive } = require('./chat');
 const { screenSafetyText, recordSafetyEvent, getSafetyGuidance } = require('../services/safety');
 
-const { getWeekStart, getWeekEnd } = require('../utils/weekBoundary');
+const { CYCLE_LENGTH_MS } = require('../utils/cycleBoundary');
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
-// ── Lazy generation: generate last week's report if missing ───────────────────
+// ── Per-cycle Weekly Review generation ────────────────────────────────────────
 //
-// Injectable so tests can stub the database and the Anthropic client
-// instead of touching a real database or calling the real API — same
-// pattern as requireGuardianConsent (PR-2) and recordSafetyEvent (PR-5).
-// The default export below always uses the real client and the shared
-// safety service; the route handler's call site is unchanged.
+// One Weekly Review per COMPLETED seven-day chat cycle (an archived main
+// ChatSession — see the rollover in routes/sessions.js). The review reads
+// that cycle's own transcript (messages by chatSessionId — archived
+// messages are preserved, never deleted, and are exactly what feeds the
+// review) and is stored on the existing WeeklyReport model with
+// weekStart = the cycle's real start (session.createdAt) and weekEnd = the
+// cycle's real end (the archive timestamp), so the visible date range
+// always matches the actual completed cycle. The pre-existing
+// @@unique([userId, weekStart]) is the duplicate-prevention guarantee:
+// the same cycle can never produce two reviews, no matter how many
+// tabs/requests race — a concurrent loser's create() throws the unique
+// violation and is swallowed by the caller's catch. Historical
+// Monday-keyed WeeklyReport rows are left exactly as stored and simply
+// render with their stored ranges.
+//
+// Injectable so tests can stub the database and the Anthropic client —
+// same pattern as requireGuardianConsent (PR-2) and recordSafetyEvent
+// (PR-5). The default export below always uses the real client and the
+// shared safety service.
 
-function createMaybeGenerateLastWeekReport({
+function createGenerateCycleReview({
   db = prisma,
   createAnthropicClient = () => new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }),
   screenText = screenSafetyText,
   recordEvent = recordSafetyEvent,
   getGuidance = getSafetyGuidance,
-  // Injectable clock so tests can pin the week boundary deterministically —
-  // production always uses the real current time.
-  now = () => new Date(),
 } = {}) {
-  return async function maybeGenerateLastWeekReport(userId) {
-    const thisWeekStart = getWeekStart(now());
+  return async function generateCycleReview(userId, { sessionId, cycleStart, cycleEnd }) {
+    const weekStart = new Date(cycleStart);
+    // A legacy archived cycle without a stamped end falls back to the
+    // nominal seven-day span — never an invented wider window.
+    const weekEnd = cycleEnd ? new Date(cycleEnd) : new Date(weekStart.getTime() + CYCLE_LENGTH_MS);
 
-    const lastWeekStart = new Date(thisWeekStart);
-    lastWeekStart.setUTCDate(lastWeekStart.getUTCDate() - 7);
-    const lastWeekEnd = getWeekEnd(lastWeekStart);
-
-    // Skip if report already exists
+    // Skip if this cycle's review already exists (retry-safe fast path).
     const existing = await db.weeklyReport.findUnique({
-      where: { userId_weekStart: { userId, weekStart: lastWeekStart } },
+      where: { userId_weekStart: { userId, weekStart } },
     });
     if (existing) return;
 
-    // Count user messages from last week
+    // The completed cycle's own athlete messages.
     const messages = await db.message.findMany({
-      where: {
-        userId,
-        role: 'user',
-        createdAt: { gte: lastWeekStart, lte: lastWeekEnd },
-      },
+      where: { userId, role: 'user', chatSessionId: sessionId },
       orderBy: { createdAt: 'asc' },
       select: { content: true, createdAt: true },
     });
 
-    if (messages.length < 3) return; // not enough data for a meaningful report
+    if (messages.length < 3) return; // not enough data for a meaningful review
 
     // Deterministic pre-LLM safety screen on DERIVED content. This is a
-    // short-circuit, not a filter: if ANY stored message in the window trips
+    // short-circuit, not a filter: if ANY stored message in the cycle trips
     // the screen, generation aborts entirely — zero Anthropic calls are made
-    // with this week's transcript. A minimal client-compatible WeeklyReport
+    // with this cycle's transcript. A minimal client-compatible WeeklyReport
     // row is written instead, carrying fixed safety guidance as its content.
-    // That row satisfies the *existing* per-week dedup check above
+    // That row satisfies the *existing* per-cycle dedup check above
     // (`existing` via the userId_weekStart unique key) on every subsequent
-    // page load, so exactly one SafetyEvent is ever recorded for this
+    // attempt, so exactly one SafetyEvent is ever recorded for this
     // request — re-running the screen and re-eventing on every load is
     // avoided by the same mechanism that already prevents re-generation.
     const flaggedMessage = messages.find(m => screenText(m.content).flagged);
@@ -74,8 +80,8 @@ function createMaybeGenerateLastWeekReport({
       const report = await db.weeklyReport.create({
         data: {
           userId,
-          weekStart: lastWeekStart,
-          weekEnd: lastWeekEnd,
+          weekStart,
+          weekEnd,
           content: getGuidance(category, user?.language),
           messageCount: messages.length,
         },
@@ -112,11 +118,15 @@ function createMaybeGenerateLastWeekReport({
       ],
     });
 
+    // If a concurrent request (rollover trigger vs /weekly-reviews retry)
+    // won the race since the dedup check above, this create throws the
+    // userId_weekStart unique violation — the caller's catch swallows it
+    // and exactly one review remains.
     await db.weeklyReport.create({
       data: {
         userId,
-        weekStart: lastWeekStart,
-        weekEnd: lastWeekEnd,
+        weekStart,
+        weekEnd,
         content: res.content[0].text,
         messageCount: messages.length,
       },
@@ -124,18 +134,44 @@ function createMaybeGenerateLastWeekReport({
   };
 }
 
-const maybeGenerateLastWeekReport = createMaybeGenerateLastWeekReport();
+const generateCycleReview = createGenerateCycleReview();
 
-// ── GET / — return last 8 reports, lazily generating last week's if missing ───
+// ── Retry-safe sweep: generate any missing review for completed cycles ────────
+//
+// Called fire-and-forget from the chat-cycle rollover (sessions.js) the
+// moment a cycle completes, AND awaited from GET / below — so if the
+// first attempt failed or was interrupted (crash, network, model error),
+// simply opening Weekly Reviews retries it safely. Per-cycle failures are
+// isolated: one bad cycle never blocks the others, the fresh chat cycle,
+// or the reports listing. Bounded to the most recent few archived cycles.
+
+function createGenerateMissingCycleReviews({ db = prisma, generate = generateCycleReview } = {}) {
+  return async function generateMissingCycleReviews(userId) {
+    const cycles = await db.chatSession.findMany({
+      where: { userId, mode: 'main', status: 'archived' },
+      orderBy: { createdAt: 'desc' },
+      take: 4,
+      select: { id: true, createdAt: true, endedAt: true },
+    });
+    for (const c of cycles) {
+      await generate(userId, { sessionId: c.id, cycleStart: c.createdAt, cycleEnd: c.endedAt })
+        .catch(err => console.error('weekly-review generation error:', err));
+    }
+  };
+}
+
+const generateMissingCycleReviews = createGenerateMissingCycleReviews();
+
+// ── GET / — return last 8 reports, generating any missing cycle review ────────
 
 router.get('/', authenticate, aiLimiter, requireGuardianConsent, async (req, res) => {
   try {
-    // Fire-and-forget: try to generate last week's report if not yet created.
-    // Errors are suppressed so they never block the response.
+    // Retry-safe: fill in any missing review for completed cycles. Errors
+    // are isolated per cycle and never block the response below.
     // Trial gate: skip generation for expired-trial free users; already-generated
     // reports below are still returned.
     if (await isTrialActive(req.userId)) {
-      await maybeGenerateLastWeekReport(req.userId).catch(err =>
+      await generateMissingCycleReviews(req.userId).catch(err =>
         console.error('weekly-report generation error:', err)
       );
     }
@@ -155,4 +191,7 @@ router.get('/', authenticate, aiLimiter, requireGuardianConsent, async (req, res
 });
 
 module.exports = router;
-module.exports.createMaybeGenerateLastWeekReport = createMaybeGenerateLastWeekReport;
+module.exports.createGenerateCycleReview = createGenerateCycleReview;
+module.exports.generateCycleReview = generateCycleReview;
+module.exports.createGenerateMissingCycleReviews = createGenerateMissingCycleReviews;
+module.exports.generateMissingCycleReviews = generateMissingCycleReviews;
