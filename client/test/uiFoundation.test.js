@@ -121,13 +121,13 @@ test('PlaybookPage links unchanged: focus-deck, self-talk, mental-rep, debrief',
   assert.match(playbook, /navigate\('\/debrief'\)/);
 });
 
-test('PlaybookPage content preserved: all four sections in original order', () => {
+test('PlaybookPage content preserved: all sections present, "What I\'m learning" moved to the top (Stage 9)', () => {
   const idx = [
+    playbook.indexOf('"What I\'m learning"'),
     playbook.indexOf("'This week'"),
     playbook.indexOf("'Focus Cards'"),
     playbook.indexOf("'Saved cues'"),
     playbook.indexOf("'Reflections'"),
-    playbook.indexOf('"What I\'m learning"'),
   ];
   assert.ok(idx.every(i => i !== -1), 'a Playbook section heading is missing');
   assert.deepEqual(idx, [...idx].sort((a, b) => a - b), 'Playbook section order changed');

@@ -61,6 +61,29 @@ export default function PlaybookPage() {
             : 'Your cues, cards, and reflections — private, just for you.'}
         </p>
 
+        {/* ── What I'm learning (prescription outcomes, PR-13) — the first
+             thing an athlete sees on Playbook, ahead of the weekly summary ── */}
+        <SectionLabel>{hi ? 'मैं क्या सीख रहा हूँ' : "What I'm learning"}</SectionLabel>
+        {data?.practiceOutcomes?.length ? (
+          <div className="space-y-2.5 mb-2">
+            {data.practiceOutcomes.map(o => (
+              <Card key={o.prescriptionId} className="p-4">
+                <p className="text-micro text-muted mb-1">
+                  {new Date(o.outcomeRecordedAt).toLocaleDateString(hi ? 'hi-IN' : 'en-IN', { day: 'numeric', month: 'short' })}
+                  {' · '}{o.practiceName}
+                </p>
+                {o.situation && <p className="text-caption text-slt mb-1">{o.situation}</p>}
+                <p className="text-body font-bold mb-1" style={{ color: '#185FA5' }}>{outcomeLabel(o.outcomeStatus, hi)}</p>
+                {o.lesson && <p className="text-body text-ink leading-relaxed">{o.lesson}</p>}
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <p className="text-body text-slt mb-6">
+            {hi ? 'अभी कोई सीख दर्ज नहीं हुई।' : "You haven't recorded any lessons yet."}
+          </p>
+        )}
+
         {/* ── Progress without pressure — the page's one gradient hero ──── */}
         {data && (
           <Card variant="hero" className="p-4 mb-5">
@@ -170,27 +193,16 @@ export default function PlaybookPage() {
           {hi ? 'नया reflection शुरू करो' : 'Start a reflection'} <ChevronRight size={12} />
         </button>
 
-        {/* ── What I'm learning (prescription outcomes, PR-13) ────────────── */}
-        <SectionLabel>{hi ? 'मैं क्या सीख रहा हूँ' : "What I'm learning"}</SectionLabel>
-        {data?.practiceOutcomes?.length ? (
-          <div className="space-y-2.5 mb-2">
-            {data.practiceOutcomes.map(o => (
-              <Card key={o.prescriptionId} className="p-4">
-                <p className="text-micro text-muted mb-1">
-                  {new Date(o.outcomeRecordedAt).toLocaleDateString(hi ? 'hi-IN' : 'en-IN', { day: 'numeric', month: 'short' })}
-                  {' · '}{o.practiceName}
-                </p>
-                {o.situation && <p className="text-caption text-slt mb-1">{o.situation}</p>}
-                <p className="text-body font-bold mb-1" style={{ color: '#185FA5' }}>{outcomeLabel(o.outcomeStatus, hi)}</p>
-                {o.lesson && <p className="text-body text-ink leading-relaxed">{o.lesson}</p>}
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <p className="text-body text-slt mb-6">
-            {hi ? 'अभी कोई सीख दर्ज नहीं हुई।' : "You haven't recorded any lessons yet."}
-          </p>
-        )}
+        {/* ── Mind Journal — a quiet entry point, not a primary feature ───── */}
+        <button
+          onClick={() => navigate('/mind-journal')}
+          className="w-full flex items-center justify-between gap-2 py-3 text-left active:opacity-70"
+        >
+          <span className="text-caption text-slt">
+            {hi ? 'मन की डायरी में एक एंट्री जोड़ो' : 'Add an entry to your Mind Journal'}
+          </span>
+          <ChevronRight size={13} className="text-muted shrink-0" />
+        </button>
       </div>
     </div>
   );
