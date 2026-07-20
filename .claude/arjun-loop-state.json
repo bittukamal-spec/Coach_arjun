@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "automationMode": "one_draft_pr_at_a_time",
   "autoMerge": false,
-  "nextStage": 9,
-  "completedStages": [1, 2, 3, 4, 5, 6, 7, 8],
-  "activeStageBranch": "claude/arjun-pilot-stage-9",
+  "nextStage": 10,
+  "completedStages": [1, 2, 3, 4, 5, 6, 7, 8, 9],
+  "activeStageBranch": "claude/arjun-pilot-stage-10",
   "activePullRequest": null,
   "stages": {
     "1": {
@@ -78,14 +78,16 @@
     "9": {
       "id": "stage-9",
       "title": "Playbook and Mind Journal consistency",
-      "status": "in_progress",
+      "status": "completed",
       "branch": "claude/arjun-pilot-stage-9",
-      "prTitle": "[Arjun Pilot Loop] Stage 9 — Playbook and Mind Journal consistency"
+      "prTitle": "[Arjun Pilot Loop] Stage 9 — Playbook and Mind Journal consistency",
+      "prNumber": 35,
+      "prUrl": "https://github.com/bittukamal-spec/Coach_arjun/pull/35"
     },
     "10": {
       "id": "stage-10",
       "title": "Final consistency and accessibility QA",
-      "status": "pending",
+      "status": "in_progress",
       "branch": "claude/arjun-pilot-stage-10",
       "prTitle": "[Arjun Pilot Loop] Stage 10 — Final consistency and accessibility QA"
     }
