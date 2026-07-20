@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "automationMode": "one_draft_pr_at_a_time",
   "autoMerge": false,
-  "nextStage": 7,
-  "completedStages": [1, 2, 3, 4, 5, 6],
-  "activeStageBranch": "claude/arjun-pilot-stage-7",
+  "nextStage": 8,
+  "completedStages": [1, 2, 3, 4, 5, 6, 7],
+  "activeStageBranch": "claude/arjun-pilot-stage-8",
   "activePullRequest": {
-    "number": 33,
-    "url": "https://github.com/bittukamal-spec/Coach_arjun/pull/33",
-    "title": "[Arjun Pilot Loop] Stage 7 — Pressure Reset migration",
-    "stage": 7,
+    "number": 34,
+    "url": "https://github.com/bittukamal-spec/Coach_arjun/pull/34",
+    "title": "[Arjun Pilot Loop] Stage 8 — Reflection migration",
+    "stage": 8,
     "draft": true
   },
   "stages": {
@@ -66,7 +66,7 @@
     "7": {
       "id": "stage-7",
       "title": "Pressure Reset migration",
-      "status": "ready_for_founder_review",
+      "status": "completed",
       "branch": "claude/arjun-pilot-stage-7",
       "prTitle": "[Arjun Pilot Loop] Stage 7 — Pressure Reset migration",
       "prNumber": 33,
@@ -75,9 +75,11 @@
     "8": {
       "id": "stage-8",
       "title": "Reflection migration",
-      "status": "pending",
+      "status": "ready_for_founder_review",
       "branch": "claude/arjun-pilot-stage-8",
-      "prTitle": "[Arjun Pilot Loop] Stage 8 — Reflection migration"
+      "prTitle": "[Arjun Pilot Loop] Stage 8 — Reflection migration",
+      "prNumber": 34,
+      "prUrl": "https://github.com/bittukamal-spec/Coach_arjun/pull/34"
     },
     "9": {
       "id": "stage-9",

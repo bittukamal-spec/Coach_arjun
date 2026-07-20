@@ -4,7 +4,7 @@ import { ClipboardList } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
-import ToolIntroLayout from '../components/train/ToolIntroLayout';
+import { PracticeHeader, PracticeIntro, PracticeScreen } from '../components/practice/PracticeShell';
 
 // ── Self-abuse keyword guard ──────────────────────────────────────────────────
 const ABUSE_WORDS = ['stupid', 'idiot', 'useless', 'pathetic', 'worthless', 'loser', 'failure', 'terrible', 'worst', 'hate myself'];
@@ -47,18 +47,6 @@ function ArjunBubble({ children }) {
   );
 }
 
-// ── Progress bar ──────────────────────────────────────────────────────────────
-function ProgressBar({ current, total }) {
-  return (
-    <div className="h-1 bg-dark-700 w-full">
-      <div
-        className="h-full bg-brand-500 transition-all duration-500"
-        style={{ width: `${(current / total) * 100}%` }}
-      />
-    </div>
-  );
-}
-
 // ── Loading dots ──────────────────────────────────────────────────────────────
 function LoadingDots() {
   return (
@@ -75,6 +63,15 @@ function LoadingDots() {
 }
 
 // ── Main page ─────────────────────────────────────────────────────────────────
+// Flow: intro → entry (mode pick, or today's review if already done) →
+// s1..s5 → done. Intro and wizard-step chrome come from the shared
+// PracticeShell (Stage 6/7); entry and done keep their existing richer,
+// scrollable layouts (result cards, collapsible history, bottom sheet) —
+// same reasoning Stage 7 used for Pressure Reset's breathing screen — but
+// reuse the shell's PracticeHeader for a consistent header bar. Submission
+// payload, arjunInsight generation/display, self-abuse handling, and
+// prescription-completion linkage are all unchanged from before this
+// migration — only the chrome around the flow changes.
 export default function DebriefPage() {
   const { token, language, user, updateUser } = useAuth();
   const t  = translations[language].atm;
@@ -231,7 +228,9 @@ export default function DebriefPage() {
 
   // ── goBack helper ─────────────────────────────────────────────────────────
   function goBack() {
-    if (screen === 's1') {
+    if (screen === 'entry') {
+      navigate('/train');
+    } else if (screen === 's1') {
       setScreen('entry');
     } else if (screen === 's2') {
       // Reset s1 selections so auto-advance doesn't fire on return
@@ -264,71 +263,32 @@ export default function DebriefPage() {
     });
   }
 
-  // ── Screen header ─────────────────────────────────────────────────────────
-  function Header({ showBack = true, step = null }) {
-    return (
-      <>
-        <header className="bg-dark-900 border-b border-dark-600 px-4 py-4 sticky top-0 z-10 shrink-0">
-          <div className="max-w-lg mx-auto flex items-center justify-between">
-            {showBack ? (
-              <button onClick={goBack} className="text-sm text-slt hover:text-ink">← Back</button>
-            ) : (
-              <button onClick={() => navigate('/train')} className="text-sm text-slt hover:text-ink">✕</button>
-            )}
-            <p className="font-semibold text-ink">{t.intro.title}</p>
-            {step != null ? (
-              <p className="text-xs text-slt">{step}/{totalScreens}</p>
-            ) : (
-              <div className="w-10" />
-            )}
-          </div>
-        </header>
-        {step != null && <ProgressBar current={step} total={totalScreens} />}
-      </>
-    );
-  }
+  const headerTitle = t.intro.title;
+  const progressFor = step => `${Math.round((step / totalScreens) * 100)}%`;
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // INFO SCREEN
+  // INFO / INTRO SCREEN — shared shell
   // ═══════════════════════════════════════════════════════════════════════════
   if (showInfo) {
     return (
-      <div className="min-h-screen bg-dark-900 flex flex-col pb-6">
-        <header className="bg-dark-900 border-b border-dark-600 px-4 py-4 sticky top-0 z-10">
-          <div className="max-w-lg mx-auto flex items-center justify-between">
-            <button onClick={() => navigate('/train')} className="text-sm text-slt hover:text-ink">← {hi ? 'वापस' : 'Back'}</button>
-            <p className="font-semibold text-ink">{t.intro.title}</p>
-            <div className="w-14" />
-          </div>
-        </header>
-        <main className="flex-1 max-w-lg mx-auto w-full px-4 py-8 animate-fade-in">
-          <div className="flex flex-col items-center gap-6">
-            <ClipboardList size={48} className="text-brand-500" />
-            <div className="text-center">
-              <h2 className="text-xl font-bold text-ink mb-2">{t.intro.title}</h2>
-              <p className="text-sm text-slt leading-relaxed">{t.intro.desc}</p>
-            </div>
-            <div className="w-full flex items-center gap-2 text-xs text-slt bg-dark-800 rounded-xl px-3 py-2">
-              <span className="text-brand-500 font-semibold">⏱</span>
-              <span>{t.intro.duration}</span>
-            </div>
-            <div className="w-full flex flex-col gap-2">
-              {t.intro.benefits.map((b, i) => (
-                <div key={i} className="flex items-start gap-2 text-sm text-ink">
-                  <span className="text-brand-500 mt-0.5 shrink-0">✓</span>
-                  <span>{b}</span>
-                </div>
-              ))}
-            </div>
-            <button
-              onClick={() => setShowInfo(false)}
-              className="w-full py-3.5 bg-brand-500 text-white font-semibold rounded-2xl active:scale-95 transition-transform"
-            >
-              {t.intro.start}
-            </button>
-          </div>
-        </main>
-      </div>
+      <PracticeIntro
+        onBack={() => navigate('/train')}
+        headerTitle={headerTitle}
+        icon={ClipboardList}
+        variant="amber"
+        tag={hi ? 'मैच के बाद' : 'After match'}
+        title={t.intro.title}
+        desc={t.intro.desc}
+        stats={[
+          { label: hi ? 'समय' : 'Duration', value: t.intro.duration },
+        ]}
+        checklist={{
+          title: hi ? 'क्या उम्मीद करें' : 'What to expect',
+          items: t.intro.benefits,
+        }}
+        onStart={() => setShowInfo(false)}
+        startLabel={t.intro.start}
+      />
     );
   }
 
@@ -351,13 +311,7 @@ export default function DebriefPage() {
     if (todayDebrief) {
       return (
         <div className="min-h-screen bg-dark-900 flex flex-col pb-6">
-          <header className="bg-dark-900 border-b border-dark-600 px-4 py-4 sticky top-0 z-10">
-            <div className="max-w-lg mx-auto flex items-center justify-between">
-              <button onClick={() => navigate('/train')} className="text-sm text-slt hover:text-ink">✕</button>
-              <p className="font-semibold text-ink">{t.intro.title}</p>
-              <div className="w-10" />
-            </div>
-          </header>
+          <PracticeHeader onBack={() => navigate('/train')} title={headerTitle} />
 
           <main className="flex-1 max-w-lg mx-auto w-full px-4 py-10">
             {/* Done badge */}
@@ -405,26 +359,10 @@ export default function DebriefPage() {
     // Normal entry — pick mode
     return (
       <div className="min-h-screen bg-dark-900 flex flex-col pb-6">
-        <header className="bg-dark-900 border-b border-dark-600 px-4 py-4 sticky top-0 z-10">
-          <div className="max-w-lg mx-auto flex items-center justify-between">
-            <button onClick={() => navigate('/train')} className="text-sm text-slt hover:text-ink">✕</button>
-            <p className="font-semibold text-ink">{hi ? 'मैच / ट्रेनिंग के बाद' : 'After Match / Training'}</p>
-            <div className="w-10" />
-          </div>
-        </header>
+        <PracticeHeader onBack={() => navigate('/train')} title={headerTitle} />
 
         <main className="flex-1 max-w-lg mx-auto w-full px-4 py-6">
-          <ToolIntroLayout
-            icon={ClipboardList}
-            variant="amber"
-            tag={hi ? 'मैच के बाद' : 'After match'}
-            title={t.entry.prompt}
-            stats={[
-              { label: hi ? 'समय' : 'Duration', value: hi ? '2–4 मिनट' : '2–4 min' },
-              { label: hi ? 'किसके लिए' : 'Best for', value: hi ? 'मैच या ट्रेनिंग के बाद' : 'After match or training' },
-              { label: hi ? 'लक्ष्य' : 'Goal', value: hi ? 'एक साफ सीख' : 'One clear takeaway' },
-            ]}
-          />
+          <h2 className="text-2xl font-black text-ink mb-5 leading-tight">{t.entry.prompt}</h2>
 
           <div className="flex flex-col gap-3">
             {[
@@ -451,30 +389,28 @@ export default function DebriefPage() {
   // ═══════════════════════════════════════════════════════════════════════════
   if (screen === 's1') {
     return (
-      <div className="min-h-screen bg-dark-900 flex flex-col pb-6">
-        <Header showBack step={1} />
-        <main className="flex-1 max-w-lg mx-auto w-full px-4 py-6 overflow-y-auto">
-          <h2 className="text-lg font-bold text-ink mb-4 text-center">{t.screen1.promptA}</h2>
-          <div className="flex flex-wrap gap-2 mb-7">
-            {t.screen1.events.map(ev => (
-              <Chip key={ev} label={ev} selected={eventType === ev} onClick={() => setEventType(ev)} />
-            ))}
-          </div>
+      <PracticeScreen onBack={goBack} headerTitle={headerTitle} progress={progressFor(1)}>
+        <p className="text-xs font-bold text-slt uppercase tracking-widest mb-4">1 / {totalScreens}</p>
+        <h2 className="text-lg font-bold text-ink mb-4 text-center">{t.screen1.promptA}</h2>
+        <div className="flex flex-wrap gap-2 mb-7">
+          {t.screen1.events.map(ev => (
+            <Chip key={ev} label={ev} selected={eventType === ev} onClick={() => setEventType(ev)} />
+          ))}
+        </div>
 
-          <h2 className="text-lg font-bold text-ink mb-4 text-center">{t.screen1.promptB}</h2>
-          <div className="flex flex-col gap-2">
-            {t.screen1.results.map(r => (
-              <Chip key={r} label={r} selected={resultType === r} onClick={() => setResultType(r)} fullWidth />
-            ))}
-          </div>
+        <h2 className="text-lg font-bold text-ink mb-4 text-center">{t.screen1.promptB}</h2>
+        <div className="flex flex-col gap-2">
+          {t.screen1.results.map(r => (
+            <Chip key={r} label={r} selected={resultType === r} onClick={() => setResultType(r)} fullWidth />
+          ))}
+        </div>
 
-          {eventType && resultType && (
-            <p className="text-xs text-slt text-center mt-6 animate-fade-in">
-              {hi ? 'आगे बढ़ रहे हैं…' : 'Moving on…'}
-            </p>
-          )}
-        </main>
-      </div>
+        {eventType && resultType && (
+          <p className="text-xs text-slt text-center mt-6 animate-fade-in">
+            {hi ? 'आगे बढ़ रहे हैं…' : 'Moving on…'}
+          </p>
+        )}
+      </PracticeScreen>
     );
   }
 
@@ -484,40 +420,36 @@ export default function DebriefPage() {
   if (screen === 's2') {
     const canNext = wentWellChips.length > 0;
     return (
-      <div className="min-h-screen bg-dark-900 flex flex-col pb-6">
-        <Header showBack step={2} />
-        <main className="flex-1 max-w-lg mx-auto w-full px-4 py-6 flex flex-col overflow-y-auto">
-          <div className="flex-1">
-            <h2 className="text-lg font-bold text-ink mb-1 text-center">{t.screen2.prompt}</h2>
-            <p className="text-sm text-slt mb-5 text-center">{t.screen2.sub}</p>
+      <PracticeScreen onBack={goBack} headerTitle={headerTitle} progress={progressFor(2)}>
+        <p className="text-xs font-bold text-slt uppercase tracking-widest mb-4">2 / {totalScreens}</p>
+        <h2 className="text-lg font-bold text-ink mb-1 text-center">{t.screen2.prompt}</h2>
+        <p className="text-sm text-slt mb-5 text-center">{t.screen2.sub}</p>
 
-            <div className="flex flex-wrap gap-2 mb-5">
-              {t.screen2.chips.map(chip => (
-                <Chip key={chip} label={chip} selected={wentWellChips.includes(chip)} onClick={() => toggleWentWell(chip)} />
-              ))}
-            </div>
+        <div className="flex flex-wrap gap-2 mb-5">
+          {t.screen2.chips.map(chip => (
+            <Chip key={chip} label={chip} selected={wentWellChips.includes(chip)} onClick={() => toggleWentWell(chip)} />
+          ))}
+        </div>
 
-            {mode === 'full' && (
-              <textarea
-                value={wentWellText}
-                onChange={e => setWentWellText(e.target.value)}
-                placeholder={t.screen2.placeholder}
-                maxLength={120}
-                rows={2}
-                className="w-full bg-dark-700 border border-dark-500 text-ink rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 placeholder-slt resize-none"
-              />
-            )}
-          </div>
+        {mode === 'full' && (
+          <textarea
+            value={wentWellText}
+            onChange={e => setWentWellText(e.target.value)}
+            placeholder={t.screen2.placeholder}
+            maxLength={120}
+            rows={2}
+            className="w-full bg-dark-700 border border-dark-500 text-ink rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 placeholder-slt resize-none mb-6"
+          />
+        )}
 
-          <button
-            onClick={() => setScreen('s3')}
-            disabled={!canNext}
-            className="mt-6 btn-primary w-full justify-center py-4 text-base disabled:opacity-40"
-          >
-            {hi ? 'आगे →' : 'Next →'}
-          </button>
-        </main>
-      </div>
+        <button
+          onClick={() => setScreen('s3')}
+          disabled={!canNext}
+          className="btn-primary w-full justify-center py-4 text-base disabled:opacity-40"
+        >
+          {hi ? 'आगे →' : 'Next →'}
+        </button>
+      </PracticeScreen>
     );
   }
 
@@ -528,66 +460,62 @@ export default function DebriefPage() {
     const canNext = wouldChange.length > 0;
     const atMax   = wouldChange.length >= 3;
     return (
-      <div className="min-h-screen bg-dark-900 flex flex-col pb-6">
-        <Header showBack step={3} />
-        <main className="flex-1 max-w-lg mx-auto w-full px-4 py-6 flex flex-col overflow-y-auto">
-          <div className="flex-1">
-            <h2 className="text-lg font-bold text-ink mb-1 text-center">{t.screen3.prompt}</h2>
-            <div className="flex items-center gap-2 mb-5">
-              <p className="text-sm text-slt">{t.screen3.sub}</p>
-              {atMax && (
-                <span className="text-xs bg-brand-500/20 text-brand-400 border border-brand-500/30 px-2 py-0.5 rounded-full shrink-0">
-                  {hi ? 'अधिकतम' : 'Max 3'}
-                </span>
-              )}
-            </div>
+      <PracticeScreen onBack={goBack} headerTitle={headerTitle} progress={progressFor(3)}>
+        <p className="text-xs font-bold text-slt uppercase tracking-widest mb-4">3 / {totalScreens}</p>
+        <h2 className="text-lg font-bold text-ink mb-1 text-center">{t.screen3.prompt}</h2>
+        <div className="flex items-center justify-center gap-2 mb-5">
+          <p className="text-sm text-slt">{t.screen3.sub}</p>
+          {atMax && (
+            <span className="text-xs bg-brand-500/20 text-brand-400 border border-brand-500/30 px-2 py-0.5 rounded-full shrink-0">
+              {hi ? 'अधिकतम' : 'Max 3'}
+            </span>
+          )}
+        </div>
 
-            <div className="flex flex-col gap-2 mb-5">
-              {t.screen3.chips.map(chip => (
-                <Chip
-                  key={chip}
-                  label={chip}
-                  selected={wouldChange.includes(chip)}
-                  onClick={() => toggleWouldChange(chip)}
-                  disabled={atMax && !wouldChange.includes(chip)}
-                  fullWidth
-                />
-              ))}
-            </div>
+        <div className="flex flex-col gap-2 mb-5">
+          {t.screen3.chips.map(chip => (
+            <Chip
+              key={chip}
+              label={chip}
+              selected={wouldChange.includes(chip)}
+              onClick={() => toggleWouldChange(chip)}
+              disabled={atMax && !wouldChange.includes(chip)}
+              fullWidth
+            />
+          ))}
+        </div>
 
-            {mode === 'full' && (
+        {mode === 'full' && (
+          <>
+            <textarea
+              value={wouldChangeText}
+              onChange={e => {
+                setWouldChangeText(e.target.value);
+                setSelfAbuse(hasSelfAbuse(e.target.value));
+              }}
+              onBlur={() => setSelfAbuse(hasSelfAbuse(wouldChangeText))}
+              placeholder={t.screen3.placeholder}
+              maxLength={120}
+              rows={2}
+              className="w-full bg-dark-700 border border-dark-500 text-ink rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 placeholder-slt resize-none"
+            />
+            {selfAbuse && (
               <>
-                <textarea
-                  value={wouldChangeText}
-                  onChange={e => {
-                    setWouldChangeText(e.target.value);
-                    setSelfAbuse(hasSelfAbuse(e.target.value));
-                  }}
-                  onBlur={() => setSelfAbuse(hasSelfAbuse(wouldChangeText))}
-                  placeholder={t.screen3.placeholder}
-                  maxLength={120}
-                  rows={2}
-                  className="w-full bg-dark-700 border border-dark-500 text-ink rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 placeholder-slt resize-none"
-                />
-                {selfAbuse && (
-                  <>
-                    <p className="text-xs text-amber-400 mt-2 px-1">{t.screen3.selfAbuse.warning}</p>
-                    <p className="text-xs text-slt mt-1 px-1">{t.screen3.selfAbuse.helpline}</p>
-                  </>
-                )}
+                <p className="text-xs text-amber-400 mt-2 px-1">{t.screen3.selfAbuse.warning}</p>
+                <p className="text-xs text-slt mt-1 px-1 mb-4">{t.screen3.selfAbuse.helpline}</p>
               </>
             )}
-          </div>
+          </>
+        )}
 
-          <button
-            onClick={() => setScreen('s4')}
-            disabled={!canNext}
-            className="mt-6 btn-primary w-full justify-center py-4 text-base disabled:opacity-40"
-          >
-            {hi ? 'आगे →' : 'Next →'}
-          </button>
-        </main>
-      </div>
+        <button
+          onClick={() => setScreen('s4')}
+          disabled={!canNext}
+          className="btn-primary w-full justify-center py-4 text-base disabled:opacity-40 mt-6"
+        >
+          {hi ? 'आगे →' : 'Next →'}
+        </button>
+      </PracticeScreen>
     );
   }
 
@@ -601,25 +529,23 @@ export default function DebriefPage() {
     }
 
     return (
-      <div className="min-h-screen bg-dark-900 flex flex-col pb-6">
-        <Header showBack step={4} />
-        <main className="flex-1 max-w-lg mx-auto w-full px-4 py-6 overflow-y-auto">
-          <h2 className="text-lg font-bold text-ink mb-1 text-center">{t.screen4.prompt}</h2>
-          <p className="text-sm text-slt mb-5 text-center">{t.screen4.sub}</p>
+      <PracticeScreen onBack={goBack} headerTitle={headerTitle} progress={progressFor(4)}>
+        <p className="text-xs font-bold text-slt uppercase tracking-widest mb-4">4 / {totalScreens}</p>
+        <h2 className="text-lg font-bold text-ink mb-1 text-center">{t.screen4.prompt}</h2>
+        <p className="text-sm text-slt mb-5 text-center">{t.screen4.sub}</p>
 
-          <div className="flex flex-col gap-2">
-            {getFocusChips().map(chip => (
-              <Chip key={chip} label={chip} selected={nextFocus === chip} onClick={() => pickFocus(chip)} fullWidth />
-            ))}
-          </div>
+        <div className="flex flex-col gap-2">
+          {getFocusChips().map(chip => (
+            <Chip key={chip} label={chip} selected={nextFocus === chip} onClick={() => pickFocus(chip)} fullWidth />
+          ))}
+        </div>
 
-          {nextFocus && (
-            <p className="text-xs text-slt text-center mt-6 animate-fade-in">
-              {hi ? 'आगे बढ़ रहे हैं…' : 'Moving on…'}
-            </p>
-          )}
-        </main>
-      </div>
+        {nextFocus && (
+          <p className="text-xs text-slt text-center mt-6 animate-fade-in">
+            {hi ? 'आगे बढ़ रहे हैं…' : 'Moving on…'}
+          </p>
+        )}
+      </PracticeScreen>
     );
   }
 
@@ -633,34 +559,32 @@ export default function DebriefPage() {
     }
 
     return (
-      <div className="min-h-screen bg-dark-900 flex flex-col pb-6">
-        <Header showBack step={5} />
-        <main className="flex-1 max-w-lg mx-auto w-full px-4 py-6 overflow-y-auto">
-          <h2 className="text-lg font-bold text-ink mb-2 text-center">{t.screen5.prompt}</h2>
+      <PracticeScreen onBack={goBack} headerTitle={headerTitle} progress={progressFor(5)}>
+        <p className="text-xs font-bold text-slt uppercase tracking-widest mb-4">5 / {totalScreens}</p>
+        <h2 className="text-lg font-bold text-ink mb-2 text-center">{t.screen5.prompt}</h2>
 
-          <div className="bg-dark-800 border border-dark-600 rounded-2xl px-4 py-3 mb-6 flex items-center gap-3">
-            <span className="text-2xl">🔑</span>
-            <div>
-              <p className="text-xs text-slt mb-0.5">{t.screen5.cueLabel}</p>
-              <p className="text-lg font-bold text-ink">{user?.cueWord}</p>
-            </div>
+        <div className="bg-dark-800 border border-dark-600 rounded-2xl px-4 py-3 mb-6 flex items-center gap-3">
+          <span className="text-2xl">🔑</span>
+          <div>
+            <p className="text-xs text-slt mb-0.5">{t.screen5.cueLabel}</p>
+            <p className="text-lg font-bold text-ink">{user?.cueWord}</p>
           </div>
+        </div>
 
-          <div className="flex flex-col gap-2 mb-5">
-            {t.screen5.chips.map(({ label, value }) => (
-              <Chip
-                key={value}
-                label={label}
-                selected={cueWordFeedback === value}
-                onClick={() => pickCue(value)}
-                fullWidth
-              />
-            ))}
-          </div>
+        <div className="flex flex-col gap-2 mb-5">
+          {t.screen5.chips.map(({ label, value }) => (
+            <Chip
+              key={value}
+              label={label}
+              selected={cueWordFeedback === value}
+              onClick={() => pickCue(value)}
+              fullWidth
+            />
+          ))}
+        </div>
 
-          <p className="text-xs text-slt px-1">{t.screen5.note}</p>
-        </main>
-      </div>
+        <p className="text-xs text-slt px-1">{t.screen5.note}</p>
+      </PracticeScreen>
     );
   }
 
@@ -672,13 +596,7 @@ export default function DebriefPage() {
 
     return (
       <div className="min-h-screen bg-dark-900 flex flex-col pb-10">
-        <header className="bg-dark-900 border-b border-dark-600 px-4 py-4 sticky top-0 z-10">
-          <div className="max-w-lg mx-auto flex items-center justify-between">
-            <div className="w-10" />
-            <p className="font-semibold text-ink">{hi ? 'मैच / ट्रेनिंग के बाद' : 'After Match / Training'}</p>
-            <div className="w-10" />
-          </div>
-        </header>
+        <PracticeHeader canGoBack={false} title={headerTitle} />
 
         <main className="flex-1 max-w-lg mx-auto w-full px-4 py-8">
 
