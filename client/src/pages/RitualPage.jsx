@@ -49,16 +49,16 @@ function Builder({ initial, onSave, onCancel, t }) {
 
   async function handleSave() {
     if (saving) return;
-    if (!name.trim()) { setError(t.nameLabel + ' is required'); return; }
+    if (!name.trim()) { setError(t.errNameRequired); return; }
     const validSteps = steps.filter(s => s.label.trim());
-    if (validSteps.length === 0) { setError('Add at least one step'); return; }
+    if (validSteps.length === 0) { setError(t.errAddStep); return; }
     setSaving(true);
     setError('');
     try {
       const res = await onSave({ ritualName: name.trim(), steps: validSteps });
-      if (!res.ok) setError('Could not save. Try again.');
+      if (!res.ok) setError(t.errSave);
     } catch {
-      setError('Could not save. Try again.');
+      setError(t.errSave);
     } finally {
       setSaving(false);
     }
@@ -81,7 +81,7 @@ function Builder({ initial, onSave, onCancel, t }) {
       {/* Steps */}
       <div className="mb-4">
         <div className="flex items-center justify-between mb-3">
-          <p className="text-sm font-semibold text-ink">{t.steps || 'Steps'}</p>
+          <p className="text-body font-semibold text-ink">{t.steps}</p>
           <p className="text-xs text-slt">{t.maxSteps}</p>
         </div>
 
@@ -90,13 +90,13 @@ function Builder({ initial, onSave, onCancel, t }) {
             <div key={i} className="bg-dark-700 border border-dark-500 rounded-2xl p-4">
               {/* Step number + remove */}
               <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-semibold text-slt uppercase tracking-wide">
-                  Step {i + 1}
+                <span className="text-caption font-semibold text-slt uppercase tracking-wide">
+                  {t.stepN(i + 1)}
                 </span>
                 {steps.length > 1 && (
                   <button
                     onClick={() => removeStep(i)}
-                    className="text-xs text-red-400 hover:text-red-300 transition-colors"
+                    className="text-caption text-red-400 hover:text-red-300 transition-colors py-1 px-1"
                   >
                     {t.removeStep}
                   </button>
@@ -109,7 +109,7 @@ function Builder({ initial, onSave, onCancel, t }) {
                   <button
                     key={type}
                     onClick={() => updateStep(i, 'type', type)}
-                    className={`flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-xl border transition-all ${
+                    className={`flex items-center gap-1 text-caption px-2.5 py-2 rounded-xl border transition-all ${
                       step.type === type
                         ? 'bg-brand-500/20 border-brand-500/60 text-brand-300'
                         : 'bg-dark-800 border-dark-600 text-slt hover:text-ink'
@@ -155,11 +155,11 @@ function Builder({ initial, onSave, onCancel, t }) {
           disabled={saving}
           className="btn-primary justify-center"
         >
-          {saving ? 'Saving…' : t.save}
+          {saving ? t.savingBtn : t.save}
         </button>
         {onCancel && (
           <button onClick={onCancel} className="btn-secondary justify-center">
-            Cancel
+            {t.cancel}
           </button>
         )}
       </div>
@@ -216,7 +216,7 @@ function Walkthrough({ steps, t, onFinish }) {
           <StepIcon type={step.type} size={36} />
         </div>
 
-        <h2 className="text-xl font-bold text-ink mb-3 leading-tight max-w-xs">
+        <h2 className="text-title font-bold text-ink mb-3 leading-tight max-w-xs">
           {step.label}
         </h2>
 
@@ -301,7 +301,7 @@ function RitualPage() {
   if (mode === 'walk') {
     return (
       <div className="min-h-screen bg-dark-900 flex flex-col pb-20">
-        <header className="shrink-0 bg-dark-900 border-b border-dark-600 px-4 py-4">
+        <header className="shrink-0 bg-dark-900 border-b border-dark-600 px-page py-4 sticky top-0 z-10">
           <div className="max-w-lg mx-auto flex items-center justify-between">
             <button onClick={() => setMode('view')} className="text-sm text-slt hover:text-ink">
               {t.backDash}
@@ -320,11 +320,11 @@ function RitualPage() {
   if (mode === 'build') {
     return (
       <div className="min-h-screen bg-dark-900 pb-20">
-        <header className="bg-dark-900 border-b border-dark-600 px-4 py-4 sticky top-0 z-10">
+        <header className="bg-dark-900 border-b border-dark-600 px-page py-4 sticky top-0 z-10">
           <div className="max-w-lg mx-auto flex items-center justify-between">
             {steps.length > 0 ? (
-              <button onClick={() => setMode('view')} className="text-sm text-slt hover:text-ink">
-                ← Back
+              <button onClick={() => setMode('view')} className="text-body text-slt hover:text-ink py-1">
+                {t.back}
               </button>
             ) : (
               <Link to="/train" className="text-sm text-slt hover:text-ink">{t.backDash}</Link>
@@ -352,7 +352,7 @@ function RitualPage() {
 
   return (
     <div className="min-h-screen bg-dark-900 pb-20">
-      <header className="bg-dark-900 border-b border-dark-600 px-4 py-4 sticky top-0 z-10">
+      <header className="bg-dark-900 border-b border-dark-600 px-page py-4 sticky top-0 z-10">
         <div className="max-w-lg mx-auto flex items-center justify-between">
           <Link to="/train" className="text-sm text-slt hover:text-ink">{t.backDash}</Link>
           <p className="font-semibold text-ink">{t.title}</p>
@@ -373,14 +373,14 @@ function RitualPage() {
         {/* Ritual name */}
         <div className="text-center mb-8">
           <div className="mb-3"><Trophy size={44} className="text-fire-500 mx-auto" /></div>
-          <h2 className="text-xl font-bold text-ink">{ritualName}</h2>
-          <p className="text-xs text-slt mt-1">{steps.length} steps</p>
+          <h2 className="text-title font-bold text-ink">{ritualName}</h2>
+          <p className="text-caption text-slt mt-1">{t.stepsCount(steps.length)}</p>
         </div>
 
         {/* Steps list */}
         <div className="flex flex-col gap-3 mb-8">
           {steps.map((step, i) => (
-            <div key={i} className="flex items-center gap-4 bg-dark-800 border border-dark-600 rounded-2xl px-4 py-3.5">
+            <div key={i} className="flex items-center gap-4 card-surface px-4 py-3.5">
               <div className="w-8 h-8 rounded-full bg-dark-700 border border-dark-500 flex items-center justify-center shrink-0">
                 <span className="text-xs font-bold text-slt">{i + 1}</span>
               </div>
@@ -400,10 +400,8 @@ function RitualPage() {
         >
           {t.useRitual} →
         </button>
-        <p className="text-xs text-slt text-center">
-          {language === 'hi'
-            ? 'खेलने या ट्रेनिंग से 2-5 मिनट पहले करें'
-            : 'Do this 2-5 minutes before you play or train'}
+        <p className="text-caption text-slt text-center">
+          {t.whenToUse}
         </p>
       </main>
     </div>

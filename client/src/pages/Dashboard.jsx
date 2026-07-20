@@ -5,10 +5,7 @@ import ConsentBanner from '../components/ConsentBanner';
 import { useAuth } from '../contexts/AuthContext';
 import { apiFetch } from '../api';
 import { ChevronRight, BookOpen, Pencil } from 'lucide-react';
-
-function SectionLabel({ children }) {
-  return <p className="section-label">{children}</p>;
-}
+import { SectionLabel } from '../components/ui';
 
 // Day-context picker — remembered for the rest of the day so the single
 // adaptive primary action stays stable.

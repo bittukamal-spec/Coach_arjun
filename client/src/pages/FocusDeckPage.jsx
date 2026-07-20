@@ -123,7 +123,7 @@ export default function FocusDeckPage() {
         <button onClick={() => navigate('/train')} className="w-9 h-9 flex items-center justify-center rounded-full bg-dark-700 active:scale-95">
           <ArrowLeft size={18} className="text-ink" />
         </button>
-        <h1 className="text-xl font-bold text-ink flex-1">{t.title}</h1>
+        <h1 className="text-title font-bold text-ink flex-1">{t.title}</h1>
         {activeCount >= 5 && (
           <span className="text-xs bg-amber-500/15 text-amber-400 px-2 py-1 rounded-full font-semibold">5/5</span>
         )}
@@ -152,7 +152,7 @@ export default function FocusDeckPage() {
         </p>
 
         {/* Popular focus words */}
-        <p className="text-[10px] font-bold text-muted uppercase tracking-wider mb-2">
+        <p className="text-micro font-bold text-muted uppercase mb-2">
           {hi ? 'लोकप्रिय Focus Words' : 'Popular Focus Words'}
         </p>
         <div className="flex flex-wrap gap-2">
@@ -249,19 +249,19 @@ export default function FocusDeckPage() {
                 <div className="px-4 pb-3 space-y-3 border-t border-dark-600/50 pt-3">
                   {card.performanceReminder && (
                     <div>
-                      <p className="text-[10px] font-semibold text-slt uppercase tracking-wider mb-1">{hi ? 'Performance Reminder' : 'Performance Reminder'}</p>
+                      <p className="text-micro font-semibold text-slt uppercase mb-1">{hi ? 'Performance Reminder' : 'Performance Reminder'}</p>
                       <p className="text-sm text-slt">{card.performanceReminder}</p>
                     </div>
                   )}
                   {card.arjunNote && (
                     <div>
-                      <p className="text-[10px] font-semibold text-brand-400 uppercase tracking-wider mb-1">{hi ? "Arjun का नोट" : "Arjun's Note"}</p>
+                      <p className="text-micro font-semibold text-brand-400 uppercase mb-1">{hi ? "Arjun का नोट" : "Arjun's Note"}</p>
                       <p className="text-sm text-slt leading-relaxed">{card.arjunNote}</p>
                     </div>
                   )}
                   {card.performanceMoment && (
                     <div>
-                      <p className="text-[10px] font-semibold text-slt uppercase tracking-wider mb-1">{hi ? 'Moment' : 'Moment'}</p>
+                      <p className="text-micro font-semibold text-slt uppercase mb-1">{hi ? 'Moment' : 'Moment'}</p>
                       <p className="text-xs text-muted">{card.performanceMoment}</p>
                     </div>
                   )}
@@ -281,7 +281,7 @@ export default function FocusDeckPage() {
                   </button>
                 ) : showContextMenu ? (
                   <div className="space-y-2">
-                    <p className="text-[10px] font-semibold text-muted uppercase tracking-wider">
+                    <p className="text-micro font-semibold text-muted uppercase">
                       {hi ? 'Context चुनो' : 'Select context'}
                     </p>
                     <div className="flex flex-wrap gap-1.5">

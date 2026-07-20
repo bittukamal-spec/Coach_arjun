@@ -169,7 +169,7 @@
 
   /* Section label */
   .section-label {
-    @apply text-[11px] font-bold text-slt uppercase tracking-widest mb-3;
+    @apply text-micro font-bold text-slt uppercase mb-3;
   }
 
   /* Pill */
@@ -235,7 +235,7 @@
 
   /* Quick-reply chip — visually secondary, never a main button */
   .chip {
-    @apply text-xs font-medium px-3 py-1.5 rounded-full border border-dark-500 bg-dark-700 text-slt active:scale-95 transition-all;
+    @apply text-caption font-medium px-3 py-2 rounded-full border border-dark-500 bg-dark-700 text-slt active:scale-95 transition-all;
   }
   .chip:hover {
     @apply border-brand-500 text-brand-400;
