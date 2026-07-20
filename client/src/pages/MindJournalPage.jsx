@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
 import HelplineList from '../components/HelplineList';
+import { Card, PageHeader, SectionLabel } from '../components/ui';
 
 // ─── Mind Journal — score-free replacement for the old Mental Fitness
 // check-in. Select 1-2 current states, optionally write a short note, save.
@@ -122,22 +122,16 @@ export default function MindJournalPage() {
 
   return (
     <div className="min-h-screen bg-dark-900 pb-24">
-      {/* Header */}
-      <div className="flex items-center gap-3 px-4 pt-4 pb-3 sticky top-0 bg-dark-900/95 backdrop-blur z-10">
-        <button onClick={() => navigate(-1)} className="w-9 h-9 flex items-center justify-center rounded-full bg-dark-700 active:scale-95">
-          <ArrowLeft size={18} className="text-ink" />
-        </button>
-        <h1 className="text-xl font-bold text-ink flex-1">{mj.title}</h1>
-      </div>
+      <PageHeader onBack={() => navigate(-1)} title={mj.title} />
 
-      <div className="px-4 max-w-lg mx-auto">
-        <p className="text-sm text-slt mb-6 leading-relaxed">{mj.subtitle}</p>
+      <div className="px-page pt-4 max-w-lg mx-auto">
+        <p className="text-body text-slt mb-6 leading-relaxed">{mj.subtitle}</p>
 
         {safetyGuidance ? (
           /* ── Safety guidance — replaces the form entirely, never claims a save ── */
-          <div className="card-surface p-4 mb-6">
-            <h2 className="text-sm font-bold text-amber-400 mb-2">{mj.safety.heading}</h2>
-            <p className="text-sm text-slt leading-relaxed mb-4">{safetyGuidance}</p>
+          <Card className="p-4 mb-6">
+            <h2 className="text-body font-bold text-amber-400 mb-2">{mj.safety.heading}</h2>
+            <p className="text-body text-slt leading-relaxed mb-4">{safetyGuidance}</p>
             <div className="mb-4">
               <HelplineList />
             </div>
@@ -147,7 +141,7 @@ export default function MindJournalPage() {
             >
               {mj.safety.okBtn}
             </button>
-          </div>
+          </Card>
         ) : (
           <>
             {/* ── State chips ─────────────────────────────────────────────── */}
@@ -168,7 +162,7 @@ export default function MindJournalPage() {
                 );
               })}
             </div>
-            <p className="text-xs text-slt mb-6">{mj.pickHint}</p>
+            <p className="text-caption text-slt mb-6">{mj.pickHint}</p>
 
             {/* ── Optional note ───────────────────────────────────────────── */}
             <textarea
@@ -179,24 +173,24 @@ export default function MindJournalPage() {
               rows={3}
               className="input-field resize-none mb-1"
             />
-            <p className="text-xs text-slt mb-5 text-right">{note.length}/{MAX_NOTE_LENGTH}</p>
+            <p className="text-caption text-slt mb-5 text-right">{note.length}/{MAX_NOTE_LENGTH}</p>
 
-            {saveError && <p className="text-sm text-red-500 mb-3">{saveError}</p>}
+            {saveError && <p className="text-body text-red-500 mb-3">{saveError}</p>}
             {savedJustNow && (
-              <p className="text-sm font-semibold mb-3" style={{ color: '#185FA5' }}>{mj.saved}</p>
+              <p className="text-body font-semibold mb-3" style={{ color: '#185FA5' }}>{mj.saved}</p>
             )}
 
             <button
               onClick={handleSave}
               disabled={selected.length === 0 || saving}
-              className="w-full py-3.5 rounded-2xl text-white font-bold text-sm active:scale-[0.98] transition-transform disabled:opacity-40"
+              className="w-full py-3.5 rounded-2xl text-white font-bold text-body active:scale-[0.98] transition-transform disabled:opacity-40"
               style={{ backgroundColor: '#185FA5' }}
             >
               {saving ? mj.saving : mj.saveBtn}
             </button>
 
             {/* ── Optional Arjun context opt-in ───────────────────────────── */}
-            <div className="card-surface p-4 mt-6 mb-2">
+            <Card className="p-4 mt-6 mb-2">
               <label className="flex items-start gap-3 cursor-pointer">
                 <input
                   type="checkbox"
@@ -205,17 +199,17 @@ export default function MindJournalPage() {
                   onChange={handleContextToggle}
                   className="mt-0.5 w-4 h-4 shrink-0"
                 />
-                <span className="text-sm text-ink font-medium leading-snug">{mj.contextLabel}</span>
+                <span className="text-body text-ink font-medium leading-snug">{mj.contextLabel}</span>
               </label>
-              <p className="text-xs text-slt mt-2 leading-relaxed">{mj.contextDisclosure}</p>
-              {contextError && <p className="text-xs text-red-500 mt-2">{mj.contextError}</p>}
-            </div>
+              <p className="text-caption text-slt mt-2 leading-relaxed">{mj.contextDisclosure}</p>
+              {contextError && <p className="text-caption text-red-500 mt-2">{mj.contextError}</p>}
+            </Card>
           </>
         )}
 
         {/* ── Recent entries ──────────────────────────────────────────────── */}
         <div className="mt-8">
-          <p className="text-[11px] font-bold text-slt uppercase tracking-widest mb-3">{mj.recentHeading}</p>
+          <SectionLabel>{mj.recentHeading}</SectionLabel>
 
           {entries === null && (
             <div className="space-y-2">
@@ -225,30 +219,30 @@ export default function MindJournalPage() {
           )}
 
           {entries === false && (
-            <div className="card-surface p-4 text-center">
-              <p className="text-sm text-slt mb-3">{mj.loadError}</p>
-              <button onClick={loadEntries} className="text-sm font-bold" style={{ color: '#185FA5' }}>
+            <Card className="p-4 text-center">
+              <p className="text-body text-slt mb-3">{mj.loadError}</p>
+              <button onClick={loadEntries} className="text-body font-bold" style={{ color: '#185FA5' }}>
                 {mj.retryBtn}
               </button>
-            </div>
+            </Card>
           )}
 
           {Array.isArray(entries) && entries.length === 0 && (
-            <p className="text-sm text-slt">{mj.emptyState}</p>
+            <p className="text-body text-slt">{mj.emptyState}</p>
           )}
 
           {Array.isArray(entries) && entries.length > 0 && (
             <div className="space-y-2">
               {entries.map(entry => (
-                <div key={entry.id} className="card-surface p-3.5">
+                <Card key={entry.id} className="p-3.5">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-semibold text-ink">
+                    <p className="text-body font-semibold text-ink">
                       {entry.states.map(k => mj.states[k]).join(' · ')}
                     </p>
-                    <p className="text-xs text-slt shrink-0">{formatDate(entry.createdAt)}</p>
+                    <p className="text-caption text-slt shrink-0">{formatDate(entry.createdAt)}</p>
                   </div>
-                  {entry.note && <p className="text-xs text-slt mt-1.5 leading-relaxed">{entry.note}</p>}
-                </div>
+                  {entry.note && <p className="text-caption text-slt mt-1.5 leading-relaxed">{entry.note}</p>}
+                </Card>
               ))}
             </div>
           )}

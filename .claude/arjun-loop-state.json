@@ -2,16 +2,10 @@
   "schemaVersion": 1,
   "automationMode": "one_draft_pr_at_a_time",
   "autoMerge": false,
-  "nextStage": 8,
-  "completedStages": [1, 2, 3, 4, 5, 6, 7],
-  "activeStageBranch": "claude/arjun-pilot-stage-8",
-  "activePullRequest": {
-    "number": 34,
-    "url": "https://github.com/bittukamal-spec/Coach_arjun/pull/34",
-    "title": "[Arjun Pilot Loop] Stage 8 — Reflection migration",
-    "stage": 8,
-    "draft": true
-  },
+  "nextStage": 9,
+  "completedStages": [1, 2, 3, 4, 5, 6, 7, 8],
+  "activeStageBranch": "claude/arjun-pilot-stage-9",
+  "activePullRequest": null,
   "stages": {
     "1": {
       "id": "stage-1",
@@ -75,7 +69,7 @@
     "8": {
       "id": "stage-8",
       "title": "Reflection migration",
-      "status": "ready_for_founder_review",
+      "status": "completed",
       "branch": "claude/arjun-pilot-stage-8",
       "prTitle": "[Arjun Pilot Loop] Stage 8 — Reflection migration",
       "prNumber": 34,
@@ -84,7 +78,7 @@
     "9": {
       "id": "stage-9",
       "title": "Playbook and Mind Journal consistency",
-      "status": "pending",
+      "status": "in_progress",
       "branch": "claude/arjun-pilot-stage-9",
       "prTitle": "[Arjun Pilot Loop] Stage 9 — Playbook and Mind Journal consistency"
     },
