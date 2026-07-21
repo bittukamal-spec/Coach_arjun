@@ -190,3 +190,145 @@ describe('Weekly Reviews page', () => {
     expect(back.getAttribute('href')).toBe('/coaching');
   });
 });
+
+// ─── Coaching continuity in the FRESH cycle after a seven-day rollover ───────
+// Server-side, GET /api/sessions archives the completed cycle and stops
+// listing it — from the client's point of view "after rollover" IS an
+// empty session list. These tests drive the real entry flow from there:
+// Continue with Arjun → new session created → the deterministic follow-up
+// opener is claimed and displayed in the NEW cycle → outcome chips work →
+// normal sending and server quick replies keep working.
+
+// A minimal real-shaped SSE body: one chunk carrying all events, then done.
+function sseResponse(events) {
+  const encoder = new TextEncoder();
+  const payload = events.map(e => `data: ${JSON.stringify(e)}\n`).join('');
+  let consumed = false;
+  return {
+    ok: true,
+    body: {
+      getReader: () => ({
+        read: async () => {
+          if (consumed) return { done: true, value: undefined };
+          consumed = true;
+          return { done: false, value: encoder.encode(payload) };
+        },
+      }),
+    },
+  };
+}
+
+const OPENER_TEXT = 'Last time you planned to try Pressure Reset in the last over of a tight chase. How did it go?';
+
+async function mockFreshCycleApi() {
+  const { apiFetch } = await import('../src/api');
+  const state = { sessionCreated: false };
+  apiFetch.mockImplementation((path, init = {}) => {
+    if (path.startsWith('/api/sessions/end-stale')) {
+      return Promise.resolve({ ok: true, json: async () => ({ count: 0 }) });
+    }
+    if (path.startsWith('/api/chat/usage')) {
+      return Promise.resolve({ ok: true, json: async () => ({ isPremium: true, trialDaysRemaining: 14 }) });
+    }
+    if (path.startsWith('/api/chat/message')) {
+      return Promise.resolve(sseResponse([
+        { t: 'd', c: 'Good to hear. ' },
+        { t: 'd', c: 'What made the difference?' },
+        { t: 'quick_replies', replies: [
+          { id: 'breath', label: 'The breathing part' },
+          { id: 'cue', label: 'My cue word' },
+        ] },
+        { t: 'end', id: 'm-reply-1' },
+      ]));
+    }
+    if (path.startsWith('/api/prescriptions/claim-opener')) {
+      return Promise.resolve({ ok: true, json: async () => ({
+        claimed: true,
+        outcomePending: true,
+        outcomeChoices: [
+          { id: 'helped', label: 'It helped' },
+          { id: 'helped_a_little', label: 'It helped a little' },
+          { id: 'did_not_help', label: 'It did not help' },
+          { id: 'not_tried', label: 'I did not try it' },
+        ],
+      }) });
+    }
+    if (path.includes('/messages')) {
+      // After the claim, the opener exists as a REAL persisted message in
+      // the new session — the client refetches and renders it from there.
+      const messages = state.sessionCreated
+        ? [{ id: 'msg-opener', role: 'assistant', content: OPENER_TEXT, createdAt: new Date().toISOString() }]
+        : [];
+      return Promise.resolve({ ok: true, json: async () => ({ messages }) });
+    }
+    if (path.startsWith('/api/sessions') && init.method === 'POST') {
+      state.sessionCreated = true;
+      return Promise.resolve({ ok: true, json: async () => ({ session: { id: 'cs-new', mode: 'main', sessionType: 'general' } }) });
+    }
+    if (path.startsWith('/api/sessions')) {
+      // Post-rollover: the archived cycle is excluded — nothing to resume.
+      return Promise.resolve({ ok: true, json: async () => ({ sessions: [] }) });
+    }
+    return Promise.resolve({ ok: true, json: async () => ({}) });
+  });
+  return apiFetch;
+}
+
+function renderCoach() {
+  return render(
+    <MemoryRouter initialEntries={['/coaching']}>
+      <Routes>
+        <Route path="/coaching" element={<ChatPage />} />
+      </Routes>
+    </MemoryRouter>
+  );
+}
+
+describe('Fresh cycle after rollover — coaching continuity', () => {
+  test('entering the new cycle claims the follow-up opener, displays it, and offers the outcome chips', async () => {
+    const apiFetch = await mockFreshCycleApi();
+    renderCoach();
+    const user = userEvent.setup();
+
+    // Post-rollover entry screen (no active session listed).
+    await user.click(await screen.findByRole('button', { name: 'Continue with Arjun' }));
+
+    // The opener renders from the refetched, persisted message — in the
+    // NEW session — and the deterministic outcome chips are offered.
+    expect(await screen.findByText(OPENER_TEXT)).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'It helped' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'I did not try it' })).toBeTruthy();
+
+    // Exactly one claim request, addressed to the new session.
+    const claims = apiFetch.mock.calls.filter(([p]) => p.startsWith('/api/prescriptions/claim-opener'));
+    expect(claims.length).toBe(1);
+    expect(JSON.parse(claims[0][1].body).chatSessionId).toBe('cs-new');
+  });
+
+  test('normal sending and structured quick replies still work in the new cycle', async () => {
+    const apiFetch = await mockFreshCycleApi();
+    renderCoach();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole('button', { name: 'Continue with Arjun' }));
+    await screen.findByText(OPENER_TEXT);
+
+    // Tapping an outcome chip sends ONLY its label through the normal
+    // message path…
+    await user.click(await screen.findByRole('button', { name: 'It helped' }));
+    const sends = () => apiFetch.mock.calls.filter(([p]) => p.startsWith('/api/chat/message'));
+    expect(sends().length).toBe(1);
+    expect(JSON.parse(sends()[0][1].body).content).toBe('It helped');
+    expect(JSON.parse(sends()[0][1].body).chatSessionId).toBe('cs-new');
+
+    // …the streamed reply renders, and the server-offered quick replies
+    // appear as chips.
+    expect(await screen.findByText(/What made the difference\?/)).toBeTruthy();
+    const chip = await screen.findByRole('button', { name: 'My cue word' });
+
+    // Tapping a quick reply sends its label too — composer path intact.
+    await user.click(chip);
+    expect(sends().length).toBe(2);
+    expect(JSON.parse(sends()[1][1].body).content).toBe('My cue word');
+  });
+});

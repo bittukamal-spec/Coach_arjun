@@ -1,12 +1,20 @@
 // Behavioral tests for the weekly-report safety short-circuit (correction
-// to PR-5): flagged stored content must abort generation entirely — zero
+// to PR-5, kept through the per-cycle refactor): flagged stored content must abort generation entirely — zero
 // Anthropic calls, one structured event, no raw text passed anywhere. Uses
-// the injectable factory (createMaybeGenerateLastWeekReport) with a fully
+// the injectable factory (createGenerateCycleReview) with a fully
 // stubbed database and Anthropic client — no real DB, no network.
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { createMaybeGenerateLastWeekReport } = require('../src/routes/weeklyReports');
+const { createGenerateCycleReview } = require('../src/routes/weeklyReports');
+
+// Any completed cycle works for these tests — the safety behavior is
+// window-independent.
+const CYCLE = {
+  sessionId: 'cs-archived-1',
+  cycleStart: new Date('2026-07-06T09:00:00.000Z'),
+  cycleEnd: new Date('2026-07-13T09:00:00.000Z'),
+};
 
 function makeDbStub({ messages = [], existingReport = null }) {
   const created = [];
@@ -42,7 +50,7 @@ test('flagged stored content: zero Anthropic calls', async () => {
     messages: messagesOf('had a good session today', 'felt strong', 'I want to end my life'),
   });
   let anthropicCalls = 0;
-  const generate = createMaybeGenerateLastWeekReport({
+  const generate = createGenerateCycleReview({
     db,
     recordEvent: () => {}, // keep this test free of the real (DB-backed) writer
     createAnthropicClient: () => {
@@ -51,7 +59,7 @@ test('flagged stored content: zero Anthropic calls', async () => {
     },
   });
 
-  await generate('user-1');
+  await generate('user-1', CYCLE);
 
   assert.equal(anthropicCalls, 0);
   assert.equal(created.length, 1);
@@ -62,7 +70,7 @@ test('safe stored content: reaches the stubbed Anthropic path', async () => {
     messages: messagesOf('had a good session today', 'felt strong', 'ready for the next match'),
   });
   let anthropicCalls = 0;
-  const generate = createMaybeGenerateLastWeekReport({
+  const generate = createGenerateCycleReview({
     db,
     createAnthropicClient: () => {
       anthropicCalls += 1;
@@ -74,7 +82,7 @@ test('safe stored content: reaches the stubbed Anthropic path', async () => {
     },
   });
 
-  await generate('user-2');
+  await generate('user-2', CYCLE);
 
   assert.equal(anthropicCalls, 1);
   assert.equal(created.length, 1);
@@ -86,13 +94,13 @@ test('exactly one structured event is requested for the report operation, regard
     messages: messagesOf('coach hits me after every loss', 'I want to die', 'normal message'),
   });
   const eventCalls = [];
-  const generate = createMaybeGenerateLastWeekReport({
+  const generate = createGenerateCycleReview({
     db,
     recordEvent: (...args) => { eventCalls.push(args); },
     createAnthropicClient: () => ({ messages: { create: async () => { throw new Error('must not be called'); } } }),
   });
 
-  await generate('user-3');
+  await generate('user-3', CYCLE);
 
   assert.equal(eventCalls.length, 1, 'expected exactly one recordEvent call for the whole report request');
 });
@@ -100,13 +108,13 @@ test('exactly one structured event is requested for the report operation, regard
 test('raw athlete text is never passed to the event writer', async () => {
   const { db } = makeDbStub({ messages: messagesOf('safe one', 'safe two', 'I want to end my life') });
   const eventCalls = [];
-  const generate = createMaybeGenerateLastWeekReport({
+  const generate = createGenerateCycleReview({
     db,
     recordEvent: (...args) => { eventCalls.push(args); },
     createAnthropicClient: () => ({ messages: { create: async () => { throw new Error('must not be called'); } } }),
   });
 
-  await generate('user-4');
+  await generate('user-4', CYCLE);
 
   assert.equal(eventCalls.length, 1);
   const [userId, surface, category, source] = eventCalls[0];
@@ -125,13 +133,13 @@ test('raw athlete text is never passed to the event writer', async () => {
 test('the event writer receives the real, already-persisted fallback report id as sourceRecordId — never an invented one', async () => {
   const { db, created } = makeDbStub({ messages: messagesOf('safe one', 'safe two', 'I want to end my life') });
   const eventCalls = [];
-  const generate = createMaybeGenerateLastWeekReport({
+  const generate = createGenerateCycleReview({
     db,
     recordEvent: (...args) => { eventCalls.push(args); },
     createAnthropicClient: () => ({ messages: { create: async () => { throw new Error('must not be called'); } } }),
   });
 
-  await generate('user-4b');
+  await generate('user-4b', CYCLE);
 
   assert.equal(created.length, 1, 'the fallback report must already be persisted before the event is recorded');
   const [, , , source] = eventCalls[0];
@@ -143,7 +151,7 @@ test('the event writer receives the real, already-persisted fallback report id a
 test('event writer failure still prevents Anthropic and still writes the fallback report', async () => {
   const { db, created } = makeDbStub({ messages: messagesOf('safe one', 'safe two', 'I want to die') });
   let anthropicCalls = 0;
-  const generate = createMaybeGenerateLastWeekReport({
+  const generate = createGenerateCycleReview({
     db,
     recordEvent: () => { throw new Error('writer down'); }, // synchronous failure
     createAnthropicClient: () => {
@@ -152,23 +160,23 @@ test('event writer failure still prevents Anthropic and still writes the fallbac
     },
   });
 
-  await assert.doesNotReject(() => generate('user-5'));
+  await assert.doesNotReject(() => generate('user-5', CYCLE));
   assert.equal(anthropicCalls, 0);
   assert.equal(created.length, 1);
   assert.notEqual(created[0].content, 'should not run');
 });
 
-test('duplicate-event prevention: an existing report row (the pre-existing per-week dedup key) skips generation entirely on the next call', async () => {
+test('duplicate-event prevention: an existing report row (the pre-existing per-cycle dedup key) skips generation entirely on the next call', async () => {
   const { db } = makeDbStub({ existingReport: { id: 'r1' } });
   let anthropicCalls = 0;
   let eventCalls = 0;
-  const generate = createMaybeGenerateLastWeekReport({
+  const generate = createGenerateCycleReview({
     db,
     recordEvent: () => { eventCalls += 1; },
     createAnthropicClient: () => { anthropicCalls += 1; return { messages: { create: async () => ({ content: [{ text: 'x' }] }) } }; },
   });
 
-  await generate('user-6');
+  await generate('user-6', CYCLE);
 
   assert.equal(anthropicCalls, 0);
   assert.equal(eventCalls, 0);
@@ -177,13 +185,13 @@ test('duplicate-event prevention: an existing report row (the pre-existing per-w
 test('fewer than 3 messages: no event, no Anthropic call, nothing created', async () => {
   const { db, created } = makeDbStub({ messages: messagesOf('I want to die') });
   let eventCalls = 0;
-  const generate = createMaybeGenerateLastWeekReport({
+  const generate = createGenerateCycleReview({
     db,
     recordEvent: () => { eventCalls += 1; },
     createAnthropicClient: () => ({ messages: { create: async () => ({ content: [{ text: 'x' }] }) } }),
   });
 
-  await generate('user-7');
+  await generate('user-7', CYCLE);
 
   assert.equal(eventCalls, 0);
   assert.equal(created.length, 0);

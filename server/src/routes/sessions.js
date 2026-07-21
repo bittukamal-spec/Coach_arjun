@@ -5,58 +5,68 @@ const authenticate = require('../middleware/authenticate');
 const requireGuardianConsent = require('../middleware/requireGuardianConsent');
 const { isTrialActive } = require('./chat');
 const { screenSafetyText, recordSafetyEvent } = require('../services/safety');
-const { getWeekStart } = require('../utils/weekBoundary');
+const { cycleRolloverBoundary } = require('../utils/cycleBoundary');
+const { generateMissingCycleReviews } = require('./weeklyReports');
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
-// ── Weekly chat-cycle rollover ─────────────────────────────────────────────
+// ── Seven-day chat-cycle rollover ──────────────────────────────────────────
 //
-// A "chat cycle" is the athlete's main conversation within one coaching
-// week (the same Monday-00:00-UTC week WeeklyReport rows have always been
-// keyed on — see utils/weekBoundary.js). At the boundary, main sessions
-// from completed weeks are ARCHIVED — status flips to 'archived' and
-// nothing else changes. Messages are never deleted or modified: the whole
-// transcript stays in place under the archived session, it just stops
-// being the session Chat reopens. GET / below then excludes archived
-// sessions, so the client's existing entry flow naturally offers a fresh
-// active cycle for the new week.
+// A "chat cycle" is one main ChatSession, and it lasts exactly SEVEN DAYS
+// from that session's own createdAt — never a calendar boundary. A session
+// created on a Sunday does not reset on Monday; it stays the active cycle
+// until the following Sunday (see utils/cycleBoundary.js, the one shared
+// deterministic definition). At or after createdAt + 7 days the session is
+// eligible for one rollover: status flips to 'archived' and endedAt is
+// stamped with the rollover moment — which becomes the cycle's recorded
+// end, so the Weekly Review generated for it carries the cycle's ACTUAL
+// date range (createdAt → endedAt). Messages are never deleted or
+// modified: the whole transcript stays in place under the archived
+// session, it just stops being the session Chat reopens. GET / below then
+// excludes archived sessions, so the client's existing entry flow
+// naturally offers a fresh active cycle.
 //
 // This touches ONLY ChatSession.status/endedAt. It never touches Message
 // rows, CoachingCycle, Prescription, UserCoachingState, follow-up opener
 // claims, Mind Journal, Playbook data, SafetyEvent, or guardian-consent
 // state — chat-cycle reset and coaching-cycle state are different things.
 //
-// Idempotency: updateMany with `status: { not: 'archived' }` — a second
-// call (another tab, a retry) matches zero rows and does nothing. The
-// injectable factory mirrors createMaybeGenerateLastWeekReport so tests
-// can pin the clock and stub the database.
+// Idempotency: the archive is a conditional updateMany over the candidate
+// ids with `status: { not: 'archived' }` re-checked in the WHERE — a
+// concurrent second call (another tab, a retry) matches zero rows, gets
+// count 0, and returns no completed cycles, so only the winning call ever
+// triggers review generation. The injectable factory mirrors
+// createGenerateCycleReview so tests can pin the clock and stub the
+// database. Returns the completed cycles ({ sessionId, cycleStart,
+// cycleEnd }) this call archived — empty when there was nothing to do.
 
-function createArchiveCompletedWeekCycles({ db = prisma, now = () => new Date() } = {}) {
-  return async function archiveCompletedWeekCycles(userId) {
-    const weekStart = getWeekStart(now());
-    const result = await db.chatSession.updateMany({
+function createArchiveCompletedCycles({ db = prisma, now = () => new Date() } = {}) {
+  return async function archiveCompletedCycles(userId) {
+    const nowDate = now();
+    const boundary = cycleRolloverBoundary(nowDate);
+    const completed = await db.chatSession.findMany({
       where: {
         userId,
         mode: 'main',
         status: { not: 'archived' },
-        createdAt: { lt: weekStart },
+        createdAt: { lte: boundary },
       },
-      data: { status: 'archived' },
+      select: { id: true, createdAt: true },
     });
-    if (result.count > 0) {
-      // Stamp endedAt only where the daily end-stale pass hadn't already —
-      // an existing endedAt is historical data and is never overwritten.
-      await db.chatSession.updateMany({
-        where: { userId, mode: 'main', status: 'archived', endedAt: null },
-        data: { endedAt: now() },
-      });
-    }
-    return result.count;
+    if (completed.length === 0) return [];
+
+    const claim = await db.chatSession.updateMany({
+      where: { id: { in: completed.map(s => s.id) }, status: { not: 'archived' } },
+      data: { status: 'archived', endedAt: nowDate },
+    });
+    if (claim.count === 0) return []; // a concurrent call archived first
+
+    return completed.map(s => ({ sessionId: s.id, cycleStart: s.createdAt, cycleEnd: nowDate }));
   };
 }
 
-const archiveCompletedWeekCycles = createArchiveCompletedWeekCycles();
+const archiveCompletedCycles = createArchiveCompletedCycles();
 
 // ── Session type display labels for title generation ──────────────────────
 
@@ -146,15 +156,34 @@ async function generateSessionSummary(sessionId, userId) {
 
 router.get('/', authenticate, async (req, res) => {
   try {
-    // Weekly rollover first, so the listing below already reflects it. A
-    // rollover failure must never block the athlete from chatting.
-    await archiveCompletedWeekCycles(req.userId).catch(err =>
-      console.error('weekly cycle rollover error:', err)
-    );
+    // Seven-day rollover first, so the listing below already reflects it.
+    // A rollover failure must never block the athlete from chatting.
+    let completedCycles = [];
+    try {
+      completedCycles = await archiveCompletedCycles(req.userId);
+    } catch (err) {
+      console.error('cycle rollover error:', err);
+    }
+
+    // The moment a cycle completes, trigger its Weekly Review — strictly
+    // fire-and-forget so chat entry is NEVER blocked on model latency.
+    // Reuses the one idempotent generator (unique userId+weekStart), so a
+    // failure or crash here is harmless: opening /weekly-reviews runs the
+    // same sweep again and retries safely, and a race between the two can
+    // only ever leave one review. Same trial gate as the other lazy AI
+    // work in this file; consent-blocked minors cannot have chat messages
+    // (every message-writing route is consent-gated), so the generator's
+    // ≥3-message threshold makes this a no-op for them — and the
+    // consent-gated /weekly-reviews route stays the only reading surface.
+    if (completedCycles.length > 0) {
+      isTrialActive(req.userId)
+        .then(active => (active ? generateMissingCycleReviews(req.userId) : null))
+        .catch(err => console.error('cycle review generation error:', err));
+    }
 
     // Archived cycles are deliberately excluded: their messages are
     // preserved (and feed weekly-review generation), but Chat only ever
-    // reopens the current week's cycle.
+    // reopens the current active cycle.
     const sessions = await prisma.chatSession.findMany({
       where: { userId: req.userId, mode: 'main', status: { not: 'archived' } },
       orderBy: { createdAt: 'desc' },
@@ -363,4 +392,4 @@ router.delete('/:id', authenticate, async (req, res) => {
 });
 
 module.exports = router;
-module.exports.createArchiveCompletedWeekCycles = createArchiveCompletedWeekCycles;
+module.exports.createArchiveCompletedCycles = createArchiveCompletedCycles;
