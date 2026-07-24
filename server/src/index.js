@@ -76,6 +76,7 @@ app.use('/api/streaks',         require('./routes/streaks'));
 app.use('/api/payments',        require('./routes/payments'));
 app.use('/api/mental-fitness',  require('./routes/mentalFitness'));
 app.use('/api/mind-journal',    require('./routes/mindJournal'));
+app.use('/api/onboarding',      require('./routes/onboarding'));
 app.use('/api/weekly-reports',  require('./routes/weeklyReports'));
 app.use('/api/self-talk',       require('./routes/selfTalk'));
 app.use('/api/body-reset',      require('./routes/bodyReset'));
