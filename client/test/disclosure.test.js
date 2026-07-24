@@ -51,7 +51,10 @@ test('translations: auth AI disclosure + safety line exist in English and Hindi'
   }
 });
 
-test('translations: onboarding AI disclosure exists in English and Hindi', () => {
+// The AI disclosure was intentionally removed from the onboarding UI (it
+// remains on signup/AuthPage and the legal surfaces). The onboarding
+// namespace therefore no longer carries an aiDisclosure key.
+test('translations: onboarding namespace has no AI disclosure key (removed from onboarding UI)', () => {
   const enBlock = translationsSrc.slice(translationsSrc.indexOf('\n  en: {'), translationsSrc.indexOf('\n  hi: {'));
   const hiBlock = translationsSrc.slice(translationsSrc.indexOf('\n  hi: {'));
 
@@ -59,7 +62,7 @@ test('translations: onboarding AI disclosure exists in English and Hindi', () =>
     const onboardingNsStart = block.indexOf('onboarding: {');
     assert.ok(onboardingNsStart !== -1, 'onboarding namespace not found');
     const onboardingNs = block.slice(onboardingNsStart, block.indexOf('\n    },', onboardingNsStart));
-    assert.match(onboardingNs, /aiDisclosure:/, 'onboarding.aiDisclosure key missing');
+    assert.doesNotMatch(onboardingNs, /aiDisclosure:/, 'onboarding.aiDisclosure key should be gone');
   }
 });
 
@@ -90,15 +93,25 @@ test('AuthPage: signup still requires DOB, and guardian email only appears for 1
   assert.match(authPageSrc, /needsGuardian/);
 });
 
-// ── Onboarding step 1 references the disclosure key ─────────────────────────
+// ── Onboarding no longer renders the AI disclosure (removed from onboarding) ─
 
-test('OnboardingPage: step 1 renders the AI disclosure via a translation key, visible without a modal', () => {
-  assert.match(onboardingPageSrc, /t\.aiDisclosure\b/);
+test('OnboardingPage: does not render the AI disclosure and uses no modal', () => {
+  assert.doesNotMatch(onboardingPageSrc, /t\.aiDisclosure\b/);
+  assert.doesNotMatch(onboardingPageSrc, /not a human coach or therapist/);
   assert.doesNotMatch(onboardingPageSrc, /Modal|showModal|isModalOpen/);
 });
 
-test('OnboardingPage: still 4 steps (disclosure did not add a new step)', () => {
-  assert.match(onboardingPageSrc, /TOTAL_STEPS\s*=\s*4/);
+test('OnboardingPage: uses the shared stage-based flow (PR 1 foundation)', () => {
+  // The onboarding foundation redesign replaced the old TOTAL_STEPS=4 counter
+  // with a stable-stage flow over five screens. Assert the SCREENS constant
+  // exists and holds exactly five screen keys (sport → goals), and that the
+  // disclosure still lives on the first screen without a modal.
+  const m = onboardingPageSrc.match(/const SCREENS = \[([^\]]*)\]/s);
+  assert.ok(m, 'SCREENS constant not found');
+  const count = (m[1].match(/'/g) || []).length / 2;
+  assert.equal(count, 5, 'expected exactly five onboarding screens');
+  assert.match(m[1], /'sport'/);
+  assert.match(m[1], /'goals'/);
 });
 
 // ── Public child-safety statement (TermsPage) ───────────────────────────────
