@@ -258,7 +258,6 @@ export const translations = {
       // ── Screen 1 — Sport ─────────────────────────────────────────────────
       sportTitle: 'What sport do you play?',
       sportSubtitle: 'Pick your main sport so Arjun can personalise your coaching.',
-      aiDisclosure: 'Arjun is an AI coach — not a human coach or therapist. It helps with the mental side of your sport.',
       sportCricket: 'Cricket',
       sportFootball: 'Football',
       sportBadminton: 'Badminton',
@@ -1740,7 +1739,6 @@ export const translations = {
       // ── Screen 1 — Sport ─────────────────────────────────────────────────
       sportTitle: 'आप कौन सा खेल खेलते हैं?',
       sportSubtitle: 'अपना मुख्य खेल चुनें ताकि Arjun आपकी कोचिंग व्यक्तिगत बना सके।',
-      aiDisclosure: 'Arjun एक AI कोच है — कोई इंसान कोच या थेरेपिस्ट नहीं। यह आपके खेल के मानसिक पहलू में मदद करता है।',
       sportCricket: 'क्रिकेट',
       sportFootball: 'फुटबॉल',
       sportBadminton: 'बैडमिंटन',

@@ -58,8 +58,8 @@ describe('OnboardingShell — PR 1 foundation', () => {
     // Stable-stage progress, not a per-question count.
     expect(screen.getAllByText('Stage 1 of 3').length).toBeGreaterThan(0);
     expect(screen.getByText('About you')).toBeTruthy();
-    // AI disclosure is present on screen 1, no modal.
-    expect(screen.getByText(/not a human coach or therapist/i)).toBeTruthy();
+    // The AI disclosure was removed from onboarding — it must NOT appear here.
+    expect(screen.queryByText(/not a human coach or therapist/i)).toBeNull();
     // No Back on the first screen.
     expect(screen.queryByRole('button', { name: 'Back' })).toBeNull();
     const cont = screen.getByRole('button', { name: 'Continue' });
@@ -119,6 +119,29 @@ describe('OnboardingShell — PR 1 foundation', () => {
     authState.language = 'hi';
     render(<TestApp />);
     expect(screen.getByRole('heading', { name: 'आप कौन सा खेल खेलते हैं?' })).toBeTruthy();
+  });
+
+  test('sport tiles show full names with no truncation (one line, not clipped)', () => {
+    render(<TestApp />);
+    for (const name of ['Cricket', 'Football', 'Badminton', 'Athletics', 'Wrestling', 'Other sport']) {
+      const opt = screen.getByRole('radio', { name });
+      // full label text present verbatim (no ellipsis)
+      expect(opt.textContent).toContain(name);
+      // never uses truncate / line-clamp; label is one line via nowrap
+      expect(opt.className).not.toMatch(/truncate|line-clamp/);
+      expect(opt.querySelector('.whitespace-nowrap')).toBeTruthy();
+      expect(opt.querySelector('.truncate')).toBeNull();
+    }
+  });
+
+  test('Hindi sport tiles are not truncated either', () => {
+    authState.language = 'hi';
+    render(<TestApp />);
+    for (const name of ['क्रिकेट', 'बैडमिंटन', 'एथलेटिक्स', 'अन्य खेल']) {
+      const opt = screen.getByRole('radio', { name });
+      expect(opt.textContent).toContain(name);
+      expect(opt.querySelector('.truncate')).toBeNull();
+    }
   });
 
   // jsdom cannot evaluate max()/env() inline styles, so the safe-area and

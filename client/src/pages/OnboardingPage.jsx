@@ -266,16 +266,13 @@ function OnboardingPage() {
     subcopy = t.sportSubtitle;
     content = (
       <>
-        <div className="mb-5 rounded-2xl border border-brand-500/30 bg-brand-500/10 px-4 py-3">
-          <p className="text-caption text-slt leading-relaxed">{t.aiDisclosure}</p>
-        </div>
         <OptionGrid layout="grid" ariaLabel={t.sportTitle}>
           {SPORTS.map((s) => (
             <SelectableOption
               key={s.value}
               icon={s.icon}
               label={t[s.labelKey]}
-              oneLine
+              layout="tile"
               selected={data.sportChoice === s.value}
               onSelect={() => update({ sportChoice: s.value })}
             />

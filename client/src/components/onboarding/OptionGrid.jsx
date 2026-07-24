@@ -12,7 +12,10 @@ function OptionGrid({ layout = 'stack', multi = false, ariaLabel, className = ''
       role={multi ? 'group' : 'radiogroup'}
       aria-label={ariaLabel}
       className={[
-        layout === 'grid' ? 'grid grid-cols-2 gap-3' : 'flex flex-col gap-3',
+        // 'grid' stays two columns on normal phones but drops to a single
+        // column on genuinely narrow viewports (<360px) so full labels are
+        // never cut off. 'stack' is always a single column.
+        layout === 'grid' ? 'grid grid-cols-1 min-[360px]:grid-cols-2 gap-3' : 'flex flex-col gap-3',
         className,
       ].join(' ')}
     >
