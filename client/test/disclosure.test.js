@@ -97,8 +97,17 @@ test('OnboardingPage: step 1 renders the AI disclosure via a translation key, vi
   assert.doesNotMatch(onboardingPageSrc, /Modal|showModal|isModalOpen/);
 });
 
-test('OnboardingPage: still 4 steps (disclosure did not add a new step)', () => {
-  assert.match(onboardingPageSrc, /TOTAL_STEPS\s*=\s*4/);
+test('OnboardingPage: uses the shared stage-based flow (PR 1 foundation)', () => {
+  // The onboarding foundation redesign replaced the old TOTAL_STEPS=4 counter
+  // with a stable-stage flow over five screens. Assert the SCREENS constant
+  // exists and holds exactly five screen keys (sport → goals), and that the
+  // disclosure still lives on the first screen without a modal.
+  const m = onboardingPageSrc.match(/const SCREENS = \[([^\]]*)\]/s);
+  assert.ok(m, 'SCREENS constant not found');
+  const count = (m[1].match(/'/g) || []).length / 2;
+  assert.equal(count, 5, 'expected exactly five onboarding screens');
+  assert.match(m[1], /'sport'/);
+  assert.match(m[1], /'goals'/);
 });
 
 // ── Public child-safety statement (TermsPage) ───────────────────────────────

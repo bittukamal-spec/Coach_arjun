@@ -1,311 +1,462 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ChevronLeft } from 'lucide-react';
+import { useEffect } from 'react';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
+import {
+  OnboardingShell,
+  SelectableOption,
+  OptionGrid,
+  CustomAnswerField,
+} from '../components/onboarding';
+import { useOnboardingDraft } from '../hooks/useOnboardingDraft';
+import { sanitizeCustomText, isValidCustomText, DEFAULT_CUSTOM_MAX } from '../utils/sanitizeCustomText';
 
-// ─── Data ─────────────────────────────────────────────────────────────────────
+// ─── Onboarding (PR 1 foundation) ───────────────────────────────────────────
+// Theme-aware, mobile-first onboarding built on the shared onboarding
+// component system. Five screens across three stable stages. All answers
+// map onto EXISTING User fields via the unchanged
+// PATCH /api/auth/me/onboarding endpoint — no schema change, no AI, no
+// adaptive branching (those are PR 2 / PR 3). The starting-profile + first
+// chat transition is PR 3, so the post-submit destination is deliberately
+// left as /mind-journal for now.
+
+const CUSTOM_MAX = DEFAULT_CUSTOM_MAX;
+
+// ── Screens & stages ────────────────────────────────────────────────────────
+const SCREENS = ['sport', 'role', 'context', 'starting', 'goals'];
+const STAGE_OF = {
+  sport: 'about',
+  role: 'about',
+  context: 'performance',
+  starting: 'performance',
+  goals: 'goals',
+};
+
+// Option data lives HERE (page logic), never inside the shared components.
+// Display labels resolve through translation keys so both themes/languages
+// share one structure.
 
 const SPORTS = [
-  { value: 'cricket',    icon: '🏏', en: 'Cricket',     hi: 'क्रिकेट'       },
-  { value: 'football',   icon: '⚽', en: 'Football',    hi: 'फुटबॉल'         },
-  { value: 'badminton',  icon: '🏸', en: 'Badminton',   hi: 'बैडमिंटन'       },
-  { value: 'athletics',  icon: '🏃', en: 'Athletics',   hi: 'एथलेटिक्स'      },
-  { value: 'wrestling',  icon: '🤼', en: 'Wrestling',   hi: 'कुश्ती'          },
-  { value: 'boxing',     icon: '🥊', en: 'Boxing',      hi: 'मुक्केबाज़ी'      },
-  { value: 'kabaddi',    icon: '🤸', en: 'Kabaddi',     hi: 'कबड्डी'          },
-  { value: 'tennis',     icon: '🎾', en: 'Tennis',      hi: 'टेनिस'           },
-  { value: 'hockey',     icon: '🏑', en: 'Hockey',      hi: 'हॉकी'            },
-  { value: 'swimming',   icon: '🏊', en: 'Swimming',    hi: 'तैराकी'          },
-  { value: 'other',      icon: '🏅', en: 'Other sport', hi: 'अन्य खेल'        },
+  { value: 'cricket',   icon: '🏏', labelKey: 'sportCricket' },
+  { value: 'football',  icon: '⚽', labelKey: 'sportFootball' },
+  { value: 'badminton', icon: '🏸', labelKey: 'sportBadminton' },
+  { value: 'athletics', icon: '🏃', labelKey: 'sportAthletics' },
+  { value: 'wrestling', icon: '🤼', labelKey: 'sportWrestling' },
+  { value: 'boxing',    icon: '🥊', labelKey: 'sportBoxing' },
+  { value: 'kabaddi',   icon: '🤸', labelKey: 'sportKabaddi' },
+  { value: 'tennis',    icon: '🎾', labelKey: 'sportTennis' },
+  { value: 'hockey',    icon: '🏑', labelKey: 'sportHockey' },
+  { value: 'swimming',  icon: '🏊', labelKey: 'sportSwimming' },
+  { value: 'other',     icon: '🏅', labelKey: 'sportOtherLabel' },
 ];
 
-const COMPETITION_LEVELS = [
-  { value: 'recreational', icon: '🌱', en: 'Just for fun / Club',          hi: 'मनोरंजन / क्लब स्तर'       },
-  { value: 'local',        icon: '🏅', en: 'District / Local tournaments', hi: 'जिला / स्थानीय टूर्नामेंट' },
-  { value: 'state',        icon: '🥈', en: 'State level',                  hi: 'राज्य स्तर'                 },
-  { value: 'national',     icon: '🥇', en: 'National level',               hi: 'राष्ट्रीय स्तर'             },
-  { value: 'international',icon: '🌍', en: 'International',                hi: 'अंतरराष्ट्रीय'              },
+// Small, maintainable set of sport-relevant role examples. Sports not listed
+// simply show the fixed options + custom — no large role database.
+const ROLE_SETS = {
+  cricket:   ['batter', 'bowler', 'allRounder', 'wicketkeeper'],
+  football:  ['goalkeeper', 'defender', 'midfielder', 'forward'],
+  hockey:    ['goalkeeper', 'defender', 'midfielder', 'forward'],
+  badminton: ['singles', 'doubles', 'both'],
+  tennis:    ['singles', 'doubles', 'both'],
+};
+const ROLE_LABEL_KEY = {
+  batter: 'roleBatter', bowler: 'roleBowler', allRounder: 'roleAllRounder', wicketkeeper: 'roleWicketkeeper',
+  goalkeeper: 'roleGoalkeeper', defender: 'roleDefender', midfielder: 'roleMidfielder', forward: 'roleForward',
+  singles: 'roleSingles', doubles: 'roleDoubles', both: 'roleBoth',
+  none: 'roleNone', unsure: 'roleUnsure', different: 'roleDifferent',
+};
+// Canonical English strings written to the free-text User.position field.
+// 'unsure' stores nothing meaningful (empty) so it never pollutes coaching
+// context downstream; 'different' stores the sanitised custom text.
+const ROLE_STORE = {
+  batter: 'Batter', bowler: 'Bowler', allRounder: 'All-rounder', wicketkeeper: 'Wicketkeeper',
+  goalkeeper: 'Goalkeeper', defender: 'Defender', midfielder: 'Midfielder', forward: 'Forward',
+  singles: 'Singles', doubles: 'Doubles', both: 'Singles and doubles',
+  none: 'No fixed role', unsure: '',
+};
+
+const COMPETITION = [
+  { value: 'recreational',  icon: '🌱', labelKey: 'compRecreational' },
+  { value: 'local',         icon: '🏅', labelKey: 'compLocal' },
+  { value: 'state',         icon: '🥈', labelKey: 'compState' },
+  { value: 'national',      icon: '🥇', labelKey: 'compNational' },
+  { value: 'international',  icon: '🌍', labelKey: 'compInternational' },
+  { value: 'other',         icon: '➕', labelKey: 'compOtherLabel' },
 ];
 
+// Fixed enum — must match the server's validLevels; no custom value allowed.
 const LEVELS = [
-  { value: 'beginner',     icon: '🌱', labelKey: 'levelBeginner',     descKey: 'levelBeginnerDesc'     },
-  { value: 'amateur',      icon: '🏅', labelKey: 'levelAmateur',      descKey: 'levelAmateurDesc'      },
-  { value: 'competitive',  icon: '🥈', labelKey: 'levelCompetitive',  descKey: 'levelCompetitiveDesc'  },
+  { value: 'beginner',     icon: '🌱', labelKey: 'levelBeginner',     descKey: 'levelBeginnerDesc' },
+  { value: 'amateur',      icon: '🏫', labelKey: 'levelAmateur',      descKey: 'levelAmateurDesc' },
+  { value: 'competitive',  icon: '🥈', labelKey: 'levelCompetitive',  descKey: 'levelCompetitiveDesc' },
   { value: 'professional', icon: '🏆', labelKey: 'levelProfessional', descKey: 'levelProfessionalDesc' },
 ];
 
+// Values map to the existing primaryChallenge enum ('different' → custom text).
 const CHALLENGES = [
-  { value: 'nerves',          icon: '😰', en: 'Pre-match nerves & anxiety',   hi: 'मैच से पहले घबराहट'    },
-  { value: 'failure',         icon: '😞', en: 'Dealing with losses & failure', hi: 'हार और असफलता से उबरना' },
-  { value: 'focus',           icon: '🎯', en: 'Losing focus during play',      hi: 'खेल के दौरान ध्यान खोना' },
-  { value: 'family_pressure', icon: '👨‍👩‍👦', en: 'Pressure from family/coaches', hi: 'परिवार/कोच का दबाव'   },
-  { value: 'injury',          icon: '🏥', en: 'Recovering from injury',        hi: 'चोट से वापसी'           },
-  { value: 'consistency',     icon: '📈', en: 'Staying consistent',            hi: 'लगातार अच्छा प्रदर्शन' },
+  { value: 'nerves',          icon: '😰', labelKey: 'startNerves' },
+  { value: 'failure',         icon: '😔', labelKey: 'startFailure' },
+  { value: 'focus',           icon: '🎯', labelKey: 'startFocus' },
+  { value: 'family_pressure', icon: '🎓', labelKey: 'startPressure' },
+  { value: 'injury',          icon: '🩹', labelKey: 'startInjury' },
+  { value: 'consistency',     icon: '🔁', labelKey: 'startConsistency' },
+  { value: 'different',       icon: '✏️', labelKey: 'startDifferent' },
 ];
 
+// Fixed enum — must match the server's validGoals; no custom goal in PR 1.
 const GOALS = [
-  { value: 'focus',         icon: '🎯', labelKey: 'goalFocus'         },
-  { value: 'pressure',      icon: '💪', labelKey: 'goalPressure'      },
-  { value: 'nerves',        icon: '😰', labelKey: 'goalNerves'        },
-  { value: 'confidence',    icon: '⭐', labelKey: 'goalConfidence'    },
-  { value: 'resilience',    icon: '🔄', labelKey: 'goalResilience'    },
-  { value: 'motivation',    icon: '🔥', labelKey: 'goalMotivation'    },
+  { value: 'focus',         icon: '🎯', labelKey: 'goalFocus' },
+  { value: 'pressure',      icon: '💪', labelKey: 'goalPressure' },
+  { value: 'nerves',        icon: '😰', labelKey: 'goalNerves' },
+  { value: 'confidence',    icon: '⭐', labelKey: 'goalConfidence' },
+  { value: 'resilience',    icon: '🔄', labelKey: 'goalResilience' },
+  { value: 'motivation',    icon: '🔥', labelKey: 'goalMotivation' },
   { value: 'communication', icon: '🤝', labelKey: 'goalCommunication' },
-  { value: 'injury',        icon: '🏥', labelKey: 'goalInjury'        },
+  { value: 'injury',        icon: '🏥', labelKey: 'goalInjury' },
 ];
 
-const TOTAL_STEPS = 4;
+const MAX_GOALS = 3;
 
-// ─── Option row ───────────────────────────────────────────────────────────────
+const INITIAL_DATA = {
+  screen: 0,
+  sportChoice: '',      sportCustom: '',
+  roleChoice: '',       roleCustom: '',
+  competitionChoice: '', competitionCustom: '',
+  experienceLevel: '',
+  challengeChoice: '',  challengeCustom: '',
+  goals: [],
+  error: '',
+  submitting: false,
+};
 
-function OptionRow({ icon, label, sublabel, selected, onClick, disabled }) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl border transition-all text-left active:scale-[0.99] ${
-        selected
-          ? 'border-brand-500 bg-brand-500/10'
-          : disabled
-          ? 'border-dark-700 bg-dark-800 opacity-30 cursor-not-allowed'
-          : 'border-dark-600 bg-dark-800 hover:border-dark-400'
-      }`}
-    >
-      <span className="text-2xl shrink-0">{icon}</span>
-      <div className="flex-1 min-w-0">
-        <p className={`font-semibold leading-tight ${selected ? 'text-ink' : 'text-ink'}`}>{label}</p>
-        {sublabel && <p className="text-xs text-slt mt-0.5">{sublabel}</p>}
-      </div>
-      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
-        selected ? 'border-brand-500 bg-brand-500' : 'border-dark-500'
-      }`}>
-        {selected && <span className="text-white text-[10px] font-bold">✓</span>}
-      </div>
-    </button>
-  );
+// ── Per-screen Continue validation (pure) ───────────────────────────────────
+function canContinue(screen, d) {
+  switch (screen) {
+    case 'sport':
+      return d.sportChoice !== '' && (d.sportChoice !== 'other' || isValidCustomText(d.sportCustom, CUSTOM_MAX));
+    case 'role':
+      return d.roleChoice !== '' && (d.roleChoice !== 'different' || isValidCustomText(d.roleCustom, CUSTOM_MAX));
+    case 'context':
+      return (
+        d.competitionChoice !== '' &&
+        (d.competitionChoice !== 'other' || isValidCustomText(d.competitionCustom, CUSTOM_MAX)) &&
+        d.experienceLevel !== ''
+      );
+    case 'starting':
+      return d.challengeChoice !== '' && (d.challengeChoice !== 'different' || isValidCustomText(d.challengeCustom, CUSTOM_MAX));
+    case 'goals':
+      return d.goals.length >= 1;
+    default:
+      return false;
+  }
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// ── Derive the submit payload from the draft (pure) ─────────────────────────
+function buildPayload(d, language) {
+  const sport = d.sportChoice === 'other' ? sanitizeCustomText(d.sportCustom, CUSTOM_MAX) : d.sportChoice;
+  const position =
+    d.roleChoice === 'different'
+      ? sanitizeCustomText(d.roleCustom, CUSTOM_MAX)
+      : (ROLE_STORE[d.roleChoice] ?? '');
+  const competitionLevel =
+    d.competitionChoice === 'other' ? sanitizeCustomText(d.competitionCustom, CUSTOM_MAX) : d.competitionChoice;
+  const primaryChallenge =
+    d.challengeChoice === 'different' ? sanitizeCustomText(d.challengeCustom, CUSTOM_MAX) : d.challengeChoice;
+
+  return {
+    sport,
+    position,
+    competitionLevel,
+    experienceLevel: d.experienceLevel,
+    primaryChallenge,
+    goals: d.goals,
+    language,
+  };
+}
 
 function OnboardingPage() {
-  const { token, language, updateUser } = useAuth();
+  const { user, token, language, updateUser } = useAuth();
   const navigate = useNavigate();
   const t = translations[language].onboarding;
-  const hi = language === 'hi';
 
-  const [step, setStep] = useState(1);
-  const [data, setData] = useState({
-    sport: '', competitionLevel: '', experienceLevel: '',
-    primaryChallenge: '', goals: [], language,
-  });
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
+  const userId = user?.id;
+  const { data, setData, clearDraft } = useOnboardingDraft(userId, INITIAL_DATA);
 
-  function canContinue() {
-    if (step === 1) return data.sport !== '';
-    if (step === 2) return data.competitionLevel !== '' && data.experienceLevel !== '';
-    if (step === 3) return data.primaryChallenge !== '';
-    if (step === 4) return data.goals.length > 0;
-    return false;
+  // Clear any stale draft the moment onboarding is already complete (also
+  // covers the completed-user guard render below).
+  useEffect(() => {
+    if (user?.onboardingDone) clearDraft();
+  }, [user?.onboardingDone, clearDraft]);
+
+  const update = (patch) => setData((d) => ({ ...d, ...patch }));
+
+  const screenIndex = Math.min(data.screen ?? 0, SCREENS.length - 1);
+  const screen = SCREENS[screenIndex];
+  const isLast = screenIndex === SCREENS.length - 1;
+
+  const STAGES = [
+    { key: 'about',       label: t.stageAbout },
+    { key: 'performance', label: t.stagePerformance },
+    { key: 'goals',       label: t.stageGoals },
+  ];
+
+  function goBack() {
+    if (screenIndex > 0) update({ screen: screenIndex - 1, error: '' });
   }
 
   function handleContinue() {
-    if (step < TOTAL_STEPS) setStep(s => s + 1);
-    else handleSubmit();
+    if (!canContinue(screen, data)) return;
+    if (isLast) {
+      handleSubmit();
+    } else {
+      update({ screen: screenIndex + 1, error: '' });
+    }
   }
 
   async function handleSubmit() {
-    setSubmitting(true);
-    setError('');
+    update({ submitting: true, error: '' });
     try {
       const res = await apiFetch('/api/auth/me/onboarding', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify(data),
+        body: JSON.stringify(buildPayload(data, language)),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || 'Failed to save');
+        throw new Error(body.error || t.submitError);
       }
-      const { user } = await res.json();
-      updateUser(user);
+      const { user: updated } = await res.json();
+      updateUser(updated);
+      clearDraft();
+      // PR 1 keeps the existing post-onboarding destination. The starting
+      // profile + first personalised chat transition is PR 3.
       navigate('/mind-journal', { replace: true, state: { fromOnboarding: true } });
     } catch (err) {
-      setError(err.message);
-      setSubmitting(false);
+      // Keep the draft so the athlete can retry without re-answering.
+      update({ submitting: false, error: err.message || t.submitError });
     }
   }
 
   function toggleGoal(value) {
-    setData(prev => {
-      const already = prev.goals.includes(value);
-      if (already) return { ...prev, goals: prev.goals.filter(g => g !== value) };
-      if (prev.goals.length >= 3) return prev;
-      return { ...prev, goals: [...prev.goals, value] };
+    setData((d) => {
+      const has = d.goals.includes(value);
+      if (has) return { ...d, goals: d.goals.filter((g) => g !== value) };
+      if (d.goals.length >= MAX_GOALS) return d;
+      return { ...d, goals: [...d.goals, value] };
     });
   }
 
-  return (
-    <div className="min-h-screen bg-dark-900 flex flex-col">
+  // ── Completed-user guard ──────────────────────────────────────────────────
+  // A user who already finished onboarding must not be able to reopen the
+  // form (directly navigating to /onboarding) and silently overwrite their
+  // saved profile. Kept local to this page.
+  if (user?.onboardingDone) {
+    return <Navigate to="/mind-journal" replace />;
+  }
 
-      {/* ── Fixed top bar: back arrow + progress ──────────────── */}
-      <div className="shrink-0 flex items-center gap-3 px-4 pt-4 pb-3 max-w-lg mx-auto w-full">
-        {step > 1 ? (
-          <button onClick={() => setStep(s => s - 1)} className="shrink-0 p-1 -ml-1 text-slt hover:text-ink transition-colors">
-            <ChevronLeft size={24} />
-          </button>
-        ) : (
-          <div className="w-7 shrink-0" />
-        )}
-        <div className="flex-1 h-1 bg-dark-700 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-brand-500 rounded-full transition-all duration-500"
-            style={{ width: `${(step / TOTAL_STEPS) * 100}%` }}
-          />
+  // ── Per-screen content ────────────────────────────────────────────────────
+  let heading = '';
+  let subcopy = '';
+  let liveMessage = '';
+  let content = null;
+
+  if (screen === 'sport') {
+    heading = t.sportTitle;
+    subcopy = t.sportSubtitle;
+    content = (
+      <>
+        <div className="mb-5 rounded-2xl border border-brand-500/30 bg-brand-500/10 px-4 py-3">
+          <p className="text-caption text-slt leading-relaxed">{t.aiDisclosure}</p>
         </div>
-      </div>
-
-      {/* ── Scrollable content ─────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto px-4 pt-6 pb-32 max-w-lg mx-auto w-full">
-
-        {/* Step 1: Sport */}
-        {step === 1 && (
-          <div className="animate-fade-in">
-            <h1 className="text-3xl font-bold text-ink mb-1">{t.sportTitle}</h1>
-            <p className="text-slt mb-4">{t.sportSubtitle}</p>
-            <div className="bg-brand-500/10 border border-brand-500/30 rounded-2xl px-4 py-3 mb-6">
-              <p className="text-xs text-slt leading-relaxed">{t.aiDisclosure}</p>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              {SPORTS.map(sport => (
-                <OptionRow
-                  key={sport.value}
-                  icon={sport.icon}
-                  label={hi ? sport.hi : sport.en}
-                  selected={data.sport === sport.value}
-                  onClick={() => setData(d => ({ ...d, sport: sport.value }))}
-                />
-              ))}
-            </div>
-          </div>
+        <OptionGrid layout="grid" ariaLabel={t.sportTitle}>
+          {SPORTS.map((s) => (
+            <SelectableOption
+              key={s.value}
+              icon={s.icon}
+              label={t[s.labelKey]}
+              oneLine
+              selected={data.sportChoice === s.value}
+              onSelect={() => update({ sportChoice: s.value })}
+            />
+          ))}
+        </OptionGrid>
+        {data.sportChoice === 'other' && (
+          <CustomAnswerField
+            id="sport-custom"
+            label={t.sportCustomLabel}
+            placeholder={t.sportCustomPlaceholder}
+            value={data.sportCustom}
+            maxLength={CUSTOM_MAX}
+            onChange={(v) => update({ sportCustom: v })}
+          />
         )}
-
-        {/* Step 2: Competition + Experience Level (merged) */}
-        {step === 2 && (
-          <div className="animate-fade-in">
-            <h1 className="text-3xl font-bold text-ink mb-1">{t.competitionTitle}</h1>
-            <p className="text-slt mb-6">{t.competitionSubtitle}</p>
-            <div className="flex flex-col gap-3 mb-8">
-              {COMPETITION_LEVELS.map(level => (
-                <OptionRow
-                  key={level.value}
-                  icon={level.icon}
-                  label={hi ? level.hi : level.en}
-                  selected={data.competitionLevel === level.value}
-                  onClick={() => setData(d => ({ ...d, competitionLevel: level.value }))}
-                />
-              ))}
-            </div>
-            <h2 className="text-xl font-bold text-ink mb-1">{t.levelTitle}</h2>
-            <p className="text-slt mb-6">{t.levelSubtitle}</p>
-            <div className="flex flex-col gap-3">
-              {LEVELS.map(level => (
-                <OptionRow
-                  key={level.value}
-                  icon={level.icon}
-                  label={t[level.labelKey]}
-                  sublabel={t[level.descKey]}
-                  selected={data.experienceLevel === level.value}
-                  onClick={() => setData(d => ({ ...d, experienceLevel: level.value }))}
-                />
-              ))}
-            </div>
-          </div>
+      </>
+    );
+  } else if (screen === 'role') {
+    heading = t.roleTitle;
+    subcopy = t.roleSubtitle;
+    const roleKeys = [...(ROLE_SETS[data.sportChoice] || []), 'none', 'unsure', 'different'];
+    content = (
+      <>
+        <OptionGrid layout="stack" ariaLabel={t.roleTitle}>
+          {roleKeys.map((key) => (
+            <SelectableOption
+              key={key}
+              label={t[ROLE_LABEL_KEY[key]]}
+              selected={data.roleChoice === key}
+              onSelect={() => update({ roleChoice: key })}
+            />
+          ))}
+        </OptionGrid>
+        {data.roleChoice === 'different' && (
+          <CustomAnswerField
+            id="role-custom"
+            label={t.roleCustomLabel}
+            placeholder={t.roleCustomPlaceholder}
+            value={data.roleCustom}
+            maxLength={CUSTOM_MAX}
+            onChange={(v) => update({ roleCustom: v })}
+          />
         )}
-
-        {/* Step 3: Primary Challenge */}
-        {step === 3 && (
-          <div className="animate-fade-in">
-            <h1 className="text-3xl font-bold text-ink mb-1">{t.challengeTitle}</h1>
-            <p className="text-slt mb-8">{t.challengeSubtitle}</p>
-            <div className="flex flex-col gap-3">
-              {CHALLENGES.map(challenge => (
-                <OptionRow
-                  key={challenge.value}
-                  icon={challenge.icon}
-                  label={hi ? challenge.hi : challenge.en}
-                  selected={data.primaryChallenge === challenge.value}
-                  onClick={() => setData(d => ({ ...d, primaryChallenge: challenge.value }))}
-                />
-              ))}
-            </div>
-          </div>
+      </>
+    );
+  } else if (screen === 'context') {
+    heading = t.contextTitle;
+    subcopy = t.contextSubtitle;
+    content = (
+      <>
+        <h2 className="text-body font-semibold text-ink mb-3">{t.competitionGroupLabel}</h2>
+        <OptionGrid layout="stack" ariaLabel={t.competitionGroupLabel}>
+          {COMPETITION.map((c) => (
+            <SelectableOption
+              key={c.value}
+              icon={c.icon}
+              label={t[c.labelKey]}
+              selected={data.competitionChoice === c.value}
+              onSelect={() => update({ competitionChoice: c.value })}
+            />
+          ))}
+        </OptionGrid>
+        {data.competitionChoice === 'other' && (
+          <CustomAnswerField
+            id="competition-custom"
+            label={t.compCustomLabel}
+            placeholder={t.compCustomPlaceholder}
+            value={data.competitionCustom}
+            maxLength={CUSTOM_MAX}
+            onChange={(v) => update({ competitionCustom: v })}
+          />
         )}
-
-        {/* Step 4: Goals (multi-select up to 3) */}
-        {step === 4 && (
-          <div className="animate-fade-in">
-            <h1 className="text-3xl font-bold text-ink mb-1">{t.goalsTitle}</h1>
-            <p className="text-slt mb-6">
-              {t.goalsSubtitle}{' '}
-              <span className={`font-semibold ${data.goals.length === 3 ? 'text-brand-600' : 'text-slt'}`}>
-                ({data.goals.length}/3)
-              </span>
-            </p>
-            <div className="flex flex-col gap-3 mb-6">
-              {GOALS.map(goal => {
-                const selected = data.goals.includes(goal.value);
-                const maxed    = data.goals.length >= 3 && !selected;
-                return (
-                  <OptionRow
-                    key={goal.value}
-                    icon={goal.icon}
-                    label={t[goal.labelKey]}
-                    selected={selected}
-                    disabled={maxed}
-                    onClick={() => toggleGoal(goal.value)}
-                  />
-                );
-              })}
-            </div>
-            <div className="bg-brand-500/10 border border-brand-500/30 rounded-2xl px-4 py-4 text-center">
-              <p className="text-sm font-semibold text-brand-400 mb-1">
-                {hi ? 'अगला: 60-सेकंड मेंटल चेक-इन' : 'Next: 60-second mental check-in'}
-              </p>
-              <p className="text-xs text-slt leading-relaxed">
-                {hi
-                  ? 'Arjun को बताओ कि आज तुम्हें क्या चाहिए — पहला चेक-इन तुरंत करो।'
-                  : 'Start with a 60-second mental check-in so Arjun knows what you need today.'}
-              </p>
-            </div>
-          </div>
+        <h2 className="text-body font-semibold text-ink mb-3 mt-7">{t.experienceGroupLabel}</h2>
+        <OptionGrid layout="stack" ariaLabel={t.experienceGroupLabel}>
+          {LEVELS.map((l) => (
+            <SelectableOption
+              key={l.value}
+              icon={l.icon}
+              label={t[l.labelKey]}
+              sublabel={t[l.descKey]}
+              selected={data.experienceLevel === l.value}
+              onSelect={() => update({ experienceLevel: l.value })}
+            />
+          ))}
+        </OptionGrid>
+      </>
+    );
+  } else if (screen === 'starting') {
+    heading = t.startTitle;
+    subcopy = t.startSubtitle;
+    content = (
+      <>
+        <OptionGrid layout="stack" ariaLabel={t.startTitle}>
+          {CHALLENGES.map((c) => (
+            <SelectableOption
+              key={c.value}
+              icon={c.icon}
+              label={t[c.labelKey]}
+              selected={data.challengeChoice === c.value}
+              onSelect={() => update({ challengeChoice: c.value })}
+            />
+          ))}
+        </OptionGrid>
+        {data.challengeChoice === 'different' && (
+          <CustomAnswerField
+            id="challenge-custom"
+            label={t.startCustomLabel}
+            placeholder={t.startCustomPlaceholder}
+            value={data.challengeCustom}
+            maxLength={CUSTOM_MAX}
+            onChange={(v) => update({ challengeCustom: v })}
+          />
         )}
+      </>
+    );
+  } else if (screen === 'goals') {
+    heading = t.goalsTitle;
+    subcopy = t.goalsSubtitle;
+    const count = data.goals.length;
+    const maxed = count >= MAX_GOALS;
+    liveMessage = maxed ? t.goalsMaxReached(MAX_GOALS) : t.goalsCounter(count, MAX_GOALS);
+    content = (
+      <>
+        <p className="mb-3 text-caption font-semibold text-slt">{t.goalsCounter(count, MAX_GOALS)}</p>
+        <OptionGrid layout="stack" multi ariaLabel={t.goalsTitle}>
+          {GOALS.map((g) => {
+            const selected = data.goals.includes(g.value);
+            return (
+              <SelectableOption
+                key={g.value}
+                icon={g.icon}
+                label={t[g.labelKey]}
+                multi
+                selected={selected}
+                disabled={maxed && !selected}
+                onSelect={() => toggleGoal(g.value)}
+              />
+            );
+          })}
+        </OptionGrid>
+      </>
+    );
+  }
 
-        {error && (
-          <div className="mt-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
-            ⚠️ {error}
-          </div>
-        )}
-      </div>
-
-      {/* ── Fixed bottom CTA ───────────────────────────────────── */}
-      <div className="shrink-0 px-4 pb-8 pt-4 bg-dark-900 border-t border-dark-700 max-w-lg mx-auto w-full">
-        <button
-          onClick={handleContinue}
-          disabled={!canContinue() || submitting}
-          className="w-full py-4 rounded-2xl bg-brand-600 text-white font-bold text-base transition-all active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed"
+  const footer = (
+    <div>
+      {data.error && (
+        <div
+          role="alert"
+          className="mb-3 rounded-xl border border-dark-600 bg-dark-800 px-4 py-3 text-caption text-alert"
         >
-          {submitting
-            ? (hi ? 'सेव हो रहा है…' : 'Saving…')
-            : step === TOTAL_STEPS
-            ? t.complete
-            : t.continue}
-        </button>
-      </div>
-
+          {data.error}
+        </div>
+      )}
+      <button
+        type="button"
+        onClick={handleContinue}
+        disabled={!canContinue(screen, data) || data.submitting}
+        className="btn-primary w-full justify-center py-4 text-base disabled:opacity-40"
+      >
+        {data.submitting ? t.saving : isLast ? t.finish : t.continue}
+      </button>
     </div>
+  );
+
+  return (
+    <OnboardingShell
+      screenKey={screen}
+      stages={STAGES}
+      currentStageKey={STAGE_OF[screen]}
+      progressLabel={t.progressLabel}
+      backLabel={t.back}
+      onBack={goBack}
+      canGoBack={screenIndex > 0}
+      heading={heading}
+      subcopy={subcopy}
+      liveMessage={liveMessage}
+      footer={footer}
+    >
+      {content}
+    </OnboardingShell>
   );
 }
 
