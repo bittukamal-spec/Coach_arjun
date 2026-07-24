@@ -1,460 +1,340 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
+import { Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
-import { apiFetch } from '../api';
 import {
   OnboardingShell,
   SelectableOption,
   OptionGrid,
   CustomAnswerField,
 } from '../components/onboarding';
-import { useOnboardingDraft } from '../hooks/useOnboardingDraft';
-import { sanitizeCustomText, isValidCustomText, DEFAULT_CUSTOM_MAX } from '../utils/sanitizeCustomText';
+import SaveStatus from '../components/onboarding/SaveStatus';
+import ModalDialog from '../components/onboarding/ModalDialog';
+import { useOnboardingSession } from '../hooks/useOnboardingSession';
+import { isValidCustomText } from '../utils/sanitizeCustomText';
+import * as CFG from '../onboarding/config';
 
-// ─── Onboarding (PR 1 foundation) ───────────────────────────────────────────
-// Theme-aware, mobile-first onboarding built on the shared onboarding
-// component system. Five screens across three stable stages. All answers
-// map onto EXISTING User fields via the unchanged
-// PATCH /api/auth/me/onboarding endpoint — no schema change, no AI, no
-// adaptive branching (those are PR 2 / PR 3). The starting-profile + first
-// chat transition is PR 3, so the post-submit destination is deliberately
-// left as /mind-journal for now.
+// ─── Adaptive onboarding (v2) ───────────────────────────────────────────────
+// Config-driven, server-authoritative flow built on the PR 1 shell + option
+// components. Stores only raw answers (ids + custom text) — no interpretation.
 
-const CUSTOM_MAX = DEFAULT_CUSTOM_MAX;
-
-// ── Screens & stages ────────────────────────────────────────────────────────
-const SCREENS = ['sport', 'role', 'context', 'starting', 'goals'];
-const STAGE_OF = {
-  sport: 'about',
-  role: 'about',
-  context: 'performance',
-  starting: 'performance',
-  goals: 'goals',
-};
-
-// Option data lives HERE (page logic), never inside the shared components.
-// Display labels resolve through translation keys so both themes/languages
-// share one structure.
-
-const SPORTS = [
-  { value: 'cricket',   icon: '🏏', labelKey: 'sportCricket' },
-  { value: 'football',  icon: '⚽', labelKey: 'sportFootball' },
-  { value: 'badminton', icon: '🏸', labelKey: 'sportBadminton' },
-  { value: 'athletics', icon: '🏃', labelKey: 'sportAthletics' },
-  { value: 'wrestling', icon: '🤼', labelKey: 'sportWrestling' },
-  { value: 'boxing',    icon: '🥊', labelKey: 'sportBoxing' },
-  { value: 'kabaddi',   icon: '🤸', labelKey: 'sportKabaddi' },
-  { value: 'tennis',    icon: '🎾', labelKey: 'sportTennis' },
-  { value: 'hockey',    icon: '🏑', labelKey: 'sportHockey' },
-  { value: 'swimming',  icon: '🏊', labelKey: 'sportSwimming' },
-  { value: 'other',     icon: '🏅', labelKey: 'sportOtherLabel' },
-];
-
-// Small, maintainable set of sport-relevant role examples. Sports not listed
-// simply show the fixed options + custom — no large role database.
-const ROLE_SETS = {
-  cricket:   ['batter', 'bowler', 'allRounder', 'wicketkeeper'],
-  football:  ['goalkeeper', 'defender', 'midfielder', 'forward'],
-  hockey:    ['goalkeeper', 'defender', 'midfielder', 'forward'],
+// Display-only: which sport-relevant roles to surface on the role screen.
+// Server validates against the full role answer set regardless.
+const SPORT_ROLE_SETS = {
+  cricket: ['batter', 'bowler', 'all_rounder', 'wicketkeeper'],
+  football: ['goalkeeper', 'defender', 'midfielder', 'forward'],
+  hockey: ['goalkeeper', 'defender', 'midfielder', 'forward'],
   badminton: ['singles', 'doubles', 'both'],
-  tennis:    ['singles', 'doubles', 'both'],
+  tennis: ['singles', 'doubles', 'both'],
 };
-const ROLE_LABEL_KEY = {
-  batter: 'roleBatter', bowler: 'roleBowler', allRounder: 'roleAllRounder', wicketkeeper: 'roleWicketkeeper',
-  goalkeeper: 'roleGoalkeeper', defender: 'roleDefender', midfielder: 'roleMidfielder', forward: 'roleForward',
-  singles: 'roleSingles', doubles: 'roleDoubles', both: 'roleBoth',
-  none: 'roleNone', unsure: 'roleUnsure', different: 'roleDifferent',
-};
-// Canonical English strings written to the free-text User.position field.
-// 'unsure' stores nothing meaningful (empty) so it never pollutes coaching
-// context downstream; 'different' stores the sanitised custom text.
-const ROLE_STORE = {
-  batter: 'Batter', bowler: 'Bowler', allRounder: 'All-rounder', wicketkeeper: 'Wicketkeeper',
-  goalkeeper: 'Goalkeeper', defender: 'Defender', midfielder: 'Midfielder', forward: 'Forward',
-  singles: 'Singles', doubles: 'Doubles', both: 'Singles and doubles',
-  none: 'No fixed role', unsure: '',
+const ROLE_FIXED = ['none', 'unsure', 'different'];
+const SPORT_ICONS = {
+  cricket: '🏏', football: '⚽', badminton: '🏸', athletics: '🏃', wrestling: '🤼',
+  boxing: '🥊', kabaddi: '🤸', tennis: '🎾', hockey: '🏑', swimming: '🏊', other: '🏅',
 };
 
-const COMPETITION = [
-  { value: 'recreational',  icon: '🌱', labelKey: 'compRecreational' },
-  { value: 'local',         icon: '🏅', labelKey: 'compLocal' },
-  { value: 'state',         icon: '🥈', labelKey: 'compState' },
-  { value: 'national',      icon: '🥇', labelKey: 'compNational' },
-  { value: 'international',  icon: '🌍', labelKey: 'compInternational' },
-  { value: 'other',         icon: '➕', labelKey: 'compOtherLabel' },
-];
-
-// Fixed enum — must match the server's validLevels; no custom value allowed.
-const LEVELS = [
-  { value: 'beginner',     icon: '🌱', labelKey: 'levelBeginner',     descKey: 'levelBeginnerDesc' },
-  { value: 'amateur',      icon: '🏫', labelKey: 'levelAmateur',      descKey: 'levelAmateurDesc' },
-  { value: 'competitive',  icon: '🥈', labelKey: 'levelCompetitive',  descKey: 'levelCompetitiveDesc' },
-  { value: 'professional', icon: '🏆', labelKey: 'levelProfessional', descKey: 'levelProfessionalDesc' },
-];
-
-// Values map to the existing primaryChallenge enum ('different' → custom text).
-const CHALLENGES = [
-  { value: 'nerves',          icon: '😰', labelKey: 'startNerves' },
-  { value: 'failure',         icon: '😔', labelKey: 'startFailure' },
-  { value: 'focus',           icon: '🎯', labelKey: 'startFocus' },
-  { value: 'family_pressure', icon: '🎓', labelKey: 'startPressure' },
-  { value: 'injury',          icon: '🩹', labelKey: 'startInjury' },
-  { value: 'consistency',     icon: '🔁', labelKey: 'startConsistency' },
-  { value: 'different',       icon: '✏️', labelKey: 'startDifferent' },
-];
-
-// Fixed enum — must match the server's validGoals; no custom goal in PR 1.
-const GOALS = [
-  { value: 'focus',         icon: '🎯', labelKey: 'goalFocus' },
-  { value: 'pressure',      icon: '💪', labelKey: 'goalPressure' },
-  { value: 'nerves',        icon: '😰', labelKey: 'goalNerves' },
-  { value: 'confidence',    icon: '⭐', labelKey: 'goalConfidence' },
-  { value: 'resilience',    icon: '🔄', labelKey: 'goalResilience' },
-  { value: 'motivation',    icon: '🔥', labelKey: 'goalMotivation' },
-  { value: 'communication', icon: '🤝', labelKey: 'goalCommunication' },
-  { value: 'injury',        icon: '🏥', labelKey: 'goalInjury' },
-];
-
-const MAX_GOALS = 3;
-
-const INITIAL_DATA = {
-  screen: 0,
-  sportChoice: '',      sportCustom: '',
-  roleChoice: '',       roleCustom: '',
-  competitionChoice: '', competitionCustom: '',
-  experienceLevel: '',
-  challengeChoice: '',  challengeCustom: '',
-  goals: [],
-  error: '',
-  submitting: false,
-};
-
-// ── Per-screen Continue validation (pure) ───────────────────────────────────
-function canContinue(screen, d) {
-  switch (screen) {
-    case 'sport':
-      return d.sportChoice !== '' && (d.sportChoice !== 'other' || isValidCustomText(d.sportCustom, CUSTOM_MAX));
-    case 'role':
-      return d.roleChoice !== '' && (d.roleChoice !== 'different' || isValidCustomText(d.roleCustom, CUSTOM_MAX));
-    case 'context':
-      return (
-        d.competitionChoice !== '' &&
-        (d.competitionChoice !== 'other' || isValidCustomText(d.competitionCustom, CUSTOM_MAX)) &&
-        d.experienceLevel !== ''
-      );
-    case 'starting':
-      return d.challengeChoice !== '' && (d.challengeChoice !== 'different' || isValidCustomText(d.challengeCustom, CUSTOM_MAX));
-    case 'goals':
-      return d.goals.length >= 1;
-    default:
-      return false;
-  }
+function tPath(obj, key) {
+  return key.split('.').reduce((o, k) => (o == null ? undefined : o[k]), obj);
 }
 
-// ── Derive the submit payload from the draft (pure) ─────────────────────────
-function buildPayload(d, language) {
-  const sport = d.sportChoice === 'other' ? sanitizeCustomText(d.sportCustom, CUSTOM_MAX) : d.sportChoice;
-  const position =
-    d.roleChoice === 'different'
-      ? sanitizeCustomText(d.roleCustom, CUSTOM_MAX)
-      : (ROLE_STORE[d.roleChoice] ?? '');
-  const competitionLevel =
-    d.competitionChoice === 'other' ? sanitizeCustomText(d.competitionCustom, CUSTOM_MAX) : d.competitionChoice;
-  const primaryChallenge =
-    d.challengeChoice === 'different' ? sanitizeCustomText(d.challengeCustom, CUSTOM_MAX) : d.challengeChoice;
-
-  return {
-    sport,
-    position,
-    competitionLevel,
-    experienceLevel: d.experienceLevel,
-    primaryChallenge,
-    goals: d.goals,
-    language,
-  };
-}
-
-function OnboardingPage() {
+export default function OnboardingPage() {
   const { user, token, language, updateUser } = useAuth();
   const navigate = useNavigate();
-  const t = translations[language].onboarding;
+  const L = translations[language];
+  const ui = L.onboarding.v2.ui;
+  const label = (key) => tPath(L, key) ?? key;
 
-  const userId = user?.id;
-  const { data, setData, clearDraft } = useOnboardingDraft(userId, INITIAL_DATA);
+  const {
+    phase, session, saveState, conflict,
+    save, complete, retryLast,
+    resolveConflictUseServer, resolveConflictReapplyLocal,
+  } = useOnboardingSession(user?.id, token);
 
-  // Clear any stale draft the moment onboarding is already complete (also
-  // covers the completed-user guard render below).
+  const [working, setWorking] = useState({});
+  const [currentStepId, setCurrentStepId] = useState(null);
+  const [live, setLive] = useState('');
+  const [confirmPrune, setConfirmPrune] = useState(null); // { payload, nextStepId, isLast }
+  const pendingRef = useRef(null); // last Continue action, for Retry
+
+  // Hydrate working state from the server session on load and after each save.
   useEffect(() => {
-    if (user?.onboardingDone) clearDraft();
-  }, [user?.onboardingDone, clearDraft]);
+    if (!session) return;
+    setWorking(session.answers || {});
+    setCurrentStepId((cur) => cur || session.currentStepId || 'sport');
+  }, [session]);
 
-  const update = (patch) => setData((d) => ({ ...d, ...patch }));
+  // ── Completed-user guard ────────────────────────────────────────────────
+  if (user?.onboardingDone) return <Navigate to="/mind-journal" replace />;
+  if (session?.status === 'COMPLETED') return <Navigate to="/mind-journal" replace />;
 
-  const screenIndex = Math.min(data.screen ?? 0, SCREENS.length - 1);
-  const screen = SCREENS[screenIndex];
-  const isLast = screenIndex === SCREENS.length - 1;
-
-  const STAGES = [
-    { key: 'about',       label: t.stageAbout },
-    { key: 'performance', label: t.stagePerformance },
-    { key: 'goals',       label: t.stageGoals },
-  ];
-
-  function goBack() {
-    if (screenIndex > 0) update({ screen: screenIndex - 1, error: '' });
+  // ── Loading / error states ──────────────────────────────────────────────
+  if (phase === 'loading' || !currentStepId) {
+    return (
+      <div className="min-h-screen bg-dark-900 flex items-center justify-center" role="status" aria-live="polite">
+        <Loader2 size={28} className="animate-spin text-brand-500" aria-hidden="true" />
+        <span className="sr-only">{ui.loading}</span>
+      </div>
+    );
+  }
+  if (phase === 'error') {
+    return (
+      <div className="min-h-screen bg-dark-900 flex flex-col items-center justify-center px-6 text-center">
+        <p className="text-body text-slt mb-4">{ui.loadError}</p>
+        <button onClick={() => window.location.reload()} className="btn-primary py-3 px-6">{ui.retry}</button>
+      </div>
+    );
   }
 
-  function handleContinue() {
-    if (!canContinue(screen, data)) return;
-    if (isLast) {
-      handleSubmit();
-    } else {
-      update({ screen: screenIndex + 1, error: '' });
-    }
-  }
+  // ── Derived flow ─────────────────────────────────────────────────────────
+  const flow = CFG.computeFlowScreenIds(working);
+  const idx = Math.max(0, flow.indexOf(currentStepId));
+  const isLast = idx === flow.length - 1;
+  const screen = CFG.getScreen(currentStepId);
+  const questionIds = screen?.questionIds || [];
+  const sportId = working.sport?.answerIds?.[0];
 
-  async function handleSubmit() {
-    update({ submitting: true, error: '' });
-    try {
-      const res = await apiFetch('/api/auth/me/onboarding', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify(buildPayload(data, language)),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || t.submitError);
+  const stages = CFG.STAGES.map((s) => ({ key: s.id, label: label(s.titleKey) }));
+
+  // ── Answer editing ─────────────────────────────────────────────────────
+  const setAnswer = (qid, updater) =>
+    setWorking((w) => ({ ...w, [qid]: updater(w[qid] || { answerIds: [] }) }));
+
+  function selectSingle(qid, aid) {
+    setAnswer(qid, (prev) =>
+      CFG.isCustom(qid, aid) ? { answerIds: [aid], customText: prev.customText || '' } : { answerIds: [aid] }
+    );
+  }
+  function toggleMulti(qid, aid, limit) {
+    setAnswer(qid, (prev) => {
+      const cur = prev.answerIds || [];
+      let ids;
+      if (cur.includes(aid)) ids = cur.filter((x) => x !== aid);
+      else if (CFG.isExclusive(qid, aid)) ids = [aid];
+      else {
+        const noEx = cur.filter((x) => !CFG.isExclusive(qid, x));
+        if (noEx.length >= limit) { setLive(ui.maxReached(limit)); return prev; }
+        ids = [...noEx, aid];
       }
-      const { user: updated } = await res.json();
-      updateUser(updated);
-      clearDraft();
-      // PR 1 keeps the existing post-onboarding destination. The starting
-      // profile + first personalised chat transition is PR 3.
-      navigate('/mind-journal', { replace: true, state: { fromOnboarding: true } });
-    } catch (err) {
-      // Keep the draft so the athlete can retry without re-answering.
-      update({ submitting: false, error: err.message || t.submitError });
-    }
-  }
-
-  function toggleGoal(value) {
-    setData((d) => {
-      const has = d.goals.includes(value);
-      if (has) return { ...d, goals: d.goals.filter((g) => g !== value) };
-      if (d.goals.length >= MAX_GOALS) return d;
-      return { ...d, goals: [...d.goals, value] };
+      const hasCustom = ids.some((x) => CFG.isCustom(qid, x));
+      setLive(ui.selectedCount(ids.length, limit));
+      return hasCustom ? { answerIds: ids, customText: prev.customText || '' } : { answerIds: ids };
     });
   }
+  const setCustom = (qid, text) => setAnswer(qid, (prev) => ({ ...prev, customText: text }));
 
-  // ── Completed-user guard ──────────────────────────────────────────────────
-  // A user who already finished onboarding must not be able to reopen the
-  // form (directly navigating to /onboarding) and silently overwrite their
-  // saved profile. Kept local to this page.
-  if (user?.onboardingDone) {
-    return <Navigate to="/mind-journal" replace />;
+  // ── Validation ───────────────────────────────────────────────────────────
+  function questionValid(qid) {
+    const q = CFG.getQuestion(qid);
+    const ans = working[qid] || {};
+    const ids = ans.answerIds || [];
+    if (ids.length === 0) return !q.required;
+    if (ids.length > q.limit) return false;
+    const customSel = ids.filter((id) => CFG.isCustom(qid, id));
+    if (customSel.length && !isValidCustomText(ans.customText || '', CFG.customMax(qid, customSel[0]))) return false;
+    return true;
+  }
+  const screenValid = questionIds.every(questionValid);
+
+  // ── Options to display for a question ────────────────────────────────────
+  function optionsFor(qid) {
+    if (qid === 'role_position') {
+      const ids = [...(SPORT_ROLE_SETS[sportId] || []), ...ROLE_FIXED];
+      const q = CFG.getQuestion(qid);
+      return ids.map((id) => q.answers.find((a) => a.id === id)).filter(Boolean);
+    }
+    return CFG.displayAnswers(qid, working);
   }
 
-  // ── Per-screen content ────────────────────────────────────────────────────
-  let heading = '';
-  let subcopy = '';
-  let liveMessage = '';
-  let content = null;
+  // ── Save / advance ────────────────────────────────────────────────────────
+  async function persist(payload, nextStepId, last) {
+    pendingRef.current = { payload, nextStepId, last }; // enable Retry
+    const result = await save(payload, nextStepId);
+    if (!result.ok) return; // conflict dialog or SaveStatus retry handles it
+    if (result.prunedQuestionIds?.length) setLive(ui.answersCleared);
+    if (last) {
+      const done = await complete(result.session.revision);
+      if (done.ok) {
+        updateUser(done.user);
+        navigate('/mind-journal', { replace: true, state: { fromOnboarding: true } });
+      } else if (done.missing?.length) {
+        // Jump back to the first missing screen.
+        const missingScreen = CFG.computeFlowScreenIds(working).find((sid) =>
+          (CFG.getScreen(sid)?.questionIds || []).some((q) => done.missing.includes(q))
+        );
+        if (missingScreen) setCurrentStepId(missingScreen);
+        setLive(ui.incomplete);
+      }
+    } else {
+      setCurrentStepId(nextStepId);
+    }
+  }
 
-  if (screen === 'sport') {
-    heading = t.sportTitle;
-    subcopy = t.sportSubtitle;
-    content = (
-      <>
-        <OptionGrid layout="grid" ariaLabel={t.sportTitle}>
-          {SPORTS.map((s) => (
-            <SelectableOption
-              key={s.value}
-              icon={s.icon}
-              label={t[s.labelKey]}
-              layout="tile"
-              selected={data.sportChoice === s.value}
-              onSelect={() => update({ sportChoice: s.value })}
-            />
-          ))}
-        </OptionGrid>
-        {data.sportChoice === 'other' && (
-          <CustomAnswerField
-            id="sport-custom"
-            label={t.sportCustomLabel}
-            placeholder={t.sportCustomPlaceholder}
-            value={data.sportCustom}
-            maxLength={CUSTOM_MAX}
-            onChange={(v) => update({ sportCustom: v })}
-          />
+  async function onContinue() {
+    if (!screenValid) return;
+    const payload = {};
+    for (const qid of questionIds) if (working[qid]?.answerIds?.length) payload[qid] = working[qid];
+    const nextStepId = isLast ? currentStepId : flow[idx + 1];
+
+    // Branch-change confirmation: changing the priority may orphan branch answers.
+    if (currentStepId === 'primary_priority' && session) {
+      const willReach = CFG.reachableQuestionIds(working);
+      const prunable = Object.keys(session.answers || {}).filter(
+        (qid) => CFG.isBranchQuestion(qid) && !willReach.has(qid)
+      );
+      if (prunable.length) {
+        setConfirmPrune({ payload, nextStepId, isLast });
+        return;
+      }
+    }
+    await persist(payload, nextStepId, isLast);
+  }
+
+  function onBack() {
+    if (idx > 0) { setCurrentStepId(flow[idx - 1]); setLive(''); }
+  }
+
+  // Retry replays the whole Continue action (save + advance / complete), not
+  // just the bare PATCH, so a recovered save still moves the athlete forward.
+  function retryContinue() {
+    const p = pendingRef.current;
+    if (p) return persist(p.payload, p.nextStepId, p.last);
+    return retryLast();
+  }
+
+  // ── Render one question ────────────────────────────────────────────────────
+  function renderQuestion(qid, groupLabel) {
+    const q = CFG.getQuestion(qid);
+    const multi = q.type === 'multi';
+    const options = optionsFor(qid);
+    const sel = working[qid]?.answerIds || [];
+    const atLimit = multi && sel.filter((id) => !CFG.isExclusive(qid, id)).length >= q.limit;
+    const isSport = qid === 'sport';
+    const customId = sel.find((id) => CFG.isCustom(qid, id));
+
+    return (
+      <div key={qid} className="mb-2">
+        {groupLabel && <h2 className="text-body font-semibold text-ink mb-3">{groupLabel}</h2>}
+        {multi && (
+          <p className="mb-3 text-caption font-semibold text-slt" aria-hidden="true">
+            {ui.selectedCount(sel.length, q.limit)}
+          </p>
         )}
-      </>
-    );
-  } else if (screen === 'role') {
-    heading = t.roleTitle;
-    subcopy = t.roleSubtitle;
-    const roleKeys = [...(ROLE_SETS[data.sportChoice] || []), 'none', 'unsure', 'different'];
-    content = (
-      <>
-        <OptionGrid layout="stack" ariaLabel={t.roleTitle}>
-          {roleKeys.map((key) => (
-            <SelectableOption
-              key={key}
-              label={t[ROLE_LABEL_KEY[key]]}
-              selected={data.roleChoice === key}
-              onSelect={() => update({ roleChoice: key })}
-            />
-          ))}
-        </OptionGrid>
-        {data.roleChoice === 'different' && (
-          <CustomAnswerField
-            id="role-custom"
-            label={t.roleCustomLabel}
-            placeholder={t.roleCustomPlaceholder}
-            value={data.roleCustom}
-            maxLength={CUSTOM_MAX}
-            onChange={(v) => update({ roleCustom: v })}
-          />
-        )}
-      </>
-    );
-  } else if (screen === 'context') {
-    heading = t.contextTitle;
-    subcopy = t.contextSubtitle;
-    content = (
-      <>
-        <h2 className="text-body font-semibold text-ink mb-3">{t.competitionGroupLabel}</h2>
-        <OptionGrid layout="stack" ariaLabel={t.competitionGroupLabel}>
-          {COMPETITION.map((c) => (
-            <SelectableOption
-              key={c.value}
-              icon={c.icon}
-              label={t[c.labelKey]}
-              selected={data.competitionChoice === c.value}
-              onSelect={() => update({ competitionChoice: c.value })}
-            />
-          ))}
-        </OptionGrid>
-        {data.competitionChoice === 'other' && (
-          <CustomAnswerField
-            id="competition-custom"
-            label={t.compCustomLabel}
-            placeholder={t.compCustomPlaceholder}
-            value={data.competitionCustom}
-            maxLength={CUSTOM_MAX}
-            onChange={(v) => update({ competitionCustom: v })}
-          />
-        )}
-        <h2 className="text-body font-semibold text-ink mb-3 mt-7">{t.experienceGroupLabel}</h2>
-        <OptionGrid layout="stack" ariaLabel={t.experienceGroupLabel}>
-          {LEVELS.map((l) => (
-            <SelectableOption
-              key={l.value}
-              icon={l.icon}
-              label={t[l.labelKey]}
-              sublabel={t[l.descKey]}
-              selected={data.experienceLevel === l.value}
-              onSelect={() => update({ experienceLevel: l.value })}
-            />
-          ))}
-        </OptionGrid>
-      </>
-    );
-  } else if (screen === 'starting') {
-    heading = t.startTitle;
-    subcopy = t.startSubtitle;
-    content = (
-      <>
-        <OptionGrid layout="stack" ariaLabel={t.startTitle}>
-          {CHALLENGES.map((c) => (
-            <SelectableOption
-              key={c.value}
-              icon={c.icon}
-              label={t[c.labelKey]}
-              selected={data.challengeChoice === c.value}
-              onSelect={() => update({ challengeChoice: c.value })}
-            />
-          ))}
-        </OptionGrid>
-        {data.challengeChoice === 'different' && (
-          <CustomAnswerField
-            id="challenge-custom"
-            label={t.startCustomLabel}
-            placeholder={t.startCustomPlaceholder}
-            value={data.challengeCustom}
-            maxLength={CUSTOM_MAX}
-            onChange={(v) => update({ challengeCustom: v })}
-          />
-        )}
-      </>
-    );
-  } else if (screen === 'goals') {
-    heading = t.goalsTitle;
-    subcopy = t.goalsSubtitle;
-    const count = data.goals.length;
-    const maxed = count >= MAX_GOALS;
-    liveMessage = maxed ? t.goalsMaxReached(MAX_GOALS) : t.goalsCounter(count, MAX_GOALS);
-    content = (
-      <>
-        <p className="mb-3 text-caption font-semibold text-slt">{t.goalsCounter(count, MAX_GOALS)}</p>
-        <OptionGrid layout="stack" multi ariaLabel={t.goalsTitle}>
-          {GOALS.map((g) => {
-            const selected = data.goals.includes(g.value);
+        <OptionGrid layout={isSport ? 'grid' : 'stack'} multi={multi} ariaLabel={groupLabel || label(screen.titleKey)}>
+          {options.map((a) => {
+            const selected = sel.includes(a.id);
+            const disabled = multi && atLimit && !selected && !CFG.isExclusive(qid, a.id);
             return (
               <SelectableOption
-                key={g.value}
-                icon={g.icon}
-                label={t[g.labelKey]}
-                multi
+                key={a.id}
+                icon={isSport ? SPORT_ICONS[a.id] : undefined}
+                label={label(a.key)}
+                layout={isSport ? 'tile' : 'row'}
+                multi={multi}
                 selected={selected}
-                disabled={maxed && !selected}
-                onSelect={() => toggleGoal(g.value)}
+                disabled={disabled}
+                onSelect={() => (multi ? toggleMulti(qid, a.id, q.limit) : selectSingle(qid, a.id))}
               />
             );
           })}
         </OptionGrid>
-      </>
+        {customId && (
+          <CustomAnswerField
+            id={`${qid}-custom`}
+            label={ui.customLabel}
+            placeholder={ui.customPlaceholder}
+            value={working[qid]?.customText || ''}
+            maxLength={CFG.customMax(qid, customId)}
+            onChange={(v) => setCustom(qid, v)}
+          />
+        )}
+      </div>
     );
   }
 
+  const heading = label(screen.titleKey);
+  const subcopy = screen.subtitleKey ? label(screen.subtitleKey) : '';
+  const isContext = currentStepId === 'playing_context';
+
   const footer = (
     <div>
-      {data.error && (
-        <div
-          role="alert"
-          className="mb-3 rounded-xl border border-dark-600 bg-dark-800 px-4 py-3 text-caption text-alert"
-        >
-          {data.error}
-        </div>
-      )}
+      <div className="mb-2 min-h-[18px]">
+        <SaveStatus state={saveState} onRetry={retryContinue} labels={ui} />
+      </div>
       <button
         type="button"
-        onClick={handleContinue}
-        disabled={!canContinue(screen, data) || data.submitting}
+        onClick={onContinue}
+        disabled={!screenValid || saveState === 'saving'}
         className="btn-primary w-full justify-center py-4 text-base disabled:opacity-40"
       >
-        {data.submitting ? t.saving : isLast ? t.finish : t.continue}
+        {saveState === 'saving' ? ui.saving : isLast ? ui.finish : ui.continue}
       </button>
     </div>
   );
 
   return (
-    <OnboardingShell
-      screenKey={screen}
-      stages={STAGES}
-      currentStageKey={STAGE_OF[screen]}
-      progressLabel={t.progressLabel}
-      backLabel={t.back}
-      onBack={goBack}
-      canGoBack={screenIndex > 0}
-      heading={heading}
-      subcopy={subcopy}
-      liveMessage={liveMessage}
-      footer={footer}
-    >
-      {content}
-    </OnboardingShell>
+    <>
+      <OnboardingShell
+        screenKey={currentStepId}
+        stages={stages}
+        currentStageKey={CFG.stageForScreen(currentStepId)}
+        progressLabel={ui.progressLabel}
+        backLabel={ui.back}
+        onBack={onBack}
+        canGoBack={idx > 0}
+        heading={heading}
+        subcopy={subcopy}
+        liveMessage={live}
+        footer={footer}
+      >
+        {isContext
+          ? questionIds.map((qid) =>
+              renderQuestion(qid, qid === 'competition_level' ? ui.competitionGroup : ui.experienceGroup)
+            )
+          : questionIds.map((qid) => renderQuestion(qid))}
+      </OnboardingShell>
+
+      {/* Branch-change confirmation before orphaning branch answers. */}
+      <ModalDialog
+        open={!!confirmPrune}
+        titleId="onb-prune-title"
+        title={ui.branchChangeTitle}
+        onDismiss={() => setConfirmPrune(null)}
+        actions={
+          <>
+            <button
+              className="btn-primary w-full justify-center py-3"
+              onClick={async () => { const p = confirmPrune; setConfirmPrune(null); await persist(p.payload, p.nextStepId, p.isLast); }}
+            >
+              {ui.branchChangeConfirm}
+            </button>
+            <button className="btn-ghost w-full justify-center py-3" onClick={() => setConfirmPrune(null)}>
+              {ui.cancel}
+            </button>
+          </>
+        }
+      >
+        {ui.branchChangeBody}
+      </ModalDialog>
+
+      {/* Server/local conflict recovery choice. */}
+      <ModalDialog
+        open={!!conflict}
+        titleId="onb-conflict-title"
+        title={ui.conflictTitle}
+        actions={
+          <>
+            <button className="btn-primary w-full justify-center py-3" onClick={resolveConflictUseServer}>
+              {ui.conflictUseServer}
+            </button>
+            <button className="btn-secondary w-full justify-center py-3" onClick={resolveConflictReapplyLocal}>
+              {ui.conflictReapply}
+            </button>
+          </>
+        }
+      >
+        {ui.conflictBody}
+      </ModalDialog>
+    </>
   );
 }
-
-export default OnboardingPage;

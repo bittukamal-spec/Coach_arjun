@@ -1,0 +1,2185 @@
+{
+  "version": 2,
+  "customMaxLen": 120,
+  "stages": [
+    {
+      "id": "about",
+      "titleKey": "onboarding.v2.stages.about"
+    },
+    {
+      "id": "performance",
+      "titleKey": "onboarding.v2.stages.performance"
+    },
+    {
+      "id": "goals",
+      "titleKey": "onboarding.v2.stages.goals"
+    }
+  ],
+  "screens": [
+    {
+      "id": "sport",
+      "stage": "about",
+      "questionIds": [
+        "sport"
+      ],
+      "titleKey": "onboarding.v2.screens.sport.title",
+      "subtitleKey": "onboarding.v2.screens.sport.subtitle"
+    },
+    {
+      "id": "role_position",
+      "stage": "about",
+      "questionIds": [
+        "role_position"
+      ],
+      "titleKey": "onboarding.v2.screens.rolePosition.title",
+      "subtitleKey": "onboarding.v2.screens.rolePosition.subtitle"
+    },
+    {
+      "id": "playing_context",
+      "stage": "about",
+      "questionIds": [
+        "competition_level",
+        "experience_level"
+      ],
+      "titleKey": "onboarding.v2.screens.playingContext.title",
+      "subtitleKey": "onboarding.v2.screens.playingContext.subtitle"
+    },
+    {
+      "id": "difficult_moments",
+      "stage": "performance",
+      "questionIds": [
+        "difficult_moments"
+      ],
+      "titleKey": "onboarding.v2.screens.difficultMoments.title",
+      "subtitleKey": "onboarding.v2.screens.difficultMoments.subtitle"
+    },
+    {
+      "id": "primary_priority",
+      "stage": "performance",
+      "questionIds": [
+        "primary_priority"
+      ],
+      "conditional": "hasPriority",
+      "titleKey": "onboarding.v2.screens.primaryPriority.title",
+      "subtitleKey": "onboarding.v2.screens.primaryPriority.subtitle"
+    },
+    {
+      "id": "contextual_pressures",
+      "stage": "performance",
+      "questionIds": [
+        "contextual_pressures"
+      ],
+      "titleKey": "onboarding.v2.screens.contextualPressures.title",
+      "subtitleKey": "onboarding.v2.screens.contextualPressures.subtitle"
+    },
+    {
+      "id": "supports",
+      "stage": "performance",
+      "questionIds": [
+        "supports"
+      ],
+      "titleKey": "onboarding.v2.screens.supports.title",
+      "subtitleKey": "onboarding.v2.screens.supports.subtitle"
+    },
+    {
+      "id": "strengths",
+      "stage": "performance",
+      "questionIds": [
+        "strengths"
+      ],
+      "titleKey": "onboarding.v2.screens.strengths.title",
+      "subtitleKey": "onboarding.v2.screens.strengths.subtitle"
+    },
+    {
+      "id": "broad_goals",
+      "stage": "goals",
+      "questionIds": [
+        "broad_goals"
+      ],
+      "titleKey": "onboarding.v2.screens.broadGoals.title",
+      "subtitleKey": "onboarding.v2.screens.broadGoals.subtitle"
+    },
+    {
+      "id": "four_week_outcome",
+      "stage": "goals",
+      "questionIds": [
+        "four_week_outcome"
+      ],
+      "titleKey": "onboarding.v2.screens.fourWeekOutcome.title",
+      "subtitleKey": "onboarding.v2.screens.fourWeekOutcome.subtitle"
+    }
+  ],
+  "flow": {
+    "preBranchScreens": [
+      "sport",
+      "role_position",
+      "playing_context",
+      "difficult_moments",
+      "primary_priority"
+    ],
+    "postBranchScreens": [
+      "contextual_pressures",
+      "supports",
+      "strengths",
+      "broad_goals",
+      "four_week_outcome"
+    ]
+  },
+  "branches": {
+    "pre_performance": {
+      "screenIds": [
+        "pre_performance_onset",
+        "pre_performance_signs",
+        "pre_performance_effect",
+        "pre_performance_duration"
+      ],
+      "requiredQuestionIds": [
+        "pre_performance_onset",
+        "pre_performance_signs",
+        "pre_performance_effect",
+        "pre_performance_duration"
+      ]
+    },
+    "mistakes": {
+      "screenIds": [
+        "mistakes_first_response",
+        "mistakes_next",
+        "mistakes_recovery"
+      ],
+      "requiredQuestionIds": [
+        "mistakes_first_response",
+        "mistakes_next",
+        "mistakes_recovery"
+      ]
+    },
+    "focus": {
+      "screenIds": [
+        "focus_when",
+        "focus_effect",
+        "focus_recovery"
+      ],
+      "requiredQuestionIds": [
+        "focus_when",
+        "focus_effect",
+        "focus_recovery"
+      ]
+    },
+    "confidence": {
+      "screenIds": [
+        "confidence_trigger",
+        "confidence_effect",
+        "confidence_recovery"
+      ],
+      "requiredQuestionIds": [
+        "confidence_trigger",
+        "confidence_effect",
+        "confidence_recovery"
+      ]
+    },
+    "motivation": {
+      "screenIds": [
+        "motivation_when",
+        "motivation_effect",
+        "motivation_recovery"
+      ],
+      "requiredQuestionIds": [
+        "motivation_when",
+        "motivation_effect",
+        "motivation_recovery"
+      ]
+    },
+    "coach_selection": {
+      "screenIds": [
+        "coach_selection_moment",
+        "coach_selection_effect",
+        "coach_selection_recovery"
+      ],
+      "requiredQuestionIds": [
+        "coach_selection_moment",
+        "coach_selection_effect",
+        "coach_selection_recovery"
+      ]
+    },
+    "family_outside": {
+      "screenIds": [
+        "family_outside_source",
+        "family_outside_effect",
+        "family_outside_recovery"
+      ],
+      "requiredQuestionIds": [
+        "family_outside_source",
+        "family_outside_effect",
+        "family_outside_recovery"
+      ]
+    },
+    "injury": {
+      "screenIds": [
+        "injury_stage",
+        "injury_concern",
+        "injury_recovery"
+      ],
+      "requiredQuestionIds": [
+        "injury_stage",
+        "injury_concern",
+        "injury_recovery"
+      ]
+    },
+    "unsure": {
+      "screenIds": [
+        "unsure_recognition",
+        "unsure_recovery"
+      ],
+      "requiredQuestionIds": [
+        "unsure_recognition"
+      ],
+      "conditionalScreens": {
+        "unsure_recovery": "unsureHasRecognition"
+      }
+    },
+    "custom": {
+      "screenIds": [
+        "custom_response",
+        "custom_effect",
+        "custom_recovery"
+      ],
+      "requiredQuestionIds": [
+        "custom_response",
+        "custom_effect",
+        "custom_recovery"
+      ]
+    }
+  },
+  "branchScreens": {
+    "pre_performance_onset": {
+      "stage": "performance",
+      "questionIds": [
+        "pre_performance_onset"
+      ],
+      "titleKey": "onboarding.v2.screens.prePerformanceOnset.title"
+    },
+    "pre_performance_signs": {
+      "stage": "performance",
+      "questionIds": [
+        "pre_performance_signs"
+      ],
+      "titleKey": "onboarding.v2.screens.prePerformanceSigns.title"
+    },
+    "pre_performance_effect": {
+      "stage": "performance",
+      "questionIds": [
+        "pre_performance_effect"
+      ],
+      "titleKey": "onboarding.v2.screens.prePerformanceEffect.title"
+    },
+    "pre_performance_duration": {
+      "stage": "performance",
+      "questionIds": [
+        "pre_performance_duration"
+      ],
+      "titleKey": "onboarding.v2.screens.prePerformanceDuration.title"
+    },
+    "mistakes_first_response": {
+      "stage": "performance",
+      "questionIds": [
+        "mistakes_first_response"
+      ],
+      "titleKey": "onboarding.v2.screens.mistakesFirstResponse.title"
+    },
+    "mistakes_next": {
+      "stage": "performance",
+      "questionIds": [
+        "mistakes_next"
+      ],
+      "titleKey": "onboarding.v2.screens.mistakesNext.title"
+    },
+    "mistakes_recovery": {
+      "stage": "performance",
+      "questionIds": [
+        "mistakes_recovery"
+      ],
+      "titleKey": "onboarding.v2.screens.mistakesRecovery.title"
+    },
+    "focus_when": {
+      "stage": "performance",
+      "questionIds": [
+        "focus_when"
+      ],
+      "titleKey": "onboarding.v2.screens.focusWhen.title"
+    },
+    "focus_effect": {
+      "stage": "performance",
+      "questionIds": [
+        "focus_effect"
+      ],
+      "titleKey": "onboarding.v2.screens.focusEffect.title"
+    },
+    "focus_recovery": {
+      "stage": "performance",
+      "questionIds": [
+        "focus_recovery"
+      ],
+      "titleKey": "onboarding.v2.screens.focusRecovery.title"
+    },
+    "confidence_trigger": {
+      "stage": "performance",
+      "questionIds": [
+        "confidence_trigger"
+      ],
+      "titleKey": "onboarding.v2.screens.confidenceTrigger.title"
+    },
+    "confidence_effect": {
+      "stage": "performance",
+      "questionIds": [
+        "confidence_effect"
+      ],
+      "titleKey": "onboarding.v2.screens.confidenceEffect.title"
+    },
+    "confidence_recovery": {
+      "stage": "performance",
+      "questionIds": [
+        "confidence_recovery"
+      ],
+      "titleKey": "onboarding.v2.screens.confidenceRecovery.title"
+    },
+    "motivation_when": {
+      "stage": "performance",
+      "questionIds": [
+        "motivation_when"
+      ],
+      "titleKey": "onboarding.v2.screens.motivationWhen.title"
+    },
+    "motivation_effect": {
+      "stage": "performance",
+      "questionIds": [
+        "motivation_effect"
+      ],
+      "titleKey": "onboarding.v2.screens.motivationEffect.title"
+    },
+    "motivation_recovery": {
+      "stage": "performance",
+      "questionIds": [
+        "motivation_recovery"
+      ],
+      "titleKey": "onboarding.v2.screens.motivationRecovery.title"
+    },
+    "coach_selection_moment": {
+      "stage": "performance",
+      "questionIds": [
+        "coach_selection_moment"
+      ],
+      "titleKey": "onboarding.v2.screens.coachSelectionMoment.title"
+    },
+    "coach_selection_effect": {
+      "stage": "performance",
+      "questionIds": [
+        "coach_selection_effect"
+      ],
+      "titleKey": "onboarding.v2.screens.coachSelectionEffect.title"
+    },
+    "coach_selection_recovery": {
+      "stage": "performance",
+      "questionIds": [
+        "coach_selection_recovery"
+      ],
+      "titleKey": "onboarding.v2.screens.coachSelectionRecovery.title"
+    },
+    "family_outside_source": {
+      "stage": "performance",
+      "questionIds": [
+        "family_outside_source"
+      ],
+      "titleKey": "onboarding.v2.screens.familyOutsideSource.title"
+    },
+    "family_outside_effect": {
+      "stage": "performance",
+      "questionIds": [
+        "family_outside_effect"
+      ],
+      "titleKey": "onboarding.v2.screens.familyOutsideEffect.title"
+    },
+    "family_outside_recovery": {
+      "stage": "performance",
+      "questionIds": [
+        "family_outside_recovery"
+      ],
+      "titleKey": "onboarding.v2.screens.familyOutsideRecovery.title"
+    },
+    "injury_stage": {
+      "stage": "performance",
+      "questionIds": [
+        "injury_stage"
+      ],
+      "titleKey": "onboarding.v2.screens.injuryStage.title"
+    },
+    "injury_concern": {
+      "stage": "performance",
+      "questionIds": [
+        "injury_concern"
+      ],
+      "titleKey": "onboarding.v2.screens.injuryConcern.title"
+    },
+    "injury_recovery": {
+      "stage": "performance",
+      "questionIds": [
+        "injury_recovery"
+      ],
+      "titleKey": "onboarding.v2.screens.injuryRecovery.title"
+    },
+    "unsure_recognition": {
+      "stage": "performance",
+      "questionIds": [
+        "unsure_recognition"
+      ],
+      "titleKey": "onboarding.v2.screens.unsureRecognition.title"
+    },
+    "unsure_recovery": {
+      "stage": "performance",
+      "questionIds": [
+        "unsure_recovery"
+      ],
+      "titleKey": "onboarding.v2.screens.unsureRecovery.title"
+    },
+    "custom_response": {
+      "stage": "performance",
+      "questionIds": [
+        "custom_response"
+      ],
+      "titleKey": "onboarding.v2.screens.customResponse.title"
+    },
+    "custom_effect": {
+      "stage": "performance",
+      "questionIds": [
+        "custom_effect"
+      ],
+      "titleKey": "onboarding.v2.screens.customEffect.title"
+    },
+    "custom_recovery": {
+      "stage": "performance",
+      "questionIds": [
+        "custom_recovery"
+      ],
+      "titleKey": "onboarding.v2.screens.customRecovery.title"
+    }
+  },
+  "priorityToBranch": {
+    "before_important_performance": "pre_performance",
+    "pressure_increases": "pre_performance",
+    "after_mistake": "mistakes",
+    "after_poor_result": "mistakes",
+    "lose_focus": "focus",
+    "confidence_drops": "confidence",
+    "low_motivation": "motivation",
+    "coach_feedback": "coach_selection",
+    "selection_uncertain": "coach_selection",
+    "family_expectations": "family_outside",
+    "injury_return": "injury",
+    "different": "custom"
+  },
+  "priorityToPrimaryChallenge": {
+    "before_important_performance": "nerves",
+    "pressure_increases": "nerves",
+    "after_mistake": "failure",
+    "after_poor_result": "failure",
+    "confidence_drops": "failure",
+    "lose_focus": "focus",
+    "low_motivation": "consistency",
+    "coach_feedback": "family_pressure",
+    "selection_uncertain": "family_pressure",
+    "family_expectations": "family_pressure",
+    "injury_return": "injury"
+  },
+  "compatibilityMirror": {
+    "sport": {
+      "userField": "sport",
+      "from": "sport"
+    },
+    "position": {
+      "userField": "position",
+      "from": "role_position",
+      "map": "rolePositionToText"
+    },
+    "competitionLevel": {
+      "userField": "competitionLevel",
+      "from": "competition_level"
+    },
+    "experienceLevel": {
+      "userField": "experienceLevel",
+      "from": "experience_level"
+    },
+    "goals": {
+      "userField": "goals",
+      "from": "broad_goals"
+    },
+    "primaryChallenge": {
+      "userField": "primaryChallenge",
+      "from": "primary_priority",
+      "map": "priorityToPrimaryChallenge"
+    }
+  },
+  "rolePositionToText": {
+    "batter": "Batter",
+    "bowler": "Bowler",
+    "all_rounder": "All-rounder",
+    "wicketkeeper": "Wicketkeeper",
+    "goalkeeper": "Goalkeeper",
+    "defender": "Defender",
+    "midfielder": "Midfielder",
+    "forward": "Forward",
+    "singles": "Singles",
+    "doubles": "Doubles",
+    "both": "Singles and doubles",
+    "none": "No fixed role",
+    "unsure": ""
+  },
+  "questions": {
+    "sport": {
+      "type": "single",
+      "limit": 1,
+      "required": true,
+      "answers": [
+        {
+          "id": "cricket",
+          "key": "onboarding.v2.sport.cricket"
+        },
+        {
+          "id": "football",
+          "key": "onboarding.v2.sport.football"
+        },
+        {
+          "id": "badminton",
+          "key": "onboarding.v2.sport.badminton"
+        },
+        {
+          "id": "athletics",
+          "key": "onboarding.v2.sport.athletics"
+        },
+        {
+          "id": "wrestling",
+          "key": "onboarding.v2.sport.wrestling"
+        },
+        {
+          "id": "boxing",
+          "key": "onboarding.v2.sport.boxing"
+        },
+        {
+          "id": "kabaddi",
+          "key": "onboarding.v2.sport.kabaddi"
+        },
+        {
+          "id": "tennis",
+          "key": "onboarding.v2.sport.tennis"
+        },
+        {
+          "id": "hockey",
+          "key": "onboarding.v2.sport.hockey"
+        },
+        {
+          "id": "swimming",
+          "key": "onboarding.v2.sport.swimming"
+        },
+        {
+          "id": "other",
+          "key": "onboarding.v2.sport.other",
+          "custom": true,
+          "max": 120
+        }
+      ]
+    },
+    "role_position": {
+      "type": "single",
+      "limit": 1,
+      "required": true,
+      "answers": [
+        {
+          "id": "batter",
+          "key": "onboarding.v2.rolePosition.batter"
+        },
+        {
+          "id": "bowler",
+          "key": "onboarding.v2.rolePosition.bowler"
+        },
+        {
+          "id": "all_rounder",
+          "key": "onboarding.v2.rolePosition.allRounder"
+        },
+        {
+          "id": "wicketkeeper",
+          "key": "onboarding.v2.rolePosition.wicketkeeper"
+        },
+        {
+          "id": "goalkeeper",
+          "key": "onboarding.v2.rolePosition.goalkeeper"
+        },
+        {
+          "id": "defender",
+          "key": "onboarding.v2.rolePosition.defender"
+        },
+        {
+          "id": "midfielder",
+          "key": "onboarding.v2.rolePosition.midfielder"
+        },
+        {
+          "id": "forward",
+          "key": "onboarding.v2.rolePosition.forward"
+        },
+        {
+          "id": "singles",
+          "key": "onboarding.v2.rolePosition.singles"
+        },
+        {
+          "id": "doubles",
+          "key": "onboarding.v2.rolePosition.doubles"
+        },
+        {
+          "id": "both",
+          "key": "onboarding.v2.rolePosition.both"
+        },
+        {
+          "id": "none",
+          "key": "onboarding.v2.rolePosition.none"
+        },
+        {
+          "id": "unsure",
+          "key": "onboarding.v2.rolePosition.unsure"
+        },
+        {
+          "id": "different",
+          "key": "onboarding.v2.rolePosition.different",
+          "custom": true,
+          "max": 120
+        }
+      ]
+    },
+    "competition_level": {
+      "type": "single",
+      "limit": 1,
+      "required": true,
+      "answers": [
+        {
+          "id": "recreational",
+          "key": "onboarding.v2.competitionLevel.recreational"
+        },
+        {
+          "id": "local",
+          "key": "onboarding.v2.competitionLevel.local"
+        },
+        {
+          "id": "state",
+          "key": "onboarding.v2.competitionLevel.state"
+        },
+        {
+          "id": "national",
+          "key": "onboarding.v2.competitionLevel.national"
+        },
+        {
+          "id": "international",
+          "key": "onboarding.v2.competitionLevel.international"
+        },
+        {
+          "id": "other",
+          "key": "onboarding.v2.competitionLevel.other",
+          "custom": true,
+          "max": 120
+        }
+      ]
+    },
+    "experience_level": {
+      "type": "single",
+      "limit": 1,
+      "required": true,
+      "answers": [
+        {
+          "id": "beginner",
+          "key": "onboarding.v2.experienceLevel.beginner"
+        },
+        {
+          "id": "amateur",
+          "key": "onboarding.v2.experienceLevel.amateur"
+        },
+        {
+          "id": "competitive",
+          "key": "onboarding.v2.experienceLevel.competitive"
+        },
+        {
+          "id": "professional",
+          "key": "onboarding.v2.experienceLevel.professional"
+        }
+      ]
+    },
+    "difficult_moments": {
+      "type": "multi",
+      "limit": 3,
+      "required": true,
+      "answers": [
+        {
+          "id": "before_important_performance",
+          "key": "onboarding.v2.difficultMoments.beforeImportantPerformance"
+        },
+        {
+          "id": "pressure_increases",
+          "key": "onboarding.v2.difficultMoments.pressureIncreases"
+        },
+        {
+          "id": "after_mistake",
+          "key": "onboarding.v2.difficultMoments.afterMistake"
+        },
+        {
+          "id": "after_poor_result",
+          "key": "onboarding.v2.difficultMoments.afterPoorResult"
+        },
+        {
+          "id": "lose_focus",
+          "key": "onboarding.v2.difficultMoments.loseFocus"
+        },
+        {
+          "id": "confidence_drops",
+          "key": "onboarding.v2.difficultMoments.confidenceDrops"
+        },
+        {
+          "id": "low_motivation",
+          "key": "onboarding.v2.difficultMoments.lowMotivation"
+        },
+        {
+          "id": "coach_feedback",
+          "key": "onboarding.v2.difficultMoments.coachFeedback"
+        },
+        {
+          "id": "selection_uncertain",
+          "key": "onboarding.v2.difficultMoments.selectionUncertain"
+        },
+        {
+          "id": "family_expectations",
+          "key": "onboarding.v2.difficultMoments.familyExpectations"
+        },
+        {
+          "id": "injury_return",
+          "key": "onboarding.v2.difficultMoments.injuryReturn"
+        },
+        {
+          "id": "not_sure",
+          "key": "onboarding.v2.difficultMoments.notSure",
+          "exclusive": true
+        },
+        {
+          "id": "different",
+          "key": "onboarding.v2.difficultMoments.different",
+          "custom": true,
+          "max": 120
+        }
+      ]
+    },
+    "primary_priority": {
+      "type": "single",
+      "limit": 1,
+      "required": true,
+      "optionsFrom": "difficult_moments",
+      "excludeOptions": [
+        "not_sure"
+      ]
+    },
+    "pre_performance_onset": {
+      "type": "single",
+      "limit": 1,
+      "required": true,
+      "answers": [
+        {
+          "id": "hours_days_before",
+          "key": "onboarding.v2.prePerformanceOnset.hoursDaysBefore"
+        },
+        {
+          "id": "on_the_day",
+          "key": "onboarding.v2.prePerformanceOnset.onTheDay"
+        },
+        {
+          "id": "during_warmup",
+          "key": "onboarding.v2.prePerformanceOnset.duringWarmup"
+        },
+        {
+          "id": "just_before",
+          "key": "onboarding.v2.prePerformanceOnset.justBefore"
+        },
+        {
+          "id": "after_start",
+          "key": "onboarding.v2.prePerformanceOnset.afterStart"
+        },
+        {
+          "id": "it_varies",
+          "key": "onboarding.v2.prePerformanceOnset.itVaries",
+          "exclusive": true
+        },
+        {
+          "id": "havent_noticed",
+          "key": "onboarding.v2.prePerformanceOnset.haventNoticed",
+          "exclusive": true
+        }
+      ]
+    },
+    "pre_performance_signs": {
+      "type": "multi",
+      "limit": 2,
+      "required": true,
+      "answers": [
+        {
+          "id": "fast_heartbeat",
+          "key": "onboarding.v2.prePerformanceSigns.fastHeartbeat"
+        },
+        {
+          "id": "tense_body",
+          "key": "onboarding.v2.prePerformanceSigns.tenseBody"
+        },
+        {
+          "id": "negative_thoughts",
+          "key": "onboarding.v2.prePerformanceSigns.negativeThoughts"
+        },
+        {
+          "id": "overthinking",
+          "key": "onboarding.v2.prePerformanceSigns.overthinking"
+        },
+        {
+          "id": "hard_to_focus",
+          "key": "onboarding.v2.prePerformanceSigns.hardToFocus"
+        },
+        {
+          "id": "restless",
+          "key": "onboarding.v2.prePerformanceSigns.restless"
+        },
+        {
+          "id": "low_flat",
+          "key": "onboarding.v2.prePerformanceSigns.lowFlat"
+        },
+        {
+          "id": "extra_energy_helps",
+          "key": "onboarding.v2.prePerformanceSigns.extraEnergyHelps"
+        },
+        {
+          "id": "something_else",
+          "key": "onboarding.v2.prePerformanceSigns.somethingElse",
+          "custom": true,
+          "max": 120
+        }
+      ]
+    },
+    "pre_performance_effect": {
+      "type": "multi",
+      "limit": 2,
+      "required": true,
+      "answers": [
+        {
+          "id": "hesitate",
+          "key": "onboarding.v2.prePerformanceEffect.hesitate"
+        },
+        {
+          "id": "rush",
+          "key": "onboarding.v2.prePerformanceEffect.rush"
+        },
+        {
+          "id": "too_cautious",
+          "key": "onboarding.v2.prePerformanceEffect.tooCautious"
+        },
+        {
+          "id": "lose_focus",
+          "key": "onboarding.v2.prePerformanceEffect.loseFocus"
+        },
+        {
+          "id": "simple_mistakes",
+          "key": "onboarding.v2.prePerformanceEffect.simpleMistakes"
+        },
+        {
+          "id": "perform_normally",
+          "key": "onboarding.v2.prePerformanceEffect.performNormally",
+          "exclusive": true
+        },
+        {
+          "id": "pressure_helps",
+          "key": "onboarding.v2.prePerformanceEffect.pressureHelps",
+          "exclusive": true
+        },
+        {
+          "id": "it_varies",
+          "key": "onboarding.v2.prePerformanceEffect.itVaries",
+          "exclusive": true
+        },
+        {
+          "id": "something_else",
+          "key": "onboarding.v2.prePerformanceEffect.somethingElse",
+          "custom": true,
+          "max": 120
+        }
+      ]
+    },
+    "pre_performance_duration": {
+      "type": "single",
+      "limit": 1,
+      "required": true,
+      "answers": [
+        {
+          "id": "settles_at_start",
+          "key": "onboarding.v2.prePerformanceDuration.settlesAtStart"
+        },
+        {
+          "id": "first_few_minutes",
+          "key": "onboarding.v2.prePerformanceDuration.firstFewMinutes"
+        },
+        {
+          "id": "most_of_performance",
+          "key": "onboarding.v2.prePerformanceDuration.mostOfPerformance"
+        },
+        {
+          "id": "lingers_after",
+          "key": "onboarding.v2.prePerformanceDuration.lingersAfter"
+        },
+        {
+          "id": "it_varies",
+          "key": "onboarding.v2.prePerformanceDuration.itVaries",
+          "exclusive": true
+        },
+        {
+          "id": "havent_noticed",
+          "key": "onboarding.v2.prePerformanceDuration.haventNoticed",
+          "exclusive": true
+        }
+      ]
+    },
+    "mistakes_first_response": {
+      "type": "multi",
+      "limit": 2,
+      "required": true,
+      "answers": [
+        {
+          "id": "keep_thinking",
+          "key": "onboarding.v2.mistakesFirstResponse.keepThinking"
+        },
+        {
+          "id": "angry_self",
+          "key": "onboarding.v2.mistakesFirstResponse.angrySelf"
+        },
+        {
+          "id": "become_cautious",
+          "key": "onboarding.v2.mistakesFirstResponse.becomeCautious"
+        },
+        {
+          "id": "rush_correct",
+          "key": "onboarding.v2.mistakesFirstResponse.rushCorrect"
+        },
+        {
+          "id": "look_to_others",
+          "key": "onboarding.v2.mistakesFirstResponse.lookToOthers"
+        },
+        {
+          "id": "body_tense",
+          "key": "onboarding.v2.mistakesFirstResponse.bodyTense"
+        },
+        {
+          "id": "reset_quickly",
+          "key": "onboarding.v2.mistakesFirstResponse.resetQuickly",
+          "exclusive": true
+        },
+        {
+          "id": "havent_noticed",
+          "key": "onboarding.v2.mistakesFirstResponse.haventNoticed",
+          "exclusive": true
+        },
+        {
+          "id": "something_else",
+          "key": "onboarding.v2.mistakesFirstResponse.somethingElse",
+          "custom": true,
+          "max": 120
+        }
+      ]
+    },
+    "mistakes_next": {
+      "type": "multi",
+      "limit": 2,
+      "required": true,
+      "answers": [
+        {
+          "id": "hesitate",
+          "key": "onboarding.v2.mistakesNext.hesitate"
+        },
+        {
+          "id": "another_mistake",
+          "key": "onboarding.v2.mistakesNext.anotherMistake"
+        },
+        {
+          "id": "lose_focus",
+          "key": "onboarding.v2.mistakesNext.loseFocus"
+        },
+        {
+          "id": "too_aggressive",
+          "key": "onboarding.v2.mistakesNext.tooAggressive"
+        },
+        {
+          "id": "stop_communicating",
+          "key": "onboarding.v2.mistakesNext.stopCommunicating"
+        },
+        {
+          "id": "confidence_drops",
+          "key": "onboarding.v2.mistakesNext.confidenceDrops"
+        },
+        {
+          "id": "mostly_unchanged",
+          "key": "onboarding.v2.mistakesNext.mostlyUnchanged",
+          "exclusive": true
+        },
+        {
+          "id": "depends",
+          "key": "onboarding.v2.mistakesNext.depends",
+          "exclusive": true
+        },
+        {
+          "id": "something_else",
+          "key": "onboarding.v2.mistakesNext.somethingElse",
+          "custom": true,
+          "max": 120
+        }
+      ]
+    },
+    "mistakes_recovery": {
+      "type": "single",
+      "limit": 1,
+      "required": true,
+      "answers": [
+        {
+          "id": "one_two_actions",
+          "key": "onboarding.v2.recovery.oneTwoActions"
+        },
+        {
+          "id": "few_minutes",
+          "key": "onboarding.v2.recovery.fewMinutes"
+        },
+        {
+          "id": "most_of_session",
+          "key": "onboarding.v2.recovery.mostOfSession"
+        },
+        {
+          "id": "even_after",
+          "key": "onboarding.v2.recovery.evenAfter"
+        },
+        {
+          "id": "it_varies",
+          "key": "onboarding.v2.recovery.itVaries",
+          "exclusive": true
+        },
+        {
+          "id": "havent_noticed",
+          "key": "onboarding.v2.recovery.haventNoticed",
+          "exclusive": true
+        }
+      ]
+    },
+    "focus_when": {
+      "type": "multi",
+      "limit": 2,
+      "required": true,
+      "answers": [
+        {
+          "id": "before_start",
+          "key": "onboarding.v2.focusWhen.beforeStart"
+        },
+        {
+          "id": "after_mistake",
+          "key": "onboarding.v2.focusWhen.afterMistake"
+        },
+        {
+          "id": "crowd_noise",
+          "key": "onboarding.v2.focusWhen.crowdNoise"
+        },
+        {
+          "id": "scoreboard_result",
+          "key": "onboarding.v2.focusWhen.scoreboardResult"
+        },
+        {
+          "id": "opponent",
+          "key": "onboarding.v2.focusWhen.opponent"
+        },
+        {
+          "id": "own_thoughts",
+          "key": "onboarding.v2.focusWhen.ownThoughts"
+        },
+        {
+          "id": "late_in_game",
+          "key": "onboarding.v2.focusWhen.lateInGame"
+        },
+        {
+          "id": "it_varies",
+          "key": "onboarding.v2.focusWhen.itVaries",
+          "exclusive": true
+        },
+        {
+          "id": "something_else",
+          "key": "onboarding.v2.focusWhen.somethingElse",
+          "custom": true,
+          "max": 120
+        }
+      ]
+    },
+    "focus_effect": {
+      "type": "multi",
+      "limit": 2,
+      "required": true,
+      "answers": [
+        {
+          "id": "miss_cues",
+          "key": "onboarding.v2.focusEffect.missCues"
+        },
+        {
+          "id": "slow_reactions",
+          "key": "onboarding.v2.focusEffect.slowReactions"
+        },
+        {
+          "id": "wrong_decisions",
+          "key": "onboarding.v2.focusEffect.wrongDecisions"
+        },
+        {
+          "id": "stop_communicating",
+          "key": "onboarding.v2.focusEffect.stopCommunicating"
+        },
+        {
+          "id": "energy_drops",
+          "key": "onboarding.v2.focusEffect.energyDrops"
+        },
+        {
+          "id": "mostly_unchanged",
+          "key": "onboarding.v2.focusEffect.mostlyUnchanged",
+          "exclusive": true
+        },
+        {
+          "id": "something_else",
+          "key": "onboarding.v2.focusEffect.somethingElse",
+          "custom": true,
+          "max": 120
+        }
+      ]
+    },
+    "focus_recovery": {
+      "type": "single",
+      "limit": 1,
+      "required": true,
+      "answers": [
+        {
+          "id": "one_two_actions",
+          "key": "onboarding.v2.recovery.oneTwoActions"
+        },
+        {
+          "id": "few_minutes",
+          "key": "onboarding.v2.recovery.fewMinutes"
+        },
+        {
+          "id": "most_of_session",
+          "key": "onboarding.v2.recovery.mostOfSession"
+        },
+        {
+          "id": "even_after",
+          "key": "onboarding.v2.recovery.evenAfter"
+        },
+        {
+          "id": "it_varies",
+          "key": "onboarding.v2.recovery.itVaries",
+          "exclusive": true
+        },
+        {
+          "id": "havent_noticed",
+          "key": "onboarding.v2.recovery.haventNoticed",
+          "exclusive": true
+        }
+      ]
+    },
+    "confidence_trigger": {
+      "type": "multi",
+      "limit": 2,
+      "required": true,
+      "answers": [
+        {
+          "id": "after_mistake",
+          "key": "onboarding.v2.confidenceTrigger.afterMistake"
+        },
+        {
+          "id": "after_poor_result",
+          "key": "onboarding.v2.confidenceTrigger.afterPoorResult"
+        },
+        {
+          "id": "strong_opponent",
+          "key": "onboarding.v2.confidenceTrigger.strongOpponent"
+        },
+        {
+          "id": "being_watched",
+          "key": "onboarding.v2.confidenceTrigger.beingWatched"
+        },
+        {
+          "id": "early_setback",
+          "key": "onboarding.v2.confidenceTrigger.earlySetback"
+        },
+        {
+          "id": "comparing_others",
+          "key": "onboarding.v2.confidenceTrigger.comparingOthers"
+        },
+        {
+          "id": "it_varies",
+          "key": "onboarding.v2.confidenceTrigger.itVaries",
+          "exclusive": true
+        },
+        {
+          "id": "something_else",
+          "key": "onboarding.v2.confidenceTrigger.somethingElse",
+          "custom": true,
+          "max": 120
+        }
+      ]
+    },
+    "confidence_effect": {
+      "type": "multi",
+      "limit": 2,
+      "required": true,
+      "answers": [
+        {
+          "id": "play_safe",
+          "key": "onboarding.v2.confidenceEffect.playSafe"
+        },
+        {
+          "id": "hesitate",
+          "key": "onboarding.v2.confidenceEffect.hesitate"
+        },
+        {
+          "id": "avoid_the_ball",
+          "key": "onboarding.v2.confidenceEffect.avoidTheBall"
+        },
+        {
+          "id": "negative_thoughts",
+          "key": "onboarding.v2.confidenceEffect.negativeThoughts"
+        },
+        {
+          "id": "body_tense",
+          "key": "onboarding.v2.confidenceEffect.bodyTense"
+        },
+        {
+          "id": "mostly_unchanged",
+          "key": "onboarding.v2.confidenceEffect.mostlyUnchanged",
+          "exclusive": true
+        },
+        {
+          "id": "something_else",
+          "key": "onboarding.v2.confidenceEffect.somethingElse",
+          "custom": true,
+          "max": 120
+        }
+      ]
+    },
+    "confidence_recovery": {
+      "type": "single",
+      "limit": 1,
+      "required": true,
+      "answers": [
+        {
+          "id": "one_two_actions",
+          "key": "onboarding.v2.recovery.oneTwoActions"
+        },
+        {
+          "id": "few_minutes",
+          "key": "onboarding.v2.recovery.fewMinutes"
+        },
+        {
+          "id": "most_of_session",
+          "key": "onboarding.v2.recovery.mostOfSession"
+        },
+        {
+          "id": "even_after",
+          "key": "onboarding.v2.recovery.evenAfter"
+        },
+        {
+          "id": "it_varies",
+          "key": "onboarding.v2.recovery.itVaries",
+          "exclusive": true
+        },
+        {
+          "id": "havent_noticed",
+          "key": "onboarding.v2.recovery.haventNoticed",
+          "exclusive": true
+        }
+      ]
+    },
+    "motivation_when": {
+      "type": "multi",
+      "limit": 2,
+      "required": true,
+      "answers": [
+        {
+          "id": "after_bad_result",
+          "key": "onboarding.v2.motivationWhen.afterBadResult"
+        },
+        {
+          "id": "repetitive_training",
+          "key": "onboarding.v2.motivationWhen.repetitiveTraining"
+        },
+        {
+          "id": "tired_or_busy",
+          "key": "onboarding.v2.motivationWhen.tiredOrBusy"
+        },
+        {
+          "id": "no_clear_goal",
+          "key": "onboarding.v2.motivationWhen.noClearGoal"
+        },
+        {
+          "id": "alone_no_team",
+          "key": "onboarding.v2.motivationWhen.aloneNoTeam"
+        },
+        {
+          "id": "after_injury",
+          "key": "onboarding.v2.motivationWhen.afterInjury"
+        },
+        {
+          "id": "it_varies",
+          "key": "onboarding.v2.motivationWhen.itVaries",
+          "exclusive": true
+        },
+        {
+          "id": "something_else",
+          "key": "onboarding.v2.motivationWhen.somethingElse",
+          "custom": true,
+          "max": 120
+        }
+      ]
+    },
+    "motivation_effect": {
+      "type": "multi",
+      "limit": 2,
+      "required": true,
+      "answers": [
+        {
+          "id": "skip_or_shorten",
+          "key": "onboarding.v2.motivationEffect.skipOrShorten"
+        },
+        {
+          "id": "go_through_motions",
+          "key": "onboarding.v2.motivationEffect.goThroughMotions"
+        },
+        {
+          "id": "lose_focus",
+          "key": "onboarding.v2.motivationEffect.loseFocus"
+        },
+        {
+          "id": "enjoy_less",
+          "key": "onboarding.v2.motivationEffect.enjoyLess"
+        },
+        {
+          "id": "still_show_up",
+          "key": "onboarding.v2.motivationEffect.stillShowUp",
+          "exclusive": true
+        },
+        {
+          "id": "something_else",
+          "key": "onboarding.v2.motivationEffect.somethingElse",
+          "custom": true,
+          "max": 120
+        }
+      ]
+    },
+    "motivation_recovery": {
+      "type": "single",
+      "limit": 1,
+      "required": true,
+      "answers": [
+        {
+          "id": "one_two_actions",
+          "key": "onboarding.v2.recovery.oneTwoActions"
+        },
+        {
+          "id": "few_minutes",
+          "key": "onboarding.v2.recovery.fewMinutes"
+        },
+        {
+          "id": "most_of_session",
+          "key": "onboarding.v2.recovery.mostOfSession"
+        },
+        {
+          "id": "even_after",
+          "key": "onboarding.v2.recovery.evenAfter"
+        },
+        {
+          "id": "it_varies",
+          "key": "onboarding.v2.recovery.itVaries",
+          "exclusive": true
+        },
+        {
+          "id": "havent_noticed",
+          "key": "onboarding.v2.recovery.haventNoticed",
+          "exclusive": true
+        }
+      ]
+    },
+    "coach_selection_moment": {
+      "type": "multi",
+      "limit": 2,
+      "required": true,
+      "answers": [
+        {
+          "id": "critical_feedback",
+          "key": "onboarding.v2.coachSelectionMoment.criticalFeedback"
+        },
+        {
+          "id": "public_feedback",
+          "key": "onboarding.v2.coachSelectionMoment.publicFeedback"
+        },
+        {
+          "id": "unclear_expectations",
+          "key": "onboarding.v2.coachSelectionMoment.unclearExpectations"
+        },
+        {
+          "id": "being_compared",
+          "key": "onboarding.v2.coachSelectionMoment.beingCompared"
+        },
+        {
+          "id": "selection_uncertain",
+          "key": "onboarding.v2.coachSelectionMoment.selectionUncertain"
+        },
+        {
+          "id": "fear_dropped",
+          "key": "onboarding.v2.coachSelectionMoment.fearDropped"
+        },
+        {
+          "id": "it_varies",
+          "key": "onboarding.v2.coachSelectionMoment.itVaries",
+          "exclusive": true
+        },
+        {
+          "id": "something_else",
+          "key": "onboarding.v2.coachSelectionMoment.somethingElse",
+          "custom": true,
+          "max": 120
+        }
+      ]
+    },
+    "coach_selection_effect": {
+      "type": "multi",
+      "limit": 2,
+      "required": true,
+      "answers": [
+        {
+          "id": "overthink",
+          "key": "onboarding.v2.coachSelectionEffect.overthink"
+        },
+        {
+          "id": "play_safe",
+          "key": "onboarding.v2.coachSelectionEffect.playSafe"
+        },
+        {
+          "id": "try_too_hard",
+          "key": "onboarding.v2.coachSelectionEffect.tryTooHard"
+        },
+        {
+          "id": "lose_confidence",
+          "key": "onboarding.v2.coachSelectionEffect.loseConfidence"
+        },
+        {
+          "id": "withdraw",
+          "key": "onboarding.v2.coachSelectionEffect.withdraw"
+        },
+        {
+          "id": "motivates_me",
+          "key": "onboarding.v2.coachSelectionEffect.motivatesMe",
+          "exclusive": true
+        },
+        {
+          "id": "mostly_unchanged",
+          "key": "onboarding.v2.coachSelectionEffect.mostlyUnchanged",
+          "exclusive": true
+        },
+        {
+          "id": "something_else",
+          "key": "onboarding.v2.coachSelectionEffect.somethingElse",
+          "custom": true,
+          "max": 120
+        }
+      ]
+    },
+    "coach_selection_recovery": {
+      "type": "single",
+      "limit": 1,
+      "required": true,
+      "answers": [
+        {
+          "id": "one_two_actions",
+          "key": "onboarding.v2.recovery.oneTwoActions"
+        },
+        {
+          "id": "few_minutes",
+          "key": "onboarding.v2.recovery.fewMinutes"
+        },
+        {
+          "id": "most_of_session",
+          "key": "onboarding.v2.recovery.mostOfSession"
+        },
+        {
+          "id": "even_after",
+          "key": "onboarding.v2.recovery.evenAfter"
+        },
+        {
+          "id": "it_varies",
+          "key": "onboarding.v2.recovery.itVaries",
+          "exclusive": true
+        },
+        {
+          "id": "havent_noticed",
+          "key": "onboarding.v2.recovery.haventNoticed",
+          "exclusive": true
+        }
+      ]
+    },
+    "family_outside_source": {
+      "type": "multi",
+      "limit": 2,
+      "required": true,
+      "answers": [
+        {
+          "id": "parents",
+          "key": "onboarding.v2.familyOutsideSource.parents"
+        },
+        {
+          "id": "relatives",
+          "key": "onboarding.v2.familyOutsideSource.relatives"
+        },
+        {
+          "id": "friends_peers",
+          "key": "onboarding.v2.familyOutsideSource.friendsPeers"
+        },
+        {
+          "id": "school_teachers",
+          "key": "onboarding.v2.familyOutsideSource.schoolTeachers"
+        },
+        {
+          "id": "community_public",
+          "key": "onboarding.v2.familyOutsideSource.communityPublic"
+        },
+        {
+          "id": "social_media",
+          "key": "onboarding.v2.familyOutsideSource.socialMedia"
+        },
+        {
+          "id": "prefer_not_say",
+          "key": "onboarding.v2.familyOutsideSource.preferNotSay",
+          "exclusive": true
+        },
+        {
+          "id": "something_else",
+          "key": "onboarding.v2.familyOutsideSource.somethingElse",
+          "custom": true,
+          "max": 120
+        }
+      ]
+    },
+    "family_outside_effect": {
+      "type": "multi",
+      "limit": 2,
+      "required": true,
+      "answers": [
+        {
+          "id": "extra_pressure",
+          "key": "onboarding.v2.familyOutsideEffect.extraPressure"
+        },
+        {
+          "id": "fear_letting_down",
+          "key": "onboarding.v2.familyOutsideEffect.fearLettingDown"
+        },
+        {
+          "id": "play_safe",
+          "key": "onboarding.v2.familyOutsideEffect.playSafe"
+        },
+        {
+          "id": "overthink",
+          "key": "onboarding.v2.familyOutsideEffect.overthink"
+        },
+        {
+          "id": "lose_enjoyment",
+          "key": "onboarding.v2.familyOutsideEffect.loseEnjoyment"
+        },
+        {
+          "id": "motivates_me",
+          "key": "onboarding.v2.familyOutsideEffect.motivatesMe",
+          "exclusive": true
+        },
+        {
+          "id": "mostly_unchanged",
+          "key": "onboarding.v2.familyOutsideEffect.mostlyUnchanged",
+          "exclusive": true
+        },
+        {
+          "id": "something_else",
+          "key": "onboarding.v2.familyOutsideEffect.somethingElse",
+          "custom": true,
+          "max": 120
+        }
+      ]
+    },
+    "family_outside_recovery": {
+      "type": "single",
+      "limit": 1,
+      "required": true,
+      "answers": [
+        {
+          "id": "one_two_actions",
+          "key": "onboarding.v2.recovery.oneTwoActions"
+        },
+        {
+          "id": "few_minutes",
+          "key": "onboarding.v2.recovery.fewMinutes"
+        },
+        {
+          "id": "most_of_session",
+          "key": "onboarding.v2.recovery.mostOfSession"
+        },
+        {
+          "id": "even_after",
+          "key": "onboarding.v2.recovery.evenAfter"
+        },
+        {
+          "id": "it_varies",
+          "key": "onboarding.v2.recovery.itVaries",
+          "exclusive": true
+        },
+        {
+          "id": "havent_noticed",
+          "key": "onboarding.v2.recovery.haventNoticed",
+          "exclusive": true
+        }
+      ]
+    },
+    "injury_stage": {
+      "type": "single",
+      "limit": 1,
+      "required": true,
+      "answers": [
+        {
+          "id": "recovering_not_playing",
+          "key": "onboarding.v2.injuryStage.recoveringNotPlaying"
+        },
+        {
+          "id": "returned_building_back",
+          "key": "onboarding.v2.injuryStage.returnedBuildingBack"
+        },
+        {
+          "id": "fully_back_still_worried",
+          "key": "onboarding.v2.injuryStage.fullyBackStillWorried"
+        },
+        {
+          "id": "recurring_niggles",
+          "key": "onboarding.v2.injuryStage.recurringNiggles"
+        },
+        {
+          "id": "prefer_not_say",
+          "key": "onboarding.v2.injuryStage.preferNotSay",
+          "exclusive": true
+        }
+      ]
+    },
+    "injury_concern": {
+      "type": "multi",
+      "limit": 2,
+      "required": true,
+      "answers": [
+        {
+          "id": "re_injury_fear",
+          "key": "onboarding.v2.injuryConcern.reInjuryFear"
+        },
+        {
+          "id": "lost_form",
+          "key": "onboarding.v2.injuryConcern.lostForm"
+        },
+        {
+          "id": "lost_fitness",
+          "key": "onboarding.v2.injuryConcern.lostFitness"
+        },
+        {
+          "id": "lost_place",
+          "key": "onboarding.v2.injuryConcern.lostPlace"
+        },
+        {
+          "id": "hesitate_in_contests",
+          "key": "onboarding.v2.injuryConcern.hesitateInContests"
+        },
+        {
+          "id": "frustrated_impatient",
+          "key": "onboarding.v2.injuryConcern.frustratedImpatient"
+        },
+        {
+          "id": "feel_fine",
+          "key": "onboarding.v2.injuryConcern.feelFine",
+          "exclusive": true
+        },
+        {
+          "id": "something_else",
+          "key": "onboarding.v2.injuryConcern.somethingElse",
+          "custom": true,
+          "max": 120
+        }
+      ]
+    },
+    "injury_recovery": {
+      "type": "single",
+      "limit": 1,
+      "required": true,
+      "answers": [
+        {
+          "id": "one_two_actions",
+          "key": "onboarding.v2.recovery.oneTwoActions"
+        },
+        {
+          "id": "few_minutes",
+          "key": "onboarding.v2.recovery.fewMinutes"
+        },
+        {
+          "id": "most_of_session",
+          "key": "onboarding.v2.recovery.mostOfSession"
+        },
+        {
+          "id": "even_after",
+          "key": "onboarding.v2.recovery.evenAfter"
+        },
+        {
+          "id": "it_varies",
+          "key": "onboarding.v2.recovery.itVaries",
+          "exclusive": true
+        },
+        {
+          "id": "havent_noticed",
+          "key": "onboarding.v2.recovery.haventNoticed",
+          "exclusive": true
+        }
+      ]
+    },
+    "unsure_recognition": {
+      "type": "multi",
+      "limit": 2,
+      "required": true,
+      "answers": [
+        {
+          "id": "differ_comp_vs_training",
+          "key": "onboarding.v2.unsureRecognition.differCompVsTraining"
+        },
+        {
+          "id": "one_mistake_snowballs",
+          "key": "onboarding.v2.unsureRecognition.oneMistakeSnowballs"
+        },
+        {
+          "id": "hesitate_under_pressure",
+          "key": "onboarding.v2.unsureRecognition.hesitateUnderPressure"
+        },
+        {
+          "id": "focus_leaves_present",
+          "key": "onboarding.v2.unsureRecognition.focusLeavesPresent"
+        },
+        {
+          "id": "compare_to_others",
+          "key": "onboarding.v2.unsureRecognition.compareToOthers"
+        },
+        {
+          "id": "struggle_consistency",
+          "key": "onboarding.v2.unsureRecognition.struggleConsistency"
+        },
+        {
+          "id": "pressure_to_prove",
+          "key": "onboarding.v2.unsureRecognition.pressureToProve"
+        },
+        {
+          "id": "none_fit",
+          "key": "onboarding.v2.unsureRecognition.noneFit",
+          "exclusive": true
+        }
+      ]
+    },
+    "unsure_recovery": {
+      "type": "single",
+      "limit": 1,
+      "required": false,
+      "answers": [
+        {
+          "id": "one_two_actions",
+          "key": "onboarding.v2.recovery.oneTwoActions"
+        },
+        {
+          "id": "few_minutes",
+          "key": "onboarding.v2.recovery.fewMinutes"
+        },
+        {
+          "id": "most_of_session",
+          "key": "onboarding.v2.recovery.mostOfSession"
+        },
+        {
+          "id": "even_after",
+          "key": "onboarding.v2.recovery.evenAfter"
+        },
+        {
+          "id": "it_varies",
+          "key": "onboarding.v2.recovery.itVaries",
+          "exclusive": true
+        },
+        {
+          "id": "havent_noticed",
+          "key": "onboarding.v2.recovery.haventNoticed",
+          "exclusive": true
+        }
+      ]
+    },
+    "custom_response": {
+      "type": "multi",
+      "limit": 2,
+      "required": true,
+      "answers": [
+        {
+          "id": "body_tense",
+          "key": "onboarding.v2.customResponse.bodyTense"
+        },
+        {
+          "id": "negative_thoughts",
+          "key": "onboarding.v2.customResponse.negativeThoughts"
+        },
+        {
+          "id": "lose_focus",
+          "key": "onboarding.v2.customResponse.loseFocus"
+        },
+        {
+          "id": "hesitate",
+          "key": "onboarding.v2.customResponse.hesitate"
+        },
+        {
+          "id": "frustrated",
+          "key": "onboarding.v2.customResponse.frustrated"
+        },
+        {
+          "id": "reset_quickly",
+          "key": "onboarding.v2.customResponse.resetQuickly",
+          "exclusive": true
+        },
+        {
+          "id": "something_else",
+          "key": "onboarding.v2.customResponse.somethingElse",
+          "custom": true,
+          "max": 120
+        }
+      ]
+    },
+    "custom_effect": {
+      "type": "multi",
+      "limit": 2,
+      "required": true,
+      "answers": [
+        {
+          "id": "hesitate",
+          "key": "onboarding.v2.customEffect.hesitate"
+        },
+        {
+          "id": "rush",
+          "key": "onboarding.v2.customEffect.rush"
+        },
+        {
+          "id": "too_cautious",
+          "key": "onboarding.v2.customEffect.tooCautious"
+        },
+        {
+          "id": "simple_mistakes",
+          "key": "onboarding.v2.customEffect.simpleMistakes"
+        },
+        {
+          "id": "lose_focus",
+          "key": "onboarding.v2.customEffect.loseFocus"
+        },
+        {
+          "id": "mostly_unchanged",
+          "key": "onboarding.v2.customEffect.mostlyUnchanged",
+          "exclusive": true
+        },
+        {
+          "id": "something_else",
+          "key": "onboarding.v2.customEffect.somethingElse",
+          "custom": true,
+          "max": 120
+        }
+      ]
+    },
+    "custom_recovery": {
+      "type": "single",
+      "limit": 1,
+      "required": true,
+      "answers": [
+        {
+          "id": "one_two_actions",
+          "key": "onboarding.v2.recovery.oneTwoActions"
+        },
+        {
+          "id": "few_minutes",
+          "key": "onboarding.v2.recovery.fewMinutes"
+        },
+        {
+          "id": "most_of_session",
+          "key": "onboarding.v2.recovery.mostOfSession"
+        },
+        {
+          "id": "even_after",
+          "key": "onboarding.v2.recovery.evenAfter"
+        },
+        {
+          "id": "it_varies",
+          "key": "onboarding.v2.recovery.itVaries",
+          "exclusive": true
+        },
+        {
+          "id": "havent_noticed",
+          "key": "onboarding.v2.recovery.haventNoticed",
+          "exclusive": true
+        }
+      ]
+    },
+    "contextual_pressures": {
+      "type": "multi",
+      "limit": 3,
+      "required": false,
+      "answers": [
+        {
+          "id": "own_expectations",
+          "key": "onboarding.v2.contextualPressures.ownExpectations"
+        },
+        {
+          "id": "coach_behaviour",
+          "key": "onboarding.v2.contextualPressures.coachBehaviour"
+        },
+        {
+          "id": "family_expectations",
+          "key": "onboarding.v2.contextualPressures.familyExpectations"
+        },
+        {
+          "id": "comparison",
+          "key": "onboarding.v2.contextualPressures.comparison"
+        },
+        {
+          "id": "selection_pressure",
+          "key": "onboarding.v2.contextualPressures.selectionPressure"
+        },
+        {
+          "id": "school_work",
+          "key": "onboarding.v2.contextualPressures.schoolWork"
+        },
+        {
+          "id": "money_travel",
+          "key": "onboarding.v2.contextualPressures.moneyTravel"
+        },
+        {
+          "id": "injury_condition",
+          "key": "onboarding.v2.contextualPressures.injuryCondition"
+        },
+        {
+          "id": "social_media",
+          "key": "onboarding.v2.contextualPressures.socialMedia"
+        },
+        {
+          "id": "nothing_outside",
+          "key": "onboarding.v2.contextualPressures.nothingOutside",
+          "exclusive": true
+        },
+        {
+          "id": "different",
+          "key": "onboarding.v2.contextualPressures.different",
+          "custom": true,
+          "max": 120
+        }
+      ]
+    },
+    "supports": {
+      "type": "multi",
+      "limit": 3,
+      "required": true,
+      "answers": [
+        {
+          "id": "clear_preparation",
+          "key": "onboarding.v2.supports.clearPreparation"
+        },
+        {
+          "id": "one_action_focus",
+          "key": "onboarding.v2.supports.oneActionFocus"
+        },
+        {
+          "id": "encouragement",
+          "key": "onboarding.v2.supports.encouragement"
+        },
+        {
+          "id": "physically_ready",
+          "key": "onboarding.v2.supports.physicallyReady"
+        },
+        {
+          "id": "pre_routine",
+          "key": "onboarding.v2.supports.preRoutine"
+        },
+        {
+          "id": "helpful_words",
+          "key": "onboarding.v2.supports.helpfulWords"
+        },
+        {
+          "id": "staying_relaxed",
+          "key": "onboarding.v2.supports.stayingRelaxed"
+        },
+        {
+          "id": "competing_aggressively",
+          "key": "onboarding.v2.supports.competingAggressively"
+        },
+        {
+          "id": "enjoying_moment",
+          "key": "onboarding.v2.supports.enjoyingMoment"
+        },
+        {
+          "id": "remembering_success",
+          "key": "onboarding.v2.supports.rememberingSuccess"
+        },
+        {
+          "id": "havent_noticed",
+          "key": "onboarding.v2.supports.haventNoticed",
+          "exclusive": true
+        },
+        {
+          "id": "different",
+          "key": "onboarding.v2.supports.different",
+          "custom": true,
+          "max": 120
+        }
+      ]
+    },
+    "strengths": {
+      "type": "multi",
+      "limit": 3,
+      "required": true,
+      "answers": [
+        {
+          "id": "hard_working",
+          "key": "onboarding.v2.strengths.hardWorking"
+        },
+        {
+          "id": "brave",
+          "key": "onboarding.v2.strengths.brave"
+        },
+        {
+          "id": "disciplined",
+          "key": "onboarding.v2.strengths.disciplined"
+        },
+        {
+          "id": "competitive",
+          "key": "onboarding.v2.strengths.competitive"
+        },
+        {
+          "id": "calm",
+          "key": "onboarding.v2.strengths.calm"
+        },
+        {
+          "id": "persistent",
+          "key": "onboarding.v2.strengths.persistent"
+        },
+        {
+          "id": "quick_learner",
+          "key": "onboarding.v2.strengths.quickLearner"
+        },
+        {
+          "id": "supportive",
+          "key": "onboarding.v2.strengths.supportive"
+        },
+        {
+          "id": "honest_self",
+          "key": "onboarding.v2.strengths.honestSelf"
+        },
+        {
+          "id": "still_figuring",
+          "key": "onboarding.v2.strengths.stillFiguring",
+          "exclusive": true
+        },
+        {
+          "id": "different",
+          "key": "onboarding.v2.strengths.different",
+          "custom": true,
+          "max": 120
+        }
+      ]
+    },
+    "broad_goals": {
+      "type": "multi",
+      "limit": 3,
+      "required": true,
+      "answers": [
+        {
+          "id": "focus",
+          "key": "onboarding.v2.broadGoals.focus"
+        },
+        {
+          "id": "pressure",
+          "key": "onboarding.v2.broadGoals.pressure"
+        },
+        {
+          "id": "nerves",
+          "key": "onboarding.v2.broadGoals.nerves"
+        },
+        {
+          "id": "confidence",
+          "key": "onboarding.v2.broadGoals.confidence"
+        },
+        {
+          "id": "resilience",
+          "key": "onboarding.v2.broadGoals.resilience"
+        },
+        {
+          "id": "motivation",
+          "key": "onboarding.v2.broadGoals.motivation"
+        },
+        {
+          "id": "communication",
+          "key": "onboarding.v2.broadGoals.communication"
+        },
+        {
+          "id": "injury",
+          "key": "onboarding.v2.broadGoals.injury"
+        }
+      ]
+    },
+    "four_week_outcome": {
+      "type": "single",
+      "limit": 1,
+      "required": true,
+      "answers": [
+        {
+          "id": "recover_faster",
+          "key": "onboarding.v2.fourWeekOutcome.recoverFaster"
+        },
+        {
+          "id": "feel_prepared",
+          "key": "onboarding.v2.fourWeekOutcome.feelPrepared"
+        },
+        {
+          "id": "stay_focused",
+          "key": "onboarding.v2.fourWeekOutcome.stayFocused"
+        },
+        {
+          "id": "trust_under_pressure",
+          "key": "onboarding.v2.fourWeekOutcome.trustUnderPressure"
+        },
+        {
+          "id": "train_consistently",
+          "key": "onboarding.v2.fourWeekOutcome.trainConsistently"
+        },
+        {
+          "id": "handle_feedback",
+          "key": "onboarding.v2.fourWeekOutcome.handleFeedback"
+        },
+        {
+          "id": "enjoy_competing",
+          "key": "onboarding.v2.fourWeekOutcome.enjoyCompeting"
+        },
+        {
+          "id": "return_confident",
+          "key": "onboarding.v2.fourWeekOutcome.returnConfident"
+        },
+        {
+          "id": "understand_barrier",
+          "key": "onboarding.v2.fourWeekOutcome.understandBarrier"
+        },
+        {
+          "id": "own_goal",
+          "key": "onboarding.v2.fourWeekOutcome.ownGoal",
+          "custom": true,
+          "max": 120
+        }
+      ]
+    }
+  }
+}

@@ -117,6 +117,7 @@ model User {
   prescriptions            Prescription[]
   activeCoachingSelections ActiveCoachingSelection[]
   mindJournalEntries       MindJournalEntry[]
+  onboardingSessions       OnboardingSession[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -739,4 +740,57 @@ model Prescription {
   // ActiveCoachingSelection's prescription FK require the active
   // prescription to belong to both this same user AND the selected cycle.
   @@unique([id, cycleId, userId])
+}
+
+// ── Adaptive onboarding (v2) — structured, versioned, server-authoritative ──
+// Raw athlete answers only (selected IDs + custom text). No interpretation,
+// scores, labels, or coaching prescriptions are ever stored here — those are
+// produced in PR 3 from this raw data, never inside onboarding.
+enum OnboardingStatus {
+  IN_PROGRESS
+  COMPLETED
+}
+
+model OnboardingSession {
+  id                String            @id @default(cuid())
+  userId            String
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  onboardingVersion Int               @default(2)
+  attemptNumber     Int               @default(1)
+  status            OnboardingStatus  @default(IN_PROGRESS)
+
+  // Optimistic concurrency: every accepted PATCH increments revision.
+  revision          Int               @default(0)
+  currentStepId     String?           // stable SCREEN id (never a question id)
+  branchId          String?           // resolved deep-branch id
+  primaryPriorityId String?           // resolved primary-priority answer id
+
+  // { [questionId]: { answerIds: string[], customText?: string } }
+  answers           Json              @default("{}")
+
+  startedAt         DateTime          @default(now())
+  lastSavedAt       DateTime          @updatedAt   // informational only
+  completedAt       DateTime?
+
+  activeSlot        ActiveOnboardingSession?
+
+  @@unique([userId, onboardingVersion, attemptNumber])
+  @@index([userId, status])
+  @@index([userId, onboardingVersion, status])
+}
+
+// One row per (userId, onboardingVersion). Its composite primary key makes it
+// impossible for two IN_PROGRESS attempts of the same version to coexist:
+// the second concurrent create hits a uniqueness error and the losing request
+// reloads the winner. Deleted inside the completion transaction (a completed
+// attempt holds no active slot) and cascades when its session is removed.
+model ActiveOnboardingSession {
+  userId            String
+  onboardingVersion Int
+  sessionId         String            @unique
+
+  session           OnboardingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@id([userId, onboardingVersion])
 }
