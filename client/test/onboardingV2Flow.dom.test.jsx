@@ -355,4 +355,57 @@ describe('Adaptive onboarding v2', () => {
     expect(shellSrc).toMatch(/env\(safe-area-inset-bottom\)/);
     expect(shellSrc).toMatch(/motion-safe:animate-fade-in/);
   });
+
+  test('a failed initial GET shows the error+Retry screen (not an infinite spinner), and Retry recovers in place', async () => {
+    const server = makeServer();
+    let failGet = true;
+    apiFetch.mockImplementation((path, init = {}) => {
+      const method = init.method || 'GET';
+      if (path === '/api/onboarding/session' && method === 'GET' && failGet) {
+        return Promise.resolve({ ok: false, status: 404, json: async () => ({ error: 'NOPE' }) });
+      }
+      const [status, payload] = server.handle(method, path, init.body ? JSON.parse(init.body) : undefined);
+      return Promise.resolve({ ok: status < 400, status, json: async () => payload });
+    });
+    const getCount = () => apiFetch.mock.calls.filter(
+      (c) => c[0] === '/api/onboarding/session' && (c[1]?.method || 'GET') === 'GET'
+    ).length;
+
+    render(<App />);
+    const user = userEvent.setup();
+
+    // Error screen is reachable; the infinite loading spinner is gone.
+    expect(await screen.findByText("We couldn't load your onboarding. Please try again.")).toBeTruthy();
+    expect(screen.queryByText('Loading your onboarding…')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy();
+
+    // Error copy is user-friendly — no URLs, route names, DB/stack details.
+    const errText = screen.getByText("We couldn't load your onboarding. Please try again.").textContent;
+    expect(errText).not.toMatch(/\/api\/|onboarding\/session|prisma|Error:|http/i);
+
+    // Retry re-runs the load in place (no page refresh) and recovers.
+    const before = getCount();
+    failGet = false;
+    await user.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(await screen.findByRole('heading', { name: 'What sport do you play?' })).toBeTruthy();
+    expect(getCount()).toBeGreaterThan(before);
+  });
+
+  test('a rejected (network/CORS) initial GET also shows the error screen, never a stuck spinner', async () => {
+    let failGet = true;
+    const server = makeServer();
+    apiFetch.mockImplementation((path, init = {}) => {
+      const method = init.method || 'GET';
+      if (path === '/api/onboarding/session' && method === 'GET' && failGet) return Promise.reject(new Error('network'));
+      const [status, payload] = server.handle(method, path, init.body ? JSON.parse(init.body) : undefined);
+      return Promise.resolve({ ok: status < 400, status, json: async () => payload });
+    });
+    render(<App />);
+    const user = userEvent.setup();
+    expect(await screen.findByRole('button', { name: 'Retry' })).toBeTruthy();
+    expect(screen.queryByText('Loading your onboarding…')).toBeNull();
+    failGet = false;
+    await user.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(await screen.findByRole('heading', { name: 'What sport do you play?' })).toBeTruthy();
+  });
 });

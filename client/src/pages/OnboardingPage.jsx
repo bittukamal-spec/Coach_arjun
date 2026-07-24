@@ -47,7 +47,7 @@ export default function OnboardingPage() {
 
   const {
     phase, session, saveState, conflict,
-    save, complete, retryLast,
+    save, complete, retryLast, reload,
     resolveConflictUseServer, resolveConflictReapplyLocal,
   } = useOnboardingSession(user?.id, token);
 
@@ -69,7 +69,19 @@ export default function OnboardingPage() {
   if (session?.status === 'COMPLETED') return <Navigate to="/mind-journal" replace />;
 
   // ── Loading / error states ──────────────────────────────────────────────
-  if (phase === 'loading' || !currentStepId) {
+  // Order matters: a failed initial load sets phase='error' while session (and
+  // therefore currentStepId) stays null. The error state must be checked FIRST,
+  // otherwise the "no currentStepId yet" loading fallback would win and trap the
+  // athlete on an infinite spinner with no way to recover.
+  const errorScreen = (
+    <div className="min-h-screen bg-dark-900 flex flex-col items-center justify-center px-6 text-center">
+      <p className="text-body text-slt mb-4">{ui.loadError}</p>
+      <button type="button" onClick={reload} className="btn-primary py-3 px-6">{ui.retry}</button>
+    </div>
+  );
+
+  if (phase === 'error') return errorScreen;
+  if (phase === 'loading') {
     return (
       <div className="min-h-screen bg-dark-900 flex items-center justify-center" role="status" aria-live="polite">
         <Loader2 size={28} className="animate-spin text-brand-500" aria-hidden="true" />
@@ -77,14 +89,9 @@ export default function OnboardingPage() {
       </div>
     );
   }
-  if (phase === 'error') {
-    return (
-      <div className="min-h-screen bg-dark-900 flex flex-col items-center justify-center px-6 text-center">
-        <p className="text-body text-slt mb-4">{ui.loadError}</p>
-        <button onClick={() => window.location.reload()} className="btn-primary py-3 px-6">{ui.retry}</button>
-      </div>
-    );
-  }
+  // Ready, but no resolvable step (unexpected) → controlled recovery, never a
+  // silent infinite spinner.
+  if (!currentStepId) return errorScreen;
 
   // ── Derived flow ─────────────────────────────────────────────────────────
   const flow = CFG.computeFlowScreenIds(working);

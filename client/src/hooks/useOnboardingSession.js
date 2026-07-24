@@ -53,49 +53,62 @@ export function useOnboardingSession(userId, token) {
   }, [userId]);
 
   // ── Initial load + reconciliation ─────────────────────────────────────────
+  // Extracted so Retry can re-run it in place, without a full page refresh.
+  const runLoad = useCallback(async (isCancelled = () => false) => {
+    try {
+      const res = await apiFetch('/api/onboarding/session', { headers: authHeaders(token) });
+      if (!res.ok) { if (!isCancelled()) setPhase('error'); return; }
+      const { session: server } = await res.json();
+      if (isCancelled()) return;
+
+      const cache = readCache(userId);
+      const hasPending = cache && Array.isArray(cache.dirty) && cache.dirty.length > 0;
+
+      if (server.status === 'COMPLETED' || !hasPending) {
+        hydrate(server);
+        setPhase('ready');
+        return;
+      }
+      if (cache.baseRevision === server.revision) {
+        // Replay pending edits.
+        const pending = {};
+        for (const qid of cache.dirty) if (cache.answers[qid]) pending[qid] = cache.answers[qid];
+        const r = await apiFetch('/api/onboarding/session', {
+          method: 'PATCH',
+          headers: authHeaders(token),
+          body: JSON.stringify({ onboardingVersion: VERSION, expectedRevision: cache.baseRevision, currentStepId: cache.currentStepId, answers: pending }),
+        });
+        if (isCancelled()) return;
+        if (r.ok) { const { session: fresh } = await r.json(); hydrate(fresh); }
+        else if (r.status === 409) { const body = await r.json(); setSession(server); setConflict({ serverSession: body.session, localAnswers: cache.answers, dirty: cache.dirty }); }
+        else { setSession(server); setSaveState('error'); }
+        setPhase('ready');
+        return;
+      }
+      // Server advanced beyond our base while we had unsaved edits → conflict.
+      setSession(server);
+      setConflict({ serverSession: server, localAnswers: cache.answers, dirty: cache.dirty });
+      setPhase('ready');
+    } catch {
+      if (!isCancelled()) setPhase('error');
+    }
+  }, [userId, token, hydrate]);
+
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      try {
-        const res = await apiFetch('/api/onboarding/session', { headers: authHeaders(token) });
-        if (!res.ok) { if (!cancelled) setPhase('error'); return; }
-        const { session: server } = await res.json();
-        if (cancelled) return;
-
-        const cache = readCache(userId);
-        const hasPending = cache && Array.isArray(cache.dirty) && cache.dirty.length > 0;
-
-        if (server.status === 'COMPLETED' || !hasPending) {
-          hydrate(server);
-          setPhase('ready');
-          return;
-        }
-        if (cache.baseRevision === server.revision) {
-          // Replay pending edits.
-          const pending = {};
-          for (const qid of cache.dirty) if (cache.answers[qid]) pending[qid] = cache.answers[qid];
-          const r = await apiFetch('/api/onboarding/session', {
-            method: 'PATCH',
-            headers: authHeaders(token),
-            body: JSON.stringify({ onboardingVersion: VERSION, expectedRevision: cache.baseRevision, currentStepId: cache.currentStepId, answers: pending }),
-          });
-          if (cancelled) return;
-          if (r.ok) { const { session: fresh } = await r.json(); hydrate(fresh); }
-          else if (r.status === 409) { const body = await r.json(); setSession(server); setConflict({ serverSession: body.session, localAnswers: cache.answers, dirty: cache.dirty }); }
-          else { setSession(server); setSaveState('error'); }
-          setPhase('ready');
-          return;
-        }
-        // Server advanced beyond our base while we had unsaved edits → conflict.
-        setSession(server);
-        setConflict({ serverSession: server, localAnswers: cache.answers, dirty: cache.dirty });
-        setPhase('ready');
-      } catch {
-        if (!cancelled) setPhase('error');
-      }
-    })();
+    runLoad(() => cancelled);
     return () => { cancelled = true; };
-  }, [userId, token, hydrate]);
+  }, [runLoad]);
+
+  // Retry the initial session request in place: reset to the loading state,
+  // clear any stale conflict/save flags, and re-run the load. Recovers from a
+  // failed initial GET without reloading the page.
+  const reload = useCallback(() => {
+    setPhase('loading');
+    setConflict(null);
+    setSaveState('idle');
+    return runLoad();
+  }, [runLoad]);
 
   // ── Save (PATCH) ──────────────────────────────────────────────────────────
   const save = useCallback(async (changedAnswers, nextStepId) => {
@@ -188,7 +201,7 @@ export function useOnboardingSession(userId, token) {
 
   return {
     phase, session, saveState, conflict,
-    save, complete, retryLast,
+    save, complete, retryLast, reload,
     resolveConflictUseServer, resolveConflictReapplyLocal,
   };
 }
