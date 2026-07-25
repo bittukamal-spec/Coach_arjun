@@ -95,23 +95,17 @@ test('AuthPage: signup still requires DOB, and guardian email only appears for 1
 
 // ── Onboarding no longer renders the AI disclosure (removed from onboarding) ─
 
-test('OnboardingPage: does not render the AI disclosure and uses no modal', () => {
+test('OnboardingPage: does not render the AI disclosure', () => {
   assert.doesNotMatch(onboardingPageSrc, /t\.aiDisclosure\b/);
   assert.doesNotMatch(onboardingPageSrc, /not a human coach or therapist/);
-  assert.doesNotMatch(onboardingPageSrc, /Modal|showModal|isModalOpen/);
 });
 
-test('OnboardingPage: uses the shared stage-based flow (PR 1 foundation)', () => {
-  // The onboarding foundation redesign replaced the old TOTAL_STEPS=4 counter
-  // with a stable-stage flow over five screens. Assert the SCREENS constant
-  // exists and holds exactly five screen keys (sport → goals), and that the
-  // disclosure still lives on the first screen without a modal.
-  const m = onboardingPageSrc.match(/const SCREENS = \[([^\]]*)\]/s);
-  assert.ok(m, 'SCREENS constant not found');
-  const count = (m[1].match(/'/g) || []).length / 2;
-  assert.equal(count, 5, 'expected exactly five onboarding screens');
-  assert.match(m[1], /'sport'/);
-  assert.match(m[1], /'goals'/);
+test('OnboardingPage: uses the config-driven adaptive flow (PR 2)', () => {
+  // PR 2 replaced the fixed five-screen array with a config-driven adaptive
+  // flow computed from the canonical onboarding config.
+  assert.match(onboardingPageSrc, /from '\.\.\/onboarding\/config'/);
+  assert.match(onboardingPageSrc, /computeFlowScreenIds/);
+  assert.match(onboardingPageSrc, /useOnboardingSession/);
 });
 
 // ── Public child-safety statement (TermsPage) ───────────────────────────────

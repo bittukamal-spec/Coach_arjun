@@ -2,6 +2,8 @@
 // To add a new string: add it under both "en" and "hi" keys.
 // To add a new language: duplicate the "en" block and translate it.
 
+import { onboardingV2En, onboardingV2Hi } from './onboardingV2.js';
+
 export const translations = {
   en: {
     landing: {
@@ -3004,3 +3006,8 @@ export const translations = {
     },
   },
 };
+
+// Adaptive onboarding (v2) copy lives in its own module to keep this file
+// manageable; merged into the onboarding namespace under `v2`.
+translations.en.onboarding.v2 = onboardingV2En;
+translations.hi.onboarding.v2 = onboardingV2Hi;
