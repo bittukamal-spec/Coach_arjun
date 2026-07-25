@@ -73,7 +73,7 @@ function App() {
     <MemoryRouter initialEntries={['/onboarding']}>
       <Routes>
         <Route path="/onboarding" element={<OnboardingPage />} />
-        <Route path="/mind-journal" element={<p>mind journal</p>} />
+        <Route path="/starting-profile" element={<p>starting profile</p>} />
       </Routes>
     </MemoryRouter>
   );
@@ -282,7 +282,7 @@ describe('Adaptive onboarding v2', () => {
     expect(screen.getByRole('button', { name: 'Re-apply my changes' })).toBeTruthy();
   });
 
-  test('completion posts complete, updates the user, and lands on Mind Journal', async () => {
+  test('completion posts complete, updates the user, and lands on the Starting Performance Profile', async () => {
     wire(makeServer({ answers: {
       sport: { answerIds: ['cricket'] }, role_position: { answerIds: ['none'] },
       competition_level: { answerIds: ['state'] }, experience_level: { answerIds: ['competitive'] },
@@ -295,7 +295,7 @@ describe('Adaptive onboarding v2', () => {
     const user = userEvent.setup();
     await user.click(await screen.findByRole('radio', { name: 'Recover faster after mistakes' }));
     await user.click(screen.getByRole('button', { name: 'Finish' }));
-    await screen.findByText('mind journal');
+    await screen.findByText('starting profile');
     expect(authState.updateUser).toHaveBeenCalled();
   });
 
@@ -303,7 +303,7 @@ describe('Adaptive onboarding v2', () => {
     authState.user = { id: 'u1', onboardingDone: true, name: 'A' };
     wire(makeServer());
     render(<App />);
-    await waitFor(() => expect(screen.getByText('mind journal')).toBeTruthy());
+    await waitFor(() => expect(screen.getByText('starting profile')).toBeTruthy());
   });
 
   test('DOM structure is identical in light and dark themes on the sport screen', async () => {

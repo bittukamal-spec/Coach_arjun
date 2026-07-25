@@ -36,9 +36,14 @@ test('Train: inspection confirms there is no Mental Fitness / Mind Journal actio
   assert.doesNotMatch(train, /mental-fitness|MentalFitness|mind-journal|MindJournal/i, 'Train page must have no Mental Fitness/Mind Journal action of any kind');
 });
 
-test('Onboarding: the post-onboarding redirect opens Mind Journal, not the old scored page', () => {
-  assert.match(onboarding, /navigate\('\/mind-journal', \{ replace: true, state: \{ fromOnboarding: true \} \}\)/);
+// PR 3 moved the post-onboarding destination again: onboarding now opens the
+// Starting Performance Profile (Arjun's one interpretation of the athlete),
+// which is where the first coaching conversation is started from. The old
+// scored page stays permanently off-limits as a destination.
+test('Onboarding: the post-onboarding redirect opens the Starting Performance Profile, not the old scored page', () => {
+  assert.match(onboarding, /navigate\('\/starting-profile', \{ replace: true, state: \{ fromOnboarding: true \} \}\)/);
   assert.doesNotMatch(onboarding, /navigate\('\/mental-fitness'/, 'Onboarding must never navigate to the old scored route');
+  assert.doesNotMatch(onboarding, /navigate\('\/mind-journal'/, 'Onboarding no longer redirects into Mind Journal');
 });
 
 test('App.jsx: /mental-fitness still redirects to /mind-journal (the compatibility guarantee)', () => {

@@ -14,6 +14,7 @@ const {
   CoachingStateConflictError,
 } = require('../services/coaching');
 const loadMindJournalContext = require('../services/mindJournal/loadMindJournalContext');
+const { loadConfirmedProfile } = require('../profile/loadConfirmedProfile');
 
 // How long a suppressed (ignored) skill recommendation stays suppressed
 // before it can be primed again — a lightweight stand-in for "session".
@@ -261,7 +262,24 @@ This is optional background context only, nothing more:
 // ── Helper: build personalised system prompt ─────────────────────────────
 
 function buildSystemPrompt(user, checkIns = [], memories = [], sessionType = null, extra = {}) {
-  const { recentDebriefs = [], todayDrill = null, achievementCount = 0, recentDrills = [], gameSessions = [], ritual = null, mfsEntry = null, mfsHistory = [], mfsReport = null, toolReports = [], isQuickChat = false, skillHint = null, activePlan = null, focusCards = [], coachingContext = null, mindJournalEntries = null } = extra;
+  const { recentDebriefs = [], todayDrill = null, achievementCount = 0, recentDrills = [], gameSessions = [], ritual = null, mfsEntry = null, mfsHistory = [], mfsReport = null, toolReports = [], isQuickChat = false, skillHint = null, activePlan = null, focusCards = [], coachingContext = null, mindJournalEntries = null, startingProfile = null } = extra;
+
+  // PR 3: the athlete-reviewed Starting Performance Profile is the SINGLE
+  // interpretation block, injected only after the athlete confirmed/corrected
+  // it on the profile screen. An unconfirmed inferred profile never enters the
+  // prompt. It distinguishes what the athlete confirmed vs corrected, and Arjun
+  // must not re-ask them to confirm the pattern (already done) or treat it as a
+  // diagnosis/score.
+  let profileSection = '';
+  if (startingProfile && startingProfile.fitResponse && startingProfile.sections) {
+    const fitLabel = startingProfile.fitResponse === 'CONFIRMED'
+      ? 'the athlete confirmed this fits them'
+      : startingProfile.fitResponse === 'PARTLY'
+      ? 'the athlete said it partly fits and corrected the focus'
+      : 'the athlete said it did not fit and chose a different focus';
+    const s = startingProfile.sections;
+    profileSection = `\n\n## Confirmed Starting Profile (athlete-reviewed — primary context)\nGenerated from the athlete's onboarding answers, then reviewed by them: ${fitLabel}. Agreed first focus: ${startingProfile.agreedPriorityId || 'not set'}.\n- What matters to them: ${s.whatMatters || ''}\n- A possible pattern (tentative): ${s.possiblePattern || ''}\n- What already helps: ${s.whatHelps || ''}\n- Where to begin: ${s.whereWeBegin || ''}\nThis is the athlete's own confirmed/corrected understanding — treat it as the primary context for their mental game, above older raw fields. Do NOT ask them again whether the pattern fits (already resolved on the profile screen). Never present it as a diagnosis, score, or fixed trait.`;
+  }
 
   // Quick chat: minimal prompt — no memory, no history context, no tool reports
   if (isQuickChat) {
@@ -542,7 +560,10 @@ No recent check-ins — the athlete hasn't tracked their mental state yet.`;
     const current = activePlan.sessions.find(s => s.status === 'today') || null;
     const remaining = activePlan.sessions.filter(s => s.status === 'locked');
     const sessionLine = s => `  ${s.sessionNumber}. ${s.title} (${PLAN_SKILL_LABELS[s.skillKey] || s.skillKey})`;
-    planSection = `\n\n## Athlete's Current Training Plan\nPlan: "${activePlan.title}" — primary focus: ${PLAN_SKILL_LABELS[activePlan.primarySkillFocus] || activePlan.primarySkillFocus}. Progress: ${done.length}/${activePlan.sessions.length} sessions done.${activePlan.coachNote ? `\nCoach note behind this plan: "${activePlan.coachNote}"` : ''}${current ? `\nToday's session: "${current.title}" — ${current.personalizedReason || ''}` : '\nAll sessions complete.'}${done.length ? `\nCompleted:\n${done.map(sessionLine).join('\n')}` : ''}${remaining.length ? `\nComing up:\n${remaining.map(sessionLine).join('\n')}` : ''}\nWhen the athlete asks what to do next, or when a tool genuinely fits, prefer pointing them to today's plan session over an unrelated tool — one clear next action. Refer to the plan naturally ("your next rep", "session ${current ? current.sessionNumber : ''} of your plan"), not like reading a database. Never invent plan sessions that aren't listed here.`;
+    // PR 3: the plan's narrative fields (coachNote, personalizedReason) are no
+    // longer injected — the athlete-confirmed Starting Profile is now the single
+    // interpretation source. Only structural next-action info remains here.
+    planSection = `\n\n## Athlete's Current Training Plan\nPlan: "${activePlan.title}" — primary focus: ${PLAN_SKILL_LABELS[activePlan.primarySkillFocus] || activePlan.primarySkillFocus}. Progress: ${done.length}/${activePlan.sessions.length} sessions done.${current ? `\nToday's session: "${current.title}"` : '\nAll sessions complete.'}${done.length ? `\nCompleted:\n${done.map(sessionLine).join('\n')}` : ''}${remaining.length ? `\nComing up:\n${remaining.map(sessionLine).join('\n')}` : ''}\nWhen the athlete asks what to do next, or when a tool genuinely fits, prefer pointing them to today's plan session over an unrelated tool — one clear next action. Refer to the plan naturally ("your next rep", "session ${current ? current.sessionNumber : ''} of your plan"), not like reading a database. Never invent plan sessions that aren't listed here.`;
   }
 
   // ── Active Focus Cards (full contents, max 5) — previously chat only saw
@@ -565,7 +586,7 @@ No recent check-ins — the athlete hasn't tracked their mental state yet.`;
     skillHintSection = `\n\n## Possible Focus Area For This Reply\nThis message may be about: ${skillHint.name} — ${skillHint.explanation}\nIf (and only if) this genuinely fits what the athlete said, you may explain it briefly and tag [APP:${skillHint.tag}] at the end. Do not tag it if it doesn't fit, if the athlete is just acknowledging something, or if a safety response is needed instead (safety always overrides this). Never use a tool name other than the ones listed in the APP TAGS section below — there is no such tool as "Focus Training".`;
   }
 
-  return `You are Arjun — a mental performance coach for Indian athletes across sports: cricket, football, badminton, athletics, kabaddi, tennis, swimming, basketball, boxing, and more. Arjun helps with focus, confidence, pressure, reset, self-talk, body control, visualization, routines, and reflection. You use the athlete's sport, position, level, and current situation to make coaching specific — you are not a cricket specialist and have no "favourite" or "best understood" sport. You are warm, direct, and feel like a trusted older brother who truly understands the pressures of Indian sports culture.${mfsSection}${toolSection}${planSection}${focusCardSection}${skillHintSection}
+  return `You are Arjun — a mental performance coach for Indian athletes across sports: cricket, football, badminton, athletics, kabaddi, tennis, swimming, basketball, boxing, and more. Arjun helps with focus, confidence, pressure, reset, self-talk, body control, visualization, routines, and reflection. You use the athlete's sport, position, level, and current situation to make coaching specific — you are not a cricket specialist and have no "favourite" or "best understood" sport. You are warm, direct, and feel like a trusted older brother who truly understands the pressures of Indian sports culture.${profileSection}${mfsSection}${toolSection}${planSection}${focusCardSection}${skillHintSection}
 
 ## Athlete Profile
 - **Name:** ${user.name}
@@ -573,7 +594,7 @@ No recent check-ins — the athlete hasn't tracked their mental state yet.`;
 - **Age:** ${user.age ? `${user.age} years` : 'Not specified'}
 - **Experience level:** ${user.experienceLevel || 'Not specified'}
 - **Competition level:** ${user.competitionLevel || 'Not specified'}
-- **Biggest mental challenge:** ${CHALLENGE_LABELS[user.primaryChallenge] || user.primaryChallenge || 'Not specified'}
+- **Biggest mental challenge:** ${startingProfile?.fitResponse ? '(see the Confirmed Starting Profile above — use that, not this field)' : (CHALLENGE_LABELS[user.primaryChallenge] || user.primaryChallenge || 'Not specified')}
 - **Current coping style:** ${PRESSURE_LABELS[user.pressureResponse] || user.pressureResponse || 'Not specified'}
 - **Focus areas:** ${goalsText}
 
@@ -1157,7 +1178,10 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
     // never loaded for any other AI surface (profile-intro, weekly reports,
     // visualization, self-talk, body reset, debrief).
     const mindJournalEntries = await loadMindJournalContext(req.userId);
-    const systemPrompt = buildSystemPrompt(user, recentCheckIns, memories, sessionType, { ...promptExtra, coachingContext, mindJournalEntries });
+    // PR 3: the athlete-confirmed Starting Profile (only if reviewed) — the
+    // single interpretation block. Main coaching chat only.
+    const startingProfile = await loadConfirmedProfile(req.userId, user.language);
+    const systemPrompt = buildSystemPrompt(user, recentCheckIns, memories, sessionType, { ...promptExtra, coachingContext, mindJournalEntries, startingProfile });
     const loop = await runBufferedToolLoop({
       anthropic,
       model,
