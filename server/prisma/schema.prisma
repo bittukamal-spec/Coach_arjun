@@ -118,6 +118,7 @@ model User {
   activeCoachingSelections ActiveCoachingSelection[]
   mindJournalEntries       MindJournalEntry[]
   onboardingSessions       OnboardingSession[]
+  startingProfiles         StartingPerformanceProfile[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -230,6 +231,10 @@ model ChatSession {
   // CoachingCycle.sourceChatSession / Prescription.sourceChatSession.
   coachingCycles CoachingCycle[]
   prescriptions  Prescription[]
+
+  // The starting-profile first coaching conversation (PR 3), if this session
+  // is that one. Nullable back-relation of StartingPerformanceProfile.firstChatSession.
+  startingProfileFirstChat StartingPerformanceProfile?
 
   @@index([userId, mode])
 }
@@ -774,6 +779,7 @@ model OnboardingSession {
   completedAt       DateTime?
 
   activeSlot        ActiveOnboardingSession?
+  startingProfile   StartingPerformanceProfile?
 
   @@unique([userId, onboardingVersion, attemptNumber])
   @@index([userId, status])
@@ -793,4 +799,73 @@ model ActiveOnboardingSession {
   session           OnboardingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@id([userId, onboardingVersion])
+}
+
+// ── Starting Performance Profile (PR 3) ─────────────────────────────────────
+// A cautious, rule-generated starting interpretation of the athlete's PR 2 raw
+// answers. The canonical interpretation (ruleOutput/supportedObservations) is
+// language-independent and deterministic; athlete-facing wording is rendered
+// per language in StartingProfileWording. Raw answers in OnboardingSession are
+// never modified. No scores, diagnoses, or personality claims are ever stored.
+enum ProfileFitResponse {
+  CONFIRMED
+  PARTLY
+  NOT_REALLY
+}
+
+enum ProfileWordingStatus {
+  AI_OK
+  FALLBACK_USED
+}
+
+model StartingPerformanceProfile {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  onboardingSessionId String            @unique
+  onboardingSession   OnboardingSession @relation(fields: [onboardingSessionId], references: [id], onDelete: Cascade)
+
+  profileVersion          Int @default(1)
+  ruleVersion             Int @default(1)
+  sourceOnboardingVersion Int
+  sourceAttemptNumber     Int
+
+  // Canonical, language-independent rule output (deterministic).
+  ruleOutput            Json
+  supportedObservations Json
+  suggestedPriorityId   String
+
+  // Athlete feedback (category C/D) — stored separately from the interpretation.
+  fitResponse          ProfileFitResponse?
+  correctionSelectedId String?
+  correctionText       String?
+  agreedPriorityId     String?
+
+  // The single first coaching conversation (category E lives elsewhere).
+  firstChatSessionId String?      @unique
+  firstChatSession   ChatSession? @relation(fields: [firstChatSessionId], references: [id], onDelete: SetNull)
+
+  generatedAt DateTime  @default(now())
+  confirmedAt DateTime?
+  updatedAt   DateTime  @updatedAt
+
+  wordingVariants StartingProfileWording[]
+
+  @@index([userId])
+}
+
+model StartingProfileWording {
+  id        String                     @id @default(cuid())
+  profileId String
+  profile   StartingPerformanceProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  language                  String // "en" | "hi"
+  sections                  Json // { whatMatters, possiblePattern, whatHelps, whereWeBegin }
+  wordingStatus             ProfileWordingStatus @default(FALLBACK_USED)
+  deterministicFallbackUsed Boolean              @default(true)
+  generatedAt               DateTime             @default(now())
+  updatedAt                 DateTime             @updatedAt
+
+  @@unique([profileId, language])
 }

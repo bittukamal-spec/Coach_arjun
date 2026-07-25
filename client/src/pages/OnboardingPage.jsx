@@ -65,8 +65,8 @@ export default function OnboardingPage() {
   }, [session]);
 
   // ── Completed-user guard ────────────────────────────────────────────────
-  if (user?.onboardingDone) return <Navigate to="/mind-journal" replace />;
-  if (session?.status === 'COMPLETED') return <Navigate to="/mind-journal" replace />;
+  if (user?.onboardingDone) return <Navigate to="/starting-profile" replace />;
+  if (session?.status === 'COMPLETED') return <Navigate to="/starting-profile" replace />;
 
   // ── Loading / error states ──────────────────────────────────────────────
   // Order matters: a failed initial load sets phase='error' while session (and
@@ -163,7 +163,7 @@ export default function OnboardingPage() {
       const done = await complete(result.session.revision);
       if (done.ok) {
         updateUser(done.user);
-        navigate('/mind-journal', { replace: true, state: { fromOnboarding: true } });
+        navigate('/starting-profile', { replace: true, state: { fromOnboarding: true } });
       } else if (done.missing?.length) {
         // Jump back to the first missing screen.
         const missingScreen = CFG.computeFlowScreenIds(working).find((sid) =>

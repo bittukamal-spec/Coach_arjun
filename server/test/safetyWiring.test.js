@@ -23,7 +23,6 @@ const SCREENED_FILES = [
   { file: 'debrief.js', note: 'legacy + structured free-text fields (direct input)' },
   { file: 'selfTalk.js', note: 'oldThought/situationText/etc (direct input); LLM safety_flag classifier retained as layer 2' },
   { file: 'bodyReset.js', note: 'feeling/context/focusWordUsed (direct input); client keyword check retained' },
-  { file: 'profileIntro.js', note: 'user.name — the only athlete-authored field in that prompt; unconstrained (no length/content validation), so a hit returns safety guidance in the intro slot, not a normal-looking fallback' },
   { file: 'weeklyReports.js', note: 'derived stored messages — a flagged message short-circuits the whole request (zero Anthropic calls, one event, fallback report row reusing the existing per-week dedup key)' },
   { file: 'sessions.js', note: 'derived transcript — athlete side screened; neutral date fallback on flag' },
 ];
@@ -31,6 +30,12 @@ const SCREENED_FILES = [
 const EXEMPT_FILES = [
   { file: 'mentalFitness.js', reason: 'Anthropic input is validated 1-5 integer scores only — no athlete-authored free text reaches the model (mood + six dims, parseInt-validated)' },
 ];
+
+// profileIntro.js used to be a SCREENED_FILES entry. PR 3 retired its AI
+// interpretation entirely (the Starting Performance Profile replaces it), so
+// it no longer imports the Anthropic SDK and cannot be a manifest entry — the
+// manifest asserts every listed file really does import it. Its deterministic
+// name safety screen is kept, and is still asserted on further down this file.
 
 test('every Anthropic-calling route file is either screened or explicitly exempt', () => {
   const fs = require('node:fs');

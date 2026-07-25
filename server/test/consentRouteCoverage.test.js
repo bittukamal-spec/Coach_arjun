@@ -45,11 +45,15 @@ const AI_ROUTES = [
   { mount: '/api/body-reset', path: '/arjun-note', method: 'POST', note: 'pressure reset AI note' },
 
   // Newly covered by this PR.
-  { mount: '/api/profile-intro', path: '/', method: 'GET', note: 'personalized profile intro' },
+  { mount: '/api/profile-intro', path: '/', method: 'GET', note: 'retired profile intro — no longer calls Anthropic (PR 3), but stays gated' },
   { mount: '/api/mental-fitness', path: '/', method: 'POST', note: 'legacy MFS AI coaching line (scheduled for later retirement, gated not redesigned)' },
   { mount: '/api/weekly-reports', path: '/', method: 'GET', note: 'lazy weekly report generation (sends raw athlete messages to Claude)' },
   { mount: '/api/sessions', path: '/end-stale', method: 'POST', note: 'auto-end stale sessions + AI summary' },
   { mount: '/api/sessions', path: '/:id/end', method: 'POST', note: 'end session + AI summary' },
+
+  // PR 3 — starting the first coaching conversation is interactive coaching,
+  // so it stays behind guardian consent.
+  { mount: '/api/profile', path: '/start-chat', method: 'POST', note: 'first coaching conversation from the starting profile' },
 ];
 
 // Non-AI routes in the same files that must NOT be gated — proves the PR
@@ -65,6 +69,14 @@ const NON_AI_ROUTES_MUST_NOT_BE_GATED = [
   { mount: '/api/debrief', path: '/', method: 'GET', note: 'read debriefs (no AI call)' },
   { mount: '/api/self-talk', path: '/save', method: 'POST', note: 'save card (no AI call)' },
   { mount: '/api/body-reset', path: '/save', method: 'POST', note: 'save session (no AI call)' },
+
+  // PR 3 — deliberate product decision, not an oversight: an under-18 athlete
+  // waiting on guardian consent may still READ the starting profile Arjun
+  // formed about them and say whether it fits. Only the conversation itself is
+  // gated (see AI_ROUTES above). The wording call these routes can make is
+  // one-shot rephrasing of an already-deterministic profile, not coaching.
+  { mount: '/api/profile', path: '/starting', method: 'GET', note: 'read your own starting profile while consent is pending' },
+  { mount: '/api/profile', path: '/confirm', method: 'POST', note: 'tell Arjun whether the profile fits while consent is pending' },
 ];
 
 // Founder-only route: a different, non-athlete auth mechanism (static

@@ -1,23 +1,27 @@
+// RETIRED AI SURFACE (PR 3).
+//
+// The Starting Performance Profile (`/api/profile/starting`) is now the single
+// place where Arjun forms and shows an interpretation of the athlete. This
+// route no longer generates its own separate AI interpretation, no longer
+// calls Anthropic, and no longer writes or reads `User.profileIntro` — it
+// returns a fixed, deterministic welcome paragraph so any older client build
+// still renders something sensible instead of erroring.
+//
+// The `User.profileIntro` column is intentionally preserved in the schema
+// (nothing writes it any more); it is not dropped in this PR.
+//
+// Auth, the guardian-consent gate and the deterministic name safety screen are
+// kept exactly as they were.
+
 const express    = require('express');
-const Anthropic  = require('@anthropic-ai/sdk');
 const { PrismaClient } = require('@prisma/client');
 const authenticate = require('../middleware/authenticate');
 const requireGuardianConsent = require('../middleware/requireGuardianConsent');
 const { aiLimiter } = require('../middleware/rateLimits');
-const { isTrialActive } = require('./chat');
 const { screenSafetyText, recordSafetyEvent, getSafetyGuidance } = require('../services/safety');
 
 const router = express.Router();
 const prisma = new PrismaClient();
-
-const CHALLENGE_FOCUS = {
-  nerves:          { en: 'Staying calm under pressure',       hi: 'दबाव में शांत रहना' },
-  failure:         { en: 'Bouncing back from setbacks',       hi: 'असफलता के बाद उठना' },
-  focus:           { en: 'Locking in during play',            hi: 'खेल में पूरी तरह केंद्रित रहना' },
-  family_pressure: { en: 'Tuning out external pressure',      hi: 'बाहरी दबाव से मुक्त रहना' },
-  injury:          { en: 'Returning stronger from injury',    hi: 'चोट के बाद और मजबूत लौटना' },
-  consistency:     { en: 'Building consistent performance',   hi: 'लगातार अच्छा प्रदर्शन करना' },
-};
 
 const FALLBACKS = {
   nerves: {
@@ -46,39 +50,22 @@ const FALLBACKS = {
   },
 };
 
-// GET /api/profile-intro — returns (and caches) the user's personalized intro paragraph
+// GET /api/profile-intro — deterministic welcome paragraph (no AI, no cache write)
 router.get('/', authenticate, aiLimiter, requireGuardianConsent, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
-      select: {
-        id: true, name: true, sport: true, experienceLevel: true,
-        primaryChallenge: true, goals: true, language: true, profileIntro: true,
-      },
+      select: { id: true, name: true, primaryChallenge: true, language: true },
     });
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    if (user.profileIntro) {
-      return res.json({ intro: user.profileIntro, cached: true });
-    }
-
     const lang      = user.language || 'en';
     const challenge = user.primaryChallenge || 'focus';
-    const fallback  = FALLBACKS[challenge]?.[lang] || FALLBACKS.focus.en;
 
-    // Trial gate: expired-trial free users get the static fallback intro (no Claude call, no cache).
-    if (!(await isTrialActive(req.userId))) {
-      return res.json({ intro: fallback, cached: false });
-    }
-
-    // Deterministic pre-LLM safety screen. The only athlete-authored free
-    // text this prompt includes is the name field — and it is genuinely
-    // unconstrained (no length or content validation in auth.js), so it is
-    // capable of carrying a disclosure. On a hit: nothing is sent to
-    // Anthropic, and — matching every other screened surface in this PR —
-    // the athlete sees the category-appropriate safety guidance in the
-    // intro slot, not a normal-looking fallback with a silently-recorded
-    // event behind it. A structured SafetyEvent (no content) is recorded.
+    // Deterministic safety screen on the name field. Nothing here is sent to
+    // any model any more, but a name that carries a disclosure must still
+    // surface category-appropriate guidance rather than a cheerful welcome
+    // paragraph, and must still record a structured (content-free) event.
     const nameScreen = screenSafetyText(user.name || '');
     if (nameScreen.flagged) {
       recordSafetyEvent(req.userId, 'profile_intro', nameScreen.category, {
@@ -88,33 +75,8 @@ router.get('/', authenticate, aiLimiter, requireGuardianConsent, async (req, res
       return res.json({ intro: getSafetyGuidance(nameScreen.category, lang), cached: false, safetyFlag: 'needs_support' });
     }
 
-    try {
-      const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-      const sport          = user.sport || 'sport';
-      const level          = user.experienceLevel || 'competitive';
-      const challengeLabel = CHALLENGE_FOCUS[challenge]?.[lang] || challenge;
-
-      const prompt = lang === 'hi'
-        ? `तुम अर्जुन हो — एक भारतीय खेल मनोवैज्ञानिक और मानसिक प्रदर्शन कोच। ${user.name} एक ${level} स्तर का ${sport} खिलाड़ी है जो अभी तुमसे जुड़ा है। उनकी मुख्य चुनौती है: "${challengeLabel}"। एक गर्म, प्रेरणादायक स्वागत पैराग्राफ लिखो — 3-4 वाक्य। कोच की आवाज़ में, डॉक्टर की नहीं। कोई स्कोर या अंक मत दो। सीधे पैराग्राफ लिखो, कोई शीर्षक नहीं।`
-        : `You are Arjun — an Indian sports psychologist and mental performance coach. ${user.name} is a ${level} ${sport} player who just started working with you. Their main challenge: "${challengeLabel}". Write a warm, energising welcome paragraph — 3-4 sentences. Coach voice, not clinician. No scores or numbers. Write the paragraph directly, no heading.`;
-
-      const response = await anthropic.messages.create({
-        model: process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001',
-        max_tokens: 220,
-        messages: [{ role: 'user', content: prompt }],
-      });
-
-      const intro = response.content[0]?.text?.trim() || fallback;
-
-      await prisma.user.update({
-        where: { id: req.userId },
-        data: { profileIntro: intro },
-      });
-
-      return res.json({ intro, cached: false });
-    } catch {
-      return res.json({ intro: fallback, cached: false });
-    }
+    const staticIntro = FALLBACKS[challenge]?.[lang] || FALLBACKS.focus.en;
+    return res.json({ intro: staticIntro, cached: false, retired: true });
   } catch {
     res.status(500).json({ error: 'Server error' });
   }

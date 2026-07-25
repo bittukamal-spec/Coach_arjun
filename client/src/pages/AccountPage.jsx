@@ -562,8 +562,8 @@ function AccountPage() {
           </div>
         </section>
 
-        {/* Mental Game Profile link */}
-        {user?.profileIntro && (
+        {/* Starting Performance Profile link */}
+        {user?.onboardingDone && (
           <section className="mb-6">
             <div className="flex items-center gap-2 mb-3">
               <Sparkles size={16} className="text-brand-400" />
@@ -572,7 +572,7 @@ function AccountPage() {
               </h2>
             </div>
             <Link
-              to="/mental-game-profile"
+              to="/starting-profile"
               className="card p-5 flex items-center justify-between hover:border-brand-500/40 transition-colors"
             >
               <div>

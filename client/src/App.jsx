@@ -11,7 +11,7 @@ import OnboardingPage from './pages/OnboardingPage';
 import ChatPage from './pages/ChatPage';
 import AccountPage from './pages/AccountPage';
 import RitualPage from './pages/RitualPage';
-import MentalGameProfilePage from './pages/MentalGameProfilePage';
+import StartingProfilePage from './pages/StartingProfilePage';
 import TrainPage from './pages/TrainPage';
 import DebriefPage from './pages/DebriefPage';
 import FocusLockGame from './pages/games/FocusLockGame';
@@ -74,15 +74,18 @@ function App() {
         }
       />
 
-      {/* Mental Game Profile — logged in AND onboarded, shown once after onboarding */}
+      {/* Starting Performance Profile — shown right after onboarding completes */}
       <Route
-        path="/mental-game-profile"
+        path="/starting-profile"
         element={
           <ProtectedRoute requireOnboarding={true}>
-            <MentalGameProfilePage />
+            <StartingProfilePage />
           </ProtectedRoute>
         }
       />
+      {/* Retired (PR 3): the old AI "mental game profile" is replaced by the
+          Starting Performance Profile. Old links and bookmarks redirect. */}
+      <Route path="/mental-game-profile" element={<Navigate to="/starting-profile" replace />} />
 
       {/* App — logged in AND onboarded — include BottomNav */}
       <Route

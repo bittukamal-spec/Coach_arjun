@@ -33,21 +33,10 @@ export function AuthProvider({ children }) {
         setLanguage(userLang);
         localStorage.setItem('mg_language', userLang);
 
-        // Silently generate profileIntro for users who completed onboarding but don't have one yet
-        if (data.user.onboardingDone && !data.user.profileIntro) {
-          apiFetch('/api/profile-intro', {
-            headers: { Authorization: `Bearer ${activeToken}` },
-          })
-            .then(r => r.ok ? r.json() : null)
-            .then(introData => {
-              if (introData?.intro) {
-                const updated = { ...data.user, profileIntro: introData.intro };
-                setUser(updated);
-                localStorage.setItem('mg_user', JSON.stringify(updated));
-              }
-            })
-            .catch(() => {});
-        }
+        // PR 3: the old background profileIntro generation is gone. Arjun's
+        // one interpretation of the athlete is the Starting Performance
+        // Profile, and it is created on demand when the athlete opens
+        // /starting-profile — never silently in the background at login.
       } else if (res.status === 401 || res.status === 403) {
         // Token genuinely rejected by server — clear everything
         localStorage.removeItem('mg_token');
