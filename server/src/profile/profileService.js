@@ -4,7 +4,7 @@
 // answers are never modified here.
 
 const { PrismaClient } = require('@prisma/client');
-const { buildRuleOutput, renderSections } = require('./ruleEngine');
+const { buildRuleOutput, renderSections, groundingAnchors } = require('./ruleEngine');
 const { generateWording: realGenerateWording } = require('./aiWording');
 const { buildFirstMessage } = require('./firstMessage');
 const { sanitizeCustomText } = require('../onboarding/sanitize');
@@ -81,6 +81,9 @@ function buildWordingInput(profile, user, language) {
     role: ro.role || '',
     observationCodes: (ro.observations || []).map((o) => o.code),
     drafts: renderSections(ro, language),
+    // Specifics the rewrite must keep, so warm-but-generic AI wording can be
+    // rejected in favour of the (personalised) deterministic drafts.
+    anchors: groundingAnchors(ro, language),
     language,
   };
 }

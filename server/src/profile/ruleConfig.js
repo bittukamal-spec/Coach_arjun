@@ -19,6 +19,7 @@ const NEUTRAL_ANSWERS = new Set([
   'reset_quickly', 'havent_noticed', 'it_varies', 'perform_normally',
   'pressure_helps', 'mostly_unchanged', 'depends', 'still_show_up',
   'feel_fine', 'motivates_me', 'none_fit', 'prefer_not_say',
+  'extra_energy_helps', 'nothing_outside',
 ]);
 
 // Quick-recovery answers: suppress a "prolonged" observation and add a gentle
@@ -43,16 +44,18 @@ const TRIGGER = {
 
 // branchId → where-we-can-begin phrasing (§4).
 const BEGIN = {
-  mistakes:        { en: 'what happens in the few seconds after a mistake', hi: 'गलती के बाद के कुछ सेकंड में क्या होता है' },
-  pre_performance: { en: 'what you notice in the build-up before you perform', hi: 'खेलने से पहले की तैयारी में आप क्या महसूस करते हैं' },
-  focus:           { en: 'when and how your focus tends to drift', hi: 'आपका ध्यान कब और कैसे भटकता है' },
-  confidence:      { en: 'what happens to your game when confidence dips', hi: 'आत्मविश्वास गिरने पर आपके खेल पर क्या असर होता है' },
-  motivation:      { en: 'what makes training motivation hardest for you', hi: 'ट्रेनिंग की प्रेरणा कब सबसे मुश्किल होती है' },
-  coach_selection: { en: 'how feedback or selection pressure affects you', hi: 'फीडबैक या सिलेक्शन का दबाव आप पर कैसे असर करता है' },
-  family_outside:  { en: 'how outside expectations affect you when you compete', hi: 'बाहरी उम्मीदें खेलते समय आप पर कैसे असर करती हैं' },
-  injury:          { en: 'what is on your mind as you return from injury', hi: 'चोट से लौटते समय आपके मन में क्या है' },
-  unsure:          { en: 'which situation feels most worth exploring first', hi: 'कौन सी स्थिति पहले समझने लायक लगती है' },
-  custom:          { en: 'the situation you described in your own words', hi: 'जो स्थिति आपने अपने शब्दों में बताई' },
+  mistakes:        { en: 'what happens in the few seconds that follow', hi: 'उसके बाद के कुछ सेकंड में क्या होता है' },
+  pre_performance: { en: 'what you notice in the build-up', hi: 'तैयारी के दौरान आप क्या महसूस करते हैं' },
+  focus:           { en: 'when and how your attention moves', hi: 'आपका ध्यान कब और कैसे हटता है' },
+  confidence:      { en: 'what changes in your game then', hi: 'तब आपके खेल में क्या बदलता है' },
+  motivation:      { en: 'what makes it hardest to get started', hi: 'शुरू करना कब सबसे मुश्किल होता है' },
+  coach_selection: { en: 'how it affects the way you play afterwards', hi: 'इसके बाद आपके खेलने के तरीके पर क्या असर होता है' },
+  family_outside:  { en: 'how it affects you when you compete', hi: 'मुक़ाबले के समय यह आप पर कैसे असर करता है' },
+  injury:          { en: 'what is on your mind then', hi: 'तब आपके मन में क्या रहता है' },
+  // Not "which situation matters most" — onboarding already settled that, and
+  // the recognition the athlete picked names the moment (see UNSURE_TRIGGER).
+  unsure:          { en: 'what actually happens for you in that moment', hi: 'उस पल में असल में आपके साथ क्या होता है' },
+  custom:          { en: 'what happens for you in that situation', hi: 'उस स्थिति में आपके साथ क्या होता है' },
 };
 
 // Reaction/effect clauses keyed by `${questionId}:${answerId}`. `dim` groups
@@ -67,7 +70,11 @@ const CLAUSE = {
   'mistakes_next:another_mistake':          { dim: 'effect', en: 'another mistake can sometimes follow', hi: 'कभी एक और गलती हो सकती है' },
   'mistakes_next:hesitate':                 { dim: 'effect', en: 'you may hesitate', hi: 'आप हिचकिचा सकते हैं' },
   'mistakes_next:lose_focus':               { dim: 'effect', en: 'your focus may slip for a while', hi: 'कुछ देर ध्यान भटक सकता है' },
+  'mistakes_first_response:rush_correct':   { dim: 'reaction', en: 'you can rush to put it right straight away', hi: 'आप तुरंत सुधारने की जल्दी कर सकते हैं' },
+  'mistakes_first_response:look_to_others': { dim: 'reaction', en: 'you can look to others for a reaction', hi: 'आप दूसरों की प्रतिक्रिया देखने लगते हैं' },
   'mistakes_next:confidence_drops':         { dim: 'effect', en: 'confidence may dip for a bit', hi: 'कुछ देर आत्मविश्वास गिर सकता है' },
+  'mistakes_next:too_aggressive':           { dim: 'effect', en: 'you may go too hard trying to make up for it', hi: 'भरपाई की कोशिश में आप ज़रूरत से ज़्यादा आक्रामक हो सकते हैं' },
+  'mistakes_next:stop_communicating':       { dim: 'effect', en: 'you may go quiet with your team', hi: 'आप टीम से बात करना कम कर सकते हैं' },
   // ── pre_performance ──
   'pre_performance_signs:negative_thoughts':{ dim: 'reaction', en: 'negative thoughts can show up', hi: 'नकारात्मक विचार आ सकते हैं' },
   'pre_performance_signs:overthinking':     { dim: 'reaction', en: 'you may start overthinking', hi: 'आप ज़्यादा सोच सकते हैं' },
@@ -78,6 +85,9 @@ const CLAUSE = {
   'pre_performance_effect:rush':            { dim: 'effect', en: 'you may rush', hi: 'आप जल्दबाज़ी कर सकते हैं' },
   'pre_performance_effect:too_cautious':    { dim: 'effect', en: 'you may play too cautiously', hi: 'आप बहुत सतर्क खेल सकते हैं' },
   'pre_performance_effect:simple_mistakes': { dim: 'effect', en: 'simple mistakes can creep in', hi: 'आसान गलतियाँ हो सकती हैं' },
+  'pre_performance_signs:restless':         { dim: 'reaction', en: 'you can feel restless', hi: 'आप बेचैन महसूस कर सकते हैं' },
+  'pre_performance_signs:low_flat':         { dim: 'reaction', en: 'you can feel low or flat', hi: 'आप सुस्त या फीका महसूस कर सकते हैं' },
+  'pre_performance_effect:lose_focus':      { dim: 'effect', en: 'your focus can slip early on', hi: 'शुरुआत में ध्यान भटक सकता है' },
   // ── focus ──
   'focus_when:after_mistake':    { dim: 'reaction', en: 'your focus can drift after a mistake', hi: 'गलती के बाद ध्यान भटक सकता है' },
   'focus_when:scoreboard_result':{ dim: 'reaction', en: 'the scoreboard or result can pull your attention', hi: 'स्कोरबोर्ड या नतीजा ध्यान खींच सकता है' },
@@ -85,37 +95,60 @@ const CLAUSE = {
   'focus_when:crowd_noise':      { dim: 'reaction', en: 'crowd or noise can distract you', hi: 'भीड़ या शोर ध्यान भटका सकता है' },
   'focus_effect:miss_cues':      { dim: 'effect', en: 'you can miss cues', hi: 'आप संकेत चूक सकते हैं' },
   'focus_effect:slow_reactions': { dim: 'effect', en: 'your reactions can slow', hi: 'आपकी प्रतिक्रिया धीमी हो सकती है' },
+  'focus_when:before_start':     { dim: 'reaction', en: 'your focus can drift before play starts', hi: 'खेल शुरू होने से पहले ध्यान भटक सकता है' },
+  'focus_when:opponent':         { dim: 'reaction', en: 'the opponent can pull your attention', hi: 'सामने वाला खिलाड़ी ध्यान खींच सकता है' },
+  'focus_when:late_in_game':     { dim: 'reaction', en: 'your focus can drift late in the game', hi: 'खेल के आख़िरी हिस्से में ध्यान भटक सकता है' },
   'focus_effect:wrong_decisions':{ dim: 'effect', en: 'decisions can become less sharp', hi: 'फैसले कम तेज़ हो सकते हैं' },
+  'focus_effect:stop_communicating': { dim: 'effect', en: 'you may talk less with your team', hi: 'आप टीम से कम बात कर सकते हैं' },
+  'focus_effect:energy_drops':   { dim: 'effect', en: 'your energy can drop', hi: 'आपकी ऊर्जा गिर सकती है' },
   // ── confidence ──
   'confidence_trigger:after_mistake':    { dim: 'reaction', en: 'confidence may drop after a mistake', hi: 'गलती के बाद आत्मविश्वास गिर सकता है' },
   'confidence_trigger:comparing_others': { dim: 'reaction', en: 'comparing with others can lower it', hi: 'दूसरों से तुलना इसे कम कर सकती है' },
   'confidence_trigger:being_watched':    { dim: 'reaction', en: 'being watched can affect it', hi: 'देखे जाने पर असर पड़ सकता है' },
   'confidence_effect:play_safe':         { dim: 'effect', en: 'you may start playing safe', hi: 'आप सुरक्षित खेलने लग सकते हैं' },
   'confidence_effect:hesitate':          { dim: 'effect', en: 'you may hesitate', hi: 'आप हिचकिचा सकते हैं' },
+  'confidence_trigger:after_poor_result':{ dim: 'reaction', en: 'a poor result can knock it', hi: 'खराब नतीजा इसे हिला सकता है' },
+  'confidence_trigger:strong_opponent':  { dim: 'reaction', en: 'a strong opponent can shake it', hi: 'मजबूत प्रतिद्वंद्वी इसे हिला सकता है' },
+  'confidence_trigger:early_setback':    { dim: 'reaction', en: 'an early setback can knock it', hi: 'शुरुआती झटका इसे गिरा सकता है' },
   'confidence_effect:avoid_the_ball':    { dim: 'effect', en: 'you may avoid the ball or the moment', hi: 'आप गेंद या पल से बच सकते हैं' },
+  'confidence_effect:negative_thoughts': { dim: 'effect', en: 'negative thoughts can take over', hi: 'नकारात्मक विचार हावी हो सकते हैं' },
+  'confidence_effect:body_tense':        { dim: 'effect', en: 'your body can tense up', hi: 'आपका शरीर कस सकता है' },
   // ── motivation ──
   'motivation_when:after_bad_result':    { dim: 'reaction', en: 'a bad result can make training feel harder', hi: 'खराब नतीजे के बाद ट्रेनिंग कठिन लग सकती है' },
   'motivation_when:repetitive_training': { dim: 'reaction', en: 'repetitive training can feel flat', hi: 'एक जैसी ट्रेनिंग फीकी लग सकती है' },
   'motivation_when:no_clear_goal':       { dim: 'reaction', en: 'it dips when a clear goal is missing', hi: 'साफ लक्ष्य न होने पर यह गिरती है' },
   'motivation_effect:skip_or_shorten':   { dim: 'effect', en: 'you may skip or shorten sessions', hi: 'आप सेशन छोड़ या छोटा कर सकते हैं' },
+  'motivation_when:tired_or_busy':       { dim: 'reaction', en: 'it dips when you are tired or stretched for time', hi: 'थके या व्यस्त होने पर यह गिरती है' },
+  'motivation_when:alone_no_team':       { dim: 'reaction', en: 'training alone can make it harder', hi: 'अकेले ट्रेनिंग करना इसे कठिन बना सकता है' },
+  'motivation_when:after_injury':        { dim: 'reaction', en: 'it can dip after an injury', hi: 'चोट के बाद यह गिर सकती है' },
   'motivation_effect:go_through_motions': { dim: 'effect', en: 'you may just go through the motions', hi: 'आप बस निभा सकते हैं' },
+  'motivation_effect:lose_focus':        { dim: 'effect', en: 'your focus in training can slip', hi: 'ट्रेनिंग में ध्यान भटक सकता है' },
+  'motivation_effect:enjoy_less':        { dim: 'effect', en: 'you may enjoy it less', hi: 'आपको कम मज़ा आ सकता है' },
   // ── coach_selection ──
   'coach_selection_moment:critical_feedback':  { dim: 'reaction', en: 'critical feedback can weigh on you', hi: 'आलोचनात्मक फीडबैक भारी पड़ सकता है' },
   'coach_selection_moment:being_compared':     { dim: 'reaction', en: 'being compared can add pressure', hi: 'तुलना दबाव बढ़ा सकती है' },
   'coach_selection_moment:selection_uncertain':{ dim: 'reaction', en: 'selection uncertainty can sit on your mind', hi: 'सिलेक्शन की अनिश्चितता मन पर रह सकती है' },
   'coach_selection_effect:overthink':          { dim: 'effect', en: 'you may overthink', hi: 'आप ज़्यादा सोच सकते हैं' },
   'coach_selection_effect:play_safe':          { dim: 'effect', en: 'you may play safe', hi: 'आप सुरक्षित खेल सकते हैं' },
+  'coach_selection_moment:public_feedback':    { dim: 'reaction', en: 'feedback in front of others can land harder', hi: 'सबके सामने मिला फीडबैक ज़्यादा चुभ सकता है' },
+  'coach_selection_moment:unclear_expectations': { dim: 'reaction', en: 'unclear expectations can unsettle you', hi: 'अस्पष्ट उम्मीदें आपको असहज कर सकती हैं' },
+  'coach_selection_moment:fear_dropped':       { dim: 'reaction', en: 'the worry of being dropped can stay with you', hi: 'बाहर होने का डर मन में रह सकता है' },
   'coach_selection_effect:try_too_hard':       { dim: 'effect', en: 'you may try too hard', hi: 'आप बहुत ज़ोर लगा सकते हैं' },
+  'coach_selection_effect:lose_confidence':    { dim: 'effect', en: 'confidence can drop afterwards', hi: 'बाद में आत्मविश्वास गिर सकता है' },
+  'coach_selection_effect:withdraw':           { dim: 'effect', en: 'you may pull back and say less', hi: 'आप पीछे हट सकते हैं और कम बोल सकते हैं' },
   // ── family_outside ──
   'family_outside_effect:extra_pressure':    { dim: 'reaction', en: 'outside expectations can add pressure', hi: 'बाहरी उम्मीदें दबाव बढ़ा सकती हैं' },
   'family_outside_effect:fear_letting_down': { dim: 'reaction', en: 'a fear of letting people down can show up', hi: 'निराश करने का डर आ सकता है' },
   'family_outside_effect:play_safe':         { dim: 'effect', en: 'you may play safe', hi: 'आप सुरक्षित खेल सकते हैं' },
   'family_outside_effect:overthink':         { dim: 'effect', en: 'you may overthink', hi: 'आप ज़्यादा सोच सकते हैं' },
+  'family_outside_effect:lose_enjoyment':    { dim: 'effect', en: 'the enjoyment can drain out of it', hi: 'खेल का मज़ा कम हो सकता है' },
   // ── injury ──
   'injury_concern:re_injury_fear':       { dim: 'reaction', en: 'a fear of re-injury can hold you back', hi: 'दोबारा चोट का डर रोक सकता है' },
   'injury_concern:hesitate_in_contests': { dim: 'reaction', en: 'you may hesitate in contests', hi: 'मुक़ाबलों में आप हिचकिचा सकते हैं' },
   'injury_concern:lost_form':            { dim: 'effect', en: 'worry about lost form can linger', hi: 'फॉर्म खोने की चिंता बनी रह सकती है' },
   'injury_concern:frustrated_impatient': { dim: 'reaction', en: 'frustration or impatience can build', hi: 'निराशा या बेसब्री बढ़ सकती है' },
+  'injury_concern:lost_fitness':         { dim: 'effect', en: 'worry about lost fitness can sit with you', hi: 'फिटनेस खोने की चिंता बनी रह सकती है' },
+  'injury_concern:lost_place':           { dim: 'effect', en: 'worry about losing your place can sit with you', hi: 'टीम में जगह खोने की चिंता बनी रह सकती है' },
   // ── custom (structured neutral follow-ups) ──
   'custom_response:body_tense':       { dim: 'reaction', en: 'your body can tense up', hi: 'आपका शरीर कस सकता है' },
   'custom_response:negative_thoughts':{ dim: 'reaction', en: 'negative thoughts can show up', hi: 'नकारात्मक विचार आ सकते हैं' },
@@ -124,6 +157,9 @@ const CLAUSE = {
   'custom_effect:rush':               { dim: 'effect', en: 'you may rush', hi: 'आप जल्दबाज़ी कर सकते हैं' },
   'custom_effect:too_cautious':       { dim: 'effect', en: 'you may play too cautiously', hi: 'आप बहुत सतर्क खेल सकते हैं' },
   'custom_effect:simple_mistakes':    { dim: 'effect', en: 'simple mistakes can creep in', hi: 'आसान गलतियाँ हो सकती हैं' },
+  'custom_response:frustrated':       { dim: 'reaction', en: 'frustration can build', hi: 'झुंझलाहट बढ़ सकती है' },
+  'custom_effect:hesitate':           { dim: 'effect', en: 'you may hesitate', hi: 'आप हिचकिचा सकते हैं' },
+  'custom_effect:lose_focus':         { dim: 'effect', en: 'your focus can slip', hi: 'आपका ध्यान भटक सकता है' },
   // ── unsure recognition ──
   'unsure_recognition:differ_comp_vs_training':{ dim: 'reaction', en: 'you play differently in competition than in training', hi: 'आप मुक़ाबले में ट्रेनिंग से अलग खेलते हैं' },
   'unsure_recognition:one_mistake_snowballs':  { dim: 'reaction', en: 'one mistake can affect several actions after it', hi: 'एक गलती बाद के कई एक्शन पर असर डाल सकती है' },
@@ -134,8 +170,64 @@ const CLAUSE = {
   'unsure_recognition:pressure_to_prove':      { dim: 'reaction', en: 'you can feel pressure to prove yourself', hi: 'खुद को साबित करने का दबाव महसूस हो सकता है' },
 };
 
+// When the athlete could not name one situation, the recognition they DID
+// pick still names a situation — so §2/§4 stay specific instead of asking
+// them to work out which situation matters (onboarding already asked that).
+const UNSURE_TRIGGER = {
+  differ_comp_vs_training:  { en: 'in competition compared with training', hi: 'ट्रेनिंग के मुकाबले मैच में' },
+  one_mistake_snowballs:    { en: 'after a mistake',                       hi: 'गलती के बाद' },
+  hesitate_under_pressure:  { en: 'when the pressure is on',               hi: 'जब दबाव होता है' },
+  focus_leaves_present:     { en: 'when your focus leaves the present moment', hi: 'जब ध्यान वर्तमान पल से हट जाता है' },
+  compare_to_others:        { en: 'when you compare yourself with other athletes', hi: 'जब आप खुद की दूसरों से तुलना करते हैं' },
+  struggle_consistency:     { en: 'in training consistently',              hi: 'लगातार ट्रेनिंग करने में' },
+  pressure_to_prove:        { en: 'when you feel you have to prove yourself', hi: 'जब खुद को साबित करने का दबाव लगता है' },
+};
+
+// Where the pressure first shows up (pre_performance branch) — context, not a
+// problem observation.
+const ONSET_PHRASE = {
+  hours_days_before: { en: 'it can start hours or days before you play', hi: 'यह खेलने से घंटों या दिनों पहले शुरू हो सकता है' },
+  on_the_day:        { en: 'it tends to start on the day itself', hi: 'यह आमतौर पर उसी दिन शुरू होता है' },
+  during_warmup:     { en: 'it tends to show up during the warm-up', hi: 'यह आमतौर पर वॉर्म-अप के दौरान दिखता है' },
+  just_before:       { en: 'it tends to show up just before you perform', hi: 'यह खेलने से ठीक पहले दिखता है' },
+  after_start:       { en: 'it tends to show up only once you have started', hi: 'यह शुरू होने के बाद ही दिखता है' },
+};
+
+// What stage of injury the athlete is at — context for §1/§2.
+const INJURY_STAGE = {
+  recovering_not_playing:   { en: 'you are recovering and not playing yet', hi: 'आप ठीक हो रहे हैं और अभी खेल नहीं रहे' },
+  returned_building_back:   { en: 'you are back and building up again', hi: 'आप लौट आए हैं और दोबारा तैयारी कर रहे हैं' },
+  fully_back_still_worried: { en: 'you are fully back but it is still on your mind', hi: 'आप पूरी तरह लौट आए हैं पर यह अब भी मन में है' },
+  recurring_niggles:        { en: 'you are dealing with niggles that keep returning', hi: 'बार-बार लौटने वाली छोटी चोटों से जूझ रहे हैं' },
+};
+
+// Where outside expectation is coming from (family_outside branch).
+const FAMILY_SOURCE = {
+  parents:          { en: 'from your parents', hi: 'माता-पिता की ओर से' },
+  relatives:        { en: 'from relatives', hi: 'रिश्तेदारों की ओर से' },
+  friends_peers:    { en: 'from friends or team-mates', hi: 'दोस्तों या साथियों की ओर से' },
+  school_teachers:  { en: 'from school or teachers', hi: 'स्कूल या शिक्षकों की ओर से' },
+  community_public: { en: 'from your community', hi: 'आपके समुदाय की ओर से' },
+  social_media:     { en: 'from social media', hi: 'सोशल मीडिया की ओर से' },
+};
+
+// Pressures the athlete said sit around their sport (contextual_pressures) —
+// previously collected and never used.
+const CONTEXT_PHRASE = {
+  own_expectations:  { en: 'your own expectations', hi: 'आपकी अपनी उम्मीदें' },
+  coach_behaviour:   { en: "your coach's approach", hi: 'आपके कोच का तरीका' },
+  family_expectations: { en: 'expectations at home', hi: 'घर की उम्मीदें' },
+  comparison:        { en: 'comparison with other athletes', hi: 'दूसरों से तुलना' },
+  selection_pressure: { en: 'selection pressure', hi: 'सिलेक्शन का दबाव' },
+  school_work:       { en: 'balancing school work', hi: 'पढ़ाई के साथ तालमेल' },
+  money_travel:      { en: 'money or travel demands', hi: 'पैसे या सफ़र की मुश्किलें' },
+  injury_condition:  { en: 'an injury or physical condition', hi: 'चोट या शारीरिक स्थिति' },
+  social_media:      { en: 'social media', hi: 'सोशल मीडिया' },
+};
+
 // A short duration clause when recovery is prolonged (added at most once).
-const DURATION_PROLONGED = { en: 'and this can linger for much of the session', hi: 'और यह अधिकतर सेशन तक बना रह सकता है' };
+// Deliberately has no leading "and" — the clause joiner supplies it.
+const DURATION_PROLONGED = { en: 'this can linger for much of the session', hi: 'यह अधिकतर सेशन तक बना रह सकता है' };
 const RESILIENCE_NOTE = { en: 'You also said you often recover fairly quickly', hi: 'आपने यह भी बताया कि आप अक्सर जल्दी संभल जाते हैं' };
 
 // Supports / strengths → "what already helps" clauses.
@@ -187,8 +279,26 @@ const SPORT_LABEL = {
   kabaddi: { en: 'kabaddi', hi: 'कबड्डी' }, tennis: { en: 'tennis', hi: 'टेनिस' }, hockey: { en: 'hockey', hi: 'हॉकी' }, swimming: { en: 'swimming', hi: 'तैराकी' },
 };
 
+// Role/position, used in §1 when it adds something concrete.
+const ROLE_LABEL = {
+  batter: { en: 'batter', hi: 'बल्लेबाज़' }, bowler: { en: 'bowler', hi: 'गेंदबाज़' },
+  all_rounder: { en: 'all-rounder', hi: 'ऑलराउंडर' }, wicketkeeper: { en: 'wicketkeeper', hi: 'विकेटकीपर' },
+  goalkeeper: { en: 'goalkeeper', hi: 'गोलकीपर' }, defender: { en: 'defender', hi: 'डिफेंडर' },
+  midfielder: { en: 'midfielder', hi: 'मिडफील्डर' }, forward: { en: 'forward', hi: 'फॉरवर्ड' },
+  singles: { en: 'singles player', hi: 'सिंगल्स खिलाड़ी' }, doubles: { en: 'doubles player', hi: 'डबल्स खिलाड़ी' },
+};
+
+// When the athlete named no support/strength we can phrase, §3 still stays
+// specific to their situation instead of falling back to filler.
+const NOTHING_NAMED_YET = {
+  en: (trigger) => `You haven't named yet what helps you ${trigger} — that's one of the first things worth noticing together.`,
+  hi: (trigger) => `आपने अभी नहीं बताया कि ${trigger} आपकी क्या मदद करता है — साथ में सबसे पहले यही देखने लायक है।`,
+};
+
 module.exports = {
   RULE_VERSION, PROHIBITED_PATTERNS, NEUTRAL_ANSWERS, QUICK_RECOVERY, PROLONGED_RECOVERY,
   TRIGGER, BEGIN, CLAUSE, DURATION_PROLONGED, RESILIENCE_NOTE,
   SUPPORT_PHRASE, STRENGTH_PHRASE, GOAL_LABEL, OUTCOME_LABEL, SPORT_LABEL,
+  UNSURE_TRIGGER, ONSET_PHRASE, INJURY_STAGE, FAMILY_SOURCE, CONTEXT_PHRASE,
+  ROLE_LABEL, NOTHING_NAMED_YET,
 };
