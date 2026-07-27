@@ -74,8 +74,14 @@ test('quick replies emit only in the else branch of the card guard (never alongs
 test('ANY commit failure — staged transition or plain message-only — falls back to the deterministic retry message, never the model text', () => {
   assert.match(handler, /const emitDeterministicRetry = async \(reasonCode, err\) => \{/);
   assert.match(handler, /getRetryMessage\(user\?\.language\)/);
-  // Round-cap/empty-text path and commit-failure path both use it.
-  assert.match(handler, /if \(!candidateText\) return emitDeterministicRetry\(loop\.exceededRounds \? 'ROUND_LIMIT' : 'EMPTY_FINAL_TEXT'\)/);
+  // EMPTY_FINAL_TEXT / ROUND_LIMIT no longer use it: production logs showed
+  // those firing with transitionStaged:false, so "I couldn't save that
+  // coaching step" was untrue, and asking the athlete to resend duplicated a
+  // message that was already persisted. They now take the recovery/clarity
+  // fallback path. The save-error copy remains ONLY for a genuine commit
+  // failure, where nothing was in fact committed.
+  assert.doesNotMatch(handler, /emitDeterministicRetry\('EMPTY_FINAL_TEXT'\)/);
+  assert.doesNotMatch(handler, /return emitDeterministicRetry\(loop\.exceededRounds/);
   const catchIdx = handler.indexOf('} catch (commitErr) {');
   assert.ok(catchIdx !== -1);
   const catchBlock = handler.slice(catchIdx, catchIdx + 700);
@@ -187,16 +193,17 @@ test('emitDeterministicRetry writes no coaching-state record — only the assist
   assert.match(block, /res\.end\(\)/, 'the stream must end cleanly');
 });
 
-test('all three retry triggers (round cap, empty/missing final text, commit conflict) route through the same emitDeterministicRetry function', () => {
-  const triggers = [
-    "if (!candidateText) return emitDeterministicRetry(loop.exceededRounds ? 'ROUND_LIMIT' : 'EMPTY_FINAL_TEXT');",
-    'return emitDeterministicRetry(reasonCode, commitErr);', // inside the commit catch block for a staged transition
-  ];
-  for (const trigger of triggers) {
-    assert.ok(handler.includes(trigger), `expected to find: ${trigger}`);
-  }
-  // Confirm the empty-final-text branch is fed by both round-cap exhaustion and sanitizer rejection.
+test('the save-error retry is reserved for genuine commit failures; empty and round-capped text take the recovery/fallback path', () => {
+  // Only a real commit failure still speaks the "nothing was changed" copy.
+  assert.ok(handler.includes('return emitDeterministicRetry(reasonCode, commitErr);'));
+  const emitCalls = handler.match(/emitDeterministicRetry\(/g) || [];
+  // Definition + the commit-catch call + the persist-failure log path.
+  assert.ok(emitCalls.length <= 3, `unexpected extra emitDeterministicRetry call sites: ${emitCalls.length}`);
+
+  // Empty text is now a validation outcome fed into the shared pipeline,
+  // carrying an accurate reason code for either cause.
   assert.match(handler, /const candidateText = loop\.exceededRounds \? null : sanitizeFinalText\(loop\.finalText\);/);
+  assert.match(handler, /reasonCode: loop\.exceededRounds \? 'ROUND_LIMIT' : 'EMPTY_FINAL_TEXT'/);
 });
 
 test('a commit failure for a NORMAL response with no staged transition also routes through the deterministic retry — never the outer generic error handler with a different message', () => {
@@ -271,16 +278,18 @@ test('userMessageId is null for an invisible session-start marker (no user messa
 // ── Safe retry diagnostics (production retry-loop bugfix) ─────────────────
 
 test('logDeterministicRetry logs only safe operational fields — reasonCode, rounds, staged flags, and error name/code', () => {
-  const idx = handler.indexOf('const logDeterministicRetry = (reasonCode, err) => {');
+  const idx = handler.indexOf('const logDeterministicRetry = (reasonCode, err, extra = {}) => {');
   assert.ok(idx !== -1, 'expected a dedicated safe-diagnostics logger');
   const block = handler.slice(idx, handler.indexOf('};', idx) + 1);
-  for (const field of ['reasonCode', 'rounds: loop.rounds', 'transitionStaged: !!loop.transition', 'quickRepliesStaged: !!loop.quickReplies', 'errorName: err?.name', 'errorCode: err?.code']) {
+  for (const field of ['reasonCode', 'rounds: loop.rounds', 'transitionStaged: !!loop.transition', 'quickRepliesStaged: !!loop.quickReplies', 'errorName: err?.name', 'errorCode: err?.code',
+    // Content-free response shape added by the EMPTY_FINAL_TEXT hotfix.
+    'responseShape: loop.responseShape', 'recoveryResponseShape: loop.recoveryResponseShape']) {
     assert.ok(block.includes(field), `expected the log payload to include "${field}"`);
   }
 });
 
 test('logDeterministicRetry never logs athlete/assistant text, card content, situation, prompt content, tool payloads, or raw records', () => {
-  const idx = handler.indexOf('const logDeterministicRetry = (reasonCode, err) => {');
+  const idx = handler.indexOf('const logDeterministicRetry = (reasonCode, err, extra = {}) => {');
   const block = handler.slice(idx, handler.indexOf('};', idx) + 1);
   // Word-boundaried so the new safe boolean flags (finalTextRecoveryAttempted
   // / finalTextRecoverySucceeded — booleans about recovery, never text
@@ -289,7 +298,7 @@ test('logDeterministicRetry never logs athlete/assistant text, card content, sit
 });
 
 test('logDeterministicRetry also logs the final-text-recovery flags (production EMPTY_FINAL_TEXT bugfix)', () => {
-  const idx = handler.indexOf('const logDeterministicRetry = (reasonCode, err) => {');
+  const idx = handler.indexOf('const logDeterministicRetry = (reasonCode, err, extra = {}) => {');
   const block = handler.slice(idx, handler.indexOf('};', idx) + 1);
   assert.ok(block.includes('finalTextRecoveryAttempted: !!loop.finalTextRecoveryAttempted'));
   assert.ok(block.includes('finalTextRecoverySucceeded: !!loop.finalTextRecoverySucceeded'));
@@ -300,8 +309,10 @@ test('chat.js never references the hidden final-text-recovery instruction direct
   assert.doesNotMatch(src, /FINAL_TEXT_RECOVERY_INSTRUCTION/);
 });
 
-test('every deterministic-retry trigger passes a fixed reason code through emitDeterministicRetry to the logger', () => {
-  assert.match(handler, /return emitDeterministicRetry\(loop\.exceededRounds \? 'ROUND_LIMIT' : 'EMPTY_FINAL_TEXT'\);/);
+test('every deterministic-retry trigger passes a fixed reason code to the logger', () => {
+  // Empty/round-capped text now reaches the logger through the fallback path.
+  assert.match(handler, /reasonCode: loop\.exceededRounds \? 'ROUND_LIMIT' : 'EMPTY_FINAL_TEXT'/);
+  assert.match(handler, /logDeterministicRetry\(firstCheck\.reasonCode, null, \{/);
   assert.match(handler, /const reasonCode = commitErr instanceof CoachingStateConflictError \? 'COACHING_STATE_CONFLICT' : 'COMMIT_FAILURE';/);
   assert.match(handler, /return emitDeterministicRetry\(reasonCode, commitErr\);/);
   assert.match(handler, /logDeterministicRetry\('RETRY_PERSIST_FAILURE', retryPersistErr\);/);

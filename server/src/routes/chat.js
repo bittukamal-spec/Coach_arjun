@@ -9,7 +9,7 @@ const { getSkill, resolveTagForSkill } = require('../config/skillRegistry');
 const { markSkillProgress, getLastRecommendedAt, getSkillProgress } = require('../services/skillProgress');
 const { screenSafetyText, recordSafetyEvent, getSafetyGuidance } = require('../services/safety');
 const {
-  runBufferedToolLoop, sanitizeFinalText, buildQuickReplyPayload, buildRecoverySystem,
+  runBufferedToolLoop, sanitizeFinalText, buildQuickReplyPayload, buildRecoverySystem, describeResponseShape,
   loadCoachingContext, commitCoachingTransition, getRetryMessage, getClarityFallbackMessage,
   CoachingStateConflictError, validateAthleteText, filterQuickReplies,
 } = require('../services/coaching');
@@ -1201,7 +1201,7 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
     // fixed reason codes and structural facts only. NEVER the athlete's
     // message, assistant text, card content, situation, prompt content,
     // tool payloads, raw DB records, or any secret/token/PIN.
-    const logDeterministicRetry = (reasonCode, err) => {
+    const logDeterministicRetry = (reasonCode, err, extra = {}) => {
       console.error('[chat] deterministic_retry', JSON.stringify({
         reasonCode,
         rounds: loop.rounds,
@@ -1209,8 +1209,15 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
         quickRepliesStaged: !!loop.quickReplies,
         finalTextRecoveryAttempted: !!loop.finalTextRecoveryAttempted,
         finalTextRecoverySucceeded: !!loop.finalTextRecoverySucceeded,
+        // Structural shape of the model responses: stop_reason, block
+        // TYPES, counts and a trimmed length — never any text. Enough to
+        // tell an empty block list from tool-only blocks from a max_tokens
+        // cut-off. See describeResponseShape in bufferedToolLoop.js.
+        responseShape: loop.responseShape || null,
+        recoveryResponseShape: loop.recoveryResponseShape || null,
         errorName: err?.name || null,
         errorCode: err?.code || null,
+        ...extra,
       }));
     };
 
@@ -1242,8 +1249,6 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
       res.end();
     };
 
-    if (!candidateText) return emitDeterministicRetry(loop.exceededRounds ? 'ROUND_LIMIT' : 'EMPTY_FINAL_TEXT');
-
     // ── Athlete-facing validation ─────────────────────────────────────────
     // The model's text is a CANDIDATE until it passes. A production incident
     // put the loop's own internal continuation instruction in front of an
@@ -1253,54 +1258,84 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
     //
     // Rejected text is never logged — only the reasonCode and layer, which
     // are fixed strings that cannot contain athlete or model content.
-    const logResponseValidation = (stage, result) => {
+    const logResponseValidation = (stage, result, responseShape = null) => {
       console.error('[chat] response_validation', JSON.stringify({
         stage,                        // 'candidate' | 'retry'
         reasonCode: result.reasonCode,
         layer: result.layer || null,
         surface: 'main_chat',
+        rounds: loop.rounds,
         transitionStaged: !!loop.transition,
         quickRepliesStaged: !!loop.quickReplies,
+        recoveryAttempted: !!loop.finalTextRecoveryAttempted,
+        recoverySucceeded: !!loop.finalTextRecoverySucceeded,
+        // Structural only: stop_reason, block types/counts, trimmed length.
+        responseShape: responseShape || loop.responseShape || null,
+        recoveryResponseShape: loop.recoveryResponseShape || null,
       }));
     };
 
     let finalText = null;
     let usedClarityFallback = false;
 
-    const firstCheck = validateAthleteText(candidateText);
+    // EMPTY text and REJECTED text are the same problem — the model produced
+    // nothing an athlete can use — so they share one pipeline. Empty text used
+    // to short-circuit to the "I couldn't save that coaching step… please send
+    // your last message again" message, which was wrong twice over: production
+    // logs show these cases with transitionStaged:false, so no coaching step
+    // failed to save, and the athlete's message was already persisted before
+    // the model was ever called, so resending only duplicates it.
+    const firstCheck = candidateText
+      ? validateAthleteText(candidateText)
+      : { ok: false, reasonCode: loop.exceededRounds ? 'ROUND_LIMIT' : 'EMPTY_FINAL_TEXT', layer: 'empty' };
+
     if (firstCheck.ok) {
       finalText = candidateText;
     } else {
       logResponseValidation('candidate', firstCheck);
-      // ONE controlled retry: no tools, so nothing can be staged or restaged
-      // and the accepted tool action cannot run a second time. The recovery
-      // instruction rides in the system prompt, never as a synthetic user
-      // turn (see buildRecoverySystem).
-      try {
-        const retryResponse = await anthropic.messages.create({
-          model,
-          max_tokens: 800,
-          system: buildRecoverySystem(systemPrompt),
-          messages: conversationHistory,
-        });
-        const retryContent = Array.isArray(retryResponse.content) ? retryResponse.content : [];
-        const retryText = sanitizeFinalText(retryContent.filter((b) => b.type === 'text').map((b) => b.text).join(''));
-        const retryCheck = validateAthleteText(retryText || '');
-        if (retryCheck.ok) finalText = retryText;
-        else logResponseValidation('retry', retryCheck);
-      } catch (retryErr) {
-        logResponseValidation('retry', { reasonCode: 'RETRY_CALL_FAILED', layer: null });
+      // ONE controlled no-tools recovery attempt per athlete message, so
+      // nothing can be staged or restaged and an accepted tool action cannot
+      // run a second time. The instruction rides in the system prompt, never
+      // as a synthetic user turn (see buildRecoverySystem).
+      //
+      // The loop performs its own bounded recovery when a tool was staged and
+      // the end_turn came back empty. When that already happened and failed,
+      // this does NOT ask a third time — one recovery attempt total, then the
+      // deterministic fallback.
+      const recoveryAlreadySpent = !!loop.finalTextRecoveryAttempted;
+      if (!recoveryAlreadySpent) {
+        try {
+          const retryResponse = await anthropic.messages.create({
+            model,
+            max_tokens: 800,
+            system: buildRecoverySystem(systemPrompt),
+            messages: conversationHistory,
+          });
+          const retryContent = Array.isArray(retryResponse.content) ? retryResponse.content : [];
+          const retryText = sanitizeFinalText(retryContent.filter((b) => b.type === 'text').map((b) => b.text).join(''));
+          const retryCheck = validateAthleteText(retryText || '');
+          if (retryCheck.ok) finalText = retryText;
+          else logResponseValidation('retry', retryCheck, describeResponseShape(retryResponse));
+        } catch (retryErr) {
+          logResponseValidation('retry', { reasonCode: 'RETRY_CALL_FAILED', layer: null });
+        }
       }
 
       if (!finalText) {
         // Deterministic, server-authored fallback. The situation phrase comes
         // only from the athlete's own agreed coaching focus (server-generated
-        // copy) — never athlete free text, never model text.
+        // copy) — never athlete free text, never model text. It is a real
+        // coaching turn, not a save-error: it never asks the athlete to
+        // resend a message that is already stored.
         const situationPhrase = startingProfile?.agreedPriorityId
           ? priorityPhrase(startingProfile.agreedPriorityId, user.language === 'hi' ? 'hi' : 'en')
           : null;
         finalText = getClarityFallbackMessage(user?.language, situationPhrase);
         usedClarityFallback = true;
+        logDeterministicRetry(firstCheck.reasonCode, null, {
+          recoveryAlreadySpent,
+          deterministicFallbackUsed: true,
+        });
       }
     }
 

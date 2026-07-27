@@ -6,7 +6,7 @@
 //     CoachingStateConflictError, getRetryMessage,
 //   } = require('../services/coaching');
 
-const { runBufferedToolLoop, sanitizeFinalText, buildQuickReplyPayload, buildRecoverySystem, MAX_ROUNDS, MAX_FINAL_TEXT_LENGTH, FINAL_TEXT_RECOVERY_INSTRUCTION } = require('./bufferedToolLoop');
+const { runBufferedToolLoop, sanitizeFinalText, buildQuickReplyPayload, buildRecoverySystem, describeResponseShape, MAX_ROUNDS, MAX_FINAL_TEXT_LENGTH, FINAL_TEXT_RECOVERY_INSTRUCTION } = require('./bufferedToolLoop');
 const { validateAthleteText, isApprovedSafetyText } = require('./validateAthleteText');
 const { filterQuickReplies } = require('./filterQuickReplies');
 const {
@@ -47,6 +47,7 @@ module.exports = {
   sanitizeFinalText,
   buildQuickReplyPayload,
   buildRecoverySystem,
+  describeResponseShape,
   FINAL_TEXT_RECOVERY_INSTRUCTION,
   validateAthleteText,
   isApprovedSafetyText,
