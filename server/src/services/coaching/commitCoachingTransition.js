@@ -39,6 +39,27 @@ function getRetryMessage(language) {
     : "I couldn't save that coaching step just now. Nothing was changed — please send your last message again.";
 }
 
+// Deterministic fallback used when the model's own reply failed athlete-facing
+// validation (internal text leaked, or an acknowledgement-only response) AND
+// the controlled retry also failed. Distinct from getRetryMessage above,
+// which says "nothing was changed" — that would be untrue here, because a
+// staged coaching transition still commits with this text.
+//
+// `situationPhrase` must be server-generated, already-validated copy (the
+// athlete's agreed coaching focus). Athlete free text and model text are never
+// interpolated — if no safe phrase exists, the generic form is used.
+function getClarityFallbackMessage(language, situationPhrase = null) {
+  const phrase = typeof situationPhrase === 'string' ? situationPhrase.trim() : '';
+  if (language === 'hi') {
+    return phrase
+      ? `मैंने इसे साफ़ तरीके से नहीं कहा। चलिए ${phrase} पर ही रहते हैं। अभी इसमें सबसे ज़रूरी बात क्या लग रही है?`
+      : 'मैंने इसे साफ़ तरीके से नहीं कहा। अभी इस स्थिति में सबसे ज़रूरी बात क्या लग रही है?';
+  }
+  return phrase
+    ? `I didn't explain that clearly. Let's stay with ${phrase}. What feels most important about it right now?`
+    : "I didn't explain that clearly. What part of this situation feels most important right now?";
+}
+
 function createLoadCoachingContext(db = prisma) {
   return async function loadCoachingContext(userId) {
     const state = await db.userCoachingState.findUnique({
@@ -255,4 +276,5 @@ module.exports = {
   commitCoachingTransition: createCommitCoachingTransition(),
   CoachingStateConflictError,
   getRetryMessage,
+  getClarityFallbackMessage,
 };

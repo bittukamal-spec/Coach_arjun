@@ -3,7 +3,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { runBufferedToolLoop, sanitizeFinalText, MAX_ROUNDS, FINAL_TEXT_RECOVERY_INSTRUCTION } = require('../src/services/coaching/bufferedToolLoop');
+const { runBufferedToolLoop, sanitizeFinalText, buildRecoverySystem, MAX_ROUNDS, FINAL_TEXT_RECOVERY_INSTRUCTION } = require('../src/services/coaching/bufferedToolLoop');
 
 const NO_STATE = { hasActiveSelection: false, cycleStatus: null, barrierConfirmationStatus: null, hasPrescription: false };
 const PENDING_STATE = { hasActiveSelection: true, cycleStatus: 'ACTIVE', barrierConfirmationStatus: 'PENDING', hasPrescription: false };
@@ -529,7 +529,11 @@ test('the recovery request omits the tools key entirely — Claude cannot call o
   assert.equal(recoveryCall.tools, undefined, 'no tools array on the recovery call');
 });
 
-test('the hidden recovery instruction is the exact fixed string and is the last message sent — never athlete-visible text', async () => {
+// The recovery instruction used to be appended as a synthetic USER turn.
+// Delivered that way it reads as something the athlete asked for, and in
+// production the model echoed it back (paraphrased) as its coaching reply,
+// which was then persisted and shown. It now rides in the system prompt.
+test('the recovery instruction is carried in the system prompt, never as a synthetic user turn', async () => {
   const stub = makeAnthropicStub([
     quickRepliesToolResponse('draft', ['Yes, that feels right', 'Not quite']),
     textResponse(''),
@@ -537,9 +541,19 @@ test('the hidden recovery instruction is the exact fixed string and is the last 
   ]);
   await run(stub, NO_STATE);
   const recoveryCall = stub.calls[2];
+
+  assert.ok(recoveryCall.system.includes(FINAL_TEXT_RECOVERY_INSTRUCTION), 'instruction must be in system');
+  assert.equal(recoveryCall.system, buildRecoverySystem(stub.calls[0].system), 'system is the original prompt plus the instruction');
+
+  // No message carries it, and no synthetic user prose turn was appended:
+  // the last message is still the protocol-required tool_result.
+  for (const m of recoveryCall.messages) {
+    assert.ok(!(typeof m.content === 'string' && m.content.includes(FINAL_TEXT_RECOVERY_INSTRUCTION)), 'no message may carry the instruction');
+  }
   const lastMessage = recoveryCall.messages[recoveryCall.messages.length - 1];
   assert.equal(lastMessage.role, 'user');
-  assert.equal(lastMessage.content, FINAL_TEXT_RECOVERY_INSTRUCTION);
+  assert.ok(Array.isArray(lastMessage.content), 'last message is the tool_result block, not prose');
+  assert.equal(lastMessage.content[0].type, 'tool_result');
 });
 
 test('a staged barrier proposal survives empty-text recovery and is returned only alongside valid recovered final text', async () => {

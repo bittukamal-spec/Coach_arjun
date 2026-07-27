@@ -9,10 +9,11 @@ const { getSkill, resolveTagForSkill } = require('../config/skillRegistry');
 const { markSkillProgress, getLastRecommendedAt, getSkillProgress } = require('../services/skillProgress');
 const { screenSafetyText, recordSafetyEvent, getSafetyGuidance } = require('../services/safety');
 const {
-  runBufferedToolLoop, sanitizeFinalText, buildQuickReplyPayload,
-  loadCoachingContext, commitCoachingTransition, getRetryMessage,
-  CoachingStateConflictError,
+  runBufferedToolLoop, sanitizeFinalText, buildQuickReplyPayload, buildRecoverySystem,
+  loadCoachingContext, commitCoachingTransition, getRetryMessage, getClarityFallbackMessage,
+  CoachingStateConflictError, validateAthleteText, filterQuickReplies,
 } = require('../services/coaching');
+const { priorityPhrase } = require('../profile/ruleEngine');
 const loadMindJournalContext = require('../services/mindJournal/loadMindJournalContext');
 const { loadConfirmedProfile } = require('../profile/loadConfirmedProfile');
 
@@ -575,7 +576,7 @@ No recent check-ins — the athlete hasn't tracked their mental state yet.`;
       const when = c.performanceMoment || c.situationCategory || null;
       return `- Focus Word: "${c.focusWord}" · Reset Word: "${c.resetWord}" · Mantra: "${c.powerLine}"${when ? ` · For: ${when}` : ''}${c.lastUsedAt ? ` · Last practised: ${new Date(c.lastUsedAt).toISOString().slice(0, 10)}` : ''}`;
     }).join('\n');
-    focusCardSection = `\n\n## Athlete's Saved Focus Cards (${focusCards.length} active)\n${cardLines}\nThese are the athlete's OWN words. When focus, pressure, or confidence comes up, remind them to use an existing Focus Word or Card before suggesting they build a new one. Quote their words exactly — never rewrite them.`;
+    focusCardSection = `\n\n## Athlete's Saved Focus Cards (${focusCards.length} active)\n${cardLines}\nThese are the athlete's OWN words. When focus, pressure, or confidence comes up, remind them to use an existing Focus Word or Card before suggesting they build a new one. Quote THESE SAVED CARD WORDS exactly — never rewrite a stored Focus Word, Reset Word or Mantra. This exact-quoting rule applies only to the saved card text above; everywhere else, reflect what the athlete said in your own clear words (see the Language rules on spelling and transcription errors).`;
   }
 
   // ── Skill recommendation hint (from rule-based intent detection on this
@@ -656,6 +657,7 @@ Follow this shape for a normal coaching reply:
 4. Give one practical action — something they can actually do, not a lecture.
 5. Recommend one active tool only if there's a genuine practice opportunity (see Tool Recommendation Discipline).
 6. Ask one short question only if you actually need the answer to help further — never stack questions.
+Every normal coaching reply must contain at least one of: a specific reflection grounded in what the athlete just said; a useful explanation; a focused next question; a clear move to the next coaching stage; or a concise action when this stage calls for one. A reply that is only acknowledgement — "Yes", "Exactly", "That's it", "Perfect", "Got it", "Right" — is not a valid reply unless the conversation is genuinely closing. Short is still good: "That helps narrow it down. What changes first — your shot selection or your timing?" is a complete reply. Agreeing and stopping is not.
 Do not write long lectures. Do not give several pieces of advice in one reply. Do not sound like a motivational speaker.
 Good opener: "Confidence isn't luck. It's built rep by rep."
 Bad opener: "That's a great question! I understand how you feel." / "Of course! I'd be happy to help you with that."
@@ -695,6 +697,8 @@ Before finalizing each reply, silently check: Did I use the correct sport (or st
 
 ## Language
 ${langInstruction}
+
+Athletes may use spelling mistakes, voice-transcription errors, informal English, Hinglish, incomplete sentences or incorrect sporting terms. Infer the intended meaning from the athlete's sport and surrounding context when confidence is high, and silently use the corrected meaning rather than repeating an obvious mistake back to them. When a questionable word is not essential to your point, paraphrase around it. Ask one brief clarification only when multiple plausible meanings would materially change your coaching answer. Do not embarrass the athlete, do not explicitly correct their grammar, do not quote an obvious misspelling back to them, and never "correct" real sport terminology you recognise (yorker, outswinger, inswinger, bouncer, crease, leave, edge and their equivalents in other sports are correct words, not typos).
 
 ## Response format rules — follow these exactly
 
@@ -1191,7 +1195,7 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
       coachingContext,
     });
 
-    const finalText = loop.exceededRounds ? null : sanitizeFinalText(loop.finalText);
+    const candidateText = loop.exceededRounds ? null : sanitizeFinalText(loop.finalText);
 
     // Safe operational diagnostics for deterministic-retry occurrences —
     // fixed reason codes and structural facts only. NEVER the athlete's
@@ -1238,7 +1242,67 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
       res.end();
     };
 
-    if (!finalText) return emitDeterministicRetry(loop.exceededRounds ? 'ROUND_LIMIT' : 'EMPTY_FINAL_TEXT');
+    if (!candidateText) return emitDeterministicRetry(loop.exceededRounds ? 'ROUND_LIMIT' : 'EMPTY_FINAL_TEXT');
+
+    // ── Athlete-facing validation ─────────────────────────────────────────
+    // The model's text is a CANDIDATE until it passes. A production incident
+    // put the loop's own internal continuation instruction in front of an
+    // athlete and stored it as a Message; an acknowledgement-only reply
+    // ("Yes, that's it.") is the same class of non-answer. Nothing below
+    // persists, streams, or emits chips for text that fails.
+    //
+    // Rejected text is never logged — only the reasonCode and layer, which
+    // are fixed strings that cannot contain athlete or model content.
+    const logResponseValidation = (stage, result) => {
+      console.error('[chat] response_validation', JSON.stringify({
+        stage,                        // 'candidate' | 'retry'
+        reasonCode: result.reasonCode,
+        layer: result.layer || null,
+        surface: 'main_chat',
+        transitionStaged: !!loop.transition,
+        quickRepliesStaged: !!loop.quickReplies,
+      }));
+    };
+
+    let finalText = null;
+    let usedClarityFallback = false;
+
+    const firstCheck = validateAthleteText(candidateText);
+    if (firstCheck.ok) {
+      finalText = candidateText;
+    } else {
+      logResponseValidation('candidate', firstCheck);
+      // ONE controlled retry: no tools, so nothing can be staged or restaged
+      // and the accepted tool action cannot run a second time. The recovery
+      // instruction rides in the system prompt, never as a synthetic user
+      // turn (see buildRecoverySystem).
+      try {
+        const retryResponse = await anthropic.messages.create({
+          model,
+          max_tokens: 800,
+          system: buildRecoverySystem(systemPrompt),
+          messages: conversationHistory,
+        });
+        const retryContent = Array.isArray(retryResponse.content) ? retryResponse.content : [];
+        const retryText = sanitizeFinalText(retryContent.filter((b) => b.type === 'text').map((b) => b.text).join(''));
+        const retryCheck = validateAthleteText(retryText || '');
+        if (retryCheck.ok) finalText = retryText;
+        else logResponseValidation('retry', retryCheck);
+      } catch (retryErr) {
+        logResponseValidation('retry', { reasonCode: 'RETRY_CALL_FAILED', layer: null });
+      }
+
+      if (!finalText) {
+        // Deterministic, server-authored fallback. The situation phrase comes
+        // only from the athlete's own agreed coaching focus (server-generated
+        // copy) — never athlete free text, never model text.
+        const situationPhrase = startingProfile?.agreedPriorityId
+          ? priorityPhrase(startingProfile.agreedPriorityId, user.language === 'hi' ? 'hi' : 'en')
+          : null;
+        finalText = getClarityFallbackMessage(user?.language, situationPhrase);
+        usedClarityFallback = true;
+      }
+    }
 
     let committed;
     try {
@@ -1267,8 +1331,19 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
       // place — never both a card and quick replies in the same response,
       // even if the model staged both (see offer_quick_replies validation).
       res.write(`data: ${JSON.stringify({ t: 'card', card: committed.card })}\n\n`);
-    } else {
-      const quickReplies = buildQuickReplyPayload(loop.quickReplies);
+    } else if (!usedClarityFallback) {
+      // Final chip pass, now that the reply text exists: drops duplicates,
+      // chips that restate Arjun's own question or the athlete's last
+      // message, bare agreement, and anything carrying internal syntax.
+      // Below two survivors nothing is emitted — the composer is always
+      // available, and padding the list with invented options would be worse
+      // than no chips. Staged chips are dropped entirely when the clarity
+      // fallback spoke, since they were written for a reply that never ran.
+      const kept = filterQuickReplies(loop.quickReplies, {
+        finalText,
+        athleteMessage: content,
+      });
+      const quickReplies = buildQuickReplyPayload(kept);
       if (quickReplies) {
         res.write(`data: ${JSON.stringify({ t: 'quick_replies', replies: quickReplies })}\n\n`);
       }
