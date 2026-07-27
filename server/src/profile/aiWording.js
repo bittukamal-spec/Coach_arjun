@@ -52,7 +52,7 @@ function validate(sections, language, anchors = []) {
   if (language === 'en' && DEVANAGARI.test(joined)) return false;
   // A rewrite that dropped the athlete's own specifics is not a rewrite — the
   // deterministic wording is more useful to them than warm generic text.
-  if (!isGrounded(joined, anchors)) return false;
+  if (!isGrounded(sections, anchors)) return false;
   return true;
 }
 

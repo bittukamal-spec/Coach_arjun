@@ -64,13 +64,10 @@ export default function StartingProfilePage() {
       .map((a) => ({ id: a.id, label: label(a.key) }));
   }, [profile?.priorityOptions]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const agreedLabel = useMemo(() => {
-    const id = profile?.agreedPriorityId;
-    if (!id) return null;
-    const q = CFG.getQuestion('difficult_moments');
-    const a = q?.answers?.find((x) => x.id === id);
-    return a ? label(a.key) : null;
-  }, [profile?.agreedPriorityId]); // eslint-disable-line react-hooks/exhaustive-deps
+  // The conversational phrase from the server ("what happens when the pressure
+  // increases"). The onboarding option label is a list label, not prose — it
+  // must never be dropped into a sentence.
+  const agreedPhrase = profile?.agreedPriorityPhrase || null;
 
   const needsCorrection = fit === 'NOT_REALLY';
   const correctionReady =
@@ -97,7 +94,13 @@ export default function StartingProfilePage() {
     const res = await startChat();
     setStarting(false);
     if (res.ok) {
-      navigate('/coaching', { state: { chatSessionId: res.chatSessionId } });
+      // `replace` so the profile is not the immediate previous entry, and an
+      // explicit destination so Back from the first conversation goes home
+      // rather than back into the confirmation flow the athlete just finished.
+      navigate('/coaching', {
+        replace: true,
+        state: { chatSessionId: res.chatSessionId, returnTo: '/dashboard', enteredFromStartingProfile: true },
+      });
       return;
     }
     if (res.error !== 'CONSENT_REQUIRED') setError(t.startError);
@@ -216,7 +219,7 @@ export default function StartingProfilePage() {
           <div className="mt-6">
             <h2 className="text-body font-semibold text-ink mb-1">{t.savedTitle}</h2>
             <p className="text-body text-slt mb-4">
-              {agreedLabel ? t.savedBody(agreedLabel) : t.savedBodyPlain}
+              {agreedPhrase ? t.savedBody(agreedPhrase) : t.savedBodyPlain}
             </p>
 
             {consent.pending ? (

@@ -73,3 +73,53 @@ test('the retired mental-game profile page is gone from the client', () => {
   assert.doesNotMatch(src('App.jsx'), /MentalGameProfilePage/);
   assert.doesNotMatch(src('pages/AccountPage.jsx'), /to="\/mental-game-profile"/);
 });
+
+// ── Back navigation out of the first conversation ───────────────────────────
+// Founder preview: Back from the first coaching chat returned to the Starting
+// Profile the athlete had just finished confirming.
+
+const chatPage = src('pages/ChatPage.jsx');
+
+test('the profile opens the first conversation with replacement navigation and an explicit return destination', () => {
+  assert.match(page, /navigate\('\/coaching', \{\s*replace: true,/);
+  assert.match(page, /returnTo: '\/dashboard'/);
+  assert.match(page, /enteredFromStartingProfile: true/);
+});
+
+test('Chat honours that return destination on Back, and only for that entry path', () => {
+  assert.match(chatPage, /enteredFromStartingProfile \? \(location\.state\?\.returnTo \|\| '\/dashboard'\) : null/);
+  assert.match(chatPage, /backOverrideRef\.current\s*\?\s*navigate\(backOverrideRef\.current, \{ replace: true \}\)/);
+});
+
+test('every other Chat entry path keeps the existing Back behaviour', () => {
+  // The fallback is still the plain history back, and there is exactly one
+  // back control — no global redirect of every Chat exit to the dashboard.
+  assert.match(chatPage, /:\s*navigate\(-1\)\)/);
+  assert.equal((chatPage.match(/navigate\(-1\)/g) || []).length, 1);
+  assert.equal((chatPage.match(/aria-label="Go back"/g) || []).length, 1);
+});
+
+test('the chat footer navigation stays out of this change (reserved for PR 4)', () => {
+  assert.doesNotMatch(chatPage, /BottomNav/, 'the shared footer is PR 4 scope');
+  const app = src('App.jsx');
+  const idx = app.indexOf('path="/coaching"');
+  assert.ok(idx !== -1);
+  // The route still renders ChatPage + BottomNav exactly as it did before.
+  assert.match(app.slice(idx, idx + 220), /<ChatPage \/>\s*<BottomNav \/>/);
+});
+
+test('the confirmation summary renders a server-supplied phrase, not an onboarding display label', () => {
+  assert.match(page, /profile\?\.agreedPriorityPhrase/);
+  assert.match(page, /t\.savedBody\(agreedPhrase\)/);
+  // The only remaining config lookup is for the correction option LIST, which
+  // is where display labels belong.
+  const configUses = [...page.matchAll(/CFG\.getQuestion\('difficult_moments'\)/g)];
+  assert.equal(configUses.length, 1);
+});
+
+test('the confirmation sentence template cannot produce "We\'ll start with When…"', () => {
+  const en = namespaceBlock('en');
+  assert.match(en, /savedBody: \(focus\) => `We\\'ll start by exploring \$\{focus\}\.`/);
+  assert.doesNotMatch(en, /We\\'ll start with \$\{focus\}/);
+  assert.match(namespaceBlock('hi'), /savedBody: \(focus\) =>/);
+});

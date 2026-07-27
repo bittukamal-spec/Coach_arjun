@@ -42,6 +42,37 @@ const TRIGGER = {
   injury_return:                { en: 'coming back from injury',          hi: 'चोट से वापसी में' },
 };
 
+// Conversational phrase for a priority, for use INSIDE a sentence. The
+// onboarding option labels ("When the pressure increases") are display labels
+// for a list — dropping one into prose reads as a raw label, so prose always
+// comes from here instead. Keyed by the same stable difficult_moments ids.
+const PRIORITY_PHRASE = {
+  before_important_performance: { en: 'what happens in the build-up to an important performance', hi: 'किसी अहम मुक़ाबले की तैयारी में क्या होता है' },
+  pressure_increases:           { en: 'what happens when the pressure increases', hi: 'दबाव बढ़ने पर क्या होता है' },
+  after_mistake:                { en: 'what happens after a mistake', hi: 'गलती के बाद क्या होता है' },
+  after_poor_result:            { en: 'what happens after a poor result', hi: 'खराब नतीजे के बाद क्या होता है' },
+  lose_focus:                   { en: 'what pulls your focus away', hi: 'आपका ध्यान क्या भटकाता है' },
+  confidence_drops:             { en: 'what happens when your confidence drops', hi: 'आत्मविश्वास गिरने पर क्या होता है' },
+  low_motivation:               { en: 'what makes training consistency harder', hi: 'लगातार ट्रेनिंग करना क्या मुश्किल बनाता है' },
+  coach_feedback:               { en: 'how coach feedback affects you', hi: 'कोच का फीडबैक आप पर कैसे असर करता है' },
+  selection_uncertain:          { en: 'how selection uncertainty affects you', hi: 'सिलेक्शन की अनिश्चितता आप पर कैसे असर करती है' },
+  family_expectations:          { en: 'how outside expectations affect you', hi: 'बाहरी उम्मीदें आप पर कैसे असर करती हैं' },
+  injury_return:                { en: 'what makes returning from injury difficult', hi: 'चोट से वापसी क्या मुश्किल बनाती है' },
+};
+
+// Cautious conversational fallbacks when the athlete named no single priority.
+const PRIORITY_PHRASE_FALLBACK = {
+  custom:  { en: 'what happens in the situation you wrote about', hi: 'जो स्थिति आपने लिखी, उसमें क्या होता है' },
+  generic: { en: 'what tends to happen in the moments that feel hardest', hi: 'जो पल सबसे कठिन लगते हैं, उनमें आमतौर पर क्या होता है' },
+};
+
+// The coaching sequence §4 always ends on: understand the pattern first, then
+// choose something practical. Never a prescribed practice at this stage.
+const BEGIN_SEQUENCE = {
+  en: "First we'll understand the pattern clearly. Then we can choose something practical to test.",
+  hi: 'पहले हम पैटर्न को साफ़ तौर पर समझेंगे। फिर हम आज़माने के लिए कुछ व्यावहारिक चुन सकते हैं।',
+};
+
 // branchId → where-we-can-begin phrasing (§4).
 const BEGIN = {
   mistakes:        { en: 'what happens in the few seconds that follow', hi: 'उसके बाद के कुछ सेकंड में क्या होता है' },
@@ -300,5 +331,5 @@ module.exports = {
   TRIGGER, BEGIN, CLAUSE, DURATION_PROLONGED, RESILIENCE_NOTE,
   SUPPORT_PHRASE, STRENGTH_PHRASE, GOAL_LABEL, OUTCOME_LABEL, SPORT_LABEL,
   UNSURE_TRIGGER, ONSET_PHRASE, INJURY_STAGE, FAMILY_SOURCE, CONTEXT_PHRASE,
-  ROLE_LABEL, NOTHING_NAMED_YET,
+  ROLE_LABEL, NOTHING_NAMED_YET, PRIORITY_PHRASE, PRIORITY_PHRASE_FALLBACK, BEGIN_SEQUENCE,
 };

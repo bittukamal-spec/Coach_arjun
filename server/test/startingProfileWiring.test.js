@@ -100,7 +100,10 @@ test('the client starts the first conversation through the gated endpoint and op
   assert.match(hook, /'\/api\/profile\/start-chat'/);
   assert.match(hook, /CONSENT_REQUIRED/);
   const page = clientSrc('pages/StartingProfilePage.jsx');
-  assert.match(page, /navigate\('\/coaching', \{ state: \{ chatSessionId: res\.chatSessionId \} \}\)/);
+  // Replacement navigation + an explicit return destination, so Back from the
+  // first conversation goes home rather than into the confirmation flow.
+  assert.match(page, /navigate\('\/coaching', \{\s*replace: true,/);
+  assert.match(page, /chatSessionId: res\.chatSessionId, returnTo: '\/dashboard', enteredFromStartingProfile: true/);
 });
 
 test('the profile screen offers exactly the three fit answers and never claims to be a diagnosis', () => {

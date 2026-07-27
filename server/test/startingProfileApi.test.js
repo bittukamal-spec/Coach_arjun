@@ -464,6 +464,8 @@ test('the opening message follows the athlete\'s correction, not the original su
     await open(call);
     await call('POST', '/api/profile/confirm', { fit: 'NOT_REALLY', agreedPriorityId: 'lose_focus' });
     await call('POST', '/api/profile/start-chat');
-    assert.match(client.__messages[0].content, /when your focus drifts/);
+    // Conversational phrase, not the raw onboarding label.
+    assert.match(client.__messages[0].content, /what pulls your focus away/);
+    assert.doesNotMatch(client.__messages[0].content, /When I lose focus/);
   });
 });

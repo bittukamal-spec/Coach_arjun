@@ -11,11 +11,44 @@ const firstId = (a, qid) => a?.[qid]?.answerIds?.[0];
 const selIds = (a, qid) => a?.[qid]?.answerIds || [];
 const pick = (map, id, lang) => map[id]?.[lang];
 
+// ── Sentence composition ────────────────────────────────────────────────────
+// Every clause in ruleConfig is a bare fragment; the connector ("and", "और")
+// belongs to the composer alone. A clause that arrives carrying its own
+// leading connector — which is exactly how "…overthinking and and this can
+// linger…" was produced — has it stripped before joining, so the same defect
+// cannot come back through a newly added phrase. `tidy()` is the final guard
+// on any composed sentence, in either language.
+
+const LEADING_CONNECTOR = /^\s*(and|but|or|और|लेकिन|या)\s+/i;
+const stripConnector = (s) => String(s || '').replace(LEADING_CONNECTOR, '').trim();
+
+function tidy(text) {
+  return String(text || '')
+    .replace(/\s+/g, ' ')
+    // A connector repeated by composition ("and and", "और और").
+    .replace(/\b(and|but|or)\b(\s+\1\b)+/gi, '$1')
+    .replace(/(और|लेकिन|या)(\s+\1)+/g, '$1')
+    // Repeated connecting phrases from two layers both adding one.
+    .replace(/,\s*,+/g, ',')
+    .replace(/([.।!?])\s*\1+/g, '$1')
+    .replace(/\s+([,.।!?])/g, '$1')
+    .replace(/,\s*([.।])/g, '$1')
+    .trim();
+}
+
+// Joins bare clause fragments into one grammatical list.
 function joinClauses(parts, lang) {
   const and = lang === 'hi' ? ' और ' : ' and ';
-  if (parts.length <= 1) return parts[0] || '';
-  if (parts.length === 2) return parts[0] + and + parts[1];
-  return parts.slice(0, -1).join(', ') + ',' + and + parts[parts.length - 1];
+  const clean = (parts || []).map(stripConnector).filter(Boolean);
+  if (clean.length === 0) return '';
+  if (clean.length === 1) return clean[0];
+  if (clean.length === 2) return clean[0] + and + clean[1];
+  return clean.slice(0, -1).join(', ') + ',' + and + clean[clean.length - 1];
+}
+
+// Joins whole sentences, tidying the result once.
+function sentences(parts) {
+  return tidy((parts || []).filter(Boolean).join(' '));
 }
 
 // ── Canonical, language-independent rule output ─────────────────────────────
@@ -122,6 +155,20 @@ function situationPhrase(ro, L) {
     || (L === 'hi' ? 'खेल के दबाव वाले पलों में' : 'in the pressure moments of your sport');
 }
 
+// The conversational form of a priority, for use inside a sentence. The
+// onboarding display label ("When the pressure increases") is never used in
+// prose — see PRIORITY_PHRASE. `ro` is optional context for the fallbacks.
+function priorityPhrase(priorityId, lang = 'en', ro = null) {
+  const L = lang === 'hi' ? 'hi' : 'en';
+  const named = pick(cfg.PRIORITY_PHRASE, priorityId, L);
+  if (named) return named;
+  // Unsure: the recognition they picked still names a moment.
+  const rec = pick(cfg.UNSURE_TRIGGER, ro?.recognition, L);
+  if (rec) return L === 'hi' ? `${rec} क्या होता है` : `what happens ${rec}`;
+  if (ro?.branch === 'custom' || priorityId === 'different') return cfg.PRIORITY_PHRASE_FALLBACK.custom[L];
+  return cfg.PRIORITY_PHRASE_FALLBACK.generic[L];
+}
+
 // ── Deterministic rendered sections (cautious, EN/HI) ───────────────────────
 function renderSections(ro, lang = 'en') {
   const L = lang === 'hi' ? 'hi' : 'en';
@@ -216,18 +263,17 @@ function renderSections(ro, lang = 'en') {
   // situation onboarding already established. Never asks Arjun (or the
   // athlete) to work out which situation matters, and prescribes nothing.
   const beginArea = pick(cfg.BEGIN, ro.branch, L);
-  let whereWeBegin;
-  if (L === 'hi') {
-    whereWeBegin = `हम एक हाल के पल से शुरू कर सकते हैं जब ${trigger} ऐसा हुआ`;
-    whereWeBegin += beginArea ? `, और ${beginArea} को साथ में देख सकते हैं।` : '।';
-    whereWeBegin += ' यह अभी कोई तय अभ्यास नहीं है।';
-  } else {
-    whereWeBegin = `We can begin with one recent moment ${trigger}`;
-    whereWeBegin += beginArea ? `, and look together at ${beginArea}.` : '.';
-    whereWeBegin += ' This is not a fixed practice yet.';
-  }
+  const opening = L === 'hi'
+    ? `हम एक हाल के पल से शुरू कर सकते हैं जब ${trigger} ऐसा हुआ${beginArea ? `, और ${beginArea} को साथ में देख सकते हैं।` : '।'}`
+    : `We can begin with one recent moment ${trigger}${beginArea ? `, and look together at ${beginArea}.` : '.'}`;
+  const whereWeBegin = sentences([opening, cfg.BEGIN_SEQUENCE[L]]);
 
-  return { whatMatters, possiblePattern, whatHelps, whereWeBegin };
+  return {
+    whatMatters: tidy(whatMatters),
+    possiblePattern: tidy(possiblePattern),
+    whatHelps: tidy(whatHelps),
+    whereWeBegin,
+  };
 }
 
 function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
@@ -262,9 +308,11 @@ function keyTokens(phrase) {
 function groundingAnchors(ro, lang = 'en') {
   const L = lang === 'hi' ? 'hi' : 'en';
   const groups = [];
-  const add = (group, phrases) => {
+  // `field` scopes a group to one section — without it the check runs against
+  // the whole profile, where an unrelated section can satisfy it by accident.
+  const add = (group, phrases, field) => {
     const tokens = [...new Set(phrases.filter(Boolean).flatMap(keyTokens))];
-    if (tokens.length) groups.push({ group, tokens });
+    if (tokens.length) groups.push(field ? { group, tokens, field } : { group, tokens });
   };
 
   add('sport', [pick(cfg.SPORT_LABEL, ro.sportId, L) || ro.sport]);
@@ -275,13 +323,24 @@ function groundingAnchors(ro, lang = 'en') {
     ...ro.supports.map((s) => pick(cfg.SUPPORT_PHRASE, s, L)),
     ...ro.strengths.map((s) => pick(cfg.STRENGTH_PHRASE, s, L)),
   ]);
+  // "Understand the pattern first, then choose something to test" is the
+  // coaching sequence §4 promises — a rewrite that flattens it back to
+  // generic filler is rejected like any other lost specific.
+  add('sequence', [cfg.BEGIN_SEQUENCE[L]], 'whereWeBegin');
   return groups;
 }
 
-// True when every anchor group still has at least one of its tokens in the text.
-function isGrounded(text, anchors = []) {
-  const joined = String(text || '').toLowerCase();
-  return anchors.every((a) => a.tokens.some((t) => joined.includes(t)));
+// True when every anchor group still has at least one of its tokens present —
+// in its own section when the group is scoped, otherwise anywhere.
+function isGrounded(sections, anchors = []) {
+  const text = typeof sections === 'string'
+    ? { __all: sections }
+    : sections || {};
+  const joined = Object.values(text).join(' ').toLowerCase();
+  return anchors.every((a) => {
+    const hay = a.field ? String(text[a.field] || '').toLowerCase() : joined;
+    return a.tokens.some((t) => hay.includes(t));
+  });
 }
 
 // Prohibited-claim check reused by the AI wording validator.
@@ -299,6 +358,7 @@ function wordCount(sections) {
 
 module.exports = {
   buildRuleOutput, renderSections, hasProhibited, wordCount,
-  situationPhrase, groundingAnchors, isGrounded,
+  situationPhrase, priorityPhrase, groundingAnchors, isGrounded,
+  joinClauses, sentences, tidy, stripConnector,
   RULE_VERSION: cfg.RULE_VERSION,
 };

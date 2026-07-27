@@ -4,7 +4,7 @@
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom';
 
 const authState = { user: { id: 'u1', onboardingDone: true, name: 'Rahul' }, token: 't', language: 'en', updateUser: vi.fn() };
 vi.mock('../src/contexts/AuthContext', () => ({ useAuth: () => authState }));
@@ -28,6 +28,7 @@ function makeServer(over = {}) {
       wordingStatus: 'AI_OK',
       deterministicFallbackUsed: false,
       suggestedPriorityId: 'after_mistake',
+      agreedPriorityPhrase: null,
       priorityOptions: ['after_mistake', 'lose_focus'],
       fitResponse: null,
       agreedPriorityId: null,
@@ -50,10 +51,15 @@ function makeServer(over = {}) {
         if (body.fit === 'NOT_REALLY' && !body.agreedPriorityId && !body.correctionText) {
           return [400, { error: 'INVALID_CORRECTION' }];
         }
+        const agreed = body.agreedPriorityId || state.profile.suggestedPriorityId;
         state.profile = {
           ...state.profile,
           fitResponse: body.fit,
-          agreedPriorityId: body.agreedPriorityId || state.profile.suggestedPriorityId,
+          agreedPriorityId: agreed,
+          // The server sends the conversational phrase, never the raw label.
+          agreedPriorityPhrase: agreed === 'lose_focus'
+            ? 'what pulls your focus away'
+            : 'what happens after a mistake',
           correctionText: body.correctionText || null,
         };
         return [200, { profile: state.profile, consent: state.consent }];
@@ -76,12 +82,18 @@ function wire(server) {
   });
 }
 
+// Echoes the navigation state so the profile → chat contract is observable.
+function CoachingStub() {
+  const location = useLocation();
+  return <p data-testid="coaching-state">{JSON.stringify(location.state)}</p>;
+}
+
 function App() {
   return (
     <MemoryRouter initialEntries={['/starting-profile']}>
       <Routes>
         <Route path="/starting-profile" element={<StartingProfilePage />} />
-        <Route path="/coaching" element={<p>coaching</p>} />
+        <Route path="/coaching" element={<CoachingStub />} />
         <Route path="/dashboard" element={<p>dashboard</p>} />
         <Route path="/onboarding" element={<p>onboarding</p>} />
       </Routes>
@@ -162,7 +174,8 @@ describe('Starting Performance Profile', () => {
     render(<App />);
     const user = userEvent.setup();
     await user.click(await screen.findByRole('button', { name: 'Start with Arjun' }));
-    await screen.findByText('coaching');
+    const state = JSON.parse((await screen.findByTestId('coaching-state')).textContent);
+    expect(state.chatSessionId).toBe('cs-1');
     expect(server.state.calls).toContain('POST /api/profile/start-chat');
   });
 
@@ -197,5 +210,56 @@ describe('Starting Performance Profile', () => {
     render(<App />);
     await screen.findByText('हम यहाँ से शुरू कर रहे हैं');
     expect(screen.getByRole('radio', { name: 'हाँ, यही है' })).toBeTruthy();
+  });
+});
+
+describe('Starting Performance Profile — confirmation summary and navigation', () => {
+  test('the confirmation summary reads as a sentence, never as a raw onboarding label', async () => {
+    const server = makeServer();
+    wire(server);
+    render(<App />);
+    const user = userEvent.setup();
+    await screen.findByText(SECTIONS.whatMatters);
+    await user.click(screen.getByRole('radio', { name: 'That fits' }));
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    await screen.findByText("We'll start by exploring what happens after a mistake.");
+    expect(screen.queryByText(/start with When/i)).toBeNull();
+    expect(screen.queryByText(/After I make a mistake\./)).toBeNull();
+  });
+
+  test('a corrected focus is summarised with its own conversational phrase', async () => {
+    const server = makeServer();
+    wire(server);
+    render(<App />);
+    const user = userEvent.setup();
+    await screen.findByText(SECTIONS.whatMatters);
+    await user.click(screen.getByRole('radio', { name: 'Not really' }));
+    await user.click(await screen.findByRole('radio', { name: 'When I lose focus' }));
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    await screen.findByText("We'll start by exploring what pulls your focus away.");
+  });
+
+  test('opening the first conversation passes an explicit return destination, so Back does not reopen the profile', async () => {
+    const server = makeServer({ profile: { fitResponse: 'CONFIRMED', agreedPriorityId: 'after_mistake', agreedPriorityPhrase: 'what happens after a mistake' } });
+    wire(server);
+    render(<App />);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Start with Arjun' }));
+    const state = JSON.parse((await screen.findByTestId('coaching-state')).textContent);
+    expect(state.chatSessionId).toBe('cs-1');
+    expect(state.returnTo).toBe('/dashboard');
+    expect(state.enteredFromStartingProfile).toBe(true);
+  });
+
+  test('tapping Start with Arjun twice still opens the one session the server returns', async () => {
+    const server = makeServer({ profile: { fitResponse: 'CONFIRMED', agreedPriorityId: 'after_mistake', agreedPriorityPhrase: 'what happens after a mistake' } });
+    wire(server);
+    render(<App />);
+    const user = userEvent.setup();
+    const btn = await screen.findByRole('button', { name: 'Start with Arjun' });
+    await user.click(btn);
+    const state = JSON.parse((await screen.findByTestId('coaching-state')).textContent);
+    expect(state.chatSessionId).toBe('cs-1');
+    expect(server.state.calls.filter((c) => c === 'POST /api/profile/start-chat').length).toBe(1);
   });
 });

@@ -4,7 +4,7 @@
 // answers are never modified here.
 
 const { PrismaClient } = require('@prisma/client');
-const { buildRuleOutput, renderSections, groundingAnchors } = require('./ruleEngine');
+const { buildRuleOutput, renderSections, groundingAnchors, priorityPhrase } = require('./ruleEngine');
 const { generateWording: realGenerateWording } = require('./aiWording');
 const { buildFirstMessage } = require('./firstMessage');
 const { sanitizeCustomText } = require('../onboarding/sanitize');
@@ -139,6 +139,12 @@ function serializeProfile(profile, wording, user, session) {
       wordingStatus: wording.wordingStatus,
       deterministicFallbackUsed: wording.deterministicFallbackUsed,
       suggestedPriorityId: profile.suggestedPriorityId,
+      // Conversational phrase for the agreed focus, in the athlete's language.
+      // The client renders this inside a sentence; it must never drop the raw
+      // onboarding display label ("When the pressure increases") into prose.
+      agreedPriorityPhrase: profile.agreedPriorityId
+        ? priorityPhrase(profile.agreedPriorityId, wording.language, profile.ruleOutput)
+        : null,
       fitResponse: profile.fitResponse,
       correctionSelectedId: profile.correctionSelectedId,
       correctionText: profile.correctionText,

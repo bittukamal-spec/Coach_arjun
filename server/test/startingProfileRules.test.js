@@ -5,7 +5,10 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { buildRuleOutput, renderSections, hasProhibited, wordCount, groundingAnchors, RULE_VERSION } = require('../src/profile/ruleEngine');
+const {
+  buildRuleOutput, renderSections, hasProhibited, wordCount, groundingAnchors,
+  priorityPhrase, joinClauses, sentences, tidy, RULE_VERSION,
+} = require('../src/profile/ruleEngine');
 const C = require('../src/onboarding/config');
 const { buildFirstMessage } = require('../src/profile/firstMessage');
 const { generateWording, validate } = require('../src/profile/aiWording');
@@ -186,7 +189,8 @@ test('the first message ends with the agreed quick replies, using the chip mecha
 test('a corrected profile opens on the AGREED priority, not the suggested one', () => {
   const ro = buildRuleOutput(MISTAKES);
   const msg = buildFirstMessage(profileFor('NOT_REALLY', 'confidence_drops'), ro, { name: 'Rahul', language: 'en' });
-  assert.match(msg, new RegExp(cfg.TRIGGER.confidence_drops.en.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.match(msg, /what happens when your confidence drops/);
+  assert.doesNotMatch(msg, /after a mistake/i, 'the suggested priority must not lead');
 });
 
 // ── AI wording layer: rephrase-only, always falls back ──────────────────────
@@ -343,7 +347,8 @@ test('WHERE WE CAN BEGIN proposes one specific focus and never asks which situat
   assert.match(s.whereWeBegin, /few seconds that follow/i, 'built from the explored branch');
   assert.doesNotMatch(s.whereWeBegin, /which situation feels most|finding which situation/i);
   assert.doesNotMatch(s.whereWeBegin, /try this|do this|each day|every day|for \d+ (minutes|seconds)/i, 'nothing is prescribed yet');
-  assert.match(s.whereWeBegin, /not a fixed practice yet/i);
+  assert.match(s.whereWeBegin, /first we'll understand the pattern clearly/i);
+  assert.match(s.whereWeBegin, /then we can choose something practical to test/i);
 });
 
 test('the contextual pressure the athlete selected is used, not silently dropped', () => {
@@ -485,7 +490,7 @@ test('a faithful AI rewrite that keeps the specifics is still accepted', async (
     whatMatters: 'You play cricket as a batter, and you want more confidence and to recover faster after mistakes.',
     possiblePattern: 'After a mistake your attention may stay on what went wrong, you may hesitate, and it can linger for much of the session.',
     whatHelps: 'Clear preparation already helps you, and you described yourself as brave and hard-working.',
-    whereWeBegin: 'We can start with one recent moment after a mistake.',
+    whereWeBegin: "We can start with one recent moment after a mistake. First we'll understand the pattern clearly. Then we can choose something practical to test.",
   };
   const res = await generateWording(input, { createClient: () => ({ messages: { create: async () => ({ content: [{ text: JSON.stringify(faithful) }] }) } }) });
   assert.equal(res.wordingStatus, 'AI_OK');
@@ -506,4 +511,187 @@ test('grounding anchors are built for Hindi too, so a Hindi rewrite cannot quiet
   const res = await generateWording(input, { createClient: () => ({ messages: { create: async () => ({ content: [{ text: JSON.stringify(genericHi) }] }) } }) });
   assert.equal(res.wordingStatus, 'FALLBACK_USED');
   assert.deepEqual(res.sections, input.drafts);
+});
+
+// ── Sentence composition ────────────────────────────────────────────────────
+// Founder preview showed "…you may start overthinking and and this can
+// linger…". Root cause: a clause carried its own leading connector into a
+// composer that adds one. The composer now owns connectors exclusively.
+
+const MALFORMED = [
+  { re: /\b(and|but|or)\s+\1\b/i, name: 'duplicated English connector' },
+  { re: /(और|लेकिन|या)\s+\1/, name: 'duplicated Hindi connector' },
+  { re: /\s+[,.।]/, name: 'space before punctuation' },
+  { re: /,\s*,/, name: 'doubled comma' },
+  { re: /([.।])\s*\1/, name: 'doubled full stop' },
+  { re: /,\s*[.।]/, name: 'comma immediately before a full stop' },
+  { re: /\s{2,}/, name: 'double space' },
+];
+const assertWellFormed = (text, where) => {
+  for (const { re, name } of MALFORMED) {
+    assert.doesNotMatch(text, re, `${where}: ${name} in "${text}"`);
+  }
+};
+
+test('the composer strips a connector a clause carries in, so it can never be doubled', () => {
+  assert.equal(joinClauses(['you may start overthinking', 'and this can linger'], 'en'), 'you may start overthinking and this can linger');
+  assert.equal(joinClauses(['आप ज़्यादा सोच सकते हैं', 'और यह बना रह सकता है'], 'hi'), 'आप ज़्यादा सोच सकते हैं और यह बना रह सकता है');
+  assert.equal(joinClauses(['a', 'but b', 'or c'], 'en'), 'a, b, and c');
+  assert.equal(joinClauses([], 'en'), '');
+  assert.equal(joinClauses(['only one'], 'en'), 'only one');
+});
+
+test('tidy repairs any malformed composition that still reaches it', () => {
+  assertWellFormed(tidy('you may start overthinking and and this can linger .'), 'tidy/en');
+  assertWellFormed(tidy('आप सोच सकते हैं और और यह रह सकता है ।'), 'tidy/hi');
+  assertWellFormed(tidy('one,, two  three ,'), 'tidy/punct');
+  assert.equal(sentences(['First part.', null, 'Second part.']), 'First part. Second part.');
+});
+
+test('a reaction plus a duration answer composes cleanly in both languages', () => {
+  const ro = buildRuleOutput({
+    branchId: 'pre_performance', primaryPriorityId: 'pressure_increases',
+    answers: {
+      sport: { answerIds: ['cricket'] },
+      difficult_moments: { answerIds: ['pressure_increases'] },
+      primary_priority: { answerIds: ['pressure_increases'] },
+      pre_performance_signs: { answerIds: ['overthinking'] },
+      pre_performance_duration: { answerIds: ['lingers_after'] },
+      broad_goals: { answerIds: ['pressure'] }, four_week_outcome: { answerIds: ['feel_prepared'] },
+    },
+  });
+  for (const lang of ['en', 'hi']) {
+    const s = renderSections(ro, lang);
+    for (const k of SECTION_KEYS) assertWellFormed(s[k], `reaction+duration/${lang}/${k}`);
+    assertWellFormed(buildFirstMessage(profileFor('CONFIRMED', 'pressure_increases'), ro, { name: 'Rahul', language: lang }), `firstMessage/${lang}`);
+  }
+  // The details survive the fix.
+  const en = renderSections(ro, 'en');
+  assert.match(en.possiblePattern, /overthinking/);
+  assert.match(en.possiblePattern, /linger/);
+});
+
+test('a reaction plus an effect plus a duration answer composes cleanly in both languages', () => {
+  const ro = buildRuleOutput(MISTAKES);
+  for (const lang of ['en', 'hi']) {
+    const s = renderSections(ro, lang);
+    for (const k of SECTION_KEYS) assertWellFormed(s[k], `reaction+effect+duration/${lang}/${k}`);
+  }
+});
+
+test('every branch produces a well-formed deterministic first message, in both languages and every fit response', () => {
+  const cfgAll = C.config;
+  const PRIORITY = {
+    pre_performance: 'before_important_performance', mistakes: 'after_mistake', focus: 'lose_focus',
+    confidence: 'confidence_drops', motivation: 'low_motivation', coach_selection: 'coach_feedback',
+    family_outside: 'family_expectations', injury: 'injury_return', unsure: null, custom: null,
+  };
+  for (const [branchId, b] of Object.entries(cfgAll.branches)) {
+    const answers = {
+      sport: { answerIds: ['football'] }, role_position: { answerIds: ['midfielder'] },
+      difficult_moments: { answerIds: [PRIORITY[branchId] || 'not_sure'] },
+      primary_priority: { answerIds: PRIORITY[branchId] ? [PRIORITY[branchId]] : [] },
+      supports: { answerIds: ['staying_relaxed'] }, strengths: { answerIds: ['persistent'] },
+      broad_goals: { answerIds: ['pressure'] }, four_week_outcome: { answerIds: ['trust_under_pressure'] },
+    };
+    for (const sid of b.screenIds || []) {
+      for (const q of cfgAll.branchScreens[sid]?.questionIds || []) {
+        const ids = (cfgAll.questions[q]?.answers || []).map((a) => a.id);
+        answers[q] = { answerIds: [ids.includes('most_of_session') ? 'most_of_session' : ids[0]] };
+      }
+    }
+    const ro = buildRuleOutput({ branchId, primaryPriorityId: PRIORITY[branchId], answers });
+    for (const fit of ['CONFIRMED', 'PARTLY', 'NOT_REALLY']) {
+      for (const language of ['en', 'hi']) {
+        const msg = buildFirstMessage(profileFor(fit, PRIORITY[branchId]), ro, { name: 'Rahul', language });
+        // The SUGGEST tag is deliberately pipe-separated; check the prose only.
+        assertWellFormed(msg.split('\n[SUGGEST:')[0], `${branchId}/${fit}/${language}`);
+      }
+    }
+  }
+});
+
+// ── Conversational priority phrases ─────────────────────────────────────────
+// Founder preview showed "We'll start with When the pressure increases." — a
+// raw onboarding display label dropped into prose.
+
+test('every priority the athlete can choose has a conversational phrase in both languages', () => {
+  const ids = (C.config.questions.difficult_moments.answers || []).map((a) => a.id);
+  for (const id of ids) {
+    for (const lang of ['en', 'hi']) {
+      const phrase = priorityPhrase(id, lang);
+      assert.ok(phrase && phrase.trim(), `${id}/${lang} has no phrase`);
+      // Reads as prose, not as a list label: never sentence-cased at the start.
+      assert.doesNotMatch(phrase, /^[A-Z]/, `${id}/${lang} looks like a display label: ${phrase}`);
+    }
+  }
+  assert.match(priorityPhrase('pressure_increases', 'en'), /^what happens when the pressure increases$/);
+  assert.match(priorityPhrase('after_mistake', 'en'), /^what happens after a mistake$/);
+  assert.match(priorityPhrase('lose_focus', 'en'), /^what pulls your focus away$/);
+  assert.match(priorityPhrase('confidence_drops', 'en'), /^what happens when your confidence drops$/);
+  assert.match(priorityPhrase('low_motivation', 'en'), /^what makes training consistency harder$/);
+  assert.match(priorityPhrase('coach_feedback', 'en'), /^how coach feedback affects you$/);
+  assert.match(priorityPhrase('selection_uncertain', 'en'), /^how selection uncertainty affects you$/);
+  assert.match(priorityPhrase('family_expectations', 'en'), /^how outside expectations affect you$/);
+  assert.match(priorityPhrase('injury_return', 'en'), /^what makes returning from injury difficult$/);
+});
+
+test('Hindi priority phrases are written in Hindi, not transliterated English', () => {
+  const ids = Object.keys(cfg.PRIORITY_PHRASE);
+  for (const id of ids) assert.match(priorityPhrase(id, 'hi'), /[ऀ-ॿ]/, `${id} is not in Hindi`);
+});
+
+test('custom and unsure priorities get cautious natural fallback phrasing, never a label or filler', () => {
+  for (const lang of ['en', 'hi']) {
+    const unsure = priorityPhrase('not_sure', lang, { branch: 'unsure', recognition: 'one_mistake_snowballs' });
+    assert.ok(unsure.trim());
+    assert.doesNotMatch(unsure, /^[A-Z]/);
+    const custom = priorityPhrase('different', lang, { branch: 'custom' });
+    assert.ok(custom.trim());
+    const nothing = priorityPhrase('not_sure', lang, { branch: 'unsure' });
+    assert.ok(nothing.trim(), 'a profile with nothing named still gets a safe phrase');
+  }
+  assert.match(priorityPhrase('not_sure', 'en', { branch: 'unsure', recognition: 'one_mistake_snowballs' }), /what happens after a mistake/);
+  assert.match(priorityPhrase('different', 'en', { branch: 'custom' }), /situation you wrote about/);
+});
+
+test('the raw onboarding display label can never appear inside first-message prose', () => {
+  const ro = buildRuleOutput(MISTAKES);
+  const labels = ['When the pressure increases', 'After I make a mistake', 'When I lose focus', 'When my confidence drops'];
+  for (const fit of ['CONFIRMED', 'PARTLY', 'NOT_REALLY']) {
+    const msg = buildFirstMessage(profileFor(fit, 'pressure_increases'), ro, { name: 'Rahul', language: 'en' });
+    for (const l of labels) assert.ok(!msg.includes(l), `raw label leaked into prose: ${l}`);
+    assert.doesNotMatch(msg, /start with When|begin with When/, "\"We'll start with When…\" must be impossible");
+  }
+});
+
+// ── Where we can begin: understand first, then choose ───────────────────────
+
+test('WHERE WE CAN BEGIN explains that understanding comes before choosing a practice, in both languages', () => {
+  const ro = buildRuleOutput(MISTAKES);
+  const en = renderSections(ro, 'en').whereWeBegin;
+  assert.match(en, /first we'll understand the pattern clearly/i);
+  assert.match(en, /then we can choose something practical to test/i);
+  assert.doesNotMatch(en, /no fixed practice yet; just awareness/i);
+  const hi = renderSections(ro, 'hi').whereWeBegin;
+  assert.match(hi, /पहले हम पैटर्न को साफ़ तौर पर समझेंगे/);
+  assert.match(hi, /फिर हम आज़माने के लिए कुछ व्यावहारिक चुन सकते हैं/);
+  // Still personalised, still prescribing nothing.
+  assert.match(en, /after a mistake/i);
+  assert.doesNotMatch(en, /try this|each day|for \d+ (minutes|seconds)/i);
+});
+
+test('an AI rewrite that drops the understand-then-choose sequence is rejected', async () => {
+  const ro = buildRuleOutput(MISTAKES);
+  const input = {
+    firstName: 'Rahul', sport: 'cricket', role: 'batter', observationCodes: [],
+    drafts: renderSections(ro, 'en'), anchors: groundingAnchors(ro, 'en'), language: 'en',
+  };
+  const flattened = {
+    ...input.drafts,
+    whereWeBegin: 'We can begin with one recent moment after a mistake, and look at what happens next.',
+  };
+  const res = await generateWording(input, { createClient: () => ({ messages: { create: async () => ({ content: [{ text: JSON.stringify(flattened) }] }) } }) });
+  assert.equal(res.wordingStatus, 'FALLBACK_USED');
+  assert.match(res.sections.whereWeBegin, /then we can choose something practical to test/i);
 });
