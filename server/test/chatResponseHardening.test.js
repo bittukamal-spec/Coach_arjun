@@ -369,7 +369,7 @@ test('the generic fallback is used when no validated situation phrase exists, an
 // ── Route wiring ────────────────────────────────────────────────────────────
 
 test('the route validates before any persistence, and only ever commits validated or fallback text', () => {
-  const validateIdx = chatSrc.indexOf('const firstCheck = validateAthleteText(candidateText);');
+  const validateIdx = chatSrc.indexOf('const firstCheck = candidateText');
   const commitIdx = chatSrc.indexOf('committed = await commitCoachingTransition(');
   const streamIdx = chatSrc.indexOf("{ t: 'd', c: finalText }");
   assert.ok(validateIdx !== -1, 'candidate validation must exist');
@@ -391,7 +391,12 @@ test('rejected text is never logged — only fixed reason codes and structural f
   assert.ok(idx !== -1);
   const block = chatSrc.slice(idx, chatSrc.indexOf('};', idx));
   assert.match(block, /reasonCode: result\.reasonCode/);
-  assert.doesNotMatch(block, /candidateText|finalText|retryText|content/, 'no message text may be logged');
+  // Word-boundaried, so the safe recovery BOOLEANS (finalTextRecoveryAttempted
+  // / finalTextRecoverySucceeded) are not mistaken for a text reference —
+  // same convention as chatBufferedWiring.test.js.
+  assert.doesNotMatch(block, /\bcandidateText\b|\bfinalText\b|\bretryText\b|\bcontent\b/, 'no message text may be logged');
+  // The structural shape it does log is types/counts/lengths only.
+  assert.match(block, /responseShape: responseShape \|\| loop\.responseShape/);
 });
 
 test('the recovery system builder appends to the existing prompt rather than replacing it', () => {

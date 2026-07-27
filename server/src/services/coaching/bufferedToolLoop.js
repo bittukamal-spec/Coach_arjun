@@ -72,6 +72,22 @@ const INTERNAL_MARKER_RE = /<\/?(?:tool_use|tool_result|function_calls?|invoke|a
 const LEGACY_APP_TAG_RE = /\[APP:[a-z-]*\]/g;          // mirrors parseArjunMessage.js
 const LEGACY_SUGGEST_TAG_RE = /\n?\[SUGGEST:\s*[^\]]*\]/g; // mirrors ChatPage.jsx's extractSuggestions
 
+// Structural facts about a model response, for diagnosing WHY a reply came
+// back with no usable text. Deliberately content-free: block TYPES, counts and
+// a length — never any text, athlete or model. Safe to log verbatim.
+function describeResponseShape(response) {
+  const content = Array.isArray(response?.content) ? response.content : [];
+  const textBlocks = content.filter((b) => b?.type === 'text');
+  const joined = textBlocks.map((b) => b.text || '').join('');
+  return {
+    stopReason: response?.stop_reason ?? null,
+    blockTypes: [...new Set(content.map((b) => b?.type || 'unknown'))],
+    blockCount: content.length,
+    textBlockCount: textBlocks.length,
+    trimmedTextLength: joined.trim().length,
+  };
+}
+
 function sanitizeFinalText(raw) {
   if (typeof raw !== 'string') return null;
   let text = raw.replace(INTERNAL_MARKER_RE, '');
@@ -261,12 +277,19 @@ async function runBufferedToolLoop({
           exceededRounds: false,
           finalTextRecoveryAttempted: true,
           finalTextRecoverySucceeded: !!sanitizeFinalText(recoveryText),
+          // Content-free shape of BOTH responses, so an empty reply can be
+          // diagnosed (no blocks? only tool blocks? whitespace? max_tokens?)
+          // without any message text ever being logged.
+          responseShape: describeResponseShape(response),
+          recoveryResponseShape: describeResponseShape(recoveryResponse),
         };
       }
 
       return {
         finalText, transition, quickReplies, rounds: round, exceededRounds: false,
         finalTextRecoveryAttempted: false, finalTextRecoverySucceeded: false,
+        responseShape: describeResponseShape(response),
+        recoveryResponseShape: null,
       };
     }
 
@@ -294,6 +317,7 @@ async function runBufferedToolLoop({
   return {
     finalText: null, transition: null, quickReplies: null, rounds: maxRounds, exceededRounds: true,
     finalTextRecoveryAttempted: false, finalTextRecoverySucceeded: false,
+    responseShape: null, recoveryResponseShape: null,
   };
 }
 
@@ -311,6 +335,7 @@ module.exports = {
   sanitizeFinalText,
   buildQuickReplyPayload,
   buildRecoverySystem,
+  describeResponseShape,
   MAX_ROUNDS,
   MAX_FINAL_TEXT_LENGTH,
   FINAL_TEXT_RECOVERY_INSTRUCTION,
