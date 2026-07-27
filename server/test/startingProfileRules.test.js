@@ -382,7 +382,7 @@ test('no branch, in either language, can produce a profile made of filler', () =
       const s = renderSections(ro, lang);
       noFiller(s, `${branchId}/${lang}`);
       for (const k of SECTION_KEYS) assert.equal(hasProhibited(s[k]), false, `${branchId}/${lang}/${k}`);
-      assert.ok(wordCount(s) <= 300);
+      assert.ok(wordCount(s) <= 240);
     }
   }
 });

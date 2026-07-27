@@ -12,7 +12,7 @@ const Anthropic = require('@anthropic-ai/sdk');
 const { hasProhibited, wordCount, isGrounded } = require('./ruleEngine');
 
 const FIELDS = ['whatMatters', 'possiblePattern', 'whatHelps', 'whereWeBegin'];
-const MAX_TOTAL_WORDS = 300;
+const MAX_TOTAL_WORDS = 240;
 const TIMEOUT_MS = 8000;
 const DEVANAGARI = /[ऀ-ॿ]/;
 
@@ -31,7 +31,7 @@ STRICT RULES:
 - Never write vague filler such as "your sport means a lot to you", "the moments you mentioned", or "let's find which situation matters most" — the draft already names them.
 - Never introduce a diagnosis, disorder, score, ranking, severity, personality type, "trait", "weakness", or any certainty the draft does not already state. Keep the tentative tone ("may", "one possible pattern", "starting understanding").
 - Do NOT prescribe a practice or promise results.
-- Keep each section short (max ~70 words) — but never drop a detail to save words. Write in ${langName} only.
+- Keep each section short (max ~55 words, and under 240 words across all four) — but never drop a detail to save words. Write in ${langName} only.
 - Return STRICT JSON only, no prose, with exactly these keys: whatMatters, possiblePattern, whatHelps, whereWeBegin.
 
 DRAFT:
