@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useMemo, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Loader2, ShieldAlert } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
@@ -10,11 +10,21 @@ import { isValidCustomText } from '../utils/sanitizeCustomText';
 import * as CFG from '../onboarding/config';
 
 // ─── Starting Performance Profile (PR 3) ────────────────────────────────────
-// Arjun's ONE starting interpretation of the athlete, shown right after
-// onboarding: four short sections, an honest "does this fit?" answer, and the
-// first coaching conversation. It is a starting point, never a diagnosis, a
-// score, or a personality type — and the athlete's answer to "does this fit?"
-// is what the coaching actually uses.
+// Arjun's ONE starting interpretation of the athlete. It is a starting point,
+// never a diagnosis, a score, or a personality type — and the athlete's answer
+// to "does this fit?" is what the coaching actually uses.
+//
+// The page has two modes:
+//   1. FIRST-TIME    — straight after onboarding, while fitResponse is empty:
+//                      the four sections, "does this fit?", the correction
+//                      flow, and the one-time Start-with-Arjun transition.
+//   2. SAVED PROFILE — reopened later from Account or by direct navigation
+//                      once fitResponse exists: read-only, with no
+//                      onboarding-completion controls at all.
+//
+// Mode is resolved from the stored profile first (fitResponse), so a refresh
+// or a pasted URL always lands correctly; navigation state only makes the
+// intent explicit. Editing a saved profile is deliberately not built here.
 //
 // Viewing and confirming are open to under-18 accounts still waiting on
 // guardian consent; only the conversation itself is consent-gated.
@@ -35,9 +45,23 @@ function Section({ title, body }) {
   );
 }
 
+const FIT_STATUS_KEY = { CONFIRMED: 'statusConfirmed', PARTLY: 'statusPartly', NOT_REALLY: 'statusCorrected' };
+
+function formatDate(value, language) {
+  if (!value) return null;
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+  try {
+    return d.toLocaleDateString(language === 'hi' ? 'hi-IN' : 'en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  } catch {
+    return d.toISOString().slice(0, 10);
+  }
+}
+
 export default function StartingProfilePage() {
   const { token, language } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const L = translations[language] || translations.en;
   const t = L.startingProfile;
   const label = (key) => tPath(L, key) ?? key;
@@ -51,8 +75,19 @@ export default function StartingProfilePage() {
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState(null);
   const [resent, setResent] = useState(false);
+  // True only for the confirmation that just happened on this screen — the one
+  // moment the completion transition is correct. A refresh clears it, which is
+  // exactly right: the athlete is then looking at a saved profile.
+  const [justConfirmed, setJustConfirmed] = useState(false);
+
+  // Read once at mount: navigation state is a hint, never the source of truth.
+  const entryMode = useRef(location.state?.entryMode || null).current;
 
   const confirmed = !!profile?.fitResponse;
+  // Saved view whenever the profile is already confirmed, unless this very
+  // screen is the one that just confirmed it and the athlete did not arrive
+  // from Account asking to view it.
+  const savedMode = confirmed && (!justConfirmed || entryMode === 'saved-profile');
 
   // The athlete's own difficult moments, resolved to labels from the shared
   // onboarding config — no wording is duplicated on the wire.
@@ -84,7 +119,8 @@ export default function StartingProfilePage() {
       correctionText: fit === 'CONFIRMED' ? undefined : correctionText.trim() || undefined,
     });
     setSaving(false);
-    if (!res.ok) setError(res.error === 'NETWORK' ? t.loadError : t.correctionNeeded);
+    if (!res.ok) { setError(res.error === 'NETWORK' ? t.loadError : t.correctionNeeded); return; }
+    setJustConfirmed(true);
   }
 
   async function handleStartChat() {
@@ -149,8 +185,28 @@ export default function StartingProfilePage() {
   return (
     <div className="min-h-screen bg-dark-900 px-5 py-8">
       <div className="max-w-md mx-auto">
-        <h1 className="text-h2 font-bold text-ink mb-1.5">{t.title}</h1>
-        <p className="text-body text-slt mb-6 leading-relaxed">{t.subtitle}</p>
+        <h1 className="text-h2 font-bold text-ink mb-1.5">{savedMode ? t.savedViewTitle : t.title}</h1>
+        <p className="text-body text-slt mb-6 leading-relaxed">{savedMode ? t.savedViewSubtitle : t.subtitle}</p>
+
+        {/* ── Saved profile: the agreed focus and what the athlete said ── */}
+        {savedMode && (
+          <div className="card p-5 mb-3">
+            {agreedPhrase && (
+              <>
+                <h2 className="text-caption font-semibold uppercase tracking-wide text-slt mb-1.5">{t.agreedFocusLabel}</h2>
+                <p className="text-body text-ink leading-relaxed mb-3">{agreedPhrase}</p>
+              </>
+            )}
+            <p className="text-caption text-slt">
+              {t.statusLabel}: <span className="text-ink font-semibold">{t[FIT_STATUS_KEY[profile.fitResponse]] || ''}</span>
+            </p>
+            {formatDate(profile.updatedAt || profile.confirmedAt || profile.generatedAt, language) && (
+              <p className="text-caption text-muted mt-1">
+                {t.lastUpdated(formatDate(profile.updatedAt || profile.confirmedAt || profile.generatedAt, language))}
+              </p>
+            )}
+          </div>
+        )}
 
         <Section title={t.sectionWhatMatters} body={s.whatMatters} />
         <Section title={t.sectionPattern} body={s.possiblePattern} />
@@ -214,8 +270,48 @@ export default function StartingProfilePage() {
           </div>
         )}
 
-        {/* ── Confirmed → first conversation (consent-gated) ── */}
-        {confirmed && (
+        {/* ── Saved profile: read-only, with one quiet way back into coaching.
+             `startChat` is idempotent server-side, so this opens the existing
+             first conversation and never creates a second one. ── */}
+        {savedMode && !consent.pending && (
+          <button
+            type="button"
+            onClick={handleStartChat}
+            disabled={starting}
+            className="w-full text-center text-caption font-semibold text-brand-400 mt-2 py-2 underline disabled:opacity-60"
+          >
+            {starting ? t.starting : t.continueCoaching}
+          </button>
+        )}
+
+        {/* Consent is still outstanding: say so here too, so a pending minor
+            reopening their profile is not left without the resend action. */}
+        {savedMode && consent.pending && (
+          <div className="bg-amber-950/30 border border-amber-700/40 rounded-2xl px-4 py-3 mt-4">
+            <div className="flex items-start gap-2.5">
+              <ShieldAlert size={18} className="text-amber-400 shrink-0 mt-0.5" aria-hidden="true" />
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-amber-400">{t.consentTitle}</p>
+                <p className="text-xs text-slt mt-1 leading-relaxed">{t.consentBody}</p>
+                {consent.guardianEmailMasked && (
+                  <p className="text-xs text-slt mt-1">{t.consentEmailed(consent.guardianEmailMasked)}</p>
+                )}
+                <button
+                  type="button"
+                  onClick={handleResend}
+                  disabled={resent}
+                  className="text-xs font-semibold text-amber-400 underline mt-2 disabled:opacity-60"
+                >
+                  {resent ? t.resent : t.resend}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── One-time completion transition: only on the screen where the
+             athlete just answered "does this fit?" ── */}
+        {confirmed && !savedMode && (
           <div className="mt-6">
             <h2 className="text-body font-semibold text-ink mb-1">{t.savedTitle}</h2>
             <p className="text-body text-slt mb-4">

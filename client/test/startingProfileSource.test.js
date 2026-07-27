@@ -123,3 +123,70 @@ test('the confirmation sentence template cannot produce "We\'ll start with When�
   assert.doesNotMatch(en, /We\\'ll start with \$\{focus\}/);
   assert.match(namespaceBlock('hi'), /savedBody: \(focus\) =>/);
 });
+
+// ── Two modes: first-time flow vs saved profile view ───────────────────────
+
+test('mode is resolved from the stored profile, not from navigation state alone', () => {
+  // fitResponse is the source of truth; entryMode only refines it.
+  assert.match(page, /const confirmed = !!profile\?\.fitResponse;/);
+  assert.match(page, /const savedMode = confirmed && \(!justConfirmed \|\| entryMode === 'saved-profile'\);/);
+  // Navigation state is read once and never trusted as the deciding factor.
+  assert.match(page, /useRef\(location\.state\?\.entryMode \|\| null\)\.current/);
+});
+
+test('the completion transition renders only on the screen that just confirmed', () => {
+  assert.match(page, /\{confirmed && !savedMode && \(/);
+  assert.match(page, /setJustConfirmed\(true\);/);
+});
+
+test('the saved view has its own heading and supporting copy', () => {
+  assert.match(page, /savedMode \? t\.savedViewTitle : t\.title/);
+  assert.match(page, /savedMode \? t\.savedViewSubtitle : t\.subtitle/);
+  const en = namespaceBlock('en');
+  assert.match(en, /savedViewTitle: 'Your Performance Profile'/);
+  assert.match(en, /savedViewSubtitle: 'Your starting profile based on what you shared during onboarding\.'/);
+});
+
+test('the saved view shows the agreed focus, the response and a date, and stays read-only', () => {
+  assert.match(page, /t\.agreedFocusLabel/);
+  assert.match(page, /FIT_STATUS_KEY\[profile\.fitResponse\]/);
+  assert.match(page, /t\.lastUpdated\(/);
+  // No editing was built: the only correction field on the page sits inside
+  // the unconfirmed block, above the completion transition.
+  const unconfirmedIdx = page.indexOf('{!confirmed && (');
+  const transitionIdx = page.indexOf('{confirmed && !savedMode && (');
+  const fieldIdx = page.indexOf('<CustomAnswerField');
+  assert.ok(unconfirmedIdx !== -1 && transitionIdx !== -1 && fieldIdx !== -1);
+  assert.ok(fieldIdx > unconfirmedIdx && fieldIdx < transitionIdx, 'the correction field must stay in the first-time flow');
+  assert.equal((page.match(/<CustomAnswerField/g) || []).length, 1);
+  assert.equal((page.match(/<SelectableOption/g) || []).length, 4);
+});
+
+test('the coaching action in the saved view reuses the idempotent endpoint, never a second start', () => {
+  assert.match(page, /\{savedMode && !consent\.pending && \(/);
+  assert.match(page, /onClick=\{handleStartChat\}/);
+  // One handler, one endpoint — no second creation path was added.
+  assert.equal((page.match(/startChat\(\)/g) || []).length, 1);
+});
+
+test('entry modes are passed from onboarding, Account and the legacy redirect', () => {
+  assert.match(src('pages/OnboardingPage.jsx'), /entryMode: 'onboarding-completion'/);
+  assert.match(src('pages/AccountPage.jsx'), /state=\{\{ entryMode: 'saved-profile' \}\}/);
+  const app = src('App.jsx');
+  const idx = app.indexOf('path="/mental-game-profile"');
+  assert.match(app.slice(idx, idx + 200), /<Navigate to="\/starting-profile" replace state=\{\{ entryMode: 'saved-profile' \}\} \/>/);
+});
+
+test('the saved-view strings exist in both languages', () => {
+  for (const key of ['savedViewTitle', 'savedViewSubtitle', 'agreedFocusLabel', 'statusLabel', 'statusConfirmed', 'statusPartly', 'statusCorrected', 'lastUpdated', 'continueCoaching']) {
+    assert.match(namespaceBlock('en'), new RegExp(`${key}:`), `missing en.${key}`);
+    assert.match(namespaceBlock('hi'), new RegExp(`${key}:`), `missing hi.${key}`);
+  }
+});
+
+test('the richer visual profile redesign is not in this PR', () => {
+  // No charts, no snapshot/pathway/card scaffolding — the saved view reuses
+  // the same plain Section blocks as the first-time flow.
+  assert.doesNotMatch(page, /recharts|Chart|Snapshot|Pathway|Timeline/i);
+  assert.match(page, /function Section\(/);
+});

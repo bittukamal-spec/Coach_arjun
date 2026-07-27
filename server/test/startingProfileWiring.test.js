@@ -83,7 +83,8 @@ test('the old mental-game-profile route redirects to the starting profile', () =
   const app = clientSrc('App.jsx');
   const idx = app.indexOf('path="/mental-game-profile"');
   assert.ok(idx !== -1, 'the old path must still resolve for existing links');
-  assert.match(app.slice(idx, idx + 160), /<Navigate to="\/starting-profile" replace \/>/);
+  // Old links land on the saved (read-only) profile view.
+  assert.match(app.slice(idx, idx + 200), /<Navigate to="\/starting-profile" replace state=\{\{ entryMode: 'saved-profile' \}\} \/>/);
   assert.match(app, /path="\/starting-profile"/);
 });
 

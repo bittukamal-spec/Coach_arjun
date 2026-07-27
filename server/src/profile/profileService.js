@@ -150,6 +150,10 @@ function serializeProfile(profile, wording, user, session) {
       correctionText: profile.correctionText,
       agreedPriorityId: profile.agreedPriorityId,
       confirmedAt: profile.confirmedAt,
+      // Shown on the saved profile view. The profile itself stays frozen —
+      // these are read from the existing row, never a reason to regenerate it.
+      generatedAt: profile.generatedAt,
+      updatedAt: profile.updatedAt,
       firstChatSessionId: profile.firstChatSessionId,
     },
     consent: consentState(user),

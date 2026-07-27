@@ -573,6 +573,7 @@ function AccountPage() {
             </div>
             <Link
               to="/starting-profile"
+              state={{ entryMode: 'saved-profile' }}
               className="card p-5 flex items-center justify-between hover:border-brand-500/40 transition-colors"
             >
               <div>
