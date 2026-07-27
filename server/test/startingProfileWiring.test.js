@@ -83,7 +83,8 @@ test('the old mental-game-profile route redirects to the starting profile', () =
   const app = clientSrc('App.jsx');
   const idx = app.indexOf('path="/mental-game-profile"');
   assert.ok(idx !== -1, 'the old path must still resolve for existing links');
-  assert.match(app.slice(idx, idx + 160), /<Navigate to="\/starting-profile" replace \/>/);
+  // Old links land on the saved (read-only) profile view.
+  assert.match(app.slice(idx, idx + 200), /<Navigate to="\/starting-profile" replace state=\{\{ entryMode: 'saved-profile' \}\} \/>/);
   assert.match(app, /path="\/starting-profile"/);
 });
 
@@ -100,7 +101,10 @@ test('the client starts the first conversation through the gated endpoint and op
   assert.match(hook, /'\/api\/profile\/start-chat'/);
   assert.match(hook, /CONSENT_REQUIRED/);
   const page = clientSrc('pages/StartingProfilePage.jsx');
-  assert.match(page, /navigate\('\/coaching', \{ state: \{ chatSessionId: res\.chatSessionId \} \}\)/);
+  // Replacement navigation + an explicit return destination, so Back from the
+  // first conversation goes home rather than into the confirmation flow.
+  assert.match(page, /navigate\('\/coaching', \{\s*replace: true,/);
+  assert.match(page, /chatSessionId: res\.chatSessionId, returnTo: '\/dashboard', enteredFromStartingProfile: true/);
 });
 
 test('the profile screen offers exactly the three fit answers and never claims to be a diagnosis', () => {

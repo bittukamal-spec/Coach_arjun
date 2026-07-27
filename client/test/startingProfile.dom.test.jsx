@@ -4,7 +4,7 @@
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { MemoryRouter, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
 
 const authState = { user: { id: 'u1', onboardingDone: true, name: 'Rahul' }, token: 't', language: 'en', updateUser: vi.fn() };
 vi.mock('../src/contexts/AuthContext', () => ({ useAuth: () => authState }));
@@ -28,10 +28,14 @@ function makeServer(over = {}) {
       wordingStatus: 'AI_OK',
       deterministicFallbackUsed: false,
       suggestedPriorityId: 'after_mistake',
+      agreedPriorityPhrase: null,
       priorityOptions: ['after_mistake', 'lose_focus'],
       fitResponse: null,
       agreedPriorityId: null,
       firstChatSessionId: null,
+      confirmedAt: null,
+      generatedAt: '2026-07-01T10:00:00.000Z',
+      updatedAt: '2026-07-02T10:00:00.000Z',
       ...(over.profile || {}),
     },
     consent: { pending: false, guardianEmailMasked: null, ...(over.consent || {}) },
@@ -50,10 +54,15 @@ function makeServer(over = {}) {
         if (body.fit === 'NOT_REALLY' && !body.agreedPriorityId && !body.correctionText) {
           return [400, { error: 'INVALID_CORRECTION' }];
         }
+        const agreed = body.agreedPriorityId || state.profile.suggestedPriorityId;
         state.profile = {
           ...state.profile,
           fitResponse: body.fit,
-          agreedPriorityId: body.agreedPriorityId || state.profile.suggestedPriorityId,
+          agreedPriorityId: agreed,
+          // The server sends the conversational phrase, never the raw label.
+          agreedPriorityPhrase: agreed === 'lose_focus'
+            ? 'what pulls your focus away'
+            : 'what happens after a mistake',
           correctionText: body.correctionText || null,
         };
         return [200, { profile: state.profile, consent: state.consent }];
@@ -76,14 +85,27 @@ function wire(server) {
   });
 }
 
-function App() {
+// Mirrors the real Account link, including its saved-profile entry mode.
+function AccountStub() {
+  return <Link to="/starting-profile" state={{ entryMode: 'saved-profile' }}>open profile</Link>;
+}
+
+// Echoes the navigation state so the profile → chat contract is observable.
+function CoachingStub() {
+  const location = useLocation();
+  return <p data-testid="coaching-state">{JSON.stringify(location.state)}</p>;
+}
+
+function App({ entry } = {}) {
   return (
-    <MemoryRouter initialEntries={['/starting-profile']}>
+    <MemoryRouter initialEntries={[entry || '/starting-profile']}>
       <Routes>
         <Route path="/starting-profile" element={<StartingProfilePage />} />
-        <Route path="/coaching" element={<p>coaching</p>} />
+        <Route path="/coaching" element={<CoachingStub />} />
         <Route path="/dashboard" element={<p>dashboard</p>} />
         <Route path="/onboarding" element={<p>onboarding</p>} />
+        <Route path="/account" element={<AccountStub />} />
+        <Route path="/mental-game-profile" element={<Navigate to="/starting-profile" replace state={{ entryMode: 'saved-profile' }} />} />
       </Routes>
     </MemoryRouter>
   );
@@ -156,13 +178,16 @@ describe('Starting Performance Profile', () => {
     await waitFor(() => expect(server.state.profile.agreedPriorityId).toBe('lose_focus'));
   });
 
+  // A profile that was already confirmed opens in the saved view, so the way
+  // back into coaching there is the quiet "Continue coaching" action.
   test('starting the conversation opens the exact session the server created', async () => {
     const server = makeServer({ profile: { fitResponse: 'CONFIRMED', agreedPriorityId: 'after_mistake' } });
     wire(server);
     render(<App />);
     const user = userEvent.setup();
-    await user.click(await screen.findByRole('button', { name: 'Start with Arjun' }));
-    await screen.findByText('coaching');
+    await user.click(await screen.findByRole('button', { name: 'Continue coaching' }));
+    const state = JSON.parse((await screen.findByTestId('coaching-state')).textContent);
+    expect(state.chatSessionId).toBe('cs-1');
     expect(server.state.calls).toContain('POST /api/profile/start-chat');
   });
 
@@ -197,5 +222,234 @@ describe('Starting Performance Profile', () => {
     render(<App />);
     await screen.findByText('हम यहाँ से शुरू कर रहे हैं');
     expect(screen.getByRole('radio', { name: 'हाँ, यही है' })).toBeTruthy();
+  });
+});
+
+describe('Starting Performance Profile — confirmation summary and navigation', () => {
+  test('the confirmation summary reads as a sentence, never as a raw onboarding label', async () => {
+    const server = makeServer();
+    wire(server);
+    render(<App />);
+    const user = userEvent.setup();
+    await screen.findByText(SECTIONS.whatMatters);
+    await user.click(screen.getByRole('radio', { name: 'That fits' }));
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    await screen.findByText("We'll start by exploring what happens after a mistake.");
+    expect(screen.queryByText(/start with When/i)).toBeNull();
+    expect(screen.queryByText(/After I make a mistake\./)).toBeNull();
+  });
+
+  test('a corrected focus is summarised with its own conversational phrase', async () => {
+    const server = makeServer();
+    wire(server);
+    render(<App />);
+    const user = userEvent.setup();
+    await screen.findByText(SECTIONS.whatMatters);
+    await user.click(screen.getByRole('radio', { name: 'Not really' }));
+    await user.click(await screen.findByRole('radio', { name: 'When I lose focus' }));
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    await screen.findByText("We'll start by exploring what pulls your focus away.");
+  });
+
+  test('opening the first conversation passes an explicit return destination, so Back does not reopen the profile', async () => {
+    const server = makeServer({ profile: { fitResponse: 'CONFIRMED', agreedPriorityId: 'after_mistake', agreedPriorityPhrase: 'what happens after a mistake' } });
+    wire(server);
+    render(<App />);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Continue coaching' }));
+    const state = JSON.parse((await screen.findByTestId('coaching-state')).textContent);
+    expect(state.chatSessionId).toBe('cs-1');
+    expect(state.returnTo).toBe('/dashboard');
+    expect(state.enteredFromStartingProfile).toBe(true);
+  });
+
+  test('tapping the coaching action twice still opens the one session the server returns', async () => {
+    const server = makeServer({ profile: { fitResponse: 'CONFIRMED', agreedPriorityId: 'after_mistake', agreedPriorityPhrase: 'what happens after a mistake' } });
+    wire(server);
+    render(<App />);
+    const user = userEvent.setup();
+    const btn = await screen.findByRole('button', { name: 'Continue coaching' });
+    await user.click(btn);
+    const state = JSON.parse((await screen.findByTestId('coaching-state')).textContent);
+    expect(state.chatSessionId).toBe('cs-1');
+    expect(server.state.calls.filter((c) => c === 'POST /api/profile/start-chat').length).toBe(1);
+  });
+});
+
+// ── Two modes: first-time flow vs saved profile view ───────────────────────
+// Founder preview: reopening a confirmed profile from Account still showed
+// the onboarding-completion UI ("Does this fit?", "Got it", "Start with
+// Arjun", "Not now").
+
+const CONFIRMED = {
+  fitResponse: 'CONFIRMED',
+  agreedPriorityId: 'after_mistake',
+  agreedPriorityPhrase: 'what happens after a mistake',
+  firstChatSessionId: 'cs-1',
+};
+
+const COMPLETION_CONTROLS = ['That fits', 'Partly', 'Not really', 'Got it', 'Start with Arjun', 'Not now'];
+function expectNoCompletionUi() {
+  expect(screen.queryByText('Does this fit?')).toBeNull();
+  for (const name of COMPLETION_CONTROLS) {
+    expect(screen.queryByRole('radio', { name })).toBeNull();
+    expect(screen.queryByRole('button', { name })).toBeNull();
+    expect(screen.queryByText(name)).toBeNull();
+  }
+}
+
+describe('Starting Performance Profile — first-time vs saved modes', () => {
+  test('an unconfirmed profile shows the confirmation controls, whatever the entry mode claims', async () => {
+    wire(makeServer());
+    render(
+      <MemoryRouter initialEntries={[{ pathname: '/starting-profile', state: { entryMode: 'saved-profile' } }]}>
+        <Routes><Route path="/starting-profile" element={<StartingProfilePage />} /></Routes>
+      </MemoryRouter>
+    );
+    await screen.findByText(SECTIONS.whatMatters);
+    expect(screen.getByText('Does this fit?')).toBeTruthy();
+    expect(screen.getByRole('radio', { name: 'That fits' })).toBeTruthy();
+    expect(screen.queryByText('Your Performance Profile')).toBeNull();
+  });
+
+  test('confirming during the onboarding flow shows the one-time transition', async () => {
+    wire(makeServer());
+    render(
+      <MemoryRouter initialEntries={[{ pathname: '/starting-profile', state: { entryMode: 'onboarding-completion' } }]}>
+        <Routes>
+          <Route path="/starting-profile" element={<StartingProfilePage />} />
+          <Route path="/coaching" element={<CoachingStub />} />
+          <Route path="/dashboard" element={<p>dashboard</p>} />
+        </Routes>
+      </MemoryRouter>
+    );
+    const user = userEvent.setup();
+    await screen.findByText(SECTIONS.whatMatters);
+    await user.click(screen.getByRole('radio', { name: 'That fits' }));
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    expect(await screen.findByRole('button', { name: 'Start with Arjun' })).toBeTruthy();
+    expect(screen.getByText('Got it')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Not now' })).toBeTruthy();
+    // The heading has not switched to the saved view mid-transition.
+    expect(screen.queryByText('Your Performance Profile')).toBeNull();
+  });
+
+  test('a confirmed profile opened from Account shows the saved view, with no completion controls', async () => {
+    wire(makeServer({ profile: CONFIRMED }));
+    render(<App entry="/account" />);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('link', { name: 'open profile' }));
+    await screen.findByText('Your Performance Profile');
+    expect(screen.getByText('Your starting profile based on what you shared during onboarding.')).toBeTruthy();
+    expectNoCompletionUi();
+  });
+
+  test('the saved view shows the four sections, the agreed focus, the response and the date', async () => {
+    wire(makeServer({ profile: CONFIRMED }));
+    render(<App />);
+    await screen.findByText('Your Performance Profile');
+    for (const body of Object.values(SECTIONS)) expect(screen.getByText(body)).toBeTruthy();
+    expect(screen.getByText('what happens after a mistake')).toBeTruthy();
+    expect(screen.getByText('Confirmed')).toBeTruthy();
+    expect(screen.getByText(/Last updated/)).toBeTruthy();
+  });
+
+  test('a corrected profile reports that it was corrected', async () => {
+    wire(makeServer({ profile: { ...CONFIRMED, fitResponse: 'NOT_REALLY' } }));
+    render(<App />);
+    await screen.findByText('Your Performance Profile');
+    expect(screen.getByText('Corrected')).toBeTruthy();
+    wire(makeServer({ profile: { ...CONFIRMED, fitResponse: 'PARTLY' } }));
+    cleanup();
+    render(<App />);
+    await screen.findByText('Your Performance Profile');
+    expect(screen.getByText('Partly corrected')).toBeTruthy();
+  });
+
+  test('direct navigation and a refresh both land on the saved view (no navigation state at all)', async () => {
+    wire(makeServer({ profile: CONFIRMED }));
+    const first = render(<App />);
+    await screen.findByText('Your Performance Profile');
+    expectNoCompletionUi();
+    // A refresh is a fresh mount with no in-memory state.
+    first.unmount();
+    render(<App />);
+    await screen.findByText('Your Performance Profile');
+    expectNoCompletionUi();
+  });
+
+  test('the retired /mental-game-profile link opens the saved view', async () => {
+    wire(makeServer({ profile: CONFIRMED }));
+    render(<App entry="/mental-game-profile" />);
+    await screen.findByText('Your Performance Profile');
+    expectNoCompletionUi();
+  });
+
+  test('the saved view is read-only — no fit controls, no correction field, no editing', async () => {
+    wire(makeServer({ profile: CONFIRMED }));
+    render(<App />);
+    await screen.findByText('Your Performance Profile');
+    expect(screen.queryAllByRole('radio').length).toBe(0);
+    expect(screen.queryByRole('textbox')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Continue' })).toBeNull();
+  });
+
+  test('Continue coaching opens the existing conversation without creating another', async () => {
+    const server = makeServer({ profile: CONFIRMED });
+    wire(server);
+    render(<App />);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Continue coaching' }));
+    const state = JSON.parse((await screen.findByTestId('coaching-state')).textContent);
+    expect(state.chatSessionId).toBe('cs-1');
+    expect(server.state.calls.filter((c) => c === 'POST /api/profile/start-chat').length).toBe(1);
+  });
+
+  test('a consent-pending athlete keeps the consent notice in the saved view, and is not offered coaching', async () => {
+    wire(makeServer({
+      profile: { ...CONFIRMED, firstChatSessionId: null },
+      consent: { pending: true, guardianEmailMasked: 'p•••••@example.com' },
+    }));
+    render(<App />);
+    await screen.findByText('Your Performance Profile');
+    expect(screen.getByText(/Waiting for parent\/guardian consent/i)).toBeTruthy();
+    expect(screen.getByText(/p•••••@example\.com/)).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Resend consent email' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Continue coaching' })).toBeNull();
+    expectNoCompletionUi();
+  });
+
+  test('the saved view renders in Hindi', async () => {
+    authState.language = 'hi';
+    wire(makeServer({ profile: CONFIRMED }));
+    render(<App />);
+    await screen.findByText('तुम्हारी परफॉर्मेंस प्रोफाइल');
+    expect(screen.getByText('सही बताया')).toBeTruthy();
+  });
+
+  test('the saved view has identical DOM structure in light and dark themes', async () => {
+    wire(makeServer({ profile: CONFIRMED }));
+    document.documentElement.setAttribute('data-theme', 'light');
+    const light = render(<App />);
+    await screen.findByText('Your Performance Profile');
+    const lightHtml = light.container.innerHTML;
+    cleanup();
+
+    wire(makeServer({ profile: CONFIRMED }));
+    document.documentElement.setAttribute('data-theme', 'dark');
+    const dark = render(<App />);
+    await screen.findByText('Your Performance Profile');
+    expect(dark.container.innerHTML).toBe(lightHtml);
+    document.documentElement.removeAttribute('data-theme');
+  });
+
+  test('the saved view uses the shared mobile column, with no fixed-width or horizontally scrolling layout', async () => {
+    wire(makeServer({ profile: CONFIRMED }));
+    const { container } = render(<App />);
+    await screen.findByText('Your Performance Profile');
+    const column = container.querySelector('.max-w-md');
+    expect(column).toBeTruthy();
+    expect(column.className).toContain('mx-auto');
+    expect(container.innerHTML).not.toMatch(/w-\[\d+px\]|min-w-\[\d{3,}px\]/);
   });
 });

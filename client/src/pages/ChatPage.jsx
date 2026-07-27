@@ -377,6 +377,12 @@ function ChatPage() {
   const arjunMsgCountRef        = useRef(0);
   const prefillMsgRef           = useRef(location.state?.prefillMsg ?? null);
   const pendingChatSessionIdRef = useRef(location.state?.chatSessionId ?? null);
+  // Entered from the Starting Performance Profile: the athlete already
+  // finished confirming it, so Back must not drop them back into that flow.
+  // Captured once at mount — every other entry path keeps plain history back.
+  const backOverrideRef = useRef(
+    location.state?.enteredFromStartingProfile ? (location.state?.returnTo || '/dashboard') : null
+  );
   const chatSessionIdRef        = useRef(null);
   const chatModeRef             = useRef('main');
   // Per-entry guard: at most one claim-opener request per main ChatSession
@@ -832,7 +838,9 @@ function ChatPage() {
         <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
             <button
-              onClick={() => navigate(-1)}
+              onClick={() => (backOverrideRef.current
+                ? navigate(backOverrideRef.current, { replace: true })
+                : navigate(-1))}
               className="p-2.5 text-slt hover:text-ink transition-colors rounded-lg hover:bg-dark-700 -ml-2 shrink-0"
               aria-label="Go back"
             >

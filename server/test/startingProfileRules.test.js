@@ -5,7 +5,11 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { buildRuleOutput, renderSections, hasProhibited, wordCount, RULE_VERSION } = require('../src/profile/ruleEngine');
+const {
+  buildRuleOutput, renderSections, hasProhibited, wordCount, groundingAnchors,
+  priorityPhrase, joinClauses, sentences, tidy, RULE_VERSION,
+} = require('../src/profile/ruleEngine');
+const C = require('../src/onboarding/config');
 const { buildFirstMessage } = require('../src/profile/firstMessage');
 const { generateWording, validate } = require('../src/profile/aiWording');
 const cfg = require('../src/profile/ruleConfig');
@@ -118,11 +122,12 @@ test('a prolonged recovery answer becomes an observation; a quick one becomes a 
   assert.match(renderSections(quick, 'en').possiblePattern, new RegExp(cfg.RESILIENCE_NOTE.en.slice(0, 20), 'i'));
 });
 
-test('when there is more material than the cap allows, immediate reactions win over knock-on effects and duration', () => {
-  const ro = buildRuleOutput(MISTAKES); // 2 reactions + 1 effect + prolonged duration
+test('when there is more material than the cap allows, how long it lasts keeps its slot and the extra reaction/effect is dropped', () => {
+  // 2 reactions + 1 effect + a prolonged recovery answer. How long it lasts is
+  // what makes a pattern recognisable, so it is no longer crowded out.
+  const ro = buildRuleOutput(MISTAKES);
   assert.equal(ro.observations.length, 3);
-  assert.deepEqual(ro.observations.map((o) => o.dim), ['reaction', 'reaction', 'effect']);
-  assert.ok(!ro.observations.some((o) => o.dim === 'duration'), 'duration is the first thing dropped');
+  assert.deepEqual(ro.observations.map((o) => o.dim), ['reaction', 'reaction', 'duration']);
 });
 
 test('no rendered section contains diagnosis, score, ranking, severity, trait or personality-type language (EN + HI)', () => {
@@ -184,7 +189,8 @@ test('the first message ends with the agreed quick replies, using the chip mecha
 test('a corrected profile opens on the AGREED priority, not the suggested one', () => {
   const ro = buildRuleOutput(MISTAKES);
   const msg = buildFirstMessage(profileFor('NOT_REALLY', 'confidence_drops'), ro, { name: 'Rahul', language: 'en' });
-  assert.match(msg, new RegExp(cfg.TRIGGER.confidence_drops.en.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.match(msg, /what happens when your confidence drops/);
+  assert.doesNotMatch(msg, /after a mistake/i, 'the suggested priority must not lead');
 });
 
 // ── AI wording layer: rephrase-only, always falls back ──────────────────────
@@ -264,7 +270,428 @@ test('the wording input carries no account metadata — no email, DOB, user id, 
   }
 });
 
-test('the validator enforces the 240-word ceiling', () => {
-  const long = 'word '.repeat(300).trim();
+test('the validator enforces the total word ceiling', () => {
+  const long = 'word '.repeat(400).trim();
   assert.equal(validate({ whatMatters: long, possiblePattern: 'a', whatHelps: 'b', whereWeBegin: 'c' }, 'en'), false);
+});
+
+// ── Grounding: the profile must actually use the onboarding answers ─────────
+// Founder testing on PR 3 surfaced a profile made of filler ("Cricket means a
+// lot to you", "in those moments you mentioned", "let's find which situation
+// feels most important"). These lock the specifics in place.
+
+// A realistic, fully-answered completed session.
+const FULL = {
+  id: 'os-full', userId: 'u1', onboardingVersion: 2, attemptNumber: 1, status: 'COMPLETED',
+  branchId: 'mistakes', primaryPriorityId: 'after_mistake',
+  answers: {
+    sport: { answerIds: ['cricket'] },
+    role_position: { answerIds: ['batter'] },
+    competition_level: { answerIds: ['state'] },
+    experience_level: { answerIds: ['competitive'] },
+    difficult_moments: { answerIds: ['after_mistake', 'lose_focus', 'confidence_drops'] },
+    primary_priority: { answerIds: ['after_mistake'] },
+    mistakes_first_response: { answerIds: ['keep_thinking', 'angry_self'] },
+    mistakes_next: { answerIds: ['hesitate'] },
+    mistakes_recovery: { answerIds: ['most_of_session'] },
+    contextual_pressures: { answerIds: ['own_expectations', 'selection_pressure'] },
+    supports: { answerIds: ['clear_preparation', 'pre_routine'] },
+    strengths: { answerIds: ['hard_working', 'brave'] },
+    broad_goals: { answerIds: ['confidence', 'resilience'] },
+    four_week_outcome: { answerIds: ['recover_faster'] },
+  },
+};
+
+const FILLER = [
+  /moments you (mentioned|flagged)/i,
+  /means a lot to you/i,
+  /which situation feels most/i,
+  /finding which situation/i,
+];
+const noFiller = (sections, where) => {
+  for (const [k, txt] of Object.entries(sections)) {
+    for (const re of FILLER) assert.doesNotMatch(txt, re, `${where}/${k} fell back to filler: ${txt}`);
+  }
+};
+
+test('WHAT MATTERS names the sport, role, goals and the four-week outcome — never generic filler', () => {
+  const s = renderSections(buildRuleOutput(FULL), 'en');
+  assert.match(s.whatMatters, /cricket/i);
+  assert.match(s.whatMatters, /batter/i);
+  assert.match(s.whatMatters, /confidence/i);
+  assert.match(s.whatMatters, /bouncing back from setbacks/i);
+  assert.match(s.whatMatters, /recover faster after mistakes/i, 'the four-week outcome must appear');
+  assert.doesNotMatch(s.whatMatters, /means a lot to you/i);
+});
+
+test('A POSSIBLE PATTERN names the primary situation, a selected reaction or effect, and how long it lasts', () => {
+  const s = renderSections(buildRuleOutput(FULL), 'en');
+  assert.match(s.possiblePattern, /after a mistake/i, 'the primary situation must be named explicitly');
+  assert.match(s.possiblePattern, /attention may stay on what went wrong|frustration with yourself|hesitate/i, 'at least one selected reaction/effect');
+  assert.match(s.possiblePattern, /linger for much of the session/i, 'the recovery answer must appear');
+  assert.doesNotMatch(s.possiblePattern, /moments you (mentioned|flagged)/i);
+});
+
+test('WHAT ALREADY HELPS uses the selected supports and strengths, never a placeholder when selections exist', () => {
+  const s = renderSections(buildRuleOutput(FULL), 'en');
+  assert.match(s.whatHelps, /clear preparation/i);
+  assert.match(s.whatHelps, /routine before you perform/i);
+  assert.match(s.whatHelps, /hard-working/i);
+  assert.match(s.whatHelps, /brave/i);
+  assert.doesNotMatch(s.whatHelps, /we'll notice what already works/i);
+});
+
+test('WHERE WE CAN BEGIN proposes one specific focus and never asks which situation matters most', () => {
+  const s = renderSections(buildRuleOutput(FULL), 'en');
+  assert.match(s.whereWeBegin, /after a mistake/i, 'built from the suggested priority');
+  assert.match(s.whereWeBegin, /few seconds that follow/i, 'built from the explored branch');
+  assert.doesNotMatch(s.whereWeBegin, /which situation feels most|finding which situation/i);
+  assert.doesNotMatch(s.whereWeBegin, /try this|do this|each day|every day|for \d+ (minutes|seconds)/i, 'nothing is prescribed yet');
+  assert.match(s.whereWeBegin, /first we'll understand the pattern clearly/i);
+  assert.match(s.whereWeBegin, /then we can choose something practical to test/i);
+});
+
+test('the contextual pressure the athlete selected is used, not silently dropped', () => {
+  const s = renderSections(buildRuleOutput(FULL), 'en');
+  assert.match(s.possiblePattern, /your own expectations/i);
+});
+
+test('no branch, in either language, can produce a profile made of filler', () => {
+  const cfgAll = C.config;
+  const PRIORITY = {
+    pre_performance: 'before_important_performance', mistakes: 'after_mistake', focus: 'lose_focus',
+    confidence: 'confidence_drops', motivation: 'low_motivation', coach_selection: 'coach_feedback',
+    family_outside: 'family_expectations', injury: 'injury_return', unsure: null, custom: null,
+  };
+  for (const [branchId, b] of Object.entries(cfgAll.branches)) {
+    const answers = {
+      sport: { answerIds: ['football'] }, role_position: { answerIds: ['midfielder'] },
+      difficult_moments: { answerIds: [PRIORITY[branchId] || 'not_sure'] },
+      primary_priority: { answerIds: PRIORITY[branchId] ? [PRIORITY[branchId]] : [] },
+      supports: { answerIds: ['staying_relaxed'] }, strengths: { answerIds: ['persistent'] },
+      broad_goals: { answerIds: ['pressure'] }, four_week_outcome: { answerIds: ['trust_under_pressure'] },
+    };
+    for (const sid of b.screenIds || []) {
+      for (const q of cfgAll.branchScreens[sid]?.questionIds || []) {
+        const ids = (cfgAll.questions[q]?.answers || []).map((a) => a.id);
+        answers[q] = { answerIds: [ids.includes('most_of_session') ? 'most_of_session' : ids[0]] };
+      }
+    }
+    const ro = buildRuleOutput({ branchId, primaryPriorityId: PRIORITY[branchId], answers });
+    for (const lang of ['en', 'hi']) {
+      const s = renderSections(ro, lang);
+      noFiller(s, `${branchId}/${lang}`);
+      for (const k of SECTION_KEYS) assert.equal(hasProhibited(s[k]), false, `${branchId}/${lang}/${k}`);
+      assert.ok(wordCount(s) <= 240);
+    }
+  }
+});
+
+test('every meaningful branch answer the athlete can pick has a phrasing — no silently ignored selections', () => {
+  const cfgAll = C.config;
+  const ruleCfg = require('../src/profile/ruleConfig');
+  const handledElsewhere = new Set([
+    ...ruleCfg.NEUTRAL_ANSWERS, ...ruleCfg.QUICK_RECOVERY, ...ruleCfg.PROLONGED_RECOVERY,
+    'something_else', 'different',
+  ]);
+  const contextMaps = {
+    pre_performance_onset: ruleCfg.ONSET_PHRASE,
+    injury_stage: ruleCfg.INJURY_STAGE,
+    family_outside_source: ruleCfg.FAMILY_SOURCE,
+  };
+  const missing = [];
+  for (const b of Object.values(cfgAll.branches)) {
+    for (const sid of b.screenIds || []) {
+      for (const q of cfgAll.branchScreens[sid]?.questionIds || []) {
+        for (const a of cfgAll.questions[q]?.answers || []) {
+          if (handledElsewhere.has(a.id)) continue;
+          if (contextMaps[q]?.[a.id]) continue;
+          if (ruleCfg.CLAUSE[`${q}:${a.id}`]) continue;
+          missing.push(`${q}:${a.id}`);
+        }
+      }
+    }
+  }
+  assert.deepEqual(missing, [], `unmapped answers would be dropped from the profile: ${missing.join(', ')}`);
+});
+
+test('the athlete\'s own supports, strengths, goals and outcomes all have phrasings', () => {
+  const cfgAll = C.config;
+  const ruleCfg = require('../src/profile/ruleConfig');
+  const custom = new Set(['different', 'havent_noticed', 'still_figuring', 'nothing_outside', 'own_goal']);
+  const pairs = [
+    ['supports', ruleCfg.SUPPORT_PHRASE], ['strengths', ruleCfg.STRENGTH_PHRASE],
+    ['broad_goals', ruleCfg.GOAL_LABEL], ['four_week_outcome', ruleCfg.OUTCOME_LABEL],
+    ['contextual_pressures', ruleCfg.CONTEXT_PHRASE],
+  ];
+  for (const [q, map] of pairs) {
+    const missing = (cfgAll.questions[q]?.answers || []).map((a) => a.id).filter((id) => !custom.has(id) && !map[id]);
+    assert.deepEqual(missing, [], `${q} has unmapped answers: ${missing.join(', ')}`);
+  }
+});
+
+test('when the athlete named nothing that helps, the fallback still names their situation', () => {
+  const ro = buildRuleOutput({
+    ...FULL,
+    answers: { ...FULL.answers, supports: { answerIds: ['different'] }, strengths: { answerIds: ['still_figuring'] } },
+  });
+  const s = renderSections(ro, 'en');
+  assert.match(s.whatHelps, /after a mistake/i, 'the fallback must stay specific to their situation');
+  assert.doesNotMatch(s.whatHelps, /we'll notice what already works/i);
+});
+
+test('an athlete who could not name one situation still gets a named situation from what they recognised', () => {
+  const ro = buildRuleOutput({
+    branchId: 'unsure', primaryPriorityId: null,
+    answers: {
+      sport: { answerIds: ['cricket'] }, difficult_moments: { answerIds: ['not_sure'] },
+      unsure_recognition: { answerIds: ['one_mistake_snowballs'] },
+      unsure_recovery: { answerIds: ['most_of_session'] },
+      broad_goals: { answerIds: ['confidence'] }, four_week_outcome: { answerIds: ['understand_barrier'] },
+    },
+  });
+  const s = renderSections(ro, 'en');
+  assert.match(s.possiblePattern, /after a mistake/i);
+  assert.match(s.whereWeBegin, /after a mistake/i);
+  noFiller(s, 'unsure');
+});
+
+test('an AI rewrite that strips the athlete\'s specifics is rejected — the personalised deterministic profile is used instead', async () => {
+  const ro = buildRuleOutput(FULL);
+  const input = {
+    firstName: 'Rahul', sport: 'cricket', role: 'batter',
+    observationCodes: ro.observations.map((o) => o.code),
+    drafts: renderSections(ro, 'en'), anchors: groundingAnchors(ro, 'en'), language: 'en',
+  };
+  const genericised = {
+    whatMatters: 'Cricket means a lot to you.',
+    possiblePattern: 'In those moments you mentioned, things can feel harder than usual.',
+    whatHelps: "As we talk, we'll pay attention to what's already working well for you.",
+    whereWeBegin: "Let's start by finding which situation feels most important.",
+  };
+  const res = await generateWording(input, { createClient: () => ({ messages: { create: async () => ({ content: [{ text: JSON.stringify(genericised) }] }) } }) });
+  assert.equal(res.wordingStatus, 'FALLBACK_USED');
+  assert.deepEqual(res.sections, input.drafts);
+  // And the profile the athlete actually sees is still personalised.
+  noFiller(res.sections, 'ai-failure fallback');
+  assert.match(res.sections.whatMatters, /cricket/i);
+  assert.match(res.sections.possiblePattern, /after a mistake/i);
+  assert.match(res.sections.whatHelps, /clear preparation/i);
+  assert.match(res.sections.whereWeBegin, /after a mistake/i);
+});
+
+test('a faithful AI rewrite that keeps the specifics is still accepted', async () => {
+  const ro = buildRuleOutput(FULL);
+  const input = {
+    firstName: 'Rahul', sport: 'cricket', role: 'batter', observationCodes: [],
+    drafts: renderSections(ro, 'en'), anchors: groundingAnchors(ro, 'en'), language: 'en',
+  };
+  const faithful = {
+    whatMatters: 'You play cricket as a batter, and you want more confidence and to recover faster after mistakes.',
+    possiblePattern: 'After a mistake your attention may stay on what went wrong, you may hesitate, and it can linger for much of the session.',
+    whatHelps: 'Clear preparation already helps you, and you described yourself as brave and hard-working.',
+    whereWeBegin: "We can start with one recent moment after a mistake. First we'll understand the pattern clearly. Then we can choose something practical to test.",
+  };
+  const res = await generateWording(input, { createClient: () => ({ messages: { create: async () => ({ content: [{ text: JSON.stringify(faithful) }] }) } }) });
+  assert.equal(res.wordingStatus, 'AI_OK');
+  assert.deepEqual(res.sections, faithful);
+});
+
+test('grounding anchors are built for Hindi too, so a Hindi rewrite cannot quietly go generic', async () => {
+  const ro = buildRuleOutput(FULL);
+  const anchors = groundingAnchors(ro, 'hi');
+  assert.ok(anchors.length >= 4, 'Hindi anchors must not be empty');
+  const input = { firstName: 'Rahul', sport: 'cricket', role: 'batter', observationCodes: [], drafts: renderSections(ro, 'hi'), anchors, language: 'hi' };
+  const genericHi = {
+    whatMatters: 'क्रिकेट आपके लिए बहुत मायने रखता है।',
+    possiblePattern: 'जिन पलों की आपने बात की, उनमें चीज़ें कठिन हो सकती हैं।',
+    whatHelps: 'हम साथ में देखेंगे कि क्या काम करता है।',
+    whereWeBegin: 'चलिए तय करते हैं कि कौन सी स्थिति सबसे ज़रूरी है।',
+  };
+  const res = await generateWording(input, { createClient: () => ({ messages: { create: async () => ({ content: [{ text: JSON.stringify(genericHi) }] }) } }) });
+  assert.equal(res.wordingStatus, 'FALLBACK_USED');
+  assert.deepEqual(res.sections, input.drafts);
+});
+
+// ── Sentence composition ────────────────────────────────────────────────────
+// Founder preview showed "…you may start overthinking and and this can
+// linger…". Root cause: a clause carried its own leading connector into a
+// composer that adds one. The composer now owns connectors exclusively.
+
+const MALFORMED = [
+  { re: /\b(and|but|or)\s+\1\b/i, name: 'duplicated English connector' },
+  { re: /(और|लेकिन|या)\s+\1/, name: 'duplicated Hindi connector' },
+  { re: /\s+[,.।]/, name: 'space before punctuation' },
+  { re: /,\s*,/, name: 'doubled comma' },
+  { re: /([.।])\s*\1/, name: 'doubled full stop' },
+  { re: /,\s*[.।]/, name: 'comma immediately before a full stop' },
+  { re: /\s{2,}/, name: 'double space' },
+];
+const assertWellFormed = (text, where) => {
+  for (const { re, name } of MALFORMED) {
+    assert.doesNotMatch(text, re, `${where}: ${name} in "${text}"`);
+  }
+};
+
+test('the composer strips a connector a clause carries in, so it can never be doubled', () => {
+  assert.equal(joinClauses(['you may start overthinking', 'and this can linger'], 'en'), 'you may start overthinking and this can linger');
+  assert.equal(joinClauses(['आप ज़्यादा सोच सकते हैं', 'और यह बना रह सकता है'], 'hi'), 'आप ज़्यादा सोच सकते हैं और यह बना रह सकता है');
+  assert.equal(joinClauses(['a', 'but b', 'or c'], 'en'), 'a, b, and c');
+  assert.equal(joinClauses([], 'en'), '');
+  assert.equal(joinClauses(['only one'], 'en'), 'only one');
+});
+
+test('tidy repairs any malformed composition that still reaches it', () => {
+  assertWellFormed(tidy('you may start overthinking and and this can linger .'), 'tidy/en');
+  assertWellFormed(tidy('आप सोच सकते हैं और और यह रह सकता है ।'), 'tidy/hi');
+  assertWellFormed(tidy('one,, two  three ,'), 'tidy/punct');
+  assert.equal(sentences(['First part.', null, 'Second part.']), 'First part. Second part.');
+});
+
+test('a reaction plus a duration answer composes cleanly in both languages', () => {
+  const ro = buildRuleOutput({
+    branchId: 'pre_performance', primaryPriorityId: 'pressure_increases',
+    answers: {
+      sport: { answerIds: ['cricket'] },
+      difficult_moments: { answerIds: ['pressure_increases'] },
+      primary_priority: { answerIds: ['pressure_increases'] },
+      pre_performance_signs: { answerIds: ['overthinking'] },
+      pre_performance_duration: { answerIds: ['lingers_after'] },
+      broad_goals: { answerIds: ['pressure'] }, four_week_outcome: { answerIds: ['feel_prepared'] },
+    },
+  });
+  for (const lang of ['en', 'hi']) {
+    const s = renderSections(ro, lang);
+    for (const k of SECTION_KEYS) assertWellFormed(s[k], `reaction+duration/${lang}/${k}`);
+    assertWellFormed(buildFirstMessage(profileFor('CONFIRMED', 'pressure_increases'), ro, { name: 'Rahul', language: lang }), `firstMessage/${lang}`);
+  }
+  // The details survive the fix.
+  const en = renderSections(ro, 'en');
+  assert.match(en.possiblePattern, /overthinking/);
+  assert.match(en.possiblePattern, /linger/);
+});
+
+test('a reaction plus an effect plus a duration answer composes cleanly in both languages', () => {
+  const ro = buildRuleOutput(MISTAKES);
+  for (const lang of ['en', 'hi']) {
+    const s = renderSections(ro, lang);
+    for (const k of SECTION_KEYS) assertWellFormed(s[k], `reaction+effect+duration/${lang}/${k}`);
+  }
+});
+
+test('every branch produces a well-formed deterministic first message, in both languages and every fit response', () => {
+  const cfgAll = C.config;
+  const PRIORITY = {
+    pre_performance: 'before_important_performance', mistakes: 'after_mistake', focus: 'lose_focus',
+    confidence: 'confidence_drops', motivation: 'low_motivation', coach_selection: 'coach_feedback',
+    family_outside: 'family_expectations', injury: 'injury_return', unsure: null, custom: null,
+  };
+  for (const [branchId, b] of Object.entries(cfgAll.branches)) {
+    const answers = {
+      sport: { answerIds: ['football'] }, role_position: { answerIds: ['midfielder'] },
+      difficult_moments: { answerIds: [PRIORITY[branchId] || 'not_sure'] },
+      primary_priority: { answerIds: PRIORITY[branchId] ? [PRIORITY[branchId]] : [] },
+      supports: { answerIds: ['staying_relaxed'] }, strengths: { answerIds: ['persistent'] },
+      broad_goals: { answerIds: ['pressure'] }, four_week_outcome: { answerIds: ['trust_under_pressure'] },
+    };
+    for (const sid of b.screenIds || []) {
+      for (const q of cfgAll.branchScreens[sid]?.questionIds || []) {
+        const ids = (cfgAll.questions[q]?.answers || []).map((a) => a.id);
+        answers[q] = { answerIds: [ids.includes('most_of_session') ? 'most_of_session' : ids[0]] };
+      }
+    }
+    const ro = buildRuleOutput({ branchId, primaryPriorityId: PRIORITY[branchId], answers });
+    for (const fit of ['CONFIRMED', 'PARTLY', 'NOT_REALLY']) {
+      for (const language of ['en', 'hi']) {
+        const msg = buildFirstMessage(profileFor(fit, PRIORITY[branchId]), ro, { name: 'Rahul', language });
+        // The SUGGEST tag is deliberately pipe-separated; check the prose only.
+        assertWellFormed(msg.split('\n[SUGGEST:')[0], `${branchId}/${fit}/${language}`);
+      }
+    }
+  }
+});
+
+// ── Conversational priority phrases ─────────────────────────────────────────
+// Founder preview showed "We'll start with When the pressure increases." — a
+// raw onboarding display label dropped into prose.
+
+test('every priority the athlete can choose has a conversational phrase in both languages', () => {
+  const ids = (C.config.questions.difficult_moments.answers || []).map((a) => a.id);
+  for (const id of ids) {
+    for (const lang of ['en', 'hi']) {
+      const phrase = priorityPhrase(id, lang);
+      assert.ok(phrase && phrase.trim(), `${id}/${lang} has no phrase`);
+      // Reads as prose, not as a list label: never sentence-cased at the start.
+      assert.doesNotMatch(phrase, /^[A-Z]/, `${id}/${lang} looks like a display label: ${phrase}`);
+    }
+  }
+  assert.match(priorityPhrase('pressure_increases', 'en'), /^what happens when the pressure increases$/);
+  assert.match(priorityPhrase('after_mistake', 'en'), /^what happens after a mistake$/);
+  assert.match(priorityPhrase('lose_focus', 'en'), /^what pulls your focus away$/);
+  assert.match(priorityPhrase('confidence_drops', 'en'), /^what happens when your confidence drops$/);
+  assert.match(priorityPhrase('low_motivation', 'en'), /^what makes training consistency harder$/);
+  assert.match(priorityPhrase('coach_feedback', 'en'), /^how coach feedback affects you$/);
+  assert.match(priorityPhrase('selection_uncertain', 'en'), /^how selection uncertainty affects you$/);
+  assert.match(priorityPhrase('family_expectations', 'en'), /^how outside expectations affect you$/);
+  assert.match(priorityPhrase('injury_return', 'en'), /^what makes returning from injury difficult$/);
+});
+
+test('Hindi priority phrases are written in Hindi, not transliterated English', () => {
+  const ids = Object.keys(cfg.PRIORITY_PHRASE);
+  for (const id of ids) assert.match(priorityPhrase(id, 'hi'), /[ऀ-ॿ]/, `${id} is not in Hindi`);
+});
+
+test('custom and unsure priorities get cautious natural fallback phrasing, never a label or filler', () => {
+  for (const lang of ['en', 'hi']) {
+    const unsure = priorityPhrase('not_sure', lang, { branch: 'unsure', recognition: 'one_mistake_snowballs' });
+    assert.ok(unsure.trim());
+    assert.doesNotMatch(unsure, /^[A-Z]/);
+    const custom = priorityPhrase('different', lang, { branch: 'custom' });
+    assert.ok(custom.trim());
+    const nothing = priorityPhrase('not_sure', lang, { branch: 'unsure' });
+    assert.ok(nothing.trim(), 'a profile with nothing named still gets a safe phrase');
+  }
+  assert.match(priorityPhrase('not_sure', 'en', { branch: 'unsure', recognition: 'one_mistake_snowballs' }), /what happens after a mistake/);
+  assert.match(priorityPhrase('different', 'en', { branch: 'custom' }), /situation you wrote about/);
+});
+
+test('the raw onboarding display label can never appear inside first-message prose', () => {
+  const ro = buildRuleOutput(MISTAKES);
+  const labels = ['When the pressure increases', 'After I make a mistake', 'When I lose focus', 'When my confidence drops'];
+  for (const fit of ['CONFIRMED', 'PARTLY', 'NOT_REALLY']) {
+    const msg = buildFirstMessage(profileFor(fit, 'pressure_increases'), ro, { name: 'Rahul', language: 'en' });
+    for (const l of labels) assert.ok(!msg.includes(l), `raw label leaked into prose: ${l}`);
+    assert.doesNotMatch(msg, /start with When|begin with When/, "\"We'll start with When…\" must be impossible");
+  }
+});
+
+// ── Where we can begin: understand first, then choose ───────────────────────
+
+test('WHERE WE CAN BEGIN explains that understanding comes before choosing a practice, in both languages', () => {
+  const ro = buildRuleOutput(MISTAKES);
+  const en = renderSections(ro, 'en').whereWeBegin;
+  assert.match(en, /first we'll understand the pattern clearly/i);
+  assert.match(en, /then we can choose something practical to test/i);
+  assert.doesNotMatch(en, /no fixed practice yet; just awareness/i);
+  const hi = renderSections(ro, 'hi').whereWeBegin;
+  assert.match(hi, /पहले हम पैटर्न को साफ़ तौर पर समझेंगे/);
+  assert.match(hi, /फिर हम आज़माने के लिए कुछ व्यावहारिक चुन सकते हैं/);
+  // Still personalised, still prescribing nothing.
+  assert.match(en, /after a mistake/i);
+  assert.doesNotMatch(en, /try this|each day|for \d+ (minutes|seconds)/i);
+});
+
+test('an AI rewrite that drops the understand-then-choose sequence is rejected', async () => {
+  const ro = buildRuleOutput(MISTAKES);
+  const input = {
+    firstName: 'Rahul', sport: 'cricket', role: 'batter', observationCodes: [],
+    drafts: renderSections(ro, 'en'), anchors: groundingAnchors(ro, 'en'), language: 'en',
+  };
+  const flattened = {
+    ...input.drafts,
+    whereWeBegin: 'We can begin with one recent moment after a mistake, and look at what happens next.',
+  };
+  const res = await generateWording(input, { createClient: () => ({ messages: { create: async () => ({ content: [{ text: JSON.stringify(flattened) }] }) } }) });
+  assert.equal(res.wordingStatus, 'FALLBACK_USED');
+  assert.match(res.sections.whereWeBegin, /then we can choose something practical to test/i);
 });

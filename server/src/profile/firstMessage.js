@@ -5,6 +5,7 @@
 // mechanism the client already parses (ChatPage.extractSuggestions).
 
 const cfg = require('./ruleConfig');
+const { joinClauses, sentences, tidy, priorityPhrase } = require('./ruleEngine');
 
 const firstName = (name) => String(name || '').trim().split(/\s+/)[0] || (name || '');
 
@@ -23,10 +24,10 @@ function shortPattern(ruleOutput, lang) {
   if (clauses.length === 0) {
     return lang === 'hi' ? `${trigger} चीज़ें कठिन हो सकती हैं` : `things can get harder ${trigger}`;
   }
-  const joined = clauses.length === 2
-    ? (lang === 'hi' ? `${clauses[0]} और ${clauses[1]}` : `${clauses[0]} and ${clauses[1]}`)
-    : clauses[0];
-  return lang === 'hi' ? `${trigger} ${joined}` : `${trigger}, ${joined}`;
+  // Same composer as the profile sections — connectors are added exactly once,
+  // by the composer, never carried in by a clause.
+  const joined = joinClauses(clauses, lang);
+  return tidy(lang === 'hi' ? `${trigger} ${joined}` : `${trigger}, ${joined}`);
 }
 
 const QUICK = {
@@ -40,23 +41,25 @@ function buildFirstMessage(profile, ruleOutput, user) {
   const name = firstName(user?.name);
   const priorityId = profile.agreedPriorityId || ruleOutput.suggestedPriorityId;
   const roWithAgreed = { ...ruleOutput, agreedPriorityId: priorityId };
-  const priorityLabel = triggerPhrase(priorityId, lang);
+  // Conversational phrase, never the raw onboarding display label — the same
+  // source the profile confirmation summary uses.
+  const focus = priorityPhrase(priorityId, lang, ruleOutput);
   let body;
 
   if (profile.fitResponse === 'CONFIRMED') {
     const pat = shortPattern(roWithAgreed, lang);
     body = lang === 'hi'
-      ? `नमस्ते, ${name}। आपसे मिलकर अच्छा लगा।\n\nआपने बताया कि ${pat}। चलिए एक हाल के उदाहरण से शुरू करते हैं — क्या हुआ था?`
-      : `Hi, ${name}. Great to meet you.\n\nYou shared that ${pat}. Let's start with a recent example — what happened?`;
+      ? sentences([`नमस्ते, ${name}। आपसे मिलकर अच्छा लगा।\n\nआपने बताया कि ${pat}।`, 'चलिए एक हाल के उदाहरण से शुरू करते हैं — क्या हुआ था?'])
+      : sentences([`Hi, ${name}. Great to meet you.\n\nYou shared that ${pat}.`, "Let's start with a recent example — what happened?"]);
   } else if (profile.fitResponse === 'PARTLY') {
     body = lang === 'hi'
-      ? `नमस्ते, ${name}। सुधारने के लिए धन्यवाद। हम ${priorityLabel} से शुरू करेंगे। किसी हाल के ट्रेनिंग या मुक़ाबले के पल के बारे में सोचें जब यह दिखा — क्या हुआ था?`
-      : `Hi, ${name}. Thanks for correcting that. We'll start with ${priorityLabel}. Think of a recent training or competition moment when this showed up — what happened?`;
+      ? sentences([`नमस्ते, ${name}। सुधारने के लिए धन्यवाद।`, `हम ${focus} — इसी को समझने से शुरू करेंगे।`, 'किसी हाल के ट्रेनिंग या मुक़ाबले के पल के बारे में सोचें जब यह दिखा — क्या हुआ था?'])
+      : sentences([`Hi, ${name}. Thanks for correcting that.`, `We'll start by exploring ${focus}.`, 'Think of a recent training or competition moment when this showed up — what happened?']);
   } else {
     // NOT_REALLY
     body = lang === 'hi'
-      ? `नमस्ते, ${name}। साफ़ बताने के लिए धन्यवाद। हम इसके बजाय ${priorityLabel} से शुरू करेंगे। किसी हाल के पल के बारे में बताएं जब इसने आप पर असर डाला।`
-      : `Hi, ${name}. Thanks for being clear. We'll begin with ${priorityLabel} instead. Tell me about a recent moment when it affected you.`;
+      ? sentences([`नमस्ते, ${name}। साफ़ बताने के लिए धन्यवाद।`, `हम इसके बजाय ${focus} — इसी को समझने से शुरू करेंगे।`, 'किसी हाल के पल के बारे में बताएं जब इसने आप पर असर डाला।'])
+      : sentences([`Hi, ${name}. Thanks for being clear.`, `We'll begin instead by exploring ${focus}.`, 'Tell me about a recent moment when it affected you.']);
   }
 
   return `${body}\n[SUGGEST: ${QUICK[lang]}]`;

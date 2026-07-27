@@ -163,7 +163,10 @@ export default function OnboardingPage() {
       const done = await complete(result.session.revision);
       if (done.ok) {
         updateUser(done.user);
-        navigate('/starting-profile', { replace: true, state: { fromOnboarding: true } });
+        navigate('/starting-profile', {
+          replace: true,
+          state: { fromOnboarding: true, entryMode: 'onboarding-completion' },
+        });
       } else if (done.missing?.length) {
         // Jump back to the first missing screen.
         const missingScreen = CFG.computeFlowScreenIds(working).find((sid) =>

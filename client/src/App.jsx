@@ -85,7 +85,10 @@ function App() {
       />
       {/* Retired (PR 3): the old AI "mental game profile" is replaced by the
           Starting Performance Profile. Old links and bookmarks redirect. */}
-      <Route path="/mental-game-profile" element={<Navigate to="/starting-profile" replace />} />
+      <Route
+        path="/mental-game-profile"
+        element={<Navigate to="/starting-profile" replace state={{ entryMode: 'saved-profile' }} />}
+      />
 
       {/* App — logged in AND onboarded — include BottomNav */}
       <Route
