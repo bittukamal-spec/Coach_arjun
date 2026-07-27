@@ -11,6 +11,7 @@ import { shouldShowAiReminder, BREAK_REMINDER_MS } from '../utils/chatReminders'
 import { parseServerCardEvent, mergeUniqueServerCard } from '../utils/serverCardEvent';
 import { parseQuickRepliesEvent } from '../utils/quickReplyEvent';
 import { practiceRouteFor } from '../utils/prescriptionPractice';
+import { filterInternalMessages, isInternalContent, INTERNAL_CONTENT_FILTERED } from '../utils/internalContentFilter';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -581,7 +582,13 @@ function ChatPage() {
       if (res.ok) {
         const data = await res.json();
         const msgs = data.messages || [];
-        const processed = msgs.map(msg => {
+        // Secondary defence: hide any assistant message that is unmistakably
+        // internal server orchestration. The server never persists these now
+        // (validateAthleteText.js); this covers rows stored before that
+        // shipped, so scrolling back can't surface one. Logs a fixed code
+        // only — never message or athlete content.
+        const visible = filterInternalMessages(msgs, (code) => console.warn(`[chat] ${code}`));
+        const processed = visible.map(msg => {
           if (msg.role !== 'assistant') return msg;
           const { clean, suggestions } = extractSuggestions(msg.content);
           const { cleanText, tools } = parseArjunMessage(clean);
@@ -745,6 +752,16 @@ function ChatPage() {
             } else if (data.t === 'end') {
               const { clean, suggestions } = extractSuggestions(fullStreamText.current);
               const { cleanText, tools } = parseArjunMessage(clean);
+              // Secondary defence on the live stream too: the server rejects
+              // internal orchestration text before it is ever sent, so this
+              // should never fire — if it somehow does, drop the bubble
+              // rather than render it, and log a fixed code only.
+              if (isInternalContent(cleanText)) {
+                console.warn(`[chat] ${INTERNAL_CONTENT_FILTERED}`);
+                setMessages(prev => prev.filter(m => m.id !== streamId));
+                fullStreamText.current = '';
+                continue;
+              }
               arjunMsgCountRef.current += 1;
               setMessages(prev =>
                 prev.map(m => m.id === streamId

@@ -60,16 +60,22 @@ test('quick replies emit only in the else branch of the card guard (never alongs
   const endIdx = handler.indexOf("{ t: 'end', id: committed.message.id }");
   assert.ok(quickRepliesIdx !== -1, 'expected a quick_replies emission');
   assert.ok(cardIdx < quickRepliesIdx && quickRepliesIdx < endIdx, 'quick_replies must sit between the card branch and end');
-  const elseIdx = handler.indexOf('} else {', cardIdx);
+  // The else branch additionally requires that the clarity fallback did not
+  // speak — chips staged for a reply that never ran are dropped entirely.
+  const elseIdx = handler.indexOf('} else if (!usedClarityFallback) {', cardIdx);
   assert.ok(elseIdx !== -1 && elseIdx < quickRepliesIdx, 'quick replies must be in the else branch of the card check');
-  assert.match(handler, /buildQuickReplyPayload\(loop\.quickReplies\)/);
+  // Chips now go through the final filter (duplicates, echoes of the
+  // assistant's own question or the athlete's last message) before payload
+  // building — the filter's input is still the staged set, unchanged.
+  assert.match(handler, /filterQuickReplies\(loop\.quickReplies, \{/);
+  assert.match(handler, /buildQuickReplyPayload\(kept\)/);
 });
 
 test('ANY commit failure — staged transition or plain message-only — falls back to the deterministic retry message, never the model text', () => {
   assert.match(handler, /const emitDeterministicRetry = async \(reasonCode, err\) => \{/);
   assert.match(handler, /getRetryMessage\(user\?\.language\)/);
   // Round-cap/empty-text path and commit-failure path both use it.
-  assert.match(handler, /if \(!finalText\) return emitDeterministicRetry\(loop\.exceededRounds \? 'ROUND_LIMIT' : 'EMPTY_FINAL_TEXT'\)/);
+  assert.match(handler, /if \(!candidateText\) return emitDeterministicRetry\(loop\.exceededRounds \? 'ROUND_LIMIT' : 'EMPTY_FINAL_TEXT'\)/);
   const catchIdx = handler.indexOf('} catch (commitErr) {');
   assert.ok(catchIdx !== -1);
   const catchBlock = handler.slice(catchIdx, catchIdx + 700);
@@ -183,14 +189,14 @@ test('emitDeterministicRetry writes no coaching-state record — only the assist
 
 test('all three retry triggers (round cap, empty/missing final text, commit conflict) route through the same emitDeterministicRetry function', () => {
   const triggers = [
-    "if (!finalText) return emitDeterministicRetry(loop.exceededRounds ? 'ROUND_LIMIT' : 'EMPTY_FINAL_TEXT');",
+    "if (!candidateText) return emitDeterministicRetry(loop.exceededRounds ? 'ROUND_LIMIT' : 'EMPTY_FINAL_TEXT');",
     'return emitDeterministicRetry(reasonCode, commitErr);', // inside the commit catch block for a staged transition
   ];
   for (const trigger of triggers) {
     assert.ok(handler.includes(trigger), `expected to find: ${trigger}`);
   }
   // Confirm the empty-final-text branch is fed by both round-cap exhaustion and sanitizer rejection.
-  assert.match(handler, /const finalText = loop\.exceededRounds \? null : sanitizeFinalText\(loop\.finalText\);/);
+  assert.match(handler, /const candidateText = loop\.exceededRounds \? null : sanitizeFinalText\(loop\.finalText\);/);
 });
 
 test('a commit failure for a NORMAL response with no staged transition also routes through the deterministic retry — never the outer generic error handler with a different message', () => {

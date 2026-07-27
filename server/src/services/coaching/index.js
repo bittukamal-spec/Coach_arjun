@@ -6,7 +6,9 @@
 //     CoachingStateConflictError, getRetryMessage,
 //   } = require('../services/coaching');
 
-const { runBufferedToolLoop, sanitizeFinalText, buildQuickReplyPayload, MAX_ROUNDS, MAX_FINAL_TEXT_LENGTH } = require('./bufferedToolLoop');
+const { runBufferedToolLoop, sanitizeFinalText, buildQuickReplyPayload, buildRecoverySystem, MAX_ROUNDS, MAX_FINAL_TEXT_LENGTH, FINAL_TEXT_RECOVERY_INSTRUCTION } = require('./bufferedToolLoop');
+const { validateAthleteText, isApprovedSafetyText } = require('./validateAthleteText');
+const { filterQuickReplies } = require('./filterQuickReplies');
 const {
   createLoadCoachingContext,
   createCommitCoachingTransition,
@@ -14,6 +16,7 @@ const {
   commitCoachingTransition,
   CoachingStateConflictError,
   getRetryMessage,
+  getClarityFallbackMessage,
 } = require('./commitCoachingTransition');
 const {
   COACHING_TOOLS,
@@ -43,6 +46,11 @@ module.exports = {
   runBufferedToolLoop,
   sanitizeFinalText,
   buildQuickReplyPayload,
+  buildRecoverySystem,
+  FINAL_TEXT_RECOVERY_INSTRUCTION,
+  validateAthleteText,
+  isApprovedSafetyText,
+  filterQuickReplies,
   MAX_ROUNDS,
   MAX_FINAL_TEXT_LENGTH,
   createLoadCoachingContext,
@@ -51,6 +59,7 @@ module.exports = {
   commitCoachingTransition,
   CoachingStateConflictError,
   getRetryMessage,
+  getClarityFallbackMessage,
   COACHING_TOOLS,
   PROPOSE_BARRIER,
   PRESCRIBE_MENTAL_REP,

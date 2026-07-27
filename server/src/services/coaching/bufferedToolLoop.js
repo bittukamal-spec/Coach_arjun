@@ -34,7 +34,22 @@ const MAX_FINAL_TEXT_LENGTH = 6000;
 // recovery attempt below — never persisted, never emitted over SSE, never
 // shown to the athlete. It exists purely to ask Claude to finish the reply
 // after a tool it already called has been accepted.
+//
+// It is carried in the SYSTEM instruction, never as a synthetic user turn.
+// A production incident showed this text reaching an athlete as a coaching
+// reply: delivered as a user-role message it reads as something the athlete
+// asked for, and the model echoed it back (paraphrased) as its answer. In the
+// system instruction it is an instruction about the reply rather than a turn
+// in the conversation, so the athlete's own last message stays the last
+// user-authored content. Output is validated regardless — see
+// validateAthleteText.js; placement reduces the failure, validation catches it.
 const FINAL_TEXT_RECOVERY_INSTRUCTION = 'Your tool action has already been accepted. Produce the final athlete-facing response text now. Do not call another tool. Do not output JSON, tool syntax, [APP:] or [SUGGEST:] markers.';
+
+// How that instruction is appended to the existing system prompt for the one
+// recovery call. Exported so tests can assert placement, not just presence.
+function buildRecoverySystem(system) {
+  return `${system}\n\n## Finish this reply\n${FINAL_TEXT_RECOVERY_INSTRUCTION}`;
+}
 
 // Internal/tool markup that must never reach the athlete. Anthropic returns
 // tool calls as separate content blocks (never inline text), so in practice
@@ -51,8 +66,11 @@ const INTERNAL_MARKER_RE = /<\/?(?:tool_use|tool_result|function_calls?|invoke|a
 // exactly, so only a COMPLETE, well-formed tag is removed — never a
 // partial bracket fragment or unrelated athlete-visible bracket text (e.g.
 // "(see you [next week])" is left alone).
-const LEGACY_APP_TAG_RE = /\[APP:[a-z-]+\]/g;         // mirrors parseArjunMessage.js
-const LEGACY_SUGGEST_TAG_RE = /\n?\[SUGGEST:\s*[^\]]+\]/; // mirrors ChatPage.jsx's extractSuggestions
+// Zero-or-more inside the tag, not one-or-more: the leaked recovery
+// instruction contained a literal "[APP:]" and "[SUGGEST:]" with nothing
+// between the colon and the bracket, and the old patterns matched neither.
+const LEGACY_APP_TAG_RE = /\[APP:[a-z-]*\]/g;          // mirrors parseArjunMessage.js
+const LEGACY_SUGGEST_TAG_RE = /\n?\[SUGGEST:\s*[^\]]*\]/g; // mirrors ChatPage.jsx's extractSuggestions
 
 function sanitizeFinalText(raw) {
   if (typeof raw !== 'string') return null;
@@ -221,16 +239,15 @@ async function runBufferedToolLoop({
       // — it is a single bounded no-tools completion, attempted at most
       // once per athlete message.
       if (!sanitizeFinalText(finalText) && (transition || quickReplies)) {
-        const recoveryMessages = [
-          ...working,
-          { role: 'assistant', content },
-          { role: 'user', content: FINAL_TEXT_RECOVERY_INSTRUCTION },
-        ];
+        // No synthetic user turn is appended: `working` already ends with the
+        // protocol-required tool_result message, and the instruction rides in
+        // the system prompt instead (see buildRecoverySystem). The athlete's
+        // own last message therefore remains the last user-AUTHORED content.
         const recoveryResponse = await anthropic.messages.create({
           model,
           max_tokens: maxTokens,
-          system,
-          messages: recoveryMessages,
+          system: buildRecoverySystem(system),
+          messages: working,
           // Deliberately no `tools` key — Claude cannot call
           // offer_quick_replies or any transition tool again here.
         });
@@ -293,6 +310,7 @@ module.exports = {
   runBufferedToolLoop,
   sanitizeFinalText,
   buildQuickReplyPayload,
+  buildRecoverySystem,
   MAX_ROUNDS,
   MAX_FINAL_TEXT_LENGTH,
   FINAL_TEXT_RECOVERY_INSTRUCTION,
