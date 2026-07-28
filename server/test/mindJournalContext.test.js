@@ -129,7 +129,7 @@ test('the Mind Journal prompt section instructs against scoring, diagnosis, barr
 test('the Mind Journal section is folded into extraSections alongside the other optional coaching sections (never a standalone always-on block)', () => {
   const src = readFileSync(path.join(__dirname, '../src/routes/chat.js'), 'utf8');
   assert.match(src, /const mindJournalSection = buildMindJournalContextSection\(mindJournalEntries\);/);
-  assert.match(src, /const extraSections = \[coachingStateSection, quickReplySection, patternSection, mindJournalSection\]\.filter\(Boolean\)\.join\('\\n\\n'\);/);
+  assert.match(src, /const extraSections = \[coachingStateSection, patternSection, mindJournalSection\]\.filter\(Boolean\)\.join\('\\n\\n'\);/);
 });
 
 test('mindJournalEntries is never threaded into profile-intro, weekly reports, visualization, self-talk, body reset, or debrief routes', () => {

@@ -109,3 +109,43 @@ test('the composer is not gated on message count, so it stays usable when everyt
   // never because the visible history is empty.
   assert.doesNotMatch(chatPageSrc, /disabled=\{[^}]*messages\.length === 0/);
 });
+
+// ── Coach is free-text: no AI-generated reply chips ────────────────────────
+// Removed because chips cost an extra model round that regularly ended with no
+// athlete-facing text at all, and made the conversation read as a form.
+// Deterministic controls elsewhere are untouched — see the last test here.
+
+test('ChatPage renders no AI quick-reply chips and holds no state for them', () => {
+  assert.doesNotMatch(chatPageSrc, /quickReplies/, 'no AI quick-reply state remains');
+  assert.doesNotMatch(chatPageSrc, /parseQuickRepliesEvent/, 'the SSE chip parser is gone');
+  assert.doesNotMatch(chatPageSrc, /msg\.suggestions/, 'no per-message chip row remains');
+});
+
+test('a quick_replies event from an older server build is ignored, never rendered', () => {
+  const idx = chatPageSrc.indexOf("data.t === 'quick_replies'");
+  assert.ok(idx !== -1, 'the branch remains so the event cannot fall through to an error');
+  const block = chatPageSrc.slice(idx, idx + 300);
+  assert.doesNotMatch(block, /setQuickReplies|setMessages/, 'nothing is rendered from it');
+});
+
+test('legacy [SUGGEST:] metadata in stored history is stripped, not rendered', () => {
+  assert.match(chatPageSrc, /function stripSuggestTag\(text\)/);
+  // Zero-or-more inside the tag, so an empty [SUGGEST:] is stripped too.
+  assert.match(chatPageSrc, /\\\[SUGGEST:\[\^\\\]\]\*\\\]/);
+  assert.match(chatPageSrc, /parseArjunMessage\(stripSuggestTag\(msg\.content\)\)/);
+  assert.match(chatPageSrc, /parseArjunMessage\(stripSuggestTag\(fullStreamText\.current\)\)/);
+});
+
+test('the free-text composer and its send control are untouched', () => {
+  assert.match(chatPageSrc, /inputRef/);
+  assert.match(chatPageSrc, /onChange=\{e => setInput\(e\.target\.value\)\}/);
+  assert.doesNotMatch(chatPageSrc, /disabled=\{[^}]*messages\.length === 0/);
+});
+
+test('deterministic structured controls outside Coach chat are NOT removed', () => {
+  // PR-13 prescription-outcome choices still render through the shared chip
+  // component; only the AI-generated suggestions were removed.
+  assert.match(chatPageSrc, /outcomeChoices/);
+  assert.match(chatPageSrc, /replies=\{outcomeChoices\}/);
+  assert.match(chatPageSrc, /function QuickReplyChips\(/);
+});

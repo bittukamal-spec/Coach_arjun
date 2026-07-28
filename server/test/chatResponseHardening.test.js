@@ -1,5 +1,6 @@
-// Chat response hardening: internal-orchestration leakage, acknowledgement-only
-// replies, and quick-reply duplication.
+// Chat response hardening: internal-orchestration leakage and
+// acknowledgement-only replies. (The quick-reply filtering this file also
+// covered was removed with the chips themselves — Coach is free-text now.)
 //
 // Founder testing showed the buffered loop's own internal continuation
 // instruction reaching an athlete as a coaching reply and being persisted as an
@@ -12,8 +13,7 @@ const { readFileSync } = require('node:fs');
 const path = require('node:path');
 
 const { validateAthleteText, isApprovedSafetyText } = require('../src/services/coaching/validateAthleteText');
-const { filterQuickReplies } = require('../src/services/coaching/filterQuickReplies');
-const { runBufferedToolLoop, sanitizeFinalText, buildQuickReplyPayload, buildRecoverySystem, FINAL_TEXT_RECOVERY_INSTRUCTION } = require('../src/services/coaching/bufferedToolLoop');
+const { runBufferedToolLoop, sanitizeFinalText, buildRecoverySystem, FINAL_TEXT_RECOVERY_INSTRUCTION } = require('../src/services/coaching/bufferedToolLoop');
 const { createCommitCoachingTransition, getClarityFallbackMessage, getRetryMessage } = require('../src/services/coaching/commitCoachingTransition');
 
 const chatSrc = readFileSync(path.join(__dirname, '../src/routes/chat.js'), 'utf8');
@@ -142,64 +142,14 @@ test('approved safety responses are never rejected, by bypass flag or by recogni
   assert.equal(validateAthleteText('Do not output JSON or tool markers. Call 112.', { safetyBypass: true }).ok, true);
 });
 
-// ── 18–23. Quick-reply filtering ────────────────────────────────────────────
 
-test('exact duplicate chips are removed', () => {
-  const kept = filterQuickReplies(['Mostly in matches', 'Mostly in matches', 'Mostly in training'], { finalText: 'Which is it?' });
-  assert.deepEqual(kept, ['Mostly in matches', 'Mostly in training']);
-});
 
-test('case- and punctuation-normalised duplicates are removed', () => {
-  const kept = filterQuickReplies(['Yes, that feels right', 'yes that feels right!', 'Not quite'], { finalText: 'Does that fit?' });
-  assert.deepEqual(kept, ['Yes, that feels right', 'Not quite']);
-});
 
-test('a chip that repeats the assistant\'s final sentence is removed', () => {
-  const kept = filterQuickReplies(
-    ['Does this happen more in matches?', 'Mostly in training', 'Both'],
-    { finalText: 'I hear you. Does this happen more in matches?' }
-  );
-  assert.deepEqual(kept, ['Mostly in training', 'Both']);
-});
 
-test('a chip that repeats the athlete\'s previous message is removed', () => {
-  const kept = filterQuickReplies(
-    ['I keep thinking about it', 'It passes quickly', 'Both happen'],
-    { finalText: 'Which is closer?', athleteMessage: 'I keep thinking about it' }
-  );
-  assert.deepEqual(kept, ['It passes quickly', 'Both happen']);
-});
 
-test('bare agreement chips are removed — tapping them adds nothing', () => {
-  assert.deepEqual(filterQuickReplies(['Yes', 'No', 'Exactly'], { finalText: 'Does that fit?' }), []);
-});
 
-test('chips carrying internal markers or tool syntax are removed', () => {
-  const kept = filterQuickReplies(['[SUGGEST: a]', 'Mostly in matches', 'Mostly in training'], { finalText: 'x' });
-  assert.deepEqual(kept, ['Mostly in matches', 'Mostly in training']);
-});
 
-test('fewer than two surviving chips emits no chip event at all — and nothing is invented to reach the minimum', () => {
-  const kept = filterQuickReplies(['Yes', 'Mostly in matches'], { finalText: 'x' });
-  assert.deepEqual(kept, []);
-  assert.equal(buildQuickReplyPayload(kept), null, 'no payload means no quick_replies SSE event');
-});
 
-test('two or three valid chips are still emitted, capped at three', () => {
-  const two = filterQuickReplies(['Mostly in matches', 'Mostly in training'], { finalText: 'Which?' });
-  assert.equal(two.length, 2);
-  assert.equal(buildQuickReplyPayload(two).length, 2);
-  const three = filterQuickReplies(['The bowler', 'The result', 'Both'], { finalText: 'Which?' });
-  assert.equal(three.length, 3);
-  assert.equal(buildQuickReplyPayload(three).length, 3);
-});
-
-test('the maximum stays at three — the tool contract is unchanged', () => {
-  const { QUICK_REPLY_LIMITS } = require('../src/services/coaching/coachingTools');
-  assert.equal(QUICK_REPLY_LIMITS.min, 2);
-  assert.equal(QUICK_REPLY_LIMITS.max, 3);
-  assert.equal(filterQuickReplies(['a', 'b', 'c', 'd'], { finalText: 'x' }).length, 3);
-});
 
 // ── 8–14. Accepted tool + retry + fallback, exactly once ────────────────────
 // Mirrors chat.js's sequence with stubs, in the established integration style.
@@ -375,7 +325,9 @@ test('the route validates before any persistence, and only ever commits validate
   assert.ok(validateIdx !== -1, 'candidate validation must exist');
   assert.ok(validateIdx < commitIdx, 'validation must run before the commit');
   assert.ok(commitIdx < streamIdx, 'nothing is streamed before the commit');
-  assert.match(chatSrc, /finalText = getClarityFallbackMessage\(user\?\.language, situationPhrase\)/);
+  // The fallback now alternates variants so it can never repeat consecutively.
+  assert.match(chatSrc, /const picked = pickClarityFallback\(user\?\.language, situationPhrase, lastAssistantText\);/);
+  assert.match(chatSrc, /finalText = picked\.text;/);
 });
 
 test('the controlled retry has no tools and carries its instruction in the system prompt', () => {

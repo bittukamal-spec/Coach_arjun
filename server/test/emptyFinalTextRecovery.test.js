@@ -17,10 +17,9 @@ const { readFileSync } = require('node:fs');
 const path = require('node:path');
 
 const {
-  runBufferedToolLoop, sanitizeFinalText, buildQuickReplyPayload, describeResponseShape,
+  runBufferedToolLoop, sanitizeFinalText, describeResponseShape,
 } = require('../src/services/coaching/bufferedToolLoop');
 const { validateAthleteText } = require('../src/services/coaching/validateAthleteText');
-const { filterQuickReplies } = require('../src/services/coaching/filterQuickReplies');
 const {
   createCommitCoachingTransition, getClarityFallbackMessage, getRetryMessage,
 } = require('../src/services/coaching/commitCoachingTransition');
@@ -46,10 +45,6 @@ function makeAnthropicStub(responses) {
 }
 const textResponse = (text, stop = 'end_turn') => ({ stop_reason: stop, content: text === null ? [] : [{ type: 'text', text }] });
 const blocksResponse = (blocks, stop = 'end_turn') => ({ stop_reason: stop, content: blocks });
-const quickRepliesToolResponse = (replies) => ({
-  stop_reason: 'tool_use',
-  content: [{ type: 'tool_use', id: 'tu-1', name: 'offer_quick_replies', input: { replies } }],
-});
 const proposeToolResponse = () => ({
   stop_reason: 'tool_use',
   content: [{ type: 'tool_use', id: 'tu-2', name: 'propose_barrier', input: {
@@ -124,44 +119,20 @@ async function runRoute({ loopResponses, routeRetryResponse = null, situationPhr
   // Emission, mirroring the route: no chips when the fallback spoke.
   const emitted = [{ t: 'd', c: finalText }];
   if (committed.card) emitted.push({ t: 'card', card: committed.card });
-  else if (!usedClarityFallback) {
-    const kept = filterQuickReplies(loop.quickReplies, { finalText, athleteMessage: 'I rushed the shot again' });
-    const payload = buildQuickReplyPayload(kept);
-    if (payload) emitted.push({ t: 'quick_replies', replies: payload });
-  }
   emitted.push({ t: 'end', id: committed.message.id });
 
   return { loop, firstCheck, finalText, usedClarityFallback, emitted, writes: dbStub.writes, routeRetryCalls };
 }
 
 const RESEND_COPY = getRetryMessage('en');
-const CHIPS = ['Mostly in matches', 'Mostly in training'];
 
 // ── 1–6. The production scenario and its variants ──────────────────────────
 
-test('the exact production scenario: quick replies staged, empty final text, failed recovery → truthful fallback, never the resend message', async () => {
-  const out = await runRoute({
-    loopResponses: [quickRepliesToolResponse(CHIPS), textResponse(''), textResponse('')],
-  });
-
-  // Reproduces the logged shape.
-  assert.equal(out.firstCheck.reasonCode, 'EMPTY_FINAL_TEXT');
-  assert.equal(!!out.loop.transition, false, 'transitionStaged: false');
-  assert.equal(!!out.loop.quickReplies, true, 'quickRepliesStaged: true');
-  assert.equal(out.loop.finalTextRecoveryAttempted, true);
-  assert.equal(out.loop.finalTextRecoverySucceeded, false);
-
-  // And the athlete now gets a real coaching turn instead.
-  assert.equal(out.usedClarityFallback, true);
-  assert.equal(out.finalText, "I didn't explain that clearly. What part of this situation feels most important right now?");
-  assert.notEqual(out.finalText, RESEND_COPY);
-  assert.ok(!/send your last message again|resend|dobara bhej/i.test(out.finalText), 'must never ask the athlete to resend');
-});
 
 test('recovery that returns valid text is used, and no fallback is needed', async () => {
   const good = 'It sounds like the fear of getting out makes you commit early. Does that fit?';
   const out = await runRoute({
-    loopResponses: [quickRepliesToolResponse(CHIPS), textResponse(''), textResponse(good)],
+    loopResponses: [proposeToolResponse(), textResponse(''), textResponse(good)],
   });
   assert.equal(out.loop.finalTextRecoverySucceeded, true);
   assert.equal(out.finalText, good);
@@ -169,12 +140,12 @@ test('recovery that returns valid text is used, and no fallback is needed', asyn
 });
 
 test('recovery that returns empty text falls back deterministically', async () => {
-  const out = await runRoute({ loopResponses: [quickRepliesToolResponse(CHIPS), textResponse(''), textResponse('')] });
+  const out = await runRoute({ loopResponses: [proposeToolResponse(), textResponse(''), textResponse('')] });
   assert.equal(out.usedClarityFallback, true);
 });
 
 test('recovery that returns whitespace-only text falls back deterministically', async () => {
-  const out = await runRoute({ loopResponses: [quickRepliesToolResponse(CHIPS), textResponse(''), textResponse('   \n\t  ')] });
+  const out = await runRoute({ loopResponses: [proposeToolResponse(), textResponse(''), textResponse('   \n\t  ')] });
   assert.equal(out.usedClarityFallback, true);
   assert.equal(sanitizeFinalText('   \n\t  '), null);
 });
@@ -182,7 +153,7 @@ test('recovery that returns whitespace-only text falls back deterministically', 
 test('recovery that returns only non-text blocks falls back deterministically', async () => {
   const out = await runRoute({
     loopResponses: [
-      quickRepliesToolResponse(CHIPS),
+      proposeToolResponse(),
       textResponse(''),
       blocksResponse([{ type: 'thinking', thinking: 'internal' }]),
     ],
@@ -193,7 +164,7 @@ test('recovery that returns only non-text blocks falls back deterministically', 
 
 test('a contextual fallback is used when a validated situation phrase exists', async () => {
   const out = await runRoute({
-    loopResponses: [quickRepliesToolResponse(CHIPS), textResponse(''), textResponse('')],
+    loopResponses: [proposeToolResponse(), textResponse(''), textResponse('')],
     situationPhrase: 'what happens after a mistake',
   });
   assert.equal(out.finalText, "I didn't explain that clearly. Let's stay with what happens after a mistake. What feels most important about it right now?");
@@ -204,7 +175,7 @@ test('a contextual fallback is used when a validated situation phrase exists', a
 // ── 7–9. The misleading message and stale chips ────────────────────────────
 
 test('the old "couldn\'t save" copy is never used for EMPTY_FINAL_TEXT', async () => {
-  const out = await runRoute({ loopResponses: [quickRepliesToolResponse(CHIPS), textResponse(''), textResponse('')] });
+  const out = await runRoute({ loopResponses: [proposeToolResponse(), textResponse(''), textResponse('')] });
   const persisted = out.writes.filter((w) => w.op === 'message.create').map((w) => w.data.content);
   for (const c of persisted) assert.notEqual(c, RESEND_COPY);
   assert.ok(!out.emitted.some((e) => e.t === 'd' && e.c === RESEND_COPY));
@@ -218,47 +189,25 @@ test('the route no longer routes empty text into the save-error path at all', ()
   assert.match(chatSrc, /return emitDeterministicRetry\(reasonCode, commitErr\);/);
 });
 
-test('staged quick replies are discarded when the fallback speaks — no chip event, composer still available', async () => {
-  const out = await runRoute({ loopResponses: [quickRepliesToolResponse(CHIPS), textResponse(''), textResponse('')] });
-  assert.equal(out.usedClarityFallback, true);
-  assert.deepEqual(out.loop.quickReplies, CHIPS, 'they were staged…');
-  assert.ok(!out.emitted.some((e) => e.t === 'quick_replies'), '…but never emitted');
-  assert.deepEqual(out.emitted.map((e) => e.t), ['d', 'end']);
-});
 
-test('chips are still emitted normally when recovery succeeds', async () => {
-  const out = await runRoute({
-    loopResponses: [quickRepliesToolResponse(CHIPS), textResponse(''), textResponse('Does this happen more in matches or in training?')],
-  });
-  const chipEvent = out.emitted.find((e) => e.t === 'quick_replies');
-  assert.ok(chipEvent, 'a successful reply keeps its chips');
-  assert.deepEqual(chipEvent.replies.map((r) => r.label), CHIPS);
-});
 
 // ── 10–15. Exactly-once ────────────────────────────────────────────────────
 
 test('exactly one assistant Message is persisted on the fallback path', async () => {
-  const out = await runRoute({ loopResponses: [quickRepliesToolResponse(CHIPS), textResponse(''), textResponse('')] });
+  const out = await runRoute({ loopResponses: [proposeToolResponse(), textResponse(''), textResponse('')] });
   assert.equal(out.writes.filter((w) => w.op === 'message.create').length, 1);
   assert.equal(out.emitted.filter((e) => e.t === 'd').length, 1);
   assert.equal(out.emitted.filter((e) => e.t === 'end').length, 1);
 });
 
-test('no tool executes twice and no quick-reply tool is re-staged', async () => {
-  const anthropic = makeAnthropicStub([quickRepliesToolResponse(CHIPS), textResponse(''), textResponse('')]);
-  const loop = await runBufferedToolLoop({
-    anthropic, model: 'm', maxTokens: 800, system: 'SYS',
-    messages: [{ role: 'user', content: 'hi' }], coachingContext: NO_STATE,
-  });
-  // Round 1 (tool), round 2 (empty end_turn), one recovery — and the recovery
-  // call carries no tools, so nothing can be staged again.
-  assert.equal(anthropic.calls.length, 3);
-  assert.equal(anthropic.calls[2].tools, undefined);
-  assert.deepEqual(loop.quickReplies, CHIPS, 'the original staged set is untouched');
-});
 
 test('with no transition staged, nothing claims a coaching step failed and no coaching records are written', async () => {
-  const out = await runRoute({ loopResponses: [quickRepliesToolResponse(CHIPS), textResponse(''), textResponse('')] });
+  // No tool at all: the loop skips its own recovery, the route spends the one
+  // controlled attempt, and that also comes back empty.
+  const out = await runRoute({
+    loopResponses: [textResponse('')],
+    routeRetryResponse: textResponse(''),
+  });
   assert.equal(out.loop.transition, null);
   assert.equal(out.writes.filter((w) => w.op === 'cycle.create').length, 0);
   assert.equal(out.writes.filter((w) => w.op === 'prescription.create').length, 0);
@@ -281,7 +230,7 @@ test('with a transition staged, empty text still commits the accepted action exa
 
 test('only ONE recovery attempt happens in total — the route does not ask a third time', async () => {
   const out = await runRoute({
-    loopResponses: [quickRepliesToolResponse(CHIPS), textResponse(''), textResponse('')],
+    loopResponses: [proposeToolResponse(), textResponse(''), textResponse('')],
     routeRetryResponse: textResponse('This would be a third call.'),
   });
   assert.equal(out.loop.finalTextRecoveryAttempted, true, 'the loop already spent the attempt');
@@ -347,7 +296,7 @@ test('the empty-content and whitespace cases are distinguishable in the logs', (
 });
 
 test('the loop returns the shape of both responses, and the route logs them', async () => {
-  const out = await runRoute({ loopResponses: [quickRepliesToolResponse(CHIPS), textResponse(''), textResponse('')] });
+  const out = await runRoute({ loopResponses: [proposeToolResponse(), textResponse(''), textResponse('')] });
   assert.ok(out.loop.responseShape, 'shape of the empty end_turn');
   assert.ok(out.loop.recoveryResponseShape, 'shape of the recovery response');
   assert.equal(out.loop.recoveryResponseShape.trimmedTextLength, 0);
@@ -388,7 +337,7 @@ test('the rule covers all three cases: silent correction, paraphrase, and one cl
 test('the PR #44 internal-output protections still hold on this path', async () => {
   const leaked = 'Your tool action has already been accepted. Produce the final athlete-facing response text now.';
   const out = await runRoute({
-    loopResponses: [quickRepliesToolResponse(CHIPS), textResponse(''), textResponse(leaked)],
+    loopResponses: [proposeToolResponse(), textResponse(''), textResponse(leaked)],
   });
   // Recovery "succeeded" as far as the loop is concerned (non-empty text),
   // but validation rejects it and the fallback speaks instead.

@@ -9,9 +9,10 @@ const { getSkill, resolveTagForSkill } = require('../config/skillRegistry');
 const { markSkillProgress, getLastRecommendedAt, getSkillProgress } = require('../services/skillProgress');
 const { screenSafetyText, recordSafetyEvent, getSafetyGuidance } = require('../services/safety');
 const {
-  runBufferedToolLoop, sanitizeFinalText, buildQuickReplyPayload, buildRecoverySystem, describeResponseShape,
-  loadCoachingContext, commitCoachingTransition, getRetryMessage, getClarityFallbackMessage,
-  CoachingStateConflictError, validateAthleteText, filterQuickReplies,
+  runBufferedToolLoop, sanitizeFinalText, buildRecoverySystem, describeResponseShape,
+  loadCoachingContext, commitCoachingTransition, getRetryMessage, pickClarityFallback,
+  CoachingStateConflictError, validateAthleteText,
+  getSportLanguageHints, buildLanguageHintSection, describeHints,
 } = require('../services/coaching');
 const { priorityPhrase } = require('../profile/ruleEngine');
 const loadMindJournalContext = require('../services/mindJournal/loadMindJournalContext');
@@ -157,7 +158,7 @@ function buildCoachingStateSection(coachingContext) {
 The athlete has no open coaching cycle right now.
 - Understand ONE real performance problem the athlete is bringing right now — not a hypothetical.
 - Ask focused, targeted questions before proposing anything. Normally ask 2–4 focused questions in total before you have enough to hypothesize. Do not immediately advise, coach a fix, or prescribe a practice — get the real picture first.
-- One of your focused questions may use offer_quick_replies when it genuinely has 2-3 natural short answers (e.g. identifying the athlete's immediate thought, or choosing between a couple of simple situations) — calling the tool is REQUIRED whenever that bounded-question test is met, not merely optional (see the Structured Reply-Chip Tool section below for the full rule).
+- Ask your questions as open questions in plain language. Coach is a free-text conversation — never offer the athlete a numbered list, a lettered menu, or a set of options to pick from.
 - When you have enough, call the propose_barrier tool with exactly ONE tentative barrier.
 - After propose_barrier is accepted, your visible reply must frame that barrier as a hypothesis in plain language ("sounds like… does that fit?") and ask the athlete to confirm or correct it. Do NOT prescribe a practice, mention a specific tool, or offer any menu of options in that reply — confirmation comes first, with no card of any kind.`;
   }
@@ -180,8 +181,8 @@ A barrier hypothesis is open on this cycle and awaiting the athlete's confirmati
 - If the athlete rejects the hypothesis, that rejection alone is not a correction and is not grounds to prescribe anything. Ask no more than two more useful follow-up questions where needed, then present exactly ONE revised hypothesis and ask the athlete to confirm it.
 - Call prescribe_mental_rep only after the athlete has explicitly accepted a working barrier — either the original (use CONFIRMED) or a revised one they accepted after correcting the first (use CORRECTED). CORRECTED means a revised barrier was proposed and accepted — never merely that the original was rejected.
 - practiceKey must be one of the approved Mental Rep practices in the prescribe_mental_rep tool's schema — never a game (Focus Lock, Reset Rally), a Skill Path, or any invented practice.
-- When you present a barrier hypothesis (new or revised) for confirmation, that is a bounded confirm/correct question, so calling offer_quick_replies with confirm/correct choices — equivalents of "Yes, that feels right" and "Not quite" — is normally required (optionally adding one specific correction when a clear alternative stands out). Tapping "Not quite" is only a rejection, never a correction and never CONFIRMED/CORRECTED by itself — the athlete must still explain or accept a revised barrier before prescribe_mental_rep may be called. The app always adds "Write my own" itself — never include that, "Other", or "Something else" yourself.
-- When you call prescribe_mental_rep, your visible reply must: explain the barrier in no more than 1–2 short lines; prescribe exactly ONE approved practice; name the real training or competition situation where the athlete will try it; and never offer a menu, a second practice, or alternatives. The app shows the practice card to the athlete automatically — do not write [APP:...] or [SUGGEST:...] tags in this reply, and do not call offer_quick_replies in that same reply — the practice card takes its place.`;
+- When you present a barrier hypothesis (new or revised) for confirmation, ask for that confirmation in your own words as an open question — do not list options for the athlete to pick from. A bare rejection is only a rejection, never a correction and never CONFIRMED/CORRECTED by itself — the athlete must still explain or accept a revised barrier before prescribe_mental_rep may be called.
+- When you call prescribe_mental_rep, your visible reply must: explain the barrier in no more than 1–2 short lines; prescribe exactly ONE approved practice; name the real training or competition situation where the athlete will try it; and never offer a menu, a second practice, or alternatives. The app shows the practice card to the athlete automatically — do not write [APP:...] or [SUGGEST:...] tags in this reply.`;
   }
 
   return `## Coaching State: Prescription Already Active
@@ -191,45 +192,15 @@ The athlete already has an open Mental Rep prescription from the current coachin
 - If the athlete reports how the practice went — it helped, helped a little, did not help, or that they haven't tried it yet — whether replying to the app's own automatic follow-up question or bringing it up on their own, call record_prescription_outcome with the matching outcomeStatus and a short, athlete-visible lessonText grounded only in what they actually said. Your visible reply must include that exact lessonText verbatim. Never diagnose, score, or profile the athlete in the lesson, and never claim the practice is clinically effective — state only what happened and what it suggests for next time.
 - Do NOT prescribe a new practice in the same reply as record_prescription_outcome — acknowledging the result is enough for now.
 - Otherwise, keep coaching the athlete conversationally around their existing practice, or about anything else they bring up — do not re-prescribe or re-diagnose.
-- Ordinary conversation may still use offer_quick_replies where it genuinely fits (see the Structured Reply-Chip Tool section below).`;
+- Keep ordinary conversation free-text: ask real questions in plain language, never a menu of options to choose from.`;
 }
 
-// ── Structured reply-chip tool guidance (offer_quick_replies) ────────────
-// Shared across all three coaching states above — general rules for when
-// chips help versus when they don't, kept in one place rather than
-// repeated per state. Only shown alongside the coaching-state section
-// (main chat with a coachingContext), never in quick chat.
-//
-// The main (non-quick-chat) prompt intentionally contains NO instruction to
-// generate legacy [SUGGEST:...] tags — that generation instruction lived in
-// a "## Quick Reply Chips" section which has been removed from this
-// template; offer_quick_replies is now the ONLY mechanism for new main-chat
-// reply chips, so there is nothing left to conflict with it. Quick chat's
-// own separate, self-contained prompt template (the early return above)
-// still asks for [SUGGEST:...] — untouched, since it doesn't use tools at
-// all. The server sanitizer (sanitizeFinalText) still strips any
-// [SUGGEST:...]/[APP:...] text defensively regardless of what a model
-// produces, and the client still parses/renders [SUGGEST:...] on old
-// stored messages (extractSuggestions in ChatPage.jsx) — both untouched.
-function buildQuickReplySection() {
-  return `## Structured Reply-Chip Tool (offer_quick_replies)
-When your final question has exactly 2-3 clear, short, non-sensitive answer categories, you MUST call offer_quick_replies in the same request — do not merely write the options inside your message text. For open-ended or sensitive questions, do not call the tool at all; those stay text-only.
-Examples that MUST get chips:
-- "After those missed balls, are you thinking more about the bowler and your shot, or more about the result and getting out?" → "The bowler, field, or shot" / "The result or getting out"
-- "Does this happen more in matches, training, or both?" → "Mostly in matches" / "Mostly in training" / "Both"
-- confirming or rejecting a barrier hypothesis, e.g. "Does that feel accurate?" → "Yes, that feels right" / "Not quite"
-Good uses in general: identifying the athlete's immediate thought, choosing between a couple of simple situations, confirming or rejecting a barrier hypothesis, or (later) a quick outcome question like whether a practice helped.
-Do NOT offer quick replies:
-- on every message — most replies need none;
-- when the question is open-ended, with no small fixed set of likely answers, or when the athlete needs to explain something in their own words;
-- when there are more than three meaningfully different answers;
-- for sensitive disclosures, or anywhere near a crisis, abuse, injury, or immediate-danger discussion;
-- when a detailed personal explanation is needed;
-- when the choices themselves would lead or diagnose the athlete, or would pressure them toward an answer;
-- in the same reply as a new prescription (prescribe_mental_rep) — the practice card takes that reply's place, never chips.
-Examples that stay text-only: "What was going through your mind at that moment?", "Tell me what happened after the mistake.", "What would you like to handle differently next time?"
-Chips support the question but never replace free-text input — the athlete can always type instead. Labels must be short, in the athlete's own words rather than clinical labels, and follow the current conversation language (see the Language rules above). Avoid near-duplicate choices, and never include an explanation inside a chip label — maximum three replies. The app always adds its own "Write my own" option after your choices — never include "Other", "Something else", or "Write my own" yourself. Call offer_quick_replies at most once per reply: once its tool_result confirms your choices are staged, do not call it again in this same request — write your final natural-language question text right away instead. This is the ONLY way to offer reply chips in this conversation — never write a [SUGGEST:...] tag.`;
-}
+// Coach is a free-text conversation. The AI-generated reply-chip tool and its
+// prompt section were removed: staging chips cost an extra model round that
+// regularly ended with no athlete-facing text at all, and it made Arjun read
+// as a scripted form rather than a coach. Deterministic selection controls
+// elsewhere (onboarding, Starting Profile, Mental Rep, prescription-outcome
+// choices) are untouched — they never used this mechanism.
 
 // ── Optional Mind Journal context (score-free rollout) ───────────────────
 // Only ever populated for the main coaching chat, and only when the
@@ -357,15 +328,15 @@ Do not apologise for giving the safety message. Do not explain why you are givin
 
 ## Format
 No markdown. No bullet points. No headers. Conversational tone only.
-End each reply with a new line containing exactly [SUGGEST: option1 | option2 | option3] — 2–3 short (2–5 word) quick-reply options. This is required app syntax, not markdown; it never displays as visible text, it becomes tappable chip buttons under your message. If you asked a specific question, the options must directly answer it (e.g. sport names if you asked which sport). Never use vague filler like "yes", "okay", or "tell me more". Skip the tag only if truly nothing useful fits (e.g. a safety response).`;
+Never write [SUGGEST:...] or [APP:...] tags — reply chips no longer exist. End with your question in plain sentences; the athlete answers by typing.`;
   }
   const goals = JSON.parse(user.goals || '[]').map(g => GOAL_LABELS[g] || g);
   const goalsText = goals.length ? goals.join(', ') : 'general mental performance';
 
   const langInstruction =
     user.language === 'hi'
-      ? 'CRITICAL: Respond ONLY in Hindi (Devanagari script). Never switch to English unless the athlete writes in English first. This rule applies to ALL text, including any offer_quick_replies chip labels. You may use common English sports terms Indian athletes regularly use (e.g. "focus", "confidence", "performance").'
-      : 'CRITICAL: Respond ONLY in English. Never switch to Hindi unless the athlete writes in Hindi first. This rule applies to ALL text, including any offer_quick_replies chip labels. You may occasionally weave in a culturally resonant Hindi phrase (like "जय हो") where it feels truly natural, but the sentence itself must be English.';
+      ? 'CRITICAL: Respond ONLY in Hindi (Devanagari script). Never switch to English unless the athlete writes in English first. This rule applies to ALL text you write. You may use common English sports terms Indian athletes regularly use (e.g. "focus", "confidence", "performance").'
+      : 'CRITICAL: Respond ONLY in English. Never switch to Hindi unless the athlete writes in Hindi first. This rule applies to ALL text you write. You may occasionally weave in a culturally resonant Hindi phrase (like "जय हो") where it feels truly natural, but the sentence itself must be English.';
 
   // ── Check-in summary ──────────────────────────────────────────────────────
   let checkInSection;
@@ -499,10 +470,9 @@ No recent check-ins — the athlete hasn't tracked their mental state yet.`;
     : '';
 
   const coachingStateSection = buildCoachingStateSection(coachingContext);
-  const quickReplySection = coachingContext ? buildQuickReplySection() : '';
   const mindJournalSection = buildMindJournalContextSection(mindJournalEntries);
 
-  const extraSections = [coachingStateSection, quickReplySection, patternSection, mindJournalSection].filter(Boolean).join('\n\n');
+  const extraSections = [coachingStateSection, patternSection, mindJournalSection].filter(Boolean).join('\n\n');
 
   const actionBridgeSection = (extra.arjunMsgCount ?? 0) >= 4
     ? `\n\n## Natural Action Offer\nYou are ${extra.arjunMsgCount} responses into this session. If you feel you have addressed the athlete's main concern, naturally offer ONE specific next step they can try right now — for example a 2-minute breathing exercise, building a pre-match routine together, or a quick visualisation drill. Keep it to one casual sentence such as "Want to try a quick breathing exercise right now?" Only offer this once — if you have already suggested a next action in this session, do not repeat it.`
@@ -1185,7 +1155,24 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
     // PR 3: the athlete-confirmed Starting Profile (only if reviewed) — the
     // single interpretation block. Main coaching chat only.
     const startingProfile = await loadConfirmedProfile(req.userId, user.language);
-    const systemPrompt = buildSystemPrompt(user, recentCheckIns, memories, sessionType, { ...promptExtra, coachingContext, mindJournalEntries, startingProfile });
+    // Conservative sport-aware interpretation hints for likely spelling or
+    // voice-transcription errors ("wing bowling" → swing bowling). Internal
+    // only: appended to the SYSTEM prompt, never streamed, never persisted,
+    // never sent as a synthetic user turn. The athlete's stored Message is
+    // never rewritten.
+    const languageHints = getSportLanguageHints({
+      sport: user.sport,
+      message: content,
+      context: conversationHistory.slice(-4).map((m) => (typeof m.content === 'string' ? m.content : '')).join(' '),
+    });
+    if (languageHints.highConfidence.length) {
+      // Safe: reason codes and a count only — never the observed or intended
+      // phrase, and never any part of the athlete's message.
+      console.log('[chat] language_hints', JSON.stringify(describeHints(languageHints)));
+    }
+
+    const systemPrompt = buildSystemPrompt(user, recentCheckIns, memories, sessionType, { ...promptExtra, coachingContext, mindJournalEntries, startingProfile })
+      + buildLanguageHintSection(languageHints);
     const loop = await runBufferedToolLoop({
       anthropic,
       model,
@@ -1206,7 +1193,6 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
         reasonCode,
         rounds: loop.rounds,
         transitionStaged: !!loop.transition,
-        quickRepliesStaged: !!loop.quickReplies,
         finalTextRecoveryAttempted: !!loop.finalTextRecoveryAttempted,
         finalTextRecoverySucceeded: !!loop.finalTextRecoverySucceeded,
         // Structural shape of the model responses: stop_reason, block
@@ -1266,7 +1252,6 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
         surface: 'main_chat',
         rounds: loop.rounds,
         transitionStaged: !!loop.transition,
-        quickRepliesStaged: !!loop.quickReplies,
         recoveryAttempted: !!loop.finalTextRecoveryAttempted,
         recoverySucceeded: !!loop.finalTextRecoverySucceeded,
         // Structural only: stop_reason, block types/counts, trimmed length.
@@ -1276,7 +1261,6 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
     };
 
     let finalText = null;
-    let usedClarityFallback = false;
 
     // EMPTY text and REJECTED text are the same problem — the model produced
     // nothing an athlete can use — so they share one pipeline. Empty text used
@@ -1286,7 +1270,7 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
     // failed to save, and the athlete's message was already persisted before
     // the model was ever called, so resending only duplicates it.
     const firstCheck = candidateText
-      ? validateAthleteText(candidateText)
+      ? validateAthleteText(candidateText, { languageHints })
       : { ok: false, reasonCode: loop.exceededRounds ? 'ROUND_LIMIT' : 'EMPTY_FINAL_TEXT', layer: 'empty' };
 
     if (firstCheck.ok) {
@@ -1308,12 +1292,15 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
           const retryResponse = await anthropic.messages.create({
             model,
             max_tokens: 800,
+            // On a typo-echo rejection the reminder is the hint section itself,
+            // which already tells Arjun to use or paraphrase the intended
+            // meaning and never quote the mistaken phrase back.
             system: buildRecoverySystem(systemPrompt),
             messages: conversationHistory,
           });
           const retryContent = Array.isArray(retryResponse.content) ? retryResponse.content : [];
           const retryText = sanitizeFinalText(retryContent.filter((b) => b.type === 'text').map((b) => b.text).join(''));
-          const retryCheck = validateAthleteText(retryText || '');
+          const retryCheck = validateAthleteText(retryText || '', { languageHints });
           if (retryCheck.ok) finalText = retryText;
           else logResponseValidation('retry', retryCheck, describeResponseShape(retryResponse));
         } catch (retryErr) {
@@ -1330,11 +1317,18 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
         const situationPhrase = startingProfile?.agreedPriorityId
           ? priorityPhrase(startingProfile.agreedPriorityId, user.language === 'hi' ? 'hi' : 'en')
           : null;
-        finalText = getClarityFallbackMessage(user?.language, situationPhrase);
-        usedClarityFallback = true;
+        // Never repeat the same fallback the athlete just saw — founder
+        // screenshots showed the primary variant looping turn after turn.
+        // The most recent VISIBLE assistant message decides which variant
+        // speaks; a third consecutive one degrades to a short open prompt.
+        const lastAssistantText = [...conversationHistory].reverse()
+          .find((m) => m.role === 'assistant' && typeof m.content === 'string')?.content || null;
+        const picked = pickClarityFallback(user?.language, situationPhrase, lastAssistantText);
+        finalText = picked.text;
         logDeterministicRetry(firstCheck.reasonCode, null, {
           recoveryAlreadySpent,
           deterministicFallbackUsed: true,
+          fallbackVariant: picked.variant,
         });
       }
     }
@@ -1362,27 +1356,11 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
 
     res.write(`data: ${JSON.stringify({ t: 'd', c: finalText })}\n\n`);
     if (committed.card) {
-      // Newly accepted prescription: the practice card takes this reply's
-      // place — never both a card and quick replies in the same response,
-      // even if the model staged both (see offer_quick_replies validation).
+      // Newly accepted prescription: the practice card is the only structured
+      // element this reply carries — the athlete answers in free text.
       res.write(`data: ${JSON.stringify({ t: 'card', card: committed.card })}\n\n`);
-    } else if (!usedClarityFallback) {
-      // Final chip pass, now that the reply text exists: drops duplicates,
-      // chips that restate Arjun's own question or the athlete's last
-      // message, bare agreement, and anything carrying internal syntax.
-      // Below two survivors nothing is emitted — the composer is always
-      // available, and padding the list with invented options would be worse
-      // than no chips. Staged chips are dropped entirely when the clarity
-      // fallback spoke, since they were written for a reply that never ran.
-      const kept = filterQuickReplies(loop.quickReplies, {
-        finalText,
-        athleteMessage: content,
-      });
-      const quickReplies = buildQuickReplyPayload(kept);
-      if (quickReplies) {
-        res.write(`data: ${JSON.stringify({ t: 'quick_replies', replies: quickReplies })}\n\n`);
-      }
     }
+
     res.write(`data: ${JSON.stringify({ t: 'end', id: committed.message.id })}\n\n`);
     res.end();
 
@@ -1563,4 +1541,3 @@ module.exports.checkFreeLimit = checkFreeLimit;
 module.exports.isTrialActive  = isTrialActive;
 module.exports.buildSystemPrompt = buildSystemPrompt;
 module.exports.buildCoachingStateSection = buildCoachingStateSection;
-module.exports.buildQuickReplySection = buildQuickReplySection;

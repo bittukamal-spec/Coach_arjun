@@ -59,7 +59,9 @@ test('ChatPage: the SSE per-line parse remains wrapped in try/catch — a malfor
 
 test('ChatPage: legacy [APP:...] parsing via parseArjunMessage is still present', () => {
   assert.match(chatPageSrc, /import\s*{\s*parseArjunMessage,\s*APP_TOOL_CONFIG\s*}\s*from\s*'\.\.\/utils\/parseArjunMessage'/);
-  assert.match(chatPageSrc, /parseArjunMessage\(clean\)/);
+  // The [SUGGEST:] tag is now only STRIPPED (chips are gone), so the parser
+  // receives the stripped text rather than a variable named `clean`.
+  assert.match(chatPageSrc, /parseArjunMessage\(stripSuggestTag\(/);
   assert.match(chatPageSrc, /appTools:\s*tools/);
 });
 
@@ -100,8 +102,11 @@ test('ChatPage: rendered server cards are never sent back to the server (no fetc
 // ── 5. Session-switch resets temporary card state ────────────────────────────
 
 test('ChatPage: server cards reset when chatSessionId changes (no leak across sessions)', () => {
-  const idx = chatPageSrc.indexOf('Reset temporary server-issued card / quick-reply / outcome-choice');
+  const idx = chatPageSrc.indexOf('Reset temporary server-issued card / outcome-choice');
   assert.ok(idx !== -1, 'expected a documented reset effect');
   const block = chatPageSrc.slice(idx, idx + 500);
-  assert.match(block, /useEffect\(\(\) => \{ setServerCards\(\[\]\); setQuickReplies\(null\); setOutcomeChoices\(null\); \}, \[chatSessionId\]\)/);
+  // AI quick replies were removed; server cards and the deterministic
+  // outcome choices still reset per session.
+  assert.match(block, /useEffect\(\(\) => \{ setServerCards\(\[\]\); setOutcomeChoices\(null\); \}, \[chatSessionId\]\)/);
+  assert.doesNotMatch(block, /setQuickReplies/);
 });

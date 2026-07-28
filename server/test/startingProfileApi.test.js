@@ -417,7 +417,10 @@ test('start-chat creates exactly one session and one deterministic opening messa
     assert.equal(msg.role, 'assistant');
     assert.equal(msg.chatSessionId, first.chatSessionId);
     assert.match(msg.content, /Rahul/);
-    assert.match(msg.content, /\[SUGGEST: In my last match \| In training \| It happens often \| Something else\]$/);
+    // Coach is free-text now: the opening message ends on an open question
+    // with no reply-chip marker of any kind.
+    assert.doesNotMatch(msg.content, /\[SUGGEST:/);
+    assert.match(msg.content, /what happened\?$/i);
 
     // Tapping again (double tap, refresh, second device) reuses it.
     const second = await (await call('POST', '/api/profile/start-chat')).json();
