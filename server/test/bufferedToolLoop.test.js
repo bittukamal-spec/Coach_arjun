@@ -109,14 +109,14 @@ test('a tool call receives a tool_result and Anthropic is called again with it',
   assert.equal(result.transition.type, 'propose_barrier');
 });
 
-test('every Anthropic call carries the coaching tools', async () => {
+test('every tool-loop Anthropic call carries the coaching tools', async () => {
   const stub = makeAnthropicStub([
     toolResponse('draft', 'propose_barrier', PROPOSE_INPUT),
     textResponse('Final.'),
   ]);
   await run(stub, NO_STATE);
   for (const call of stub.calls) {
-    assert.deepEqual(call.tools.map((t) => t.name), ['propose_barrier', 'prescribe_mental_rep', 'offer_quick_replies', 'record_prescription_outcome']);
+    assert.deepEqual(call.tools.map((t) => t.name), ['propose_barrier', 'prescribe_mental_rep', 'record_prescription_outcome']);
   }
 });
 
@@ -255,163 +255,7 @@ test('a transition tool call in a later round is rejected when one is already st
   assert.equal(result.transition.type, 'propose_barrier');
 });
 
-// ── 6. Quick reply chips (offer_quick_replies) ───────────────────────────────
-
-const QUICK_REPLIES_INPUT = { replies: ["I'm going to get out", "I can't bat today"] };
-
-function quickRepliesToolResponse(draftText, replies, id = 'tu-qr') {
-  return toolResponse(draftText, 'offer_quick_replies', { replies }, id);
-}
-
-test('an accepted offer_quick_replies call stages the trimmed labels and discards its draft text', async () => {
-  const stub = makeAnthropicStub([
-    quickRepliesToolResponse('draft, never shown', ["  I'm going to get out  ", " I can't bat today "]),
-    textResponse('What happened out there?'),
-  ]);
-  const result = await run(stub, NO_STATE);
-  assert.equal(result.finalText, 'What happened out there?');
-  assert.deepEqual(result.quickReplies, ["I'm going to get out", "I can't bat today"]);
-  assert.equal(result.transition, null, 'offer_quick_replies must never stage a coaching-state transition');
-});
-
-test('offer_quick_replies receives a normal tool_result and the loop continues to end_turn', async () => {
-  const stub = makeAnthropicStub([
-    quickRepliesToolResponse('draft', QUICK_REPLIES_INPUT.replies, 'tu-99'),
-    textResponse('Final.'),
-  ]);
-  await run(stub, NO_STATE);
-  assert.equal(stub.calls.length, 2);
-  const toolResultTurn = stub.calls[1].messages[stub.calls[1].messages.length - 1];
-  assert.equal(toolResultTurn.content[0].tool_use_id, 'tu-99');
-  assert.equal(toolResultTurn.content[0].is_error, false);
-  assert.equal(JSON.parse(toolResultTurn.content[0].content).accepted, true);
-});
-
-test('at most one offer_quick_replies STAGING is accepted per request — a second call in a later round is idempotent (non-error), never rejected as an error', async () => {
-  const stub = makeAnthropicStub([
-    quickRepliesToolResponse('draft 1', ['Yes, that feels right', 'Not quite'], 'tu-1'),
-    quickRepliesToolResponse('draft 2', ['Different set', 'Another one'], 'tu-2'),
-    textResponse('Final.'),
-  ]);
-  const result = await run(stub, NO_STATE);
-  assert.equal(stub.calls.length, 3);
-  const secondRoundResult = stub.calls[2].messages[stub.calls[2].messages.length - 1].content[0];
-  // The fix: a duplicate offer_quick_replies call must NEVER be an error —
-  // treating it as one risked pushing the model to keep retrying the tool
-  // call instead of finishing, burning through MAX_ROUNDS in production.
-  assert.equal(secondRoundResult.is_error, false);
-  const parsed = JSON.parse(secondRoundResult.content);
-  assert.equal(parsed.accepted, true);
-  assert.match(parsed.note, /already staged/i);
-  assert.match(parsed.note, /do not call offer_quick_replies again/i);
-  assert.match(parsed.note, /produce the final response text now/i);
-  // The FIRST staged set is retained — never overwritten by the second
-  // (differently-worded) call's payload.
-  assert.deepEqual(result.quickReplies, ['Yes, that feels right', 'Not quite']);
-});
-
-test('the request succeeds without reaching the round limit when Claude repeats offer_quick_replies then finishes on round 3', async () => {
-  const stub = makeAnthropicStub([
-    quickRepliesToolResponse('draft 1', ['Yes, that feels right', 'Not quite'], 'tu-1'),
-    quickRepliesToolResponse('draft 2', ['Yes, that feels right', 'Not quite'], 'tu-2'),
-    textResponse('Does that sound right?'),
-  ]);
-  const result = await run(stub, NO_STATE);
-  assert.equal(result.exceededRounds, false);
-  assert.equal(result.rounds, 3);
-  assert.equal(result.finalText, 'Does that sound right?');
-  assert.deepEqual(result.quickReplies, ['Yes, that feels right', 'Not quite']);
-});
-
-test('the first successful offer_quick_replies staging ALSO instructs not to call it again and to produce final text now', async () => {
-  const stub = makeAnthropicStub([
-    quickRepliesToolResponse('draft', ['Yes, that feels right', 'Not quite'], 'tu-1'),
-    textResponse('Final.'),
-  ]);
-  await run(stub, NO_STATE);
-  const firstResult = stub.calls[1].messages[stub.calls[1].messages.length - 1].content[0];
-  assert.equal(firstResult.is_error, false);
-  const parsed = JSON.parse(firstResult.content);
-  assert.match(parsed.note, /Reply choices are staged/i);
-  assert.match(parsed.note, /do not call offer_quick_replies again in this request/i);
-  assert.match(parsed.note, /produce the final response text now/i);
-});
-
-test('three or more duplicate offer_quick_replies calls across rounds all stay idempotent and never exhaust the round cap on their own', async () => {
-  const stub = makeAnthropicStub([
-    quickRepliesToolResponse('draft 1', ['Yes, that feels right', 'Not quite'], 'tu-1'),
-    quickRepliesToolResponse('draft 2', ['Another set', 'Different'], 'tu-2'),
-    quickRepliesToolResponse('draft 3', ['Yet another', 'Something else entirely'], 'tu-3'),
-    textResponse('Final.'),
-  ]);
-  const result = await run(stub, NO_STATE);
-  assert.equal(result.exceededRounds, false);
-  assert.equal(result.finalText, 'Final.');
-  // Every round's tool_result is a non-error idempotent confirmation.
-  for (let round = 1; round <= 3; round++) {
-    const toolResult = stub.calls[round].messages[stub.calls[round].messages.length - 1].content[0];
-    assert.equal(toolResult.is_error, false, `round ${round} must not be an error`);
-  }
-  // The very first staged set is what survives, regardless of how many
-  // different payloads later duplicate calls carried.
-  assert.deepEqual(result.quickReplies, ['Yes, that feels right', 'Not quite']);
-});
-
-test('a transition tool and one offer_quick_replies call in the SAME response both stage successfully', async () => {
-  const stub = makeAnthropicStub([
-    {
-      stop_reason: 'tool_use',
-      content: [
-        { type: 'text', text: 'draft' },
-        { type: 'tool_use', id: 'tu-1', name: 'propose_barrier', input: PROPOSE_INPUT },
-        { type: 'tool_use', id: 'tu-2', name: 'offer_quick_replies', input: { replies: ['Yes, that feels right', 'Not quite'] } },
-      ],
-    },
-    textResponse('Does that sound right?'),
-  ]);
-  const result = await run(stub, NO_STATE);
-  const toolResults = stub.calls[1].messages[stub.calls[1].messages.length - 1].content;
-  assert.equal(toolResults.length, 2);
-  assert.equal(toolResults[0].is_error, false);
-  assert.equal(toolResults[1].is_error, false);
-  assert.equal(result.transition.type, 'propose_barrier');
-  assert.deepEqual(result.quickReplies, ['Yes, that feels right', 'Not quite']);
-});
-
-test('an invalid offer_quick_replies payload is rejected and stages nothing, while a valid transition in the same round still stages', async () => {
-  const stub = makeAnthropicStub([
-    {
-      stop_reason: 'tool_use',
-      content: [
-        { type: 'text', text: 'draft' },
-        { type: 'tool_use', id: 'tu-1', name: 'propose_barrier', input: PROPOSE_INPUT },
-        { type: 'tool_use', id: 'tu-2', name: 'offer_quick_replies', input: { replies: ['Only one'] } }, // invalid: <2
-      ],
-    },
-    textResponse('Final.'),
-  ]);
-  const result = await run(stub, NO_STATE);
-  const toolResults = stub.calls[1].messages[stub.calls[1].messages.length - 1].content;
-  assert.equal(toolResults[1].is_error, true);
-  assert.equal(result.transition.type, 'propose_barrier');
-  assert.equal(result.quickReplies, null);
-});
-
-test('the round cap discards staged quick replies along with everything else', async () => {
-  const stub = makeAnthropicStub([quickRepliesToolResponse('draft', QUICK_REPLIES_INPUT.replies)]); // repeats forever
-  const result = await run(stub, NO_STATE);
-  assert.equal(result.exceededRounds, true);
-  assert.equal(result.quickReplies, null);
-  assert.equal(result.finalText, null);
-});
-
-test('a normal response with no tool calls at all has quickReplies null (nothing staged)', async () => {
-  const stub = makeAnthropicStub([textResponse('Just coaching text.')]);
-  const result = await run(stub, NO_STATE);
-  assert.equal(result.quickReplies, null);
-});
-
-// ── 7. record_prescription_outcome (PR-13) ───────────────────────────────────
+// ── 6. record_prescription_outcome (PR-13) ───────────────────────────────────
 
 const ACTIVE_PRESCRIPTION_OUTCOME_STATE = {
   hasActiveSelection: true, cycleStatus: 'ACTIVE', barrierConfirmationStatus: 'CONFIRMED', hasPrescription: true,
@@ -476,58 +320,14 @@ test('record_prescription_outcome and prescribe_mental_rep in the SAME response:
   assert.equal(result.transition.type, 'record_prescription_outcome');
 });
 
-test('record_prescription_outcome and offer_quick_replies may coexist in the same response — independent trackers', async () => {
-  const stub = makeAnthropicStub([
-    {
-      stop_reason: 'tool_use',
-      content: [
-        { type: 'text', text: 'draft' },
-        { type: 'tool_use', id: 'tu-1', name: 'record_prescription_outcome', input: OUTCOME_INPUT },
-        { type: 'tool_use', id: 'tu-2', name: 'offer_quick_replies', input: { replies: ['Sounds good', 'Not quite'] } },
-      ],
-    },
-    textResponse('Final.'),
-  ]);
-  const result = await run(stub, ACTIVE_PRESCRIPTION_OUTCOME_STATE);
-  const toolResults = stub.calls[1].messages[stub.calls[1].messages.length - 1].content;
-  assert.equal(toolResults[0].is_error, false);
-  assert.equal(toolResults[1].is_error, false);
-  assert.equal(result.transition.type, 'record_prescription_outcome');
-  assert.deepEqual(result.quickReplies, ['Sounds good', 'Not quite']);
-});
 
-// ── 8. Bounded final-text recovery (production EMPTY_FINAL_TEXT fix) ────────
-// Reproduces the exact confirmed production sequence: offer_quick_replies is
+// ── 7. Bounded final-text recovery (production EMPTY_FINAL_TEXT fix) ────────
+// Reproduces the exact confirmed production sequence: a tool call is
 // accepted in round 1, then round 2 returns end_turn with no usable text.
 // Rather than exhaust the round cap and fall back to the deterministic
 // retry, the loop asks once more (with no tools) for the missing text.
 
-test('empty end_turn text after an accepted offer_quick_replies triggers one no-tools recovery call that returns valid text — the request succeeds without hitting the round limit', async () => {
-  const stub = makeAnthropicStub([
-    quickRepliesToolResponse('draft', ['Yes, that feels right', 'Not quite'], 'tu-1'),
-    textResponse('   '), // whitespace-only — sanitizes to nothing
-    textResponse('Got it — how did the reset feel in that moment?'),
-  ]);
-  const result = await run(stub, NO_STATE);
 
-  assert.equal(stub.calls.length, 3, 'round 1 (tool call), round 2 (empty end_turn), and exactly one recovery call');
-  assert.equal(result.finalText, 'Got it — how did the reset feel in that moment?');
-  assert.equal(result.exceededRounds, false);
-  assert.equal(result.finalTextRecoveryAttempted, true);
-  assert.equal(result.finalTextRecoverySucceeded, true);
-  assert.deepEqual(result.quickReplies, ['Yes, that feels right', 'Not quite'], 'the originally staged replies survive recovery unchanged');
-});
-
-test('the recovery request omits the tools key entirely — Claude cannot call offer_quick_replies or any transition tool during recovery', async () => {
-  const stub = makeAnthropicStub([
-    quickRepliesToolResponse('draft', ['Yes, that feels right', 'Not quite']),
-    textResponse(''),
-    textResponse('Final recovered text.'),
-  ]);
-  await run(stub, NO_STATE);
-  const recoveryCall = stub.calls[2];
-  assert.equal(recoveryCall.tools, undefined, 'no tools array on the recovery call');
-});
 
 // The recovery instruction used to be appended as a synthetic USER turn.
 // Delivered that way it reads as something the athlete asked for, and in
@@ -535,7 +335,7 @@ test('the recovery request omits the tools key entirely — Claude cannot call o
 // which was then persisted and shown. It now rides in the system prompt.
 test('the recovery instruction is carried in the system prompt, never as a synthetic user turn', async () => {
   const stub = makeAnthropicStub([
-    quickRepliesToolResponse('draft', ['Yes, that feels right', 'Not quite']),
+    toolResponse('draft', 'propose_barrier', PROPOSE_INPUT),
     textResponse(''),
     textResponse('Final recovered text.'),
   ]);
@@ -581,7 +381,7 @@ test('a staged prescription survives recovery — the transition is still return
 
 test('a second empty recovery response leaves finalText empty — the caller\'s existing EMPTY_FINAL_TEXT retry still fires, recovery is not retried again', async () => {
   const stub = makeAnthropicStub([
-    quickRepliesToolResponse('draft', ['Yes, that feels right', 'Not quite']),
+    toolResponse('draft', 'propose_barrier', PROPOSE_INPUT),
     textResponse(''),
     textResponse('   '), // recovery also comes back empty
   ]);
@@ -602,7 +402,7 @@ test('recovery is never attempted when no tool was staged at all — a genuinely
 
 test('a normal response with valid text and a staged tool makes no additional (recovery) Anthropic call', async () => {
   const stub = makeAnthropicStub([
-    quickRepliesToolResponse('draft', ['Yes, that feels right', 'Not quite']),
+    toolResponse('draft', 'propose_barrier', PROPOSE_INPUT, 'tu-normal'),
     textResponse('Here is the real reply.'),
   ]);
   const result = await run(stub, NO_STATE);

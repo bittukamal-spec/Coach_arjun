@@ -1,8 +1,8 @@
 // Deterministic first coaching message (PR 3). Built from the confirmed
 // profile + agreed priority — never AI-generated, never prescriptive, and it
 // does NOT re-ask whether the interpretation fits (that was already resolved
-// on the profile screen). Quick replies use the existing [SUGGEST: …] chip
-// mechanism the client already parses (ChatPage.extractSuggestions).
+// on the profile screen). It ends on an open question: Coach is a free-text
+// conversation, so no reply chips and no [SUGGEST:] tag are attached.
 
 const cfg = require('./ruleConfig');
 const { joinClauses, sentences, tidy, priorityPhrase } = require('./ruleEngine');
@@ -30,12 +30,8 @@ function shortPattern(ruleOutput, lang) {
   return tidy(lang === 'hi' ? `${trigger} ${joined}` : `${trigger}, ${joined}`);
 }
 
-const QUICK = {
-  en: 'In my last match | In training | It happens often | Something else',
-  hi: 'पिछले मैच में | ट्रेनिंग में | अक्सर होता है | कुछ और',
-};
 
-// Returns the stored assistant Message content, including the SUGGEST tag.
+// Returns the stored assistant Message content — plain prose, no markers.
 function buildFirstMessage(profile, ruleOutput, user) {
   const lang = user?.language === 'hi' ? 'hi' : 'en';
   const name = firstName(user?.name);
@@ -62,7 +58,7 @@ function buildFirstMessage(profile, ruleOutput, user) {
       : sentences([`Hi, ${name}. Thanks for being clear.`, `We'll begin instead by exploring ${focus}.`, 'Tell me about a recent moment when it affected you.']);
   }
 
-  return `${body}\n[SUGGEST: ${QUICK[lang]}]`;
+  return body;
 }
 
 module.exports = { buildFirstMessage, shortPattern, triggerPhrase };

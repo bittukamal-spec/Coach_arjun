@@ -5,7 +5,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { buildSystemPrompt, buildCoachingStateSection, buildQuickReplySection } = require('../src/routes/chat');
+const { buildSystemPrompt, buildCoachingStateSection } = require('../src/routes/chat');
 
 function baseUser(overrides = {}) {
   return {
@@ -47,14 +47,14 @@ test('no-active-selection: propose_barrier yields exactly one tentative barrier 
   assert.match(section, /Do NOT prescribe a practice, mention a specific tool, or offer any menu/i);
 });
 
-test('no-active-selection: may mention offer_quick_replies for one focused question', () => {
+test('no-active-selection: asks open questions and never offers a menu of options', () => {
   const section = buildCoachingStateSection(NO_STATE);
-  assert.match(section, /offer_quick_replies/);
+  assert.match(section, /Ask your questions as open questions in plain language/i);
+  assert.match(section, /never offer the athlete a numbered list, a lettered menu, or a set of options to pick from/i);
 });
 
-test('no-active-selection: calling offer_quick_replies is REQUIRED (not merely optional) whenever the bounded-question test is met', () => {
-  const section = buildCoachingStateSection(NO_STATE);
-  assert.match(section, /calling the tool is REQUIRED whenever that bounded-question test is met, not merely optional/i);
+test('no-active-selection: the removed reply-chip tool is never mentioned', () => {
+  assert.doesNotMatch(buildCoachingStateSection(NO_STATE), /offer_quick_replies/);
 });
 
 // ── Pending barrier ──────────────────────────────────────────────────────────
@@ -86,18 +86,13 @@ test('pending-barrier: the prescription reply must not use legacy card/chip synt
   assert.match(section, /do not write \[APP:\.\.\.\] or \[SUGGEST:\.\.\.\] tags/i);
 });
 
-test('pending-barrier: may offer confirm/correct quick replies after presenting the hypothesis, but never alongside prescribe_mental_rep', () => {
-  const section = buildCoachingStateSection(PENDING_STATE);
-  assert.match(section, /offer_quick_replies with confirm\/correct choices/i);
-  assert.match(section, /Yes, that feels right/i);
-  assert.match(section, /Not quite/i);
-  assert.match(section, /do not call offer_quick_replies in that same reply/i);
-});
 
-test('pending-barrier: presenting a barrier hypothesis for confirmation NORMALLY REQUIRES offer_quick_replies (not merely "may"), and a bare "Not quite" tap is never treated as confirmation/CORRECTED', () => {
+test('pending-barrier: confirmation is asked as an open question, and a bare rejection is never confirmation/CORRECTED', () => {
   const section = buildCoachingStateSection(PENDING_STATE);
-  assert.match(section, /is normally required/i);
-  assert.match(section, /Tapping "Not quite" is only a rejection, never a correction and never CONFIRMED\/CORRECTED by itself/i);
+  assert.doesNotMatch(section, /offer_quick_replies/);
+  assert.match(section, /ask for that confirmation in your own words as an open question/i);
+  assert.match(section, /do not list options for the athlete to pick from/i);
+  assert.match(section, /A bare rejection is only a rejection, never a correction and never CONFIRMED\/CORRECTED by itself/i);
   assert.match(section, /the athlete must still explain or accept a revised barrier before prescribe_mental_rep may be called/i);
 });
 
@@ -152,62 +147,10 @@ test('a truly PENDING barrier with no prescription still gets the original Barri
 
 // ── Quick Reply Chips general guidance ───────────────────────────────────────
 
-test('buildQuickReplySection: covers good uses, forbidden uses, and the client-owned "Write my own" rule', () => {
-  const section = buildQuickReplySection();
-  assert.match(section, /offer_quick_replies/);
-  assert.match(section, /identifying the athlete's immediate thought/i);
-  assert.match(section, /choosing between a couple of simple situations/i);
-  assert.match(section, /confirming or rejecting a barrier hypothesis/i);
-  assert.match(section, /on every message — most replies need none/i);
-  assert.match(section, /crisis, abuse, injury, or immediate-danger/i);
-  assert.match(section, /detailed personal explanation is needed/i);
-  assert.match(section, /lead or diagnose the athlete/i);
-  assert.match(section, /same reply as a new prescription/i);
-  assert.match(section, /never include "Other", "Something else", or "Write my own"/i);
-  assert.match(section, /follow the current conversation language/i);
-});
 
-test('buildQuickReplySection: the tool is mandatory for a clearly bounded 2-3 option question, with concrete required-chip examples', () => {
-  const section = buildQuickReplySection();
-  assert.match(section, /you MUST call offer_quick_replies in the same request/i);
-  assert.match(section, /do not merely write the options inside your message text/i);
-  assert.match(section, /are you thinking more about the bowler and your shot, or more about the result and getting out/i);
-  assert.match(section, /The bowler, field, or shot/);
-  assert.match(section, /The result or getting out/);
-  assert.match(section, /Does this happen more in matches, training, or both/i);
-  assert.match(section, /Mostly in matches/);
-  assert.match(section, /Mostly in training/);
-  assert.match(section, /"Both"/);
-});
 
-test('buildQuickReplySection: open-ended and over-three-answer questions are explicitly exempt, with concrete text-only examples', () => {
-  const section = buildQuickReplySection();
-  assert.match(section, /For open-ended or sensitive questions, do not call the tool at all/i);
-  assert.match(section, /when the question is open-ended, with no small fixed set of likely answers, or when the athlete needs to explain something in their own words/i);
-  assert.match(section, /when there are more than three meaningfully different answers/i);
-  assert.match(section, /What was going through your mind at that moment/i);
-  assert.match(section, /Tell me what happened after the mistake/i);
-  assert.match(section, /What would you like to handle differently next time/i);
-});
 
-test('buildQuickReplySection: chips support but never replace free text, use athlete-language not clinical labels, avoid near-duplicates, and cap at three', () => {
-  const section = buildQuickReplySection();
-  assert.match(section, /Chips support the question but never replace free-text input/i);
-  assert.match(section, /in the athlete's own words rather than clinical labels/i);
-  assert.match(section, /Avoid near-duplicate choices/i);
-  assert.match(section, /never include an explanation inside a chip label/i);
-  assert.match(section, /maximum three replies/i);
-});
 
-test('buildQuickReplySection: instructs Claude to call offer_quick_replies once, then never call it again in the same request once its tool_result confirms staging — write the final question text instead (production retry-loop bugfix)', () => {
-  const section = buildQuickReplySection();
-  assert.match(section, /once its tool_result confirms your choices are staged, do not call it again in this same request/i);
-  assert.match(section, /write your final natural-language question text right away instead/i);
-  // The bounded-question requirement itself must not be weakened by this addition.
-  assert.match(section, /you MUST call offer_quick_replies in the same request/i);
-  // The legacy marker must still never be restored.
-  assert.match(section, /never write a \[SUGGEST:\.\.\.\] tag/i);
-});
 
 // ── No context (quick chat / not wired) ──────────────────────────────────────
 
@@ -223,20 +166,7 @@ test('buildSystemPrompt: includes the coaching-state section when coachingContex
   assert.match(prompt, /## Coaching State: No Active Coaching Cycle/);
 });
 
-test('buildSystemPrompt: includes the structured reply-chip tool guidance whenever coachingContext is supplied', () => {
-  const prompt = buildSystemPrompt(baseUser(), [], [], null, { coachingContext: NO_STATE });
-  assert.match(prompt, /## Structured Reply-Chip Tool \(offer_quick_replies\)/);
-});
 
-test('buildSystemPrompt: the main (non-quick-chat) prompt contains offer_quick_replies guidance and NO instruction to generate legacy [SUGGEST:...] tags', () => {
-  const prompt = buildSystemPrompt(baseUser(), [], [], null, { coachingContext: NO_STATE });
-  assert.match(prompt, /## Structured Reply-Chip Tool \(offer_quick_replies\)/, 'the new tool section must be present');
-  // The legacy "## Quick Reply Chips" generation section has been removed
-  // from the main template entirely — offer_quick_replies is now the only
-  // mechanism for new main-chat reply chips.
-  assert.doesNotMatch(prompt, /## Quick Reply Chips\n/, 'the legacy SUGGEST-tag generation section must not exist in the main prompt');
-  assert.doesNotMatch(prompt, /\[SUGGEST:\s*option1/i, 'the main prompt must never instruct the model to write a [SUGGEST:...] tag');
-});
 
 test('buildSystemPrompt: omits the coaching-state AND structured reply-chip sections entirely when coachingContext is absent', () => {
   const prompt = buildSystemPrompt(baseUser(), [], [], null, {});
@@ -251,13 +181,10 @@ test('buildSystemPrompt: the dormant quick-chat prompt is unaffected even if coa
   assert.match(prompt, /This is a quick chat/);
 });
 
-test('buildSystemPrompt: Quick Chat keeps its own legacy [SUGGEST:...] generation instruction unchanged — only the main prompt had it removed', () => {
-  const quickPrompt = buildSystemPrompt(baseUser(), [], [], null, { isQuickChat: true });
-  assert.match(quickPrompt, /\[SUGGEST: option1 \| option2 \| option3\]/, 'Quick Chat must still instruct the model to emit its own [SUGGEST:...] tag');
-  assert.doesNotMatch(quickPrompt, /offer_quick_replies/, 'Quick Chat does not use the new structured tool');
-
-  const mainPrompt = buildSystemPrompt(baseUser(), [], [], null, { coachingContext: NO_STATE });
-  assert.doesNotMatch(mainPrompt, /\[SUGGEST: option1 \| option2 \| option3\]/, 'the main prompt must not carry the quick-chat-style SUGGEST instruction');
+test('buildSystemPrompt: Quick Chat no longer asks for legacy [SUGGEST:...] tags either — no surface generates reply chips', () => {
+  const quick = buildSystemPrompt(baseUser(), [], [], null, { isQuickChat: true });
+  assert.doesNotMatch(quick, /End each reply with a new line containing exactly \[SUGGEST:/);
+  assert.match(quick, /Never write \[SUGGEST:\.\.\.\] or \[APP:\.\.\.\] tags/);
 });
 
 test('buildSystemPrompt: existing profile context, language rules, and safety blocks are preserved alongside the new section', () => {

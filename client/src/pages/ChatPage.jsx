@@ -9,7 +9,6 @@ import ConsentBanner, { needsGuardianConsent } from '../components/ConsentBanner
 import { parseArjunMessage, APP_TOOL_CONFIG } from '../utils/parseArjunMessage';
 import { shouldShowAiReminder, BREAK_REMINDER_MS } from '../utils/chatReminders';
 import { parseServerCardEvent, mergeUniqueServerCard } from '../utils/serverCardEvent';
-import { parseQuickRepliesEvent } from '../utils/quickReplyEvent';
 import { practiceRouteFor } from '../utils/prescriptionPractice';
 import { filterInternalMessages, isInternalContent, INTERNAL_CONTENT_FILTERED } from '../utils/internalContentFilter';
 
@@ -22,12 +21,12 @@ function timeAgo(dateStr, t) {
   return t.timeAgoDays(diff);
 }
 
-function extractSuggestions(text) {
-  const match = text.match(/\[SUGGEST:\s*([^\]]+)\]/);
-  if (!match) return { clean: text, suggestions: [] };
-  const suggestions = match[1].split('|').map(s => s.trim()).filter(Boolean);
-  const clean = text.replace(/\n?\[SUGGEST:[^\]]+\]/, '').trimEnd();
-  return { clean, suggestions };
+// Coach no longer generates reply chips, but messages stored before that
+// change still carry a [SUGGEST: …] tag. This strips it so the marker is
+// never visible; the options themselves are deliberately NOT rendered.
+// Zero-or-more inside the tag so an empty [SUGGEST:] is stripped too.
+function stripSuggestTag(text) {
+  return String(text ?? '').replace(/\n?\[SUGGEST:[^\]]*\]/g, '').trimEnd();
 }
 
 
@@ -268,12 +267,14 @@ function ServerCardBubble({ card, t }) {
   );
 }
 
-// ─── QuickReplyChips: optional contextual reply chips + client "Write my own" ──
-// Renders up to three server-offered chips (already validated: 2-3 items,
-// unique ids, short non-empty labels) plus one translated "Write my own"
-// chip the client always adds itself. Tapping a contextual chip reuses the
-// existing normal message-submit path — only its label is ever sent, never
-// its id. The text box stays visible and usable regardless.
+// ─── QuickReplyChips: deterministic structured choices + "Write my own" ──────
+// Renders a small server-issued set of choices (validated: unique ids, short
+// non-empty labels) plus one translated "Write my own" chip the client always
+// adds itself. Its only remaining caller is the prescription-outcome
+// follow-up (PR-13) — Coach's AI-generated reply chips were removed, so
+// nothing here is ever model-authored. Tapping a chip reuses the normal
+// message-submit path — only its label is ever sent, never its id. The text
+// box stays visible and usable regardless.
 
 function QuickReplyChips({ replies, onSelect, onWriteMyOwn, t }) {
   return (
@@ -363,12 +364,11 @@ function ChatPage() {
   const [chatMode, setChatMode]                   = useState('main');
   const [showBreakReminder, setShowBreakReminder] = useState(false);
   const [serverCards, setServerCards]             = useState([]);
-  const [quickReplies, setQuickReplies]           = useState(null);
   // Deterministic prescription-outcome follow-up choices (PR-13) — a
-  // SEPARATE temporary state from quickReplies/offer_quick_replies. These
-  // come from claim-opener's response, never from the model, and are
-  // rendered with the same QuickReplyChips component but never confused
-  // with the model-driven 2-3 reply contract.
+  // structured control, never an AI-generated reply suggestion. These come
+  // from claim-opener's response, never from the model, and are rendered
+  // with the QuickReplyChips component. Coach's own AI-generated chips were
+  // removed; this control deliberately stays.
   const [outcomeChoices, setOutcomeChoices]       = useState(null);
 
   const bottomRef               = useRef(null);
@@ -506,12 +506,12 @@ function ChatPage() {
   useEffect(() => { chatSessionIdRef.current = chatSessionId; }, [chatSessionId]);
   useEffect(() => { chatModeRef.current = chatMode; }, [chatMode]);
 
-  // ── Reset temporary server-issued card / quick-reply / outcome-choice
-  // state on session switch. Server cards (PR-9), quick replies, and
-  // deterministic outcome choices (PR-13) are never persisted — they only
+  // ── Reset temporary server-issued card / outcome-choice state on session
+  // switch. Server cards (PR-9) and the deterministic outcome choices
+  // (PR-13) are never persisted — they only
   // live for the current loaded session, so switching sessions must not
   // leak them.
-  useEffect(() => { setServerCards([]); setQuickReplies(null); setOutcomeChoices(null); }, [chatSessionId]);
+  useEffect(() => { setServerCards([]); setOutcomeChoices(null); }, [chatSessionId]);
 
   // ── Reset the per-entry follow-up-claim guard, and any still-showing
   // outcome choices, when the UI genuinely returns to the chat-entry screen
@@ -590,9 +590,8 @@ function ChatPage() {
         const visible = filterInternalMessages(msgs, (code) => console.warn(`[chat] ${code}`));
         const processed = visible.map(msg => {
           if (msg.role !== 'assistant') return msg;
-          const { clean, suggestions } = extractSuggestions(msg.content);
-          const { cleanText, tools } = parseArjunMessage(clean);
-          return { ...msg, content: cleanText, appTools: tools, suggestions };
+          const { cleanText, tools } = parseArjunMessage(stripSuggestTag(msg.content));
+          return { ...msg, content: cleanText, appTools: tools };
         });
         setMessages(processed);
         // Scroll to most recent message instantly
@@ -695,11 +694,9 @@ function ChatPage() {
 
     if (!overrideContent) setInput('');
     setError('');
-    // Clear any offered quick-reply chips and deterministic outcome choices
-    // immediately — whether this send came from typing, tapping a
-    // contextual chip, an outcome choice, or tapping "Write my own". A new
-    // response (if any) will offer its own fresh set.
-    setQuickReplies(null);
+    // Clear any deterministic outcome choices immediately — whether this send
+    // came from typing, tapping an outcome choice, or tapping "Write my own".
+    // A new response (if any) will offer its own fresh set.
     setOutcomeChoices(null);
 
     if (!isSessionStart) {
@@ -750,8 +747,7 @@ function ChatPage() {
                 prev.map(m => m.id === streamId ? { ...m, content: m.content + data.c } : m)
               );
             } else if (data.t === 'end') {
-              const { clean, suggestions } = extractSuggestions(fullStreamText.current);
-              const { cleanText, tools } = parseArjunMessage(clean);
+              const { cleanText, tools } = parseArjunMessage(stripSuggestTag(fullStreamText.current));
               // Secondary defence on the live stream too: the server rejects
               // internal orchestration text before it is ever sent, so this
               // should never fire — if it somehow does, drop the bubble
@@ -765,14 +761,13 @@ function ChatPage() {
               arjunMsgCountRef.current += 1;
               setMessages(prev =>
                 prev.map(m => m.id === streamId
-                  ? { ...m, content: cleanText, id: data.id, streaming: false, appTools: tools, suggestions }
+                  ? { ...m, content: cleanText, id: data.id, streaming: false, appTools: tools }
                   : m)
               );
               fullStreamText.current = '';
             } else if (data.t === 'error') {
               setMessages(prev => prev.filter(m => m.id !== streamId));
               setError(data.message || t.errorRetry);
-              setQuickReplies(null);
               setOutcomeChoices(null);
             } else if (data.t === 'card') {
               // Structured server-issued Mental Rep card (PR-9). Validated
@@ -783,14 +778,10 @@ function ChatPage() {
               const card = parseServerCardEvent(data);
               if (card) setServerCards(prev => mergeUniqueServerCard(prev, card));
             } else if (data.t === 'quick_replies') {
-              // Structured optional reply chips. Validated (2-3 items,
-              // unique non-empty ids, short non-empty labels) and stored
-              // separately from messages/cards — never persisted, never
-              // sent back to the server, never merged into assistant text.
-              // A malformed payload is silently ignored — the stream keeps
-              // processing later events.
-              const replies = parseQuickRepliesEvent(data);
-              if (replies) setQuickReplies(replies);
+              // AI-generated reply chips were removed from Coach chat. The
+              // branch stays so an event from an older server build is
+              // ignored rather than falling through as an unknown chunk.
+              // Nothing is parsed, stored or rendered from it.
             }
           } catch { /* malformed chunk */ }
         }
@@ -799,7 +790,6 @@ function ChatPage() {
       setWaitingForFirst(false);
       setMessages(prev => prev.filter(m => !m.streaming));
       setError(err.message || t.errorRetry);
-      setQuickReplies(null);
       setOutcomeChoices(null);
     } finally {
       setStreaming(false);
@@ -937,13 +927,10 @@ function ChatPage() {
 
           {/* Message list */}
           {!showStartScreen && (() => {
-            const lastArjunIdx = messages.reduce((acc, m, i) => m.role === 'assistant' ? i : acc, -1);
             let assistantReplyIndex = 0;
             return messages.map((msg, i) => {
               const prevMsg = messages[i - 1];
               const showDivider = msg.sessionType && msg.sessionType !== prevMsg?.sessionType && i > 0;
-              const showChips = i === lastArjunIdx && !streaming && !waitingForFirst
-                && msg.suggestions?.length > 0 && !atLimit;
               // Recurring AI-coach reminder: purely a render-time notice —
               // never added to `messages`, never sent to the server, and it
               // never touches arjunMsgCountRef (the count coaching logic
@@ -955,19 +942,6 @@ function ChatPage() {
                 <div key={msg.id} className="flex flex-col gap-2">
                   {showDivider && <SessionDivider sessionKey={msg.sessionType} date={msg.createdAt} t={t} />}
                   <MessageBubble message={msg} isStreaming={msg.streaming} />
-                  {showChips && (
-                    <div className="flex flex-wrap gap-1.5 pl-1">
-                      {msg.suggestions.map(s => (
-                        <button
-                          key={s}
-                          onClick={() => sendMessage(s)}
-                          className="chip"
-                        >
-                          {s}
-                        </button>
-                      ))}
-                    </div>
-                  )}
                   {showAiReminder && (
                     <div className="flex justify-center my-1">
                       <p className="text-caption text-slt bg-dark-700/60 rounded-full px-3 py-1 text-center">
@@ -986,21 +960,10 @@ function ChatPage() {
             <ServerCardBubble key={card.prescriptionId} card={card} t={t} />
           ))}
 
-          {/* Structured optional reply chips — shown only once the response
-              has fully finished, never mid-stream. */}
-          {!showStartScreen && !streaming && !waitingForFirst && quickReplies && (
-            <QuickReplyChips
-              replies={quickReplies}
-              onSelect={(label) => sendMessage(label)}
-              onWriteMyOwn={() => { setQuickReplies(null); inputRef.current?.focus(); }}
-              t={t}
-            />
-          )}
-
-          {/* Deterministic prescription-outcome choices (PR-13) — a
-              separate mechanism from offer_quick_replies above; tapping one
-              sends only its label through the normal chat path, same as any
-              other chip. */}
+          {/* Deterministic prescription-outcome choices (PR-13) — a structured
+              control, not an AI reply suggestion; tapping one sends only its
+              label through the normal chat path. Coach's AI-generated chips
+              were removed; this deliberately stays. */}
           {!showStartScreen && !streaming && !waitingForFirst && outcomeChoices && (
             <QuickReplyChips
               replies={outcomeChoices}

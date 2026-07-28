@@ -1,14 +1,14 @@
 // Barrel for the buffered coaching tool loop (PR-10). Route usage:
 //
 //   const {
-//     runBufferedToolLoop, sanitizeFinalText, buildQuickReplyPayload,
+//     runBufferedToolLoop, sanitizeFinalText,
 //     loadCoachingContext, commitCoachingTransition,
 //     CoachingStateConflictError, getRetryMessage,
 //   } = require('../services/coaching');
 
-const { runBufferedToolLoop, sanitizeFinalText, buildQuickReplyPayload, buildRecoverySystem, describeResponseShape, MAX_ROUNDS, MAX_FINAL_TEXT_LENGTH, FINAL_TEXT_RECOVERY_INSTRUCTION } = require('./bufferedToolLoop');
+const { runBufferedToolLoop, sanitizeFinalText, buildRecoverySystem, describeResponseShape, MAX_ROUNDS, MAX_FINAL_TEXT_LENGTH, FINAL_TEXT_RECOVERY_INSTRUCTION } = require('./bufferedToolLoop');
 const { validateAthleteText, isApprovedSafetyText } = require('./validateAthleteText');
-const { filterQuickReplies } = require('./filterQuickReplies');
+const { getSportLanguageHints, buildLanguageHintSection, describeHints } = require('./sportLanguageHints');
 const {
   createLoadCoachingContext,
   createCommitCoachingTransition,
@@ -17,14 +17,15 @@ const {
   CoachingStateConflictError,
   getRetryMessage,
   getClarityFallbackMessage,
+  getSecondaryClarityFallbackMessage,
+  getSimpleClarityPrompt,
+  pickClarityFallback,
 } = require('./commitCoachingTransition');
 const {
   COACHING_TOOLS,
   PROPOSE_BARRIER,
   PRESCRIBE_MENTAL_REP,
-  OFFER_QUICK_REPLIES,
   RECORD_PRESCRIPTION_OUTCOME,
-  QUICK_REPLY_LIMITS,
   OUTCOME_STATUS_VALUES,
 } = require('./coachingTools');
 const { APPROVED_PRACTICE_KEYS, isApprovedPracticeKey } = require('./practiceRegistry');
@@ -45,13 +46,14 @@ const {
 module.exports = {
   runBufferedToolLoop,
   sanitizeFinalText,
-  buildQuickReplyPayload,
   buildRecoverySystem,
   describeResponseShape,
   FINAL_TEXT_RECOVERY_INSTRUCTION,
   validateAthleteText,
   isApprovedSafetyText,
-  filterQuickReplies,
+  getSportLanguageHints,
+  buildLanguageHintSection,
+  describeHints,
   MAX_ROUNDS,
   MAX_FINAL_TEXT_LENGTH,
   createLoadCoachingContext,
@@ -61,12 +63,13 @@ module.exports = {
   CoachingStateConflictError,
   getRetryMessage,
   getClarityFallbackMessage,
+  getSecondaryClarityFallbackMessage,
+  getSimpleClarityPrompt,
+  pickClarityFallback,
   COACHING_TOOLS,
   PROPOSE_BARRIER,
   PRESCRIBE_MENTAL_REP,
-  OFFER_QUICK_REPLIES,
   RECORD_PRESCRIPTION_OUTCOME,
-  QUICK_REPLY_LIMITS,
   OUTCOME_STATUS_VALUES,
   APPROVED_PRACTICE_KEYS,
   isApprovedPracticeKey,

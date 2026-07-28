@@ -60,6 +60,64 @@ function getClarityFallbackMessage(language, situationPhrase = null) {
     : "I didn't explain that clearly. What part of this situation feels most important right now?";
 }
 
+// Second and third deterministic variants, used when the previous visible
+// assistant message was already a clarity fallback. Founder screenshots showed
+// the same primary fallback repeating turn after turn, which reads as a stuck
+// loop. Same rules as the primary: server-authored copy only, a
+// server-controlled situation phrase or none, and never a request to resend a
+// message that is already stored.
+function getSecondaryClarityFallbackMessage(language, situationPhrase = null) {
+  const phrase = typeof situationPhrase === 'string' ? situationPhrase.trim() : '';
+  if (language === 'hi') {
+    return phrase
+      ? `चलिए इसे सरल तरीके से फिर से देखते हैं। ${phrase} के ठीक पहले क्या हुआ था, जब आपका ध्यान टूटा या आप जल्दबाज़ी करने लगे?`
+      : 'चलिए इसे सरल तरीके से फिर से देखते हैं। मुश्किल होने से ठीक पहले क्या हुआ था?';
+  }
+  return phrase
+    ? `Let's reset and keep this simple. Thinking about ${phrase}, what happened immediately before you lost focus or rushed?`
+    : "Let's reset and keep this simple. What happened immediately before things became difficult?";
+}
+
+// Last resort when both variants above have already been used consecutively —
+// short, open, and impossible to loop on.
+function getSimpleClarityPrompt(language) {
+  return language === 'hi'
+    ? 'आराम से सोचो। उस पल को अपने शब्दों में बताओ।'
+    : 'Take your time. Describe the moment in your own words.';
+}
+
+// Normalised comparison so "near-identical" repeats (punctuation, casing,
+// spacing) are caught, not just byte-identical ones.
+function isSameFallback(a, b) {
+  const norm = (t) => String(t || '')
+    .toLowerCase()
+    .replace(/[‘’ʼ]/g, "'")
+    .replace(/[.,!?;:"()।॥]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const x = norm(a);
+  const y = norm(b);
+  return !!x && x === y;
+}
+
+// Picks the fallback to use given what the athlete last saw. `previousText` is
+// the most recent visible assistant message; null/absent means use the primary.
+function pickClarityFallback(language, situationPhrase, previousText) {
+  const primary = getClarityFallbackMessage(language, situationPhrase);
+  const secondary = getSecondaryClarityFallbackMessage(language, situationPhrase);
+
+  // A strict ladder, never a cycle: repeating the primary moves to the
+  // secondary, and repeating the secondary moves to the short open prompt.
+  // Stepping back up would just alternate two messages forever.
+  if (isSameFallback(secondary, previousText)) {
+    return { text: getSimpleClarityPrompt(language), variant: 'simple' };
+  }
+  if (isSameFallback(primary, previousText)) {
+    return { text: secondary, variant: 'secondary' };
+  }
+  return { text: primary, variant: 'primary' };
+}
+
 function createLoadCoachingContext(db = prisma) {
   return async function loadCoachingContext(userId) {
     const state = await db.userCoachingState.findUnique({
@@ -277,4 +335,8 @@ module.exports = {
   CoachingStateConflictError,
   getRetryMessage,
   getClarityFallbackMessage,
+  getSecondaryClarityFallbackMessage,
+  getSimpleClarityPrompt,
+  pickClarityFallback,
+  isSameFallback,
 };

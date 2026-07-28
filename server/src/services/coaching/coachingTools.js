@@ -11,7 +11,6 @@ const { APPROVED_PRACTICE_KEYS, isApprovedPracticeKey } = require('./practiceReg
 
 const PROPOSE_BARRIER = 'propose_barrier';
 const PRESCRIBE_MENTAL_REP = 'prescribe_mental_rep';
-const OFFER_QUICK_REPLIES = 'offer_quick_replies';
 const RECORD_PRESCRIPTION_OUTCOME = 'record_prescription_outcome';
 
 // Length bounds for every athlete-visible or stored field. Anything outside
@@ -31,25 +30,16 @@ const CONFIRMATION_VALUES = ['CONFIRMED', 'CORRECTED'];
 // Must match the PrescriptionOutcomeStatus Prisma enum exactly (PR-13).
 const OUTCOME_STATUS_VALUES = ['HELPED', 'HELPED_A_LITTLE', 'DID_NOT_HELP', 'NOT_TRIED'];
 
-// A lesson is short athlete-visible prose — reject the same markup/tool-
-// syntax/control-character shapes forbidden in quick-reply labels.
+// A lesson is short athlete-visible prose — reject markup, tool syntax and
+// control characters outright.
 const FORBIDDEN_LESSON_RE = /\[APP:|\[SUGGEST:|<[a-zA-Z!/]|[{}]|[\x00-\x1F\x7F]/;
 
-// offer_quick_replies is a presentation tool, not a coaching-state
-// transition — it never touches CoachingCycle/Prescription/
-// ActiveCoachingSelection. Bounds below are enforced both here (structural
-// validation) and via the JSON schema (Anthropic-side guidance).
-const QUICK_REPLY_LIMITS = { min: 2, max: 3, maxLabelLength: 100 };
-
-// The client always appends its own "Write my own" option — the model must
-// never offer an equivalent itself. Matches at the start of the (trimmed)
-// label so "Write my own answer" etc. is also caught.
-const RESERVED_QUICK_REPLY_RE = /^(other|something else|write my own)\b/i;
-
-// Reject legacy tags, HTML-ish markup, JSON/tool-call punctuation, and
-// control characters in a reply label — chips are short plain text only.
-const FORBIDDEN_QUICK_REPLY_RE = /\[APP:|\[SUGGEST:|<[a-zA-Z!/]|[{}]|[\x00-\x1F\x7F]/;
-
+// Every tool here is a genuine coaching-state transition. The AI-generated
+// reply-chip tool (offer_quick_replies) was removed: Coach is a free-text
+// conversation, and staging chips cost an extra model round that regularly
+// ended in an empty athlete-facing reply. Deterministic selection controls
+// elsewhere (onboarding, Starting Profile, Mental Rep, prescription-outcome
+// choices) are unaffected — they were never this tool.
 const COACHING_TOOLS = [
   {
     name: PROPOSE_BARRIER,
@@ -119,31 +109,6 @@ const COACHING_TOOLS = [
         },
       },
       required: ['barrierConfirmationStatus', 'finalBarrierHypothesis', 'practiceKey', 'situation', 'cardContent'],
-    },
-  },
-  {
-    name: OFFER_QUICK_REPLIES,
-    description:
-      'REQUIRED whenever your final question has exactly 2 or 3 clear, short, non-sensitive answer categories the athlete could tap instead of typing — call it in the same request rather than merely writing the options in your message text. ' +
-      'Examples: identifying their immediate thought between a couple of distinct focuses, choosing between a couple of simple situations (e.g. matches, training, or both), confirming or rejecting a barrier hypothesis ("Yes, that feels right" / "Not quite"), or a later outcome question like whether a practice helped. ' +
-      'Do not use this on every message — most replies need none. Do not use it when the question is open-ended with no small fixed set of likely answers, when the athlete needs to explain something in their own words, or when there are more than three meaningfully different answers. ' +
-      'Do not use it for sensitive disclosures, or anywhere near a crisis, abuse, injury, or immediate-danger discussion. ' +
-      'Do not use it when a detailed personal explanation or reflection is needed, or when the choices themselves would lead or diagnose the athlete, or would pressure them toward an answer. ' +
-      'Do not call this in the same reply as prescribe_mental_rep — the practice card takes that reply\'s place, never chips. ' +
-      'The app always adds its own "Write my own" option after your choices — never include "Other", "Something else", or "Write my own" yourself. ' +
-      'Labels must be short, in the athlete\'s own words rather than clinical labels, avoid near-duplicates, and match the athlete\'s current conversation language. This does not change any coaching state — it only offers optional quick replies. Call at most once per reply.',
-    input_schema: {
-      type: 'object',
-      properties: {
-        replies: {
-          type: 'array',
-          items: { type: 'string', maxLength: QUICK_REPLY_LIMITS.maxLabelLength },
-          minItems: QUICK_REPLY_LIMITS.min,
-          maxItems: QUICK_REPLY_LIMITS.max,
-          description: '2 or 3 short athlete-reply labels, in the current conversation language. Never include "Other" / "Something else" / "Write my own".',
-        },
-      },
-      required: ['replies'],
     },
   },
   {
@@ -247,52 +212,6 @@ function validatePrescribeMentalRep(input, context) {
   return { ok: true };
 }
 
-// offer_quick_replies has no coaching-state precondition — it's valid in
-// any state (the "no card alongside a new prescription" rule is enforced
-// at emission time in chat.js, not here, since it depends on what actually
-// got committed this turn, not on the state snapshot at tool-call time).
-function validateOfferQuickReplies(input) {
-  if (!input || typeof input !== 'object' || !Array.isArray(input.replies)) {
-    return { ok: false, error: 'Malformed payload: expected { replies: [string, string, ...] }.' };
-  }
-  const { replies } = input;
-  if (replies.length < QUICK_REPLY_LIMITS.min || replies.length > QUICK_REPLY_LIMITS.max) {
-    return { ok: false, error: `replies must contain exactly ${QUICK_REPLY_LIMITS.min} or ${QUICK_REPLY_LIMITS.max} items (got ${replies.length}).` };
-  }
-
-  const trimmed = [];
-  for (const raw of replies) {
-    if (typeof raw !== 'string') {
-      return { ok: false, error: 'Each reply must be a string.' };
-    }
-    const label = raw.trim();
-    if (!label) {
-      return { ok: false, error: 'Each reply must be non-empty after trimming.' };
-    }
-    if (label.length > QUICK_REPLY_LIMITS.maxLabelLength) {
-      return { ok: false, error: `Each reply must be at most ${QUICK_REPLY_LIMITS.maxLabelLength} characters.` };
-    }
-    if (FORBIDDEN_QUICK_REPLY_RE.test(label)) {
-      return { ok: false, error: 'Reply labels may not contain markup, tool syntax, or control characters.' };
-    }
-    if (RESERVED_QUICK_REPLY_RE.test(label)) {
-      return { ok: false, error: 'Do not offer "Other" / "Something else" / "Write my own" — the app adds that option itself.' };
-    }
-    trimmed.push(label);
-  }
-
-  const seen = new Set();
-  for (const label of trimmed) {
-    const key = label.toLowerCase();
-    if (seen.has(key)) {
-      return { ok: false, error: 'Reply labels must be unique — no duplicates.' };
-    }
-    seen.add(key);
-  }
-
-  return { ok: true, replies: trimmed };
-}
-
 // context here additionally carries: hasPrescription, prescriptionStatus
 // (the active selection's Prescription.status, or null), and
 // prescriptionOutcomeStatus (its outcomeStatus, or null) — see
@@ -336,14 +255,11 @@ module.exports = {
   COACHING_TOOLS,
   PROPOSE_BARRIER,
   PRESCRIBE_MENTAL_REP,
-  OFFER_QUICK_REPLIES,
   RECORD_PRESCRIPTION_OUTCOME,
   LIMITS,
-  QUICK_REPLY_LIMITS,
   CONFIRMATION_VALUES,
   OUTCOME_STATUS_VALUES,
   validateProposeBarrier,
   validatePrescribeMentalRep,
-  validateOfferQuickReplies,
   validateRecordPrescriptionOutcome,
 };

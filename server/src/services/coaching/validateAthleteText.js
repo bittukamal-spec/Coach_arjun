@@ -146,11 +146,13 @@ function isApprovedSafetyText(text) {
 // reasonCode values (stable — safe to log, never contains athlete content):
 //   INTERNAL_ORCHESTRATION_TEXT | INTERNAL_STRUCTURAL_CONTENT |
 //   INTERNAL_MARKER_TEXT | PARAPHRASED_ORCHESTRATION | ACKNOWLEDGEMENT_ONLY |
-//   EMPTY_TEXT
+//   LIKELY_TYPO_ECHO | EMPTY_TEXT
 //
 // opts:
 //   safetyBypass          — caller knows a safety response is being delivered
 //   checkAcknowledgement  — set false where a bare acknowledgement is fine
+//   languageHints         — { highConfidence: [{ observed, intended }] } from
+//                           sportLanguageHints; enables layer F below
 function validateAthleteText(text, opts = {}) {
   const raw = typeof text === 'string' ? text.trim() : '';
   if (!raw) return { ok: false, reasonCode: 'EMPTY_TEXT', layer: 'empty' };
@@ -192,6 +194,23 @@ function validateAthleteText(text, opts = {}) {
   const families = [prohibition && machineNoun, finalDemand, /\banother tool\b/.test(n)].filter(Boolean).length;
   if (families >= 2 || (prohibition && machineNoun && /\bmarkers?\b/.test(n))) {
     return { ok: false, reasonCode: 'PARAPHRASED_ORCHESTRATION', layer: 'D' };
+  }
+
+  // F — echoing a likely transcription error back as though it were real.
+  // Only fires when a high-confidence sport-language hint exists for THIS
+  // message. The intended phrase is always allowed, and so is a paraphrase
+  // that avoids both — a reply is only rejected for repeating the mistake
+  // while never using the intended meaning. A clarification question that
+  // quotes the phrase ("Did you mean swing bowling?") is allowed, because it
+  // is asking rather than asserting.
+  const hints = opts.languageHints?.highConfidence || [];
+  for (const hint of hints) {
+    const observed = String(hint.observed || '').toLowerCase();
+    const intended = String(hint.intended || '').toLowerCase();
+    if (!observed || !n.includes(observed)) continue;
+    if (n.includes(intended)) continue;          // used the intended phrase too
+    if (/[?？]/.test(raw)) continue;              // asking, not asserting
+    return { ok: false, reasonCode: 'LIKELY_TYPO_ECHO', layer: 'F' };
   }
 
   // E — acknowledgement-only

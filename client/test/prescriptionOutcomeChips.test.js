@@ -22,17 +22,22 @@ function fnBody(name) {
   return chatPageSrc.slice(start, end);
 }
 
-// ── 1. Separate state from offer_quick_replies ─────────────────────────────
+// ── 1. Deterministic outcome choices have their own state ──────────────────
 
-test('ChatPage: outcome choices live in their own state, separate from quickReplies', () => {
+test('ChatPage: outcome choices live in their own state', () => {
   assert.match(chatPageSrc, /const \[outcomeChoices, setOutcomeChoices\]\s*=\s*useState\(null\)/);
 });
 
-test('ChatPage: the offer_quick_replies 2-3 reply contract is untouched — parseQuickRepliesEvent is still used only for the SSE t:"quick_replies" event', () => {
+// AI-generated reply chips were removed; the legacy SSE event is now ignored.
+// Outcome choices are server-issued and must never be fed by that event.
+test('ChatPage: outcome choices never come from the legacy quick_replies SSE event', () => {
   const idx = chatPageSrc.indexOf("data.t === 'quick_replies'");
-  const block = chatPageSrc.slice(idx, idx + 600);
-  assert.match(block, /parseQuickRepliesEvent\(data\)/);
-  assert.doesNotMatch(block, /outcomeChoices|setOutcomeChoices/, 'outcome choices must never come from the offer_quick_replies SSE event');
+  assert.ok(idx !== -1, 'the branch remains so the event cannot fall through as an unknown chunk');
+  // Scope to the branch body only — it is now a no-op, so a fixed-size window
+  // would spill into the surrounding stream handler.
+  const branch = chatPageSrc.slice(idx, chatPageSrc.indexOf('\n            }', idx));
+  assert.doesNotMatch(branch, /outcomeChoices|setOutcomeChoices/);
+  assert.doesNotMatch(branch, /setMessages|setServerCards/, 'nothing is rendered or stored from the legacy event');
 });
 
 // ── 2. Populated from claim-opener's response, never model-generated ──────
@@ -87,7 +92,7 @@ test('ChatPage: outcome choices are cleared at the start of every sendMessage ca
 });
 
 test('ChatPage: outcome choices reset when chatSessionId changes (no leak across sessions)', () => {
-  const idx = chatPageSrc.indexOf('Reset temporary server-issued card / quick-reply / outcome-choice');
+  const idx = chatPageSrc.indexOf('Reset temporary server-issued card / outcome-choice');
   assert.ok(idx !== -1);
   const block = chatPageSrc.slice(idx, idx + 500);
   assert.match(block, /setOutcomeChoices\(null\)/);

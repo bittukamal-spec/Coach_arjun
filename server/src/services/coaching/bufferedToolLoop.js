@@ -19,11 +19,9 @@ const {
   COACHING_TOOLS,
   PROPOSE_BARRIER,
   PRESCRIBE_MENTAL_REP,
-  OFFER_QUICK_REPLIES,
   RECORD_PRESCRIPTION_OUTCOME,
   validateProposeBarrier,
   validatePrescribeMentalRep,
-  validateOfferQuickReplies,
   validateRecordPrescriptionOutcome,
 } = require('./coachingTools');
 
@@ -98,46 +96,10 @@ function sanitizeFinalText(raw) {
   return text;
 }
 
-// held: { transition, quickReplies } — independent trackers. offer_quick_replies
-// is a presentation tool, not a coaching-state transition: it can coexist
-// with a staged transition in the same request, but at most one of each may
-// be staged.
+// held: { transition } — at most ONE coaching-state transition may be staged
+// per athlete message. The reply-chip tool that used to share this path is
+// gone; every tool here is a real state transition.
 function handleToolUse(block, context, held) {
-  if (block.name === OFFER_QUICK_REPLIES) {
-    if (held.quickReplies) {
-      // Idempotent duplicate — never an error. The main-chat prompt makes
-      // offer_quick_replies REQUIRED for a bounded question, and Claude can
-      // call it again in a later round even after a successful first call
-      // (e.g. still perceiving the question as needing chips). Rejecting
-      // that second call with is_error:true previously risked the model
-      // retrying the tool call instead of finishing its reply — burning
-      // through every round until the hard cap forced the deterministic
-      // "couldn't save that" retry message even though nothing was ever
-      // actually wrong. Returning a plain non-error tool_result that firmly
-      // redirects to finishing the reply breaks that loop. Deliberately no
-      // `quickReplies` key here — the ORIGINAL first staged set in `held`
-      // is left completely untouched, regardless of what this second call's
-      // payload contained.
-      return {
-        accepted: true,
-        result: {
-          accepted: true,
-          note: 'Reply choices are already staged. Do not call offer_quick_replies again in this request. Produce the final response text now.',
-        },
-      };
-    }
-    const qv = validateOfferQuickReplies(block.input);
-    if (!qv.ok) return { accepted: false, result: { accepted: false, error: qv.error } };
-    return {
-      accepted: true,
-      quickReplies: qv.replies,
-      result: {
-        accepted: true,
-        note: 'Reply choices are staged. Do not call offer_quick_replies again in this request. Produce the final response text now.',
-      },
-    };
-  }
-
   if (
     block.name !== PROPOSE_BARRIER &&
     block.name !== PRESCRIBE_MENTAL_REP &&
@@ -210,11 +172,9 @@ function handleToolUse(block, context, held) {
 }
 
 // anthropic is injected (real client in production, a stub in tests).
-// Returns { finalText, transition, quickReplies, rounds, exceededRounds,
-// finalTextRecoveryAttempted, finalTextRecoverySucceeded }. quickReplies
-// (when staged and accepted) is an array of trimmed label strings —
-// ephemeral ids are assigned only at emission time (buildQuickReplyPayload),
-// never persisted.
+// Returns { finalText, transition, rounds, exceededRounds,
+// finalTextRecoveryAttempted, finalTextRecoverySucceeded, responseShape,
+// recoveryResponseShape }.
 async function runBufferedToolLoop({
   anthropic,
   model,
@@ -226,7 +186,6 @@ async function runBufferedToolLoop({
 }) {
   const working = [...messages];
   let transition = null;
-  let quickReplies = null;
 
   for (let round = 1; round <= maxRounds; round++) {
     const response = await anthropic.messages.create({
@@ -244,9 +203,9 @@ async function runBufferedToolLoop({
       // Final response — the only text that may ever reach the athlete.
       const finalText = content.filter((b) => b.type === 'text').map((b) => b.text).join('');
 
-      // Bounded final-text recovery: a production failure mode where
-      // offer_quick_replies (or a coaching-state transition) is accepted,
-      // but Claude's very next end_turn response has no usable text — the
+      // Bounded final-text recovery: a production failure mode where a
+      // coaching-state transition tool is accepted, but Claude's very next
+      // end_turn response has no usable text — the
       // model apparently treated the tool call itself as the complete
       // turn. Rather than discard the already-staged tool result and fall
       // back to the deterministic retry, ask ONCE more for the missing
@@ -254,7 +213,7 @@ async function runBufferedToolLoop({
       // This is NOT another tool-loop round (round/maxRounds is untouched)
       // — it is a single bounded no-tools completion, attempted at most
       // once per athlete message.
-      if (!sanitizeFinalText(finalText) && (transition || quickReplies)) {
+      if (!sanitizeFinalText(finalText) && transition) {
         // No synthetic user turn is appended: `working` already ends with the
         // protocol-required tool_result message, and the instruction rides in
         // the system prompt instead (see buildRecoverySystem). The athlete's
@@ -264,15 +223,14 @@ async function runBufferedToolLoop({
           max_tokens: maxTokens,
           system: buildRecoverySystem(system),
           messages: working,
-          // Deliberately no `tools` key — Claude cannot call
-          // offer_quick_replies or any transition tool again here.
+          // Deliberately no `tools` key — Claude cannot call any
+          // transition tool again here.
         });
         const recoveryContent = Array.isArray(recoveryResponse.content) ? recoveryResponse.content : [];
         const recoveryText = recoveryContent.filter((b) => b.type === 'text').map((b) => b.text).join('');
         return {
           finalText: recoveryText,
           transition,
-          quickReplies,
           rounds: round,
           exceededRounds: false,
           finalTextRecoveryAttempted: true,
@@ -286,7 +244,7 @@ async function runBufferedToolLoop({
       }
 
       return {
-        finalText, transition, quickReplies, rounds: round, exceededRounds: false,
+        finalText, transition, rounds: round, exceededRounds: false,
         finalTextRecoveryAttempted: false, finalTextRecoverySucceeded: false,
         responseShape: describeResponseShape(response),
         recoveryResponseShape: null,
@@ -297,11 +255,8 @@ async function runBufferedToolLoop({
     working.push({ role: 'assistant', content });
 
     const toolResults = toolUses.map((block) => {
-      const outcome = handleToolUse(block, coachingContext, { transition, quickReplies });
-      if (outcome.accepted) {
-        if (outcome.transition) transition = outcome.transition;
-        if (outcome.quickReplies) quickReplies = outcome.quickReplies;
-      }
+      const outcome = handleToolUse(block, coachingContext, { transition });
+      if (outcome.accepted && outcome.transition) transition = outcome.transition;
       return {
         type: 'tool_result',
         tool_use_id: block.id,
@@ -315,25 +270,15 @@ async function runBufferedToolLoop({
   // Round cap hit while the model was still calling tools: discard
   // everything — the caller emits the deterministic retry message.
   return {
-    finalText: null, transition: null, quickReplies: null, rounds: maxRounds, exceededRounds: true,
+    finalText: null, transition: null, rounds: maxRounds, exceededRounds: true,
     finalTextRecoveryAttempted: false, finalTextRecoverySucceeded: false,
     responseShape: null, recoveryResponseShape: null,
   };
 }
 
-// Assigns ephemeral, request-scoped ids to staged quick-reply labels for the
-// t:"quick_replies" SSE event. These ids are never persisted and need not be
-// globally unique — they only need to be stable within this one response.
-// Returns null when there is nothing to emit (so callers can `if (payload)`).
-function buildQuickReplyPayload(labels) {
-  if (!Array.isArray(labels) || labels.length === 0) return null;
-  return labels.map((label, i) => ({ id: `reply_${i + 1}`, label }));
-}
-
 module.exports = {
   runBufferedToolLoop,
   sanitizeFinalText,
-  buildQuickReplyPayload,
   buildRecoverySystem,
   describeResponseShape,
   MAX_ROUNDS,

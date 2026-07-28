@@ -176,15 +176,6 @@ test('the first message is deterministic, greets by first name, and never re-ask
   }
 });
 
-test('the first message ends with the agreed quick replies, using the chip mechanism the client already parses', () => {
-  const ro = buildRuleOutput(MISTAKES);
-  const en = buildFirstMessage(profileFor('CONFIRMED'), ro, { name: 'Rahul', language: 'en' });
-  assert.match(en, /\[SUGGEST: In my last match \| In training \| It happens often \| Something else\]$/);
-  const hi = buildFirstMessage(profileFor('CONFIRMED'), ro, { name: 'Rahul', language: 'hi' });
-  assert.match(hi, /\[SUGGEST: पिछले मैच में \| ट्रेनिंग में \| अक्सर होता है \| कुछ और\]$/);
-  // Never the old fit-confirmation chips.
-  assert.doesNotMatch(en, /That sounds accurate|Partly|Something else is more important/);
-});
 
 test('a corrected profile opens on the AGREED priority, not the suggested one', () => {
   const ro = buildRuleOutput(MISTAKES);

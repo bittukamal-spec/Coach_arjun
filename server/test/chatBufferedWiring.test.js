@@ -54,22 +54,6 @@ test('SSE emit order in the buffered path: transaction commit, then d, then card
   assert.ok(ifCardIdx !== -1 && ifCardIdx < cardIdx, 'card emission must be guarded by if (committed.card)');
 });
 
-test('quick replies emit only in the else branch of the card guard (never alongside a card), before end', () => {
-  const cardIdx = handler.indexOf("{ t: 'card', card: committed.card }");
-  const quickRepliesIdx = handler.indexOf("{ t: 'quick_replies', replies: quickReplies }");
-  const endIdx = handler.indexOf("{ t: 'end', id: committed.message.id }");
-  assert.ok(quickRepliesIdx !== -1, 'expected a quick_replies emission');
-  assert.ok(cardIdx < quickRepliesIdx && quickRepliesIdx < endIdx, 'quick_replies must sit between the card branch and end');
-  // The else branch additionally requires that the clarity fallback did not
-  // speak — chips staged for a reply that never ran are dropped entirely.
-  const elseIdx = handler.indexOf('} else if (!usedClarityFallback) {', cardIdx);
-  assert.ok(elseIdx !== -1 && elseIdx < quickRepliesIdx, 'quick replies must be in the else branch of the card check');
-  // Chips now go through the final filter (duplicates, echoes of the
-  // assistant's own question or the athlete's last message) before payload
-  // building — the filter's input is still the staged set, unchanged.
-  assert.match(handler, /filterQuickReplies\(loop\.quickReplies, \{/);
-  assert.match(handler, /buildQuickReplyPayload\(kept\)/);
-});
 
 test('ANY commit failure — staged transition or plain message-only — falls back to the deterministic retry message, never the model text', () => {
   assert.match(handler, /const emitDeterministicRetry = async \(reasonCode, err\) => \{/);
@@ -230,9 +214,6 @@ test('emitDeterministicRetry itself falls back to the safe generic stream error/
 
 // ── Quick reply chip suppression ─────────────────────────────────────────────
 
-test('chat.js imports buildQuickReplyPayload from the coaching services barrel', () => {
-  assert.match(handler, /buildQuickReplyPayload/);
-});
 
 test('emitDeterministicRetry never emits a quick_replies event — used by round-limit, empty-text, commit-failure, and retry-persistence-failure paths alike', () => {
   const idx = handler.indexOf('const emitDeterministicRetry = async (reasonCode, err) => {');
@@ -277,11 +258,11 @@ test('userMessageId is null for an invisible session-start marker (no user messa
 
 // ── Safe retry diagnostics (production retry-loop bugfix) ─────────────────
 
-test('logDeterministicRetry logs only safe operational fields — reasonCode, rounds, staged flags, and error name/code', () => {
+test('logDeterministicRetry logs only safe operational fields — reasonCode, rounds, staged flag, response shape, and error name/code', () => {
   const idx = handler.indexOf('const logDeterministicRetry = (reasonCode, err, extra = {}) => {');
   assert.ok(idx !== -1, 'expected a dedicated safe-diagnostics logger');
   const block = handler.slice(idx, handler.indexOf('};', idx) + 1);
-  for (const field of ['reasonCode', 'rounds: loop.rounds', 'transitionStaged: !!loop.transition', 'quickRepliesStaged: !!loop.quickReplies', 'errorName: err?.name', 'errorCode: err?.code',
+  for (const field of ['reasonCode', 'rounds: loop.rounds', 'transitionStaged: !!loop.transition', 'errorName: err?.name', 'errorCode: err?.code',
     // Content-free response shape added by the EMPTY_FINAL_TEXT hotfix.
     'responseShape: loop.responseShape', 'recoveryResponseShape: loop.recoveryResponseShape']) {
     assert.ok(block.includes(field), `expected the log payload to include "${field}"`);
