@@ -19,7 +19,7 @@ const {
   buildOutcomeChoices,
 } = require('../src/services/coaching/claimPrescriptionFollowUp');
 
-function makeDbStub({ session = null, state = null, failAt = null } = {}) {
+function makeDbStub({ session = null, state = null, failAt = null, focusRow = null } = {}) {
   const writes = [];
   let idCounter = 0;
   const nextId = (p) => `${p}-${++idCounter}`;
@@ -34,6 +34,12 @@ function makeDbStub({ session = null, state = null, failAt = null } = {}) {
   const tx = {
     chatSession: {
       findUnique: async () => session,
+    },
+    // The athlete's current coaching focus. Absent by default, which is the
+    // state of every athlete who has never changed focus — the opener then
+    // behaves exactly as it always did.
+    currentCoachingFocus: {
+      findUnique: async () => focusRow || null,
     },
     userCoachingState: {
       findUnique: async () => {

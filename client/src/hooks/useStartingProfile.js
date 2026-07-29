@@ -85,7 +85,41 @@ export function useStartingProfile(token) {
     }
   }, [auth]);
 
-  return { phase, profile, consent, safetyGuidance, reload: load, confirm, startChat };
+  // Changes the athlete's CURRENT focus. Writes only the focus row server-side
+  // — the starting profile stays frozen, and no coaching cycle, prescription,
+  // chat session or message is created. On success the local profile is patched
+  // in place so the card updates immediately without a refetch (which would
+  // otherwise look like the profile had been regenerated).
+  const changeFocus = useCallback(async ({ focusId, customText }) => {
+    try {
+      const res = await apiFetch('/api/profile/current-focus', auth({
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ focusId, customText }),
+      }));
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        return { ok: false, error: err.error || 'ERROR' };
+      }
+      const data = await res.json();
+      if (!data.saved) {
+        // Safety-flagged custom text: nothing was stored.
+        if (mounted.current) setSafetyGuidance(data.guidance || null);
+        return { ok: false, error: 'NEEDS_SUPPORT' };
+      }
+      if (mounted.current && data.currentFocus) {
+        setProfile((p) => (p ? {
+          ...p,
+          displayProfile: { ...(p.displayProfile || {}), currentFocus: data.currentFocus },
+        } : p));
+      }
+      return { ok: true, currentFocus: data.currentFocus };
+    } catch {
+      return { ok: false, error: 'NETWORK' };
+    }
+  }, [auth]);
+
+  return { phase, profile, consent, safetyGuidance, reload: load, confirm, startChat, changeFocus };
 }
 
 export default useStartingProfile;

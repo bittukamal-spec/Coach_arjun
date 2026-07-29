@@ -8,6 +8,8 @@ const { buildRuleOutput, renderSections, groundingAnchors, priorityPhrase } = re
 const { generateWording: realGenerateWording } = require('./aiWording');
 const { buildFirstMessage } = require('./firstMessage');
 const { sanitizeCustomText } = require('../onboarding/sanitize');
+const { buildDisplayProfile } = require('./displayProfile');
+const { normaliseFocusInput, buildFocusOptions } = require('./currentFocus');
 const realSafety = require('../services/safety');
 
 const prisma = new PrismaClient();
@@ -127,10 +129,26 @@ async function getOrCreateWording(client, profile, user, language, deps = {}) {
   }
 }
 
-function serializeProfile(profile, wording, user, session) {
+// `focusRow` is the athlete's CurrentCoachingFocus, or null when they have
+// never changed focus — the display layer falls back to agreedPriorityId.
+// Everything added here is derived from already-stored rows; building it
+// cannot regenerate or mutate the frozen profile.
+function serializeProfile(profile, wording, user, session, focusRow = null) {
   return {
     profile: {
       sections: wording.sections,
+      // ── Additive server-owned presentation object. Existing consumers can
+      // ignore it entirely; every field above is unchanged. ──
+      displayProfile: buildDisplayProfile({
+        profile, session, wording, focusRow, language: wording.language,
+      }),
+      // Server-authored focus options for the change-focus selector: the
+      // athlete's own onboarding areas first, then the remaining approved
+      // ones. Labels come from ruleConfig so nothing is duplicated client-side.
+      focusOptions: buildFocusOptions({
+        ownMomentIds: difficultMoments(session).filter((id) => id !== 'not_sure'),
+        language: wording.language,
+      }),
       // The athlete's OWN difficult moments — the only values "Not really"
       // may pick from. Ids only; the client resolves labels from the shared
       // onboarding config, so no wording is duplicated across the wire.
@@ -261,7 +279,46 @@ async function startFirstChat(client, userId, deps = {}) {
   }
 }
 
+// ── Current coaching focus ────────────────────────────────────────────────
+// Absent for every existing athlete; read returns null and the display layer
+// falls back to the confirmed agreedPriorityId. No backfill.
+async function loadCurrentFocus(client, userId) {
+  return client.currentCoachingFocus.findUnique({ where: { userId } });
+}
+
+// Changes the athlete's present priority. Writes ONLY the focus row: the
+// starting profile's ruleOutput, suggestedPriorityId, agreedPriorityId,
+// fitResponse and correction history are untouched, and no CoachingCycle,
+// Prescription, ChatSession or Message is created, changed or deleted.
+//
+// Custom text goes through the same sanitise + safety-screen path as a
+// profile correction. Flagged text is dropped (the focus is not saved) and
+// support guidance is returned instead. Raw athlete text is never logged.
+async function updateCurrentFocus(client, userId, body, deps = {}) {
+  const safety = deps.safety || realSafety;
+  const { focusId, customText } = normaliseFocusInput(body);
+
+  if (customText) {
+    const screen = safety.screenSafetyText(customText);
+    if (screen.flagged) {
+      safety.recordSafetyEvent(userId, 'profile_focus', screen.category, {
+        riskLevel: screen.riskLevel, sourceType: 'profile_focus',
+      });
+      const u = await client.user.findUnique({ where: { id: userId }, select: { language: true } });
+      return { saved: false, safety: { flagged: true, guidance: safety.getSafetyGuidance(screen.category, u?.language) } };
+    }
+  }
+
+  const row = await client.currentCoachingFocus.upsert({
+    where: { userId },
+    create: { userId, focusId, customText, source: 'ATHLETE_SELECTED' },
+    update: { focusId, customText, source: 'ATHLETE_SELECTED' },
+  });
+  return { saved: true, focusRow: row };
+}
+
 module.exports = {
   prisma, getCompletedSession, getOrCreateProfile, getOrCreateWording, serializeProfile,
   confirmProfile, startFirstChat, consentState, maskEmail, buildWordingInput, difficultMoments,
+  loadCurrentFocus, updateCurrentFocus,
 };

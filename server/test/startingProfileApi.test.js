@@ -55,6 +55,7 @@ function makeClient({ user = makeUser(), sessionStatus = 'COMPLETED' } = {}) {
   const wordings = [];
   const chatSessions = [];
   const messages = [];
+  const focuses = [];
   let n = 1;
 
   const findProfile = (where) => profiles.find((p) =>
@@ -123,6 +124,16 @@ function makeClient({ user = makeUser(), sessionStatus = 'COMPLETED' } = {}) {
         return { ...row };
       },
     },
+    currentCoachingFocus: {
+      findUnique: async ({ where }) => focuses.find((f) => f.userId === where.userId) || null,
+      upsert: async ({ where, create, update }) => {
+        const existing = focuses.find((f) => f.userId === where.userId);
+        if (existing) { Object.assign(existing, update, { updatedAt: new Date() }); return { ...existing }; }
+        const row = { id: `cf-${n++}`, customText: null, source: 'ATHLETE_SELECTED', createdAt: new Date(), updatedAt: new Date(), ...create };
+        focuses.push(row);
+        return { ...row };
+      },
+    },
     chatSession: {
       create: async ({ data }) => { const row = { id: `cs-${n++}`, createdAt: new Date(), ...data }; chatSessions.push(row); return { ...row }; },
     },
@@ -144,7 +155,7 @@ function makeClient({ user = makeUser(), sessionStatus = 'COMPLETED' } = {}) {
         throw e;
       }
     },
-    __profiles: profiles, __wordings: wordings, __chatSessions: chatSessions, __messages: messages, __users: users,
+    __profiles: profiles, __wordings: wordings, __chatSessions: chatSessions, __messages: messages, __users: users, __focuses: focuses,
   };
   return client;
 }

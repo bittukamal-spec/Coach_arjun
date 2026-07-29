@@ -133,6 +133,26 @@ function createClaimPrescriptionFollowUp(db = prisma) {
         return { claimed: false };
       }
 
+      // 2b. The athlete changed their coaching focus AFTER this prescription
+      // was last active. Asking "how did the practice go?" would drag them
+      // back to the thing they just moved on from, so the opener is
+      // suppressed — and so are the outcome choices, which ask about the same
+      // stale practice.
+      //
+      // Deliberately non-destructive: nothing is deleted, no outcome is
+      // recorded, the cycle stays ACTIVE and the prescription stays exactly
+      // as it was. The claim flag is left untouched too, so this only ever
+      // withholds a message; it never resolves or abandons the old work.
+      // A prescription created after the focus change has the newer
+      // updatedAt and is unaffected.
+      const focus = await tx.currentCoachingFocus.findUnique({
+        where: { userId },
+        select: { updatedAt: true },
+      });
+      if (focus?.updatedAt && prescription.updatedAt && focus.updatedAt > prescription.updatedAt) {
+        return { claimed: false, focusChangedSince: true };
+      }
+
       // 3. Atomic once-only claim — the WHERE clause is the whole guard;
       // a concurrent winner flips followUpOpenerClaimedAt first, so every
       // other simultaneous call here matches zero rows.

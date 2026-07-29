@@ -20,10 +20,59 @@ const SECTIONS = {
   whereWeBegin: 'We can begin by understanding what happens right after a mistake.',
 };
 
+// The redesigned page renders the server-owned display payload rather than the
+// four prose blocks. `sections` stays in the fixture because the API still
+// sends it (the change was additive) — it is simply no longer what is drawn.
+const DISPLAY = {
+  currentFocus: null,
+  suggestedFocus: { id: 'after_mistake', label: 'Bounce back after mistakes' },
+  snapshot: {
+    sport: 'Cricket', role: 'Batter', playingContext: 'State', experience: 'Competitive',
+    goals: [{ id: 'confidence', label: 'Confidence' }], fourWeekOutcome: 'Recover faster after mistakes',
+  },
+  startingPattern: {
+    situation: 'after a mistake',
+    nodes: [
+      { type: 'situation', label: 'Situation', text: 'After a mistake' },
+      { type: 'reaction', label: 'Reaction', text: 'Your attention may stay on what went wrong', code: 'a:b' },
+    ],
+    notes: [],
+  },
+  supports: [{ id: 'clear_preparation', label: 'Clear preparation' }],
+  strengths: [{ id: 'hard_working', label: 'Hard-working' }],
+  interpretation: SECTIONS.possiblePattern,
+  nextStep: SECTIONS.whereWeBegin,
+  fitStatus: null,
+  generatedAt: '2026-07-01T10:00:00.000Z',
+  updatedAt: '2026-07-02T10:00:00.000Z',
+};
+
+const HI_DISPLAY = {
+  ...DISPLAY,
+  suggestedFocus: { id: 'after_mistake', label: 'गलती के बाद जल्दी संभलना' },
+  snapshot: { ...DISPLAY.snapshot, sport: 'क्रिकेट', role: 'बल्लेबाज़' },
+  startingPattern: {
+    situation: 'गलती के बाद',
+    nodes: [{ type: 'situation', label: 'स्थिति', text: 'गलती के बाद' }],
+    notes: [],
+  },
+  nextStep: 'हम गलती के बाद के पलों से शुरू कर सकते हैं।',
+};
+
+const FOCUS_OPTIONS = [
+  { id: 'after_mistake', label: 'Bounce back after mistakes', personalised: true },
+  { id: 'lose_focus', label: 'Regain focus', personalised: true },
+];
+
+// The one visible anchor that is present in every mode.
+const PATTERN_ANCHOR = 'After a mistake';
+
 function makeServer(over = {}) {
   const state = {
     profile: {
       sections: SECTIONS,
+      displayProfile: JSON.parse(JSON.stringify(DISPLAY)),
+      focusOptions: FOCUS_OPTIONS,
       language: 'en',
       wordingStatus: 'AI_OK',
       deterministicFallbackUsed: false,
@@ -64,6 +113,16 @@ function makeServer(over = {}) {
             ? 'what pulls your focus away'
             : 'what happens after a mistake',
           correctionText: body.correctionText || null,
+          displayProfile: {
+            ...state.profile.displayProfile,
+            fitStatus: body.fit,
+            currentFocus: {
+              id: agreed,
+              label: agreed === 'lose_focus' ? 'Regain focus' : 'Bounce back after mistakes',
+              phrase: agreed === 'lose_focus' ? 'what pulls your focus away' : 'what happens after a mistake',
+              source: 'STARTING_PROFILE', updatedAt: '2026-07-02T10:00:00.000Z', canChange: true,
+            },
+          },
         };
         return [200, { profile: state.profile, consent: state.consent }];
       }
@@ -118,9 +177,10 @@ describe('Starting Performance Profile', () => {
   test('shows the four sections and the fit question, and says it is not a diagnosis', async () => {
     wire(makeServer());
     render(<App />);
-    await screen.findByText(SECTIONS.whatMatters);
-    expect(screen.getByText(SECTIONS.possiblePattern)).toBeTruthy();
-    expect(screen.getByText(SECTIONS.whatHelps)).toBeTruthy();
+    await screen.findByText(PATTERN_ANCHOR);
+    expect(screen.getByText('Your Starting Pattern')).toBeTruthy();
+    expect(screen.getByText('What Already Helps')).toBeTruthy();
+    expect(screen.getByText('Where We Can Begin')).toBeTruthy();
     expect(screen.getByText(SECTIONS.whereWeBegin)).toBeTruthy();
     expect(screen.getByRole('radio', { name: 'That fits' })).toBeTruthy();
     expect(screen.getByRole('radio', { name: 'Partly' })).toBeTruthy();
@@ -131,7 +191,7 @@ describe('Starting Performance Profile', () => {
   test('the athlete cannot continue without answering whether it fits', async () => {
     wire(makeServer());
     render(<App />);
-    await screen.findByText(SECTIONS.whatMatters);
+    await screen.findByText(PATTERN_ANCHOR);
     expect(screen.getByRole('button', { name: 'Continue' }).disabled).toBe(true);
   });
 
@@ -140,7 +200,7 @@ describe('Starting Performance Profile', () => {
     wire(server);
     render(<App />);
     const user = userEvent.setup();
-    await screen.findByText(SECTIONS.whatMatters);
+    await screen.findByText(PATTERN_ANCHOR);
     await user.click(screen.getByRole('radio', { name: 'That fits' }));
     await user.click(screen.getByRole('button', { name: 'Continue' }));
     await screen.findByRole('button', { name: 'Start with Arjun' });
@@ -153,7 +213,7 @@ describe('Starting Performance Profile', () => {
     wire(makeServer());
     render(<App />);
     const user = userEvent.setup();
-    await screen.findByText(SECTIONS.whatMatters);
+    await screen.findByText(PATTERN_ANCHOR);
     await user.click(screen.getByRole('radio', { name: 'Not really' }));
     await screen.findByText('What should we start with instead?');
     // From priorityOptions: after_mistake + lose_focus, and nothing else.
@@ -171,7 +231,7 @@ describe('Starting Performance Profile', () => {
     wire(server);
     render(<App />);
     const user = userEvent.setup();
-    await screen.findByText(SECTIONS.whatMatters);
+    await screen.findByText(PATTERN_ANCHOR);
     await user.click(screen.getByRole('radio', { name: 'Not really' }));
     await user.click(await screen.findByRole('radio', { name: 'When I lose focus' }));
     await user.click(screen.getByRole('button', { name: 'Continue' }));
@@ -198,7 +258,7 @@ describe('Starting Performance Profile', () => {
     });
     wire(server);
     render(<App />);
-    await screen.findByText(SECTIONS.whatMatters);
+    await screen.findByText(PATTERN_ANCHOR);
     expect(screen.getByText(/Waiting for parent\/guardian consent/i)).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Start with Arjun' })).toBeNull();
     expect(screen.getByText(/p•••••@example\.com/)).toBeTruthy();
@@ -231,7 +291,7 @@ describe('Starting Performance Profile — confirmation summary and navigation',
     wire(server);
     render(<App />);
     const user = userEvent.setup();
-    await screen.findByText(SECTIONS.whatMatters);
+    await screen.findByText(PATTERN_ANCHOR);
     await user.click(screen.getByRole('radio', { name: 'That fits' }));
     await user.click(screen.getByRole('button', { name: 'Continue' }));
     await screen.findByText("We'll start by exploring what happens after a mistake.");
@@ -244,7 +304,7 @@ describe('Starting Performance Profile — confirmation summary and navigation',
     wire(server);
     render(<App />);
     const user = userEvent.setup();
-    await screen.findByText(SECTIONS.whatMatters);
+    await screen.findByText(PATTERN_ANCHOR);
     await user.click(screen.getByRole('radio', { name: 'Not really' }));
     await user.click(await screen.findByRole('radio', { name: 'When I lose focus' }));
     await user.click(screen.getByRole('button', { name: 'Continue' }));
@@ -306,7 +366,7 @@ describe('Starting Performance Profile — first-time vs saved modes', () => {
         <Routes><Route path="/starting-profile" element={<StartingProfilePage />} /></Routes>
       </MemoryRouter>
     );
-    await screen.findByText(SECTIONS.whatMatters);
+    await screen.findByText(PATTERN_ANCHOR);
     expect(screen.getByText('Does this fit?')).toBeTruthy();
     expect(screen.getByRole('radio', { name: 'That fits' })).toBeTruthy();
     expect(screen.queryByText('Your Performance Profile')).toBeNull();
@@ -324,7 +384,7 @@ describe('Starting Performance Profile — first-time vs saved modes', () => {
       </MemoryRouter>
     );
     const user = userEvent.setup();
-    await screen.findByText(SECTIONS.whatMatters);
+    await screen.findByText(PATTERN_ANCHOR);
     await user.click(screen.getByRole('radio', { name: 'That fits' }));
     await user.click(screen.getByRole('button', { name: 'Continue' }));
     expect(await screen.findByRole('button', { name: 'Start with Arjun' })).toBeTruthy();
@@ -340,18 +400,26 @@ describe('Starting Performance Profile — first-time vs saved modes', () => {
     const user = userEvent.setup();
     await user.click(await screen.findByRole('link', { name: 'open profile' }));
     await screen.findByText('Your Performance Profile');
-    expect(screen.getByText('Your starting profile based on what you shared during onboarding.')).toBeTruthy();
+    // The redesign deliberately has no subtitle under the saved-view heading.
+    expect(screen.queryByText('Your starting profile based on what you shared during onboarding.')).toBeNull();
+    expect(screen.queryByText(/starting point, not a verdict/i)).toBeNull();
     expectNoCompletionUi();
   });
 
-  test('the saved view shows the four sections, the agreed focus, the response and the date', async () => {
+  test('the saved view shows the visual sections, the current focus, the response and the date', async () => {
     wire(makeServer({ profile: CONFIRMED }));
     render(<App />);
     await screen.findByText('Your Performance Profile');
-    for (const body of Object.values(SECTIONS)) expect(screen.getByText(body)).toBeTruthy();
-    expect(screen.getByText('what happens after a mistake')).toBeTruthy();
+    expect(screen.getByText('Current Focus')).toBeTruthy();
+    expect(screen.getByText('Your Starting Pattern')).toBeTruthy();
+    expect(screen.getByText('What Already Helps')).toBeTruthy();
+    expect(screen.getByText('Where We Can Begin')).toBeTruthy();
+    // The headline is the athlete-facing action label, never the
+    // mid-sentence phrase used inside prose.
+    expect(screen.getByText('Bounce back after mistakes')).toBeTruthy();
+    expect(screen.queryByText('what happens after a mistake')).toBeNull();
     expect(screen.getByText('Confirmed')).toBeTruthy();
-    expect(screen.getByText(/Last updated/)).toBeTruthy();
+    expect(screen.getByText(/^Updated /)).toBeTruthy();
   });
 
   test('a corrected profile reports that it was corrected', async () => {
