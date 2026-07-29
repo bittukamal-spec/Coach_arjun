@@ -418,20 +418,29 @@ describe('Starting Performance Profile — first-time vs saved modes', () => {
     // mid-sentence phrase used inside prose.
     expect(screen.getByText('Bounce back after mistakes')).toBeTruthy();
     expect(screen.queryByText('what happens after a mistake')).toBeNull();
-    expect(screen.getByText('Confirmed')).toBeTruthy();
     expect(screen.getByText(/^Updated /)).toBeTruthy();
+    // The profile's fit response describes the one-time Starting Profile
+    // review, not this mutable focus, so the card shows no status.
+    expect(screen.queryByText('Confirmed')).toBeNull();
+    expect(screen.queryByText(/Current response/i)).toBeNull();
   });
 
-  test('a corrected profile reports that it was corrected', async () => {
-    wire(makeServer({ profile: { ...CONFIRMED, fitResponse: 'NOT_REALLY' } }));
-    render(<App />);
-    await screen.findByText('Your Performance Profile');
-    expect(screen.getByText('Corrected')).toBeTruthy();
-    wire(makeServer({ profile: { ...CONFIRMED, fitResponse: 'PARTLY' } }));
-    cleanup();
-    render(<App />);
-    await screen.findByText('Your Performance Profile');
-    expect(screen.getByText('Partly corrected')).toBeTruthy();
+  test('a corrected profile shows no fit status on the saved profile', async () => {
+    // "Corrected" / "Partly corrected" answered "does this fit?" about the
+    // original profile. It is not a property of the current focus, so it is
+    // no longer surfaced on the saved view.
+    for (const fitResponse of ['NOT_REALLY', 'PARTLY']) {
+      cleanup();
+      wire(makeServer({ profile: { ...CONFIRMED, fitResponse } }));
+      render(<App />);
+      await screen.findByText('Your Performance Profile');
+      expect(screen.queryByText('Corrected')).toBeNull();
+      expect(screen.queryByText('Partly corrected')).toBeNull();
+      expect(screen.queryByText(/Current response/i)).toBeNull();
+      // The focus itself, and its date, still render.
+      expect(screen.getByText('Bounce back after mistakes')).toBeTruthy();
+      expect(screen.getByText(/^Updated /)).toBeTruthy();
+    }
   });
 
   test('direct navigation and a refresh both land on the saved view (no navigation state at all)', async () => {
@@ -492,7 +501,9 @@ describe('Starting Performance Profile — first-time vs saved modes', () => {
     wire(makeServer({ profile: CONFIRMED }));
     render(<App />);
     await screen.findByText('तुम्हारी परफॉर्मेंस प्रोफाइल');
-    expect(screen.getByText('सही बताया')).toBeTruthy();
+    expect(screen.getByText('अभी का फोकस')).toBeTruthy();
+    // No fit status on the focus card, in either language.
+    expect(screen.queryByText('सही बताया')).toBeNull();
   });
 
   test('the saved view has identical DOM structure in light and dark themes', async () => {

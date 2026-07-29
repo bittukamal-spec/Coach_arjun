@@ -160,10 +160,13 @@ test('the saved view has its own heading and NO subtitle underneath it', () => {
   assert.match(en, /savedTitleShort: 'Your Performance Profile'/);
 });
 
-test('the saved view shows the current focus, the response and a date, and stays read-only', () => {
+test('the saved view shows the current focus and a date, and stays read-only', () => {
   assert.match(page, /t\.currentFocusLabel/);
-  assert.match(page, /FIT_STATUS_KEY\[profile\.fitResponse\]/);
   assert.match(page, /t\.updatedOn\(/);
+  // The profile's fit response describes the one-time Starting Profile review,
+  // not the mutable current focus, so it is deliberately not rendered here.
+  assert.doesNotMatch(page, /FIT_STATUS_KEY/);
+  assert.doesNotMatch(page, /t\.currentResponse/);
   // No editing was built: the only correction field on the page sits inside
   // the unconfirmed block, above the completion transition.
   const unconfirmedIdx = page.indexOf('{!confirmed && (');

@@ -18,6 +18,7 @@ const {
 } = require('../src/profile/currentFocus');
 const { buildSystemPrompt } = require('../src/routes/chat');
 const cfg = require('../src/profile/ruleConfig');
+const { checkFocusScope } = require('../src/profile/focusScope');
 
 const TEST_JWT_SECRET = 'performance-profile-display-test-secret';
 const ORIGINAL = process.env.JWT_SECRET;
@@ -575,7 +576,8 @@ test('a follow-up opener older than the focus change is suppressed, non-destruct
   const t1 = new Date('2026-07-20T00:00:00Z');
   const prescription = {
     id: 'pr-1', practiceKey: 'pre_performance_routine', situation: 'Penalties',
-    status: 'ACTIVE', outcomeStatus: null, followUpOpenerClaimedAt: null, updatedAt: t0,
+    status: 'ACTIVE', outcomeStatus: null, followUpOpenerClaimedAt: null,
+    prescribedAt: t0, updatedAt: t0,
   };
   const cycle = { id: 'cy-1', status: 'ACTIVE' };
   const created = [];
@@ -609,7 +611,7 @@ test('a prescription newer than the focus change still gets its opener', async (
   const prescription = {
     id: 'pr-1', practiceKey: 'pre_performance_routine', situation: 'Penalties',
     status: 'ACTIVE', outcomeStatus: null, followUpOpenerClaimedAt: null,
-    updatedAt: new Date('2026-07-25T00:00:00Z'),
+    prescribedAt: new Date('2026-07-25T00:00:00Z'), updatedAt: new Date('2026-07-25T00:00:00Z'),
   };
   const db = {
     $transaction: async (fn) => fn(db),
@@ -631,7 +633,7 @@ test('with no focus row at all the opener behaves exactly as before', async () =
     chatSession: { findUnique: async () => ({ userId: 'u1', mode: 'main' }) },
     userCoachingState: { findUnique: async () => ({ activeSelection: {
       cycle: { id: 'cy-1', status: 'ACTIVE' },
-      prescription: { id: 'pr-1', practiceKey: 'pre_performance_routine', situation: 'S', status: 'ACTIVE', outcomeStatus: null, followUpOpenerClaimedAt: null, updatedAt: new Date() },
+      prescription: { id: 'pr-1', practiceKey: 'pre_performance_routine', situation: 'S', status: 'ACTIVE', outcomeStatus: null, followUpOpenerClaimedAt: null, prescribedAt: new Date(), updatedAt: new Date() },
     } }) },
     currentCoachingFocus: { findUnique: async () => null },
     prescription: { updateMany: async () => ({ count: 1 }), update: async () => ({}) },
@@ -673,6 +675,312 @@ test('a consent-pending minor can read the profile and change focus, but not ent
 
   const chat = await post(app, '/api/profile/start-chat');
   assert.equal(chat.status, 403, 'coaching itself stays gated');
+});
+
+
+// ── Correction 2: the follow-up suppression uses an IMMUTABLE timestamp ────
+// updatedAt is bumped after issuance by outcome recording, practice completion,
+// and the opener's own claim/message-link writes. prescribedAt is set once by
+// @default(now()) and written nowhere in src/, so it is the real issuance time.
+
+const { createClaimPrescriptionFollowUp } = require('../src/services/coaching/claimPrescriptionFollowUp');
+
+function makeFollowUpDb({ prescription, cycle, focusUpdatedAt = null }) {
+  const writes = [];
+  const db = {
+    $transaction: async (fn) => fn(db),
+    chatSession: { findUnique: async () => ({ userId: 'u1', mode: 'main' }) },
+    userCoachingState: { findUnique: async () => ({ activeSelection: { cycle, prescription } }) },
+    currentCoachingFocus: { findUnique: async () => (focusUpdatedAt ? { updatedAt: focusUpdatedAt } : null) },
+    prescription: {
+      updateMany: async (a) => { writes.push(['prescription.updateMany', a]); return { count: 1 }; },
+      update: async (a) => { writes.push(['prescription.update', a]); return {}; },
+    },
+    coachingCycle: { update: async (a) => { writes.push(['cycle.update', a]); return {}; } },
+    activeCoachingSelection: {
+      update: async (a) => { writes.push(['selection.update', a]); return {}; },
+      delete: async (a) => { writes.push(['selection.delete', a]); return {}; },
+    },
+    message: { create: async ({ data }) => { writes.push(['message.create', data]); return { id: 'm-1', ...data }; } },
+    __writes: writes,
+  };
+  return db;
+}
+
+const activePrescription = (over = {}) => ({
+  id: 'pr-1', practiceKey: 'pre_performance_routine', situation: 'Penalty kicks',
+  status: 'ACTIVE', outcomeStatus: null, followUpOpenerClaimedAt: null,
+  prescribedAt: new Date('2026-07-01T00:00:00Z'),
+  updatedAt: new Date('2026-07-01T00:00:00Z'),
+  ...over,
+});
+
+test('a prescription ISSUED BEFORE the focus change does not trigger the outdated opener', async () => {
+  const prescription = activePrescription({ prescribedAt: new Date('2026-07-01T00:00:00Z') });
+  const cycle = { id: 'cy-1', status: 'ACTIVE' };
+  const db = makeFollowUpDb({ prescription, cycle, focusUpdatedAt: new Date('2026-07-20T00:00:00Z') });
+
+  const res = await createClaimPrescriptionFollowUp(db)({ userId: 'u1', chatSessionId: 'cs-1', language: 'en' });
+  assert.equal(res.claimed, false);
+  assert.equal(res.focusChangedSince, true);
+  assert.ok(!res.outcomePending, 'stale outcome choices are withheld too');
+  assert.deepEqual(db.__writes, [], 'nothing written at all');
+});
+
+test('a prescription ISSUED AFTER the focus change still triggers its valid opener', async () => {
+  const prescription = activePrescription({ prescribedAt: new Date('2026-07-25T00:00:00Z') });
+  const db = makeFollowUpDb({
+    prescription, cycle: { id: 'cy-1', status: 'ACTIVE' },
+    focusUpdatedAt: new Date('2026-07-10T00:00:00Z'),
+  });
+  const res = await createClaimPrescriptionFollowUp(db)({ userId: 'u1', chatSessionId: 'cs-1', language: 'en' });
+  assert.equal(res.claimed, true);
+  assert.equal(res.outcomePending, true);
+  assert.ok(db.__writes.some(([k]) => k === 'message.create'));
+});
+
+test('an unrelated updatedAt bump CANNOT make an old prescription look new', async () => {
+  // The exact regression the audit found: the athlete reported
+  // HELPED_A_LITTLE (or completed the practice from the practice page) after
+  // changing focus, which bumps updatedAt. Keyed on updatedAt the stale opener
+  // would fire; keyed on prescribedAt it stays suppressed.
+  const prescription = activePrescription({
+    prescribedAt: new Date('2026-07-01T00:00:00Z'),
+    updatedAt: new Date('2026-07-28T00:00:00Z'), // bumped long after issuance
+    outcomeStatus: 'HELPED_A_LITTLE',
+  });
+  const db = makeFollowUpDb({
+    prescription, cycle: { id: 'cy-1', status: 'ACTIVE' },
+    focusUpdatedAt: new Date('2026-07-20T00:00:00Z'),
+  });
+  const res = await createClaimPrescriptionFollowUp(db)({ userId: 'u1', chatSessionId: 'cs-1', language: 'en' });
+  assert.equal(res.claimed, false, 'updatedAt must not be what decides this');
+  assert.equal(res.focusChangedSince, true);
+  assert.deepEqual(db.__writes, []);
+});
+
+test('the suppression reads prescribedAt, not updatedAt (source-level guarantee)', () => {
+  const src = require('node:fs').readFileSync(
+    require('node:path').join(__dirname, '../src/services/coaching/claimPrescriptionFollowUp.js'), 'utf8');
+  assert.match(src, /focus\.updatedAt > prescription\.prescribedAt/);
+  assert.doesNotMatch(src, /focus\.updatedAt > prescription\.updatedAt/);
+});
+
+test('prescribedAt is never written anywhere in src/ — it is genuinely immutable', () => {
+  const { execSync } = require('node:child_process');
+  const out = execSync(
+    "grep -rn 'prescribedAt' " + require('node:path').join(__dirname, '../src') + " || true",
+    { encoding: 'utf8' });
+  const writes = out.split('\n').filter((l) => /prescribedAt\s*:/.test(l));
+  assert.deepEqual(writes, [], `prescribedAt is assigned somewhere: ${writes.join(' | ')}`);
+});
+
+test('suppression leaves the historical cycle and prescription completely unchanged', async () => {
+  const prescription = activePrescription({ prescribedAt: new Date('2026-07-01T00:00:00Z') });
+  const cycle = { id: 'cy-1', status: 'ACTIVE', resolvedAt: null, abandonedAt: null };
+  const before = { p: { ...prescription }, c: { ...cycle } };
+  const db = makeFollowUpDb({ prescription, cycle, focusUpdatedAt: new Date('2026-07-20T00:00:00Z') });
+
+  await createClaimPrescriptionFollowUp(db)({ userId: 'u1', chatSessionId: 'cs-1', language: 'en' });
+  assert.deepEqual(prescription, before.p, 'prescription untouched');
+  assert.deepEqual(cycle, before.c, 'cycle untouched — not resolved, not abandoned');
+  assert.equal(prescription.followUpOpenerClaimedAt, null, 'no claim flag written');
+  assert.equal(prescription.outcomeStatus, null, 'no outcome invented');
+});
+
+// ── Correction 3: performance-coaching scope for a custom focus ────────────
+
+test('valid sport-performance focuses are accepted', () => {
+  for (const text of [
+    'stay calm before matches',
+    'trust myself against swing bowling',
+    'recover after mistakes',
+    'communicate better with my coach',
+    'stay focused in training',
+    'return confidently after injury',
+    'stop overthinking at the crease',
+    'handle pressure in the last over',
+  ]) {
+    assert.equal(checkFocusScope(text).inScope, true, `wrongly rejected: ${text}`);
+  }
+});
+
+test('informal, misspelled, short and Hinglish sport phrases are accepted', () => {
+  for (const text of [
+    'presure in matchs',           // misspellings
+    'match me dhyan nahi rehta',   // Hinglish
+    'galti ke baad tension',        // Hinglish
+    'confidance',                   // misspelling, single word
+    'focus',                        // single word
+    'दबाव में शांत रहना',            // Devanagari
+    'bowling ke time nervous',      // mixed
+    'not gettin angry after a bad shot',
+  ]) {
+    assert.equal(checkFocusScope(text).inScope, true, `wrongly rejected: ${text}`);
+  }
+});
+
+test('clearly unrelated requests are rejected', () => {
+  for (const text of [
+    'help me with school mathematics',
+    'teach me coding',
+    'plan my holiday',
+    'help me choose a laptop',
+    'write my homework',
+    'explain algebra to me',
+    'find me a hotel in Goa',
+    'do my chemistry homework',
+  ]) {
+    const r = checkFocusScope(text);
+    assert.equal(r.inScope, false, `wrongly accepted: ${text}`);
+    assert.ok(r.reasonCode, 'a fixed reason code is returned');
+  }
+});
+
+test('an off-topic word alongside a genuine sport focus is still accepted', () => {
+  // The permissive half of the design: an athlete can mention school and sport
+  // in the same breath without losing their focus.
+  assert.equal(checkFocusScope('staying focused in training even during exam season').inScope, true);
+  assert.equal(checkFocusScope('pressure before matches and before my board exam').inScope, true);
+});
+
+test('the scope check returns a fixed reason code and never the athlete text', () => {
+  const r = checkFocusScope('help me choose a laptop SECRETPHRASE');
+  assert.equal(r.inScope, false);
+  assert.ok(['OFF_TOPIC_REQUEST', 'OFF_TOPIC_SUBJECT', 'EMPTY'].includes(r.reasonCode));
+  assert.ok(!JSON.stringify(r).includes('SECRETPHRASE'));
+});
+
+test('an out-of-scope custom focus is rejected with 400 and stores nothing', async () => {
+  const { app, client } = makeApp();
+  await get(app, '/api/profile/starting');
+  const res = await patch(app, '/api/profile/current-focus', {
+    focusId: 'different', customText: 'help me with school mathematics',
+  });
+  assert.equal(res.status, 400);
+  assert.equal(res.body.error, 'OUT_OF_SCOPE_FOCUS');
+  assert.equal(client.__focuses.length, 0, 'nothing stored');
+});
+
+test('a rejected custom focus creates no unrelated records at all', async () => {
+  const { app, client } = makeApp();
+  await get(app, '/api/profile/starting');
+  await patch(app, '/api/profile/current-focus', { focusId: 'different', customText: 'teach me coding' });
+  assert.equal(client.__focuses.length, 0);
+  assert.equal(client.__chatSessions.length, 0);
+  assert.equal(client.__messages.length, 0);
+  assert.equal(client.__cycles.length, 0);
+  assert.equal(client.__prescriptions.length, 0);
+  assert.equal(client.__toolReports.length, 0);
+  assert.equal(client.__profiles.length, 1, 'the starting profile is untouched');
+});
+
+test('a rejected custom focus never enters the chat context', async () => {
+  const { app, client } = makeApp();
+  await get(app, '/api/profile/starting');
+  await patch(app, '/api/profile/current-focus', { focusId: 'different', customText: 'plan my holiday' });
+
+  // No focus row exists, so the context loader falls back to the confirmed
+  // starting priority — the rejected text can never reach the prompt.
+  const focus = resolveCurrentFocus({
+    focusRow: client.__focuses[0] || null,
+    profile: client.__profiles[0],
+    ruleOutput: client.__profiles[0].ruleOutput,
+    language: 'en',
+  });
+  assert.equal(focus.source, 'STARTING_PROFILE');
+  const prompt = buildSystemPrompt(CHAT_USER, [], [], 'general', {
+    startingProfile: CONFIRMED_PROFILE, currentFocus: focus,
+  });
+  assert.ok(!prompt.includes('holiday'), 'rejected focus text must never reach the prompt');
+});
+
+test('a rejected custom focus logs no raw athlete text', async () => {
+  const logs = [];
+  const orig = { error: console.error, warn: console.warn, log: console.log };
+  console.error = (...a) => logs.push(a.join(' '));
+  console.warn = (...a) => logs.push(a.join(' '));
+  console.log = (...a) => logs.push(a.join(' '));
+  try {
+    const { app } = makeApp();
+    await get(app, '/api/profile/starting');
+    await patch(app, '/api/profile/current-focus', {
+      focusId: 'different', customText: 'help me choose a laptop for SECRETSTUDIES',
+    });
+  } finally {
+    Object.assign(console, orig);
+  }
+  const joined = logs.join('\n');
+  assert.ok(!joined.includes('SECRETSTUDIES'), 'athlete text leaked into logs');
+  assert.ok(/focus out of scope: OFF_TOPIC/.test(joined), 'a fixed reason code IS logged');
+});
+
+test('safety screening still runs first and is not replaced by the scope check', async () => {
+  // Safety-sensitive text that would ALSO fail the scope check must take the
+  // safety pathway, not the scope error — support guidance, not a nudge to
+  // pick something sport-related.
+  const events = [];
+  const safety = {
+    screenSafetyText: () => ({ flagged: true, category: 'self_harm', riskLevel: 'high' }),
+    recordSafetyEvent: (...a) => events.push(a),
+    getSafetyGuidance: () => 'Support guidance text',
+  };
+  const { app, client } = makeApp({ safety });
+  await get(app, '/api/profile/starting');
+  const res = await patch(app, '/api/profile/current-focus', {
+    focusId: 'different', customText: 'help me choose a laptop',
+  });
+  assert.equal(res.status, 200);
+  assert.equal(res.body.saved, false);
+  assert.equal(res.body.safetyFlag, 'needs_support');
+  assert.equal(res.body.guidance, 'Support guidance text');
+  assert.notEqual(res.body.error, 'OUT_OF_SCOPE_FOCUS', 'safety wins over scope');
+  assert.equal(events.length, 1);
+  assert.equal(client.__focuses.length, 0);
+});
+
+test('safety runs before scope in the source, so it can never be skipped', () => {
+  const src = require('node:fs').readFileSync(
+    require('node:path').join(__dirname, '../src/profile/profileService.js'), 'utf8');
+  const safetyIdx = src.indexOf('safety.screenSafetyText(customText)');
+  const scopeIdx = src.indexOf('checkFocusScope(customText)');
+  assert.ok(safetyIdx !== -1 && scopeIdx !== -1);
+  assert.ok(safetyIdx < scopeIdx, 'safety screening must come first');
+});
+
+test('an in-scope custom focus is still saved normally', async () => {
+  const { app, client } = makeApp();
+  await get(app, '/api/profile/starting');
+  const res = await patch(app, '/api/profile/current-focus', {
+    focusId: 'different', customText: 'trust myself against swing bowling',
+  });
+  assert.equal(res.status, 200);
+  assert.equal(res.body.saved, true);
+  assert.equal(client.__focuses.length, 1);
+  assert.match(res.body.currentFocus.label, /swing bowling/);
+});
+
+test('the scope module is pure — no I/O, no model call, no logging', () => {
+  const src = require('node:fs').readFileSync(
+    require('node:path').join(__dirname, '../src/profile/focusScope.js'), 'utf8');
+  assert.doesNotMatch(src, /PrismaClient|@anthropic-ai|messages\.(create|stream)|console\./);
+});
+
+// ── Correction 1: fit status is no longer part of the Current Focus card ──
+// (Client-side rendering is asserted in performanceProfile.dom.test.jsx; the
+// API keeps the field for compatibility.)
+
+test('fitStatus remains in the API payload for compatibility', () => {
+  const dp = build();
+  assert.equal(dp.fitStatus, 'CONFIRMED');
+});
+
+test('the current focus object carries no fit-response metadata of its own', () => {
+  const dp = build();
+  const keys = Object.keys(dp.currentFocus);
+  for (const banned of ['fitStatus', 'fitResponse', 'confirmed', 'isConfirmed']) {
+    assert.ok(!keys.includes(banned), `currentFocus must not carry ${banned}`);
+  }
 });
 
 // ── Harness ───────────────────────────────────────────────────────────────
@@ -738,6 +1046,7 @@ function makeClient({ user } = {}) {
   const focuses = [];
   const cycles = [];
   const prescriptions = [];
+  const toolReports = [];
   let n = 1;
 
   const findProfile = (where) => profiles.find((p) =>
@@ -807,11 +1116,12 @@ function makeClient({ user } = {}) {
     chatSession: { create: async ({ data }) => { const row = { id: `cs-${n++}`, createdAt: new Date(), ...data }; chatSessions.push(row); return { ...row }; } },
     message: { create: async ({ data }) => { const row = { id: `m-${n++}`, createdAt: new Date(), ...data }; messages.push(row); return { ...row }; } },
     coachingCycle: { create: async ({ data }) => { const row = { id: `cy-${n++}`, ...data }; cycles.push(row); return { ...row }; } },
+    toolReport: { create: async ({ data }) => { const row = { id: `tr-${n++}`, ...data }; toolReports.push(row); return { ...row }; } },
     prescription: { create: async ({ data }) => { const row = { id: `pr-${n++}`, ...data }; prescriptions.push(row); return { ...row }; } },
     $transaction: async (fn) => fn(client),
     __profiles: profiles, __wordings: wordings, __chatSessions: chatSessions,
     __messages: messages, __users: users, __focuses: focuses,
-    __cycles: cycles, __prescriptions: prescriptions,
+    __cycles: cycles, __prescriptions: prescriptions, __toolReports: toolReports,
   };
   return client;
 }

@@ -72,6 +72,12 @@ function createProfileRouter(client = prisma, deps = {}) {
       if (e.code === 'INVALID_FOCUS' || e.code === 'INVALID_FOCUS_TEXT') {
         return res.status(400).json({ error: e.code });
       }
+      if (e.code === 'OUT_OF_SCOPE_FOCUS') {
+        // A fixed reason code only — the athlete's text is never echoed back
+        // or logged. The client shows its own localised scope message.
+        console.warn(`[profile] focus out of scope: ${e.reasonCode}`);
+        return res.status(400).json({ error: 'OUT_OF_SCOPE_FOCUS' });
+      }
       if (e.code === 'ONBOARDING_INCOMPLETE') return res.status(422).json({ error: 'ONBOARDING_INCOMPLETE' });
       // Never log the athlete's own focus text.
       console.error('[profile] PATCH /current-focus failed:', e?.message);

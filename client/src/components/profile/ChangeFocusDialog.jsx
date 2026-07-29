@@ -68,9 +68,11 @@ export default function ChangeFocusDialog({
     setSaving(false);
     if (!res?.ok) {
       // Keep the draft and stay open so the athlete can retry. Never surface
-      // an API/Prisma/validation internal.
+      // an API/Prisma/validation internal — only our own athlete-facing copy.
+      // Out-of-scope gets its own message so the athlete knows WHAT to change,
+      // not just that it failed.
       setConfirming(false);
-      setError(t.focusSaveError);
+      setError(res?.error === 'OUT_OF_SCOPE_FOCUS' ? t.focusOutOfScope : t.focusSaveError);
     }
   }
 

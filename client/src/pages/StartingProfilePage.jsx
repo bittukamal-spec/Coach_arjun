@@ -43,8 +43,6 @@ function tPath(obj, key) {
   return key.split('.').reduce((o, k) => (o == null ? undefined : o[k]), obj);
 }
 
-const FIT_STATUS_KEY = { CONFIRMED: 'statusConfirmed', PARTLY: 'statusPartly', NOT_REALLY: 'statusCorrected' };
-
 function formatDate(value, language) {
   if (!value) return null;
   const d = new Date(value);
@@ -216,7 +214,6 @@ export default function StartingProfilePage() {
     );
   }
 
-  const focusStatusLabel = profile.fitResponse ? (t[FIT_STATUS_KEY[profile.fitResponse]] || null) : null;
   const focusUpdatedRaw = dp?.currentFocus?.updatedAt || profile.updatedAt || profile.confirmedAt || profile.generatedAt;
   const focusUpdated = formatDate(focusUpdatedRaw, language);
 
@@ -251,11 +248,9 @@ export default function StartingProfilePage() {
               // The server always resolves a current focus for a confirmed
               // profile (falling back to the agreed starting priority), so the
               // suggested label is only a defence against an older payload —
-              // without it the card, and the fit status inside it, would vanish.
+              // without it the whole card would vanish.
               focusLabel={dp?.currentFocus?.label || dp?.suggestedFocus?.label}
               helper={t.currentFocusHelper}
-              fitStatusTitle={t.currentResponse}
-              fitStatusLabel={focusStatusLabel}
               updatedText={focusUpdated ? t.updatedOn(focusUpdated) : null}
               onChangeFocus={() => setFocusOpen(true)}
               changeFocusLabel={t.changeFocus}

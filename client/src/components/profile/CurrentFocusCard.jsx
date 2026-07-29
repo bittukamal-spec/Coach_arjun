@@ -8,7 +8,12 @@
 //
 // The headline is the server-authored action label ("Bounce back after
 // mistakes"), never the mid-sentence phrase ("what happens after a mistake").
-// Fit status is shown as text, never as a colour or a rating.
+//
+// Deliberately shows NO fit-response status. "Confirmed / Partly corrected /
+// Corrected" is the athlete's answer to the original Starting Profile — it
+// describes that one-time review, not this mutable focus, which they may
+// change at any time. Showing it here implied the current focus had been
+// vetted. It stays in the API for compatibility.
 
 import { Target } from 'lucide-react';
 
@@ -16,15 +21,13 @@ export default function CurrentFocusCard({
   label,          // section label, already localised
   focusLabel,     // the athlete-facing action label
   helper,
-  fitStatusLabel, // localised "Confirmed" / "Partly corrected" / "Corrected"
-  fitStatusTitle, // localised "Current response"
   updatedText,    // localised "Updated 27 Jul 2026"
   onChangeFocus,  // omit to hide the control (first-time mode)
   changeFocusLabel,
   changeFocusRef,
 }) {
   if (!focusLabel) return null;
-  const hasMeta = !!(fitStatusLabel || updatedText || onChangeFocus);
+  const hasMeta = !!(updatedText || onChangeFocus);
 
   return (
     <section
@@ -52,12 +55,7 @@ export default function CurrentFocusCard({
           <div className="h-px bg-dark-600 my-3" aria-hidden="true" />
           <div className="flex items-end justify-between gap-3 flex-wrap">
             <div className="min-w-0">
-              {fitStatusLabel && (
-                <p className="text-caption text-slt">
-                  {fitStatusTitle}: <span className="text-ink font-semibold">{fitStatusLabel}</span>
-                </p>
-              )}
-              {updatedText && <p className="text-caption text-muted mt-0.5">{updatedText}</p>}
+              {updatedText && <p className="text-caption text-slt">{updatedText}</p>}
             </div>
             {onChangeFocus && (
               <button

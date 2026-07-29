@@ -163,15 +163,42 @@ test('there is no subtitle under "Your Performance Profile"', async () => {
 
 // ── 3–4. Current Focus card ────────────────────────────────────────────────
 
-test('the Current Focus card shows the action label, helper, response and date', async () => {
+test('the Current Focus card shows the action label, helper and date', async () => {
   renderPage();
   await screen.findByText('Current Focus');
   expect(screen.getByText("What you're working on with Arjun right now.")).toBeTruthy();
-  expect(screen.getByText('Confirmed')).toBeTruthy();
   expect(screen.getByText(/^Updated /)).toBeTruthy();
   // Never the mid-sentence technical phrase as the headline.
   const headline = screen.getByText('Bounce back after mistakes');
   expect(headline.textContent).not.toMatch(/what happens after a mistake/);
+});
+
+test('the Current Focus card shows NO profile fit-response metadata', async () => {
+  // "Confirmed / Partly corrected / Corrected" is the athlete's answer to the
+  // original Starting Profile. It says nothing about this mutable focus, and
+  // showing it here implied the current focus had been vetted.
+  renderPage();
+  await screen.findByText('Current Focus');
+  expect(screen.queryByText(/Current response/i)).toBeNull();
+  expect(screen.queryByText('Confirmed')).toBeNull();
+  expect(screen.queryByText('Partly corrected')).toBeNull();
+  expect(screen.queryByText('Corrected')).toBeNull();
+});
+
+test('a corrected profile still shows no fit status on the focus card, and keeps its date', async () => {
+  const s = makeServer({ profile: { fitResponse: 'NOT_REALLY' } });
+  renderPage({ server: s });
+  await screen.findByText('Current Focus');
+  expect(screen.queryByText('Corrected')).toBeNull();
+  expect(screen.queryByText(/Current response/i)).toBeNull();
+  expect(screen.getByText(/^Updated /)).toBeTruthy();
+});
+
+test('the focus card component carries no fit-status prop at all', () => {
+  const card = srcOf('components/profile/CurrentFocusCard.jsx');
+  expect(card).not.toMatch(/fitStatusLabel|fitStatusTitle/);
+  expect(page).not.toMatch(/FIT_STATUS_KEY/);
+  expect(page).not.toMatch(/t\.currentResponse/);
 });
 
 test('Change focus is present in saved mode and opens the selector', async () => {
@@ -429,6 +456,69 @@ test('a failed change keeps the dialog open, keeps the draft, and shows an athle
   expect(screen.getByLabelText('What would you like to work on?').value).toBe('Calm hands');
 });
 
+test('an out-of-scope custom focus keeps the draft and shows the scope message', async () => {
+  const server = makeServer({ focusStatus: 400, focusBody: { error: 'OUT_OF_SCOPE_FOCUS' } });
+  await openDialog(server);
+  await userEvent.click(screen.getByRole('radio', { name: 'Something else' }));
+  await userEvent.type(screen.getByLabelText('What would you like to work on?'), 'help me with school mathematics');
+  await userEvent.click(screen.getByRole('button', { name: 'Save focus' }));
+  await confirmChange();
+
+  // Dialog stays open, draft intact, correction possible.
+  expect(screen.getByRole('dialog')).toBeTruthy();
+  const alert = await screen.findByRole('alert');
+  expect(alert.textContent).toBe('Choose something connected to your sport, training, competition, or mental performance.');
+  expect(screen.getByLabelText('What would you like to work on?').value).toBe('help me with school mathematics');
+  // The card behind is unchanged. Scoped to the card, because the same label
+  // is also one of the dialog's radio options.
+  const card = document.querySelector('[aria-labelledby="profile-focus-heading"]');
+  expect(within(card).getByText('Bounce back after mistakes')).toBeTruthy();
+  // No internals leak.
+  expect(alert.textContent).not.toMatch(/OUT_OF_SCOPE|400|Prisma/);
+});
+
+test('after a scope rejection the athlete can correct the text and retry successfully', async () => {
+  const server = makeServer({ focusStatus: 400, focusBody: { error: 'OUT_OF_SCOPE_FOCUS' } });
+  await openDialog(server);
+  await userEvent.click(screen.getByRole('radio', { name: 'Something else' }));
+  const field = screen.getByLabelText('What would you like to work on?');
+  await userEvent.type(field, 'plan my holiday');
+  await userEvent.click(screen.getByRole('button', { name: 'Save focus' }));
+  await confirmChange();
+  await screen.findByRole('alert');
+
+  // The server now accepts; the athlete edits and retries in place. The input
+  // is re-queried because React replaced the node when the error rendered.
+  server.state.focusStatus = 200;
+  const retryField = screen.getByLabelText('What would you like to work on?');
+  await userEvent.clear(retryField);
+  await userEvent.type(retryField, 'stay calm before matches');
+  await userEvent.click(screen.getByRole('button', { name: 'Save focus' }));
+  await confirmChange();
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  expect(await screen.findByText('stay calm before matches')).toBeTruthy();
+});
+
+test('a scope rejection is rendered from local copy, not from the server message', () => {
+  const dialog = srcOf('components/profile/ChangeFocusDialog.jsx');
+  expect(dialog).toMatch(/res\?\.error === 'OUT_OF_SCOPE_FOCUS' \? t\.focusOutOfScope : t\.focusSaveError/);
+  // No server-provided string is ever shown.
+  expect(dialog).not.toMatch(/setError\(res\.(message|error)\)/);
+});
+
+test('the Hindi scope message is used when the athlete is in Hindi', async () => {
+  authState.language = 'hi';
+  const server = makeServer({ focusStatus: 400, focusBody: { error: 'OUT_OF_SCOPE_FOCUS' } });
+  renderPage({ server });
+  await userEvent.click(await screen.findByRole('button', { name: 'फोकस बदलो' }));
+  await userEvent.click(screen.getByRole('radio', { name: 'कुछ और' }));
+  await userEvent.type(screen.getByLabelText('तुम किस पर काम करना चाहोगे?'), 'ganit ka homework');
+  await userEvent.click(screen.getByRole('button', { name: 'फोकस सेव करो' }));
+  await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'फोकस बदलो' }));
+  const alert = await screen.findByRole('alert');
+  expect(alert.textContent).toBe('ऐसी चीज़ चुनें जो आपके खेल, ट्रेनिंग, प्रतियोगिता या मानसिक प्रदर्शन से जुड़ी हो।');
+});
+
 test('changing focus never creates a chat session or sends a message', async () => {
   const server = makeServer();
   await openDialog(server);
@@ -438,6 +528,18 @@ test('changing focus never creates a chat session or sends a message', async () 
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   expect(server.state.calls.some((c) => c.includes('start-chat'))).toBe(false);
   expect(server.state.calls.some((c) => c.includes('/api/chat'))).toBe(false);
+});
+
+test('the saved-profile Current Focus still updates successfully after the metadata removal', async () => {
+  const server = makeServer();
+  await openDialog(server);
+  await userEvent.click(screen.getByRole('radio', { name: /Rebuild confidence/ }));
+  await userEvent.click(screen.getByRole('button', { name: 'Save focus' }));
+  await confirmChange();
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  expect(await screen.findByText('Rebuild confidence')).toBeTruthy();
+  expect(screen.getByText(/^Updated /)).toBeTruthy();
+  expect(screen.queryByText(/Current response/i)).toBeNull();
 });
 
 // ── 21–22. Routing + consent ───────────────────────────────────────────────

@@ -160,7 +160,6 @@ export const translations = {
       currentFocusHelper: "What you're working on with Arjun right now.",
       suggestedFocusHelper: 'What Arjun suggests starting with, based on your answers.',
       changeFocus: 'Change focus',
-      currentResponse: 'Current response',
       updatedOn: (date) => `Updated ${date}`,
       snapshotAria: 'About you',
       goalsChip: (list) => `Goals: ${list}`,
@@ -188,6 +187,7 @@ export const translations = {
       focusConfirmNo: 'Keep current focus',
       focusUpdated: 'Focus updated',
       focusSaveError: "Couldn't save that focus. Try again.",
+      focusOutOfScope: 'Choose something connected to your sport, training, competition, or mental performance.',
       focusSaving: 'Saving…',
     },
     mentalReps: {
@@ -1718,7 +1718,6 @@ export const translations = {
       currentFocusHelper: 'अभी तुम Arjun के साथ इस पर काम कर रहे हो।',
       suggestedFocusHelper: 'तुम्हारे जवाबों से Arjun यहाँ से शुरू करने का सुझाव देता है।',
       changeFocus: 'फोकस बदलो',
-      currentResponse: 'तुम्हारा जवाब',
       updatedOn: (date) => `${date} को अपडेट हुआ`,
       snapshotAria: 'तुम्हारे बारे में',
       goalsChip: (list) => `लक्ष्य: ${list}`,
@@ -1745,6 +1744,7 @@ export const translations = {
       focusConfirmNo: 'अभी वही रखो',
       focusUpdated: 'फोकस अपडेट हुआ',
       focusSaveError: 'यह फोकस सेव नहीं हो सका। फिर कोशिश करो।',
+      focusOutOfScope: 'ऐसी चीज़ चुनें जो आपके खेल, ट्रेनिंग, प्रतियोगिता या मानसिक प्रदर्शन से जुड़ी हो।',
       focusSaving: 'सेव हो रहा है…',
     },
     mentalReps: {

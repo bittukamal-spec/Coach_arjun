@@ -134,22 +134,30 @@ function createClaimPrescriptionFollowUp(db = prisma) {
       }
 
       // 2b. The athlete changed their coaching focus AFTER this prescription
-      // was last active. Asking "how did the practice go?" would drag them
-      // back to the thing they just moved on from, so the opener is
-      // suppressed — and so are the outcome choices, which ask about the same
-      // stale practice.
+      // was ISSUED. Asking "how did the practice go?" would drag them back to
+      // the thing they just moved on from, so the opener is suppressed — and
+      // so are the outcome choices, which ask about the same stale practice.
+      //
+      // The comparison uses prescribedAt, NOT updatedAt. updatedAt is bumped
+      // by several things that happen long after issuance — recording an
+      // outcome (commitCoachingTransition), completing the practice from the
+      // practice page (completeActivePrescription), and the opener claim and
+      // message-link writes below — so an old prescription that the athlete
+      // merely touched would look newer than a focus change that genuinely
+      // came after it, and the stale opener would fire anyway. prescribedAt
+      // is set once by @default(now()) and is never written anywhere in the
+      // codebase, so it is the true issuance time.
       //
       // Deliberately non-destructive: nothing is deleted, no outcome is
       // recorded, the cycle stays ACTIVE and the prescription stays exactly
       // as it was. The claim flag is left untouched too, so this only ever
       // withholds a message; it never resolves or abandons the old work.
-      // A prescription created after the focus change has the newer
-      // updatedAt and is unaffected.
+      // A prescription issued after the focus change is unaffected.
       const focus = await tx.currentCoachingFocus.findUnique({
         where: { userId },
         select: { updatedAt: true },
       });
-      if (focus?.updatedAt && prescription.updatedAt && focus.updatedAt > prescription.updatedAt) {
+      if (focus?.updatedAt && prescription.prescribedAt && focus.updatedAt > prescription.prescribedAt) {
         return { claimed: false, focusChangedSince: true };
       }
 

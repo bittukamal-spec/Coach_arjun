@@ -10,6 +10,7 @@ const { buildFirstMessage } = require('./firstMessage');
 const { sanitizeCustomText } = require('../onboarding/sanitize');
 const { buildDisplayProfile } = require('./displayProfile');
 const { normaliseFocusInput, buildFocusOptions } = require('./currentFocus');
+const { checkFocusScope } = require('./focusScope');
 const realSafety = require('../services/safety');
 
 const prisma = new PrismaClient();
@@ -299,6 +300,8 @@ async function updateCurrentFocus(client, userId, body, deps = {}) {
   const { focusId, customText } = normaliseFocusInput(body);
 
   if (customText) {
+    // Safety FIRST and independently: crisis/self-harm/abuse text takes the
+    // existing support pathway and never reaches the scope check below.
     const screen = safety.screenSafetyText(customText);
     if (screen.flagged) {
       safety.recordSafetyEvent(userId, 'profile_focus', screen.category, {
@@ -306,6 +309,17 @@ async function updateCurrentFocus(client, userId, body, deps = {}) {
       });
       const u = await client.user.findUnique({ where: { id: userId }, select: { language: true } });
       return { saved: false, safety: { flagged: true, guidance: safety.getSafetyGuidance(screen.category, u?.language) } };
+    }
+
+    // Then product scope: is this a mental-performance focus at all? Nothing is
+    // stored on rejection, and only a fixed reason code is available to the
+    // caller — never the athlete's words.
+    const scope = checkFocusScope(customText);
+    if (!scope.inScope) {
+      const e = new Error('OUT_OF_SCOPE_FOCUS');
+      e.code = 'OUT_OF_SCOPE_FOCUS';
+      e.reasonCode = scope.reasonCode;
+      throw e;
     }
   }
 
