@@ -23,7 +23,8 @@ function createProfileRouter(client = prisma, deps = {}) {
       if (!user) return res.status(404).json({ error: 'User not found' });
       const { profile, session } = await svc.getOrCreateProfile(client, req.userId);
       const wording = await svc.getOrCreateWording(client, profile, user, user.language || 'en', deps);
-      return res.json(svc.serializeProfile(profile, wording, user, session));
+      const focusRow = await svc.loadCurrentFocus(client, req.userId);
+      return res.json(svc.serializeProfile(profile, wording, user, session, focusRow));
     } catch (e) {
       if (e.code === 'ONBOARDING_INCOMPLETE') return res.status(422).json({ error: 'ONBOARDING_INCOMPLETE' });
       console.error('[profile] GET /starting failed:', e?.message);
@@ -36,13 +37,50 @@ function createProfileRouter(client = prisma, deps = {}) {
       const { profile, session, safety } = await svc.confirmProfile(client, req.userId, req.body || {}, deps);
       const user = await client.user.findUnique({ where: { id: req.userId }, select: USER_SELECT });
       const wording = await svc.getOrCreateWording(client, profile, user, user.language || 'en', deps);
-      const payload = svc.serializeProfile(profile, wording, user, session);
+      const focusRow = await svc.loadCurrentFocus(client, req.userId);
+      const payload = svc.serializeProfile(profile, wording, user, session, focusRow);
       if (safety?.flagged) { payload.safetyFlag = 'needs_support'; payload.guidance = safety.guidance; }
       return res.json(payload);
     } catch (e) {
       if (e.code === 'INVALID_FIT' || e.code === 'INVALID_CORRECTION') return res.status(400).json({ error: e.code });
       if (e.code === 'ONBOARDING_INCOMPLETE') return res.status(422).json({ error: 'ONBOARDING_INCOMPLETE' });
       console.error('[profile] POST /confirm failed:', e?.message);
+      return res.status(500).json({ error: 'Server error' });
+    }
+  });
+
+  // ── PATCH /current-focus — the athlete changes what they're working on ────
+  // Writes only the CurrentCoachingFocus row. The starting profile stays
+  // frozen, and no CoachingCycle, Prescription, ChatSession or Message is
+  // created here. NOT consent-gated: it is a saved preference, not coaching.
+  router.patch('/current-focus', authenticate, async (req, res) => {
+    try {
+      const user = await client.user.findUnique({ where: { id: req.userId }, select: USER_SELECT });
+      if (!user) return res.status(404).json({ error: 'User not found' });
+
+      const result = await svc.updateCurrentFocus(client, req.userId, req.body || {}, deps);
+      if (!result.saved) {
+        // Safety-flagged custom text: nothing stored, support guidance shown.
+        return res.status(200).json({ saved: false, safetyFlag: 'needs_support', guidance: result.safety.guidance });
+      }
+
+      const { profile, session } = await svc.getOrCreateProfile(client, req.userId);
+      const wording = await svc.getOrCreateWording(client, profile, user, user.language || 'en', deps);
+      const payload = svc.serializeProfile(profile, wording, user, session, result.focusRow);
+      return res.json({ saved: true, currentFocus: payload.profile.displayProfile.currentFocus });
+    } catch (e) {
+      if (e.code === 'INVALID_FOCUS' || e.code === 'INVALID_FOCUS_TEXT') {
+        return res.status(400).json({ error: e.code });
+      }
+      if (e.code === 'OUT_OF_SCOPE_FOCUS') {
+        // A fixed reason code only — the athlete's text is never echoed back
+        // or logged. The client shows its own localised scope message.
+        console.warn(`[profile] focus out of scope: ${e.reasonCode}`);
+        return res.status(400).json({ error: 'OUT_OF_SCOPE_FOCUS' });
+      }
+      if (e.code === 'ONBOARDING_INCOMPLETE') return res.status(422).json({ error: 'ONBOARDING_INCOMPLETE' });
+      // Never log the athlete's own focus text.
+      console.error('[profile] PATCH /current-focus failed:', e?.message);
       return res.status(500).json({ error: 'Server error' });
     }
   });

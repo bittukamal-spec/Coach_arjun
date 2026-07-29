@@ -17,6 +17,7 @@ const {
 const { priorityPhrase } = require('../profile/ruleEngine');
 const loadMindJournalContext = require('../services/mindJournal/loadMindJournalContext');
 const { loadConfirmedProfile } = require('../profile/loadConfirmedProfile');
+const { loadCurrentFocusContext } = require('../profile/loadCurrentFocusContext');
 
 // How long a suppressed (ignored) skill recommendation stays suppressed
 // before it can be primed again — a lightweight stand-in for "session".
@@ -234,7 +235,24 @@ This is optional background context only, nothing more:
 // ── Helper: build personalised system prompt ─────────────────────────────
 
 function buildSystemPrompt(user, checkIns = [], memories = [], sessionType = null, extra = {}) {
-  const { recentDebriefs = [], todayDrill = null, achievementCount = 0, recentDrills = [], gameSessions = [], ritual = null, mfsEntry = null, mfsHistory = [], mfsReport = null, toolReports = [], isQuickChat = false, skillHint = null, activePlan = null, focusCards = [], coachingContext = null, mindJournalEntries = null, startingProfile = null } = extra;
+  const { recentDebriefs = [], todayDrill = null, achievementCount = 0, recentDrills = [], gameSessions = [], ritual = null, mfsEntry = null, mfsHistory = [], mfsReport = null, toolReports = [], isQuickChat = false, skillHint = null, activePlan = null, focusCards = [], coachingContext = null, mindJournalEntries = null, startingProfile = null, currentFocus = null } = extra;
+
+  // ── The athlete's CURRENT focus (mutable) ────────────────────────────────
+  // What they said they want to work on now, which may differ from the
+  // starting priority onboarding surfaced. It takes precedence when opening a
+  // NEW exploration; the confirmed starting profile below stays available as
+  // historical baseline. Selecting a focus is not a diagnosis and not a
+  // barrier — Arjun still has to ask before proposing or prescribing anything.
+  let currentFocusSection = '';
+  if (currentFocus?.phrase) {
+    currentFocusSection = `\n\n## Athlete's Current Focus
+The athlete currently wants to work on: ${currentFocus.phrase}
+Treat this as the athlete's present priority. The Starting Performance Profile remains historical baseline context.
+- When you begin a NEW exploration, start from this focus rather than the older starting priority.
+- This is the athlete's stated priority, not a barrier and not a diagnosis. Do NOT infer a barrier from it, do NOT propose one on the strength of it alone, and do NOT prescribe a practice because of it.
+- Ask your normal focused questions first, exactly as you would otherwise.
+- Do not announce that their focus changed, and do not congratulate them on choosing it. Just coach the thing they named.`;
+  }
 
   // PR 3: the athlete-reviewed Starting Performance Profile is the SINGLE
   // interpretation block, injected only after the athlete confirmed/corrected
@@ -557,7 +575,7 @@ No recent check-ins — the athlete hasn't tracked their mental state yet.`;
     skillHintSection = `\n\n## Possible Focus Area For This Reply\nThis message may be about: ${skillHint.name} — ${skillHint.explanation}\nIf (and only if) this genuinely fits what the athlete said, you may explain it briefly and tag [APP:${skillHint.tag}] at the end. Do not tag it if it doesn't fit, if the athlete is just acknowledging something, or if a safety response is needed instead (safety always overrides this). Never use a tool name other than the ones listed in the APP TAGS section below — there is no such tool as "Focus Training".`;
   }
 
-  return `You are Arjun — a mental performance coach for Indian athletes across sports: cricket, football, badminton, athletics, kabaddi, tennis, swimming, basketball, boxing, and more. Arjun helps with focus, confidence, pressure, reset, self-talk, body control, visualization, routines, and reflection. You use the athlete's sport, position, level, and current situation to make coaching specific — you are not a cricket specialist and have no "favourite" or "best understood" sport. You are warm, direct, and feel like a trusted older brother who truly understands the pressures of Indian sports culture.${profileSection}${mfsSection}${toolSection}${planSection}${focusCardSection}${skillHintSection}
+  return `You are Arjun — a mental performance coach for Indian athletes across sports: cricket, football, badminton, athletics, kabaddi, tennis, swimming, basketball, boxing, and more. Arjun helps with focus, confidence, pressure, reset, self-talk, body control, visualization, routines, and reflection. You use the athlete's sport, position, level, and current situation to make coaching specific — you are not a cricket specialist and have no "favourite" or "best understood" sport. You are warm, direct, and feel like a trusted older brother who truly understands the pressures of Indian sports culture.${currentFocusSection}${profileSection}${mfsSection}${toolSection}${planSection}${focusCardSection}${skillHintSection}
 
 ## Athlete Profile
 - **Name:** ${user.name}
@@ -1155,6 +1173,9 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
     // PR 3: the athlete-confirmed Starting Profile (only if reviewed) — the
     // single interpretation block. Main coaching chat only.
     const startingProfile = await loadConfirmedProfile(req.userId, user.language);
+    // The athlete's present priority (mutable), separate from the frozen
+    // starting profile. Read-only here — chat never writes the focus.
+    const currentFocus = await loadCurrentFocusContext(req.userId, user.language);
     // Conservative sport-aware interpretation hints for likely spelling or
     // voice-transcription errors ("wing bowling" → swing bowling). Internal
     // only: appended to the SYSTEM prompt, never streamed, never persisted,
@@ -1171,7 +1192,7 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
       console.log('[chat] language_hints', JSON.stringify(describeHints(languageHints)));
     }
 
-    const systemPrompt = buildSystemPrompt(user, recentCheckIns, memories, sessionType, { ...promptExtra, coachingContext, mindJournalEntries, startingProfile })
+    const systemPrompt = buildSystemPrompt(user, recentCheckIns, memories, sessionType, { ...promptExtra, coachingContext, mindJournalEntries, startingProfile, currentFocus })
       + buildLanguageHintSection(languageHints);
     const loop = await runBufferedToolLoop({
       anthropic,

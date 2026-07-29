@@ -95,6 +95,12 @@ function makeCoachingDb(fixture) {
     chatSession: {
       findUnique: async ({ where }) => sessionsById[where.id] || null,
     },
+    // The athlete's current coaching focus. Absent by default, which is the
+    // state of every athlete who has never changed focus — the opener then
+    // behaves exactly as it always did.
+    currentCoachingFocus: {
+      findUnique: async () => fixture.focusRow || null,
+    },
     userCoachingState: {
       findUnique: async () => ({
         ...fixture.state,

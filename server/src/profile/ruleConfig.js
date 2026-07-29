@@ -60,6 +60,49 @@ const PRIORITY_PHRASE = {
   injury_return:                { en: 'what makes returning from injury difficult', hi: 'चोट से वापसी क्या मुश्किल बनाती है' },
 };
 
+// Athlete-facing ACTION label for a focus, keyed by the same stable
+// difficult_moments ids. PRIORITY_PHRASE is prose for the middle of a
+// sentence ("what happens after a mistake"); this is the short, active thing
+// the athlete is working on, for a card headline ("Bounce back after
+// mistakes"). Purely a display label — it adds no psychological conclusion
+// and maps 1:1 onto an id the athlete themselves selected.
+const FOCUS_ACTION_LABEL = {
+  before_important_performance: { en: 'Feel ready before you compete', hi: 'मुक़ाबले से पहले तैयार महसूस करना' },
+  pressure_increases:           { en: 'Handle pressure with more control', hi: 'दबाव को बेहतर तरीके से संभालना' },
+  after_mistake:                { en: 'Bounce back after mistakes', hi: 'गलती के बाद जल्दी संभलना' },
+  after_poor_result:            { en: 'Move on from a poor result', hi: 'खराब नतीजे को पीछे छोड़ना' },
+  lose_focus:                   { en: 'Regain focus', hi: 'ध्यान वापस पाना' },
+  confidence_drops:             { en: 'Rebuild confidence', hi: 'आत्मविश्वास दोबारा बनाना' },
+  low_motivation:               { en: 'Stay consistent', hi: 'लगातार बने रहना' },
+  coach_feedback:               { en: 'Respond better to feedback', hi: 'फीडबैक पर बेहतर प्रतिक्रिया देना' },
+  selection_uncertain:          { en: 'Handle selection uncertainty', hi: 'सिलेक्शन की अनिश्चितता संभालना' },
+  family_expectations:          { en: 'Manage outside expectations', hi: 'बाहरी उम्मीदों को संभालना' },
+  injury_return:                { en: 'Return with confidence', hi: 'आत्मविश्वास के साथ वापसी करना' },
+};
+
+// The one id the athlete may send for "Something else", plus the label used
+// when they have written their own focus but the text is unusable.
+const CUSTOM_FOCUS_ID = 'different';
+const CUSTOM_FOCUS_FALLBACK_LABEL = { en: 'Something you named yourself', hi: 'जो आपने खुद बताया' };
+
+// Playing context + experience, for the athlete snapshot. Collected in
+// onboarding (competition_level / experience_level) but deliberately NOT part
+// of the frozen ruleOutput — they are read from the linked OnboardingSession
+// at serialize time, so no existing profile has to be regenerated.
+const LEVEL_LABEL = {
+  recreational:  { en: 'Recreational', hi: 'शौकिया' },
+  local:         { en: 'Local', hi: 'स्थानीय' },
+  state:         { en: 'State', hi: 'राज्य स्तर' },
+  national:      { en: 'National', hi: 'राष्ट्रीय' },
+  international: { en: 'International', hi: 'अंतरराष्ट्रीय' },
+};
+const EXPERIENCE_LABEL = {
+  beginner:     { en: 'Beginner', hi: 'शुरुआती' },
+  amateur:      { en: 'Amateur', hi: 'शौकिया' },
+  competitive:  { en: 'Competitive', hi: 'प्रतिस्पर्धी' },
+  professional: { en: 'Professional', hi: 'पेशेवर' },
+};
+
 // Cautious conversational fallbacks when the athlete named no single priority.
 const PRIORITY_PHRASE_FALLBACK = {
   custom:  { en: 'what happens in the situation you wrote about', hi: 'जो स्थिति आपने लिखी, उसमें क्या होता है' },
@@ -311,12 +354,18 @@ const SPORT_LABEL = {
 };
 
 // Role/position, used in §1 when it adds something concrete.
+// `both` is a real answer meaning the athlete plays more than one role — it
+// gets a natural combined label rather than being dropped. `none`, `unsure`
+// and `different` are deliberately absent: they carry nothing displayable
+// (and `different`'s custom text is not part of ruleOutput), so the snapshot
+// omits the chip entirely rather than showing an empty or raw value.
 const ROLE_LABEL = {
   batter: { en: 'batter', hi: 'बल्लेबाज़' }, bowler: { en: 'bowler', hi: 'गेंदबाज़' },
   all_rounder: { en: 'all-rounder', hi: 'ऑलराउंडर' }, wicketkeeper: { en: 'wicketkeeper', hi: 'विकेटकीपर' },
   goalkeeper: { en: 'goalkeeper', hi: 'गोलकीपर' }, defender: { en: 'defender', hi: 'डिफेंडर' },
   midfielder: { en: 'midfielder', hi: 'मिडफील्डर' }, forward: { en: 'forward', hi: 'फॉरवर्ड' },
   singles: { en: 'singles player', hi: 'सिंगल्स खिलाड़ी' }, doubles: { en: 'doubles player', hi: 'डबल्स खिलाड़ी' },
+  both: { en: 'Multiple roles', hi: 'कई भूमिकाएँ' },
 };
 
 // When the athlete named no support/strength we can phrase, §3 still stays
@@ -332,4 +381,5 @@ module.exports = {
   SUPPORT_PHRASE, STRENGTH_PHRASE, GOAL_LABEL, OUTCOME_LABEL, SPORT_LABEL,
   UNSURE_TRIGGER, ONSET_PHRASE, INJURY_STAGE, FAMILY_SOURCE, CONTEXT_PHRASE,
   ROLE_LABEL, NOTHING_NAMED_YET, PRIORITY_PHRASE, PRIORITY_PHRASE_FALLBACK, BEGIN_SEQUENCE,
+  FOCUS_ACTION_LABEL, CUSTOM_FOCUS_ID, CUSTOM_FOCUS_FALLBACK_LABEL, LEVEL_LABEL, EXPERIENCE_LABEL,
 };

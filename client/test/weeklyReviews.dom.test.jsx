@@ -321,13 +321,16 @@ describe('Fresh cycle after rollover — coaching continuity', () => {
     expect(JSON.parse(sends()[0][1].body).content).toBe('It helped');
     expect(JSON.parse(sends()[0][1].body).chatSessionId).toBe('cs-new');
 
-    // …the streamed reply renders, and the server-offered quick replies
-    // appear as chips.
+    // …and the streamed reply renders. AI-generated reply chips were removed
+    // from Coach (it is a free-text conversation now), so no chip row follows
+    // the reply — only the deterministic outcome chips above ever existed.
     expect(await screen.findByText(/What made the difference\?/)).toBeTruthy();
-    const chip = await screen.findByRole('button', { name: 'My cue word' });
+    expect(screen.queryByRole('button', { name: 'My cue word' })).toBeNull();
 
-    // Tapping a quick reply sends its label too — composer path intact.
-    await user.click(chip);
+    // The composer path is intact: typing still sends.
+    const composer = screen.getByRole('textbox');
+    await user.type(composer, 'My cue word');
+    await user.keyboard('{Enter}');
     expect(sends().length).toBe(2);
     expect(JSON.parse(sends()[1][1].body).content).toBe('My cue word');
   });

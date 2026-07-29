@@ -119,6 +119,7 @@ model User {
   mindJournalEntries       MindJournalEntry[]
   onboardingSessions       OnboardingSession[]
   startingProfiles         StartingPerformanceProfile[]
+  currentCoachingFocus     CurrentCoachingFocus?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -868,4 +869,43 @@ model StartingProfileWording {
   updatedAt                 DateTime             @updatedAt
 
   @@unique([profileId, language])
+}
+
+// Where the athlete says they want to focus RIGHT NOW (PR: Performance
+// Profile pathway). Deliberately separate from StartingPerformanceProfile:
+// the starting profile is the frozen onboarding baseline (ruleOutput,
+// suggestedPriorityId, agreedPriorityId, fitResponse, correction history)
+// and is never rewritten when the athlete changes focus. This row is the
+// only mutable part.
+//
+// At most one row per athlete — a change updates it in place rather than
+// appending, so there is no history to grow unbounded. Nothing coaching-
+// related is deleted by a focus change: CoachingCycles and Prescriptions
+// are untouched, and the starting profile keeps every original field.
+//
+// Absent by design for existing athletes: the displayed focus falls back to
+// the confirmed agreedPriorityId, so no backfill is needed and the row is
+// created only when an athlete actually changes focus.
+enum CurrentFocusSource {
+  STARTING_PROFILE // derived from the confirmed agreedPriorityId
+  ATHLETE_SELECTED // the athlete picked it on the profile screen
+}
+
+model CurrentCoachingFocus {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // A stable difficult_moments answer id, or "different" when the athlete
+  // wrote their own. Never a label, never localised.
+  focusId String
+
+  // Sanitised athlete text, only when focusId is "different". Bounded on
+  // write; never logged.
+  customText String?
+
+  source CurrentFocusSource @default(ATHLETE_SELECTED)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

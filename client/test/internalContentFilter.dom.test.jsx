@@ -80,17 +80,19 @@ describe('legacy internal content in chat history', () => {
     }
   });
 
-  test('quick-reply chips attach to the last VISIBLE reply, never to the hidden one', async () => {
+  test('a legacy [SUGGEST:] tag is stripped, not rendered, and the leaked reply stays hidden', async () => {
+    // AI reply chips were removed from Coach. Messages stored before that
+    // still carry the tag: the marker must never be visible as text, and its
+    // options must not come back as buttons.
     await mockApi([
       { id: 'm1', role: 'assistant', content: `${REAL_REPLY}\n[SUGGEST: Mostly in matches | Mostly in training]`, createdAt: new Date().toISOString() },
       { id: 'm2', role: 'assistant', content: LEAKED, createdAt: new Date().toISOString() },
     ]);
     render(<App />);
     await screen.findByText(REAL_REPLY);
-    // The hidden message would otherwise have been the last Arjun message and
-    // would have swallowed the chips.
-    expect(await screen.findByRole('button', { name: 'Mostly in matches' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Mostly in training' })).toBeTruthy();
+    expect(screen.queryByText(/\[SUGGEST:/)).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Mostly in matches' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Mostly in training' })).toBeNull();
     expect(screen.queryByText(/tool action has already been accepted/i)).toBeNull();
   });
 

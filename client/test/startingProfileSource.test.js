@@ -41,15 +41,25 @@ test('every athlete-facing string on the page comes from translations, not hardc
   assert.deepEqual(textNodes, [], `hardcoded copy found: ${textNodes.join(' | ')}`);
 });
 
-test('the page renders exactly the four profile sections the server sends', () => {
-  for (const k of ['whatMatters', 'possiblePattern', 'whatHelps', 'whereWeBegin']) {
-    assert.match(page, new RegExp(`s\\.${k}`), `missing section ${k}`);
-  }
+// The four prose blocks were replaced by the structured display payload. The
+// page now renders server-authored strings from displayProfile instead of four
+// paragraphs — see the redesign tests further down.
+test('the page renders the server-owned display payload, not raw onboarding answers', () => {
+  assert.match(page, /profile\?\.displayProfile/);
+  assert.match(page, /dp\?\.startingPattern/);
+  assert.match(page, /dp\?\.currentFocus/);
+  assert.match(page, /dp\?\.nextStep/);
 });
 
-test('the page never invents an interpretation of its own — it only renders server sections', () => {
+test('the page never invents an interpretation of its own', () => {
   assert.doesNotMatch(page, /anthropic|messages\.create/i);
-  assert.match(page, /profile\.sections/);
+  // No client-side mapping of an answer id to a psychological label: the only
+  // config lookup left is the correction flow's own difficult_moments options.
+  const cfgLookups = [...page.matchAll(/CFG\.getQuestion\('([^']+)'\)/g)].map((m) => m[1]);
+  assert.deepEqual(cfgLookups, ['difficult_moments']);
+  for (const map of ['CLAUSE', 'SUPPORT_PHRASE', 'STRENGTH_PHRASE', 'FOCUS_ACTION_LABEL', 'GOAL_LABEL']) {
+    assert.doesNotMatch(page, new RegExp(map), `${map} must stay server-side`);
+  }
 });
 
 test('the three fit answers are the only fit values sent to the server', () => {
@@ -63,9 +73,12 @@ test('corrections are limited to the athlete\'s own options plus their own words
   assert.match(page, /isValidCustomText\(correctionText, CORRECTION_MAX\)/);
 });
 
-test('the hook talks to the three profile endpoints and nothing else', () => {
+test('the hook talks to the four profile endpoints and nothing else', () => {
   const paths = [...hook.matchAll(/apiFetch\('([^']+)'/g)].map((m) => m[1]).sort();
-  assert.deepEqual(paths, ['/api/profile/confirm', '/api/profile/start-chat', '/api/profile/starting']);
+  assert.deepEqual(paths, [
+    '/api/profile/confirm', '/api/profile/current-focus',
+    '/api/profile/start-chat', '/api/profile/starting',
+  ]);
 });
 
 test('the retired mental-game profile page is gone from the client', () => {
@@ -139,18 +152,21 @@ test('the completion transition renders only on the screen that just confirmed',
   assert.match(page, /setJustConfirmed\(true\);/);
 });
 
-test('the saved view has its own heading and supporting copy', () => {
-  assert.match(page, /savedMode \? t\.savedViewTitle : t\.title/);
-  assert.match(page, /savedMode \? t\.savedViewSubtitle : t\.subtitle/);
+test('the saved view has its own heading and NO subtitle underneath it', () => {
+  assert.match(page, /savedMode \? t\.savedTitleShort : t\.title/);
+  // The subtitle renders only in first-time mode.
+  assert.match(page, /\{!savedMode && <p[^>]*>\{t\.subtitle\}<\/p>\}/);
   const en = namespaceBlock('en');
-  assert.match(en, /savedViewTitle: 'Your Performance Profile'/);
-  assert.match(en, /savedViewSubtitle: 'Your starting profile based on what you shared during onboarding\.'/);
+  assert.match(en, /savedTitleShort: 'Your Performance Profile'/);
 });
 
-test('the saved view shows the agreed focus, the response and a date, and stays read-only', () => {
-  assert.match(page, /t\.agreedFocusLabel/);
-  assert.match(page, /FIT_STATUS_KEY\[profile\.fitResponse\]/);
-  assert.match(page, /t\.lastUpdated\(/);
+test('the saved view shows the current focus and a date, and stays read-only', () => {
+  assert.match(page, /t\.currentFocusLabel/);
+  assert.match(page, /t\.updatedOn\(/);
+  // The profile's fit response describes the one-time Starting Profile review,
+  // not the mutable current focus, so it is deliberately not rendered here.
+  assert.doesNotMatch(page, /FIT_STATUS_KEY/);
+  assert.doesNotMatch(page, /t\.currentResponse/);
   // No editing was built: the only correction field on the page sits inside
   // the unconfirmed block, above the completion transition.
   const unconfirmedIdx = page.indexOf('{!confirmed && (');
@@ -184,9 +200,10 @@ test('the saved-view strings exist in both languages', () => {
   }
 });
 
-test('the richer visual profile redesign is not in this PR', () => {
-  // No charts, no snapshot/pathway/card scaffolding — the saved view reuses
-  // the same plain Section blocks as the first-time flow.
-  assert.doesNotMatch(page, /recharts|Chart|Snapshot|Pathway|Timeline/i);
-  assert.match(page, /function Section\(/);
+test('the visual redesign is present and shares one component tree across modes', () => {
+  for (const c of ['CurrentFocusCard', 'ProfileChipGroup', 'PerformancePathway', 'ProfileSectionCard', 'ChangeFocusDialog']) {
+    assert.match(page, new RegExp(c), `missing ${c}`);
+  }
+  // Still no measurement visuals of any kind.
+  assert.doesNotMatch(page, /recharts|RadarChart|Gauge|skill-bar|percentile/i);
 });
