@@ -147,6 +147,17 @@ test('Train: retained tools still render — Ritual, Pressure Reset, Match & Pra
   assert.match(train, /navigate\(p\.to\)/, 'tiles navigate via the route table');
 });
 
+test('Train: the tap-target correction touched only styling — every route is exactly as before', () => {
+  // Pins the complete route set so a future change can't quietly add,
+  // remove or redirect a destination while "just" fixing a tap target.
+  const routeMatches = train.match(/(?:to|historyTo): '([^']+)'/g) || [];
+  const routes = routeMatches.map(m => m.match(/'([^']+)'/)[1]).sort();
+  assert.deepEqual(routes, [
+    '/body-reset', '/body-reset/history', '/debrief', '/mental-rep', '/ritual', '/self-talk',
+  ].sort());
+  assert.match(train, /onClick=\{\(\) => navigate\(p\.historyTo\)\}/, 'history control still navigates via p.historyTo');
+});
+
 test('Train: exactly the five real practices — no invented categories, no fabricated counts', () => {
   const keys = (train.match(/key: '(\w+)'/g) || []);
   assert.equal(keys.length, 5, 'exactly five practices are listed');

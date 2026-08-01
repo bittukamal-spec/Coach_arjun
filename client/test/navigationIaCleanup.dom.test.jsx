@@ -380,6 +380,15 @@ describe('TrainPage — Ritual entry, real router integration', () => {
       .toHaveProperty('textContent', 'reset-history:/body-reset/history');
   });
 
+  test('the "View history" control carries an explicit >=44px tap target, not just surrounding whitespace', async () => {
+    render(<TrainApp />);
+    const historyBtn = screen.getByRole('button', { name: /View history/i });
+    // The class must be on the interactive element itself — a 44px parent
+    // wrapper around a small button would not give the control itself a
+    // real 44px hit area.
+    expect(historyBtn.className).toMatch(/min-h-\[44px\]/);
+  });
+
   test('Ritual renders in Hindi with the approved support copy', async () => {
     authState.language = 'hi';
     render(<TrainApp />);

@@ -74,10 +74,15 @@ export default function TrainPage() {
                     className={group.practices.length === 1 ? 'col-span-2' : ''}
                     onClick={() => navigate(p.to)}
                     footer={p.historyTo && (
+                      // min-h-[44px] + inline-flex items-center gives the
+                      // whole clickable element a real 44px tap target
+                      // without stretching the button's own compact,
+                      // background-free text-link appearance — it still
+                      // reads as a quiet secondary action, never a button.
                       <button
                         type="button"
                         onClick={() => navigate(p.historyTo)}
-                        className="mt-1.5 self-start text-[11px] font-semibold text-brand-400 px-1 py-1 rounded active:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                        className="mt-1.5 self-start min-h-[44px] inline-flex items-center text-[11px] font-semibold text-brand-400 px-1 rounded active:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
                       >
                         {t.resetHistory}
                       </button>
