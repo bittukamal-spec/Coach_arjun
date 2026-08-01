@@ -48,6 +48,7 @@ function TrainApp({ initialEntries = ['/train'] }) {
         <Route path="/train" element={<TrainPage />} />
         <Route path="/ritual" element={<RouteProbe label="ritual" />} />
         <Route path="/body-reset" element={<RouteProbe label="body-reset" />} />
+        <Route path="/body-reset/history" element={<RouteProbe label="reset-history" />} />
         <Route path="/debrief" element={<RouteProbe label="debrief" />} />
         <Route path="/mental-rep" element={<RouteProbe label="mental-rep" />} />
         <Route path="/self-talk" element={<RouteProbe label="self-talk" />} />
@@ -347,9 +348,36 @@ describe('TrainPage — Ritual entry, real router integration', () => {
     expect(screen.queryByText('Daily Mental Rep')).toBeNull();
     expect(screen.getByText('Focus Card Builder')).toBeTruthy();
 
-    // Pressure Reset's own CTA is a "Start" button (FeatureToolCard hero pattern).
-    await user.click(screen.getByRole('button', { name: 'Start' }));
+    // Stage E: the whole tile is the control, so it is named by its
+    // practice rather than by a separate "Start" CTA. Clicking the tile
+    // must still land on the practice's existing route.
+    await user.click(screen.getByRole('button', { name: /Pressure Reset/ }));
     expect(await screen.findByTestId('route-probe')).toHaveProperty('textContent', 'body-reset:/body-reset');
+  });
+
+  test('every one of the five practice tiles opens its existing route', async () => {
+    const cases = [
+      [/Ritual/, 'ritual:/ritual'],
+      [/Pressure Reset/, 'body-reset:/body-reset'],
+      [/Match & Practice Reflection/, 'debrief:/debrief'],
+      [/Quick Rep/, 'mental-rep:/mental-rep'],
+      [/Focus Card Builder/, 'self-talk:/self-talk'],
+    ];
+    for (const [name, expected] of cases) {
+      const { unmount } = render(<TrainApp />);
+      const user = userEvent.setup();
+      await user.click(screen.getByRole('button', { name }));
+      expect(await screen.findByTestId('route-probe')).toHaveProperty('textContent', expected);
+      unmount();
+    }
+  });
+
+  test('Pressure Reset keeps its secondary history route', async () => {
+    render(<TrainApp />);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: /View history/i }));
+    expect(await screen.findByTestId('route-probe'))
+      .toHaveProperty('textContent', 'reset-history:/body-reset/history');
   });
 
   test('Ritual renders in Hindi with the approved support copy', async () => {
