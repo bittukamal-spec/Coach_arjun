@@ -15,7 +15,11 @@ function OptionGrid({ layout = 'stack', multi = false, ariaLabel, className = ''
         // 'grid' stays two columns on normal phones but drops to a single
         // column on genuinely narrow viewports (<360px) so full labels are
         // never cut off. 'stack' is always a single column.
-        layout === 'grid' ? 'grid grid-cols-1 min-[360px]:grid-cols-2 gap-3' : 'flex flex-col gap-3',
+        // items-stretch keeps every tile in a row the same height once a
+        // longer label wraps, so the grid never looks ragged.
+        layout === 'grid'
+          ? 'grid grid-cols-1 min-[360px]:grid-cols-2 gap-3 items-stretch'
+          : 'flex flex-col gap-3',
         className,
       ].join(' ')}
     >
