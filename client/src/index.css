@@ -65,6 +65,16 @@
   --brand-on-dark:      var(--blue);          /* light: identical to brand/primary */
   --brand-logo:         #185FA5;              /* the ArjunLogo mark only — never a UI fill */
   --nav-bar:            #07131F;              /* bottom nav / Coach header — identical in both themes (Stage B) */
+  /* Foreground colours for content sitting ON --nav-bar. Deliberately NOT
+     theme-branched: --nav-bar is the same near-black in both themes, so its
+     foreground must be too. `--brand-on-dark` cannot serve this role — it
+     resolves to #1769AA in light theme, only ~3.2:1 against #07131F, which
+     fails AA for the 10px nav label. These are the study's dark-theme
+     on-dark values, used in both themes: 7.3:1 and 9.2:1 respectively. */
+  --nav-fg-active:      #5FA8DE;              /* active nav item, Coach header accents */
+  --nav-fg-inactive:    #AAB7C4;              /* inactive nav item, secondary header controls */
+  --nav-fg-strong:      #F8FAFC;              /* primary text on the nav/header surface */
+  --nav-hairline:       #1F3448;              /* divider between nav/header and page content */
   --text-ink:           var(--text-1);
   --text-secondary:     var(--text-2);
   --text-muted:         var(--text-3);

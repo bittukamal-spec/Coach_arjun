@@ -1450,6 +1450,8 @@ export const translations = {
       loading: 'Loading…',
       error: 'Something went wrong. Please refresh.',
       langToggle: 'हिंदी',
+      // Accessible name for icon-only back controls in shared headers.
+      back: 'Back',
     },
     bodyReset: {
       learn: {
@@ -3049,6 +3051,8 @@ export const translations = {
       loading: 'लोड हो रहा है…',
       error: 'कुछ गलत हो गया। कृपया रिफ्रेश करें।',
       langToggle: 'English',
+      // Accessible name for icon-only back controls in shared headers.
+      back: 'वापस',
     },
     bodyReset: {
       learn: {

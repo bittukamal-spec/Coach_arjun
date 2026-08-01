@@ -33,6 +33,7 @@ function BottomNavApp({ initialEntries = ['/dashboard'] }) {
         <Route path="/coaching" element={<><RouteProbe label="page" /><BottomNav /></>} />
         <Route path="/playbook" element={<><RouteProbe label="page" /><BottomNav /></>} />
         <Route path="/account" element={<><RouteProbe label="page" /><BottomNav /></>} />
+        <Route path="/starting-profile" element={<><RouteProbe label="page" /><BottomNav /></>} />
         <Route path="/progress" element={<Navigate to="/playbook" replace />} />
       </Routes>
     </MemoryRouter>
@@ -136,6 +137,95 @@ describe('BottomNav — Progress → Playbook, real router integration', () => {
     const nav = screen.getByRole('navigation');
     const labels = within(nav).getAllByRole('link').map((l) => l.textContent);
     expect(labels).toEqual(['होम', 'ट्रेन', 'कोच', 'प्लेबुक', 'प्रोफाइल']);
+  });
+});
+
+// ─── Stage B: app shell ──────────────────────────────────────────────────────
+// The fifth destination moves from Account/Settings to the athlete's
+// Performance Profile, and the bar adopts the approved near-black surface.
+
+describe('BottomNav — Stage B shell', () => {
+  test('the Profile tab points at /starting-profile, not /account', async () => {
+    render(<BottomNavApp initialEntries={['/dashboard']} />);
+    const profileLink = screen.getByRole('link', { name: /Profile/i });
+    expect(profileLink.getAttribute('href')).toBe('/starting-profile');
+  });
+
+  test('tapping Profile performs a real navigation to the Performance Profile', async () => {
+    render(<BottomNavApp initialEntries={['/dashboard']} />);
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole('link', { name: /Profile/i }));
+
+    expect(await screen.findByTestId('route-probe'))
+      .toHaveProperty('textContent', 'page:/starting-profile');
+  });
+
+  test('Profile is active on /starting-profile and inactive on /account', async () => {
+    const { unmount } = render(<BottomNavApp initialEntries={['/starting-profile']} />);
+    expect(screen.getByRole('link', { name: /Profile/i }).getAttribute('aria-current')).toBe('page');
+    unmount();
+
+    // /account still resolves and still renders the shell — it simply is no
+    // longer the Profile tab's destination, so nothing is marked active.
+    render(<BottomNavApp initialEntries={['/account']} />);
+    expect(screen.getByRole('link', { name: /Profile/i }).getAttribute('aria-current')).toBeNull();
+  });
+
+  test('ONLY the fifth destination changed — the first four are untouched', async () => {
+    render(<BottomNavApp initialEntries={['/dashboard']} />);
+    const hrefs = within(screen.getByRole('navigation'))
+      .getAllByRole('link')
+      .map((l) => l.getAttribute('href'));
+    expect(hrefs).toEqual(['/dashboard', '/train', '/coaching', '/playbook', '/starting-profile']);
+  });
+
+  test('the bar uses the near-black nav surface and a safe-area inset, not a theme-specific page colour', async () => {
+    render(<BottomNavApp initialEntries={['/dashboard']} />);
+    const nav = screen.getByRole('navigation');
+    expect(nav.style.background).toContain('--nav-bar');
+    // Asserted as a class, not an inline style: jsdom drops `env()` from
+    // inline styles, so the utility class is the reliable signal here.
+    expect(nav.className).toMatch(/pb-\[env\(safe-area-inset-bottom\)\]/);
+    // The old theme-following page background must be gone.
+    expect(nav.className).not.toMatch(/bg-dark-900/);
+  });
+
+  test('active and inactive items use the on-dark token family, never the light-theme brand blue', async () => {
+    render(<BottomNavApp initialEntries={['/playbook']} />);
+    const nav = screen.getByRole('navigation');
+
+    const active = within(nav).getByRole('link', { name: /Playbook/i });
+    expect(active.querySelector('span').style.color).toContain('--nav-fg-active');
+
+    const inactive = within(nav).getByRole('link', { name: /Home/i });
+    expect(inactive.querySelector('span').style.color).toContain('--nav-fg-inactive');
+
+    // navy-bright was the old active colour and is not an approved token.
+    expect(nav.innerHTML).not.toMatch(/navy-bright/);
+  });
+
+  test('every destination keeps a >=48px tap target and a 10px label', async () => {
+    render(<BottomNavApp initialEntries={['/dashboard']} />);
+    const links = within(screen.getByRole('navigation')).getAllByRole('link');
+    expect(links).toHaveLength(5);
+    for (const link of links) {
+      expect(link.className).toMatch(/min-h-\[48px\]/);
+      expect(link.querySelector('span').className).toMatch(/text-\[10px\]/);
+    }
+  });
+
+  test('nav destinations remain keyboard-focusable with a visible focus ring', async () => {
+    render(<BottomNavApp initialEntries={['/dashboard']} />);
+    for (const link of within(screen.getByRole('navigation')).getAllByRole('link')) {
+      expect(link.className).toMatch(/focus-visible:ring-2/);
+    }
+  });
+
+  test('no gradient or glow is introduced on the nav surface', async () => {
+    render(<BottomNavApp initialEntries={['/dashboard']} />);
+    const nav = screen.getByRole('navigation');
+    expect(nav.outerHTML).not.toMatch(/gradient|glow/i);
   });
 });
 
