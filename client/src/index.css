@@ -112,6 +112,7 @@
     /* Stage A tokens that diverge from their light-theme value */
     --brand-on-dark:     #5FA8DE;
     --text-disabled:     #5A6B7C;
+    --border-hairline:   var(--border); /* #2B4157 — not --border-soft (#1F3448) */
     --surface-elevated:  var(--card-muted); /* #1B3044 */
     --surface-selected:  var(--card-muted); /* #1B3044 — shared with elevated, intentionally (see study) */
     --status-error:      #F2A0A0;
@@ -152,6 +153,7 @@
   /* Stage A tokens that diverge from their light-theme value */
   --brand-on-dark:     #5FA8DE;
   --text-disabled:     #5A6B7C;
+  --border-hairline:   var(--border); /* #2B4157 — not --border-soft (#1F3448) */
   --surface-elevated:  var(--card-muted); /* #1B3044 */
   --surface-selected:  var(--card-muted); /* #1B3044 — shared with elevated, intentionally (see study) */
   --status-error:      #F2A0A0;
