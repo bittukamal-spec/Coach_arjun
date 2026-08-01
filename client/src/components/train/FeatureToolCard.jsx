@@ -50,7 +50,7 @@ function FeatureToolCard({
           <button
             onClick={onCta}
             className="text-sm font-bold px-6 rounded-xl bg-white active:scale-[0.98] transition-transform"
-            style={{ minHeight: '44px', color: '#185FA5' }}
+            style={{ minHeight: '44px', color: 'var(--brand-primary)' }}
           >
             {ctaLabel}
           </button>
@@ -66,7 +66,7 @@ function FeatureToolCard({
           <GradientIconTile icon={Icon} variant={variant} className="w-11 h-11 rounded-xl" size={20} />
           <h2 className="text-base font-bold text-ink leading-tight">{title}</h2>
         </div>
-        <span className="tag-pill" style={{ '--tile-fg': '#185FA5', '--tile-bg': 'rgb(var(--brand-50))' }}>{tag}</span>
+        <span className="tag-pill" style={{ '--tile-fg': 'var(--brand-primary)', '--tile-bg': 'rgb(var(--brand-50))' }}>{tag}</span>
       </div>
       <p className="text-sm text-slt leading-relaxed">{desc}</p>
       <div className="flex items-center gap-1.5 text-xs text-muted">

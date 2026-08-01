@@ -2,6 +2,20 @@
 export default {
   content: ['./index.html', './src/**/*.{js,jsx}'],
   theme: {
+    // Stage A: the approved design study's single 360→430 breakpoint,
+    // added ahead of `sm` for correct mobile-first cascade order. Declared
+    // in full (not via `extend`) so `xs` sorts before `sm` in the generated
+    // stylesheet — `extend.screens` would only append it after the
+    // defaults. Every other value below is an unmodified Tailwind default;
+    // none are weakened or changed.
+    screens: {
+      xs: '430px',
+      sm: '640px',
+      md: '768px',
+      lg: '1024px',
+      xl: '1280px',
+      '2xl': '1536px',
+    },
     extend: {
       colors: {
         // ── Dark athletic theme ────────────────────────────────────────────────

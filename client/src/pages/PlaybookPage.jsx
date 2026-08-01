@@ -102,7 +102,7 @@ export default function PlaybookPage() {
                     {' · '}{o.practiceName}
                   </p>
                   {o.situation && <p className="text-caption text-slt mb-1">{o.situation}</p>}
-                  <p className="text-body font-bold mb-1" style={{ color: '#185FA5' }}>{outcomeLabel(o.outcomeStatus, hi)}</p>
+                  <p className="text-body font-bold mb-1" style={{ color: 'var(--brand-primary)' }}>{outcomeLabel(o.outcomeStatus, hi)}</p>
                   {o.lesson && <p className="text-body text-ink leading-relaxed">{o.lesson}</p>}
                 </Card>
               ))}
@@ -172,7 +172,7 @@ export default function PlaybookPage() {
                     className="w-full p-3 text-left rounded-xl border border-dark-600 bg-dark-700/50 active:scale-[0.98] transition-transform"
                   >
                     <div className="flex items-center gap-2.5 mb-1">
-                      <span className="text-lg font-black" style={{ color: '#185FA5' }}>{c.focusWord}</span>
+                      <span className="text-lg font-black" style={{ color: 'var(--brand-primary)' }}>{c.focusWord}</span>
                       <span className="text-caption text-muted">·</span>
                       <span className="text-body font-bold" style={{ color: '#D98B2B' }}>{c.resetWord}</span>
                     </div>

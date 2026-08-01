@@ -6,7 +6,7 @@ function GameTimer({ duration, elapsed }) {
     <div className="w-full h-1.5 rounded-full bg-dark-700 overflow-hidden">
       <div
         className="h-full rounded-full transition-[width] duration-200 ease-linear"
-        style={{ width: `${remaining * 100}%`, backgroundColor: '#185FA5' }}
+        style={{ width: `${remaining * 100}%`, backgroundColor: 'var(--brand-primary)' }}
       />
     </div>
   );

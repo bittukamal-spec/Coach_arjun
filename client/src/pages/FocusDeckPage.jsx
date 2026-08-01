@@ -139,7 +139,7 @@ export default function FocusDeckPage() {
 
       {/* Hero */}
       <div className="px-4 pb-5">
-        <span className="tag-pill inline-block mb-3" style={{ '--tile-fg': '#185FA5', '--tile-bg': 'rgb(var(--brand-50))' }}>
+        <span className="tag-pill inline-block mb-3" style={{ '--tile-fg': 'var(--brand-primary)', '--tile-bg': 'rgb(var(--brand-50))' }}>
           {hi ? 'Focus Words' : 'Focus Words'}
         </span>
         <h2 className="text-2xl font-black text-ink leading-tight mb-2">
@@ -235,7 +235,7 @@ export default function FocusDeckPage() {
 
                 {/* Focus + reset words */}
                 <div className="flex items-center gap-3 mb-2">
-                  <span className="text-2xl font-black" style={{ color: '#185FA5' }}>{card.focusWord}</span>
+                  <span className="text-2xl font-black" style={{ color: 'var(--brand-primary)' }}>{card.focusWord}</span>
                   <span className="text-xs text-muted">·</span>
                   <span className="text-base font-bold" style={{ color: '#D98B2B' }}>{card.resetWord}</span>
                 </div>

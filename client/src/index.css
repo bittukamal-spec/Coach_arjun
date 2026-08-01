@@ -51,6 +51,30 @@
   --color-action:       #F29B38;
   --color-success:      #22C55E;
   --color-alert:        #EF4444;
+
+  /* ── Approved design-system tokens (Stage A) ──────────────────────────────
+     Canonical roles/values reconciled from the frozen Arjun Layout
+     Translation Study against the tokens above. Where a role already
+     matches an existing value, it aliases that value directly rather than
+     duplicating it — one source of truth, no drift. `--nav-bar`,
+     `--brand-on-dark`, `--text-disabled` and `--status-error` are defined
+     here for later stages (Stage B+) to consume and are not yet applied to
+     any component or screen by this stage. */
+  --brand-primary:      var(--blue);          /* #1769AA — brand/primary, identical in both themes */
+  --brand-primary-rgb:  23 105 170;           /* #1769AA components, for rgb(var(--brand-primary-rgb) / alpha) */
+  --brand-on-dark:      var(--blue);          /* light: identical to brand/primary */
+  --brand-logo:         #185FA5;              /* the ArjunLogo mark only — never a UI fill */
+  --nav-bar:            #07131F;              /* bottom nav / Coach header — identical in both themes (Stage B) */
+  --text-ink:           var(--text-1);
+  --text-secondary:     var(--text-2);
+  --text-muted:         var(--text-3);
+  --text-disabled:      #94A3B8;
+  --border-hairline:    var(--border-soft);   /* #E2E8F0 */
+  --surface-card:       var(--card);          /* #FFFFFF */
+  --surface-chip:       var(--card);          /* chip body uses the card value, not elevated */
+  --surface-elevated:   var(--card);          /* #FFFFFF — Profile focus card, Playbook milestone card */
+  --surface-selected:   rgb(var(--brand-50)); /* #EFF6FF — selected option/sheet row */
+  --status-error:       #B4443C;              /* field-level validation text */
 }
 
 /* OS prefers dark — applies when arjun_theme = 'system' (no data-theme attr) */
@@ -84,6 +108,13 @@
     --color-bg:      #07131F;
     --color-surface: #0B1B2A;
     --color-border:  #2B4157;
+
+    /* Stage A tokens that diverge from their light-theme value */
+    --brand-on-dark:     #5FA8DE;
+    --text-disabled:     #5A6B7C;
+    --surface-elevated:  var(--card-muted); /* #1B3044 */
+    --surface-selected:  var(--card-muted); /* #1B3044 — shared with elevated, intentionally (see study) */
+    --status-error:      #F2A0A0;
   }
 }
 
@@ -117,6 +148,13 @@
   --color-bg:      #07131F;
   --color-surface: #0B1B2A;
   --color-border:  #2B4157;
+
+  /* Stage A tokens that diverge from their light-theme value */
+  --brand-on-dark:     #5FA8DE;
+  --text-disabled:     #5A6B7C;
+  --surface-elevated:  var(--card-muted); /* #1B3044 */
+  --surface-selected:  var(--card-muted); /* #1B3044 — shared with elevated, intentionally (see study) */
+  --status-error:      #F2A0A0;
 }
 
 @layer utilities {
@@ -138,8 +176,13 @@
 
 @layer components {
   /* Buttons */
+  /* Canonical primary — approved recipe: min-height 54px, radius 14, flat
+     brand/primary fill, visible focus ring. Same recipe as ui/Button.jsx's
+     `primary` variant below; kept as a separate class because a large
+     number of existing screens apply it directly via className rather
+     than through the Button component. */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 px-6 py-3 bg-brand-500 text-white font-semibold rounded-xl shadow-sm hover:bg-brand-600 active:scale-95 transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 min-h-[54px] bg-brand-500 text-white font-semibold rounded-[14px] shadow-sm hover:bg-brand-600 active:scale-95 transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2;
   }
   .btn-secondary {
     @apply inline-flex items-center justify-center gap-2 px-6 py-3 bg-dark-400 text-ink font-semibold rounded-xl border border-dark-600 shadow-sm hover:bg-dark-300 active:scale-95 transition-all duration-150;
@@ -239,6 +282,71 @@
   }
   .chip:hover {
     @apply border-brand-500 text-brand-400;
+  }
+
+  /* ── Semantic chip recipes (Stage A) ──────────────────────────────────────
+     Three read-only recipes from the approved design study, additive to
+     the `.chip`/`.tag-pill` classes above (those stay as-is — `.chip` is
+     an interactive quick-reply, `.tag-pill` is a small accent label; both
+     are still in active use). None of these three are wired into any
+     screen by this stage — they're available for later stages to adopt. */
+
+  /* chip/fact — read-only fact/attribute pill. Never focusable, never a
+     button. Wraps to multiple lines rather than truncating. */
+  .chip-fact {
+    @apply text-[12px] font-semibold px-[13px] py-2 rounded-full;
+    background: var(--surface-chip);
+    border: 1px solid var(--border-hairline);
+    color: var(--text-ink);
+  }
+
+  /* chip/date-pill — filled neutral, no border. Dates only. */
+  .chip-date-pill {
+    @apply text-[10.5px] font-bold px-2.5 py-1 rounded-full whitespace-nowrap;
+    background: #EDF2F7;
+    color: var(--text-secondary);
+  }
+  [data-theme="dark"] .chip-date-pill { background: var(--card-muted); }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .chip-date-pill { background: var(--card-muted); }
+  }
+
+  /* chip/status-label — uppercase contextual/type label (e.g. a milestone
+     type). Not a fill by default; the consuming card supplies contrast. */
+  .chip-status-label {
+    @apply text-[10.5px] font-bold uppercase whitespace-nowrap;
+    letter-spacing: 0.06em;
+    color: var(--brand-on-dark);
+  }
+
+  /* ── Elevation system (Stage A) ───────────────────────────────────────────
+     Three approved shadow levels, each theme-branched the way
+     `.card-elevated` already is below. Additive utilities — `.card`'s own
+     theme-flat `shadow-card` is a known, separately-tracked issue but is
+     left untouched here since it is consumed by cards across nearly every
+     screen and restyling it is out of this stage's footprint. */
+  .elevation-row {
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+  }
+  [data-theme="dark"] .elevation-row { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.30); }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .elevation-row { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.30); }
+  }
+
+  .elevation-card {
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.10);
+  }
+  [data-theme="dark"] .elevation-card { box-shadow: 0 4px 14px rgba(0, 0, 0, 0.32); }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .elevation-card { box-shadow: 0 4px 14px rgba(0, 0, 0, 0.32); }
+  }
+
+  .elevation-hero {
+    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.12);
+  }
+  [data-theme="dark"] .elevation-hero { box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35); }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .elevation-hero { box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35); }
   }
 
   /* Tool recommendation card (chat) — dark mode flattens every tool's own
