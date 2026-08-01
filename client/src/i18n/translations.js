@@ -254,6 +254,19 @@ export const translations = {
       // /starting-profile — the two must never read as the same action.
       settings: 'Settings',
     },
+    // ── Home (Stage D) ───────────────────────────────────────────────────
+    // Structural labels for the redesigned Home hierarchy. Athlete-facing
+    // strings that already existed (day-context options, shortcut labels
+    // and prefills, recommended-practice copy) are unchanged and still
+    // live with their own data structures in Dashboard.jsx.
+    home: {
+      greeting: (name) => `Hi, ${name}`,
+      athleteFallback: 'Athlete',
+      heroSub: 'Talk through whatever is on your mind.',
+      contextLabel: "What's today?",
+      recommendedLabel: 'Recommended practice',
+      helpLabel: 'Need help right now?',
+    },
     dashboard: {
       welcomeBack: 'Welcome back',
       subtitle: 'How are you showing up today?',
@@ -1820,6 +1833,19 @@ export const translations = {
       // bottom-nav "Profile" label above, which now points at
       // /starting-profile — the two must never read as the same action.
       settings: 'सेटिंग्स',
+    },
+    // ── Home (Stage D) ───────────────────────────────────────────────────
+    // Structural labels for the redesigned Home hierarchy. Athlete-facing
+    // strings that already existed (day-context options, shortcut labels
+    // and prefills, recommended-practice copy) are unchanged and still
+    // live with their own data structures in Dashboard.jsx.
+    home: {
+      greeting: (name) => `हाय, ${name}`,
+      athleteFallback: 'एथलीट',
+      heroSub: 'मन में जो है, उस पर बात करो।',
+      contextLabel: 'आज क्या है?',
+      recommendedLabel: 'सुझाई गई practice',
+      helpLabel: 'अभी मदद चाहिए?',
     },
     dashboard: {
       welcomeBack: 'वापस स्वागत है',
