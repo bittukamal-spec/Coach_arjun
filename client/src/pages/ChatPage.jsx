@@ -50,25 +50,31 @@ function MessageBubble({ message, isStreaming }) {
   if (message.role === 'assistant') {
     return <ArjunBubble message={message} isStreaming={isStreaming} />;
   }
+  // Athlete turn: a restrained bubble on the approved selected-surface tint,
+  // not the old saturated brand fill. Text stays `text-ink`, which is the
+  // high-contrast pairing for this surface in both themes.
   return (
     <div className="flex justify-end">
-      <div className="max-w-[92%] px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap break-words bg-brand-600 text-white rounded-2xl rounded-br-md">
+      <div
+        className="max-w-[78%] px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap break-words text-ink rounded-[18px] rounded-br-md border"
+        style={{ background: 'var(--surface-selected)', borderColor: 'var(--border-hairline)' }}
+      >
         {message.content}
       </div>
     </div>
   );
 }
 
+// Arjun's turns are plain text, so the waiting indicator is plain too — no
+// bubble, aligned with where his reply will appear.
 function TypingIndicator() {
   return (
-    <div className="flex justify-start">
-      <div className="bg-dark-400 border border-dark-600 shadow-sm rounded-2xl rounded-bl-md px-4 py-3">
-        <span className="inline-flex gap-1">
-          <span className="w-2 h-2 bg-slt rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-          <span className="w-2 h-2 bg-slt rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-          <span className="w-2 h-2 bg-slt rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-        </span>
-      </div>
+    <div className="flex justify-start px-1">
+      <span className="inline-flex gap-1 py-2">
+        <span className="w-2 h-2 bg-slt rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+        <span className="w-2 h-2 bg-slt rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+        <span className="w-2 h-2 bg-slt rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+      </span>
     </div>
   );
 }
@@ -228,8 +234,8 @@ function ServerCardBubble({ card, t }) {
   const practiceRoute = practiceRouteFor(card.practiceKey);
 
   return (
-    <div className="flex justify-start">
-      <div className="max-w-[92%] bg-dark-400 border border-dark-600 shadow-sm rounded-2xl rounded-bl-md overflow-hidden">
+    <div className="flex justify-start px-1">
+      <div className="max-w-[92%] card-elevated overflow-hidden">
         <div className="px-3.5 py-2.5 flex flex-col gap-1.5">
           <p className="text-micro uppercase text-brand-400 font-bold">
             Mental Rep
@@ -278,7 +284,7 @@ function ServerCardBubble({ card, t }) {
 
 function QuickReplyChips({ replies, onSelect, onWriteMyOwn, t }) {
   return (
-    <div className="flex flex-wrap gap-1.5 pl-1">
+    <div className="flex flex-wrap gap-1.5 px-1">
       {replies.map(reply => (
         <button
           key={reply.id}
@@ -316,23 +322,19 @@ function ArjunBubble({ message, isStreaming }) {
   });
   const hasTools = !isStreaming && appTools.length > 0;
 
+  // Arjun speaks as plain text — no bubble, no avatar, generous spacing
+  // between turns. Tool cards keep their own card surface and sit beneath
+  // the text rather than inside a shared bubble container.
   return (
-    <div className="flex justify-start">
-      <div className="max-w-[92%] bg-dark-400 border border-dark-600 shadow-sm rounded-2xl rounded-bl-md overflow-hidden">
-        <div className="px-3.5 py-2.5">
-          <ArjunText text={message.content} isStreaming={isStreaming} />
+    <div className="flex flex-col gap-2 px-1">
+      <ArjunText text={message.content} isStreaming={isStreaming} />
+      {hasTools && (
+        <div className="flex gap-2 max-w-[92%]">
+          {appTools.map(toolId => (
+            <AppToolCard key={toolId} toolId={toolId} />
+          ))}
         </div>
-        {hasTools && (
-          <>
-            <div className="h-px bg-dark-600 mx-3" />
-            <div className="p-2 flex gap-2">
-              {appTools.map(toolId => (
-                <AppToolCard key={toolId} toolId={toolId} />
-              ))}
-            </div>
-          </>
-        )}
-      </div>
+      )}
     </div>
   );
 }
@@ -840,22 +842,33 @@ function ChatPage() {
   return (
     <div className="flex flex-col h-dvh bg-dark-900">
 
-      {/* ── Header ──────────────────────────────────────────────────────── */}
-      <header className="shrink-0 bg-dark-900 border-b border-dark-600 px-4 py-3 relative">
+      {/* ── Header ──────────────────────────────────────────────────────────
+          Immersive Coach header: the same near-black surface as the bottom
+          nav, in both themes, with safe-area padding at the top. Because the
+          surface is theme-invariant, every foreground here uses the on-dark
+          token family — `text-ink` would be near-black on near-black in
+          light theme. */}
+      <header
+        className="shrink-0 border-b px-4 py-3 relative pt-[calc(0.75rem+env(safe-area-inset-top))]"
+        style={{ background: 'var(--nav-bar)', borderBottomColor: 'var(--nav-hairline)' }}
+      >
         <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
             <button
               onClick={() => (backOverrideRef.current
                 ? navigate(backOverrideRef.current, { replace: true })
                 : navigate(-1))}
-              className="p-2.5 text-slt hover:text-ink transition-colors rounded-lg hover:bg-dark-700 -ml-2 shrink-0"
-              aria-label="Go back"
+              className="w-11 h-11 -ml-2.5 flex items-center justify-center shrink-0 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2"
+              style={{ color: 'var(--nav-fg-inactive)', '--tw-ring-color': 'var(--nav-fg-active)' }}
+              aria-label={t.backAria}
             >
-              <ChevronLeft size={20} />
+              <ChevronLeft size={20} aria-hidden="true" />
             </button>
             <ArjunLogo size={28} />
             <div className="min-w-0">
-              <p className="font-semibold text-ink text-sm leading-none">{t.title}</p>
+              <p className="font-semibold text-sm leading-none" style={{ color: 'var(--nav-fg-strong)' }}>
+                {t.title}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-1 shrink-0">
@@ -863,17 +876,19 @@ function ChatPage() {
                 OUTSIDE the live message stream on its own page. */}
             <Link
               to="/weekly-reviews"
-              className="p-2.5 text-slt hover:text-ink transition-colors rounded-lg hover:bg-dark-700"
+              className="w-11 h-11 flex items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2"
+              style={{ color: 'var(--nav-fg-inactive)', '--tw-ring-color': 'var(--nav-fg-active)' }}
               aria-label={t.weeklyReviewsLabel}
             >
-              <History size={16} />
+              <History size={16} aria-hidden="true" />
             </Link>
             <button
               onClick={() => setShowSafety(s => !s)}
-              className="p-2.5 text-slt hover:text-ink transition-colors rounded-lg hover:bg-dark-700"
-              aria-label="Safety info"
+              className="w-11 h-11 flex items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2"
+              style={{ color: 'var(--nav-fg-inactive)', '--tw-ring-color': 'var(--nav-fg-active)' }}
+              aria-label={t.safetyInfoAria}
             >
-              <Info size={16} />
+              <Info size={16} aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -886,9 +901,12 @@ function ChatPage() {
         )}
       </header>
 
-      {/* ── Messages area ───────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto px-2 py-4">
-        <div className="max-w-2xl mx-auto flex flex-col gap-3">
+      {/* ── Messages area ────────────────────────────────────────────────
+          Edge-to-edge: the conversation owns the full width inside the page
+          gutter, with generous vertical space between turns now that Arjun's
+          replies are plain text rather than bubbles. */}
+      <div className="flex-1 overflow-y-auto px-3 py-4">
+        <div className="max-w-2xl mx-auto flex flex-col gap-5">
 
           {/* Entry choice screen — shown when no session is active */}
           {showStartScreen && !waitingForFirst && (
@@ -991,7 +1009,7 @@ function ChatPage() {
 
       {/* ── Input area ──────────────────────────────────────────────────── */}
       {chatSessionId && !showStartScreen && (
-      <div className="shrink-0 bg-dark-800 border-t border-dark-600 px-4 py-3">
+      <div className="shrink-0 bg-dark-900 border-t border-dark-600 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
         <div className="max-w-2xl mx-auto relative">
 
           {atLimit && (
@@ -1018,7 +1036,13 @@ function ChatPage() {
             </div>
           )}
 
-          <div className="flex gap-2 items-end">
+          {/* One rounded pill holds both the input and the send affordance,
+              so there is a single composer surface rather than a boxed field
+              plus a detached button. Send state logic below is unchanged. */}
+          <div
+            className="flex gap-2 items-end rounded-[24px] border pl-4 pr-1.5 py-1.5 focus-within:ring-2 focus-within:ring-brand-500 transition-shadow"
+            style={{ background: 'var(--surface-card)', borderColor: 'var(--border-hairline)' }}
+          >
             <textarea
               ref={inputRef}
               value={input}
@@ -1031,24 +1055,25 @@ function ChatPage() {
               }
               disabled={atLimit || streaming}
               rows={1}
-              className="flex-1 resize-none bg-dark-700 border border-dark-600 text-ink rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent placeholder:text-muted disabled:opacity-50 disabled:cursor-not-allowed max-h-32 overflow-y-auto"
-              style={{ minHeight: '44px' }}
+              className="flex-1 resize-none bg-transparent border-0 text-ink py-2.5 text-sm focus:outline-none focus:ring-0 placeholder:text-muted disabled:opacity-50 disabled:cursor-not-allowed max-h-32 overflow-y-auto"
+              style={{ minHeight: '38px' }}
               onInput={e => {
                 e.target.style.height = 'auto';
                 e.target.style.height = Math.min(e.target.scrollHeight, 128) + 'px';
               }}
             />
-            {/* Send — highlighted primary action */}
+            {/* Send — inline inside the pill. Disabled while empty, sending
+                or at limit, exactly as before. */}
             <button
               onClick={() => sendMessage()}
               disabled={!input.trim() || streaming || atLimit}
-              className="w-11 h-11 bg-brand-600 text-white rounded-2xl flex items-center justify-center hover:bg-brand-700 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:scale-100 shrink-0 shadow-md"
+              className="w-11 h-11 bg-brand-500 text-white rounded-full flex items-center justify-center hover:bg-brand-600 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:scale-100 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
               aria-label={t.send}
             >
               {streaming ? (
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
               ) : (
-                <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5">
+                <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5" aria-hidden="true">
                   <path d="M22 2L11 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>

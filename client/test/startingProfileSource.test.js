@@ -109,7 +109,10 @@ test('every other Chat entry path keeps the existing Back behaviour', () => {
   // back control — no global redirect of every Chat exit to the dashboard.
   assert.match(chatPage, /:\s*navigate\(-1\)\)/);
   assert.equal((chatPage.match(/navigate\(-1\)/g) || []).length, 1);
-  assert.equal((chatPage.match(/aria-label="Go back"/g) || []).length, 1);
+  // Stage C translated the back control's accessible name (it was a
+  // hardcoded English "Go back"). Still exactly one back control, still
+  // labelled — the label now comes from the translation table.
+  assert.equal((chatPage.match(/aria-label=\{t\.backAria\}/g) || []).length, 1);
 });
 
 test('the chat footer navigation stays out of this change (reserved for PR 4)', () => {
