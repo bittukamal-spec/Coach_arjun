@@ -249,6 +249,10 @@ export const translations = {
       games: 'Games',
       train: 'Train',
       profile: 'Profile',
+      // Avatar-menu item that opens /account. Kept distinct from the
+      // bottom-nav "Profile" label above, which now points at
+      // /starting-profile — the two must never read as the same action.
+      settings: 'Settings',
     },
     dashboard: {
       welcomeBack: 'Welcome back',
@@ -1812,6 +1816,10 @@ export const translations = {
       games: 'गेम्स',
       train: 'ट्रेन',
       profile: 'प्रोफाइल',
+      // Avatar-menu item that opens /account. Kept distinct from the
+      // bottom-nav "Profile" label above, which now points at
+      // /starting-profile — the two must never read as the same action.
+      settings: 'सेटिंग्स',
     },
     dashboard: {
       welcomeBack: 'वापस स्वागत है',
