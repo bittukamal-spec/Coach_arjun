@@ -34,20 +34,23 @@ function outcomeLabel(status, hi) {
   return hi ? entry.hi : entry.en;
 }
 
-// Section heading — one visual level: small icon tile + bold body-size
-// title. Visibly heavier than card copy, visibly lighter than the page
-// title in the PageHeader.
+// Section heading (Stage F) — the approved quiet uppercase section label:
+// a small unfilled icon beside 11px/700 muted type. Deliberately lighter
+// than it used to be, so the athlete's own content is the loudest thing on
+// the page rather than the chrome around it.
 function SectionHeading({ icon: Icon, children }) {
   return (
-    <div className="flex items-center gap-2 mb-2.5">
-      {Icon && (
-        <div className="w-7 h-7 rounded-lg bg-brand-500/15 flex items-center justify-center shrink-0">
-          <Icon size={14} className="text-brand-400" aria-hidden="true" />
-        </div>
-      )}
-      <h2 className="text-body font-bold text-ink uppercase tracking-wide text-[13px]">{children}</h2>
+    <div className="flex items-center gap-1.5 mb-2.5">
+      {Icon && <Icon size={13} className="text-muted shrink-0" aria-hidden="true" />}
+      <h2 className="text-micro font-bold text-muted uppercase">{children}</h2>
     </div>
   );
+}
+
+// A date already present in the payload, rendered with the approved
+// date-pill recipe. Never a new date, never a computed one.
+function DatePill({ children }) {
+  return <span className="chip-date-pill">{children}</span>;
 }
 
 export default function PlaybookPage() {
@@ -73,13 +76,13 @@ export default function PlaybookPage() {
   );
 
   return (
-    <div className="min-h-screen bg-dark-900 pb-24">
+    <div className="min-h-screen bg-dark-900 pb-28">
       {/* Header */}
       <PageHeader onBack={() => navigate(-1)} title={hi ? 'Mental Playbook' : 'Mental Playbook'} />
 
-      <div className="px-page pt-4 max-w-lg mx-auto">
+      <div className="px-page pt-5 max-w-lg mx-auto">
         {/* Page introduction — quiet secondary copy directly under the title */}
-        <p className="text-body text-slt leading-relaxed mb-6">
+        <p className="text-body text-slt leading-relaxed mb-7">
           {hi
             ? 'तुम्हारे cues, cards और reflections — सिर्फ तुम्हारे लिए, private.'
             : 'Your cues, cards, and reflections — private, just for you.'}
@@ -96,13 +99,17 @@ export default function PlaybookPage() {
           {data?.practiceOutcomes?.length ? (
             <div className="space-y-2.5">
               {data.practiceOutcomes.map(o => (
-                <Card key={o.prescriptionId} className="p-4">
-                  <p className="text-micro text-muted mb-1">
-                    {new Date(o.outcomeRecordedAt).toLocaleDateString(hi ? 'hi-IN' : 'en-IN', { day: 'numeric', month: 'short' })}
-                    {' · '}{o.practiceName}
-                  </p>
-                  {o.situation && <p className="text-caption text-slt mb-1">{o.situation}</p>}
-                  <p className="text-body font-bold mb-1" style={{ color: 'var(--brand-primary)' }}>{outcomeLabel(o.outcomeStatus, hi)}</p>
+                <Card key={o.prescriptionId} className="p-4 elevation-row">
+                  <div className="flex items-center gap-2 flex-wrap mb-2">
+                    <DatePill>
+                      {new Date(o.outcomeRecordedAt).toLocaleDateString(hi ? 'hi-IN' : 'en-IN', { day: 'numeric', month: 'short' })}
+                    </DatePill>
+                    <span className="text-caption text-muted">{o.practiceName}</span>
+                  </div>
+                  {o.situation && <p className="text-caption text-slt mb-1.5">{o.situation}</p>}
+                  {/* Outcome label — the approved status-label recipe. Still
+                      the stored outcomeStatus, never a score or rating. */}
+                  <p className="chip-status-label mb-1.5">{outcomeLabel(o.outcomeStatus, hi)}</p>
                   {o.lesson && <p className="text-body text-ink leading-relaxed">{o.lesson}</p>}
                 </Card>
               ))}
@@ -118,34 +125,39 @@ export default function PlaybookPage() {
           )}
         </section>
 
-        {/* ── This week — the page's ONE signature-gradient hero. White text
-             on the gradient, wraps cleanly at narrow widths, no score or
-             rating anywhere. ─────────────────────────────────────────────── */}
+        {/* ── This week — restyled OFF the signature gradient onto the
+             approved flat elevated surface (Stage F redesigns this
+             surface). Its calculation, eligibility, timing, text and data
+             source are untouched; only the container changed. Still no
+             score or rating anywhere. ───────────────────────────────────── */}
         {data && (
           <section className="mb-6">
-            <Card variant="hero" className="p-4">
-              <p className="text-micro font-bold text-white/70 uppercase mb-3">{hi ? 'इस हफ्ते' : 'This week'}</p>
+            <div
+              className="rounded-2xl border border-dark-600 p-4 elevation-card"
+              style={{ background: 'var(--surface-elevated)' }}
+            >
+              <p className="text-micro font-bold text-muted uppercase mb-3">{hi ? 'इस हफ्ते' : 'This week'}</p>
               <div className="space-y-1.5">
-                <p className="text-body text-white break-words">
+                <p className="text-body text-ink break-words">
                   {hi ? `${data.weekRepCount} मेंटल रेप पूरे किए।` : `You've completed ${data.weekRepCount} mental rep${data.weekRepCount === 1 ? '' : 's'} this week.`}
                 </p>
                 {data.weekResetCount > 0 && (
-                  <p className="text-body text-white break-words">
+                  <p className="text-body text-ink break-words">
                     {hi ? `Pressure Reset ${data.weekResetCount} बार practice किया।` : `Pressure Reset practiced ${data.weekResetCount} time${data.weekResetCount === 1 ? '' : 's'}.`}
                   </p>
                 )}
                 {data.topCue && (
-                  <p className="text-body text-white break-words">
+                  <p className="text-body text-ink break-words">
                     {hi ? `सबसे ज्यादा use हुआ cue: "${data.topCue.value}"` : `Your most-used cue: "${data.topCue.value}"`}
                   </p>
                 )}
                 {data.weekRepCount === 0 && !data.topCue && (
-                  <p className="text-body text-white/80 break-words">
+                  <p className="text-body text-slt break-words">
                     {hi ? 'पहला मेंटल रेप करते ही तुम्हारा Playbook भरना शुरू हो जाएगा।' : 'Your Playbook starts filling up after your first mental rep.'}
                   </p>
                 )}
               </div>
-            </Card>
+            </div>
           </section>
         )}
 
@@ -200,11 +212,11 @@ export default function PlaybookPage() {
           <Card className="p-4">
             {data?.savedCues?.length ? (
               <div className="flex flex-wrap gap-2">
+                {/* The approved chip/fact recipe: read-only, never
+                    focusable, never a button — the athlete's own words,
+                    rendered verbatim and free to wrap onto several lines. */}
                 {data.savedCues.map((c, i) => (
-                  <span
-                    key={i}
-                    className="text-caption font-medium px-3 py-1.5 rounded-full bg-dark-700 border border-dark-600 text-ink break-words"
-                  >
+                  <span key={i} className="chip-fact break-words max-w-full">
                     "{c.cue}"
                   </span>
                 ))}
@@ -228,10 +240,16 @@ export default function PlaybookPage() {
               <div className="space-y-2.5 mb-3">
                 {data.reflections.map(r => (
                   <div key={r.id} className="p-3 rounded-xl border border-dark-600 bg-dark-700/50">
-                    <p className="text-micro text-muted mb-1">
-                      {new Date(r.createdAt).toLocaleDateString(hi ? 'hi-IN' : 'en-IN', { day: 'numeric', month: 'short' })}
-                      {r.eventType ? ` · ${r.eventType}` : ''}{r.resultType ? ` · ${r.resultType}` : ''}
-                    </p>
+                    <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                      <DatePill>
+                        {new Date(r.createdAt).toLocaleDateString(hi ? 'hi-IN' : 'en-IN', { day: 'numeric', month: 'short' })}
+                      </DatePill>
+                      {(r.eventType || r.resultType) && (
+                        <span className="text-caption text-muted">
+                          {[r.eventType, r.resultType].filter(Boolean).join(' · ')}
+                        </span>
+                      )}
+                    </div>
                     {r.nextFocus && (
                       <p className="text-body text-ink font-medium mb-1">
                         {hi ? 'अगला फोकस: ' : 'Next focus: '}{r.nextFocus}

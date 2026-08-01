@@ -36,19 +36,21 @@ test('Playbook keeps the approved order: intro → What I\'m learning → This w
 
 // ── 2/3. One gradient hero; everything else stays flat ─────────────────────
 
-test('"This week" is the ONLY signature-gradient content card', () => {
-  const heroCount = (src.match(/variant="hero"/g) || []).length;
-  assert.equal(heroCount, 1);
-  const heroIdx = src.indexOf('variant="hero"');
-  const thisWeekIdx = src.indexOf("'This week'");
-  assert.ok(Math.abs(heroIdx - thisWeekIdx) < 400, 'the one hero must be the This-week card');
+test('Stage F: the page carries no gradient at all — "This week" moved to the approved flat surface', () => {
+  assert.equal((src.match(/variant="hero"/g) || []).length, 0);
+  assert.doesNotMatch(src, /card-hero|linear-gradient|btn-gradient/);
+  assert.match(src, /var\(--surface-elevated\)/, 'the weekly summary uses the approved elevated surface');
 });
 
-test('the hero keeps strong white text and wraps cleanly — no score or rating inside it', () => {
-  const heroBlock = src.slice(src.indexOf('variant="hero"'), src.indexOf('Recent insight'));
-  assert.match(heroBlock, /text-white/);
-  assert.match(heroBlock, /break-words/);
-  assert.doesNotMatch(heroBlock, /score|rating|\d+\s*\/\s*5|%/i);
+test('the weekly summary keeps readable theme-correct text and wraps cleanly — no score or rating inside it', () => {
+  const weekBlock = src.slice(src.indexOf("'This week'"), src.indexOf('Recent insight'));
+  assert.match(weekBlock, /text-ink/, 'theme-correct foreground rather than hardcoded white');
+  assert.match(weekBlock, /break-words/);
+  assert.doesNotMatch(weekBlock, /score|rating|\d+\s*\/\s*5|%/i);
+  // Its data and wording are untouched by the restyle.
+  assert.match(weekBlock, /data\.weekRepCount/);
+  assert.match(weekBlock, /data\.weekResetCount/);
+  assert.match(weekBlock, /data\.topCue/);
 });
 
 test('other sections are flat Cards under icon SectionHeadings — no legacy card classes, no second gradient', () => {
@@ -96,6 +98,53 @@ test('Playbook stays read-only over exactly one GET /api/playbook call', () => {
   assert.match(src, /apiFetch\('\/api\/playbook'/);
   assert.equal((src.match(/apiFetch\(/g) || []).length, 1);
   assert.doesNotMatch(src, /method:\s*'(POST|PUT|PATCH|DELETE)'/);
+});
+
+// ── 5b. Stage F: approved recipes applied, timeline explicitly NOT built ──
+
+test('Stage F applies the approved chip recipes to content that already existed', () => {
+  // Dates already in the payload get the date-pill recipe.
+  assert.match(src, /chip-date-pill/);
+  assert.match(src, /o\.outcomeRecordedAt/, 'the outcome date is still the stored one');
+  assert.match(src, /r\.createdAt/, 'the reflection date is still the stored one');
+  // The stored outcome status gets the status-label recipe, not a score.
+  assert.match(src, /chip-status-label/);
+  assert.match(src, /outcomeLabel\(o\.outcomeStatus, hi\)/);
+  // Athlete-authored cues get the read-only fact-chip recipe.
+  assert.match(src, /chip-fact/);
+});
+
+test('Stage F introduces NO timeline: no month grouping, milestone classification or event feed', () => {
+  assert.doesNotMatch(src, /timeline|milestone|monthGroup|groupByMonth|eventFeed|routineRow/i);
+  // No date arithmetic that would imply a chronological rebuild.
+  assert.doesNotMatch(src, /getMonth\(\)|startOf|endOf|sort\(/);
+});
+
+test('Stage F adds no API surface — still exactly one read-only GET /api/playbook', () => {
+  assert.equal((src.match(/apiFetch\(/g) || []).length, 1);
+  assert.match(src, /apiFetch\('\/api\/playbook'/);
+  assert.doesNotMatch(src, /method:\s*'(POST|PUT|PATCH|DELETE)'/);
+});
+
+test('every athlete-content section survives the restyle', () => {
+  for (const marker of [
+    'data.practiceOutcomes.map',
+    'data.focusCards.slice',
+    'data.savedCues.map',
+    'data.reflections.map',
+    "navigate('/mind-journal')",
+  ]) {
+    assert.ok(src.includes(marker), `${marker} must survive the Stage F restyle`);
+  }
+});
+
+test('empty states keep their meaning and their actions', () => {
+  assert.match(src, /No Focus Cards yet\./);
+  assert.match(src, /No saved cues yet\./);
+  assert.match(src, /No reflections yet\./);
+  assert.match(src, /haven't recorded any lessons yet/);
+  // No invented claim of completed practices or developed patterns.
+  assert.doesNotMatch(src, /you have (completed|developed|built) a pattern/i);
 });
 
 // ── 6. English and Hindi both render ───────────────────────────────────────

@@ -41,7 +41,10 @@ test('PlaybookPage: shows an empty state when there are no recorded outcomes yet
 test('PlaybookPage: each outcome item renders the practice name, situation, translated outcome label, lesson, and a date', () => {
   const idx = src.indexOf('data.practiceOutcomes.map(');
   assert.ok(idx !== -1, 'expected practiceOutcomes to be mapped for rendering');
-  const block = src.slice(idx, idx + 700);
+  // Stage F wrapped the date in the approved date-pill and the outcome in
+  // the status-label recipe, which lengthens the block — every field below
+  // must still be rendered from the same stored values.
+  const block = src.slice(idx, idx + 1200);
   assert.match(block, /o\.practiceName/);
   assert.match(block, /o\.situation/);
   assert.match(block, /outcomeLabel\(o\.outcomeStatus, hi\)/);
