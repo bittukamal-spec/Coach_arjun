@@ -18,6 +18,7 @@ function Navbar() {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
+  const t = translations[language].nav;
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -99,13 +100,15 @@ function Navbar() {
                     ))}
                   </div>
                 </div>
-                {/* Profile link */}
+                {/* Settings link — opens /account. Labelled "Settings", not
+                    "Profile": the bottom nav's Profile tab now points at
+                    /starting-profile, so the two labels must stay distinct. */}
                 <button
                   onClick={() => { navigate('/account'); setMenuOpen(false); }}
                   className="w-full px-4 py-3 text-left text-sm font-medium text-ink hover:bg-dark-700 transition-colors flex items-center gap-3"
                 >
                   <User size={14} className="text-slt shrink-0" />
-                  {language === 'hi' ? 'प्रोफाइल' : 'Profile'}
+                  {t.settings}
                 </button>
               </div>
             )}

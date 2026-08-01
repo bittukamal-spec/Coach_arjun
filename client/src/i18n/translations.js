@@ -249,6 +249,10 @@ export const translations = {
       games: 'Games',
       train: 'Train',
       profile: 'Profile',
+      // Avatar-menu item that opens /account. Kept distinct from the
+      // bottom-nav "Profile" label above, which now points at
+      // /starting-profile — the two must never read as the same action.
+      settings: 'Settings',
     },
     dashboard: {
       welcomeBack: 'Welcome back',
@@ -445,6 +449,10 @@ export const translations = {
       safetyNote: 'Arjun is a coaching tool, not a medical or crisis service. If you\'re in distress, please contact a professional.',
       safetyHelpline: 'India helplines — iCall: 9152987821 · KIRAN: 1800-599-0019 · Emergency: 112',
       weeklyReviewsLabel: 'Weekly Reviews',
+      // Accessible names for the icon-only Coach header controls. Previously
+      // hardcoded English in JSX; translated here without changing meaning.
+      backAria: 'Go back',
+      safetyInfoAria: 'Safety info',
       placeholder: 'What\'s on your mind?',
       send: 'Send',
       writeMyOwn: 'Write my own',
@@ -1450,6 +1458,8 @@ export const translations = {
       loading: 'Loading…',
       error: 'Something went wrong. Please refresh.',
       langToggle: 'हिंदी',
+      // Accessible name for icon-only back controls in shared headers.
+      back: 'Back',
     },
     bodyReset: {
       learn: {
@@ -1806,6 +1816,10 @@ export const translations = {
       games: 'गेम्स',
       train: 'ट्रेन',
       profile: 'प्रोफाइल',
+      // Avatar-menu item that opens /account. Kept distinct from the
+      // bottom-nav "Profile" label above, which now points at
+      // /starting-profile — the two must never read as the same action.
+      settings: 'सेटिंग्स',
     },
     dashboard: {
       welcomeBack: 'वापस स्वागत है',
@@ -2008,6 +2022,10 @@ export const translations = {
       safetyNote: 'अर्जुन एक कोचिंग टूल है, कोई चिकित्सा या संकट सेवा नहीं। अगर आप परेशान हैं, तो किसी पेशेवर से मिलें।',
       safetyHelpline: 'भारत हेल्पलाइन — iCall: 9152987821 · KIRAN: 1800-599-0019 · आपातकाल: 112',
       weeklyReviewsLabel: 'साप्ताहिक समीक्षा',
+      // Accessible names for the icon-only Coach header controls. Previously
+      // hardcoded English in JSX; translated here without changing meaning.
+      backAria: 'वापस जाओ',
+      safetyInfoAria: 'सुरक्षा जानकारी',
       placeholder: 'मन में क्या है?',
       send: 'भेजें',
       writeMyOwn: 'खुद लिखें',
@@ -3049,6 +3067,8 @@ export const translations = {
       loading: 'लोड हो रहा है…',
       error: 'कुछ गलत हो गया। कृपया रिफ्रेश करें।',
       langToggle: 'English',
+      // Accessible name for icon-only back controls in shared headers.
+      back: 'वापस',
     },
     bodyReset: {
       learn: {

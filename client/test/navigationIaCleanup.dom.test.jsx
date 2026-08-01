@@ -17,6 +17,7 @@ vi.mock('../src/contexts/AuthContext', () => ({
 }));
 
 const { default: BottomNav } = await import('../src/components/BottomNav.jsx');
+const { default: Navbar } = await import('../src/components/Navbar.jsx');
 const { default: TrainPage } = await import('../src/pages/TrainPage.jsx');
 
 function RouteProbe({ label }) {
@@ -33,6 +34,7 @@ function BottomNavApp({ initialEntries = ['/dashboard'] }) {
         <Route path="/coaching" element={<><RouteProbe label="page" /><BottomNav /></>} />
         <Route path="/playbook" element={<><RouteProbe label="page" /><BottomNav /></>} />
         <Route path="/account" element={<><RouteProbe label="page" /><BottomNav /></>} />
+        <Route path="/starting-profile" element={<><RouteProbe label="page" /><BottomNav /></>} />
         <Route path="/progress" element={<Navigate to="/playbook" replace />} />
       </Routes>
     </MemoryRouter>
@@ -57,6 +59,7 @@ function TrainApp({ initialEntries = ['/train'] }) {
 beforeEach(() => {
   localStorage.clear();
   authState.language = 'en';
+  authState.user = undefined;
 });
 
 afterEach(() => {
@@ -136,6 +139,187 @@ describe('BottomNav — Progress → Playbook, real router integration', () => {
     const nav = screen.getByRole('navigation');
     const labels = within(nav).getAllByRole('link').map((l) => l.textContent);
     expect(labels).toEqual(['होम', 'ट्रेन', 'कोच', 'प्लेबुक', 'प्रोफाइल']);
+  });
+});
+
+// ─── Stage B: app shell ──────────────────────────────────────────────────────
+// The fifth destination moves from Account/Settings to the athlete's
+// Performance Profile, and the bar adopts the approved near-black surface.
+
+describe('BottomNav — Stage B shell', () => {
+  test('the Profile tab points at /starting-profile, not /account', async () => {
+    render(<BottomNavApp initialEntries={['/dashboard']} />);
+    const profileLink = screen.getByRole('link', { name: /Profile/i });
+    expect(profileLink.getAttribute('href')).toBe('/starting-profile');
+  });
+
+  test('tapping Profile performs a real navigation to the Performance Profile', async () => {
+    render(<BottomNavApp initialEntries={['/dashboard']} />);
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole('link', { name: /Profile/i }));
+
+    expect(await screen.findByTestId('route-probe'))
+      .toHaveProperty('textContent', 'page:/starting-profile');
+  });
+
+  test('Profile is active on /starting-profile and inactive on /account', async () => {
+    const { unmount } = render(<BottomNavApp initialEntries={['/starting-profile']} />);
+    expect(screen.getByRole('link', { name: /Profile/i }).getAttribute('aria-current')).toBe('page');
+    unmount();
+
+    // /account still resolves and still renders the shell — it simply is no
+    // longer the Profile tab's destination, so nothing is marked active.
+    render(<BottomNavApp initialEntries={['/account']} />);
+    expect(screen.getByRole('link', { name: /Profile/i }).getAttribute('aria-current')).toBeNull();
+  });
+
+  test('ONLY the fifth destination changed — the first four are untouched', async () => {
+    render(<BottomNavApp initialEntries={['/dashboard']} />);
+    const hrefs = within(screen.getByRole('navigation'))
+      .getAllByRole('link')
+      .map((l) => l.getAttribute('href'));
+    expect(hrefs).toEqual(['/dashboard', '/train', '/coaching', '/playbook', '/starting-profile']);
+  });
+
+  test('the bar uses the near-black nav surface and a safe-area inset, not a theme-specific page colour', async () => {
+    render(<BottomNavApp initialEntries={['/dashboard']} />);
+    const nav = screen.getByRole('navigation');
+    expect(nav.style.background).toContain('--nav-bar');
+    // Asserted as a class, not an inline style: jsdom drops `env()` from
+    // inline styles, so the utility class is the reliable signal here.
+    expect(nav.className).toMatch(/pb-\[env\(safe-area-inset-bottom\)\]/);
+    // The old theme-following page background must be gone.
+    expect(nav.className).not.toMatch(/bg-dark-900/);
+  });
+
+  test('active and inactive items use the on-dark token family, never the light-theme brand blue', async () => {
+    render(<BottomNavApp initialEntries={['/playbook']} />);
+    const nav = screen.getByRole('navigation');
+
+    const active = within(nav).getByRole('link', { name: /Playbook/i });
+    expect(active.querySelector('span').style.color).toContain('--nav-fg-active');
+
+    const inactive = within(nav).getByRole('link', { name: /Home/i });
+    expect(inactive.querySelector('span').style.color).toContain('--nav-fg-inactive');
+
+    // navy-bright was the old active colour and is not an approved token.
+    expect(nav.innerHTML).not.toMatch(/navy-bright/);
+  });
+
+  test('every destination keeps a >=48px tap target and a 10px label', async () => {
+    render(<BottomNavApp initialEntries={['/dashboard']} />);
+    const links = within(screen.getByRole('navigation')).getAllByRole('link');
+    expect(links).toHaveLength(5);
+    for (const link of links) {
+      expect(link.className).toMatch(/min-h-\[48px\]/);
+      expect(link.querySelector('span').className).toMatch(/text-\[10px\]/);
+    }
+  });
+
+  test('nav destinations remain keyboard-focusable with a visible focus ring', async () => {
+    render(<BottomNavApp initialEntries={['/dashboard']} />);
+    for (const link of within(screen.getByRole('navigation')).getAllByRole('link')) {
+      expect(link.className).toMatch(/focus-visible:ring-2/);
+    }
+  });
+
+  test('no gradient or glow is introduced on the nav surface', async () => {
+    render(<BottomNavApp initialEntries={['/dashboard']} />);
+    const nav = screen.getByRole('navigation');
+    expect(nav.outerHTML).not.toMatch(/gradient|glow/i);
+  });
+});
+
+// ─── Profile vs. Settings — the two menus must never collide ───────────────
+// The bottom nav's Profile tab (/starting-profile) and the avatar menu's
+// item that opens /account are two different destinations. Renders BOTH
+// shells together, exactly as App.jsx composes them on every persistent
+// screen, and drives real navigation rather than just reading hrefs.
+
+function ShellApp({ initialEntries = ['/dashboard'] }) {
+  return (
+    <MemoryRouter initialEntries={initialEntries}>
+      <Routes>
+        <Route path="/dashboard" element={<><RouteProbe label="page" /><Navbar /><BottomNav /></>} />
+        <Route path="/starting-profile" element={<><RouteProbe label="page" /><Navbar /><BottomNav /></>} />
+        <Route path="/account" element={<><RouteProbe label="page" /><Navbar /><BottomNav /></>} />
+      </Routes>
+    </MemoryRouter>
+  );
+}
+
+describe('Profile (bottom nav) vs. Settings (avatar menu) — distinct destinations', () => {
+  beforeEach(() => {
+    authState.user = { name: 'Test Athlete' };
+  });
+
+  test('bottom-nav Profile points to /starting-profile', async () => {
+    render(<ShellApp initialEntries={['/dashboard']} />);
+    const profileTab = screen.getByRole('link', { name: /Profile/i });
+    expect(profileTab.getAttribute('href')).toBe('/starting-profile');
+  });
+
+  test('avatar-menu item is labelled Settings, not Profile, and opens /account', async () => {
+    render(<ShellApp initialEntries={['/dashboard']} />);
+    const user = userEvent.setup();
+
+    // Open the avatar menu.
+    await user.click(screen.getByRole('button', { name: 'TA' }));
+
+    const settingsItem = await screen.findByRole('button', { name: 'Settings' });
+    expect(settingsItem).toBeTruthy();
+    // The old "Profile" wording must be gone from the menu — only the
+    // bottom-nav tab may say Profile now.
+    expect(screen.queryByRole('button', { name: 'Profile' })).toBeNull();
+
+    await user.click(settingsItem);
+    expect(await screen.findByTestId('route-probe')).toHaveProperty('textContent', 'page:/account');
+  });
+
+  test('the two destinations remain distinct — Settings never points at /starting-profile and Profile never points at /account', async () => {
+    render(<ShellApp initialEntries={['/dashboard']} />);
+    const profileTab = screen.getByRole('link', { name: /Profile/i });
+    expect(profileTab.getAttribute('href')).not.toBe('/account');
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'TA' }));
+    const settingsItem = await screen.findByRole('button', { name: 'Settings' });
+    await user.click(settingsItem);
+    expect(await screen.findByTestId('route-probe')).not.toHaveProperty('textContent', 'page:/starting-profile');
+  });
+
+  test('the /account route still exists and still renders the shell', async () => {
+    render(<ShellApp initialEntries={['/account']} />);
+    expect(await screen.findByTestId('route-probe')).toHaveProperty('textContent', 'page:/account');
+    // Landing directly on /account is not the Profile tab's active state —
+    // the two are different destinations, not aliases of each other.
+    expect(screen.getByRole('link', { name: /Profile/i }).getAttribute('aria-current')).toBeNull();
+  });
+
+  test('Hindi: avatar menu shows सेटिंग्स (Settings), not प्रोफाइल (Profile)', async () => {
+    authState.language = 'hi';
+    render(<ShellApp initialEntries={['/dashboard']} />);
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole('button', { name: 'TA' }));
+
+    expect(await screen.findByRole('button', { name: 'सेटिंग्स' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'प्रोफाइल' })).toBeNull();
+    // The bottom-nav tab still says Profile (प्रोफाइल) in Hindi — only the
+    // avatar-menu item changed.
+    expect(screen.getByRole('link', { name: /प्रोफाइल/i })).toBeTruthy();
+  });
+
+  test('no other navigation destination changed by this correction', async () => {
+    render(<ShellApp initialEntries={['/dashboard']} />);
+    // Navbar (avatar menu) also has role="navigation" — the bottom bar is
+    // the one with five links, so disambiguate by that shape.
+    const bottomBar = screen.getAllByRole('navigation').find(
+      (nav) => within(nav).queryAllByRole('link').length === 5
+    );
+    const hrefs = within(bottomBar).getAllByRole('link').map((l) => l.getAttribute('href'));
+    expect(hrefs).toEqual(['/dashboard', '/train', '/coaching', '/playbook', '/starting-profile']);
   });
 });
 

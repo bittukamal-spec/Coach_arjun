@@ -37,12 +37,16 @@ test('ChatPage header: a Weekly Reviews link to /weekly-reviews with an accessib
   const header = chatPage.slice(chatPage.indexOf('<header'), chatPage.indexOf('</header>'));
   assert.match(header, /to="\/weekly-reviews"/);
   assert.match(header, /aria-label=\{t\.weeklyReviewsLabel\}/);
-  assert.match(header, /aria-label="Safety info"/, 'the existing info control survives');
-  assert.match(header, /aria-label="Go back"/, 'the existing back control survives');
+  // Stage C translated these two accessible names (both were hardcoded
+  // English). Both controls still exist and are still labelled.
+  assert.match(header, /aria-label=\{t\.safetyInfoAria\}/, 'the existing info control survives');
+  assert.match(header, /aria-label=\{t\.backAria\}/, 'the existing back control survives');
   assert.match(header, /<ArjunLogo/, 'Arjun branding survives');
-  // Same touch-target treatment as the neighbouring info button.
+  // Same touch-target treatment as the neighbouring info button. Stage C
+  // replaced p-2.5 padding with an explicit 44x44 box, which is a stronger
+  // guarantee than the padding it replaced.
   const linkIdx = header.indexOf('to="/weekly-reviews"');
-  assert.match(header.slice(linkIdx - 300, linkIdx + 300), /p-2\.5/);
+  assert.match(header.slice(linkIdx - 300, linkIdx + 300), /w-11 h-11/);
 });
 
 test('ChatPage: no unread-badge tracking was invented for the header icon', () => {
