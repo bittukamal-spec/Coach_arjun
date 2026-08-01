@@ -132,7 +132,7 @@ function ArjunText({ text, isStreaming }) {
                         height: '20px',
                         minWidth: '20px',
                         borderRadius: '50%',
-                        background: '#185FA5',
+                        background: 'var(--brand-primary)',
                         color: 'white',
                         fontSize: '10px',
                         fontWeight: 700,

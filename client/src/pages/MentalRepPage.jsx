@@ -377,7 +377,7 @@ export default function MentalRepPage() {
       </div>
       <h1 className="text-xl font-bold text-ink mb-6">{hi ? 'रेप पूरा।' : 'Rep complete.'}</h1>
       <p className="text-xs font-bold text-slt uppercase tracking-widest mb-2">{hi ? 'आज का cue' : "Today's cue"}</p>
-      <p className="text-3xl font-black mb-8" style={{ color: '#185FA5' }}>"{cue}"</p>
+      <p className="text-3xl font-black mb-8" style={{ color: 'var(--brand-primary)' }}>"{cue}"</p>
       <p className="text-sm text-slt mb-10 max-w-xs leading-relaxed">
         {context === 'match'
           ? (hi ? 'इसे मैच में लेकर जाओ। फोन रखो और खेलने चलो।' : 'Take this into the match. Put the phone away and go play.')

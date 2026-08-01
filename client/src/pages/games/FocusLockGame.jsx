@@ -274,14 +274,14 @@ function FocusLockGame() {
             <span className="text-sm font-semibold text-ink tabular-nums">{fl.score} {score}</span>
             <span
               className="text-[11px] font-bold px-2.5 py-1 rounded-full"
-              style={{ backgroundColor: 'rgba(24,95,165,0.10)', color: '#185FA5' }}
+              style={{ backgroundColor: 'rgb(var(--brand-primary-rgb) / 0.10)', color: 'var(--brand-primary)' }}
             >
               {fl.level} {level}
             </span>
           </div>
 
           <p className="text-center text-xs text-muted mt-6">
-            {fl.tapOnly} <span className="font-bold" style={{ color: '#185FA5' }}>{focusWord}</span>
+            {fl.tapOnly} <span className="font-bold" style={{ color: 'var(--brand-primary)' }}>{focusWord}</span>
           </p>
 
           {/* Word area — bottom two-thirds, large tap target */}
@@ -321,14 +321,14 @@ function FocusLockGame() {
       <main className="max-w-lg mx-auto px-4 py-10 text-center space-y-6">
         <div
           className="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center"
-          style={{ backgroundColor: 'rgba(24,95,165,0.10)' }}
+          style={{ backgroundColor: 'rgb(var(--brand-primary-rgb) / 0.10)' }}
         >
-          <Target size={30} style={{ color: '#185FA5' }} />
+          <Target size={30} style={{ color: 'var(--brand-primary)' }} />
         </div>
 
         <div>
           <p className="text-sm text-slt mb-2">{fl.yourWord}</p>
-          <p className="text-4xl font-bold" style={{ color: '#185FA5' }}>
+          <p className="text-4xl font-bold" style={{ color: 'var(--brand-primary)' }}>
             {focusWord || '…'}
           </p>
         </div>
@@ -346,7 +346,7 @@ function FocusLockGame() {
             onClick={startGame}
             disabled={!focusWord}
             className="w-full max-w-xs text-white font-semibold py-4 rounded-xl active:scale-[0.98] transition-transform disabled:opacity-50"
-            style={{ backgroundColor: '#185FA5', minHeight: '56px' }}
+            style={{ backgroundColor: 'var(--brand-primary)', minHeight: '56px' }}
           >
             {fl.start}
           </button>

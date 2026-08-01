@@ -411,7 +411,7 @@ function ResetRallyGame() {
             <span className="text-sm font-semibold text-ink tabular-nums">Score {score}</span>
             <span
               className="text-[11px] font-bold px-2.5 py-1 rounded-full"
-              style={{ backgroundColor: 'rgba(24,95,165,0.10)', color: '#185FA5' }}
+              style={{ backgroundColor: 'rgb(var(--brand-primary-rgb) / 0.10)', color: 'var(--brand-primary)' }}
             >
               {idx + 1} / {SCENARIOS_PER_GAME}
             </span>
@@ -505,7 +505,7 @@ function ResetRallyGame() {
           <button
             onClick={startGame}
             className="w-full max-w-xs text-white font-semibold py-4 rounded-xl active:scale-[0.98] transition-transform"
-            style={{ backgroundColor: '#185FA5', minHeight: '56px' }}
+            style={{ backgroundColor: 'var(--brand-primary)', minHeight: '56px' }}
           >
             {rr.start}
           </button>

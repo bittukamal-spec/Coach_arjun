@@ -155,7 +155,7 @@ export default function MindJournalPage() {
                     aria-pressed={isSelected}
                     onClick={() => toggleState(key)}
                     className="chip"
-                    style={isSelected ? { borderColor: '#185FA5', backgroundColor: 'rgba(24,95,165,0.15)', color: '#185FA5' } : undefined}
+                    style={isSelected ? { borderColor: 'var(--brand-primary)', backgroundColor: 'rgb(var(--brand-primary-rgb) / 0.15)', color: 'var(--brand-primary)' } : undefined}
                   >
                     {mj.states[key]}
                   </button>
@@ -177,14 +177,14 @@ export default function MindJournalPage() {
 
             {saveError && <p className="text-body text-red-500 mb-3">{saveError}</p>}
             {savedJustNow && (
-              <p className="text-body font-semibold mb-3" style={{ color: '#185FA5' }}>{mj.saved}</p>
+              <p className="text-body font-semibold mb-3" style={{ color: 'var(--brand-primary)' }}>{mj.saved}</p>
             )}
 
             <button
               onClick={handleSave}
               disabled={selected.length === 0 || saving}
               className="w-full py-3.5 rounded-2xl text-white font-bold text-body active:scale-[0.98] transition-transform disabled:opacity-40"
-              style={{ backgroundColor: '#185FA5' }}
+              style={{ backgroundColor: 'var(--brand-primary)' }}
             >
               {saving ? mj.saving : mj.saveBtn}
             </button>
@@ -221,7 +221,7 @@ export default function MindJournalPage() {
           {entries === false && (
             <Card className="p-4 text-center">
               <p className="text-body text-slt mb-3">{mj.loadError}</p>
-              <button onClick={loadEntries} className="text-body font-bold" style={{ color: '#185FA5' }}>
+              <button onClick={loadEntries} className="text-body font-bold" style={{ color: 'var(--brand-primary)' }}>
                 {mj.retryBtn}
               </button>
             </Card>

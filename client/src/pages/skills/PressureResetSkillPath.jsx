@@ -129,7 +129,7 @@ export default function PressureResetSkillPath() {
       <div className="flex-1 px-4 pt-2 pb-8 flex flex-col justify-center max-w-lg mx-auto w-full">
         <div className="flex items-center gap-2 mb-5">
           <IconBadge icon={Wind} />
-          <IconBadge icon={Activity} color="#185FA5" bg="rgba(24,95,165,0.12)" />
+          <IconBadge icon={Activity} color="var(--brand-primary)" bg="rgb(var(--brand-primary-rgb) / 0.12)" />
           <IconBadge icon={TrendingDown} color="#E2711D" bg="rgba(226,113,29,0.12)" />
         </div>
         <h1 className="text-2xl font-bold text-ink mb-4">{t.intro.title}</h1>
@@ -195,7 +195,7 @@ export default function PressureResetSkillPath() {
                 <p className="text-sm text-slt">{data.reaction}</p>
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: '#185FA5' }}>{t.example.resetLabel}</p>
+                <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--brand-primary)' }}>{t.example.resetLabel}</p>
                 <p className="text-sm text-ink font-medium">{data.reset}</p>
               </div>
             </div>

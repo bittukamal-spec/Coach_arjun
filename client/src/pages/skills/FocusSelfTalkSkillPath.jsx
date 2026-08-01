@@ -134,7 +134,7 @@ export default function FocusSelfTalkSkillPath() {
     );
   }
 
-  function IconBadge({ icon: Icon, color = '#185FA5', bg = 'rgba(24,95,165,0.12)' }) {
+  function IconBadge({ icon: Icon, color = 'var(--brand-primary)', bg = 'rgb(var(--brand-primary-rgb) / 0.12)' }) {
     return (
       <div className="icon-tile" style={{ '--tile-fg': color, '--tile-bg': bg }}>
         <Icon size={22} />
@@ -214,7 +214,7 @@ export default function FocusSelfTalkSkillPath() {
                 <p className="text-sm text-slt">{data.unhelpful}</p>
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: '#185FA5' }}>{t.example.usefulLabel}</p>
+                <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: 'var(--brand-primary)' }}>{t.example.usefulLabel}</p>
                 <p className="text-sm text-ink font-medium">{data.useful}</p>
               </div>
             </div>

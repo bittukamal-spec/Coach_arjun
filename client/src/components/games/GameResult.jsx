@@ -52,9 +52,9 @@ function GameResult({ score, stats = [], insight, limitReached, onPlayAgain, xpE
         {insight && (
           <div
             className="bg-dark-300 rounded-xl px-4 py-3.5"
-            style={{ borderLeft: '3px solid #185FA5' }}
+            style={{ borderLeft: '3px solid var(--brand-primary)' }}
           >
-            <p className="text-xs font-semibold mb-1" style={{ color: '#185FA5' }}>Arjun</p>
+            <p className="text-xs font-semibold mb-1" style={{ color: 'var(--brand-primary)' }}>Arjun</p>
             <p className="text-sm text-ink leading-relaxed">{insight}</p>
           </div>
         )}
@@ -69,7 +69,7 @@ function GameResult({ score, stats = [], insight, limitReached, onPlayAgain, xpE
             <button
               onClick={onPlayAgain}
               className="w-full text-white font-semibold py-4 rounded-xl active:scale-[0.98] transition-transform"
-              style={{ backgroundColor: '#185FA5', minHeight: '56px' }}
+              style={{ backgroundColor: 'var(--brand-primary)', minHeight: '56px' }}
             >
               {mr.playAgain}
             </button>
