@@ -254,6 +254,38 @@ export const translations = {
       // /starting-profile — the two must never read as the same action.
       settings: 'Settings',
     },
+    // ── Home (Stage D) ───────────────────────────────────────────────────
+    // Structural labels for the redesigned Home hierarchy. Athlete-facing
+    // strings that already existed (day-context options, shortcut labels
+    // and prefills, recommended-practice copy) are unchanged and still
+    // live with their own data structures in Dashboard.jsx.
+    home: {
+      greeting: (name) => `Hi, ${name}`,
+      athleteFallback: 'Athlete',
+      heroSub: 'Talk through whatever is on your mind.',
+      contextLabel: "What's today?",
+      recommendedLabel: 'Recommended practice',
+      helpLabel: 'Need help right now?',
+    },
+    // ── Train (Stage E) ──────────────────────────────────────────────────
+    // The five real practices only — no invented categories, no practice
+    // counts (there is no count data to render). Names and descriptions are
+    // the existing approved wording, moved out of inline JSX conditionals.
+    trainPage: {
+      title: 'Train',
+      subtitle: 'Your mental training toolkit.',
+      beforeLabel: 'Before you play',
+      afterLabel: 'After you play',
+      buildLabel: 'Build mental skills',
+      resetHistory: 'View history →',
+      practices: {
+        ritual:      { name: 'Ritual',                     desc: 'Your routine before you play.' },
+        pressure:    { name: 'Pressure Reset',             desc: 'Steady your body before the next action.' },
+        reflection:  { name: 'Match & Practice Reflection', desc: 'Log what happened and get one useful insight for next time.' },
+        focusCard:   { name: 'Focus Card Builder',         desc: 'Turn pressure thoughts into one cue you can use in training or match.' },
+        quickRep:    { name: 'Quick Rep',                  desc: 'A 4-minute rep that ends with one cue you take to training.' },
+      },
+    },
     dashboard: {
       welcomeBack: 'Welcome back',
       subtitle: 'How are you showing up today?',
@@ -1820,6 +1852,38 @@ export const translations = {
       // bottom-nav "Profile" label above, which now points at
       // /starting-profile — the two must never read as the same action.
       settings: 'सेटिंग्स',
+    },
+    // ── Home (Stage D) ───────────────────────────────────────────────────
+    // Structural labels for the redesigned Home hierarchy. Athlete-facing
+    // strings that already existed (day-context options, shortcut labels
+    // and prefills, recommended-practice copy) are unchanged and still
+    // live with their own data structures in Dashboard.jsx.
+    home: {
+      greeting: (name) => `हाय, ${name}`,
+      athleteFallback: 'एथलीट',
+      heroSub: 'मन में जो है, उस पर बात करो।',
+      contextLabel: 'आज क्या है?',
+      recommendedLabel: 'सुझाई गई practice',
+      helpLabel: 'अभी मदद चाहिए?',
+    },
+    // ── Train (Stage E) ──────────────────────────────────────────────────
+    // The five real practices only — no invented categories, no practice
+    // counts (there is no count data to render). Names and descriptions are
+    // the existing approved wording, moved out of inline JSX conditionals.
+    trainPage: {
+      title: 'ट्रेन करो',
+      subtitle: 'अपनी मानसिक ट्रेनिंग शुरू करो।',
+      beforeLabel: 'खेलने से पहले',
+      afterLabel: 'खेलने के बाद',
+      buildLabel: 'मानसिक स्किल बनाओ',
+      resetHistory: 'Reset history देखो →',
+      practices: {
+        ritual:     { name: 'Ritual',                      desc: 'खेलने से पहले की अपनी रूटीन।' },
+        pressure:   { name: 'Pressure Reset',              desc: 'शरीर को स्थिर करो, ट्रेनिंग या कॉम्पिटिशन से पहले ध्यान वापस अगले एक्शन पर लाओ।' },
+        reflection: { name: 'Match & Practice Reflection', desc: 'जो हुआ उसे log करो और अगली बार के लिए एक useful insight लो।' },
+        focusCard:  { name: 'Focus Card Builder',          desc: 'दबाव वाली सोच को एक cue में बदलो — ट्रेनिंग या मैच के लिए।' },
+        quickRep:   { name: 'Quick Rep',                   desc: '4 मिनट में मन तैयार करो और एक cue लेकर निकलो।' },
+      },
     },
     dashboard: {
       welcomeBack: 'वापस स्वागत है',

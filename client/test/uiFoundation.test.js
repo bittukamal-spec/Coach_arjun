@@ -95,14 +95,22 @@ test('PlaybookPage uses PageHeader with the original navigate(-1) back behavior'
   assert.match(playbook, /<PageHeader onBack=\{\(\) => navigate\(-1\)\}/);
 });
 
-test('PlaybookPage has exactly one gradient hero (the weekly-summary card)', () => {
-  const heroCount = (playbook.match(/variant="hero"/g) || []).length;
-  assert.equal(heroCount, 1);
-  assert.match(playbook, /variant="hero"[^>]*>\s*<p[^>]*>\{hi \? 'इस हफ्ते' : 'This week'\}/);
+test('PlaybookPage carries NO gradient — Stage F moved the weekly summary onto the approved flat surface', () => {
+  assert.equal((playbook.match(/variant="hero"/g) || []).length, 0);
+  assert.doesNotMatch(playbook, /card-hero|btn-gradient|icon-tile-gradient|linear-gradient/);
+  // The weekly summary still exists, now on the approved elevated surface.
+  assert.match(playbook, /\{hi \? 'इस हफ्ते' : 'This week'\}/);
+  assert.match(playbook, /var\(--surface-elevated\)/);
 });
 
-test('PlaybookPage ordinary cards are flat Card primitives — no legacy card classes', () => {
-  assert.doesNotMatch(playbook, /card-surface|card-elevated/);
+test('the shared gradient recipes still exist globally — Stage F removed them from Playbook only', () => {
+  const css = readFileSync(path.join(root, 'src/index.css'), 'utf8');
+  assert.match(css, /\.card-hero/);
+  assert.match(css, /\.btn-gradient/);
+});
+
+test('PlaybookPage ordinary cards are flat Card primitives — no legacy card-surface class', () => {
+  assert.doesNotMatch(playbook, /card-surface/);
 });
 
 test('PlaybookPage uses its icon SectionHeading and semantic spacing, not legacy label/gutter classes', () => {

@@ -4,7 +4,8 @@ import Navbar from '../components/Navbar';
 import ConsentBanner from '../components/ConsentBanner';
 import { useAuth } from '../contexts/AuthContext';
 import { apiFetch } from '../api';
-import { ChevronRight, BookOpen, Pencil, CloudRain, RotateCcw, Crosshair, TrendingUp } from 'lucide-react';
+import { translations } from '../i18n/translations';
+import { ChevronRight, MessageCircle, Pencil, CloudRain, RotateCcw, Crosshair, TrendingUp } from 'lucide-react';
 import { SectionLabel } from '../components/ui';
 
 // Day-context picker — remembered for the rest of the day so the single
@@ -64,7 +65,6 @@ export default function Dashboard() {
 
   // ── state ──────────────────────────────────────────────────────────────────
   const [loaded,            setLoaded]            = useState(false);
-  const [playbook,          setPlaybook]          = useState(null);
   // Today's context (training / match / recovery / just_rep) — remembered
   // for the rest of the day so the recommended tool stays stable.
   const [dayContext,        setDayContext]        = useState(() => {
@@ -75,12 +75,15 @@ export default function Dashboard() {
   });
 
   // ── data fetch ─────────────────────────────────────────────────────────────
+  // Unchanged: still exactly one read-only GET /api/playbook, same endpoint
+  // and same timing as before. The Home Playbook card that used to render a
+  // line from this payload is gone (Playbook has its own bottom-nav
+  // destination), so the response is no longer read — but the call itself is
+  // deliberately preserved rather than silently dropping a Dashboard API
+  // contract in a presentation-only stage. It also gates the skeleton below.
   useEffect(() => {
-    // Playbook summary — today's cue, recent insight, saved cues
     apiFetch('/api/playbook', { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.ok ? r.json() : null)
-      .then(data => setPlaybook(data || false))
-      .catch(() => setPlaybook(false))
+      .catch(() => {})
       .finally(() => setLoaded(true));
   }, [token]);
 
@@ -90,7 +93,9 @@ export default function Dashboard() {
   }
 
   // ── derived ────────────────────────────────────────────────────────────────
-  const firstName = (user?.name || '').split(' ')[0] || (hi ? 'एथलीट' : 'Athlete');
+  const L = translations[language] || translations.en;
+  const t = L.home;
+  const firstName = (user?.name || '').split(' ')[0] || t.athleteFallback;
   const lang = hi ? 'hi' : 'en';
 
   // The single adaptive primary action — see PRIMARY_ACTION above. Only the
@@ -101,15 +106,6 @@ export default function Dashboard() {
   const primaryActionState = primaryAction.to === '/mental-rep' && dayContext
     ? { state: { context: dayContext } }
     : undefined;
-
-  // One contextual line for the Playbook card — sourced ONLY from data the
-  // Dashboard already fetches (GET /api/playbook). Never a new API call,
-  // never a fake metric: with no useful data it falls back to static copy.
-  const playbookDetail = playbook && playbook.weekRepCount > 0
-    ? (hi ? `इस हफ्ते ${playbook.weekRepCount} मेंटल रेप पूरे किए।` : `${playbook.weekRepCount} mental rep${playbook.weekRepCount === 1 ? '' : 's'} completed this week.`)
-    : playbook && playbook.topCue
-      ? (hi ? `सबसे ज्यादा use हुआ cue: "${playbook.topCue.value}"` : `Your most-used cue: "${playbook.topCue.value}"`)
-      : null;
 
   // ── render ─────────────────────────────────────────────────────────────────
   return (
@@ -133,80 +129,109 @@ export default function Dashboard() {
             <ConsentBanner />
 
             {/* ── 1. GREETING ───────────────────────────────────────────────── */}
-            <div className="pt-1 mb-6">
+            {/* Profile/avatar access lives in the Navbar above — unchanged. */}
+            <div className="pt-1 mb-5">
               <p className="text-2xl font-black text-ink leading-tight">
-                {hi ? `हाय, ${firstName}` : `Hi, ${firstName}`}
+                {t.greeting(firstName)}
               </p>
             </div>
 
-            {/* ── 2. ONE ADAPTIVE PRIMARY ACTION CARD — never more than one.
-                 Its own title/description/CTA swap with the athlete's
-                 "What's today?" pick; training/just-a-rep/no pick all fall
-                 back to the default Mental Rep action. The elevated surface
-                 plus the single gradient CTA make it the unambiguous
-                 primary action on the page. ──────────────────────────────── */}
-            <div className="mb-8">
-              <SectionLabel>{hi ? 'आज' : 'Today'}</SectionLabel>
-              <div className="card-elevated p-5">
-                <h2 className="text-xl font-black text-ink leading-tight mb-1">
+            {/* ── 2. TALK TO ARJUN — the ONE dominant action on Home.
+                 A plain <Link> to the existing Coach route: opening Home
+                 never creates a session, never claims the deterministic
+                 follow-up opener, and never touches any chat API. All of
+                 that stays inside Coach itself, exactly as before. ───────── */}
+            <div className="mb-7">
+              <Link
+                to="/coaching"
+                className="block rounded-[22px] p-5 elevation-hero active:scale-[0.99] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+                style={{ background: 'var(--brand-primary)' }}
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="w-12 h-12 rounded-2xl bg-white/15 flex items-center justify-center shrink-0">
+                    <MessageCircle size={24} className="text-white" aria-hidden="true" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xl font-black text-white leading-tight">
+                      {L.dashboard.openCoach}
+                    </p>
+                    <p className="text-caption text-white/85 leading-snug mt-0.5">
+                      {t.heroSub}
+                    </p>
+                  </div>
+                  <ChevronRight size={20} className="text-white/80 shrink-0" aria-hidden="true" />
+                </div>
+              </Link>
+            </div>
+
+            {/* ── 3. DAY-CONTEXT SELECTOR — compact and visually secondary to
+                 the hero above. Unchanged behaviour: aria-pressed buttons in
+                 one grouped track, ≥44px targets, and picking a context only
+                 swaps the recommended practice below — it never navigates
+                 and never writes to any API. ───────────────────────────── */}
+            <div className="mb-6">
+              <SectionLabel>{t.contextLabel}</SectionLabel>
+              <div
+                role="group"
+                aria-label={t.contextLabel}
+                className="inline-flex flex-wrap gap-1 p-1 rounded-xl bg-dark-700/70 border border-dark-600"
+              >
+                {DAY_CONTEXTS.map(c => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => pickContext(c.id)}
+                    aria-pressed={dayContext === c.id}
+                    className={`text-caption px-3 rounded-lg min-h-[44px] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 active:scale-95 ${
+                      dayContext === c.id
+                        ? 'bg-brand-600 text-white font-semibold shadow-sm'
+                        : 'bg-transparent text-slt font-medium'
+                    }`}
+                  >
+                    {c[lang]}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* ── 4. RECOMMENDED PRACTICE — the existing adaptive action,
+                 now clearly secondary to the hero. Its title/description/CTA
+                 still swap with the athlete's context pick; nothing about
+                 the recommendation logic, its routes or its route state
+                 changed. Home never marks a practice complete. ──────────── */}
+            <div className="mb-7">
+              <SectionLabel>{t.recommendedLabel}</SectionLabel>
+              <div className="rounded-2xl border border-dark-600 bg-dark-400 p-4 elevation-card">
+                <h2 className="text-base font-bold text-ink leading-tight mb-0.5">
                   {primaryAction.title[lang]}
                 </h2>
-                <p className="text-sm text-slt mb-4">
+                <p className="text-caption text-slt leading-relaxed mb-3.5">
                   {primaryAction.desc[lang]}
                 </p>
-
-                {/* Day-context selector — a compact segmented control, NOT
-                    action cards. Quiet unselected chips inside one grouped
-                    track; a filled, clearly-selected state; ≥44px touch
-                    targets; aria-pressed for assistive tech. Deliberately
-                    styled apart from the "Need help right now?" tiles
-                    below — picking a context changes THIS card, it never
-                    navigates. */}
-                <p className="text-[10px] font-bold text-muted uppercase tracking-wider mb-2">
-                  {hi ? 'आज क्या है?' : "What's today?"}
-                </p>
-                <div
-                  role="group"
-                  aria-label={hi ? 'आज क्या है?' : "What's today?"}
-                  className="inline-flex flex-wrap gap-1 p-1 rounded-xl bg-dark-700/70 border border-dark-600 mb-4"
-                >
-                  {DAY_CONTEXTS.map(c => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => pickContext(c.id)}
-                      aria-pressed={dayContext === c.id}
-                      className={`text-caption px-3 rounded-lg min-h-[44px] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 active:scale-95 ${
-                        dayContext === c.id
-                          ? 'bg-brand-600 text-white font-semibold shadow-sm'
-                          : 'bg-transparent text-slt font-medium'
-                      }`}
-                    >
-                      {c[lang]}
-                    </button>
-                  ))}
-                </div>
-
                 <button
                   onClick={() => navigate(primaryAction.to, primaryActionState)}
-                  className="btn-gradient w-full py-3 text-sm"
-                  style={{ minHeight: '48px' }}
+                  className="btn-primary w-full text-sm"
                 >
                   {primaryAction.cta[lang]}
                 </button>
               </div>
             </div>
 
-            {/* ── 3. NEED HELP RIGHT NOW — a fully separate section from the
-                 primary action card above. Real <Link> elements, not
-                 onClick+navigate — same primitive BottomNav already uses for
-                 its Coach tab. Each carries its own route state and nothing
-                 else; none of them touch dayContext, pickContext, or any
-                 tool/game/skill-path route. Rendered as outlined shortcut
-                 tiles with small icons — a clear action affordance, visually
-                 different from the segmented day-context selector. ───────── */}
-            <div className="mb-8">
-              <SectionLabel>{hi ? 'अभी मदद चाहिए?' : 'Need help right now?'}</SectionLabel>
+            {/* ── 5. CONTINUE COACHING — intentionally not rendered yet.
+                 Its eligibility ("an existing conversation") has no
+                 read-only source available to Home: GET /api/sessions
+                 performs the 7-day cycle rollover and fire-and-forget
+                 weekly-review generation, so calling it here would change
+                 when cycles roll over. GET /api/playbook carries no session
+                 signal. Adding one would mean new API surface, which this
+                 stage excludes. Deferred rather than faked. ─────────────── */}
+
+            {/* ── 6. NEED HELP RIGHT NOW — visually demoted to a smaller
+                 secondary section. Every route, prefill and behaviour is
+                 unchanged: real <Link> elements to /coaching carrying a
+                 visible, unsent prefill. ───────────────────────────────── */}
+            <div className="mb-7">
+              <SectionLabel>{t.helpLabel}</SectionLabel>
               <div className="grid grid-cols-2 gap-2">
                 {PROBLEM_SHORTCUTS.map(q => {
                   const Icon = q.icon;
@@ -215,10 +240,10 @@ export default function Dashboard() {
                       key={q.id}
                       to="/coaching"
                       state={{ prefillMsg: q.prefill[hi ? 'hi' : 'en'] }}
-                      className="card-surface flex items-center gap-2.5 px-3.5 py-3 min-h-[56px] active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                      className="rounded-xl border border-dark-600 bg-dark-800 flex items-center gap-2 px-3 py-2.5 min-h-[48px] active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
                     >
-                      <Icon size={15} className="text-brand-400 shrink-0" aria-hidden="true" />
-                      <span className="text-caption font-semibold text-ink leading-snug">
+                      <Icon size={14} className="text-brand-400 shrink-0" aria-hidden="true" />
+                      <span className="text-[12px] font-semibold text-ink leading-snug">
                         {q.label[hi ? 'hi' : 'en']}
                       </span>
                     </Link>
@@ -227,49 +252,20 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* ── 4. MENTAL PLAYBOOK — a larger informative library card, no
-                 scores. Its one contextual line comes only from the playbook
-                 data this page already fetched. ──────────────────────────── */}
-            <div className="mb-4">
-              <SectionLabel>{hi ? 'तुम्हारी लाइब्रेरी' : 'Your library'}</SectionLabel>
-              <Link
-                to="/playbook"
-                className="block card-surface p-5 active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
-              >
-                <div className="flex items-start gap-3.5">
-                  <div className="w-11 h-11 rounded-xl bg-brand-500/15 flex items-center justify-center shrink-0">
-                    <BookOpen size={20} className="text-brand-400" aria-hidden="true" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-base font-bold text-ink mb-0.5">Mental Playbook</p>
-                    <p className="text-caption text-slt leading-relaxed">
-                      {hi
-                        ? 'तुम्हारे cues, cards, reflections और सीख — सिर्फ तुम्हारे लिए, private.'
-                        : 'Your cues, cards, reflections, and lessons — private to you.'}
-                    </p>
-                    {playbookDetail && (
-                      <p className="text-caption font-medium text-brand-400 mt-1.5">{playbookDetail}</p>
-                    )}
-                  </div>
-                  <ChevronRight size={16} className="text-muted shrink-0 mt-1" aria-hidden="true" />
-                </div>
-              </Link>
-            </div>
-
-            {/* ── 5. MIND JOURNAL — a larger quiet card with an amber accent
-                 so it never reads as a twin of the Playbook card. No scores,
-                 no diagnosis, no pressure to write daily. ─────────────────── */}
+            {/* ── 7. MIND JOURNAL — the final secondary card before the
+                 bottom navigation. Route and behaviour unchanged; the Mind
+                 Journal screen itself is not redesigned in this stage. ──── */}
             <div className="mb-6">
               <Link
                 to="/mind-journal"
-                className="block card-surface p-5 active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                className="block rounded-2xl border border-dark-600 bg-dark-800 p-4 active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
               >
                 <div className="flex items-start gap-3.5">
                   <div
-                    className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
+                    className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
                     style={{ background: 'rgba(217,139,43,0.12)' }}
                   >
-                    <Pencil size={20} style={{ color: '#D98B2B' }} aria-hidden="true" />
+                    <Pencil size={18} style={{ color: '#D98B2B' }} aria-hidden="true" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-base font-bold text-ink mb-0.5">{hi ? 'माइंड जर्नल' : 'Mind Journal'}</p>

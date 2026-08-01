@@ -1,93 +1,98 @@
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../contexts/AuthContext';
-import SectionHeader from '../components/train/SectionHeader';
-import FeatureToolCard from '../components/train/FeatureToolCard';
-import SmallToolRow from '../components/train/SmallToolRow';
-import {
-  RotateCcw, ClipboardList, Zap, MessageSquare, Trophy,
-} from 'lucide-react';
+import { translations } from '../i18n/translations';
+import PracticeTile from '../components/train/PracticeTile';
+import { SectionLabel } from '../components/ui';
+
+// The FIVE real practices Arjun actually ships — nothing else. There is no
+// eight-category structure and no practice-count metadata anywhere in the
+// product, so neither is rendered here. Routes are the existing ones.
+//
+// Grouping is kept only where it still helps an athlete choose: when you
+// play (Ritual, Pressure Reset), after you play (Reflection), and the
+// skill-building pair (Quick Rep, Focus Card Builder). No empty categories.
+const GROUPS = [
+  {
+    labelKey: 'beforeLabel',
+    practices: [
+      { key: 'ritual',   to: '/ritual',      tone: 'var(--brand-primary)' },
+      { key: 'pressure', to: '/body-reset',  tone: '#2E7D6B',
+        // Pressure Reset's existing secondary route — preserved.
+        historyTo: '/body-reset/history' },
+    ],
+  },
+  {
+    labelKey: 'afterLabel',
+    practices: [
+      { key: 'reflection', to: '/debrief', tone: '#D98B2B' },
+    ],
+  },
+  {
+    labelKey: 'buildLabel',
+    practices: [
+      { key: 'quickRep',  to: '/mental-rep', tone: 'var(--brand-primary)' },
+      { key: 'focusCard', to: '/self-talk',  tone: 'var(--brand-primary)' },
+    ],
+  },
+];
 
 export default function TrainPage() {
   const navigate = useNavigate();
   const { language } = useAuth();
-  const hi = language === 'hi';
+  const t = (translations[language] || translations.en).trainPage;
 
   return (
     <div className="min-h-screen bg-dark-900">
       <Navbar />
 
-      <main className="max-w-lg md:max-w-2xl mx-auto px-4 pt-20 pb-24 animate-fade-in">
+      <main className="max-w-lg md:max-w-2xl mx-auto px-4 pt-20 pb-28 animate-fade-in">
 
         {/* Page header */}
-        <div className="pt-4 mb-2">
-          <p className="text-2xl font-black text-ink">{hi ? 'ट्रेन करो' : 'Train'}</p>
-          <p className="text-sm text-slt mt-1">
-            {hi ? 'अपनी मानसिक ट्रेनिंग शुरू करो।' : 'Your mental training toolkit.'}
-          </p>
+        <div className="pt-4 mb-6">
+          <h1 className="text-2xl font-black text-ink">{t.title}</h1>
+          <p className="text-sm text-slt mt-1">{t.subtitle}</p>
         </div>
 
-        {/* ── PRE-MATCH / TRAINING ────────────────────────────────────────── */}
-        <SectionHeader className="mt-8">{hi ? 'मैच / ट्रेनिंग से पहले' : 'Pre-match / Training'}</SectionHeader>
-        <div className="space-y-3 md:grid md:grid-cols-2 md:gap-3 md:space-y-0">
-          <div className="md:col-span-2">
-            <FeatureToolCard
-              hero
-              variant="teal"
-              icon={RotateCcw}
-              title="Pressure Reset"
-              tag={hi ? 'तनाव और घबराहट' : 'Tension & nerves'}
-              desc={hi
-                ? 'शरीर को स्थिर करो, तनाव कम करो, और ट्रेनिंग या कॉम्पिटिशन से पहले ध्यान वापस अगले एक्शन पर लाओ।'
-                : 'Steady your body before the next action.'}
-              meta="3 min · Nervous, tight, or overloaded"
-              ctaLabel={hi ? 'शुरू करो' : 'Start'}
-              onCta={() => navigate('/body-reset')}
-              secondaryLabel2={hi ? 'Reset history देखो →' : 'View history →'}
-              onSecondary2={() => navigate('/body-reset/history')}
-            />
-          </div>
-          <SmallToolRow
-            icon={Trophy}
-            title="Ritual"
-            desc={hi ? 'खेलने से पहले की अपनी रूटीन।' : 'Your routine before you play.'}
-            onClick={() => navigate('/ritual')}
-          />
-        </div>
-
-        {/* ── POST-MATCH / TRAINING ───────────────────────────────────────── */}
-        <SectionHeader className="mt-8">{hi ? 'मैच / ट्रेनिंग के बाद' : 'Post-match / Training'}</SectionHeader>
-        <div className="space-y-3">
-          <FeatureToolCard
-            icon={ClipboardList}
-            variant="amber"
-            title={hi ? 'Match & Practice Reflection' : 'Match & Practice Reflection'}
-            tag={hi ? 'मैच के बाद' : 'After match'}
-            desc={hi
-              ? 'जो हुआ उसे log करो और अगली बार के लिए एक useful insight लो।'
-              : 'Log what happened and get one useful insight for next time.'}
-            meta="4 min · After match or training"
-            ctaLabel={hi ? 'रिफ्लेक्ट करो' : 'Reflect'}
-            onCta={() => navigate('/debrief')}
-          />
-        </div>
-
-        {/* ── BUILD MENTAL SKILLS ──────────────────────────────────────────── */}
-        <SectionHeader className="mt-8">{hi ? 'मानसिक स्किल बनाओ' : 'Build Mental Skills'}</SectionHeader>
-        <div className="space-y-2.5 md:grid md:grid-cols-2 md:gap-2.5 md:space-y-0">
-          <SmallToolRow
-            icon={Zap}
-            title="Quick Rep"
-            desc={hi ? '4 मिनट में मन तैयार करो और एक cue लेकर निकलो।' : 'A 4-minute rep that ends with one cue you take to training.'}
-            onClick={() => navigate('/mental-rep')}
-          />
-          <SmallToolRow
-            icon={MessageSquare}
-            title="Focus Card Builder"
-            desc={hi ? 'दबाव वाली सोच को एक cue में बदलो — ट्रेनिंग या मैच के लिए।' : 'Turn pressure thoughts into one cue you can use in training or match.'}
-            onClick={() => navigate('/self-talk')}
-          />
-        </div>
+        {/* Two-column grid at every width; the tiles simply get more room
+            as the page column widens. Tiles stretch to a shared row height
+            so a long Hindi label never leaves a ragged row. */}
+        {GROUPS.map(group => (
+          <section key={group.labelKey} className="mb-7">
+            <SectionLabel>{t[group.labelKey]}</SectionLabel>
+            <div className="grid grid-cols-2 gap-2.5 items-stretch">
+              {group.practices.map(p => {
+                const copy = t.practices[p.key];
+                return (
+                  <PracticeTile
+                    key={p.key}
+                    name={copy.name}
+                    desc={copy.desc}
+                    tone={p.tone}
+                    // A lone practice spans the row rather than leaving an
+                    // empty cell — the grid stays two-column throughout.
+                    className={group.practices.length === 1 ? 'col-span-2' : ''}
+                    onClick={() => navigate(p.to)}
+                    footer={p.historyTo && (
+                      // min-h-[44px] + inline-flex items-center gives the
+                      // whole clickable element a real 44px tap target
+                      // without stretching the button's own compact,
+                      // background-free text-link appearance — it still
+                      // reads as a quiet secondary action, never a button.
+                      <button
+                        type="button"
+                        onClick={() => navigate(p.historyTo)}
+                        className="mt-1.5 self-start min-h-[44px] inline-flex items-center text-[11px] font-semibold text-brand-400 px-1 rounded active:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                      >
+                        {t.resetHistory}
+                      </button>
+                    )}
+                  />
+                );
+              })}
+            </div>
+          </section>
+        ))}
 
       </main>
     </div>

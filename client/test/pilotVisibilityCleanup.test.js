@@ -19,6 +19,7 @@ const train = readFileSync(path.join(root, 'src/pages/TrainPage.jsx'), 'utf8');
 const bodyReset = readFileSync(path.join(root, 'src/pages/BodyResetPage.jsx'), 'utf8');
 const selfTalk = readFileSync(path.join(root, 'src/pages/SelfTalkPage.jsx'), 'utf8');
 const chatPage = readFileSync(path.join(root, 'src/pages/ChatPage.jsx'), 'utf8');
+const translations = readFileSync(path.join(root, 'src/i18n/translations.js'), 'utf8');
 
 // ── 1. Dashboard: legacy pilot-facing UI is gone ────────────────────────────
 
@@ -122,16 +123,72 @@ test('Train: stopped client requests for removed game-status / skill-gate conten
   assert.doesNotMatch(train, /\/api\/skills\/calm_body/);
 });
 
-test('Train: retained tools still render — Pressure Reset, Match & Practice Reflection, Quick Rep, Focus Card Builder', () => {
-  assert.match(train, /Pressure Reset/);
-  assert.match(train, /Match & Practice Reflection/);
-  assert.match(train, /Quick Rep/);
+test('Train: retained tools still render — Ritual, Pressure Reset, Match & Practice Reflection, Quick Rep, Focus Card Builder', () => {
+  // Stage E moved the practice names into the trainPage translation
+  // namespace and the routes into one table, so the names are asserted
+  // where they now live — in BOTH languages, which the previous
+  // English-only source-text check never covered.
+  for (const name of ['Pressure Reset', 'Match & Practice Reflection', 'Quick Rep', 'Focus Card Builder', 'Ritual']) {
+    assert.ok(translations.includes(name), `${name} must still be an athlete-facing name`);
+  }
+  assert.equal(
+    (translations.match(/trainPage: \{/g) || []).length, 2,
+    'trainPage namespace exists in both en and hi',
+  );
   assert.doesNotMatch(train, /Daily Mental Rep/);
-  assert.match(train, /Focus Card Builder/);
-  assert.match(train, /navigate\('\/body-reset'\)/);
-  assert.match(train, /navigate\('\/debrief'\)/);
-  assert.match(train, /navigate\('\/mental-rep'\)/);
-  assert.match(train, /navigate\('\/self-talk'\)/);
+  assert.doesNotMatch(translations, /Daily Mental Rep/);
+
+  // Every real practice route is still reachable from Train.
+  for (const route of ['/ritual', '/body-reset', '/debrief', '/mental-rep', '/self-talk']) {
+    assert.ok(train.includes(`'${route}'`), `Train must still route to ${route}`);
+  }
+  // Pressure Reset's secondary history route survives the grid rebuild.
+  assert.ok(train.includes("'/body-reset/history'"));
+  assert.match(train, /navigate\(p\.to\)/, 'tiles navigate via the route table');
+});
+
+test('Train: the tap-target correction touched only styling — every route is exactly as before', () => {
+  // Pins the complete route set so a future change can't quietly add,
+  // remove or redirect a destination while "just" fixing a tap target.
+  const routeMatches = train.match(/(?:to|historyTo): '([^']+)'/g) || [];
+  const routes = routeMatches.map(m => m.match(/'([^']+)'/)[1]).sort();
+  assert.deepEqual(routes, [
+    '/body-reset', '/body-reset/history', '/debrief', '/mental-rep', '/ritual', '/self-talk',
+  ].sort());
+  assert.match(train, /onClick=\{\(\) => navigate\(p\.historyTo\)\}/, 'history control still navigates via p.historyTo');
+});
+
+test('Train: exactly the five real practices — no invented categories, no fabricated counts', () => {
+  const keys = (train.match(/key: '(\w+)'/g) || []);
+  assert.equal(keys.length, 5, 'exactly five practices are listed');
+  // No count/metadata language anywhere on the page.
+  assert.doesNotMatch(train, /\d+\s*(practices|sessions|exercises)/i);
+  assert.doesNotMatch(train, /practiceCount|count:/);
+  // No category scaffolding beyond the three real groupings.
+  assert.equal((train.match(/labelKey:/g) || []).length, 3);
+});
+
+test('Train tiles are flat — the grid introduces no gradient, and shared gradient components are untouched', () => {
+  // Comments are stripped so an explanatory mention of the shared gradient
+  // component can never be mistaken for actually using one.
+  const stripComments = (s) => s
+    .replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .split('\n').filter(l => !l.trim().startsWith('//')).join('\n');
+
+  const tile = stripComments(readFileSync(path.join(root, 'src/components/train/PracticeTile.jsx'), 'utf8'));
+  assert.doesNotMatch(tile, /gradient|GradientIconTile|card-hero|btn-gradient/i);
+  assert.doesNotMatch(stripComments(train), /gradient|GradientIconTile|card-hero|btn-gradient/i);
+  // The shared gradient tile still exists for the routes that DO use it.
+  const shared = readFileSync(path.join(root, 'src/components/train/GradientIconTile.jsx'), 'utf8');
+  assert.match(shared, /linear-gradient|--grad-from/);
+});
+
+test('Train: two-column grid with a real minimum tile height and accessible targets', () => {
+  assert.match(train, /grid-cols-2/);
+  const tile = readFileSync(path.join(root, 'src/components/train/PracticeTile.jsx'), 'utf8');
+  assert.match(tile, /min-h-\[76px\]/);
+  assert.match(tile, /focus-visible:ring-2/);
 });
 
 // ── 4. Pressure Reset / Focus Self-Talk: soft-gate skill-path CTA hidden ───

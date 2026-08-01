@@ -18,11 +18,14 @@ const mindJournal = readFileSync(path.join(root, 'src/pages/MindJournalPage.jsx'
 
 // ── "What I'm learning" is first ────────────────────────────────────────────
 
-test('PlaybookPage: "What I\'m learning" is the first section, before the weekly-summary hero', () => {
+test('PlaybookPage: "What I\'m learning" is the first section, before the weekly summary', () => {
   const learningIdx = playbook.indexOf('"What I\'m learning"');
-  const heroIdx = playbook.indexOf('variant="hero"');
-  assert.ok(learningIdx !== -1 && heroIdx !== -1);
-  assert.ok(learningIdx < heroIdx, '"What I\'m learning" must render before the weekly-summary hero card');
+  // Stage F moved the weekly summary off the signature gradient onto the
+  // approved flat elevated surface, so it is located by its own heading
+  // rather than by variant="hero". The ordering guarantee is unchanged.
+  const weekIdx = playbook.indexOf("'This week'");
+  assert.ok(learningIdx !== -1 && weekIdx !== -1);
+  assert.ok(learningIdx < weekIdx, '"What I\'m learning" must render before the weekly-summary card');
 });
 
 // ── Quiet Mind Journal entry point inside Playbook ──────────────────────────
