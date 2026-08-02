@@ -361,8 +361,17 @@ export default function StartingProfilePage() {
         </div>
 
         {safetyGuidance && (
-          <div className="bg-amber-950/30 border border-amber-700/40 rounded-2xl px-4 py-3 mt-4">
-            <p className="text-sm font-semibold text-amber-400 mb-1">{t.safetyTitle}</p>
+          // Same theme-branched warn tokens as the consent notice: the fixed
+          // amber classes this used to carry were unreadable in the light
+          // theme, and safety guidance is the last thing that should be hard
+          // to read. Wording and behaviour unchanged.
+          <div
+            className="rounded-2xl px-4 py-3 mt-4 border"
+            style={{ background: 'var(--surface-warn)', borderColor: 'var(--border-warn)' }}
+          >
+            <p className="text-sm font-semibold mb-1" style={{ color: 'var(--status-warn)' }}>
+              {t.safetyTitle}
+            </p>
             <p className="text-xs text-slt leading-relaxed whitespace-pre-line">{safetyGuidance}</p>
           </div>
         )}

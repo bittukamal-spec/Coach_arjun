@@ -864,3 +864,37 @@ test('merely loading the saved profile never starts a conversation', async () =>
   await screen.findByRole('heading', { level: 1, name: 'Your Performance Profile' });
   expect(s.state.calls.some((c) => c.includes('start-chat'))).toBe(false);
 });
+
+// ── Stage H: the warning surfaces must be readable in BOTH themes ──────────
+// The consent notice and safety guidance previously used fixed Tailwind amber
+// classes authored for the dark theme; in the light theme they measured
+// ~1.2:1. Both now take the theme-branched warn tokens.
+
+test('the consent notice and safety guidance use theme-branched warn tokens, not fixed amber', () => {
+  const notice = stripComments(srcOf('components/profile/ConsentNotice.jsx'));
+  const pageSrc = stripComments(page);
+  for (const s of [notice, pageSrc]) {
+    expect(s).not.toMatch(/amber-\d{2,3}/);
+  }
+  for (const token of ['--status-warn', '--surface-warn', '--border-warn']) {
+    expect(notice).toContain(token);
+  }
+  // The safety block on the page shares the same tokens.
+  expect(pageSrc).toContain('--surface-warn');
+  expect(pageSrc).toContain('--status-warn');
+});
+
+test('every warn token is defined in the light block AND both dark blocks', () => {
+  const css = readFileSync(path.join(__dirname, '../src/index.css'), 'utf8');
+  // Three definitions each: :root (light), the prefers-color-scheme block and
+  // the [data-theme="dark"] override. A token missing from a dark block is the
+  // exact class of bug Stage A shipped with --border-hairline.
+  for (const token of ['--status-warn', '--surface-warn', '--border-warn']) {
+    const defs = css.match(new RegExp(`${token}:`, 'g')) || [];
+    expect(defs.length).toBe(3);
+  }
+  const darkAttr = css.slice(css.indexOf('[data-theme="dark"]'));
+  for (const token of ['--status-warn', '--surface-warn', '--border-warn']) {
+    expect(darkAttr).toContain(`${token}:`);
+  }
+});
