@@ -408,4 +408,108 @@ describe('Adaptive onboarding v2', () => {
     await user.click(screen.getByRole('button', { name: 'Retry' }));
     expect(await screen.findByRole('heading', { name: 'What sport do you play?' })).toBeTruthy();
   });
+
+  // ── Stage G: presentation. These sit ON TOP of the behavioural coverage
+  // above; none of them replace a flow assertion. ─────────────────────────
+
+  test('Stage G: option sets with only short labels use the two-column grid; longer sets stay full-width rows', async () => {
+    wire(makeServer());
+    render(<App />);
+    const user = userEvent.setup();
+
+    // sport: longest label "Other sport" (11 chars) → grid of tiles.
+    await screen.findByRole('heading', { name: 'What sport do you play?' });
+    expect(radio('Cricket').closest('[role="radiogroup"]').className).toMatch(/grid-cols-2/);
+
+    await user.click(radio('Cricket'));
+    await user.click(cont());
+
+    // role_position: longest is "My role or event is different" (29) → rows.
+    await screen.findByRole('radio', { name: 'No fixed role' });
+    expect(radio('No fixed role').closest('[role="radiogroup"]').className).toMatch(/flex-col/);
+  });
+
+  test('Stage G: the layout rule is language-stable — Hindi picks the same grid/rows as English', async () => {
+    authState.language = 'hi';
+    wire(makeServer());
+    render(<App />);
+    await screen.findByRole('heading', { name: 'आप कौन सा खेल खेलते हैं?' });
+    // Same set, same decision, regardless of which language is rendering.
+    const group = screen.getAllByRole('radiogroup')[0];
+    expect(group.className).toMatch(/grid-cols-2/);
+  });
+
+  test('Stage G: a single-select shows no indicator until chosen; a multi-select always shows its checkbox', async () => {
+    wire(makeServer());
+    render(<App />);
+    const user = userEvent.setup();
+
+    await screen.findByRole('heading', { name: 'What sport do you play?' });
+    // Single-select, unselected: no check glyph anywhere in the option.
+    expect(radio('Football').textContent).not.toContain('✓');
+    await user.click(radio('Cricket'));
+    expect(radio('Cricket').textContent).toContain('✓');
+
+    await user.click(cont());
+    await user.click(await screen.findByRole('radio', { name: 'No fixed role' }));
+    await user.click(cont());
+    await user.click(await screen.findByRole('radio', { name: 'State level' }));
+    await user.click(screen.getByRole('radio', { name: 'Semi-serious' }));
+    await user.click(cont());
+
+    // Multi-select: the checkbox slot is present even when unselected, so it
+    // reads as "you may pick several" before anything is chosen.
+    await screen.findByRole('heading', { name: 'Which moments feel hardest right now?' });
+    const box = checkbox('After I make a mistake');
+    expect(box.getAttribute('aria-checked')).toBe('false');
+    expect(box.querySelector('.rounded-md')).toBeTruthy();
+  });
+
+  test('Stage G: options disabled at the limit are dimmed to the approved ~55%, never styled as selected', async () => {
+    wire(makeServer());
+    render(<App />);
+    const user = userEvent.setup();
+    await toDifficultMoments(user);
+    await user.click(checkbox('After I make a mistake'));
+    await user.click(checkbox('When I lose focus'));
+    await user.click(checkbox('When my confidence drops'));
+
+    const blocked = checkbox('After a poor result');
+    expect(blocked.disabled).toBe(true);
+    expect(blocked.className).toMatch(/opacity-\[0\.55\]/);
+    // Dimmed, but never wearing the selected treatment.
+    expect(blocked.className).not.toMatch(/border-brand-500/);
+    expect(blocked.getAttribute('aria-checked')).toBe('false');
+  });
+
+  test('Stage G: the selection count sits with the Continue action, and the action area has no divider panel', async () => {
+    wire(makeServer());
+    render(<App />);
+    const user = userEvent.setup();
+    await toDifficultMoments(user);
+    await user.click(checkbox('After I make a mistake'));
+
+    const footer = document.querySelector('footer');
+    expect(footer.textContent).toContain('1 of 3 selected');
+    expect(footer.className).not.toMatch(/border-t/);
+  });
+
+  test('Stage G: onboarding mounts no app navigation of any kind', async () => {
+    wire(makeServer());
+    render(<App />);
+    await screen.findByRole('heading', { name: 'What sport do you play?' });
+    expect(screen.queryByRole('navigation')).toBeNull();
+    for (const label of ['Home', 'Train', 'Coach', 'Playbook', 'Profile', 'Settings']) {
+      expect(screen.queryByRole('link', { name: label })).toBeNull();
+    }
+  });
+
+  test('Stage G: the shell pins the action area and keeps header controls at 44px', () => {
+    // jsdom cannot lay out dvh/flex, so the frame contract is asserted at
+    // source level the same way the safe-area contract already is.
+    expect(shellSrc).toMatch(/h-dvh/);
+    expect(shellSrc).toMatch(/overflow-y-auto/);
+    expect(shellSrc).toMatch(/w-11 h-11/);
+    expect(shellSrc).toMatch(/env\(safe-area-inset-top\)/);
+  });
 });

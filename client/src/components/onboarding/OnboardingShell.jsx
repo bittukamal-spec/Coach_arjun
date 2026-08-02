@@ -46,21 +46,34 @@ function OnboardingShell({
   }, [screenKey]);
 
   return (
-    <div className="min-h-screen bg-dark-900 flex flex-col">
-      {/* ── Header: back + stable-stage progress ─────────────────────── */}
-      <header className="shrink-0 w-full max-w-[480px] mx-auto px-4 pt-4 pb-3">
+    // h-dvh (not min-h-screen) is what actually makes the action area fixed:
+    // it gives the flex column a definite height so `main` becomes the scroll
+    // container and the footer stays pinned to the viewport. With min-height
+    // the root grew past the fold on long option lists and Continue could
+    // only be reached by scrolling the whole page. `dvh` also tracks the
+    // dynamic viewport, so an open mobile keyboard shrinks the scroll area
+    // rather than pushing the action off-screen.
+    <div className="h-dvh bg-dark-900 flex flex-col">
+      {/* ── Header: back + stable-stage progress ───────────────────────
+          Onboarding is deliberately distraction-free: a back control and
+          the stage indicator, nothing else. No app navigation of any kind
+          is mounted here. */}
+      <header
+        className="shrink-0 w-full max-w-[480px] mx-auto px-4 pb-3"
+        style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))' }}
+      >
         <div className="flex items-center gap-3">
           {canGoBack ? (
             <button
               type="button"
               onClick={onBack}
               aria-label={backLabel}
-              className="shrink-0 w-9 h-9 flex items-center justify-center rounded-full bg-dark-700 text-ink active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-dark-900"
+              className="shrink-0 w-11 h-11 flex items-center justify-center rounded-full bg-dark-700 text-ink active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-dark-900"
             >
-              <ChevronLeft size={20} />
+              <ChevronLeft size={20} aria-hidden="true" />
             </button>
           ) : (
-            <div className="shrink-0 w-9 h-9" aria-hidden="true" />
+            <div className="shrink-0 w-11 h-11" aria-hidden="true" />
           )}
           <OnboardingStageProgress
             stages={stages}
@@ -93,9 +106,13 @@ function OnboardingShell({
         </p>
       </main>
 
-      {/* ── Sticky footer (Continue) with safe-area padding ──────────── */}
+      {/* ── Fixed action area (Continue) with safe-area padding ────────
+           Approved treatment: no divider and no footer panel — the action
+           sits directly on the page background. It stays in normal flow
+           (shrink-0 beside a scrolling main), so it never overlays the
+           question and remains reachable with the keyboard open. */}
       <footer
-        className="shrink-0 w-full max-w-[480px] mx-auto px-4 pt-3 border-t border-dark-600 bg-dark-900"
+        className="shrink-0 w-full max-w-[480px] mx-auto px-4 pt-3 bg-dark-900"
         style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
       >
         {footer}

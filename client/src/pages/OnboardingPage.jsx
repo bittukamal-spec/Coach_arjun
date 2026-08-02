@@ -38,6 +38,28 @@ function tPath(obj, key) {
   return key.split('.').reduce((o, k) => (o == null ? undefined : o[k]), obj);
 }
 
+// ── Option layout rule (Stage G) ──────────────────────────────────────────
+// Two columns ONLY when every label in the set is short; a full-width row as
+// soon as one option is a sentence. Decided from the REAL answer text, not a
+// per-question hardcoded list, and measured across BOTH languages so a screen
+// does not switch layout when the athlete switches language.
+//
+// 24 characters is the practical ceiling for a tile: at 360px each column is
+// ~158px, which holds roughly two lines at this type size. Anything longer
+// reads better as a full-width row.
+const TILE_MAX_LABEL = 24;
+
+function longestLabelAcrossLanguages(options) {
+  let longest = 0;
+  for (const a of options) {
+    for (const lang of Object.keys(translations)) {
+      const text = tPath(translations[lang], a.key);
+      if (typeof text === 'string' && text.length > longest) longest = text.length;
+    }
+  }
+  return longest;
+}
+
 export default function OnboardingPage() {
   const { user, token, language, updateUser } = useAuth();
   const navigate = useNavigate();
@@ -222,15 +244,19 @@ export default function OnboardingPage() {
     const isSport = qid === 'sport';
     const customId = sel.find((id) => CFG.isCustom(qid, id));
 
+    // Grid only when every label in this set is short (see TILE_MAX_LABEL).
+    // Sport additionally carries an emoji marker, so it keeps its tiles
+    // regardless — its labels are the shortest set in the flow anyway.
+    const useGrid = isSport || longestLabelAcrossLanguages(options) <= TILE_MAX_LABEL;
+
     return (
       <div key={qid} className="mb-2">
         {groupLabel && <h2 className="text-body font-semibold text-ink mb-3">{groupLabel}</h2>}
-        {multi && (
-          <p className="mb-3 text-caption font-semibold text-slt" aria-hidden="true">
-            {ui.selectedCount(sel.length, q.limit)}
-          </p>
-        )}
-        <OptionGrid layout={isSport ? 'grid' : 'stack'} multi={multi} ariaLabel={groupLabel || label(screen.titleKey)}>
+        <OptionGrid
+          layout={useGrid ? 'grid' : 'stack'}
+          multi={multi}
+          ariaLabel={groupLabel || label(screen.titleKey)}
+        >
           {options.map((a) => {
             const selected = sel.includes(a.id);
             const disabled = multi && atLimit && !selected && !CFG.isExclusive(qid, a.id);
@@ -239,7 +265,7 @@ export default function OnboardingPage() {
                 key={a.id}
                 icon={isSport ? SPORT_ICONS[a.id] : undefined}
                 label={label(a.key)}
-                layout={isSport ? 'tile' : 'row'}
+                layout={useGrid ? 'tile' : 'row'}
                 multi={multi}
                 selected={selected}
                 disabled={disabled}
@@ -248,6 +274,9 @@ export default function OnboardingPage() {
             );
           })}
         </OptionGrid>
+        {/* The custom option is always the final answer in every set, so the
+            field renders directly beneath the option that reveals it. The
+            option itself stays selected while the field is open. */}
         {customId && (
           <CustomAnswerField
             id={`${qid}-custom`}
@@ -266,16 +295,31 @@ export default function OnboardingPage() {
   const subcopy = screen.subtitleKey ? label(screen.subtitleKey) : '';
   const isContext = currentStepId === 'playing_context';
 
+  // Approved action area: the selection count sits in small muted text
+  // directly above Continue rather than above the options. Every multi-select
+  // question in the flow is alone on its screen, so this reads unambiguously.
+  const countQid = questionIds.length === 1 && CFG.getQuestion(questionIds[0])?.type === 'multi'
+    ? questionIds[0]
+    : null;
+  const countText = countQid
+    ? ui.selectedCount((working[countQid]?.answerIds || []).length, CFG.getQuestion(countQid).limit)
+    : null;
+
   const footer = (
     <div>
       <div className="mb-2 min-h-[18px]">
         <SaveStatus state={saveState} onRetry={retryContinue} labels={ui} />
       </div>
+      {countText && (
+        <p className="mb-2 text-caption text-muted" aria-hidden="true">
+          {countText}
+        </p>
+      )}
       <button
         type="button"
         onClick={onContinue}
         disabled={!screenValid || saveState === 'saving'}
-        className="btn-primary w-full justify-center py-4 text-base disabled:opacity-40"
+        className="btn-primary w-full justify-center text-base disabled:opacity-40"
       >
         {saveState === 'saving' ? ui.saving : isLast ? ui.finish : ui.continue}
       </button>
