@@ -14,6 +14,14 @@
 // free. The step number and the connector are decorative; the type label
 // ("Situation", "Reaction") is real visible text, so the sequence is
 // comprehensible without seeing the line.
+//
+// Node-kind labels are UI vocabulary for the KIND of step, keyed off the
+// stable `node.type` the server already sends. Naming the four known kinds
+// client-side is what lets the approved wording ("Effect", not "Performance
+// effect") ship without touching the frozen server payload — the step's own
+// TEXT is still rendered exactly as the server authored it, and an unknown
+// kind falls back to the server's own label rather than being dropped or
+// guessed at.
 
 import { Zap, Brain, Eye, Clock } from 'lucide-react';
 
@@ -24,15 +32,18 @@ const NODE_ICON = {
   duration: Clock,
 };
 
-export default function PerformancePathway({ nodes, stepAria }) {
+export default function PerformancePathway({ nodes, stepAria, kindLabels }) {
   const steps = (nodes || []).filter((n) => n && n.text);
   if (!steps.length) return null;
+
+  const labelFor = (node) => (kindLabels && kindLabels[node.type]) || node.label;
 
   return (
     <ol className="list-none p-0 m-0">
       {steps.map((node, i) => {
         const Icon = NODE_ICON[node.type] || Zap;
         const isLast = i === steps.length - 1;
+        const kindLabel = labelFor(node);
         return (
           <li key={`${node.type}-${i}`} className="flex items-stretch gap-3">
             {/* Step number + connector — decorative; the label carries meaning */}
@@ -51,10 +62,10 @@ export default function PerformancePathway({ nodes, stepAria }) {
             </span>
 
             <div className={`min-w-0 flex-1 ${isLast ? 'pb-0' : 'pb-3 border-b border-dark-600 mb-3'}`}>
-              {node.label && (
+              {kindLabel && (
                 <p className="text-caption font-semibold text-brand-500">
-                  <span className="sr-only">{stepAria ? stepAria(i + 1, node.label) : ''}</span>
-                  <span aria-hidden={stepAria ? 'true' : undefined}>{node.label}</span>
+                  <span className="sr-only">{stepAria ? stepAria(i + 1, kindLabel) : ''}</span>
+                  <span aria-hidden={stepAria ? 'true' : undefined}>{kindLabel}</span>
                 </p>
               )}
               <p className="text-body text-ink break-words">{node.text}</p>

@@ -211,9 +211,17 @@ test('Change focus is present in saved mode and opens the selector', async () =>
 
 // ── 5. Snapshot chips ──────────────────────────────────────────────────────
 
+test('"Your snapshot" is a real visible heading, not an sr-only label', async () => {
+  renderPage();
+  const heading = await screen.findByRole('heading', { name: 'Your snapshot' });
+  expect(heading).toBeTruthy();
+  // sr-only would take it out of the visual flow — this one is on the page.
+  expect(heading.className).not.toMatch(/sr-only/);
+});
+
 test('snapshot chips render the athlete\'s factual answers, and omit what is missing', async () => {
   renderPage();
-  const list = await screen.findByRole('list', { name: 'About you' });
+  const list = await screen.findByRole('list', { name: 'Your snapshot' });
   const text = list.textContent;
   for (const chip of ['Cricket', 'Batter', 'State', 'Competitive', 'Goals: Focus, Confidence', '4-week goal: Enjoy competing more']) {
     expect(text).toContain(chip);
@@ -223,7 +231,7 @@ test('snapshot chips render the athlete\'s factual answers, and omit what is mis
   const sparse = makeServer();
   sparse.state.profile.displayProfile.snapshot = { sport: 'Cricket', role: null, playingContext: null, experience: null, goals: [], fourWeekOutcome: null };
   renderPage({ server: sparse });
-  const list2 = await screen.findByRole('list', { name: 'About you' });
+  const list2 = await screen.findByRole('list', { name: 'Your snapshot' });
   expect(list2.textContent).toContain('Cricket');
   expect(list2.textContent).not.toMatch(/Unknown|null|undefined/);
   expect(within(list2).getAllByRole('listitem')).toHaveLength(1);
@@ -253,8 +261,13 @@ test('pathway type labels are shown and the reading order matches the visual ord
   await screen.findByText('Your Starting Pattern');
   const ol = screen.getAllByRole('list').find((l) => l.tagName === 'OL');
   const items = within(ol).getAllByRole('listitem');
-  const labels = ['Situation', 'Reaction', 'Performance effect', 'Duration'];
+  // Approved node-kind vocabulary: "Effect", never "Performance effect".
+  const labels = ['Situation', 'Reaction', 'Effect', 'Duration'];
   items.forEach((li, i) => expect(li.textContent).toContain(labels[i]));
+  expect(ol.textContent).not.toContain('Performance effect');
+  // The step TEXT still comes from the server payload untouched — only the
+  // kind label is UI vocabulary.
+  expect(items[2].textContent).toContain('Your focus may dip for a bit');
   // Connectors and step numbers are decorative, never announced.
   for (const el of ol.querySelectorAll('[aria-hidden="true"]')) {
     expect(el.getAttribute('aria-hidden')).toBe('true');
@@ -272,15 +285,57 @@ test('a pathway with one node renders cleanly, with no connector and no empty st
 
 // ── 8–9. Helps + Where we can begin ────────────────────────────────────────
 
-test('strengths and supports render together as unranked chips', async () => {
+test('supports and strengths are two separate labelled groups, never one merged list', async () => {
   renderPage();
-  const list = await screen.findByRole('list', { name: 'What Already Helps' });
-  const text = list.textContent;
-  for (const chip of ['Routine before you perform', 'Remembering past success', 'Hard-working', 'Supportive teammate']) {
-    expect(text).toContain(chip);
+  const supports = await screen.findByRole('list', { name: 'What Already Helps' });
+  const strengths = await screen.findByRole('list', { name: 'Strengths you named' });
+  expect(supports).not.toBe(strengths);
+
+  // Each group holds only its own payload items.
+  for (const chip of ['Routine before you perform', 'Remembering past success']) {
+    expect(supports.textContent).toContain(chip);
+    expect(strengths.textContent).not.toContain(chip);
   }
-  // No numbering, no ordering claim, no score.
-  expect(text).not.toMatch(/\d+\s*(%|\/|pts|score)/i);
+  for (const chip of ['Hard-working', 'Supportive teammate']) {
+    expect(strengths.textContent).toContain(chip);
+    expect(supports.textContent).not.toContain(chip);
+  }
+
+  // Still unranked in both groups: no numbering, ordering claim or score.
+  for (const text of [supports.textContent, strengths.textContent]) {
+    expect(text).not.toMatch(/\d+\s*(%|\/|pts|score)/i);
+  }
+});
+
+test('"Strengths you named" is a real heading, in English and in Hindi', async () => {
+  renderPage();
+  expect(await screen.findByRole('heading', { name: 'Strengths you named' })).toBeTruthy();
+  cleanup();
+  authState.language = 'hi';
+  renderPage();
+  expect(await screen.findByRole('heading', { name: 'आपके बताए गुण' })).toBeTruthy();
+});
+
+test('an empty strengths group is omitted rather than rendered empty', async () => {
+  const s = makeServer();
+  s.state.profile.displayProfile.strengths = [];
+  renderPage({ server: s });
+  // Supports still render under their own heading…
+  expect(await screen.findByRole('list', { name: 'What Already Helps' })).toBeTruthy();
+  // …and the strengths group is absent entirely, not an empty card.
+  expect(screen.queryByRole('heading', { name: 'Strengths you named' })).toBeNull();
+  expect(screen.queryByRole('list', { name: 'Strengths you named' })).toBeNull();
+});
+
+test('with supports empty but strengths named, only the strengths group renders', async () => {
+  const s = makeServer();
+  s.state.profile.displayProfile.supports = [];
+  renderPage({ server: s });
+  const strengths = await screen.findByRole('list', { name: 'Strengths you named' });
+  expect(strengths.textContent).toContain('Hard-working');
+  // No empty supports card, and no "nothing named yet" line — something WAS named.
+  expect(screen.queryByRole('list', { name: 'What Already Helps' })).toBeNull();
+  expect(screen.queryByText(/haven't named what helps yet/i)).toBeNull();
 });
 
 test('with nothing named, What Already Helps shows the fallback line instead of an empty card', async () => {
@@ -589,7 +644,7 @@ test('long Hindi copy renders without clipping or nowrap', async () => {
   expect(await screen.findByText('अभी का फोकस')).toBeTruthy();
   const headline = screen.getByText(/गलती के बाद जल्दी संभलना/);
   expect(headline.className).not.toMatch(/whitespace-nowrap|truncate|line-clamp/);
-  const list = screen.getByRole('list', { name: 'तुम्हारे बारे में' });
+  const list = screen.getByRole('list', { name: 'तुम्हारा स्नैपशॉट' });
   for (const li of within(list).getAllByRole('listitem')) {
     expect(li.className).not.toMatch(/whitespace-nowrap|truncate/);
   }
@@ -698,4 +753,114 @@ test('the dialog traps focus and restores it to the opener', () => {
   expect(dialog).toMatch(/e\.key === 'Escape'/);
   expect(dialog).toMatch(/e\.key !== 'Tab'/);
   expect(page).toMatch(/changeFocusRef\.current\?\.focus\(\)/);
+});
+
+// ── Stage H: state-aware app navigation ────────────────────────────────────
+// The bottom bar belongs to the SAVED profile — the destination "Profile"
+// points at. Every first-time state is a linear flow the athlete should
+// finish, so the bar stays out of it. Consent never decides the bar; it
+// decides the coaching action.
+
+const navBar = () => screen.queryByRole('navigation');
+
+test('the saved profile mounts the app navigation, exactly once', async () => {
+  renderPage();
+  await screen.findByRole('heading', { level: 1, name: 'Your Performance Profile' });
+  expect(screen.getAllByRole('navigation')).toHaveLength(1);
+});
+
+test('the Profile item is the active one while on /starting-profile', async () => {
+  renderPage();
+  await screen.findByRole('heading', { level: 1, name: 'Your Performance Profile' });
+  const current = within(navBar()).getByRole('link', { current: 'page' });
+  expect(current.getAttribute('href')).toBe('/starting-profile');
+  expect(current.textContent).toContain('Profile');
+});
+
+test('the navigation keeps its five destinations, and Settings is not one of them', async () => {
+  renderPage();
+  await screen.findByRole('heading', { level: 1, name: 'Your Performance Profile' });
+  const hrefs = within(navBar()).getAllByRole('link').map((a) => a.getAttribute('href'));
+  expect(hrefs).toEqual(['/dashboard', '/train', '/coaching', '/playbook', '/starting-profile']);
+  // Account/Settings stays in the avatar menu, never promoted into the bar.
+  expect(hrefs).not.toContain('/account');
+});
+
+test('consent-pending keeps the navigation but drops the coaching action from the DOM', async () => {
+  const s = makeServer({ consent: { pending: true, guardianEmailMasked: 'p•••••@example.com' } });
+  renderPage({ server: s });
+  await screen.findByText('Waiting for parent/guardian consent');
+  // The bar is a property of being on a saved profile, not of consent.
+  expect(navBar()).toBeTruthy();
+  expect(within(navBar()).getByRole('link', { current: 'page' }).getAttribute('href')).toBe('/starting-profile');
+  // No coaching route at all — absent, never a disabled control.
+  expect(screen.queryByRole('button', { name: 'Continue coaching' })).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Start with Arjun' })).toBeNull();
+  expect(document.body.textContent).not.toContain('Continue coaching');
+});
+
+test('loading renders no navigation, so the bar cannot flash before the mode is known', async () => {
+  apiFetch.mockImplementation(() => new Promise(() => {})); // never resolves
+  render(
+    <MemoryRouter initialEntries={[{ pathname: '/starting-profile', state: { entryMode: 'saved-profile' } }]}>
+      <Routes><Route path="/starting-profile" element={<StartingProfilePage />} /></Routes>
+    </MemoryRouter>
+  );
+  expect(await screen.findByText('Putting this together…')).toBeTruthy();
+  expect(navBar()).toBeNull();
+});
+
+test('the first-time confirmation renders no navigation', async () => {
+  const s = makeServer({ profile: { fitResponse: null, agreedPriorityId: null } });
+  renderPage({ server: s, entryMode: null });
+  await screen.findByText('Does this fit?');
+  expect(navBar()).toBeNull();
+});
+
+test('the Got-it transition renders no navigation, and keeps its three actions distinct', async () => {
+  const s = makeServer({ profile: { fitResponse: null, agreedPriorityId: null } });
+  renderPage({ server: s, entryMode: 'onboarding-completion' });
+  await screen.findByText('Does this fit?');
+
+  // First-time step 1: Continue.
+  await userEvent.click(screen.getByText('That fits'));
+  await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
+
+  // Step 2: the Got it transition — a separate screen with its own actions.
+  expect(await screen.findByText('Got it')).toBeTruthy();
+  expect(navBar()).toBeNull();
+  // Start with Arjun is its own distinct action, not a renamed Continue.
+  expect(screen.getByRole('button', { name: 'Start with Arjun' })).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Not now' })).toBeTruthy();
+  expect(screen.queryByRole('button', { name: 'Continue' })).toBeNull();
+});
+
+test('an unsaved first-time profile mid-correction still renders no navigation', async () => {
+  const s = makeServer({ profile: { fitResponse: null, agreedPriorityId: null } });
+  renderPage({ server: s, entryMode: null });
+  await screen.findByText('Does this fit?');
+  await userEvent.click(screen.getByText('Not really'));
+  expect(await screen.findByText('What should we start with instead?')).toBeTruthy();
+  expect(navBar()).toBeNull();
+});
+
+// ── Stage H: Continue coaching action row ──────────────────────────────────
+
+test('Continue coaching is a 56px action row that reopens the existing conversation', async () => {
+  const s = makeServer();
+  renderPage({ server: s });
+  const row = await screen.findByRole('button', { name: /Continue coaching/ });
+  expect(row.className).toMatch(/min-h-\[56px\]/);
+  await userEvent.click(row);
+  await screen.findByText('COACHING SCREEN');
+  // Exactly one start-chat call: the endpoint is idempotent and the row never
+  // creates a second conversation.
+  expect(s.state.calls.filter((c) => c.includes('start-chat'))).toHaveLength(1);
+});
+
+test('merely loading the saved profile never starts a conversation', async () => {
+  const s = makeServer();
+  renderPage({ server: s });
+  await screen.findByRole('heading', { level: 1, name: 'Your Performance Profile' });
+  expect(s.state.calls.some((c) => c.includes('start-chat'))).toBe(false);
 });

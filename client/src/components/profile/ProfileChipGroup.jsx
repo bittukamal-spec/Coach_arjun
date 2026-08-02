@@ -18,7 +18,10 @@ export default function ProfileChipGroup({ items, ariaLabel }) {
         return (
           <li
             key={chip.key || chip.label}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-full border border-dark-600 bg-dark-800 text-caption text-ink break-words"
+            // .chip-fact is the Stage A read-only fact token (surface/chip +
+            // hairline border). It sets size, padding and radius but NOT
+            // whitespace, so long Hindi labels still wrap instead of clipping.
+            className="chip-fact flex items-center gap-1.5 text-ink break-words"
           >
             {Icon && <Icon size={14} className="text-brand-500 shrink-0" aria-hidden="true" />}
             <span>{chip.label}</span>

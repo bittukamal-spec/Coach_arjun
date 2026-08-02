@@ -5,11 +5,13 @@ import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
 import { ArjunLogo } from '../components/ArjunLogo';
+import BottomNav from '../components/BottomNav';
 import { useStartingProfile } from '../hooks/useStartingProfile';
 import { SelectableOption, CustomAnswerField } from '../components/onboarding';
 import {
   ProfileSectionCard, ProfileChipGroup, CurrentFocusCard,
   PerformancePathway, ChangeFocusDialog, ProfileSkeleton, ConsentNotice,
+  ContinueCoachingRow,
 } from '../components/profile';
 import { isValidCustomText } from '../utils/sanitizeCustomText';
 import * as CFG from '../onboarding/config';
@@ -115,14 +117,24 @@ export default function StartingProfilePage() {
     ].filter(Boolean);
   }, [dp, t]);
 
-  // Supports and strengths together: one "what already helps" group, never
-  // scored, never ranked.
-  const helpChips = useMemo(() => {
-    if (!dp) return [];
-    return [...(dp.supports || []), ...(dp.strengths || [])]
-      .filter((x) => x && x.label)
-      .map((x) => ({ key: x.id, label: x.label, icon: CheckCircle2 }));
-  }, [dp]);
+  // Supports and strengths are two DIFFERENT things the athlete told us —
+  // what already helps them, and what they say they are good at. The payload
+  // has always kept them apart; presenting them as one list blurred that, so
+  // each is now its own labelled group. Neither is scored, ranked or merged,
+  // and an empty group is omitted rather than padded.
+  const toChips = (items) =>
+    (items || []).filter((x) => x && x.label).map((x) => ({ key: x.id, label: x.label, icon: CheckCircle2 }));
+  const supportChips = useMemo(() => toChips(dp?.supports), [dp]); // eslint-disable-line react-hooks/exhaustive-deps
+  const strengthChips = useMemo(() => toChips(dp?.strengths), [dp]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Node-kind vocabulary for the pathway, keyed off the server's stable
+  // `node.type`. The step TEXT still comes from the server untouched.
+  const patternKindLabels = useMemo(() => ({
+    situation: t.patternSituation,
+    reaction: t.patternReaction,
+    effect: t.patternEffect,
+    duration: t.patternDuration,
+  }), [t]);
 
   const needsCorrection = fit === 'NOT_REALLY';
   const correctionReady =
@@ -217,8 +229,28 @@ export default function StartingProfilePage() {
   const focusUpdatedRaw = dp?.currentFocus?.updatedAt || profile.updatedAt || profile.confirmedAt || profile.generatedAt;
   const focusUpdated = formatDate(focusUpdatedRaw, language);
 
+  // ── State-aware app navigation ──────────────────────────────────────────
+  // The bottom bar belongs to the SAVED profile — the destination an athlete
+  // taps "Profile" to reach. It is deliberately absent from every first-time
+  // state (review, correction, and the one-time "Got it" transition), which is
+  // a linear flow the athlete should finish, not browse away from.
+  //
+  // Driven by `savedMode`, NOT by consent: a consent-pending athlete with a
+  // saved profile is still on that destination and keeps the bar. What consent
+  // removes is the coaching action further down, and it is removed from the
+  // DOM rather than disabled.
+  //
+  // The loading, incomplete and error states all return above this line, so
+  // the bar cannot flash before the mode is known. This route mounts no
+  // BottomNav in App.jsx, so this is the only instance on the page.
+  const showAppNav = savedMode;
+
   return (
-    <div className="min-h-screen bg-dark-900 px-page py-4 pb-[calc(2rem+env(safe-area-inset-bottom))]">
+    <div
+      className={`min-h-screen bg-dark-900 px-page py-4 ${
+        showAppNav ? 'pb-28' : 'pb-[calc(2rem+env(safe-area-inset-bottom))]'
+      }`}
+    >
       <div className="max-w-md mx-auto">
         {/* ── Top app bar ── */}
         <div className="flex items-center gap-2.5 mb-4">
@@ -264,12 +296,11 @@ export default function StartingProfilePage() {
             />
           )}
 
-          {/* ── Athlete snapshot ── */}
+          {/* ── Athlete snapshot — now a visible heading, not sr-only ── */}
           {snapshotChips.length > 0 && (
-            <div className="card p-4">
-              <h2 className="sr-only">{t.snapshotAria}</h2>
-              <ProfileChipGroup items={snapshotChips} ariaLabel={t.snapshotAria} />
-            </div>
+            <ProfileSectionCard id="profile-snapshot" title={t.snapshotTitle}>
+              <ProfileChipGroup items={snapshotChips} ariaLabel={t.snapshotTitle} />
+            </ProfileSectionCard>
           )}
 
           {/* ── Your Starting Pattern — the frozen onboarding baseline ── */}
@@ -279,7 +310,11 @@ export default function StartingProfilePage() {
               title={t.startingPatternTitle}
               note={t.startingPatternNote}
             >
-              <PerformancePathway nodes={dp.startingPattern.nodes} stepAria={t.patternStepAria} />
+              <PerformancePathway
+                nodes={dp.startingPattern.nodes}
+                stepAria={t.patternStepAria}
+                kindLabels={patternKindLabels}
+              />
               {(dp.startingPattern.notes || []).length > 0 && (
                 <ul className="list-none p-0 mt-3 flex flex-col gap-1">
                   {dp.startingPattern.notes.map((n) => (
@@ -290,12 +325,32 @@ export default function StartingProfilePage() {
             </ProfileSectionCard>
           )}
 
-          {/* ── What Already Helps ── */}
-          <ProfileSectionCard id="profile-helps" title={t.whatHelpsTitle}>
-            {helpChips.length > 0
-              ? <ProfileChipGroup items={helpChips} ariaLabel={t.whatHelpsTitle} />
-              : <p className="text-body text-slt leading-relaxed">{t.whatHelpsEmpty}</p>}
-          </ProfileSectionCard>
+          {/* ── What Already Helps — the athlete's supports.
+               Shown whenever there are supports, and also when BOTH groups are
+               empty, so "nothing named yet" is said once in a real card rather
+               than leaving the page with a silent gap. ── */}
+          {(supportChips.length > 0 || strengthChips.length === 0) && (
+            <ProfileSectionCard id="profile-helps" title={t.whatHelpsTitle}>
+              {supportChips.length > 0
+                ? <ProfileChipGroup items={supportChips} ariaLabel={t.whatHelpsTitle} />
+                : <p className="text-body text-slt leading-relaxed">{t.whatHelpsEmpty}</p>}
+            </ProfileSectionCard>
+          )}
+
+          {/* ── Strengths you named — a separate group, omitted when empty ── */}
+          {strengthChips.length > 0 && (
+            <ProfileSectionCard id="profile-strengths" title={t.strengthsTitle}>
+              <ProfileChipGroup items={strengthChips} ariaLabel={t.strengthsTitle} />
+            </ProfileSectionCard>
+          )}
+
+          {/* ── A possible pattern — the stored interpretation wording,
+               verbatim. Never regenerated, never re-worded here. ── */}
+          {dp?.interpretation && (
+            <ProfileSectionCard id="profile-interpretation" title={t.sectionPattern}>
+              <p className="text-body text-ink leading-relaxed whitespace-pre-line">{dp.interpretation}</p>
+            </ProfileSectionCard>
+          )}
 
           {/* ── Where We Can Begin — stored wording, never regenerated ── */}
           {dp?.nextStep && (
@@ -366,14 +421,14 @@ export default function StartingProfilePage() {
              idempotent server-side, so this reopens the existing first
              conversation and never creates a second. ── */}
         {savedMode && !consent.pending && (
-          <button
-            type="button"
-            onClick={handleStartChat}
-            disabled={starting}
-            className="w-full text-center text-body font-semibold text-brand-500 mt-5 py-3 min-h-[44px] disabled:opacity-60"
-          >
-            {starting ? t.starting : t.continueCoaching}
-          </button>
+          <div className="mt-5">
+            <ContinueCoachingRow
+              label={t.continueCoaching}
+              busyLabel={t.starting}
+              busy={starting}
+              onClick={handleStartChat}
+            />
+          </div>
         )}
 
         {/* Consent still outstanding: a pending minor reopening their profile
@@ -423,13 +478,21 @@ export default function StartingProfilePage() {
         {/* Focus-change success is announced, not just shown. */}
         <div role="status" aria-live="polite" className="sr-only">{focusToast || ''}</div>
         {focusToast && (
-          <div className="fixed left-0 right-0 bottom-6 flex justify-center px-4 pointer-events-none">
+          // Lifted clear of the bottom bar when it is mounted, so the
+          // confirmation is never half-hidden behind the nav.
+          <div
+            className={`fixed left-0 right-0 flex justify-center px-4 pointer-events-none ${
+              showAppNav ? 'bottom-[calc(5.5rem+env(safe-area-inset-bottom))]' : 'bottom-6'
+            }`}
+          >
             <p className="px-4 py-2 rounded-full bg-dark-400 border border-dark-600 text-caption font-semibold text-ink shadow-card">
               {focusToast}
             </p>
           </div>
         )}
       </div>
+
+      {showAppNav && <BottomNav />}
 
       {focusOpen && (
         <ChangeFocusDialog

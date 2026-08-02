@@ -134,7 +134,10 @@ export default function ChangeFocusDialog({
               type="button"
               onClick={handleSave}
               disabled={saving}
-              className="btn-primary w-full justify-center py-3 min-h-[44px] disabled:opacity-50"
+              // No min-h override: .btn-primary's own 54px is the Stage A
+              // primary-action standard, and the old min-h-[44px] was shrinking
+              // it below that.
+              className="btn-primary w-full justify-center disabled:opacity-50"
             >
               {saving ? t.focusSaving : t.focusConfirmYes}
             </button>
@@ -187,7 +190,7 @@ export default function ChangeFocusDialog({
               type="button"
               onClick={() => setConfirming(true)}
               disabled={!valid}
-              className="btn-primary w-full justify-center py-3 min-h-[44px] mt-5 disabled:opacity-50"
+              className="btn-primary w-full justify-center mt-5 disabled:opacity-50"
             >
               {t.focusSave}
             </button>
