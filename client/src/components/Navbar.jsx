@@ -56,7 +56,7 @@ function Navbar() {
                 {/* Language toggle */}
                 <div className="px-4 py-3 border-b border-dark-700">
                   <p className="text-[11px] text-slt font-medium mb-2">
-                    {language === 'hi' ? 'भाषा' : 'Language'}
+                    {t.language}
                   </p>
                   <div className="flex gap-2">
                     <button
@@ -80,13 +80,13 @@ function Navbar() {
                 {/* Theme toggle */}
                 <div className="px-4 py-3 border-b border-dark-700">
                   <p className="text-[11px] text-slt font-medium mb-2">
-                    {language === 'hi' ? 'थीम' : 'Theme'}
+                    {t.theme}
                   </p>
                   <div className="flex gap-1 bg-dark-700 rounded-lg p-0.5">
                     {[
-                      { v: 'system', label: language === 'hi' ? 'ऑटो' : 'Auto' },
-                      { v: 'light',  label: language === 'hi' ? 'लाइट' : 'Light' },
-                      { v: 'dark',   label: language === 'hi' ? 'डार्क' : 'Dark' },
+                      { v: 'system', label: t.themeAuto },
+                      { v: 'light',  label: t.themeLight },
+                      { v: 'dark',   label: t.themeDark },
                     ].map(opt => (
                       <button
                         key={opt.v}

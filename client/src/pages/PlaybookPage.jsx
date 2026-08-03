@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Sparkles, ChevronRight, Lightbulb, Layers, Quote, NotebookPen, Pencil } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiFetch } from '../api';
+import { translations } from '../i18n/translations';
 import { insightText } from '../utils/insightCopy';
 import { Card, PageHeader } from '../components/ui';
 
@@ -19,19 +20,19 @@ import { Card, PageHeader } from '../components/ui';
 // signature-gradient hero; everything else stays flat. No data, API call,
 // route or action changed.
 
-// Translated outcome labels for practiceOutcomes[].outcomeStatus — deliberately
-// no percentage/score language, just a plain result label.
-const OUTCOME_LABELS = {
-  HELPED: { en: 'It helped', hi: 'इससे मदद मिली' },
-  HELPED_A_LITTLE: { en: 'Helped a little', hi: 'थोड़ी मदद मिली' },
-  DID_NOT_HELP: { en: 'Did not help', hi: 'मदद नहीं मिली' },
-  NOT_TRIED: { en: 'Not tried yet', hi: 'अभी कोशिश नहीं की' },
+// Stored outcomeStatus -> translation key. Deliberately no percentage/score
+// language, just a plain result label. An unknown status falls through to the
+// raw value rather than inventing a label.
+const OUTCOME_KEYS = {
+  HELPED: 'outcomeHelped',
+  HELPED_A_LITTLE: 'outcomeHelpedALittle',
+  DID_NOT_HELP: 'outcomeDidNotHelp',
+  NOT_TRIED: 'outcomeNotTried',
 };
 
-function outcomeLabel(status, hi) {
-  const entry = OUTCOME_LABELS[status];
-  if (!entry) return status;
-  return hi ? entry.hi : entry.en;
+function outcomeLabel(status, pb) {
+  const key = OUTCOME_KEYS[status];
+  return key ? pb[key] : status;
 }
 
 // Section heading (Stage F) — the approved quiet uppercase section label:
@@ -57,6 +58,7 @@ export default function PlaybookPage() {
   const { token, language } = useAuth();
   const navigate = useNavigate();
   const hi = language === 'hi';
+  const pb = (translations[language] || translations.en).playbook;
 
   const [data, setData] = useState(null);
 
@@ -78,14 +80,12 @@ export default function PlaybookPage() {
   return (
     <div className="min-h-screen bg-dark-900 pb-28">
       {/* Header */}
-      <PageHeader onBack={() => navigate(-1)} title={hi ? 'Mental Playbook' : 'Mental Playbook'} />
+      <PageHeader onBack={() => navigate(-1)} title={pb.title} />
 
       <div className="px-page pt-5 max-w-lg mx-auto">
         {/* Page introduction — quiet secondary copy directly under the title */}
         <p className="text-body text-slt leading-relaxed mb-7">
-          {hi
-            ? 'तुम्हारे cues, cards और reflections — सिर्फ तुम्हारे लिए, private.'
-            : 'Your cues, cards, and reflections — private, just for you.'}
+          {pb.intro}
         </p>
 
         {/* ── What I'm learning (prescription outcomes, PR-13) — the first
@@ -95,7 +95,7 @@ export default function PlaybookPage() {
              intentional, never like loose text. No lesson is ever generated
              here — entries exist only when the athlete recorded one. ────── */}
         <section className="mb-6">
-          <SectionHeading icon={Lightbulb}>{hi ? 'मैं क्या सीख रहा हूँ' : "What I'm learning"}</SectionHeading>
+          <SectionHeading icon={Lightbulb}>{pb.learningHeading}</SectionHeading>
           {data?.practiceOutcomes?.length ? (
             <div className="space-y-2.5">
               {data.practiceOutcomes.map(o => (
@@ -109,7 +109,7 @@ export default function PlaybookPage() {
                   {o.situation && <p className="text-caption text-slt mb-1.5">{o.situation}</p>}
                   {/* Outcome label — the approved status-label recipe. Still
                       the stored outcomeStatus, never a score or rating. */}
-                  <p className="chip-status-label mb-1.5">{outcomeLabel(o.outcomeStatus, hi)}</p>
+                  <p className="chip-status-label mb-1.5">{outcomeLabel(o.outcomeStatus, pb)}</p>
                   {o.lesson && <p className="text-body text-ink leading-relaxed">{o.lesson}</p>}
                 </Card>
               ))}
@@ -117,9 +117,7 @@ export default function PlaybookPage() {
           ) : (
             <Card className="p-4">
               <p className="text-body text-slt leading-relaxed">
-                {hi
-                  ? 'अभी कोई सीख दर्ज नहीं हुई। जब तुम किसी practice का नतीजा Arjun को बताओगे, वह सीख यहाँ दिखेगी।'
-                  : "You haven't recorded any lessons yet. When you tell Arjun how a practice went, the lesson lands here."}
+                {pb.learningEmpty}
               </p>
             </Card>
           )}
@@ -136,24 +134,24 @@ export default function PlaybookPage() {
               className="rounded-2xl border border-dark-600 p-4 elevation-card"
               style={{ background: 'var(--surface-elevated)' }}
             >
-              <p className="text-micro font-bold text-muted uppercase mb-3">{hi ? 'इस हफ्ते' : 'This week'}</p>
+              <p className="text-micro font-bold text-muted uppercase mb-3">{pb.thisWeek}</p>
               <div className="space-y-1.5">
                 <p className="text-body text-ink break-words">
-                  {hi ? `${data.weekRepCount} मेंटल रेप पूरे किए।` : `You've completed ${data.weekRepCount} mental rep${data.weekRepCount === 1 ? '' : 's'} this week.`}
+                  {pb.weekReps(data.weekRepCount)}
                 </p>
                 {data.weekResetCount > 0 && (
                   <p className="text-body text-ink break-words">
-                    {hi ? `Pressure Reset ${data.weekResetCount} बार practice किया।` : `Pressure Reset practiced ${data.weekResetCount} time${data.weekResetCount === 1 ? '' : 's'}.`}
+                    {pb.weekResets(data.weekResetCount)}
                   </p>
                 )}
                 {data.topCue && (
                   <p className="text-body text-ink break-words">
-                    {hi ? `सबसे ज्यादा use हुआ cue: "${data.topCue.value}"` : `Your most-used cue: "${data.topCue.value}"`}
+                    {pb.topCue(data.topCue.value)}
                   </p>
                 )}
                 {data.weekRepCount === 0 && !data.topCue && (
                   <p className="text-body text-slt break-words">
-                    {hi ? 'पहला मेंटल रेप करते ही तुम्हारा Playbook भरना शुरू हो जाएगा।' : 'Your Playbook starts filling up after your first mental rep.'}
+                    {pb.emptyLearning}
                   </p>
                 )}
               </div>
@@ -173,7 +171,7 @@ export default function PlaybookPage() {
 
         {/* ── Focus Cards — grouped inside one section container ─────────── */}
         <section className="mb-6">
-          <SectionHeading icon={Layers}>{hi ? 'Focus Cards' : 'Focus Cards'}</SectionHeading>
+          <SectionHeading icon={Layers}>{pb.focusCardsHeading}</SectionHeading>
           <Card className="p-4">
             {data?.focusCards?.length ? (
               <div className="space-y-2.5 mb-3">
@@ -186,19 +184,23 @@ export default function PlaybookPage() {
                     <div className="flex items-center gap-2.5 mb-1">
                       <span className="text-lg font-black" style={{ color: 'var(--brand-primary)' }}>{c.focusWord}</span>
                       <span className="text-caption text-muted">·</span>
-                      <span className="text-body font-bold" style={{ color: '#D98B2B' }}>{c.resetWord}</span>
+                      <span className="text-body font-bold" style={{ color: 'var(--accent-amber)' }}>{c.resetWord}</span>
                     </div>
-                    <p className="text-caption text-slt italic truncate">"{c.powerLine}"</p>
+                    {/* The power line is the athlete's own sentence — `truncate`
+                        cut it mid-thought, which is exactly the part worth
+                        reading. It wraps instead; `break-words` keeps a long
+                        unbroken token from forcing horizontal overflow. */}
+                    <p className="text-caption text-slt italic break-words">"{c.powerLine}"</p>
                   </button>
                 ))}
               </div>
             ) : (
-              <p className="text-body text-slt mb-3">{hi ? 'अभी कोई Focus Card नहीं।' : 'No Focus Cards yet.'}</p>
+              <p className="text-body text-slt mb-3">{pb.focusCardsEmpty}</p>
             )}
             <button onClick={() => navigate(data?.focusCards?.length ? '/focus-deck' : '/self-talk')} className="text-caption font-semibold text-brand-400 active:opacity-70">
               {data?.focusCards?.length
-                ? (hi ? 'सारे Focus Cards देखो →' : 'View all Focus Cards →')
-                : (hi ? 'पहला Focus Card बनाओ →' : 'Build your first Focus Card →')}
+                ? pb.focusCardsViewAll
+                : pb.focusCardsBuild}
             </button>
           </Card>
         </section>
@@ -208,7 +210,7 @@ export default function PlaybookPage() {
              athlete's own saved words (never translated), not buttons, and
              must never look like the Dashboard's day-context selector. ───── */}
         <section className="mb-6">
-          <SectionHeading icon={Quote}>{hi ? 'Saved cues' : 'Saved cues'}</SectionHeading>
+          <SectionHeading icon={Quote}>{pb.cuesHeading}</SectionHeading>
           <Card className="p-4">
             {data?.savedCues?.length ? (
               <div className="flex flex-wrap gap-2">
@@ -223,9 +225,9 @@ export default function PlaybookPage() {
               </div>
             ) : (
               <>
-                <p className="text-body text-slt mb-2">{hi ? 'अभी कोई saved cue नहीं।' : 'No saved cues yet.'}</p>
+                <p className="text-body text-slt mb-2">{pb.cuesEmpty}</p>
                 <button onClick={() => navigate('/mental-rep')} className="text-caption font-semibold text-brand-400 active:opacity-70">
-                  {hi ? 'आज का मेंटल रेप करो →' : "Do today's mental rep →"}
+                  {pb.cuesCta}
                 </button>
               </>
             )}
@@ -234,7 +236,7 @@ export default function PlaybookPage() {
 
         {/* ── Reflections — its own section container ────────────────────── */}
         <section className="mb-6">
-          <SectionHeading icon={NotebookPen}>{hi ? 'Reflections' : 'Reflections'}</SectionHeading>
+          <SectionHeading icon={NotebookPen}>{pb.reflectionsHeading}</SectionHeading>
           <Card className="p-4">
             {data?.reflections?.length ? (
               <div className="space-y-2.5 mb-3">
@@ -252,7 +254,7 @@ export default function PlaybookPage() {
                     </div>
                     {r.nextFocus && (
                       <p className="text-body text-ink font-medium mb-1">
-                        {hi ? 'अगला फोकस: ' : 'Next focus: '}{r.nextFocus}
+                        {pb.reflectionsNext}{r.nextFocus}
                       </p>
                     )}
                     {r.arjunInsight && <p className="text-caption text-slt leading-relaxed">{r.arjunInsight}</p>}
@@ -260,10 +262,10 @@ export default function PlaybookPage() {
                 ))}
               </div>
             ) : (
-              <p className="text-body text-slt mb-3">{hi ? 'अभी कोई reflection नहीं।' : 'No reflections yet.'}</p>
+              <p className="text-body text-slt mb-3">{pb.reflectionsEmpty}</p>
             )}
             <button onClick={() => navigate('/debrief')} className="text-caption font-semibold text-brand-400 active:opacity-70 flex items-center gap-1">
-              {hi ? 'नया reflection शुरू करो' : 'Start a reflection'} <ChevronRight size={12} aria-hidden="true" />
+              {pb.reflectionsCta} <ChevronRight size={12} aria-hidden="true" />
             </button>
           </Card>
         </section>
@@ -279,12 +281,12 @@ export default function PlaybookPage() {
             className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
             style={{ background: 'rgba(217,139,43,0.12)' }}
           >
-            <Pencil size={15} style={{ color: '#D98B2B' }} aria-hidden="true" />
+            <Pencil size={15} style={{ color: 'var(--accent-amber)' }} aria-hidden="true" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-body font-bold text-ink">{hi ? 'माइंड जर्नल' : 'Mind Journal'}</p>
+            <p className="text-body font-bold text-ink">{pb.journalTitle}</p>
             <p className="text-caption text-slt">
-              {hi ? 'निजी जगह, कोई स्कोर नहीं — एक एंट्री जोड़ो।' : 'Private, no scores — add an entry.'}
+              {pb.journalDesc}
             </p>
           </div>
           <ChevronRight size={13} className="text-muted shrink-0" aria-hidden="true" />

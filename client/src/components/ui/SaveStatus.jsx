@@ -1,8 +1,13 @@
 import { Loader2, Check, AlertCircle } from 'lucide-react';
 
-// Small, theme-aware save indicator shown in the onboarding footer. Reflects
-// the server-authoritative save state; on error it offers Retry and the flow
-// does not advance. Announced politely for assistive tech.
+// Small, theme-aware save indicator. Reflects the server-authoritative save
+// state; on error it offers Retry. Announced politely for assistive tech.
+//
+// Shared across surfaces that persist athlete input (onboarding footer, Mind
+// Journal), so "saving / saved / could not save" reads identically everywhere
+// instead of each screen inventing its own treatment. `labels.saveFailed` is
+// passed in, so a caller with a more specific message (network vs server) can
+// surface that exact wording rather than a generic one.
 
 function SaveStatus({ state, onRetry, labels }) {
   if (state === 'idle') return null;

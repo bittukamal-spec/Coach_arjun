@@ -54,7 +54,8 @@ test('Dashboard: renders a score-free Mind Journal card that opens /mind-journal
   // Refinement PR: the quiet row became a larger informative card — a real
   // <Link>, still score-free, with the founder-approved supporting copy.
   assert.match(dashboard, /to="\/mind-journal"/);
-  assert.match(dashboard, /A private place to note how you're feeling\. No scores\./);
+  // Stage I: copy moved to the `home` namespace, page renders the key.
+  assert.match(dashboard, /\{t\.journalDesc\}/);
 });
 
 test('Dashboard: stopped requests that only supported hidden sections (Starter Plan, MFS today, progress stat pills)', () => {

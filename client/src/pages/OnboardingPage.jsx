@@ -9,7 +9,7 @@ import {
   OptionGrid,
   CustomAnswerField,
 } from '../components/onboarding';
-import SaveStatus from '../components/onboarding/SaveStatus';
+import SaveStatus from '../components/ui/SaveStatus';
 import ModalDialog from '../components/onboarding/ModalDialog';
 import { useOnboardingSession } from '../hooks/useOnboardingSession';
 import { isValidCustomText } from '../utils/sanitizeCustomText';

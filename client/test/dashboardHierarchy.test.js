@@ -18,6 +18,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, '..');
 
 const src = readFileSync(path.join(root, 'src/pages/Dashboard.jsx'), 'utf8');
+const translations = readFileSync(path.join(root, 'src/i18n/translations.js'), 'utf8');
 
 // Strips JSX `{/* … */}` blocks, JS `/* … */` blocks and `//` lines, so an
 // assertion about what the CODE does can never be satisfied — or broken —
@@ -168,8 +169,12 @@ test('Dashboard still makes exactly one read-only GET /api/playbook — the API 
 
 test('Mind Journal is a larger card linking to /mind-journal with the approved no-score copy and a purpose line', () => {
   assert.match(src, /to="\/mind-journal"/);
-  assert.ok(src.includes(`A private place to note how you're feeling. No scores.`));
-  assert.ok(src.includes(`Write whenever you feel like it`), 'one extra short purpose line, no pressure to write daily');
+  // Stage I moved this copy into the `home` namespace; the page wires the key
+  // and the copy itself is asserted where it now lives.
+  assert.ok(src.includes('{t.journalDesc}'));
+  assert.ok(translations.includes(`A private place to note how you're feeling. No scores.`));
+  assert.ok(src.includes('{t.journalHint}'), 'one extra short purpose line, no pressure to write daily');
+  assert.ok(translations.includes(`Write whenever you feel like it`));
   assert.doesNotMatch(codeOnly, /daily habit|every day|har din likho/i, 'no pressure-to-write-daily copy');
 });
 

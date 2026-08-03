@@ -33,6 +33,7 @@ export default function ChangeFocusDialog({
   const [error, setError] = useState(null);
   const panelRef = useRef(null);
   const headingRef = useRef(null);
+  const customRef = useRef(null);
 
   // Move focus into the sheet on open, and trap Tab inside it.
   useEffect(() => {
@@ -50,6 +51,16 @@ export default function ChangeFocusDialog({
     document.addEventListener('keydown', onKeyDown, true);
     return () => document.removeEventListener('keydown', onKeyDown, true);
   }, [onCancel]);
+
+  // Reveal the custom field properly. The action area below is sticky, so a
+  // field that appears near the fold would otherwise open underneath it —
+  // visible only if the athlete happened to scroll. Centring it in the sheet
+  // puts it clear of the action area on every viewport, including a
+  // keyboard-compressed one. Selection state and value are untouched.
+  useEffect(() => {
+    if (selected !== CUSTOM_ID) return;
+    customRef.current?.scrollIntoView?.({ block: 'end' });
+  }, [selected]);
 
   const isCustom = selected === CUSTOM_ID;
   const valid = isCustom ? isValidCustomText(customText, CUSTOM_MAX) : !!selected;
@@ -167,8 +178,10 @@ export default function ChangeFocusDialog({
               </div>
             </div>
 
+            {/* scroll-mb clears the sticky action area below, so aligning this
+                block's end never parks the field underneath Save. */}
             {isCustom && (
-              <div className="mt-3">
+              <div className="mt-3 scroll-mb-36" ref={customRef}>
                 <label htmlFor="focus-custom" className="block text-caption font-semibold text-ink mb-1.5">
                   {t.focusCustomLabel}
                 </label>
@@ -186,21 +199,30 @@ export default function ChangeFocusDialog({
 
             {error && <p className="text-caption text-red-400 mt-3" role="alert">{error}</p>}
 
-            <button
-              type="button"
-              onClick={() => setConfirming(true)}
-              disabled={!valid}
-              className="btn-primary w-full justify-center mt-5 disabled:opacity-50"
-            >
-              {t.focusSave}
-            </button>
-            <button
-              type="button"
-              onClick={onCancel}
-              className="w-full text-center text-caption font-semibold text-slt mt-2 py-3 min-h-[44px]"
-            >
-              {t.focusCancel}
-            </button>
+            {/* Sticky action area (Stage I). With a keyboard open the sheet can
+                be shorter than its option list, and Save then sat below the
+                fold — reachable by scrolling, but not visible. Sticking it to
+                the bottom of the SCROLL CONTAINER keeps it on screen without
+                moving it in the DOM, so tab order, the focus trap, Escape and
+                focus-return are all unchanged. The negative inline margins let
+                its background span the sheet's own 20px gutters. */}
+            <div className="sticky bottom-0 -mx-5 px-5 pt-3 pb-1 mt-5 bg-dark-400">
+              <button
+                type="button"
+                onClick={() => setConfirming(true)}
+                disabled={!valid}
+                className="btn-primary w-full justify-center disabled:opacity-50"
+              >
+                {t.focusSave}
+              </button>
+              <button
+                type="button"
+                onClick={onCancel}
+                className="w-full text-center text-caption font-semibold text-slt mt-2 py-3 min-h-[44px]"
+              >
+                {t.focusCancel}
+              </button>
+            </div>
           </div>
         )}
       </div>

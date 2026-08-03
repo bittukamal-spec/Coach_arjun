@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
 import HelplineList from '../components/HelplineList';
-import { Card, PageHeader, SectionLabel } from '../components/ui';
+import { Card, PageHeader, SectionLabel, SaveStatus } from '../components/ui';
 
 // ─── Mind Journal — score-free replacement for the old Mental Fitness
 // check-in. Select 1-2 current states, optionally write a short note, save.
@@ -175,10 +175,18 @@ export default function MindJournalPage() {
             />
             <p className="text-caption text-slt mb-5 text-right">{note.length}/{MAX_NOTE_LENGTH}</p>
 
-            {saveError && <p className="text-body text-red-500 mb-3">{saveError}</p>}
-            {savedJustNow && (
-              <p className="text-body font-semibold mb-3" style={{ color: 'var(--brand-primary)' }}>{mj.saved}</p>
-            )}
+            {/* One shared save indicator instead of three one-off blocks.
+                The SPECIFIC error is passed through as `saveFailed`, so the
+                network-vs-server distinction the page already made is kept
+                rather than flattened into a generic failure line. Retry re-runs
+                the same handler — no autosave, no extra request on render. */}
+            <div className="mb-3 empty:mb-0">
+              <SaveStatus
+                state={saving ? 'saving' : saveError ? 'error' : savedJustNow ? 'saved' : 'idle'}
+                onRetry={handleSave}
+                labels={{ saving: mj.saving, saved: mj.saved, saveFailed: saveError, retry: mj.retry }}
+              />
+            </div>
 
             <button
               onClick={handleSave}
@@ -191,13 +199,21 @@ export default function MindJournalPage() {
 
             {/* ── Optional Arjun context opt-in ───────────────────────────── */}
             <Card className="p-4 mt-6 mb-2">
-              <label className="flex items-start gap-3 cursor-pointer">
+              {/* min-h keeps the whole row a comfortable target — the box
+                  itself is 16px, but the label is what the athlete taps. */}
+              <label className="flex items-start gap-3 cursor-pointer min-h-[44px] py-1">
                 <input
                   type="checkbox"
                   checked={contextEnabled}
                   disabled={contextSaving}
                   onChange={handleContextToggle}
-                  className="mt-0.5 w-4 h-4 shrink-0"
+                  // `accent-color` themes the native control's checked fill in
+                  // both themes (it was rendering as the browser default blue,
+                  // ignoring the design system), and the focus ring makes the
+                  // control visible to keyboard users, which it previously
+                  // was not. Behaviour, state and label are unchanged.
+                  className="mt-1 w-4 h-4 shrink-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-dark-900 disabled:opacity-60"
+                  style={{ accentColor: 'var(--brand-primary)' }}
                 />
                 <span className="text-body text-ink font-medium leading-snug">{mj.contextLabel}</span>
               </label>

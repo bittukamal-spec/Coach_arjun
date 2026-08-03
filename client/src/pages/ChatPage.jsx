@@ -110,9 +110,9 @@ function ArjunText({ text, isStreaming }) {
                     className="font-medium rounded-md"
                     style={{
                       background: 'rgba(217,139,43,0.12)',
-                      borderLeft: '3px solid #D98B2B',
+                      borderLeft: '3px solid var(--accent-amber)',
                       padding: '8px 10px',
-                      color: '#D98B2B',
+                      color: 'var(--accent-amber)',
                       marginTop: lIdx > 0 ? '6px' : 0,
                     }}
                   >
@@ -248,9 +248,9 @@ function ServerCardBubble({ card, t }) {
               className="font-medium rounded-md"
               style={{
                 background: 'rgba(217,139,43,0.12)',
-                borderLeft: '3px solid #D98B2B',
+                borderLeft: '3px solid var(--accent-amber)',
                 padding: '8px 10px',
-                color: '#D98B2B',
+                color: 'var(--accent-amber)',
                 marginTop: '2px',
               }}
             >
@@ -833,7 +833,7 @@ function ChatPage() {
           onClick={() => { setLoading(true); setRetryKey(k => k + 1); }}
           className="px-5 py-2.5 bg-brand-600 text-white rounded-xl text-sm font-semibold active:scale-95 transition-all"
         >
-          {hi ? 'फिर कोशिश करो' : 'Retry'}
+          {t.retryBtn}
         </button>
       </div>
     );
@@ -866,9 +866,10 @@ function ChatPage() {
             </button>
             <ArjunLogo size={28} />
             <div className="min-w-0">
-              <p className="font-semibold text-sm leading-none" style={{ color: 'var(--nav-fg-strong)' }}>
+              {/* Coach's page title. Classes unchanged — semantics only. */}
+              <h1 className="font-semibold text-sm leading-none" style={{ color: 'var(--nav-fg-strong)' }}>
                 {t.title}
-              </p>
+              </h1>
             </div>
           </div>
           <div className="flex items-center gap-1 shrink-0">
