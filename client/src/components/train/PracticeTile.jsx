@@ -1,7 +1,8 @@
-// Train grid tile (Stage E). Deliberately Train-specific rather than a
-// change to SmallToolRow / FeatureToolCard / GradientIconTile — those are
-// shared with ToolIntroLayout and MentalRepPage, so restyling them would
-// leak into routes this stage does not own.
+// Train grid tile (Stage E). Deliberately Train-specific rather than a change
+// to GradientIconTile, which is shared with ToolIntroLayout and MentalRepPage,
+// so restyling it would leak into routes this tile does not own.
+// (Stage E also left SmallToolRow and FeatureToolCard alone for the same
+// reason; Stage I removed both once they were confirmed to have no callers.)
 //
 // Flat by design: no gradient, no glow, no game-reward or therapy imagery.
 // The marker is an abstract Arjun geometry mark (a focus ring with an
