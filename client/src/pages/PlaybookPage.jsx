@@ -197,7 +197,7 @@ export default function PlaybookPage() {
             ) : (
               <p className="text-body text-slt mb-3">{pb.focusCardsEmpty}</p>
             )}
-            <button onClick={() => navigate(data?.focusCards?.length ? '/focus-deck' : '/self-talk')} className="text-caption font-semibold text-brand-400 active:opacity-70">
+            <button onClick={() => navigate(data?.focusCards?.length ? '/focus-deck' : '/self-talk')} className="min-h-[44px] inline-flex items-center rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 text-caption font-semibold text-brand-400 active:opacity-70">
               {data?.focusCards?.length
                 ? pb.focusCardsViewAll
                 : pb.focusCardsBuild}
@@ -226,7 +226,7 @@ export default function PlaybookPage() {
             ) : (
               <>
                 <p className="text-body text-slt mb-2">{pb.cuesEmpty}</p>
-                <button onClick={() => navigate('/mental-rep')} className="text-caption font-semibold text-brand-400 active:opacity-70">
+                <button onClick={() => navigate('/mental-rep')} className="min-h-[44px] inline-flex items-center rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 text-caption font-semibold text-brand-400 active:opacity-70">
                   {pb.cuesCta}
                 </button>
               </>
@@ -264,7 +264,7 @@ export default function PlaybookPage() {
             ) : (
               <p className="text-body text-slt mb-3">{pb.reflectionsEmpty}</p>
             )}
-            <button onClick={() => navigate('/debrief')} className="text-caption font-semibold text-brand-400 active:opacity-70 flex items-center gap-1">
+            <button onClick={() => navigate('/debrief')} className="min-h-[44px] inline-flex items-center rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 gap-1 text-caption font-semibold text-brand-400 active:opacity-70">
               {pb.reflectionsCta} <ChevronRight size={12} aria-hidden="true" />
             </button>
           </Card>

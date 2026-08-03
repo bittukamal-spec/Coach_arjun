@@ -79,7 +79,7 @@ test('translations.js: Hindi Mind Journal copy is genuine Devanagari, not Englis
 
 test('MindJournalPage: renders translated state labels via mj.states[key], never the raw internal key text', () => {
   const idx = page.indexOf('STATE_KEYS.map(key =>');
-  const block = page.slice(idx, idx + 700);
+  const block = page.slice(idx, idx + 1100);
   assert.match(block, /\{mj\.states\[key\]\}/, 'chip label must come from the translation table');
   assert.doesNotMatch(block, />\{key\}</, 'must never render the raw internal key as the visible label');
 });

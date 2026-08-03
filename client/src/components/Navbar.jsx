@@ -41,14 +41,22 @@ function Navbar() {
         {/* Avatar + dropdown */}
         {user && (
           <div className="relative" ref={menuRef}>
+            {/* 44px hit area around the 32px avatar circle: the mark keeps its
+                size, the target no longer sits under the minimum. Deliberately
+                NOT given an aria-label here — this menu is the Settings entry
+                point, and naming it "Profile" would collide with the approved
+                Profile-vs-Settings distinction the bottom nav owns. */}
             <button
               onClick={() => setMenuOpen(v => !v)}
-              className="w-8 h-8 rounded-full bg-brand-500 text-white text-xs font-bold flex items-center justify-center ring-2 ring-brand-700 hover:bg-brand-600 transition-colors overflow-hidden"
+              aria-expanded={menuOpen}
+              className="w-11 h-11 -mr-1.5 flex items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
             >
-              {avatarUrl
-                ? <img src={avatarUrl} alt="avatar" className="w-8 h-8 object-cover" />
-                : getInitials(user.name)
-              }
+              <span className="w-8 h-8 rounded-full bg-brand-500 text-white text-xs font-bold flex items-center justify-center ring-2 ring-brand-700 hover:bg-brand-600 transition-colors overflow-hidden">
+                {avatarUrl
+                  ? <img src={avatarUrl} alt="" className="w-8 h-8 object-cover" />
+                  : getInitials(user.name)
+                }
+              </span>
             </button>
 
             {menuOpen && (

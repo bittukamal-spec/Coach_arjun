@@ -154,7 +154,10 @@ export default function MindJournalPage() {
                     type="button"
                     aria-pressed={isSelected}
                     onClick={() => toggleState(key)}
-                    className="chip"
+                    // Sized locally rather than on the shared .chip recipe,
+                    // which other screens also use: 44px tall keeps these a
+                    // comfortable target without restyling chips app-wide.
+                    className="chip min-h-[44px] inline-flex items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
                     style={isSelected ? { borderColor: 'var(--brand-primary)', backgroundColor: 'rgb(var(--brand-primary-rgb) / 0.15)', color: 'var(--brand-primary)' } : undefined}
                   >
                     {mj.states[key]}
