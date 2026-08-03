@@ -16,16 +16,33 @@ const root = path.join(__dirname, '..');
 const src = readFileSync(path.join(root, 'src/pages/PlaybookPage.jsx'), 'utf8');
 const translations = readFileSync(path.join(root, 'src/i18n/translations.js'), 'utf8');
 
+// Stage I moved this page's athlete-facing copy into the `playbook`
+// translation namespace. These helpers let the existing guarantees keep
+// asserting the COPY (now where it lives) and the page's WIRING separately,
+// instead of matching inline literals that no longer exist in the JSX.
+function playbookNamespace(lang) {
+  const langIdx = translations.indexOf(`\n  ${lang}: {`);
+  assert.ok(langIdx !== -1, `missing ${lang} translations`);
+  const start = translations.indexOf('playbook: {', langIdx);
+  assert.ok(start !== -1, `missing playbook namespace in ${lang}`);
+  return translations.slice(start, translations.indexOf('\n    },', start));
+}
+const pbEn = playbookNamespace('en');
+const pbHi = playbookNamespace('hi');
+
 // ── 1. Approved content order ───────────────────────────────────────────────
 
 test('Playbook keeps the approved order: intro → What I\'m learning → This week → Focus Cards → Saved cues → Reflections → Mind Journal', () => {
+  // Stage I moved this page's copy into the `playbook` translation namespace,
+  // so the order is now pinned on the key references rather than on inline
+  // literals. Same sections, same order, same guarantee.
   const order = [
-    src.indexOf('private, just for you'),          // page introduction
-    src.indexOf(': "What I\'m learning"'),          // section render (not the file comment)
-    src.indexOf("'This week'"),
-    src.indexOf("'Focus Cards'"),
-    src.indexOf("'Saved cues'"),
-    src.indexOf("'Reflections'"),
+    src.indexOf('{pb.intro}'),                     // page introduction
+    src.indexOf('{pb.learningHeading}'),
+    src.indexOf('{pb.thisWeek}'),
+    src.indexOf('{pb.focusCardsHeading}'),
+    src.indexOf('{pb.cuesHeading}'),
+    src.indexOf('{pb.reflectionsHeading}'),
     src.indexOf("navigate('/mind-journal')"),
   ];
   for (const idx of order) assert.ok(idx !== -1, 'every approved section must exist');
@@ -43,7 +60,7 @@ test('Stage F: the page carries no gradient at all — "This week" moved to the 
 });
 
 test('the weekly summary keeps readable theme-correct text and wraps cleanly — no score or rating inside it', () => {
-  const weekBlock = src.slice(src.indexOf("'This week'"), src.indexOf('Recent insight'));
+  const weekBlock = src.slice(src.indexOf('{pb.thisWeek}'), src.indexOf('Recent insight'));
   assert.match(weekBlock, /text-ink/, 'theme-correct foreground rather than hardcoded white');
   assert.match(weekBlock, /break-words/);
   assert.doesNotMatch(weekBlock, /score|rating|\d+\s*\/\s*5|%/i);
@@ -51,6 +68,13 @@ test('the weekly summary keeps readable theme-correct text and wraps cleanly —
   assert.match(weekBlock, /data\.weekRepCount/);
   assert.match(weekBlock, /data\.weekResetCount/);
   assert.match(weekBlock, /data\.topCue/);
+  // The wording itself still exists, in both languages, and still counts
+  // reps/resets without turning them into a score.
+  for (const ns of [pbEn, pbHi]) {
+    assert.match(ns, /weekReps:/);
+    assert.match(ns, /weekResets:/);
+    assert.match(ns, /topCue:/);
+  }
 });
 
 test('other sections are flat Cards under icon SectionHeadings — no legacy card classes, no second gradient', () => {
@@ -61,9 +85,13 @@ test('other sections are flat Cards under icon SectionHeadings — no legacy car
 // ── 4-7. Existing behavior preserved per section ───────────────────────────
 
 test('Focus Cards: same empty state, same build/view routes, saved cards still open the Focus Deck', () => {
-  assert.match(src, /No Focus Cards yet\./);
+  assert.match(pbEn, /focusCardsEmpty:\s*'No Focus Cards yet\.'/);
+  assert.match(pbEn, /focusCardsBuild:\s*'Build your first Focus Card →'/);
+  assert.match(pbHi, /focusCardsEmpty:/);
+  assert.match(pbHi, /focusCardsBuild:/);
+  assert.match(src, /\{pb\.focusCardsEmpty\}/);
+  assert.match(src, /pb\.focusCardsBuild/);
   assert.match(src, /navigate\(data\?\.focusCards\?\.length \? '\/focus-deck' : '\/self-talk'\)/);
-  assert.match(src, /Build your first Focus Card →/);
   assert.match(src, /navigate\('\/focus-deck'\)/);
 });
 
@@ -73,15 +101,21 @@ test('Saved cues: quiet grouped pills that render the athlete\'s own words verba
   assert.match(block, /<span/);
   assert.doesNotMatch(block, /className="chip"/, 'cue pills must not reuse the interactive .chip treatment');
   assert.match(block, /\{c\.cue\}/, 'cue text renders verbatim — never translated');
-  assert.match(block, /Do today's mental rep →/);
+  assert.match(block, /\{pb\.cuesCta\}/);
+  assert.match(pbEn, /cuesCta:\s*"Do today's mental rep →"/);
+  assert.match(pbHi, /cuesCta:/);
 });
 
 test('Reflections: own section container with existing entries, empty state and Start-a-reflection link', () => {
   const block = src.slice(src.indexOf('Reflections —'), src.indexOf('Mind Journal —'));
   assert.match(block, /data\.reflections\.map/);
-  assert.match(block, /No reflections yet\./);
+  assert.match(block, /\{pb\.reflectionsEmpty\}/);
   assert.match(block, /navigate\('\/debrief'\)/);
-  assert.match(block, /Start a reflection/);
+  assert.match(block, /\{pb\.reflectionsCta\}/);
+  assert.match(pbEn, /reflectionsEmpty:\s*'No reflections yet\.'/);
+  assert.match(pbEn, /reflectionsCta:\s*'Start a reflection'/);
+  assert.match(pbHi, /reflectionsEmpty:/);
+  assert.match(pbHi, /reflectionsCta:/);
 });
 
 test('Mind Journal entry: a proper quiet card with title, privacy/no-score line and /mind-journal action', () => {
@@ -89,7 +123,9 @@ test('Mind Journal entry: a proper quiet card with title, privacy/no-score line 
   assert.match(block, /<Card/);
   assert.doesNotMatch(block, /variant="hero"/);
   assert.match(block, /navigate\('\/mind-journal'\)/);
-  assert.match(block, /no scores|कोई स्कोर नहीं/i);
+  assert.match(block, /\{pb\.journalDesc\}/);
+  assert.match(pbEn, /journalDesc:\s*'Private, no scores — add an entry\.'/);
+  assert.match(pbHi, /कोई स्कोर नहीं/);
 });
 
 // ── 5. Data behavior unchanged ──────────────────────────────────────────────
@@ -109,7 +145,13 @@ test('Stage F applies the approved chip recipes to content that already existed'
   assert.match(src, /r\.createdAt/, 'the reflection date is still the stored one');
   // The stored outcome status gets the status-label recipe, not a score.
   assert.match(src, /chip-status-label/);
-  assert.match(src, /outcomeLabel\(o\.outcomeStatus, hi\)/);
+  assert.match(src, /outcomeLabel\(o\.outcomeStatus, pb\)/);
+  // The four stored statuses still map to plain result labels, both languages.
+  for (const ns of [pbEn, pbHi]) {
+    for (const k of ['outcomeHelped', 'outcomeHelpedALittle', 'outcomeDidNotHelp', 'outcomeNotTried']) {
+      assert.match(ns, new RegExp(`${k}:`));
+    }
+  }
   // Athlete-authored cues get the read-only fact-chip recipe.
   assert.match(src, /chip-fact/);
 });
@@ -139,23 +181,36 @@ test('every athlete-content section survives the restyle', () => {
 });
 
 test('empty states keep their meaning and their actions', () => {
-  assert.match(src, /No Focus Cards yet\./);
-  assert.match(src, /No saved cues yet\./);
-  assert.match(src, /No reflections yet\./);
-  assert.match(src, /haven't recorded any lessons yet/);
+  // The copy now lives in the namespace; the page wires each one.
+  assert.match(pbEn, /focusCardsEmpty:\s*'No Focus Cards yet\.'/);
+  assert.match(pbEn, /cuesEmpty:\s*'No saved cues yet\.'/);
+  assert.match(pbEn, /reflectionsEmpty:\s*'No reflections yet\.'/);
+  assert.match(pbEn, /haven't recorded any lessons yet/);
+  for (const key of ['focusCardsEmpty', 'cuesEmpty', 'reflectionsEmpty', 'learningEmpty']) {
+    assert.match(src, new RegExp(`pb\\.${key}`), `${key} must still render`);
+    assert.match(pbHi, new RegExp(`${key}:`), `${key} must exist in Hindi`);
+  }
   // No invented claim of completed practices or developed patterns.
-  assert.doesNotMatch(src, /you have (completed|developed|built) a pattern/i);
+  assert.doesNotMatch(pbEn, /you have (completed|developed|built) a pattern/i);
 });
 
 // ── 6. English and Hindi both render ───────────────────────────────────────
 
-test('every new athlete-facing string has both an English and a Hindi variant', () => {
-  // The page translates inline via `hi ? … : …` — spot-check the new copy.
-  assert.match(src, /अभी कोई सीख दर्ज नहीं हुई/);
-  assert.match(src, /haven't recorded any lessons yet/);
-  assert.match(src, /कोई स्कोर नहीं/);
-  assert.match(src, /no scores/i);
-  // Playbook uses no translations.js namespace — nothing to go missing there.
-  assert.ok(!src.includes('translations['), 'Playbook translates inline; no namespace lookup to break');
-  assert.ok(translations.length > 0);
+test('every athlete-facing string has both an English and a Hindi variant', () => {
+  // Stage I: the page no longer translates inline. Copy lives in the
+  // `playbook` namespace, which must stay at full EN/HI key parity.
+  assert.match(pbHi, /अभी कोई सीख दर्ज नहीं हुई/);
+  assert.match(pbEn, /haven't recorded any lessons yet/);
+  assert.match(pbHi, /कोई स्कोर नहीं/);
+  assert.match(pbEn, /no scores/i);
+  const keysOf = (block) => [...block.matchAll(/^\s{6}([a-zA-Z]+):/gm)].map((m) => m[1]).sort();
+  assert.deepEqual(keysOf(pbEn), keysOf(pbHi), 'playbook keys must match across languages');
+  // The page reads that namespace rather than branching on language inline.
+  assert.match(src, /\.playbook;/);
+  // Only BCP-47 locale codes for toLocaleDateString may still branch on `hi`
+  // — those are not translatable copy, they select a date format.
+  const inline = [...src.matchAll(/hi \? '([^']*)'/g)]
+    .map((m) => m[1])
+    .filter((v) => v !== 'hi-IN');
+  assert.deepEqual(inline, [], 'no inline bilingual copy should remain on Playbook');
 });

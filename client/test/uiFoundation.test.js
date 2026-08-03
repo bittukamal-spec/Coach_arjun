@@ -70,11 +70,15 @@ test('SectionLabel: uses the micro type token', () => {
   assert.match(sectionLabel, /text-micro/);
 });
 
-test('barrel exports exactly the four primitives', () => {
-  for (const name of ['Button', 'Card', 'PageHeader', 'SectionLabel']) {
+test('barrel exports exactly the shared primitives', () => {
+  // SaveStatus joined the barrel in Stage I: it moved out of components/
+  // onboarding so Mind Journal could reuse it instead of hand-rolling a
+  // second saving/saved/error treatment.
+  const expected = ['Button', 'Card', 'PageHeader', 'SectionLabel', 'SaveStatus'];
+  for (const name of expected) {
     assert.match(barrel, new RegExp(`export \\{ default as ${name} \\}`));
   }
-  assert.equal((barrel.match(/export/g) || []).length, 4);
+  assert.equal((barrel.match(/export/g) || []).length, expected.length);
 });
 
 // ── 3. /progress stays retired and redirects to /playbook ──────────────────
@@ -99,7 +103,7 @@ test('PlaybookPage carries NO gradient — Stage F moved the weekly summary onto
   assert.equal((playbook.match(/variant="hero"/g) || []).length, 0);
   assert.doesNotMatch(playbook, /card-hero|btn-gradient|icon-tile-gradient|linear-gradient/);
   // The weekly summary still exists, now on the approved elevated surface.
-  assert.match(playbook, /\{hi \? 'इस हफ्ते' : 'This week'\}/);
+  assert.match(playbook, /\{pb\.thisWeek\}/);
   assert.match(playbook, /var\(--surface-elevated\)/);
 });
 
@@ -133,11 +137,11 @@ test('PlaybookPage links unchanged: focus-deck, self-talk, mental-rep, debrief',
 
 test('PlaybookPage content preserved: all sections present, "What I\'m learning" moved to the top (Stage 9)', () => {
   const idx = [
-    playbook.indexOf('"What I\'m learning"'),
-    playbook.indexOf("'This week'"),
-    playbook.indexOf("'Focus Cards'"),
-    playbook.indexOf("'Saved cues'"),
-    playbook.indexOf("'Reflections'"),
+    playbook.indexOf('{pb.learningHeading}'),
+    playbook.indexOf('{pb.thisWeek}'),
+    playbook.indexOf('{pb.focusCardsHeading}'),
+    playbook.indexOf('{pb.cuesHeading}'),
+    playbook.indexOf('{pb.reflectionsHeading}'),
   ];
   assert.ok(idx.every(i => i !== -1), 'a Playbook section heading is missing');
   assert.deepEqual(idx, [...idx].sort((a, b) => a - b), 'Playbook section order changed');

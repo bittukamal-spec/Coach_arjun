@@ -13,14 +13,20 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, '..');
 
 const src = readFileSync(path.join(root, 'src/pages/PlaybookPage.jsx'), 'utf8');
+const translations = readFileSync(path.join(root, 'src/i18n/translations.js'), 'utf8');
 
 // ── Outcome label mapping (pure logic, checked via source text) ───────────
 
 test('PlaybookPage: all four outcome statuses have both English and Hindi labels, no score/percentage language', () => {
-  for (const status of ['HELPED', 'HELPED_A_LITTLE', 'DID_NOT_HELP', 'NOT_TRIED']) {
-    assert.match(src, new RegExp(`${status}:\\s*\\{\\s*en:`), `expected an English label for ${status}`);
+  // Stage I: the labels moved into the `playbook` translation namespace and
+  // the page maps a stored status to a key. Both halves are still asserted —
+  // the mapping here, the EN/HI copy in translations.
+  const keyFor = { HELPED: 'outcomeHelped', HELPED_A_LITTLE: 'outcomeHelpedALittle', DID_NOT_HELP: 'outcomeDidNotHelp', NOT_TRIED: 'outcomeNotTried' };
+  for (const [status, key] of Object.entries(keyFor)) {
+    assert.match(src, new RegExp(`${status}:\\s*'${key}'`), `expected a label key for ${status}`);
+    assert.match(translations, new RegExp(`${key}:`), `expected translated copy for ${status}`);
   }
-  const labelsIdx = src.indexOf('const OUTCOME_LABELS');
+  const labelsIdx = src.indexOf('const OUTCOME_KEYS');
   const labelsBlock = src.slice(labelsIdx, src.indexOf('};', labelsIdx));
   assert.doesNotMatch(labelsBlock, /%|score|streak/i);
 });
@@ -28,14 +34,16 @@ test('PlaybookPage: all four outcome statuses have both English and Hindi labels
 // ── Section renders: heading, empty state, and per-item fields ────────────
 
 test('PlaybookPage: renders a "What I\'m learning" section with an EN/HI heading', () => {
-  assert.match(src, /What I'm learning/);
+  assert.match(src, /\{pb\.learningHeading\}/);
+  assert.match(translations, /learningHeading:/);
 });
 
 test('PlaybookPage: shows an empty state when there are no recorded outcomes yet', () => {
-  const idx = src.indexOf("What I'm learning");
+  const idx = src.indexOf('{pb.learningHeading}');
   const block = src.slice(idx, idx + 2600);
   assert.match(block, /data\?\.practiceOutcomes\?\.length \?/);
-  assert.match(block, /haven't recorded any lessons yet/i);
+  assert.match(block, /\{pb\.learningEmpty\}/);
+  assert.match(translations, /haven't recorded any lessons yet/i);
 });
 
 test('PlaybookPage: each outcome item renders the practice name, situation, translated outcome label, lesson, and a date', () => {
@@ -47,14 +55,14 @@ test('PlaybookPage: each outcome item renders the practice name, situation, tran
   const block = src.slice(idx, idx + 1200);
   assert.match(block, /o\.practiceName/);
   assert.match(block, /o\.situation/);
-  assert.match(block, /outcomeLabel\(o\.outcomeStatus, hi\)/);
+  assert.match(block, /outcomeLabel\(o\.outcomeStatus, pb\)/);
   assert.match(block, /o\.lesson/);
   assert.match(block, /o\.outcomeRecordedAt/);
   assert.match(block, /key=\{o\.prescriptionId\}/, 'each item must be keyed by its real prescriptionId');
 });
 
 test('PlaybookPage: no chart, score, percentage, or streak language appears in the outcomes section', () => {
-  const idx = src.indexOf("What I'm learning");
+  const idx = src.indexOf('{pb.learningHeading}');
   const nextSectionIdx = src.length; // this is the last section in the file
   const block = src.slice(idx, nextSectionIdx);
   assert.doesNotMatch(block, /chart|percentage|%\s*success|streak/i);
@@ -63,11 +71,11 @@ test('PlaybookPage: no chart, score, percentage, or streak language appears in t
 // ── Existing Playbook content is preserved ─────────────────────────────────
 
 test('PlaybookPage: existing sections (This week, Recent insight, Focus Cards, Saved cues, Reflections) are all still present', () => {
-  assert.match(src, /This week/);
+  assert.match(src, /\{pb\.thisWeek\}/);
   assert.match(src, /insightText\(data\.insight, hi\)/);
-  assert.match(src, /Focus Cards/);
-  assert.match(src, /Saved cues/);
-  assert.match(src, /Reflections/);
+  assert.match(src, /\{pb\.focusCardsHeading\}/);
+  assert.match(src, /\{pb\.cuesHeading\}/);
+  assert.match(src, /\{pb\.reflectionsHeading\}/);
 });
 
 test('PlaybookPage: the section keeps the shared flat-card convention under its icon section heading', () => {

@@ -24,7 +24,11 @@ function PageHeader({ backTo, onBack, title, children }) {
             <ChevronLeft size={20} aria-hidden="true" />
           </button>
         )}
-        <p className="text-heading font-bold text-ink flex-1">{title}</p>
+        {/* The page-level heading. Every screen using PageHeader renders this
+            as its one page title and has no other <h1>, so an <h1> here is the
+            correct semantic level. Classes are unchanged — this is a semantics
+            fix, not a visual one. */}
+        <h1 className="text-heading font-bold text-ink flex-1">{title}</h1>
         {children}
       </div>
     </header>

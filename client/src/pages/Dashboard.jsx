@@ -131,9 +131,11 @@ export default function Dashboard() {
             {/* ── 1. GREETING ───────────────────────────────────────────────── */}
             {/* Profile/avatar access lives in the Navbar above — unchanged. */}
             <div className="pt-1 mb-5">
-              <p className="text-2xl font-black text-ink leading-tight">
+              {/* The greeting IS Home's page title, so it carries the <h1>.
+                  Classes unchanged — semantics only. */}
+              <h1 className="text-2xl font-black text-ink leading-tight">
                 {t.greeting(firstName)}
-              </p>
+              </h1>
             </div>
 
             {/* ── 2. TALK TO ARJUN — the ONE dominant action on Home.
@@ -265,19 +267,15 @@ export default function Dashboard() {
                     className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
                     style={{ background: 'rgba(217,139,43,0.12)' }}
                   >
-                    <Pencil size={18} style={{ color: '#D98B2B' }} aria-hidden="true" />
+                    <Pencil size={18} style={{ color: 'var(--accent-amber)' }} aria-hidden="true" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-base font-bold text-ink mb-0.5">{hi ? 'माइंड जर्नल' : 'Mind Journal'}</p>
+                    <p className="text-base font-bold text-ink mb-0.5">{t.journalTitle}</p>
                     <p className="text-caption text-slt leading-relaxed">
-                      {hi
-                        ? 'तुम्हारी feelings का एक निजी नोट। कोई स्कोर नहीं।'
-                        : "A private place to note how you're feeling. No scores."}
+                      {t.journalDesc}
                     </p>
                     <p className="text-caption text-muted mt-1.5">
-                      {hi
-                        ? 'जब मन करे तब लिखो — यह सिर्फ तुम्हारे अपने शब्दों के लिए है।'
-                        : "Write whenever you feel like it — it's just a space for your own words."}
+                      {t.journalHint}
                     </p>
                   </div>
                   <ChevronRight size={16} className="text-muted shrink-0 mt-1" aria-hidden="true" />

@@ -79,7 +79,7 @@ test('translations.js: Hindi Mind Journal copy is genuine Devanagari, not Englis
 
 test('MindJournalPage: renders translated state labels via mj.states[key], never the raw internal key text', () => {
   const idx = page.indexOf('STATE_KEYS.map(key =>');
-  const block = page.slice(idx, idx + 700);
+  const block = page.slice(idx, idx + 1100);
   assert.match(block, /\{mj\.states\[key\]\}/, 'chip label must come from the translation table');
   assert.doesNotMatch(block, />\{key\}</, 'must never render the raw internal key as the visible label');
 });
@@ -152,7 +152,21 @@ test('MindJournalPage: handles loading, error, and success states for the save a
   assert.match(page, /saving \? mj\.saving : mj\.saveBtn/, 'loading state');
   assert.match(page, /setSaveError\(data\?\.error \|\| mj\.errorGeneric\)/, 'error state');
   assert.match(page, /setSavedJustNow\(true\)/, 'success state');
-  assert.match(page, /\{mj\.saved\}/, 'success confirmation copy must come from translations');
+  // Stage I: the three states are presented by the shared SaveStatus instead
+  // of three hand-rolled blocks. Every label still comes from translations,
+  // and the SPECIFIC save error is passed through rather than flattened into
+  // a generic "could not save" — the network/server distinction is preserved.
+  assert.match(page, /<SaveStatus/, 'save state must use the shared indicator');
+  assert.match(
+    page,
+    /labels=\{\{ saving: mj\.saving, saved: mj\.saved, saveFailed: saveError, retry: mj\.retry \}\}/,
+    'success/error copy must come from translations, with the specific error preserved'
+  );
+  assert.match(
+    page,
+    /state=\{saving \? 'saving' : saveError \? 'error' : savedJustNow \? 'saved' : 'idle'\}/,
+    'all three existing states must still map to a visible indicator state'
+  );
 });
 
 // ── Safety guidance ──────────────────────────────────────────────────────

@@ -90,6 +90,12 @@
      light values are deliberately NOT the dark amber-400: that colour on a
      pale surface measures ~1.2:1 and was unreadable in the light theme. */
   --status-warn:        #92400E;              /* warning text/icon — 6.7:1 on --surface-warn */
+  /* Reflection/journal amber accent. The raw #D98B2B the redesign stages used
+     is only 2.5-2.7:1 as TEXT on a light surface; this darker light-theme
+     value keeps the same hue while clearing AA (5.2:1 on the 12% amber tint,
+     5.8:1 on card). Decorative marks keep the brand amber - this token is for
+     text and text-adjacent rules only. */
+  --accent-amber:       #9A5410;
   --surface-warn:       #FFF7ED;              /* warning notice body */
   --border-warn:        #FED7AA;              /* warning notice hairline */
 }
@@ -134,6 +140,7 @@
     --surface-selected:  var(--card-muted); /* #1B3044 — shared with elevated, intentionally (see study) */
     --status-error:      #F2A0A0;
     --status-warn:       #FBBF24; /* 8.1:1 on --surface-warn below */
+    --accent-amber:      #D98B2B; /* 4.9:1 on the dark amber tint - unchanged from the redesign */
     --surface-warn:      var(--card-muted); /* #1B3044 */
     --border-warn:       #4A3A17;
   }
@@ -178,6 +185,7 @@
   --surface-selected:  var(--card-muted); /* #1B3044 */
   --status-error:      #F2A0A0;
   --status-warn:       #FBBF24; /* 8.1:1 on --surface-warn below */
+  --accent-amber:      #D98B2B; /* 4.9:1 on the dark amber tint - unchanged from the redesign */
   --surface-warn:      var(--card-muted); /* #1B3044 */
   --border-warn:       #4A3A17;
 }

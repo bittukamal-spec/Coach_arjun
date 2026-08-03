@@ -15,15 +15,16 @@ const root = path.join(__dirname, '..');
 
 const playbook = readFileSync(path.join(root, 'src/pages/PlaybookPage.jsx'), 'utf8');
 const mindJournal = readFileSync(path.join(root, 'src/pages/MindJournalPage.jsx'), 'utf8');
+const translations = readFileSync(path.join(root, 'src/i18n/translations.js'), 'utf8');
 
 // ── "What I'm learning" is first ────────────────────────────────────────────
 
 test('PlaybookPage: "What I\'m learning" is the first section, before the weekly summary', () => {
-  const learningIdx = playbook.indexOf('"What I\'m learning"');
+  const learningIdx = playbook.indexOf('{pb.learningHeading}');
   // Stage F moved the weekly summary off the signature gradient onto the
   // approved flat elevated surface, so it is located by its own heading
   // rather than by variant="hero". The ordering guarantee is unchanged.
-  const weekIdx = playbook.indexOf("'This week'");
+  const weekIdx = playbook.indexOf('{pb.thisWeek}');
   assert.ok(learningIdx !== -1 && weekIdx !== -1);
   assert.ok(learningIdx < weekIdx, '"What I\'m learning" must render before the weekly-summary card');
 });
@@ -42,7 +43,8 @@ test('PlaybookPage: the Mind Journal entry point is a proper quiet card — flat
   assert.match(block, /<Card/, 'the Mind Journal entry point is a quiet flat Card');
   assert.doesNotMatch(block, /variant="hero"/, 'the Mind Journal entry point must not use the hero gradient');
   assert.match(block, /text-caption text-slt/, 'the supporting line keeps quiet, secondary-weight text styling');
-  assert.match(block, /कोई स्कोर नहीं|no scores/i, 'the card explains it is score-free');
+  assert.match(block, /\{pb\.journalDesc\}/, 'the card explains it is score-free');
+  assert.match(translations, /कोई स्कोर नहीं/);
 });
 
 // ── No scores, diagnosis, profiling, or auto-prescription copy ─────────────
@@ -57,7 +59,7 @@ test('PlaybookPage and MindJournalPage: no score, diagnosis, profiling, or auto-
 // ── Alignment with the Stage 3 foundation (headers, empty states, tokens) ──
 
 test('MindJournalPage: uses the shared PageHeader primitive instead of a hand-rolled header', () => {
-  assert.match(mindJournal, /import \{ Card, PageHeader, SectionLabel \} from '\.\.\/components\/ui'/);
+  assert.match(mindJournal, /import \{ Card, PageHeader, SectionLabel, SaveStatus \} from '\.\.\/components\/ui'/);
   assert.match(mindJournal, /<PageHeader onBack=\{\(\) => navigate\(-1\)\} title=\{mj\.title\} \/>/);
 });
 

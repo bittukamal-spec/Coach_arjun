@@ -14,8 +14,23 @@ export function useStartingProfile(token) {
   const [consent, setConsent] = useState({ pending: false, guardianEmailMasked: null });
   const [safetyGuidance, setSafetyGuidance] = useState(null);
   const mounted = useRef(true);
+  // Monotonic id for the newest in-flight load. Only the newest one is allowed
+  // to write state, so a slow earlier response can never overwrite a newer one.
+  const loadSeq = useRef(0);
 
-  useEffect(() => () => { mounted.current = false; }, []);
+  // The effect body MUST re-arm `mounted` — a cleanup-only effect is a latent
+  // bug under React 18 StrictMode, which in development mounts, cleans up, then
+  // remounts. The cleanup set the ref to false and nothing ever set it back, so
+  // every later `if (mounted.current)` guard failed and the profile stayed on
+  // its loading skeleton forever in `npm run dev`. Production ran effects once
+  // and was unaffected, which is why this survived to here.
+  //
+  // This effect is declared BEFORE the load effect below, so on the StrictMode
+  // remount `mounted` is already true again by the time `load()` runs.
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
 
   const auth = useCallback(
     (init = {}) => ({ ...init, headers: { ...(init.headers || {}), Authorization: `Bearer ${token}` } }),
@@ -31,16 +46,22 @@ export function useStartingProfile(token) {
 
   const load = useCallback(async () => {
     if (!token) return;
+    // Claim this load. `fresh()` is false once the component unmounts OR once a
+    // newer load starts, so the StrictMode double-invoke (and a Retry tapped
+    // mid-flight) settle on the newest response instead of racing.
+    const seq = ++loadSeq.current;
+    const fresh = () => mounted.current && seq === loadSeq.current;
     setPhase('loading');
     try {
       const res = await apiFetch('/api/profile/starting', auth());
-      if (res.status === 422) { if (mounted.current) setPhase('incomplete'); return; }
-      if (!res.ok) { if (mounted.current) setPhase('error'); return; }
+      if (res.status === 422) { if (fresh()) setPhase('incomplete'); return; }
+      if (!res.ok) { if (fresh()) setPhase('error'); return; }
       const data = await res.json();
+      if (!fresh()) return;
       applyPayload(data);
-      if (mounted.current) setPhase('ready');
+      setPhase('ready');
     } catch {
-      if (mounted.current) setPhase('error');
+      if (fresh()) setPhase('error');
     }
   }, [token, auth, applyPayload]);
 
