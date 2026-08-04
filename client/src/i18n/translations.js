@@ -502,6 +502,7 @@ export const translations = {
       // hardcoded English in JSX; translated here without changing meaning.
       backAria: 'Go back',
       safetyInfoAria: 'Safety info',
+      moreOptionsAria: 'More options',
       placeholder: 'What\'s on your mind?',
       send: 'Send',
       writeMyOwn: 'Write my own',
@@ -2150,6 +2151,7 @@ export const translations = {
       // hardcoded English in JSX; translated here without changing meaning.
       backAria: 'वापस जाओ',
       safetyInfoAria: 'सुरक्षा जानकारी',
+      moreOptionsAria: 'और विकल्प',
       placeholder: 'मन में क्या है?',
       send: 'भेजें',
       writeMyOwn: 'खुद लिखें',

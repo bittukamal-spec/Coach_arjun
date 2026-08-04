@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
-import { Info, History, Eye, RotateCcw, ClipboardList, MessageSquare, Target, RefreshCw, Layers, Dumbbell, GraduationCap, ChevronLeft, X } from 'lucide-react';
+import { Info, History, Eye, RotateCcw, ClipboardList, MessageSquare, Target, RefreshCw, Layers, Dumbbell, GraduationCap, ChevronLeft, X, MoreVertical } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
@@ -29,6 +29,22 @@ function stripSuggestTag(text) {
   return String(text ?? '').replace(/\n?\[SUGGEST:[^\]]*\]/g, '').trimEnd();
 }
 
+// Read at reveal time rather than cached, so a mid-session OS change is
+// honoured. Guarded for jsdom/older browsers without matchMedia.
+function prefersReducedMotion() {
+  try {
+    return window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches === true;
+  } catch {
+    return false;
+  }
+}
+
+
+// Progressive-reveal pacing. A calm, quick reveal — deliberately NOT a slow
+// typewriter. REVEAL_BUDGET_MS caps the total time for any reply length, so a
+// long message reveals several words per tick instead of dragging.
+const REVEAL_TICK_MS = 45;
+const REVEAL_BUDGET_MS = 1500;
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -46,9 +62,9 @@ function SessionDivider({ sessionKey, date, t }) {
   );
 }
 
-function MessageBubble({ message, isStreaming }) {
+function MessageBubble({ message, isStreaming, revealedText }) {
   if (message.role === 'assistant') {
-    return <ArjunBubble message={message} isStreaming={isStreaming} />;
+    return <ArjunBubble message={message} isStreaming={isStreaming} revealedText={revealedText} />;
   }
   // Athlete turn: a restrained bubble on the approved selected-surface tint,
   // not the old saturated brand fill. Text stays `text-ink`, which is the
@@ -308,7 +324,10 @@ function QuickReplyChips({ replies, onSelect, onWriteMyOwn, t }) {
 
 // ─── ArjunBubble: full assistant message bubble with text + tool cards ─────────
 
-function ArjunBubble({ message, isStreaming }) {
+function ArjunBubble({ message, isStreaming, revealedText }) {
+  // While a reply is still revealing, paint only the words released so far.
+  // `message.content` always holds the complete approved text.
+  const revealing = typeof revealedText === 'string';
   // Guardrail: only ever render a card for a tool id that's in the active
   // registry. An unrecognised tag (Arjun inventing a name, or a stale tag
   // from an old saved message) is dropped silently from the UI — never
@@ -320,14 +339,21 @@ function ArjunBubble({ message, isStreaming }) {
     }
     return true;
   });
-  const hasTools = !isStreaming && appTools.length > 0;
+  // Tool cards wait for the full reveal, so a card never appears beside a
+  // half-painted sentence.
+  const hasTools = !isStreaming && !revealing && appTools.length > 0;
 
   // Arjun speaks as plain text — no bubble, no avatar, generous spacing
   // between turns. Tool cards keep their own card surface and sit beneath
   // the text rather than inside a shared bubble container.
   return (
     <div className="flex flex-col gap-2 px-1">
-      <ArjunText text={message.content} isStreaming={isStreaming} />
+      {/* Mid-reveal the partial text is hidden from assistive tech — a single
+          complete announcement is made when the reveal finishes, so nothing is
+          read out word by word. */}
+      <div aria-hidden={revealing ? 'true' : undefined}>
+        <ArjunText text={revealing ? revealedText : message.content} isStreaming={isStreaming} />
+      </div>
       {hasTools && (
         <div className="flex gap-2 max-w-[92%]">
           {appTools.map(toolId => (
@@ -360,6 +386,13 @@ function ChatPage() {
   const [usage, setUsage]                         = useState({ isPremium: false, trialDaysRemaining: 14 });
   const [activeSession, setActiveSession]         = useState(null);
   const [showSafety, setShowSafety]               = useState(false);
+  const [menuOpen, setMenuOpen]                   = useState(false);
+  // Single polite announcement of a COMPLETE reply — never per word.
+  const [liveAnnouncement, setLiveAnnouncement]   = useState('');
+  // Progressive reveal of an ALREADY-APPROVED reply: { id, words, shown }.
+  // Never holds unchecked model output — it is populated only after the
+  // stream's `end` event has run the existing content checks.
+  const [reveal, setReveal]                       = useState(null);
   const [chatSessionId, setChatSessionId]         = useState(null);
   const [showStartScreen, setShowStartScreen]     = useState(false);
   const [recentSessions, setRecentSessions]       = useState([]);
@@ -376,6 +409,12 @@ function ChatPage() {
   const bottomRef               = useRef(null);
   const inputRef                = useRef(null);
   const streamIdRef             = useRef(null);
+  const revealTimerRef          = useRef(null);
+  const menuRef                 = useRef(null);
+  const menuBtnRef              = useRef(null);
+  // Mirrors `reveal` for the send guard, so a reveal in progress blocks a
+  // second send without rebuilding the sendMessage callback.
+  const revealingRef            = useRef(false);
   const fullStreamText          = useRef('');
   const arjunMsgCountRef        = useRef(0);
   const prefillMsgRef           = useRef(location.state?.prefillMsg ?? null);
@@ -688,7 +727,8 @@ function ChatPage() {
 
   const sendMessage = useCallback(async (overrideContent = null, forceSessionType = undefined, overrideChatSessionId = undefined) => {
     const trimmed = (overrideContent != null ? overrideContent : input).trim();
-    if (!trimmed || streaming) return;
+    // Blocked while generating AND while an approved reply is still revealing.
+    if (!trimmed || streaming || revealingRef.current) return;
 
     const isSessionStart = trimmed.startsWith('__SESSION:');
     const sessionType = forceSessionType !== undefined ? forceSessionType : activeSession;
@@ -696,6 +736,7 @@ function ChatPage() {
 
     if (!overrideContent) setInput('');
     setError('');
+    setReveal(null);
     // Clear any deterministic outcome choices immediately — whether this send
     // came from typing, tapping an outcome choice, or tapping "Write my own".
     // A new response (if any) will offer its own fresh set.
@@ -724,8 +765,9 @@ function ChatPage() {
 
       const streamId = 'stream-' + Date.now();
       streamIdRef.current = streamId;
-      setMessages(prev => [...prev, { id: streamId, role: 'assistant', content: '', streaming: true }]);
-      setWaitingForFirst(false);
+      // Deliberately NO placeholder bubble here. Deltas accumulate off-screen
+      // and the thinking indicator stays up until the `end` event has run the
+      // content checks below — the athlete never sees unchecked model text.
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
@@ -744,10 +786,8 @@ function ChatPage() {
           try {
             const data = JSON.parse(line.slice(6));
             if (data.t === 'd') {
+              // Accumulate only — nothing is rendered from a raw delta.
               fullStreamText.current += data.c;
-              setMessages(prev =>
-                prev.map(m => m.id === streamId ? { ...m, content: m.content + data.c } : m)
-              );
             } else if (data.t === 'end') {
               const { cleanText, tools } = parseArjunMessage(stripSuggestTag(fullStreamText.current));
               // Secondary defence on the live stream too: the server rejects
@@ -761,14 +801,25 @@ function ChatPage() {
                 continue;
               }
               arjunMsgCountRef.current += 1;
-              setMessages(prev =>
-                prev.map(m => m.id === streamId
-                  ? { ...m, content: cleanText, id: data.id, streaming: false, appTools: tools }
-                  : m)
-              );
+              const finalId = data.id ?? streamId;
+              // The message carries the COMPLETE approved text from the start,
+              // so persistence, copy and assistive tech always see the whole
+              // reply; `reveal` only limits how much of it is painted.
+              setMessages(prev => [...prev, {
+                id: finalId, role: 'assistant', content: cleanText, streaming: false, appTools: tools,
+              }]);
+              setWaitingForFirst(false);
+              const words = cleanText.split(/(\s+)/).filter(w => w.length > 0);
+              if (prefersReducedMotion() || words.length === 0) {
+                // Reduced motion: the complete approved reply, immediately.
+                setLiveAnnouncement(cleanText);
+              } else {
+                setReveal({ id: finalId, words, shown: 0 });
+              }
               fullStreamText.current = '';
             } else if (data.t === 'error') {
               setMessages(prev => prev.filter(m => m.id !== streamId));
+              setReveal(null);
               setError(data.message || t.errorRetry);
               setOutcomeChoices(null);
             } else if (data.t === 'card') {
@@ -791,6 +842,9 @@ function ChatPage() {
     } catch (err) {
       setWaitingForFirst(false);
       setMessages(prev => prev.filter(m => !m.streaming));
+      // A failed generation must never leave a half-revealed reply behind —
+      // and the composer comes back so the athlete can retry.
+      setReveal(null);
       setError(err.message || t.errorRetry);
       setOutcomeChoices(null);
     } finally {
@@ -800,6 +854,70 @@ function ChatPage() {
       inputRef.current?.focus();
     }
   }, [input, streaming, token, t.errorRetry, activeSession, language, chatSessionId]);
+
+  // ── Progressive reveal ────────────────────────────────────────────────────
+  // Presentation only. `reveal` is set exclusively by the stream's `end`
+  // handler, AFTER the existing content checks have passed, so nothing
+  // unchecked is ever timed onto the screen. The message itself already holds
+  // the complete approved text; this only controls how much of it is painted.
+  //
+  // Pace: a calm reveal that is bounded, not a slow typewriter. Long replies
+  // reveal several words per tick so the whole message lands within about a
+  // second and a half however long it is.
+  const stopReveal = useCallback(() => {
+    if (revealTimerRef.current) {
+      clearTimeout(revealTimerRef.current);
+      revealTimerRef.current = null;
+    }
+  }, []);
+
+  // One self-scheduling timeout per step rather than a repeating interval, so
+  // there is never a timer left running after the reveal (or the page) ends.
+  useEffect(() => {
+    if (!reveal || reveal.shown >= reveal.words.length) return undefined;
+    const remaining = reveal.words.length - reveal.shown;
+    // Bound the whole reveal to ~1.5s: step up the batch size for long replies.
+    const step = Math.max(1, Math.ceil(remaining / (REVEAL_BUDGET_MS / REVEAL_TICK_MS)));
+    revealTimerRef.current = setTimeout(() => {
+      setReveal(cur => {
+        if (!cur) return cur;
+        const next = Math.min(cur.shown + step, cur.words.length);
+        return next === cur.shown ? cur : { ...cur, shown: next };
+      });
+    }, REVEAL_TICK_MS);
+    return stopReveal;
+  }, [reveal, stopReveal]);
+
+  // Reveal finished → drop the reveal state so the message renders normally
+  // (tools, AI reminder and the composer all key off this) and announce the
+  // complete message once, rather than word by word.
+  useEffect(() => {
+    if (reveal && reveal.shown >= reveal.words.length) {
+      stopReveal();
+      // join('') — the split keeps its whitespace tokens, so the words
+      // reassemble into the exact approved text, not a re-spaced copy.
+      setLiveAnnouncement(reveal.words.join(''));
+      setReveal(null);
+    }
+  }, [reveal, stopReveal]);
+
+  useEffect(() => { revealingRef.current = !!reveal; }, [reveal]);
+
+  // Timers must not outlive the page or a session change.
+  useEffect(() => stopReveal, [stopReveal]);
+
+  // ── Overflow menu ─────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    const onDown = (e) => { if (!menuRef.current?.contains(e.target)) setMenuOpen(false); };
+    const onKey = (e) => { if (e.key === 'Escape') { setMenuOpen(false); menuBtnRef.current?.focus(); } };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [menuOpen]);
 
   // ── Keyboard ──────────────────────────────────────────────────────────────
 
@@ -814,6 +932,15 @@ function ChatPage() {
 
   const atLimit     = !usage.isPremium && usage.trialDaysRemaining === 0;
   const hasMessages = messages.length > 0;
+  // Arjun is working: generating, or painting an approved reply. The composer
+  // is absent for the whole of it, so there is nothing to type into and no
+  // second send is possible.
+  const busy = streaming || waitingForFirst || !!reveal;
+  // The composer SLOT (used to reserve scroll space) vs. whether it is
+  // currently mounted. Keeping the reserve constant is what stops the
+  // conversation jumping when the composer hides and returns.
+  const showComposerArea = !!chatSessionId && !showStartScreen;
+  const showComposer     = showComposerArea && !busy;
 
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -840,57 +967,81 @@ function ChatPage() {
   }
 
   return (
-    <div className="flex flex-col h-dvh bg-dark-900">
+    <div className="flex flex-col h-dvh bg-dark-900 relative">
 
       {/* ── Header ──────────────────────────────────────────────────────────
-          Immersive Coach header: the same near-black surface as the bottom
-          nav, in both themes, with safe-area padding at the top. Because the
-          surface is theme-invariant, every foreground here uses the on-dark
-          token family — `text-ink` would be near-black on near-black in
-          light theme. */}
-      <header
-        className="shrink-0 border-b px-4 py-3 relative pt-[calc(0.75rem+env(safe-area-inset-top))]"
-        style={{ background: 'var(--nav-bar)', borderBottomColor: 'var(--nav-hairline)' }}
-      >
+          Minimal and integrated: the header sits ON the chat background in
+          both themes rather than on the near-black nav surface, so Coach reads
+          as one calm space instead of a heavy bar above a page. Because the
+          surface now follows the theme, foregrounds use the ordinary theme
+          tokens. No divider — separation comes from spacing alone.
+          History and Info keep their exact behaviour; they moved into the
+          overflow menu so the header carries one action, not three. */}
+      <header className="shrink-0 bg-dark-900 px-4 py-2.5 relative pt-[calc(0.625rem+env(safe-area-inset-top))]">
         <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
             <button
               onClick={() => (backOverrideRef.current
                 ? navigate(backOverrideRef.current, { replace: true })
                 : navigate(-1))}
-              className="w-11 h-11 -ml-2.5 flex items-center justify-center shrink-0 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2"
-              style={{ color: 'var(--nav-fg-inactive)', '--tw-ring-color': 'var(--nav-fg-active)' }}
+              className="w-11 h-11 -ml-2.5 flex items-center justify-center shrink-0 rounded-full text-slt hover:text-ink transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
               aria-label={t.backAria}
             >
               <ChevronLeft size={20} aria-hidden="true" />
             </button>
-            <ArjunLogo size={28} />
+            <ArjunLogo size={26} />
             <div className="min-w-0">
-              {/* Coach's page title. Classes unchanged — semantics only. */}
-              <h1 className="font-semibold text-sm leading-none" style={{ color: 'var(--nav-fg-strong)' }}>
-                {t.title}
-              </h1>
+              <h1 className="font-semibold text-sm leading-none text-ink">{t.title}</h1>
             </div>
           </div>
-          <div className="flex items-center gap-1 shrink-0">
-            {/* Weekly Reviews — history of weekly coaching reviews, kept
-                OUTSIDE the live message stream on its own page. */}
-            <Link
-              to="/weekly-reviews"
-              className="w-11 h-11 flex items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2"
-              style={{ color: 'var(--nav-fg-inactive)', '--tw-ring-color': 'var(--nav-fg-active)' }}
-              aria-label={t.weeklyReviewsLabel}
-            >
-              <History size={16} aria-hidden="true" />
-            </Link>
+
+          {/* Overflow menu — one control, keyboard operable, closes on Escape
+              (returning focus to the trigger) and on an outside click. */}
+          <div className="relative shrink-0" ref={menuRef}>
             <button
-              onClick={() => setShowSafety(s => !s)}
-              className="w-11 h-11 flex items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2"
-              style={{ color: 'var(--nav-fg-inactive)', '--tw-ring-color': 'var(--nav-fg-active)' }}
-              aria-label={t.safetyInfoAria}
+              ref={menuBtnRef}
+              onClick={() => { setMenuOpen(o => !o); setShowSafety(false); }}
+              aria-label={t.moreOptionsAria}
+              aria-haspopup="true"
+              aria-expanded={menuOpen}
+              className="w-11 h-11 -mr-2.5 flex items-center justify-center rounded-full text-slt hover:text-ink transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
             >
-              <Info size={16} aria-hidden="true" />
+              <MoreVertical size={18} aria-hidden="true" />
             </button>
+
+            {/* A plain disclosure popover, deliberately NOT role="menu": that
+                role overrides the native link/button roles and promises
+                arrow-key menu navigation. Keeping the native elements means
+                Tab order, Enter/Space and screen-reader roles all behave the
+                way they already did in the header. */}
+            {menuOpen && (
+              <div
+                aria-label={t.moreOptionsAria}
+                className="absolute right-0 top-full mt-1 z-30 min-w-[200px] rounded-2xl border py-1.5 shadow-card animate-fade-in"
+                style={{ background: 'var(--surface-card)', borderColor: 'var(--border-hairline)' }}
+              >
+                {/* Weekly Reviews — same destination and behaviour as before. */}
+                <Link
+                  to="/weekly-reviews"
+                  onClick={() => setMenuOpen(false)}
+                  className="w-full min-h-[44px] flex items-center gap-3 px-4 text-sm text-ink hover:bg-dark-700 focus-visible:outline-none focus-visible:bg-dark-700"
+                  aria-label={t.weeklyReviewsLabel}
+                >
+                  <History size={16} className="shrink-0 text-slt" aria-hidden="true" />
+                  <span>{t.weeklyReviewsLabel}</span>
+                </Link>
+                {/* Safety info — same popover content as before. */}
+                <button
+                  type="button"
+                  onClick={() => { setShowSafety(v => !v); setMenuOpen(false); }}
+                  aria-label={t.safetyInfoAria}
+                  className="w-full min-h-[44px] flex items-center gap-3 px-4 text-sm text-ink hover:bg-dark-700 focus-visible:outline-none focus-visible:bg-dark-700"
+                >
+                  <Info size={16} className="shrink-0 text-slt" aria-hidden="true" />
+                  <span>{t.safetyInfoAria}</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -906,8 +1057,16 @@ function ChatPage() {
           Edge-to-edge: the conversation owns the full width inside the page
           gutter, with generous vertical space between turns now that Arjun's
           replies are plain text rather than bubbles. */}
-      <div className="flex-1 overflow-y-auto px-3 py-4">
-        <div className="max-w-2xl mx-auto flex flex-col gap-5">
+      <div className="flex-1 overflow-y-auto px-3 py-4 relative">
+        {/* pb reserves the floating composer's footprint (pill + gutters +
+            safe area) INSIDE the scroll area, so the last message can always
+            be scrolled clear of it. The reserve is constant whether or not the
+            composer is currently mounted, so hiding it during generation
+            causes no layout jump. */}
+        <div
+          className="max-w-2xl mx-auto flex flex-col gap-5"
+          style={showComposerArea ? { paddingBottom: 'calc(5.25rem + env(safe-area-inset-bottom))' } : undefined}
+        >
 
           {/* Entry choice screen — shown when no session is active */}
           {showStartScreen && !waitingForFirst && (
@@ -955,12 +1114,18 @@ function ChatPage() {
               // never touches arjunMsgCountRef (the count coaching logic
               // uses server-side).
               if (msg.role === 'assistant' && !msg.streaming) assistantReplyIndex += 1;
-              const showAiReminder = msg.role === 'assistant' && !msg.streaming
+              const isRevealing = reveal?.id === msg.id;
+              // The reminder waits for the complete reply, like the tool cards.
+              const showAiReminder = msg.role === 'assistant' && !msg.streaming && !isRevealing
                 && shouldShowAiReminder(assistantReplyIndex);
               return (
                 <div key={msg.id} className="flex flex-col gap-2">
                   {showDivider && <SessionDivider sessionKey={msg.sessionType} date={msg.createdAt} t={t} />}
-                  <MessageBubble message={msg} isStreaming={msg.streaming} />
+                  <MessageBubble
+                    message={msg}
+                    isStreaming={msg.streaming}
+                    revealedText={isRevealing ? reveal.words.slice(0, reveal.shown).join('') : undefined}
+                  />
                   {showAiReminder && (
                     <div className="flex justify-center my-1">
                       <p className="text-caption text-slt bg-dark-700/60 rounded-full px-3 py-1 text-center">
@@ -983,7 +1148,7 @@ function ChatPage() {
               control, not an AI reply suggestion; tapping one sends only its
               label through the normal chat path. Coach's AI-generated chips
               were removed; this deliberately stays. */}
-          {!showStartScreen && !streaming && !waitingForFirst && outcomeChoices && (
+          {!showStartScreen && !streaming && !waitingForFirst && !reveal && outcomeChoices && (
             <QuickReplyChips
               replies={outcomeChoices}
               onSelect={(label) => sendMessage(label)}
@@ -1004,14 +1169,25 @@ function ChatPage() {
             </div>
           )}
 
+          {/* One polite announcement per COMPLETE reply. Never per word, and
+              never a partial sentence — this is the only live region in the
+              conversation, so there is no announcement spam. */}
+          <p className="sr-only" role="status" aria-live="polite">{liveAnnouncement}</p>
+
           <div ref={bottomRef} />
         </div>
       </div>
 
-      {/* ── Input area ──────────────────────────────────────────────────── */}
-      {chatSessionId && !showStartScreen && (
-      <div className="shrink-0 bg-dark-900 border-t border-dark-600 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
-        <div className="max-w-2xl mx-auto relative">
+      {/* ── Input area ────────────────────────────────────────────────────
+           A minimal control floating over the conversation: no separator
+           line, no panel. It is absolutely positioned so mounting and
+           unmounting it never reflows the message list — the scroll area
+           already reserves its footprint above.
+           Hidden entirely while Arjun is generating or a reply is revealing;
+           it returns as soon as the reply completes or an error is shown. */}
+      {chatSessionId && !showStartScreen && showComposer && (
+      <div className="absolute left-0 right-0 bottom-0 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-2 pointer-events-none">
+        <div className="max-w-2xl mx-auto relative pointer-events-auto">
 
           {atLimit && (
             <div className="mb-3 flex flex-col sm:flex-row sm:items-center gap-2 bg-amber-950/30 border border-amber-700/40 rounded-2xl px-4 py-3">

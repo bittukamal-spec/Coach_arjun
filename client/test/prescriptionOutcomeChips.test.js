@@ -78,8 +78,16 @@ test('ChatPage: "Write my own" for outcome choices clears them and focuses the t
   assert.doesNotMatch(block, /onWriteMyOwn=\{\(\) => \{ setOutcomeChoices\(null\); inputRef\.current\?\.focus\(\); \}\}.*sendMessage/s);
 });
 
-test('ChatPage: the normal text input remains available alongside outcome choices — the input area\'s own mount condition is untouched', () => {
-  assert.match(chatPageSrc, /\{chatSessionId && !showStartScreen && \(/);
+test('ChatPage: the normal text input remains available alongside outcome choices', () => {
+  // The composer now also hides while Arjun is generating or a reply is
+  // revealing. Outcome choices are gated on exactly the same "not busy"
+  // condition, so whenever the choices are on screen the input is too —
+  // which is the guarantee this test exists to protect.
+  assert.match(chatPageSrc, /\{chatSessionId && !showStartScreen && showComposer && \(/);
+  assert.match(chatPageSrc, /const busy = streaming \|\| waitingForFirst \|\| !!reveal;/);
+  assert.match(chatPageSrc, /const showComposer\s*= showComposerArea && !busy;/);
+  // Outcome choices render only when not streaming/waiting/revealing.
+  assert.match(chatPageSrc, /!showStartScreen && !streaming && !waitingForFirst && !reveal && outcomeChoices/);
 });
 
 // ── 6. Choices clear on submission, session change, error, and return to entry ─
@@ -107,8 +115,10 @@ test('ChatPage: outcome choices are cleared on a stream-level error event', () =
 test('ChatPage: outcome choices are cleared when the fetch/stream itself throws (network or parse failure)', () => {
   const catchIdx = chatPageSrc.indexOf('} catch (err) {\n      setWaitingForFirst(false);');
   assert.ok(catchIdx !== -1);
-  const block = chatPageSrc.slice(catchIdx, catchIdx + 300);
+  const block = chatPageSrc.slice(catchIdx, catchIdx + 600);
   assert.match(block, /setOutcomeChoices\(null\)/);
+  // A failed generation must also drop any in-flight reveal.
+  assert.match(block, /setReveal\(null\)/);
 });
 
 test('ChatPage: outcome choices are cleared when the UI genuinely returns to the chat-entry screen', () => {
