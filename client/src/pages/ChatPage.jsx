@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { Info, History, Eye, RotateCcw, ClipboardList, MessageSquare, Target, RefreshCw, Layers, Dumbbell, GraduationCap, ChevronLeft, X, MoreVertical } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -407,6 +407,11 @@ function ChatPage() {
   const [outcomeChoices, setOutcomeChoices]       = useState(null);
 
   const bottomRef               = useRef(null);
+  const scrollerRef             = useRef(null);
+  // Whether the athlete is parked at the bottom. Captured from their OWN
+  // scrolling, before any content growth, so growth never flips it by itself.
+  const stickToBottomRef        = useRef(true);
+  const scrollRafRef            = useRef(null);
   const inputRef                = useRef(null);
   const streamIdRef             = useRef(null);
   const revealTimerRef          = useRef(null);
@@ -528,11 +533,69 @@ function ChatPage() {
     init();
   }, [retryKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Auto-scroll ───────────────────────────────────────────────────────────
+  // ── Composer visibility ───────────────────────────────────────────────────
+  // Arjun is working: generating, or painting an approved reply. The composer
+  // is absent for the whole of it, so there is nothing to type into and no
+  // second send is possible. Declared above the scroll effects because the
+  // layout-aware scroll below depends on the composer re-mounting.
+  const busy = streaming || waitingForFirst || !!reveal;
+  // The composer SLOT (used to reserve scroll space) vs. whether it is
+  // currently mounted. Keeping the reserve constant is what stops the
+  // conversation jumping when the composer hides and returns.
+  const showComposerArea = !!chatSessionId && !showStartScreen;
+  const showComposer     = showComposerArea && !busy;
 
+  // ── Auto-scroll ───────────────────────────────────────────────────────────
+  // The conversation is only followed while the athlete is at (or near) the
+  // bottom. Scrolling up during a long conversation parks them there; the next
+  // reply will not yank them down.
+  const NEAR_BOTTOM_PX = 120;
+
+  function handleConversationScroll() {
+    const el = scrollerRef.current;
+    if (!el) return;
+    stickToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight <= NEAR_BOTTOM_PX;
+  }
+
+  // Two frames, deliberately: the first lets React's commit paint, the second
+  // reads a settled scrollHeight — so this measures AFTER the revealed text has
+  // grown and after the composer has re-mounted, not before. That is the whole
+  // fix: the old effect only ran on [messages, waitingForFirst], neither of
+  // which changes while a reply reveals or when the composer returns, so the
+  // last scroll happened while the message was still empty and the finished
+  // reply ended up under the composer.
+  const scrollToLatest = useCallback((behavior = 'smooth') => {
+    if (scrollRafRef.current) cancelAnimationFrame(scrollRafRef.current);
+    scrollRafRef.current = requestAnimationFrame(() => {
+      scrollRafRef.current = requestAnimationFrame(() => {
+        scrollRafRef.current = null;
+        // Re-checked HERE, not at request time: the athlete may have scrolled
+        // away during the two frames spent waiting for layout, and a scroll
+        // queued before that must not still yank them down.
+        if (!stickToBottomRef.current) return;
+        // The bottom sentinel sits above the composer's reserved footprint, so
+        // landing on it clears the floating composer and the safe area.
+        bottomRef.current?.scrollIntoView({ behavior, block: 'end' });
+      });
+    });
+  }, []);
+
+  // Cancel any pending frame on unmount or when a new request supersedes it.
+  useEffect(() => () => {
+    if (scrollRafRef.current) cancelAnimationFrame(scrollRafRef.current);
+  }, []);
+
+  // New turns and the thinking indicator.
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, waitingForFirst]);
+    scrollToLatest('smooth');
+  }, [messages, waitingForFirst, scrollToLatest]);
+
+  // Follows the reply as it reveals, and — the case this fixes — runs once
+  // more when `reveal` clears and `showComposer` flips back on, after the
+  // browser has applied that layout.
+  useLayoutEffect(() => {
+    scrollToLatest(reveal ? 'auto' : 'smooth');
+  }, [reveal, showComposer, scrollToLatest]);
 
   // ── Persist messages (with tags) to sessionStorage on every change ────────
 
@@ -635,8 +698,9 @@ function ChatPage() {
           return { ...msg, content: cleanText, appTools: tools };
         });
         setMessages(processed);
-        // Scroll to most recent message instantly
-        setTimeout(() => { bottomRef.current?.scrollIntoView({ behavior: 'auto' }); }, 50);
+        // Open at the most recent message, after layout settles.
+        stickToBottomRef.current = true;
+        scrollToLatest('auto');
       }
     } catch { /* ignore */ }
   }
@@ -737,6 +801,9 @@ function ChatPage() {
     if (!overrideContent) setInput('');
     setError('');
     setReveal(null);
+    // The athlete just acted, so re-attach to the bottom even if they had
+    // scrolled up to re-read something before sending.
+    stickToBottomRef.current = true;
     // Clear any deterministic outcome choices immediately — whether this send
     // came from typing, tapping an outcome choice, or tapping "Write my own".
     // A new response (if any) will offer its own fresh set.
@@ -932,15 +999,6 @@ function ChatPage() {
 
   const atLimit     = !usage.isPremium && usage.trialDaysRemaining === 0;
   const hasMessages = messages.length > 0;
-  // Arjun is working: generating, or painting an approved reply. The composer
-  // is absent for the whole of it, so there is nothing to type into and no
-  // second send is possible.
-  const busy = streaming || waitingForFirst || !!reveal;
-  // The composer SLOT (used to reserve scroll space) vs. whether it is
-  // currently mounted. Keeping the reserve constant is what stops the
-  // conversation jumping when the composer hides and returns.
-  const showComposerArea = !!chatSessionId && !showStartScreen;
-  const showComposer     = showComposerArea && !busy;
 
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -1057,16 +1115,12 @@ function ChatPage() {
           Edge-to-edge: the conversation owns the full width inside the page
           gutter, with generous vertical space between turns now that Arjun's
           replies are plain text rather than bubbles. */}
-      <div className="flex-1 overflow-y-auto px-3 py-4 relative">
-        {/* pb reserves the floating composer's footprint (pill + gutters +
-            safe area) INSIDE the scroll area, so the last message can always
-            be scrolled clear of it. The reserve is constant whether or not the
-            composer is currently mounted, so hiding it during generation
-            causes no layout jump. */}
-        <div
-          className="max-w-2xl mx-auto flex flex-col gap-5"
-          style={showComposerArea ? { paddingBottom: 'calc(5.25rem + env(safe-area-inset-bottom))' } : undefined}
-        >
+      <div
+        ref={scrollerRef}
+        onScroll={handleConversationScroll}
+        className="flex-1 overflow-y-auto px-3 py-4 relative"
+      >
+        <div className="max-w-2xl mx-auto flex flex-col gap-5">
 
           {/* Entry choice screen — shown when no session is active */}
           {showStartScreen && !waitingForFirst && (
@@ -1173,6 +1227,20 @@ function ChatPage() {
               never a partial sentence — this is the only live region in the
               conversation, so there is no announcement spam. */}
           <p className="sr-only" role="status" aria-live="polite">{liveAnnouncement}</p>
+
+          {/* Reserves the floating composer's footprint (pill + gutters + safe
+              area) INSIDE the scroll area, placed ABOVE the bottom sentinel so
+              scrolling the sentinel into view lands past it. As page padding
+              it sat BELOW the sentinel, so the scroll stopped short and the
+              finished reply hid behind the composer. The reserve is constant
+              whether or not the composer is mounted, so it never jumps. */}
+          {showComposerArea && (
+            <div
+              aria-hidden="true"
+              className="shrink-0"
+              style={{ height: 'calc(5.25rem + env(safe-area-inset-bottom))' }}
+            />
+          )}
 
           <div ref={bottomRef} />
         </div>
