@@ -70,12 +70,17 @@ describe('Chat header — Weekly Reviews entry', () => {
       </MemoryRouter>
     );
 
+    // Both header actions now sit in the header's overflow disclosure. They
+    // keep their native roles and destinations — just one interaction in.
+    const user = userEvent.setup();
+    await user.click(await screen.findByLabelText('More options'));
+
     const link = await screen.findByRole('link', { name: 'Weekly Reviews' });
     expect(link.getAttribute('href')).toBe('/weekly-reviews');
     // The existing info control is untouched beside it.
     expect(screen.getByRole('button', { name: 'Safety info' })).toBeTruthy();
 
-    await userEvent.setup().click(link);
+    await user.click(link);
     expect((await screen.findByTestId('pathname')).textContent).toBe('/weekly-reviews');
   });
 

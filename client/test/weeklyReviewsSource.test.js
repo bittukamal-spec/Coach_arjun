@@ -46,7 +46,10 @@ test('ChatPage header: a Weekly Reviews link to /weekly-reviews with an accessib
   // replaced p-2.5 padding with an explicit 44x44 box, which is a stronger
   // guarantee than the padding it replaced.
   const linkIdx = header.indexOf('to="/weekly-reviews"');
-  assert.match(header.slice(linkIdx - 300, linkIdx + 300), /w-11 h-11/);
+  // The link now sits in the header's overflow disclosure as a full-width row,
+  // so its comfortable target is expressed as min-h-[44px] rather than a
+  // 44x44 icon box. Either treatment satisfies the guarantee.
+  assert.match(header.slice(linkIdx - 300, linkIdx + 400), /w-11 h-11|min-h-\[44px\]/);
 });
 
 test('ChatPage: no unread-badge tracking was invented for the header icon', () => {

@@ -82,11 +82,23 @@ describe('Coach — immersive shell', () => {
 
     const header = document.querySelector('header');
     expect(header).toBeTruthy();
-    // Theme-invariant near-black surface, not a theme-following page colour.
-    expect(header.style.background).toContain('--nav-bar');
+    // The header is now integrated into the chat background rather than
+    // sitting on the near-black nav surface, and carries no heavy divider.
+    expect(header.className).toMatch(/bg-dark-900/);
+    expect(header.style.background).not.toContain('--nav-bar');
+    expect(header.className).not.toMatch(/border-b/);
     expect(within(header).getByLabelText('Go back')).toBeTruthy();
-    expect(within(header).getByLabelText('Safety info')).toBeTruthy();
-    expect(within(header).getByLabelText('Weekly Reviews')).toBeTruthy();
+    // Branding stays.
+    expect(within(header).getByLabelText('Arjun logo')).toBeTruthy();
+    expect(within(header).getByRole('heading', { level: 1, name: 'Arjun' })).toBeTruthy();
+
+    // History and Info moved into a single accessible overflow menu — they
+    // are still reachable from the header, one level in.
+    const menuBtn = within(header).getByLabelText('More options');
+    expect(menuBtn.getAttribute('aria-expanded')).toBe('false');
+    await userEvent.setup().click(menuBtn);
+    expect(within(header).getByRole('link', { name: 'Weekly Reviews' })).toBeTruthy();
+    expect(within(header).getByRole('button', { name: 'Safety info' })).toBeTruthy();
   });
 
   test('the safety note and India helplines stay reachable from the header', async () => {
@@ -95,6 +107,7 @@ describe('Coach — immersive shell', () => {
     await screen.findByText(ARJUN_REPLY);
     const user = userEvent.setup();
 
+    await user.click(screen.getByLabelText('More options'));
     await user.click(screen.getByLabelText('Safety info'));
 
     expect(screen.getByText(/not a medical or crisis service/i)).toBeTruthy();
@@ -213,7 +226,11 @@ describe('Coach — composer', () => {
     render(<App />);
     await screen.findByText(ARJUN_REPLY);
 
-    const composerRegion = screen.getByRole('textbox').closest('.shrink-0');
+    // The composer floats over the conversation now, so its safe-area padding
+    // sits on the floating wrapper rather than a shrink-0 panel.
+    const composerRegion = screen.getByRole('textbox').closest('.absolute');
     expect(composerRegion.className).toMatch(/env\(safe-area-inset-bottom\)/);
+    // No separator line above it any more.
+    expect(composerRegion.className).not.toMatch(/border-t/);
   });
 });
