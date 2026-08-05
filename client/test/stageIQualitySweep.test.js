@@ -233,7 +233,9 @@ test('Home and Coach carry a real page heading rather than a styled paragraph', 
 // ── 8. Mind Journal control accessibility ──────────────────────────────────
 
 test('the Mind Journal context checkbox is themed and focus-visible', () => {
-  const page = src('pages/MindJournalPage.jsx');
+  // The control moved off the Mind Journal landing screen onto its own
+  // Arjun-context screen; the checkbox itself is unchanged.
+  const page = src('pages/mindJournal/ArjunContextPage.jsx');
   const idx = page.indexOf('type="checkbox"');
   assert.ok(idx !== -1);
   // From the wrapping <label> (which owns the tap target) through the input.

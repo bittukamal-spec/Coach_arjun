@@ -18,6 +18,7 @@ const { apiFetch } = await import('../src/api');
 const { default: StartingProfilePage } = await import('../src/pages/StartingProfilePage.jsx');
 const { default: PlaybookPage } = await import('../src/pages/PlaybookPage.jsx');
 const { default: MindJournalPage } = await import('../src/pages/MindJournalPage.jsx');
+const { default: QuickNotePage } = await import('../src/pages/mindJournal/QuickNotePage.jsx');
 
 // ── Fixtures ────────────────────────────────────────────────────────────────
 
@@ -156,6 +157,15 @@ describe('every redesigned surface has exactly one page-level heading', () => {
     render(<MemoryRouter><MindJournalPage /></MemoryRouter>);
     const h1s = await screen.findAllByRole('heading', { level: 1 });
     expect(h1s).toHaveLength(1);
+    expect(h1s[0].textContent).toBe('Mind Journal');
+  });
+
+  test('each Mind Journal creation screen also renders exactly one <h1>', async () => {
+    apiFetch.mockImplementation(async () => jsonOnce({ entries: [] }));
+    render(<MemoryRouter><QuickNotePage /></MemoryRouter>);
+    const h1s = await screen.findAllByRole('heading', { level: 1 });
+    expect(h1s).toHaveLength(1);
+    expect(h1s[0].textContent).toBe('Quick note');
   });
 
   test('the Performance Profile still renders exactly one <h1>', async () => {
@@ -204,6 +214,9 @@ describe('Focus Card power line on Playbook', () => {
 
 // ── 4. Mind Journal uses the shared save indicator ──────────────────────────
 
+// PR 2A moved writing off the Mind Journal landing screen onto the dedicated
+// creation screens; Quick Note is where a save can now fail, and it uses the
+// same shared indicator this test was written to protect.
 describe('Mind Journal save state', () => {
   test('a failed save surfaces the specific error through the shared indicator, with a retry', async () => {
     const { default: userEvent } = await import('@testing-library/user-event');
@@ -211,13 +224,13 @@ describe('Mind Journal save state', () => {
       if (p === '/api/mind-journal' && init.method === 'POST') return jsonOnce({ error: 'Something went wrong' }, 500);
       return jsonOnce({ entries: [] });
     });
-    render(<MemoryRouter><MindJournalPage /></MemoryRouter>);
+    render(<MemoryRouter><QuickNotePage /></MemoryRouter>);
 
     // Pick a state so Save is enabled, then save.
     const states = await screen.findAllByRole('button');
     const calm = states.find((b) => /Calm/i.test(b.textContent || ''));
     await userEvent.click(calm);
-    await userEvent.click(screen.getByRole('button', { name: 'Save entry' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save note' }));
 
     // The status region announces the failure, keeping the SPECIFIC message
     // rather than flattening it to a generic one, and offers a retry.

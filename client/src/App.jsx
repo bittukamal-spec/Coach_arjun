@@ -22,6 +22,11 @@ import GuardianConsentPage from './pages/GuardianConsentPage';
 import PricingPage from './pages/PricingPage';
 import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import MindJournalPage from './pages/MindJournalPage';
+import QuickNotePage from './pages/mindJournal/QuickNotePage';
+import GuidedReflectionPage from './pages/mindJournal/GuidedReflectionPage';
+import GuidedReflectionDetailsPage from './pages/mindJournal/GuidedReflectionDetailsPage';
+import ReflectionSavedPage from './pages/mindJournal/ReflectionSavedPage';
+import ArjunContextPage from './pages/mindJournal/ArjunContextPage';
 import VisualizationPage from './pages/VisualizationPage';
 import SelfTalkPage from './pages/SelfTalkPage';
 import FocusSelfTalkSkillPath from './pages/skills/FocusSelfTalkSkillPath';
@@ -167,12 +172,57 @@ function App() {
         }
       />
       {/* Mind Journal — score-free, replaces the old scored Mental Fitness
-          check-in. Full screen, no BottomNav. */}
+          check-in. Every screen is full screen, no BottomNav.
+
+          Literal segments are declared before any dynamic one: /saved/:id is
+          the only dynamic route here today, and a future single-entry
+          /mind-journal/:id must be added after these so it can never swallow
+          /quick, /new or /context. */}
       <Route
         path="/mind-journal"
         element={
           <ProtectedRoute requireOnboarding={true}>
             <MindJournalPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/mind-journal/quick"
+        element={
+          <ProtectedRoute requireOnboarding={true}>
+            <QuickNotePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/mind-journal/new"
+        element={
+          <ProtectedRoute requireOnboarding={true}>
+            <GuidedReflectionPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/mind-journal/new/details"
+        element={
+          <ProtectedRoute requireOnboarding={true}>
+            <GuidedReflectionDetailsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/mind-journal/context"
+        element={
+          <ProtectedRoute requireOnboarding={true}>
+            <ArjunContextPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/mind-journal/saved/:id"
+        element={
+          <ProtectedRoute requireOnboarding={true}>
+            <ReflectionSavedPage />
           </ProtectedRoute>
         }
       />

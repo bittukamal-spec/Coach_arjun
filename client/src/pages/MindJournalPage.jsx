@@ -1,45 +1,82 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
-import HelplineList from '../components/HelplineList';
 import { Card, PageHeader, SectionLabel, SaveStatus } from '../components/ui';
+import { guidedPreview } from './mindJournal/constants';
 
-// ─── Mind Journal — score-free replacement for the old Mental Fitness
-// check-in. Select 1-2 current states, optionally write a short note, save.
-// No chart, no score, no streak, no comparison, no AI interpretation —
-// just a private, plain record the athlete can look back on. ───────────────
+// ─── Mind Journal home — the landing screen for a personal, score-free
+// record. It starts the two ways in (a guided reflection or a quick note),
+// shows where the optional Arjun-context setting currently stands, and
+// lists what has already been written. Nothing here is scored, ranked or
+// compared, and writing happens on the dedicated screens rather than in a
+// form on this page. ───────────────────────────────────────────────────────
 
-// Stable internal state keys — never shown to the athlete directly.
-// Translated labels live in translations.js under mindJournal.states.
-const STATE_KEYS = ['calm', 'focused', 'confident', 'motivated', 'nervous', 'frustrated', 'distracted', 'tired'];
+// One recent-list row. Guided reflections and quick notes are different
+// records and read differently; legacy rows (entryType null, written before
+// the guided flow existed) carry only states and a note, so they render as
+// the quick note they effectively are — never with empty guided sections.
+//
+// Rows are deliberately inert: opening a single entry is a separate change,
+// so there is no chevron, no overflow menu and no edit or delete affordance
+// that would not actually do anything.
+function EntryRow({ entry, mj, dateLabel }) {
+  const isGuided = entry.entryType === 'GUIDED_REFLECTION';
+  const stateTags = entry.states?.length ? entry.states.map(k => mj.states[k]).join(' · ') : null;
+  const preview = isGuided ? guidedPreview(entry) : entry.note;
+  // takeForward gets its own row, and it is also last in the preview
+  // precedence — so when it is the only thing written, show it once as the
+  // labelled row rather than twice.
+  const showPreview = preview && preview !== entry.takeForward;
 
-const MAX_NOTE_LENGTH = 500;
+  return (
+    <Card className="p-3.5">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-micro font-bold text-slt uppercase">
+          {isGuided
+            ? (mj.contextTypes[entry.contextType] || mj.contextTypes.SOMETHING_ELSE)
+            : mj.quickNote.tag}
+        </p>
+        <p className="text-caption text-slt shrink-0">{dateLabel}</p>
+      </div>
+
+      {stateTags && <p className="text-body font-semibold text-ink mt-1.5">{stateTags}</p>}
+
+      {showPreview && <p className="text-caption text-slt mt-1.5 leading-relaxed">{preview}</p>}
+
+      {isGuided && entry.takeForward && (
+        <p className="text-caption text-slt mt-2 leading-relaxed">
+          <span className="font-bold text-ink">{mj.takeForwardLabel}: </span>
+          {entry.takeForward}
+        </p>
+      )}
+    </Card>
+  );
+}
 
 export default function MindJournalPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { token, language } = useAuth();
   const t = translations[language];
   const mj = t.mindJournal;
 
-  const [selected, setSelected] = useState([]);
-  const [note, setNote] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState(null);
-  const [savedJustNow, setSavedJustNow] = useState(false);
-  const [safetyGuidance, setSafetyGuidance] = useState(null);
-
   const [entries, setEntries] = useState(null); // null = loading, false = load error
   const [contextEnabled, setContextEnabled] = useState(false);
-  const [contextSaving, setContextSaving] = useState(false);
-  const [contextError, setContextError] = useState(false);
 
-  const authHeaders = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+  // Quick Note returns here after a successful save rather than confirming
+  // on its own screen; this acknowledges it once and then gets out of the way.
+  const [savedJustNow, setSavedJustNow] = useState(!!location.state?.justSaved);
+  useEffect(() => {
+    if (!savedJustNow) return undefined;
+    const timer = setTimeout(() => setSavedJustNow(false), 3000);
+    return () => clearTimeout(timer);
+  }, [savedJustNow]);
 
   const loadEntries = useCallback(() => {
     setEntries(null);
-    apiFetch('/api/mind-journal', { headers: authHeaders })
+    apiFetch('/api/mind-journal', { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } })
       .then(r => (r.ok ? r.json() : null))
       .then(data => {
         if (!data) { setEntries(false); return; }
@@ -47,73 +84,9 @@ export default function MindJournalPage() {
         setContextEnabled(!!data.contextEnabled);
       })
       .catch(() => setEntries(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   useEffect(() => { loadEntries(); }, [loadEntries]);
-
-  function toggleState(key) {
-    setSelected(prev => {
-      if (prev.includes(key)) return prev.filter(k => k !== key);
-      if (prev.length >= 2) return prev;
-      return [...prev, key];
-    });
-  }
-
-  async function handleSave() {
-    if (selected.length === 0 || saving) return;
-    setSaving(true);
-    setSaveError(null);
-    setSavedJustNow(false);
-    try {
-      const res = await apiFetch('/api/mind-journal', {
-        method: 'POST',
-        headers: authHeaders,
-        body: JSON.stringify({ states: selected, note: note.trim() ? note : undefined }),
-      });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) {
-        setSaveError(data?.error || mj.errorGeneric);
-      } else if (data?.safetyFlag === 'needs_support') {
-        setSafetyGuidance(data.guidance || null);
-      } else if (data?.entry) {
-        setSelected([]);
-        setNote('');
-        setSavedJustNow(true);
-        setEntries(prev => (Array.isArray(prev) ? [data.entry, ...prev].slice(0, 20) : [data.entry]));
-        setTimeout(() => setSavedJustNow(false), 3000);
-      }
-    } catch {
-      setSaveError(mj.errorNetwork);
-    }
-    setSaving(false);
-  }
-
-  async function handleContextToggle() {
-    const next = !contextEnabled;
-    const previous = contextEnabled;
-    setContextEnabled(next);
-    setContextError(false);
-    setContextSaving(true);
-    try {
-      const res = await apiFetch('/api/mind-journal/context', {
-        method: 'PATCH',
-        headers: authHeaders,
-        body: JSON.stringify({ enabled: next }),
-      });
-      const data = await res.json().catch(() => null);
-      if (!res.ok || typeof data?.contextEnabled !== 'boolean') {
-        setContextEnabled(previous);
-        setContextError(true);
-      } else {
-        setContextEnabled(data.contextEnabled);
-      }
-    } catch {
-      setContextEnabled(previous);
-      setContextError(true);
-    }
-    setContextSaving(false);
-  }
 
   function formatDate(iso) {
     const d = new Date(iso);
@@ -127,106 +100,49 @@ export default function MindJournalPage() {
       <div className="px-page pt-4 max-w-lg mx-auto">
         <p className="text-body text-slt mb-6 leading-relaxed">{mj.subtitle}</p>
 
-        {safetyGuidance ? (
-          /* ── Safety guidance — replaces the form entirely, never claims a save ── */
-          <Card className="p-4 mb-6">
-            <h2 className="text-body font-bold text-amber-400 mb-2">{mj.safety.heading}</h2>
-            <p className="text-body text-slt leading-relaxed mb-4">{safetyGuidance}</p>
-            <div className="mb-4">
-              <HelplineList />
-            </div>
-            <button
-              onClick={() => setSafetyGuidance(null)}
-              className="w-full py-3 bg-dark-700 text-ink font-semibold rounded-2xl active:scale-95"
-            >
-              {mj.safety.okBtn}
-            </button>
-          </Card>
-        ) : (
-          <>
-            {/* ── State chips ─────────────────────────────────────────────── */}
-            <div className="mb-4 flex flex-wrap gap-2">
-              {STATE_KEYS.map(key => {
-                const isSelected = selected.includes(key);
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    aria-pressed={isSelected}
-                    onClick={() => toggleState(key)}
-                    // Sized locally rather than on the shared .chip recipe,
-                    // which other screens also use: 44px tall keeps these a
-                    // comfortable target without restyling chips app-wide.
-                    className="chip min-h-[44px] inline-flex items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
-                    style={isSelected ? { borderColor: 'var(--brand-primary)', backgroundColor: 'rgb(var(--brand-primary-rgb) / 0.15)', color: 'var(--brand-primary)' } : undefined}
-                  >
-                    {mj.states[key]}
-                  </button>
-                );
-              })}
-            </div>
-            <p className="text-caption text-slt mb-6">{mj.pickHint}</p>
+        <div className="mb-3 empty:mb-0">
+          <SaveStatus
+            state={savedJustNow ? 'saved' : 'idle'}
+            labels={{ saving: mj.saving, saved: mj.saved, saveFailed: null, retry: mj.retry }}
+          />
+        </div>
 
-            {/* ── Optional note ───────────────────────────────────────────── */}
-            <textarea
-              value={note}
-              onChange={e => setNote(e.target.value.slice(0, MAX_NOTE_LENGTH))}
-              maxLength={MAX_NOTE_LENGTH}
-              placeholder={mj.notePlaceholder}
-              rows={3}
-              className="input-field resize-none mb-1"
-            />
-            <p className="text-caption text-slt mb-5 text-right">{note.length}/{MAX_NOTE_LENGTH}</p>
+        {/* ── The two ways in ──────────────────────────────────────────── */}
+        <Card as={Link} to="/mind-journal/new" className="block p-4 mb-3 active:scale-[0.99] transition-transform">
+          <p className="text-body font-bold text-ink">{mj.newReflection.cardTitle}</p>
+          <p className="text-caption text-slt mt-1 leading-relaxed">{mj.newReflection.cardDesc}</p>
+          <p className="text-caption font-bold mt-3" style={{ color: 'var(--brand-primary)' }}>
+            {mj.newReflection.cta}
+          </p>
+        </Card>
 
-            {/* One shared save indicator instead of three one-off blocks.
-                The SPECIFIC error is passed through as `saveFailed`, so the
-                network-vs-server distinction the page already made is kept
-                rather than flattened into a generic failure line. Retry re-runs
-                the same handler — no autosave, no extra request on render. */}
-            <div className="mb-3 empty:mb-0">
-              <SaveStatus
-                state={saving ? 'saving' : saveError ? 'error' : savedJustNow ? 'saved' : 'idle'}
-                onRetry={handleSave}
-                labels={{ saving: mj.saving, saved: mj.saved, saveFailed: saveError, retry: mj.retry }}
-              />
-            </div>
+        <Link
+          to="/mind-journal/quick"
+          className="flex items-center min-h-[44px] text-body font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded"
+          style={{ color: 'var(--brand-primary)' }}
+        >
+          {mj.quickNote.action}
+        </Link>
 
-            <button
-              onClick={handleSave}
-              disabled={selected.length === 0 || saving}
-              className="w-full py-3.5 rounded-2xl text-white font-bold text-body active:scale-[0.98] transition-transform disabled:opacity-40"
-              style={{ backgroundColor: 'var(--brand-primary)' }}
-            >
-              {saving ? mj.saving : mj.saveBtn}
-            </button>
+        {/* ── Arjun context status — the control itself lives on its own
+            screen, so this row only reports where the setting stands ──── */}
+        <Card className="flex items-center justify-between gap-3 p-3.5 mt-5">
+          <p className="text-caption text-slt">
+            {mj.contextStatus.label}:{' '}
+            <span className="font-bold text-ink">
+              {contextEnabled ? mj.contextStatus.on : mj.contextStatus.off}
+            </span>
+          </p>
+          <Link
+            to="/mind-journal/context"
+            className="inline-flex items-center min-h-[44px] text-caption font-bold shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded"
+            style={{ color: 'var(--brand-primary)' }}
+          >
+            {mj.contextStatus.manage}
+          </Link>
+        </Card>
 
-            {/* ── Optional Arjun context opt-in ───────────────────────────── */}
-            <Card className="p-4 mt-6 mb-2">
-              {/* min-h keeps the whole row a comfortable target — the box
-                  itself is 16px, but the label is what the athlete taps. */}
-              <label className="flex items-start gap-3 cursor-pointer min-h-[44px] py-1">
-                <input
-                  type="checkbox"
-                  checked={contextEnabled}
-                  disabled={contextSaving}
-                  onChange={handleContextToggle}
-                  // `accent-color` themes the native control's checked fill in
-                  // both themes (it was rendering as the browser default blue,
-                  // ignoring the design system), and the focus ring makes the
-                  // control visible to keyboard users, which it previously
-                  // was not. Behaviour, state and label are unchanged.
-                  className="mt-1 w-4 h-4 shrink-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-dark-900 disabled:opacity-60"
-                  style={{ accentColor: 'var(--brand-primary)' }}
-                />
-                <span className="text-body text-ink font-medium leading-snug">{mj.contextLabel}</span>
-              </label>
-              <p className="text-caption text-slt mt-2 leading-relaxed">{mj.contextDisclosure}</p>
-              {contextError && <p className="text-caption text-red-500 mt-2">{mj.contextError}</p>}
-            </Card>
-          </>
-        )}
-
-        {/* ── Recent entries ──────────────────────────────────────────────── */}
+        {/* ── Recent entries ───────────────────────────────────────────── */}
         <div className="mt-8">
           <SectionLabel>{mj.recentHeading}</SectionLabel>
 
@@ -253,15 +169,7 @@ export default function MindJournalPage() {
           {Array.isArray(entries) && entries.length > 0 && (
             <div className="space-y-2">
               {entries.map(entry => (
-                <Card key={entry.id} className="p-3.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-body font-semibold text-ink">
-                      {entry.states.map(k => mj.states[k]).join(' · ')}
-                    </p>
-                    <p className="text-caption text-slt shrink-0">{formatDate(entry.createdAt)}</p>
-                  </div>
-                  {entry.note && <p className="text-caption text-slt mt-1.5 leading-relaxed">{entry.note}</p>}
-                </Card>
+                <EntryRow key={entry.id} entry={entry} mj={mj} dateLabel={formatDate(entry.createdAt)} />
               ))}
             </div>
           )}
