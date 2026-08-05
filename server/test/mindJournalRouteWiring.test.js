@@ -38,6 +38,7 @@ const MIND_JOURNAL_ROUTES = [
   { path: '/', method: 'POST' },
   { path: '/', method: 'GET' },
   { path: '/context', method: 'PATCH' },
+  { path: '/:id', method: 'DELETE' },
 ];
 
 test('/api/mind-journal is mounted', () => {
@@ -77,6 +78,9 @@ test('unauthenticated requests to every Mind Journal route return 401', async ()
       body: JSON.stringify({ enabled: true }),
     });
     assert.equal(patch.status, 401);
+
+    const del = await fetch(`${baseUrl}/api/mind-journal/some-id`, { method: 'DELETE' });
+    assert.equal(del.status, 401);
   } finally {
     await stopTestServer(server);
   }
@@ -104,9 +108,22 @@ test('the Mind Journal route file never queries/writes prisma.mentalFitnessEntry
   assert.doesNotMatch(legacySrc, /\.mindJournalEntry\./);
 });
 
-test('the Mind Journal route only ever writes states/note fields — no score is converted from anything', () => {
+test('the Mind Journal route only ever writes the approved fields — no score is converted from anything', () => {
   const src = readFileSync(path.join(__dirname, '../src/routes/mindJournal.js'), 'utf8');
   const createCallIdx = src.indexOf('client.mindJournalEntry.create(');
   const createBlock = src.slice(createCallIdx, src.indexOf(');', createCallIdx) + 2);
-  assert.match(createBlock, /data: \{ userId: req\.userId, states: body\.states, note \}/);
+  // PR 1: the approved schema additive fields — entryType, contextType, and
+  // the four guided-reflection text fields — alongside the original states
+  // and note. Still no score/rating/mood/interpretation of any kind.
+  assert.match(createBlock, /data: \{ userId: req\.userId, entryType, contextType, states, note, whatHappened, whatNoticed, helpedOrGotInWay, takeForward \}/);
+  assert.doesNotMatch(createBlock, /score|rating|\bmood\b|interpretation|\bpoints\b|\blevel\b/i);
+});
+
+test('the Mind Journal DELETE route only ever deletes an entry already confirmed to be owned by req.userId', () => {
+  const src = readFileSync(path.join(__dirname, '../src/routes/mindJournal.js'), 'utf8');
+  const deleteIdx = src.indexOf("router.delete('/:id'");
+  assert.ok(deleteIdx !== -1, 'expected a DELETE /:id route');
+  const block = src.slice(deleteIdx, src.indexOf('});', src.indexOf('});', deleteIdx) + 1) + 3);
+  assert.match(block, /if \(!existing \|\| existing\.userId !== req\.userId\) \{/);
+  assert.match(block, /return res\.status\(404\)/);
 });

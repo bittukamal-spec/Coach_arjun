@@ -52,6 +52,8 @@ function makeFakeClient(seed = {}) {
         return entry;
       },
       findMany: async ({ where }) => Object.values(entriesById).filter((e) => e.userId === where.userId),
+      findUnique: async ({ where }) => entriesById[where.id] || null,
+      delete: async ({ where }) => { const e = entriesById[where.id]; delete entriesById[where.id]; return e; },
     },
     // Fake writer target for recordSafetyEvent's default (real) client —
     // the shared safety service uses its OWN internal Prisma singleton, not
@@ -184,6 +186,146 @@ test('the route imports and calls the shared safety service with fixed mind_jour
   assert.doesNotMatch(recordCall[0], /\bnote\b/, 'the SafetyEvent write must never reference the raw note');
   assert.doesNotMatch(block, /excerpt|summary:/, 'must never persist an excerpt or summary of the note');
   assert.match(block, /getSafetyGuidance\(screen\.category/, 'must return the fixed guidance on a flagged note');
+});
+
+// ── PR 1: safety screening extended to the four guided-reflection fields ───
+
+const GUIDED_FIELD_CASES = [
+  ['whatHappened', { whatHappened: 'I want to kill myself' }],
+  ['whatNoticed', { whatNoticed: 'I want to kill myself' }],
+  ['helpedOrGotInWay', { helpedOrGotInWay: 'I want to kill myself' }],
+  ['takeForward', { takeForward: 'I want to kill myself' }],
+];
+
+for (const [fieldName, extra] of GUIDED_FIELD_CASES) {
+  test(`a crisis phrase in the guided field "${fieldName}": no MindJournalEntry is created, and the flag is returned instead of a save`, async () => {
+    const client = makeFakeClient({ usersById: { [`gflag-${fieldName}`]: adult() } });
+    const app = buildApp(client);
+    const { server, baseUrl } = await start(app);
+    try {
+      const res = await fetch(`${baseUrl}/api/mind-journal`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${tokenFor(`gflag-${fieldName}`)}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entryType: 'GUIDED_REFLECTION', contextType: 'TRAINING', states: ['nervous'], ...extra }),
+      });
+      assert.equal(res.status, 200);
+      const body = await res.json();
+      assert.equal(body.safetyFlag, 'needs_support');
+      assert.ok(body.guidance && body.guidance.length > 0);
+      // Fixed guidance only — never an echo of the flagged text.
+      assert.doesNotMatch(body.guidance, /kill myself/i);
+      assert.equal(Object.keys(client.__entriesById).length, 0, `no MindJournalEntry should be created when ${fieldName} is flagged`);
+    } finally {
+      await stop(server);
+    }
+  });
+}
+
+test('a flag on one guided field discards the WHOLE submission — no partial data (other safe fields, states, or contextType) is stored', async () => {
+  const client = makeFakeClient({ usersById: { 'gflag-partial': adult() } });
+  const app = buildApp(client);
+  const { server, baseUrl } = await start(app);
+  try {
+    const res = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('gflag-partial')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entryType: 'GUIDED_REFLECTION', contextType: 'COMPETITION', states: ['nervous', 'focused'],
+        whatHappened: 'A normal, safe description of the match.',
+        whatNoticed: 'I want to kill myself',
+        helpedOrGotInWay: 'Also a perfectly safe line.',
+        takeForward: 'Also safe.',
+      }),
+    });
+    const body = await res.json();
+    assert.equal(body.safetyFlag, 'needs_support');
+    assert.equal(Object.keys(client.__entriesById).length, 0, 'nothing — not even the safe fields — may be persisted');
+  } finally {
+    await stop(server);
+  }
+});
+
+test('screening order: note is checked before the four guided fields (note flags first when both would)', () => {
+  const src = readFileSync(path.join(__dirname, '../src/routes/mindJournal.js'), 'utf8');
+  const noteIdx = src.indexOf('if (note) screen = screenSafetyText(note);');
+  const whatHappenedIdx = src.indexOf('screenSafetyText(whatHappened)');
+  const whatNoticedIdx = src.indexOf('screenSafetyText(whatNoticed)');
+  const helpedIdx = src.indexOf('screenSafetyText(helpedOrGotInWay)');
+  const takeForwardIdx = src.indexOf('screenSafetyText(takeForward)');
+  assert.ok(noteIdx !== -1 && whatHappenedIdx !== -1 && whatNoticedIdx !== -1 && helpedIdx !== -1 && takeForwardIdx !== -1);
+  assert.ok(noteIdx < whatHappenedIdx, 'note must be screened before whatHappened');
+  assert.ok(whatHappenedIdx < whatNoticedIdx, 'whatHappened must be screened before whatNoticed');
+  assert.ok(whatNoticedIdx < helpedIdx, 'whatNoticed must be screened before helpedOrGotInWay');
+  assert.ok(helpedIdx < takeForwardIdx, 'helpedOrGotInWay must be screened before takeForward');
+});
+
+test('screening stops at the first flagged field: only ONE screenSafetyText call is made when note itself is flagged (guided fields are null for a QUICK_NOTE/legacy save anyway, but the guard is structural, not per-shape)', () => {
+  const src = readFileSync(path.join(__dirname, '../src/routes/mindJournal.js'), 'utf8');
+  // Every screen after the first is gated on `!screen.flagged` — the
+  // short-circuit that stops screening once something has already flagged.
+  const calls = [...src.matchAll(/screenSafetyText\((note|whatHappened|whatNoticed|helpedOrGotInWay|takeForward)\)/g)];
+  assert.equal(calls.length, 5, 'expected exactly one screening call site per field');
+  for (const m of calls.slice(1)) {
+    const lineStart = src.lastIndexOf('\n', m.index) + 1;
+    const before = src.slice(lineStart, m.index);
+    assert.match(before, /!screen\.flagged/, `screening ${m[1]} must be gated on the previous field not having flagged`);
+  }
+});
+
+test('an unflagged GUIDED_REFLECTION with all four text fields saves normally', async () => {
+  const client = makeFakeClient({ usersById: { 'gok-1': adult() } });
+  const app = buildApp(client);
+  const { server, baseUrl } = await start(app);
+  try {
+    const res = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('gok-1')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entryType: 'GUIDED_REFLECTION', contextType: 'TRAINING', states: ['focused'],
+        whatHappened: 'Good drills today.', whatNoticed: 'Stayed present.',
+        helpedOrGotInWay: 'The warm-up routine helped.', takeForward: 'Keep the same warm-up.',
+      }),
+    });
+    const body = await res.json();
+    assert.equal(body.safetyFlag, undefined);
+    assert.equal(body.entry.whatHappened, 'Good drills today.');
+    assert.equal(Object.keys(client.__entriesById).length, 1);
+  } finally {
+    await stop(server);
+  }
+});
+
+test('a guided reflection with no text at all (states only) never reaches the safety screen', async () => {
+  const client = makeFakeClient({ usersById: { 'gok-2': adult() } });
+  const app = buildApp(client);
+  const { server, baseUrl } = await start(app);
+  try {
+    const res = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('gok-2')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entryType: 'GUIDED_REFLECTION', contextType: 'TRAINING', states: ['calm', 'focused'] }),
+    });
+    const body = await res.json();
+    assert.equal(body.safetyFlag, undefined);
+    assert.equal(body.entry.whatHappened, null);
+  } finally {
+    await stop(server);
+  }
+});
+
+test('the route imports and calls the shared safety service for every guided field, never persisting their raw text', () => {
+  const src = readFileSync(path.join(__dirname, '../src/routes/mindJournal.js'), 'utf8');
+  const flagBlockStart = src.indexOf('if (screen.flagged)');
+  const flagBlockEnd = src.indexOf('const entry = await client.mindJournalEntry.create');
+  const block = src.slice(flagBlockStart, flagBlockEnd);
+  const recordCall = block.match(/recordSafetyEvent\([^;]*\);/s);
+  assert.ok(recordCall, 'expected a recordSafetyEvent call on the flagged path');
+  // The SafetyEvent write must never reference ANY of the five screened
+  // fields by name — a single fixed shape regardless of which one flagged.
+  for (const field of ['note', 'whatHappened', 'whatNoticed', 'helpedOrGotInWay', 'takeForward']) {
+    assert.doesNotMatch(recordCall[0], new RegExp(`\\b${field}\\b`), `the SafetyEvent write must never reference ${field}`);
+  }
+  assert.doesNotMatch(block, /excerpt|summary:/, 'must never persist an excerpt or summary of any field');
 });
 
 test('zero Anthropic calls are possible from this route — it never imports the Anthropic SDK', () => {

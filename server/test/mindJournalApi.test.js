@@ -84,6 +84,12 @@ function makeFakeClient(seed = {}) {
         if (take) rows = rows.slice(0, take);
         return rows;
       },
+      findUnique: async ({ where }) => entriesById[where.id] || null,
+      delete: async ({ where }) => {
+        const entry = entriesById[where.id];
+        delete entriesById[where.id];
+        return entry;
+      },
     },
     __usersById: usersById,
     __entriesById: entriesById,
@@ -487,5 +493,437 @@ test('regression: a valid PATCH payload ({ enabled }, nothing else) still succee
     assert.equal(res.status, 200);
     const body = await res.json();
     assert.equal(body.contextEnabled, true);
+  });
+});
+
+// ── PR 1: legacy / QUICK_NOTE shape (entryType omitted vs explicit) ────────
+
+test('legacy shape (entryType omitted): the currently deployed { states, note } payload still succeeds unchanged, entryType is stored null', async () => {
+  const client = makeFakeClient({ usersById: { 'legacy-1': adult() } });
+  await withApp(client, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('legacy-1')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ states: ['calm', 'tired'], note: 'Good session' }),
+    });
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.deepEqual(body.entry.states, ['calm', 'tired']);
+    assert.equal(body.entry.note, 'Good session');
+    assert.equal(body.entry.entryType, null);
+    assert.equal(body.entry.contextType, null);
+    assert.equal(body.entry.whatHappened, null);
+    assert.equal(body.entry.whatNoticed, null);
+    assert.equal(body.entry.helpedOrGotInWay, null);
+    assert.equal(body.entry.takeForward, null);
+  });
+});
+
+test('a pre-existing (legacy) entry with all new columns null serializes and loads with every new field as null', async () => {
+  const client = makeFakeClient({
+    usersById: { 'legacy-load': adult() },
+    entriesById: {
+      'mj-legacy': {
+        id: 'mj-legacy', userId: 'legacy-load', states: ['tired'], note: 'old entry',
+        entryType: null, contextType: null, whatHappened: null, whatNoticed: null, helpedOrGotInWay: null, takeForward: null,
+        createdAt: new Date(),
+      },
+    },
+  });
+  await withApp(client, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/mind-journal`, { headers: { Authorization: `Bearer ${tokenFor('legacy-load')}` } });
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.entries.length, 1);
+    const e = body.entries[0];
+    assert.deepEqual(e.states, ['tired']);
+    assert.equal(e.note, 'old entry');
+    for (const f of ['entryType', 'contextType', 'whatHappened', 'whatNoticed', 'helpedOrGotInWay', 'takeForward']) {
+      assert.equal(e[f], null, `${f} must be null for a legacy entry`);
+    }
+  });
+});
+
+test('QUICK_NOTE: explicit entryType with states+note succeeds and is stored/returned as QUICK_NOTE', async () => {
+  const client = makeFakeClient({ usersById: { 'qn-1': adult() } });
+  await withApp(client, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('qn-1')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entryType: 'QUICK_NOTE', states: ['focused'], note: 'Sharp today' }),
+    });
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.entry.entryType, 'QUICK_NOTE');
+    assert.deepEqual(body.entry.states, ['focused']);
+    assert.equal(body.entry.note, 'Sharp today');
+  });
+});
+
+test('QUICK_NOTE still requires 1-2 states (0 states rejected)', async () => {
+  const client = makeFakeClient({ usersById: { 'qn-2': adult() } });
+  await withApp(client, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('qn-2')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entryType: 'QUICK_NOTE', states: [] }),
+    });
+    assert.equal(res.status, 400);
+  });
+});
+
+test('QUICK_NOTE rejects a guided-only field (whatHappened) and contextType', async () => {
+  const client = makeFakeClient({ usersById: { 'qn-3': adult() } });
+  await withApp(client, async (baseUrl) => {
+    const resGuidedField = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('qn-3')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entryType: 'QUICK_NOTE', states: ['calm'], whatHappened: 'x' }),
+    });
+    assert.equal(resGuidedField.status, 400);
+
+    const resContextType = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('qn-3')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entryType: 'QUICK_NOTE', states: ['calm'], contextType: 'TRAINING' }),
+    });
+    assert.equal(resContextType.status, 400);
+    assert.equal(Object.keys(client.__entriesById).length, 0);
+  });
+});
+
+test('legacy shape (entryType omitted) also rejects a guided-only field and contextType', async () => {
+  const client = makeFakeClient({ usersById: { 'legacy-mix': adult() } });
+  await withApp(client, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('legacy-mix')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ states: ['calm'], contextType: 'TRAINING' }),
+    });
+    assert.equal(res.status, 400);
+  });
+});
+
+test('an unknown entryType value is rejected', async () => {
+  const client = makeFakeClient({ usersById: { 'bad-type': adult() } });
+  await withApp(client, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('bad-type')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entryType: 'SCORED_CHECKIN', states: ['calm'] }),
+    });
+    assert.equal(res.status, 400);
+  });
+});
+
+// ── PR 1: GUIDED_REFLECTION shape ───────────────────────────────────────────
+
+test('GUIDED_REFLECTION: valid entry with context, zero states, and one text field succeeds', async () => {
+  const client = makeFakeClient({ usersById: { 'gr-1': adult() } });
+  await withApp(client, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('gr-1')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entryType: 'GUIDED_REFLECTION', contextType: 'TRAINING', states: [], takeForward: 'Breathe before every serve.' }),
+    });
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.entry.entryType, 'GUIDED_REFLECTION');
+    assert.equal(body.entry.contextType, 'TRAINING');
+    assert.deepEqual(body.entry.states, []);
+    assert.equal(body.entry.note, null);
+    assert.equal(body.entry.takeForward, 'Breathe before every serve.');
+  });
+});
+
+test('GUIDED_REFLECTION: valid entry with context and states but no text succeeds', async () => {
+  const client = makeFakeClient({ usersById: { 'gr-2': adult() } });
+  await withApp(client, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('gr-2')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entryType: 'GUIDED_REFLECTION', contextType: 'COMPETITION', states: ['nervous', 'focused'] }),
+    });
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.deepEqual(body.entry.states, ['nervous', 'focused']);
+    assert.equal(body.entry.whatHappened, null);
+  });
+});
+
+test('GUIDED_REFLECTION: context-only submission (no states, no text) is rejected — creates no entry', async () => {
+  const client = makeFakeClient({ usersById: { 'gr-3': adult() } });
+  await withApp(client, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('gr-3')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entryType: 'GUIDED_REFLECTION', contextType: 'RECOVERY_DAY' }),
+    });
+    assert.equal(res.status, 400);
+    assert.equal(Object.keys(client.__entriesById).length, 0);
+  });
+});
+
+test('GUIDED_REFLECTION: whitespace-only text fields do not count toward "at least one field" — still rejected', async () => {
+  const client = makeFakeClient({ usersById: { 'gr-3b': adult() } });
+  await withApp(client, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('gr-3b')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entryType: 'GUIDED_REFLECTION', contextType: 'RECOVERY_DAY', states: [], whatHappened: '   ' }),
+    });
+    assert.equal(res.status, 400);
+  });
+});
+
+test('GUIDED_REFLECTION: more than 2 states rejected', async () => {
+  const client = makeFakeClient({ usersById: { 'gr-4': adult() } });
+  await withApp(client, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('gr-4')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entryType: 'GUIDED_REFLECTION', contextType: 'TOUGH_MOMENT', states: ['calm', 'focused', 'tired'] }),
+    });
+    assert.equal(res.status, 400);
+  });
+});
+
+test('GUIDED_REFLECTION: duplicate states rejected', async () => {
+  const client = makeFakeClient({ usersById: { 'gr-5': adult() } });
+  await withApp(client, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('gr-5')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entryType: 'GUIDED_REFLECTION', contextType: 'TOUGH_MOMENT', states: ['calm', 'calm'] }),
+    });
+    assert.equal(res.status, 400);
+  });
+});
+
+test('GUIDED_REFLECTION: unknown state values rejected', async () => {
+  const client = makeFakeClient({ usersById: { 'gr-6': adult() } });
+  await withApp(client, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('gr-6')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entryType: 'GUIDED_REFLECTION', contextType: 'TOUGH_MOMENT', states: ['happy'] }),
+    });
+    assert.equal(res.status, 400);
+  });
+});
+
+test('GUIDED_REFLECTION: missing contextType rejected', async () => {
+  const client = makeFakeClient({ usersById: { 'gr-7': adult() } });
+  await withApp(client, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('gr-7')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entryType: 'GUIDED_REFLECTION', states: ['calm'] }),
+    });
+    assert.equal(res.status, 400);
+  });
+});
+
+test('GUIDED_REFLECTION: unknown contextType value rejected', async () => {
+  const client = makeFakeClient({ usersById: { 'gr-8': adult() } });
+  await withApp(client, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('gr-8')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entryType: 'GUIDED_REFLECTION', contextType: 'HOLIDAY', states: ['calm'] }),
+    });
+    assert.equal(res.status, 400);
+  });
+});
+
+test('GUIDED_REFLECTION: note is rejected (guided reflections do not use note)', async () => {
+  const client = makeFakeClient({ usersById: { 'gr-9': adult() } });
+  await withApp(client, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('gr-9')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entryType: 'GUIDED_REFLECTION', contextType: 'TRAINING', states: ['calm'], note: 'x' }),
+    });
+    assert.equal(res.status, 400);
+  });
+});
+
+test('GUIDED_REFLECTION: each maximum length is enforced (1000/1000/1000/500)', async () => {
+  const client = makeFakeClient({ usersById: { 'gr-len': adult() } });
+  await withApp(client, async (baseUrl) => {
+    const cases = [
+      { whatHappened: 'x'.repeat(1001) },
+      { whatNoticed: 'x'.repeat(1001) },
+      { helpedOrGotInWay: 'x'.repeat(1001) },
+      { takeForward: 'x'.repeat(501) },
+    ];
+    for (const extra of cases) {
+      const res = await fetch(`${baseUrl}/api/mind-journal`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${tokenFor('gr-len')}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entryType: 'GUIDED_REFLECTION', contextType: 'TRAINING', states: ['calm'], ...extra }),
+      });
+      assert.equal(res.status, 400, `expected 400 for ${JSON.stringify(Object.keys(extra))}`);
+    }
+    assert.equal(Object.keys(client.__entriesById).length, 0);
+  });
+});
+
+test('GUIDED_REFLECTION: at-limit text lengths (1000/1000/1000/500) succeed', async () => {
+  const client = makeFakeClient({ usersById: { 'gr-atlimit': adult() } });
+  await withApp(client, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('gr-atlimit')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entryType: 'GUIDED_REFLECTION', contextType: 'TRAINING', states: ['calm'],
+        whatHappened: 'a'.repeat(1000), whatNoticed: 'b'.repeat(1000),
+        helpedOrGotInWay: 'c'.repeat(1000), takeForward: 'd'.repeat(500),
+      }),
+    });
+    assert.equal(res.status, 200);
+  });
+});
+
+test('GUIDED_REFLECTION: empty-string text fields normalize to null, malformed (non-string) fields rejected', async () => {
+  const client = makeFakeClient({ usersById: { 'gr-empty': adult() } });
+  await withApp(client, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('gr-empty')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entryType: 'GUIDED_REFLECTION', contextType: 'TRAINING', states: ['calm'],
+        whatHappened: '   ', whatNoticed: 'Real note here',
+      }),
+    });
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.entry.whatHappened, null);
+    assert.equal(body.entry.whatNoticed, 'Real note here');
+
+    const malformed = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('gr-empty')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entryType: 'GUIDED_REFLECTION', contextType: 'TRAINING', states: ['calm'], whatHappened: 12345 }),
+    });
+    assert.equal(malformed.status, 400);
+  });
+});
+
+test('GUIDED_REFLECTION → full create + GET serialization round-trip', async () => {
+  const client = makeFakeClient({ usersById: { 'gr-roundtrip': adult() } });
+  await withApp(client, async (baseUrl) => {
+    const create = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('gr-roundtrip')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entryType: 'GUIDED_REFLECTION', contextType: 'COMPETITION', states: ['nervous'],
+        whatHappened: 'Missed an easy chance early.', whatNoticed: 'Shoulders tensed up.',
+        helpedOrGotInWay: 'A slow exhale before the next play helped.', takeForward: 'One slow breath after any mistake.',
+      }),
+    });
+    assert.equal(create.status, 200);
+
+    const get = await fetch(`${baseUrl}/api/mind-journal`, { headers: { Authorization: `Bearer ${tokenFor('gr-roundtrip')}` } });
+    const body = await get.json();
+    assert.equal(body.entries.length, 1);
+    const e = body.entries[0];
+    assert.equal(e.entryType, 'GUIDED_REFLECTION');
+    assert.equal(e.contextType, 'COMPETITION');
+    assert.deepEqual(e.states, ['nervous']);
+    assert.equal(e.note, null);
+    assert.equal(e.whatHappened, 'Missed an easy chance early.');
+    assert.equal(e.whatNoticed, 'Shoulders tensed up.');
+    assert.equal(e.helpedOrGotInWay, 'A slow exhale before the next play helped.');
+    assert.equal(e.takeForward, 'One slow breath after any mistake.');
+  });
+});
+
+// ── PR 1: DELETE /api/mind-journal/:id ──────────────────────────────────────
+
+test('DELETE /api/mind-journal/:id: the owner can delete their own entry (200/204-class success)', async () => {
+  const client = makeFakeClient({ usersById: { 'del-1': adult() } });
+  await withApp(client, async (baseUrl) => {
+    const create = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('del-1')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ states: ['calm'] }),
+    });
+    const { entry } = await create.json();
+
+    const del = await fetch(`${baseUrl}/api/mind-journal/${entry.id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${tokenFor('del-1')}` },
+    });
+    assert.ok(del.status === 200 || del.status === 204, `expected a success status, got ${del.status}`);
+    assert.equal(Object.keys(client.__entriesById).length, 0);
+  });
+});
+
+test('DELETE /api/mind-journal/:id: the deleted entry no longer appears in GET', async () => {
+  const client = makeFakeClient({ usersById: { 'del-2': adult() } });
+  await withApp(client, async (baseUrl) => {
+    const create = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('del-2')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ states: ['tired'] }),
+    });
+    const { entry } = await create.json();
+
+    await fetch(`${baseUrl}/api/mind-journal/${entry.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${tokenFor('del-2')}` } });
+
+    const get = await fetch(`${baseUrl}/api/mind-journal`, { headers: { Authorization: `Bearer ${tokenFor('del-2')}` } });
+    const body = await get.json();
+    assert.equal(body.entries.length, 0);
+  });
+});
+
+test('DELETE /api/mind-journal/:id: another user cannot delete it — 404, entry survives, and the response is identical to an unknown id', async () => {
+  const client = makeFakeClient({ usersById: { 'owner-1': adult(), 'attacker-1': adult() } });
+  await withApp(client, async (baseUrl) => {
+    const create = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('owner-1')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ states: ['calm'] }),
+    });
+    const { entry } = await create.json();
+
+    const attackerDelete = await fetch(`${baseUrl}/api/mind-journal/${entry.id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${tokenFor('attacker-1')}` },
+    });
+    assert.equal(attackerDelete.status, 404);
+    const attackerBody = await attackerDelete.json();
+
+    const unknownIdDelete = await fetch(`${baseUrl}/api/mind-journal/does-not-exist`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${tokenFor('attacker-1')}` },
+    });
+    assert.equal(unknownIdDelete.status, 404);
+    const unknownBody = await unknownIdDelete.json();
+
+    assert.deepEqual(attackerBody, unknownBody, 'a non-owned id and an unknown id must be indistinguishable');
+    assert.equal(Object.keys(client.__entriesById).length, 1, 'the entry must survive an unauthorized delete attempt');
+  });
+});
+
+test('DELETE /api/mind-journal/:id: requires authentication', async () => {
+  const client = makeFakeClient({ usersById: { 'del-noauth': adult() } });
+  await withApp(client, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/mind-journal/some-id`, { method: 'DELETE' });
+    assert.equal(res.status, 401);
+  });
+});
+
+test('DELETE /api/mind-journal/:id: an unconsented minor is blocked with 403 CONSENT_REQUIRED', async () => {
+  const client = makeFakeClient({ usersById: { 'del-minor': unconsentedMinor() } });
+  await withApp(client, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/mind-journal/some-id`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${tokenFor('del-minor')}` },
+    });
+    assert.equal(res.status, 403);
+    const body = await res.json();
+    assert.equal(body.code, 'CONSENT_REQUIRED');
   });
 });

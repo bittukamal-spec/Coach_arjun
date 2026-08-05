@@ -282,7 +282,30 @@ model MindJournalEntry {
   note      String?
   createdAt DateTime @default(now())
 
+  // Additive guided-reflection fields (PR 1 of the Mind Journal redesign).
+  // All nullable — existing rows have entryType null and are treated as
+  // legacy quick notes; no back-compat break, no destructive migration.
+  entryType         MindJournalEntryType?
+  contextType       MindJournalContextType?
+  whatHappened      String?
+  whatNoticed       String?
+  helpedOrGotInWay  String?
+  takeForward       String?
+
   @@index([userId, createdAt])
+}
+
+enum MindJournalEntryType {
+  QUICK_NOTE
+  GUIDED_REFLECTION
+}
+
+enum MindJournalContextType {
+  TRAINING
+  COMPETITION
+  TOUGH_MOMENT
+  RECOVERY_DAY
+  SOMETHING_ELSE
 }
 
 model ToolReport {
