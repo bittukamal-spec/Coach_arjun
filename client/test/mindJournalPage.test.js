@@ -107,22 +107,22 @@ test('every Mind Journal screen reads copy from the shared translation system, w
 
 test('translations.js: every Mind Journal athlete-visible string exists in both English and Hindi', () => {
   const FLAT_KEYS = [
-    'title', 'subtitle', 'pickHint', 'saving', 'saved', 'errorGeneric', 'errorNetwork', 'retry',
+    'title', 'subtitle', 'privacyAria', 'pickHint', 'saving', 'saved', 'errorGeneric', 'errorNetwork', 'retry',
     'recentHeading', 'emptyState', 'loadError', 'retryBtn', 'disclosure', 'takeForwardLabel',
     'contextLabel', 'contextDisclosure', 'contextError',
   ];
   const GROUPED_KEYS = {
     newReflection: ['cardTitle', 'cardDesc', 'cta'],
-    quickNote: ['action', 'title', 'tag', 'intro', 'statesHeading', 'prompt', 'notePlaceholder', 'saveBtn'],
+    quickNote: ['action', 'cardDesc', 'title', 'tag', 'intro', 'statesHeading', 'prompt', 'notePlaceholder', 'saveBtn'],
     guided: [
-      'title', 'step1', 'step2', 'contextHeading', 'contextHint', 'statesHeading', 'statesHint',
-      'continueBtn', 'detailsIntro', 'whatHappened', 'whatHappenedPlaceholder', 'whatNoticed',
+      'title', 'step1', 'step2', 'step1Intro', 'contextHeading', 'contextHint', 'statesHeading', 'statesHint',
+      'continueBtn', 'switchToQuick', 'detailsIntro', 'whatHappened', 'whatHappenedPlaceholder', 'whatNoticed',
       'whatNoticedPlaceholder', 'helpedOrGotInWay', 'helpedOrGotInWayPlaceholder', 'takeForward',
       'takeForwardPlaceholder', 'needSomething', 'saveBtn',
     ],
-    savedScreen: ['title', 'heading', 'body', 'doneBtn'],
+    savedScreen: ['title', 'heading', 'body', 'doneBtn', 'viewBtn', 'contextHint'],
     contextStatus: ['label', 'on', 'off', 'manage'],
-    contextScreen: ['title', 'heading', 'body', 'notUsed', 'loadError'],
+    contextScreen: ['title', 'heading', 'body', 'latestFive', 'notUsed', 'offKeepsEntries', 'doneBtn', 'loadError'],
     safety: ['heading', 'okBtn'],
   };
 
@@ -139,6 +139,10 @@ test('translations.js: every Mind Journal athlete-visible string exists in both 
         assert.equal(typeof mj[group][key], 'string', `translations.${lang}.mindJournal.${group}.${key} must be a string`);
         assert.ok(mj[group][key].length > 0, `translations.${lang}.mindJournal.${group}.${key} must not be empty`);
       }
+    }
+    for (const key of CONTEXT_TYPE_KEYS) {
+      assert.equal(typeof mj.contextTypeHints[key], 'string', `translations.${lang}.mindJournal.contextTypeHints.${key}`);
+      assert.ok(mj.contextTypeHints[key].length > 0);
     }
   }
 });
@@ -288,12 +292,15 @@ test('quick note: shows the approved prompt, the eight states, and the personal 
 // ── Screens 3 & 4: guided reflection ───────────────────────────────────────
 
 test('guided step 1: context type is required and single-select; states stay optional', () => {
-  assert.match(step1, /CONTEXT_TYPE_KEYS\.map\(key =>/);
-  assert.match(step1, /onClick=\{\(\) => setContextType\(key\)\}/, 'single-select, not a toggle list');
-  assert.match(step1, /aria-pressed=\{isSelected\}/);
-  assert.match(step1, /\{mj\.contextTypes\[key\]\}/, 'context labels must be translated');
+  assert.match(step1, /<ContextTypeCards value=\{contextType\} onChange=\{setContextType\}/);
+  assert.match(shared, /CONTEXT_TYPE_KEYS\.map\(key =>/, 'context options render as structured cards');
+  assert.match(shared, /onClick=\{\(\) => onChange\(key\)\}/, 'single-select, not a toggle list');
+  assert.match(shared, /aria-pressed=\{isSelected\}/);
+  assert.match(shared, /\{mj\.contextTypes\[key\]\}/, 'context labels must be translated');
+  assert.match(shared, /\{mj\.contextTypeHints\[key\]\}/, 'each context card carries a one-line explanation');
   assert.match(step1, /disabled=\{!contextType\}/, 'Continue is blocked until a context type is picked');
   assert.match(step1, /\{g\.statesHint\}/, 'states are labelled optional here');
+  assert.match(step1, /\{g\.switchToQuick\}/, 'athletes can switch to the quick-note path');
 });
 
 test('guided step 1: hands its answers to step 2 and writes nothing itself', () => {
@@ -394,6 +401,8 @@ test('saved screen: quiet confirmation, showing Take forward when there is one',
   assert.match(savedScreen, /entry\.takeForward &&/);
   assert.match(savedScreen, /\{mj\.takeForwardLabel\}/);
   assert.match(savedScreen, /\{saved\.doneBtn\}/);
+  assert.match(savedScreen, /\{saved\.viewBtn\}/);
+  assert.match(savedScreen, /data-testid="mj-saved-summary"/);
   assert.match(savedScreen, /navigate\('\/mind-journal', \{ replace: true \}\)/);
 });
 
@@ -472,4 +481,49 @@ test('App.jsx: /mental-fitness still redirects to /mind-journal, and the old sco
 test('Dashboard.jsx: the visible check-in link still opens Mind Journal, unchanged by this PR', () => {
   assert.match(dashboard, /to="\/mind-journal"/);
   assert.doesNotMatch(dashboard, /to="\/mental-fitness"/);
+});
+
+// ── Visual structure (polish pass) ─────────────────────────────────────────
+
+test('home: hero, quick-note, context row and recent reflection sections are present', () => {
+  assert.match(home, /data-testid="mj-hero-new"/);
+  assert.match(home, /variant="hero"/);
+  assert.match(home, /data-testid="mj-quick-note"/);
+  assert.match(home, /data-testid="mj-context-row"/);
+  assert.match(home, /data-testid="mj-recent-section"/);
+  assert.match(home, /data-testid="mj-reflection-card"/);
+  assert.match(home, /elevation-card|elevation-hero|elevation-row/);
+  assert.doesNotMatch(home, /BottomNav/);
+});
+
+test('guided step 2: exposes four distinct prompt sections with live counters', () => {
+  assert.match(step2, /testId="mj-prompt-what-happened"/);
+  assert.match(step2, /testId="mj-prompt-what-noticed"/);
+  assert.match(step2, /testId="mj-prompt-helped"/);
+  assert.match(step2, /testId="mj-prompt-take-forward"/);
+  assert.match(step2, /data-testid="mj-summary-pills"/);
+  assert.match(step2, /<StepProgress/);
+});
+
+test('Mind Journal screens use semantic light/dark tokens rather than hardcoded page whites', () => {
+  for (const [name, source] of SCREENS) {
+    assert.match(source, /bg-dark-900/, `${name} must use the page token`);
+    assert.match(source, /text-ink|text-slt/, `${name} must use semantic text tokens`);
+    assert.doesNotMatch(
+      codeOnly(source),
+      /min-h-screen\s+bg-white|min-h-screen\s+bg-\[#fff/i,
+      `${name} must not hardcode a white page fill`
+    );
+  }
+});
+
+test('no Mind Journal screen mentions BottomNav, and copy stays free of streak/XP reward language', () => {
+  for (const [name, source] of SCREENS) {
+    assert.doesNotMatch(source, /BottomNav/, `${name} stays full-screen`);
+    assert.doesNotMatch(
+      codeOnly(source),
+      /xp\b|streak|confetti|badge|level up/i,
+      `${name} must not introduce reward language`
+    );
+  }
 });

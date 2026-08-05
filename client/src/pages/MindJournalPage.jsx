@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { ArrowRight, BookOpen, NotebookPen, Shield } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
 import { Card, PageHeader, SectionLabel, SaveStatus } from '../components/ui';
 import { guidedPreview } from './mindJournal/constants';
+import { contextIconFor } from './mindJournal/shared';
 
 // ─── Mind Journal home — the landing screen for a personal, score-free
 // record. It starts the two ways in (a guided reflection or a quick note),
@@ -23,34 +25,58 @@ import { guidedPreview } from './mindJournal/constants';
 // that would not actually do anything.
 function EntryRow({ entry, mj, dateLabel }) {
   const isGuided = entry.entryType === 'GUIDED_REFLECTION';
-  const stateTags = entry.states?.length ? entry.states.map(k => mj.states[k]).join(' · ') : null;
+  const stateTags = entry.states?.length ? entry.states.map(k => mj.states[k]) : [];
   const preview = isGuided ? guidedPreview(entry) : entry.note;
   // takeForward gets its own row, and it is also last in the preview
   // precedence — so when it is the only thing written, show it once as the
   // labelled row rather than twice.
   const showPreview = preview && preview !== entry.takeForward;
+  const ContextIcon = contextIconFor(entry.entryType, entry.contextType);
 
   return (
-    <Card className="p-3.5">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-micro font-bold text-slt uppercase">
-          {isGuided
-            ? (mj.contextTypes[entry.contextType] || mj.contextTypes.SOMETHING_ELSE)
-            : mj.quickNote.tag}
-        </p>
-        <p className="text-caption text-slt shrink-0">{dateLabel}</p>
+    <Card className="p-4 elevation-card" data-testid="mj-reflection-card">
+      <div className="flex items-start gap-3">
+        <span
+          className="w-10 h-10 rounded-2xl bg-brand-50 text-brand-500 flex items-center justify-center shrink-0"
+          aria-hidden="true"
+        >
+          <ContextIcon size={18} />
+        </span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-micro font-bold text-slt uppercase">
+              {isGuided
+                ? (mj.contextTypes[entry.contextType] || mj.contextTypes.SOMETHING_ELSE)
+                : mj.quickNote.tag}
+            </p>
+            <p className="text-caption text-slt shrink-0">{dateLabel}</p>
+          </div>
+
+          {stateTags.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {stateTags.map(label => (
+                <span
+                  key={label}
+                  className="inline-flex items-center px-2.5 py-1 rounded-full text-caption font-semibold bg-dark-700 text-ink border border-dark-600"
+                >
+                  {label}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {showPreview && <p className="text-caption text-slt mt-2.5 leading-relaxed">{preview}</p>}
+
+          {isGuided && entry.takeForward && (
+            <div className="mt-3 pt-3 border-t border-dark-600">
+              <p className="text-caption text-slt leading-relaxed">
+                <span className="font-bold text-ink">{mj.takeForwardLabel}: </span>
+                {entry.takeForward}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
-
-      {stateTags && <p className="text-body font-semibold text-ink mt-1.5">{stateTags}</p>}
-
-      {showPreview && <p className="text-caption text-slt mt-1.5 leading-relaxed">{preview}</p>}
-
-      {isGuided && entry.takeForward && (
-        <p className="text-caption text-slt mt-2 leading-relaxed">
-          <span className="font-bold text-ink">{mj.takeForwardLabel}: </span>
-          {entry.takeForward}
-        </p>
-      )}
     </Card>
   );
 }
@@ -94,10 +120,18 @@ export default function MindJournalPage() {
   }
 
   return (
-    <div className="min-h-screen bg-dark-900 pb-24">
-      <PageHeader onBack={() => navigate(-1)} title={mj.title} />
+    <div className="min-h-screen bg-dark-900 pb-[calc(2.5rem+env(safe-area-inset-bottom))]">
+      <PageHeader onBack={() => navigate(-1)} title={mj.title}>
+        <Link
+          to="/mind-journal/context"
+          aria-label={mj.privacyAria}
+          className="w-11 h-11 flex items-center justify-center rounded-full text-slt hover:text-brand-500 hover:bg-brand-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+        >
+          <Shield size={18} aria-hidden="true" />
+        </Link>
+      </PageHeader>
 
-      <div className="px-page pt-4 max-w-lg mx-auto">
+      <div className="px-page pt-5 max-w-lg mx-auto pb-10">
         <p className="text-body text-slt mb-6 leading-relaxed">{mj.subtitle}</p>
 
         <div className="mb-3 empty:mb-0">
@@ -108,66 +142,112 @@ export default function MindJournalPage() {
         </div>
 
         {/* ── The two ways in ──────────────────────────────────────────── */}
-        <Card as={Link} to="/mind-journal/new" className="block p-4 mb-3 active:scale-[0.99] transition-transform">
-          <p className="text-body font-bold text-ink">{mj.newReflection.cardTitle}</p>
-          <p className="text-caption text-slt mt-1 leading-relaxed">{mj.newReflection.cardDesc}</p>
-          <p className="text-caption font-bold mt-3" style={{ color: 'var(--brand-primary)' }}>
-            {mj.newReflection.cta}
-          </p>
+        <Card
+          as={Link}
+          to="/mind-journal/new"
+          variant="hero"
+          data-testid="mj-hero-new"
+          className="block p-5 mb-3 elevation-hero active:scale-[0.99] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+          style={{ '--grad-from': 'var(--brand-primary)', '--grad-to': '#0C4D85' }}
+        >
+          <div className="flex items-center gap-4">
+            <span
+              className="w-14 h-14 rounded-full bg-white/20 text-white flex items-center justify-center shrink-0 backdrop-blur-sm"
+              aria-hidden="true"
+            >
+              <BookOpen size={24} />
+            </span>
+            <div className="flex-1 min-w-0">
+              <p className="text-title font-bold text-white">{mj.newReflection.cardTitle}</p>
+              <p className="text-caption text-white/85 mt-1 leading-relaxed">{mj.newReflection.cardDesc}</p>
+            </div>
+            <span
+              className="w-10 h-10 rounded-full bg-white/20 text-white flex items-center justify-center shrink-0"
+              aria-hidden="true"
+            >
+              <ArrowRight size={18} />
+            </span>
+          </div>
+          <span className="sr-only">{mj.newReflection.cta}</span>
         </Card>
 
-        <Link
+        <Card
+          as={Link}
           to="/mind-journal/quick"
-          className="flex items-center min-h-[44px] text-body font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded"
-          style={{ color: 'var(--brand-primary)' }}
+          aria-label={mj.quickNote.action}
+          data-testid="mj-quick-note"
+          className="flex items-center gap-3.5 p-4 mb-5 elevation-card active:scale-[0.99] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
         >
-          {mj.quickNote.action}
-        </Link>
+          <span
+            className="w-11 h-11 rounded-2xl bg-brand-50 text-brand-500 flex items-center justify-center shrink-0"
+            aria-hidden="true"
+          >
+            <NotebookPen size={20} />
+          </span>
+          <span className="flex-1 min-w-0">
+            <span className="block text-body font-bold text-ink">{mj.quickNote.action}</span>
+            <span className="block text-caption text-slt mt-0.5 leading-snug">{mj.quickNote.cardDesc}</span>
+          </span>
+          <ArrowRight size={16} className="text-slt shrink-0" aria-hidden="true" />
+        </Card>
 
         {/* ── Arjun context status — the control itself lives on its own
             screen, so this row only reports where the setting stands ──── */}
-        <Card className="flex items-center justify-between gap-3 p-3.5 mt-5">
-          <p className="text-caption text-slt">
-            {mj.contextStatus.label}:{' '}
-            <span className="font-bold text-ink">
-              {contextEnabled ? mj.contextStatus.on : mj.contextStatus.off}
-            </span>
-          </p>
+        <Card
+          className="flex items-center justify-between gap-3 p-3.5 elevation-row"
+          data-testid="mj-context-row"
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span
+              className={`w-2.5 h-2.5 rounded-full shrink-0 ${contextEnabled ? 'bg-win-500' : 'bg-dark-500'}`}
+              aria-hidden="true"
+            />
+            <p className="text-caption text-slt">
+              {mj.contextStatus.label}:{' '}
+              <span className="font-bold text-ink">
+                {contextEnabled ? mj.contextStatus.on : mj.contextStatus.off}
+              </span>
+            </p>
+          </div>
           <Link
             to="/mind-journal/context"
-            className="inline-flex items-center min-h-[44px] text-caption font-bold shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded"
-            style={{ color: 'var(--brand-primary)' }}
+            className="inline-flex items-center min-h-[44px] px-2 text-caption font-bold shrink-0 text-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded"
           >
             {mj.contextStatus.manage}
           </Link>
         </Card>
 
         {/* ── Recent entries ───────────────────────────────────────────── */}
-        <div className="mt-8">
+        <div className="mt-8" data-testid="mj-recent-section">
           <SectionLabel>{mj.recentHeading}</SectionLabel>
 
           {entries === null && (
-            <div className="space-y-2">
-              <div className="h-16 bg-dark-800 rounded-2xl animate-pulse border border-dark-600" />
-              <div className="h-16 bg-dark-800 rounded-2xl animate-pulse border border-dark-600" />
+            <div className="space-y-2.5">
+              <div className="h-24 bg-dark-800 rounded-2xl animate-pulse border border-dark-600" />
+              <div className="h-24 bg-dark-800 rounded-2xl animate-pulse border border-dark-600" />
             </div>
           )}
 
           {entries === false && (
-            <Card className="p-4 text-center">
+            <Card className="p-4 text-center elevation-card">
               <p className="text-body text-slt mb-3">{mj.loadError}</p>
-              <button onClick={loadEntries} className="text-body font-bold" style={{ color: 'var(--brand-primary)' }}>
+              <button
+                onClick={loadEntries}
+                className="text-body font-bold text-brand-500 min-h-[44px] px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded"
+              >
                 {mj.retryBtn}
               </button>
             </Card>
           )}
 
           {Array.isArray(entries) && entries.length === 0 && (
-            <p className="text-body text-slt">{mj.emptyState}</p>
+            <Card className="p-5 text-center elevation-row">
+              <p className="text-body text-slt leading-relaxed">{mj.emptyState}</p>
+            </Card>
           )}
 
           {Array.isArray(entries) && entries.length > 0 && (
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {entries.map(entry => (
                 <EntryRow key={entry.id} entry={entry} mj={mj} dateLabel={formatDate(entry.createdAt)} />
               ))}

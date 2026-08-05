@@ -61,7 +61,7 @@ test('PlaybookPage and MindJournalPage: no score, diagnosis, profiling, or auto-
 
 test('MindJournalPage: uses the shared PageHeader primitive instead of a hand-rolled header', () => {
   assert.match(mindJournal, /import \{ Card, PageHeader, SectionLabel, SaveStatus \} from '\.\.\/components\/ui'/);
-  assert.match(mindJournal, /<PageHeader onBack=\{\(\) => navigate\(-1\)\} title=\{mj\.title\} \/>/);
+  assert.match(mindJournal, /<PageHeader onBack=\{\(\) => navigate\(-1\)\} title=\{mj\.title\}/);
 });
 
 test('MindJournalPage: uses the shared Card primitive and SectionLabel, not legacy card-surface/hand-rolled label classes', () => {
