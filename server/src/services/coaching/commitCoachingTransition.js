@@ -30,19 +30,29 @@ class CoachingStateConflictError extends Error {
   }
 }
 
-// Deterministic fallback shown when a staged transition cannot be
-// committed (conflict/failure) or the tool loop hits its round cap.
-// Fixed copy — never model-generated.
+// Deterministic fallback shown when a staged transition cannot be committed
+// (conflict/failure — including after one bounded transient-error retry in
+// chat.js) or the tool loop hits its round cap. Fixed copy — never
+// model-generated.
+//
+// Deliberately does NOT say "nothing was changed": the athlete's own message
+// is already persisted by the time this can ever fire (chat.js saves it
+// before the model is called), so that claim is false regardless of which
+// failure triggered this copy. It also never asks the athlete to resend —
+// resending would only duplicate an already-stored message, and if the
+// coaching step in fact committed on a retry, it would be asking the athlete
+// to redo something already done. Instead it reassures the athlete that
+// their own message is safe and hands the conversation straight back.
 function getRetryMessage(language) {
   return language === 'hi'
-    ? 'Abhi main woh coaching step save nahi kar paya. Kuch bhi change nahi hua — apna last message dobara bhej do.'
-    : "I couldn't save that coaching step just now. Nothing was changed — please send your last message again.";
+    ? "Abhi main woh coaching step save nahi kar paya. Tumhara message safe hai — chalo aage badhte hain, main yahin se guide karunga."
+    : "I couldn't save that coaching step just now. Your message is safe. Please continue, and I'll guide you from here.";
 }
 
 // Deterministic fallback used when the model's own reply failed athlete-facing
 // validation (internal text leaked, or an acknowledgement-only response) AND
 // the controlled retry also failed. Distinct from getRetryMessage above,
-// which says "nothing was changed" — that would be untrue here, because a
+// which acknowledges a save failure — that would be untrue here, because a
 // staged coaching transition still commits with this text.
 //
 // `situationPhrase` must be server-generated, already-validated copy (the
