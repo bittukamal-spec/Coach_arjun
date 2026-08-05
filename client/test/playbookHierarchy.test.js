@@ -118,13 +118,13 @@ test('Reflections: own section container with existing entries, empty state and 
   assert.match(pbHi, /reflectionsCta:/);
 });
 
-test('Mind Journal entry: a proper quiet card with title, privacy/no-score line and /mind-journal action', () => {
+test('Mind Journal entry: a proper quiet card with title, personal/score-free line and /mind-journal action', () => {
   const block = src.slice(src.indexOf('Mind Journal —'));
   assert.match(block, /<Card/);
   assert.doesNotMatch(block, /variant="hero"/);
   assert.match(block, /navigate\('\/mind-journal'\)/);
   assert.match(block, /\{pb\.journalDesc\}/);
-  assert.match(pbEn, /journalDesc:\s*'Private, no scores — add an entry\.'/);
+  assert.match(pbEn, /journalDesc:\s*'A personal, score-free place to reflect and carry something useful forward\.'/);
   assert.match(pbHi, /कोई स्कोर नहीं/);
 });
 

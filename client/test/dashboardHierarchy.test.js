@@ -172,7 +172,7 @@ test('Mind Journal is a larger card linking to /mind-journal with the approved n
   // Stage I moved this copy into the `home` namespace; the page wires the key
   // and the copy itself is asserted where it now lives.
   assert.ok(src.includes('{t.journalDesc}'));
-  assert.ok(translations.includes(`A private place to note how you're feeling. No scores.`));
+  assert.ok(translations.includes(`A personal, score-free place to reflect and carry something useful forward.`));
   assert.ok(src.includes('{t.journalHint}'), 'one extra short purpose line, no pressure to write daily');
   assert.ok(translations.includes(`Write whenever you feel like it`));
   assert.doesNotMatch(codeOnly, /daily habit|every day|har din likho/i, 'no pressure-to-write-daily copy');

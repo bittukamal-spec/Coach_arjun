@@ -274,7 +274,7 @@ export const translations = {
     // live with their own data structures in Dashboard.jsx.
     home: {
       journalTitle: 'Mind Journal',
-      journalDesc: "A private place to note how you're feeling. No scores.",
+      journalDesc: 'A personal, score-free place to reflect and carry something useful forward.',
       journalHint: "Write whenever you feel like it — it's just a space for your own words.",
       greeting: (name) => `Hi, ${name}`,
       athleteFallback: 'Athlete',
@@ -1489,7 +1489,7 @@ export const translations = {
       reflectionsEmpty: 'No reflections yet.',
       reflectionsCta:   'Start a reflection',
       journalTitle:     'Mind Journal',
-      journalDesc:      'Private, no scores — add an entry.',
+      journalDesc:      'A personal, score-free place to reflect and carry something useful forward.',
       intro:            'Your cues, cards, and reflections — private, just for you.',
       learningEmpty:    "You haven't recorded any lessons yet. When you tell Arjun how a practice went, the lesson lands here.",
       weekReps:         (n) => `You've completed ${n} mental rep${n === 1 ? '' : 's'} this week.`,
@@ -1979,7 +1979,7 @@ export const translations = {
     // live with their own data structures in Dashboard.jsx.
     home: {
       journalTitle: 'माइंड जर्नल',
-      journalDesc: 'तुम्हारी feelings का एक निजी नोट। कोई स्कोर नहीं।',
+      journalDesc: 'तुम्हारी अपनी जगह, कोई स्कोर नहीं — reflect करो और आगे ले जाने लायक बात साथ रखो।',
       journalHint: 'जब मन करे तब लिखो — यह सिर्फ तुम्हारे अपने शब्दों के लिए है।',
       greeting: (name) => `हाय, ${name}`,
       athleteFallback: 'एथलीट',
@@ -3236,7 +3236,7 @@ export const translations = {
       reflectionsEmpty: 'अभी कोई reflection नहीं।',
       reflectionsCta:   'नया reflection शुरू करो',
       journalTitle:     'माइंड जर्नल',
-      journalDesc:      'निजी जगह, कोई स्कोर नहीं — एक एंट्री जोड़ो।',
+      journalDesc:      'तुम्हारी अपनी जगह, कोई स्कोर नहीं — reflect करो और आगे ले जाने लायक बात साथ रखो।',
       intro:            'तुम्हारे cues, cards और reflections — सिर्फ तुम्हारे लिए, private.',
       learningEmpty:    'अभी कोई सीख दर्ज नहीं हुई। जब तुम किसी practice का नतीजा Arjun को बताओगे, वह सीख यहाँ दिखेगी।',
       weekReps:         (n) => `${n} मेंटल रेप पूरे किए।`,
