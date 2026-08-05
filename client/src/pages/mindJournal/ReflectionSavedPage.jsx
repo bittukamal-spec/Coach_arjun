@@ -3,7 +3,8 @@ import { CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { translations } from '../../i18n/translations';
 import { Card, PageHeader, Button } from '../../components/ui';
-import { guidedPreview } from './constants';
+import { guidedPreview, stateTagsForEntry } from './constants';
+import { useMindJournalBack } from './shared';
 
 // ─── Reflection saved — a plain confirmation, deliberately quiet. No score,
 // no rank, no comparison to last time, no reward animation: the reflection
@@ -17,6 +18,7 @@ import { guidedPreview } from './constants';
 export default function ReflectionSavedPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const handleBack = useMindJournalBack();
   const { language } = useAuth();
   const mj = translations[language].mindJournal;
   const saved = mj.savedScreen;
@@ -27,7 +29,7 @@ export default function ReflectionSavedPage() {
   const contextLabel = entry.contextType
     ? (mj.contextTypes[entry.contextType] || mj.contextTypes.SOMETHING_ELSE)
     : null;
-  const stateTags = entry.states?.length ? entry.states.map(k => mj.states[k]) : [];
+  const stateTags = stateTagsForEntry(entry, mj);
   const preview = guidedPreview(entry) || entry.note;
   const showPreview = preview && preview !== entry.takeForward;
 
@@ -40,7 +42,7 @@ export default function ReflectionSavedPage() {
 
   return (
     <div className="min-h-screen bg-dark-900 pb-10">
-      <PageHeader backTo="/mind-journal" title={saved.title} />
+      <PageHeader onBack={handleBack} title={saved.title} />
 
       <div className="px-page pt-8 max-w-lg mx-auto">
         <div className="flex flex-col items-center text-center mb-7">
@@ -66,10 +68,10 @@ export default function ReflectionSavedPage() {
 
           {stateTags.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mb-3">
-              {stateTags.map(label => (
+              {stateTags.map((label, idx) => (
                 <span
-                  key={label}
-                  className="inline-flex items-center px-2.5 py-1 rounded-full text-caption font-semibold bg-dark-700 text-ink border border-dark-600"
+                  key={`${label}-${idx}`}
+                  className="inline-flex items-center px-2.5 py-1 rounded-full text-caption font-semibold bg-dark-700 text-ink border border-dark-600 max-w-full break-words"
                 >
                   {label}
                 </span>

@@ -28,16 +28,24 @@ const json = (body, status = 200) => ({ ok: status >= 200 && status < 300, statu
 
 // The real route table for this feature, so navigation between the screens
 // is exercised rather than simulated.
-function LocationProbe() {
+function LocationStateProbe() {
   const location = useLocation();
-  return <div data-testid="pathname">{location.pathname}</div>;
+  return (
+    <>
+      <div data-testid="pathname">{location.pathname}</div>
+      <div data-testid="location-key">{location.key}</div>
+      <div data-testid="location-state">{JSON.stringify(location.state ?? null)}</div>
+    </>
+  );
 }
 
-function renderFlow(initialEntry = '/mind-journal') {
+function renderFlow(initialEntries = '/mind-journal') {
+  const entries = Array.isArray(initialEntries) ? initialEntries : [initialEntries];
   return render(
-    <MemoryRouter initialEntries={[initialEntry]}>
-      <LocationProbe />
+    <MemoryRouter initialEntries={entries}>
+      <LocationStateProbe />
       <Routes>
+        <Route path="/prior" element={<div data-testid="prior-page">prior</div>} />
         <Route path="/mind-journal" element={<MindJournalPage />} />
         <Route path="/mind-journal/quick" element={<QuickNotePage />} />
         <Route path="/mind-journal/new" element={<GuidedReflectionPage />} />
@@ -108,6 +116,101 @@ describe('Quick note', () => {
     await clickByName('Tired');
     expect((await screen.findByRole('button', { name: 'Tired' })).getAttribute('aria-pressed')).toBe('false');
     expect((await screen.findByRole('button', { name: 'Calm' })).getAttribute('aria-pressed')).toBe('true');
+  });
+
+  test('Something else opens a custom field; custom-only and built-in+custom can save', async () => {
+    apiFetch.mockImplementation(async (p, init) => {
+      if (p === '/api/mind-journal' && init?.method === 'POST') {
+        const body = JSON.parse(init.body);
+        return json({ entry: { id: 'e-custom', ...body } });
+      }
+      return json({ entries: [], contextEnabled: false });
+    });
+    renderFlow('/mind-journal/quick');
+
+    await clickByName('Something else');
+    expect(await screen.findByLabelText('Write your own state')).toBeTruthy();
+    await userEvent.type(screen.getByLabelText('Write your own state'), 'Match-day wired');
+    await clickByName('Save note');
+    expect(postedEntry()).toEqual({
+      entryType: 'QUICK_NOTE',
+      states: [],
+      customState: 'Match-day wired',
+    });
+
+    cleanup();
+    apiFetch.mockClear();
+    apiFetch.mockImplementation(async (p, init) => {
+      if (p === '/api/mind-journal' && init?.method === 'POST') {
+        return json({ entry: { id: 'e2', states: ['calm'], customState: 'wired' } });
+      }
+      return json({ entries: [], contextEnabled: false });
+    });
+    renderFlow('/mind-journal/quick');
+    await clickByName('Calm');
+    await clickByName('Something else');
+    await userEvent.type(screen.getByLabelText('Write your own state'), 'wired');
+    await clickByName('Focused');
+    expect((await screen.findByRole('button', { name: 'Focused' })).getAttribute('aria-pressed')).toBe('false');
+    await clickByName('Save note');
+    expect(postedEntry()).toEqual({
+      entryType: 'QUICK_NOTE',
+      states: ['calm'],
+      customState: 'wired',
+    });
+  });
+
+  test('a failed save retains the custom state text in the field', async () => {
+    apiFetch.mockImplementation(async (p, init) => {
+      if (p === '/api/mind-journal' && init?.method === 'POST') return json({ error: 'server_error' }, 500);
+      return json({ entries: [], contextEnabled: false });
+    });
+    renderFlow('/mind-journal/quick');
+    await clickByName('Something else');
+    await userEvent.type(screen.getByLabelText('Write your own state'), 'still here');
+    await clickByName('Save note');
+    expect(await screen.findByText(/server_error|Something went wrong/)).toBeTruthy();
+    expect(screen.getByLabelText('Write your own state').value).toBe('still here');
+    expect(screen.getByTestId('pathname').textContent).toBe('/mind-journal/quick');
+  });
+});
+
+describe('Quick note back navigation', () => {
+  test('Journal → Quick Note → header back uses history and does not push another Journal entry', async () => {
+    renderFlow(['/prior', '/mind-journal']);
+    await userEvent.click(await screen.findByTestId('mj-quick-note'));
+    expect((await screen.findByTestId('pathname')).textContent).toBe('/mind-journal/quick');
+    expect(JSON.parse(screen.getByTestId('location-state').textContent).from).toBe('mindJournal');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Back' }));
+    expect((await screen.findByTestId('pathname')).textContent).toBe('/mind-journal');
+
+    // Another back from Journal continues to the page before Journal — not Quick Note.
+    await userEvent.click(screen.getByRole('button', { name: 'Back' }));
+    expect((await screen.findByTestId('pathname')).textContent).toBe('/prior');
+  });
+
+  test('direct Quick Note access falls back with replace to Journal', async () => {
+    renderFlow('/mind-journal/quick');
+    await userEvent.click(await screen.findByRole('button', { name: 'Back' }));
+    expect((await screen.findByTestId('pathname')).textContent).toBe('/mind-journal');
+    // Replace means there is no Quick Note entry left behind to loop into.
+    expect(screen.queryByRole('button', { name: 'Save note' })).toBeNull();
+  });
+
+  test('guided Step 2 back still restores Step 1 draft (unchanged contract)', async () => {
+    renderFlow('/mind-journal/new');
+    await clickRadio('A tough moment');
+    await clickByName('Something else');
+    await userEvent.type(screen.getByLabelText('Write your own state'), 'heavy legs');
+    await clickByName('Continue');
+    await screen.findByLabelText('What happened?');
+    expect(screen.getByTestId('mj-custom-state-pill').textContent).toBe('heavy legs');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Back' }));
+    expect((await screen.findByTestId('pathname')).textContent).toBe('/mind-journal/new');
+    expect((await screen.findByRole('radio', { name: 'A tough moment' })).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByLabelText('Write your own state').value).toBe('heavy legs');
   });
 });
 
@@ -188,6 +291,32 @@ describe('Guided reflection', () => {
     expect((await screen.findByRole('button', { name: 'Frustrated' })).getAttribute('aria-pressed')).toBe('true');
   });
 
+  test('custom state is available in Step 1, appears in Step 2 summary, and is POSTed', async () => {
+    apiFetch.mockImplementation(async (p, init) => {
+      if (p === '/api/mind-journal' && init?.method === 'POST') {
+        return json({ entry: { id: 'r-custom', customState: 'heavy legs', takeForward: 'ease in' } });
+      }
+      return json({ entries: [], contextEnabled: false });
+    });
+    renderFlow('/mind-journal/new');
+    await clickRadio('Training');
+    await clickByName('Something else');
+    await userEvent.type(screen.getByLabelText('Write your own state'), 'heavy legs');
+    await clickByName('Continue');
+
+    expect(screen.getByTestId('mj-custom-state-pill').textContent).toBe('heavy legs');
+    await userEvent.type(screen.getByLabelText('What do you want to try or repeat next time?'), 'ease in');
+    await clickByName('Save reflection');
+
+    expect(postedEntry()).toEqual({
+      entryType: 'GUIDED_REFLECTION',
+      contextType: 'TRAINING',
+      states: [],
+      customState: 'heavy legs',
+      takeForward: 'ease in',
+    });
+  });
+
   test('Save is blocked when only a context type was chosen — the server rule, enforced up front', async () => {
     renderFlow('/mind-journal/new');
     await clickRadio('Something else');
@@ -236,18 +365,24 @@ describe('Safety-flagged submission', () => {
 describe('Mind Journal home', () => {
   const GUIDED = {
     id: 'g1', entryType: 'GUIDED_REFLECTION', contextType: 'COMPETITION', states: ['nervous'],
-    note: null, whatHappened: 'lost the first set', whatNoticed: null, helpedOrGotInWay: null,
-    takeForward: 'breathe first', createdAt: '2026-08-01T10:00:00.000Z',
+    customState: 'match tension', note: null, whatHappened: 'lost the first set', whatNoticed: null,
+    helpedOrGotInWay: null, takeForward: 'breathe first', createdAt: '2026-08-01T10:00:00.000Z',
   };
   const QUICK = {
-    id: 'q1', entryType: 'QUICK_NOTE', contextType: null, states: ['calm'], note: 'steady today',
-    whatHappened: null, whatNoticed: null, helpedOrGotInWay: null, takeForward: null,
-    createdAt: '2026-08-02T10:00:00.000Z',
+    id: 'q1', entryType: 'QUICK_NOTE', contextType: null, states: ['calm'], customState: null,
+    note: 'steady today', whatHappened: null, whatNoticed: null, helpedOrGotInWay: null,
+    takeForward: null, createdAt: '2026-08-02T10:00:00.000Z',
   };
   const LEGACY = {
     id: 'l1', entryType: null, contextType: null, states: ['tired'], note: 'long week',
     whatHappened: null, whatNoticed: null, helpedOrGotInWay: null, takeForward: null,
     createdAt: '2026-07-30T10:00:00.000Z',
+  };
+  const LONG_CUSTOM = {
+    id: 'c1', entryType: 'QUICK_NOTE', contextType: null, states: [],
+    customState: 'abcdefghijabcdefghijabcdefghij', note: null,
+    whatHappened: null, whatNoticed: null, helpedOrGotInWay: null, takeForward: null,
+    createdAt: '2026-08-03T10:00:00.000Z',
   };
 
   test('leads with the approved description and both ways in', async () => {
@@ -277,13 +412,14 @@ describe('Mind Journal home', () => {
   });
 
   test('renders guided, quick and legacy entries by their own rules', async () => {
-    apiFetch.mockImplementation(async () => json({ entries: [QUICK, GUIDED, LEGACY], contextEnabled: false }));
+    apiFetch.mockImplementation(async () => json({ entries: [QUICK, GUIDED, LEGACY, LONG_CUSTOM], contextEnabled: false }));
     renderFlow();
 
     // Guided: translated context label, state tag, preview, take-forward row.
     const guided = (await screen.findByText('lost the first set')).closest('div');
     expect(within(guided).getByText('Competition')).toBeTruthy();
     expect(within(guided).getByText('Nervous')).toBeTruthy();
+    expect(within(guided).getByText('match tension')).toBeTruthy();
     expect(within(guided).getByText('Take forward:')).toBeTruthy();
     expect(within(guided).getByText('breathe first')).toBeTruthy();
 
@@ -292,6 +428,9 @@ describe('Mind Journal home', () => {
     expect(screen.getAllByText('Quick note').length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText('steady today')).toBeTruthy();
     expect(screen.getByText('long week')).toBeTruthy();
+    // Athlete custom text is shown verbatim and wraps without needing translation.
+    const longPill = screen.getByText('abcdefghijabcdefghijabcdefghij');
+    expect(longPill.className).toMatch(/break-words/);
     expect(screen.queryByText('What happened?')).toBeNull();
     expect(screen.queryByText('What did you notice in yourself?')).toBeNull();
   });

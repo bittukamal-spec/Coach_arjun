@@ -4,8 +4,8 @@ import { Lightbulb } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { translations } from '../../i18n/translations';
 import { PageHeader, Button } from '../../components/ui';
-import { toggleStateKey } from './constants';
-import { StateChips, ContextTypeCards, StepProgress } from './shared';
+import { toggleStateKey, mindJournalOriginState, cameFromMindJournal } from './constants';
+import { StateChips, ContextTypeCards, StepProgress, useMindJournalBack } from './shared';
 
 // ─── Guided reflection, step 1 of 2 — what this was about, and how it felt.
 // Nothing is written to the server here; the two answers are handed to step
@@ -18,6 +18,7 @@ import { StateChips, ContextTypeCards, StepProgress } from './shared';
 export default function GuidedReflectionPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const handleBack = useMindJournalBack();
   const { language } = useAuth();
   const mj = translations[language].mindJournal;
   const g = mj.guided;
@@ -25,15 +26,25 @@ export default function GuidedReflectionPage() {
   const draft = location.state || {};
   const [contextType, setContextType] = useState(draft.contextType || null);
   const [selected, setSelected] = useState(draft.states || []);
+  const [customOpen, setCustomOpen] = useState(
+    typeof draft.customState === 'string' && draft.customState.length > 0
+  );
+  const [customState, setCustomState] = useState(draft.customState || '');
 
   function handleContinue() {
     if (!contextType) return;
-    navigate('/mind-journal/new/details', { state: { contextType, states: selected } });
+    const next = {
+      contextType,
+      states: selected,
+      customState: customState.trim(),
+    };
+    if (cameFromMindJournal(draft)) next.from = draft.from;
+    navigate('/mind-journal/new/details', { state: next });
   }
 
   return (
     <div className="min-h-screen bg-dark-900 pb-10">
-      <PageHeader backTo="/mind-journal" title={g.title} />
+      <PageHeader onBack={handleBack} title={g.title} />
 
       <div className="px-page pt-5 max-w-lg mx-auto">
         <StepProgress label={g.step1} step={1} />
@@ -56,7 +67,17 @@ export default function GuidedReflectionPage() {
         {/* ── States — optional here, unlike a quick note ────────────── */}
         <p className="text-body font-bold text-ink mt-8 mb-1">{g.statesHeading}</p>
         <p className="text-caption text-slt mb-3">{g.statesHint}</p>
-        <StateChips selected={selected} onToggle={key => setSelected(prev => toggleStateKey(prev, key))} />
+        <StateChips
+          selected={selected}
+          onToggle={key => setSelected(prev => toggleStateKey(prev, key, { customOpen }))}
+          customOpen={customOpen}
+          onCustomToggle={open => {
+            setCustomOpen(open);
+            if (!open) setCustomState('');
+          }}
+          customState={customState}
+          onCustomChange={setCustomState}
+        />
 
         <Button
           onClick={handleContinue}
@@ -68,6 +89,7 @@ export default function GuidedReflectionPage() {
 
         <Link
           to="/mind-journal/quick"
+          state={mindJournalOriginState()}
           className="flex items-center justify-center min-h-[44px] mt-3 text-caption font-semibold text-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded"
         >
           {g.switchToQuick}

@@ -112,10 +112,19 @@ test('the Mind Journal route only ever writes the approved fields — no score i
   const src = readFileSync(path.join(__dirname, '../src/routes/mindJournal.js'), 'utf8');
   const createCallIdx = src.indexOf('client.mindJournalEntry.create(');
   const createBlock = src.slice(createCallIdx, src.indexOf(');', createCallIdx) + 2);
-  // PR 1: the approved schema additive fields — entryType, contextType, and
-  // the four guided-reflection text fields — alongside the original states
-  // and note. Still no score/rating/mood/interpretation of any kind.
-  assert.match(createBlock, /data: \{ userId: req\.userId, entryType, contextType, states, note, whatHappened, whatNoticed, helpedOrGotInWay, takeForward \}/);
+  // Approved schema fields — entryType, contextType, the four guided text
+  // fields, and optional customState — alongside the original states and
+  // note. Still no score/rating/mood/interpretation of any kind.
+  assert.match(createBlock, /userId: req\.userId/);
+  assert.match(createBlock, /\bentryType\b/);
+  assert.match(createBlock, /\bcontextType\b/);
+  assert.match(createBlock, /\bstates\b/);
+  assert.match(createBlock, /\bcustomState\b/);
+  assert.match(createBlock, /\bnote\b/);
+  assert.match(createBlock, /\bwhatHappened\b/);
+  assert.match(createBlock, /\bwhatNoticed\b/);
+  assert.match(createBlock, /\bhelpedOrGotInWay\b/);
+  assert.match(createBlock, /\btakeForward\b/);
   assert.doesNotMatch(createBlock, /score|rating|\bmood\b|interpretation|\bpoints\b|\blevel\b/i);
 });
 

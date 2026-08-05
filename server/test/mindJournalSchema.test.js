@@ -146,6 +146,24 @@ test('MindJournalEntry: all four narrative fields are nullable strings', () => {
   }
 });
 
+test('MindJournalEntry: customState is a nullable string with no unique/score/mood/rating/XP/inferred-label field', () => {
+  const entry = getModel('MindJournalEntry');
+  const customState = getField(entry, 'customState');
+  assert.equal(customState.type, 'String');
+  assert.equal(customState.isRequired, false, 'customState must be nullable');
+  assert.equal(customState.isList, false);
+  assert.equal(customState.isUnique, false);
+
+  const fieldNames = entry.fields.map((f) => f.name.toLowerCase());
+  for (const word of ['score', 'mood', 'rating', 'xp', 'inferred', 'label']) {
+    // customState itself contains neither of these as a separate scoring field.
+    assert.ok(
+      !fieldNames.some((n) => n !== 'customstate' && n.includes(word)),
+      `MindJournalEntry must not add a(n) ${word} field`
+    );
+  }
+});
+
 test('the six new fields do not affect the existing unique-constraint guarantee', () => {
   const entry = getModel('MindJournalEntry');
   assert.equal(entry.uniqueFields.length, 0);

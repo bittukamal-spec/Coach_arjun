@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
 import { Card, PageHeader, SectionLabel, SaveStatus } from '../components/ui';
-import { guidedPreview } from './mindJournal/constants';
+import { guidedPreview, mindJournalOriginState, stateTagsForEntry } from './mindJournal/constants';
 import { contextIconFor } from './mindJournal/shared';
 
 // ─── Mind Journal home — the landing screen for a personal, score-free
@@ -25,7 +25,7 @@ import { contextIconFor } from './mindJournal/shared';
 // that would not actually do anything.
 function EntryRow({ entry, mj, dateLabel }) {
   const isGuided = entry.entryType === 'GUIDED_REFLECTION';
-  const stateTags = entry.states?.length ? entry.states.map(k => mj.states[k]) : [];
+  const stateTags = stateTagsForEntry(entry, mj);
   const preview = isGuided ? guidedPreview(entry) : entry.note;
   // takeForward gets its own row, and it is also last in the preview
   // precedence — so when it is the only thing written, show it once as the
@@ -54,10 +54,10 @@ function EntryRow({ entry, mj, dateLabel }) {
 
           {stateTags.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-2">
-              {stateTags.map(label => (
+              {stateTags.map((label, idx) => (
                 <span
-                  key={label}
-                  className="inline-flex items-center px-2.5 py-1 rounded-full text-caption font-semibold bg-dark-700 text-ink border border-dark-600"
+                  key={`${label}-${idx}`}
+                  className="inline-flex items-center px-2.5 py-1 rounded-full text-caption font-semibold bg-dark-700 text-ink border border-dark-600 max-w-full break-words"
                 >
                   {label}
                 </span>
@@ -124,6 +124,7 @@ export default function MindJournalPage() {
       <PageHeader onBack={() => navigate(-1)} title={mj.title}>
         <Link
           to="/mind-journal/context"
+          state={mindJournalOriginState()}
           aria-label={mj.privacyAria}
           className="w-11 h-11 flex items-center justify-center rounded-full text-slt hover:text-brand-500 hover:bg-brand-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
         >
@@ -150,6 +151,7 @@ export default function MindJournalPage() {
         <Card
           as={Link}
           to="/mind-journal/new"
+          state={mindJournalOriginState()}
           variant="hero"
           data-testid="mj-hero-new"
           aria-label={mj.newReflection.cardTitle}
@@ -181,6 +183,7 @@ export default function MindJournalPage() {
         <Card
           as={Link}
           to="/mind-journal/quick"
+          state={mindJournalOriginState()}
           aria-label={mj.quickNote.action}
           data-testid="mj-quick-note"
           className="flex items-center gap-3.5 p-4 mb-5 elevation-card active:scale-[0.99] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
@@ -218,6 +221,7 @@ export default function MindJournalPage() {
           </div>
           <Link
             to="/mind-journal/context"
+            state={mindJournalOriginState()}
             className="inline-flex items-center min-h-[44px] px-2 text-caption font-bold shrink-0 text-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded"
           >
             {mj.contextStatus.manage}

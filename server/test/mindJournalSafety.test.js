@@ -175,6 +175,7 @@ test('the route imports and calls the shared safety service with fixed mind_jour
   const src = readFileSync(path.join(__dirname, '../src/routes/mindJournal.js'), 'utf8');
   assert.match(src, /require\('\.\.\/services\/safety'\)/);
   assert.match(src, /screenSafetyText\(note\)/);
+  assert.match(src, /screenSafetyText\(customState\)/);
   assert.match(src, /recordSafetyEvent\(req\.userId, 'mind_journal', screen\.category/);
   assert.match(src, /sourceType: 'mind_journal'/);
 
@@ -184,6 +185,7 @@ test('the route imports and calls the shared safety service with fixed mind_jour
   const recordCall = block.match(/recordSafetyEvent\([^;]*\);/s);
   assert.ok(recordCall, 'expected a recordSafetyEvent call on the flagged path');
   assert.doesNotMatch(recordCall[0], /\bnote\b/, 'the SafetyEvent write must never reference the raw note');
+  assert.doesNotMatch(recordCall[0], /\bcustomState\b/, 'the SafetyEvent write must never reference customState');
   assert.doesNotMatch(block, /excerpt|summary:/, 'must never persist an excerpt or summary of the note');
   assert.match(block, /getSafetyGuidance\(screen\.category/, 'must return the fixed guidance on a flagged note');
 });
@@ -245,30 +247,63 @@ test('a flag on one guided field discards the WHOLE submission — no partial da
   }
 });
 
-test('screening order: note is checked before the four guided fields (note flags first when both would)', () => {
+test('screening order: customState, then note, then the four guided fields', () => {
   const src = readFileSync(path.join(__dirname, '../src/routes/mindJournal.js'), 'utf8');
-  const noteIdx = src.indexOf('if (note) screen = screenSafetyText(note);');
+  const customIdx = src.indexOf('if (customState) screen = screenSafetyText(customState);');
+  const noteIdx = src.indexOf('if (!screen.flagged && note) screen = screenSafetyText(note);');
   const whatHappenedIdx = src.indexOf('screenSafetyText(whatHappened)');
   const whatNoticedIdx = src.indexOf('screenSafetyText(whatNoticed)');
   const helpedIdx = src.indexOf('screenSafetyText(helpedOrGotInWay)');
   const takeForwardIdx = src.indexOf('screenSafetyText(takeForward)');
-  assert.ok(noteIdx !== -1 && whatHappenedIdx !== -1 && whatNoticedIdx !== -1 && helpedIdx !== -1 && takeForwardIdx !== -1);
+  assert.ok(customIdx !== -1 && noteIdx !== -1 && whatHappenedIdx !== -1 && whatNoticedIdx !== -1 && helpedIdx !== -1 && takeForwardIdx !== -1);
+  assert.ok(customIdx < noteIdx, 'customState must be screened before note');
   assert.ok(noteIdx < whatHappenedIdx, 'note must be screened before whatHappened');
   assert.ok(whatHappenedIdx < whatNoticedIdx, 'whatHappened must be screened before whatNoticed');
   assert.ok(whatNoticedIdx < helpedIdx, 'whatNoticed must be screened before helpedOrGotInWay');
   assert.ok(helpedIdx < takeForwardIdx, 'helpedOrGotInWay must be screened before takeForward');
 });
 
-test('screening stops at the first flagged field: only ONE screenSafetyText call is made when note itself is flagged (guided fields are null for a QUICK_NOTE/legacy save anyway, but the guard is structural, not per-shape)', () => {
+test('screening stops at the first flagged field: only ONE screenSafetyText call is made when customState itself is flagged (later fields are gated)', () => {
   const src = readFileSync(path.join(__dirname, '../src/routes/mindJournal.js'), 'utf8');
   // Every screen after the first is gated on `!screen.flagged` — the
   // short-circuit that stops screening once something has already flagged.
-  const calls = [...src.matchAll(/screenSafetyText\((note|whatHappened|whatNoticed|helpedOrGotInWay|takeForward)\)/g)];
-  assert.equal(calls.length, 5, 'expected exactly one screening call site per field');
+  const calls = [...src.matchAll(/screenSafetyText\((customState|note|whatHappened|whatNoticed|helpedOrGotInWay|takeForward)\)/g)];
+  assert.equal(calls.length, 6, 'expected exactly one screening call site per field');
   for (const m of calls.slice(1)) {
     const lineStart = src.lastIndexOf('\n', m.index) + 1;
     const before = src.slice(lineStart, m.index);
     assert.match(before, /!screen\.flagged/, `screening ${m[1]} must be gated on the previous field not having flagged`);
+  }
+});
+
+test('a crisis phrase in customState: no MindJournalEntry is created and raw text/field name are absent from SafetyEvent path', async () => {
+  const client = makeFakeClient({ usersById: { 'cs-flag': adult() } });
+  const app = buildApp(client);
+  const { server, baseUrl } = await start(app);
+  try {
+    const res = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('cs-flag')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entryType: 'QUICK_NOTE', states: ['nervous'], customState: 'I want to kill myself',
+      }),
+    });
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.safetyFlag, 'needs_support');
+    assert.doesNotMatch(body.guidance || '', /kill myself/i);
+    assert.equal(Object.keys(client.__entriesById).length, 0, 'no MindJournalEntry on flagged customState');
+
+    const src = readFileSync(path.join(__dirname, '../src/routes/mindJournal.js'), 'utf8');
+    const flagBlockStart = src.indexOf('if (screen.flagged)');
+    const flagBlockEnd = src.indexOf('const entry = await client.mindJournalEntry.create');
+    const block = src.slice(flagBlockStart, flagBlockEnd);
+    const recordCall = block.match(/recordSafetyEvent\([^;]*\);/s);
+    assert.ok(recordCall);
+    assert.doesNotMatch(recordCall[0], /\bcustomState\b/);
+    assert.doesNotMatch(recordCall[0], /kill myself/i);
+  } finally {
+    await stop(server);
   }
 });
 
@@ -320,9 +355,9 @@ test('the route imports and calls the shared safety service for every guided fie
   const block = src.slice(flagBlockStart, flagBlockEnd);
   const recordCall = block.match(/recordSafetyEvent\([^;]*\);/s);
   assert.ok(recordCall, 'expected a recordSafetyEvent call on the flagged path');
-  // The SafetyEvent write must never reference ANY of the five screened
+  // The SafetyEvent write must never reference ANY of the screened
   // fields by name — a single fixed shape regardless of which one flagged.
-  for (const field of ['note', 'whatHappened', 'whatNoticed', 'helpedOrGotInWay', 'takeForward']) {
+  for (const field of ['customState', 'note', 'whatHappened', 'whatNoticed', 'helpedOrGotInWay', 'takeForward']) {
     assert.doesNotMatch(recordCall[0], new RegExp(`\\b${field}\\b`), `the SafetyEvent write must never reference ${field}`);
   }
   assert.doesNotMatch(block, /excerpt|summary:/, 'must never persist an excerpt or summary of any field');

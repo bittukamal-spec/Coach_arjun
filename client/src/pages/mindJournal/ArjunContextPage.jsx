@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { translations } from '../../i18n/translations';
 import { apiFetch } from '../../api';
 import { Card, PageHeader, Button } from '../../components/ui';
+import { useMindJournalBack } from './shared';
 
 // ─── Arjun context — the one control over whether journal entries reach
 // coaching at all. It is off unless the athlete turns it on, the value shown
@@ -14,6 +15,7 @@ import { Card, PageHeader, Button } from '../../components/ui';
 
 export default function ArjunContextPage() {
   const navigate = useNavigate();
+  const handleBack = useMindJournalBack();
   const { token, language } = useAuth();
   const mj = translations[language].mindJournal;
   const cx = mj.contextScreen;
@@ -69,7 +71,7 @@ export default function ArjunContextPage() {
 
   return (
     <div className="min-h-screen bg-dark-900 pb-[calc(2.5rem+env(safe-area-inset-bottom))]">
-      <PageHeader backTo="/mind-journal" title={cx.title} />
+      <PageHeader onBack={handleBack} title={cx.title} />
 
       <div className="px-page pt-5 max-w-lg mx-auto">
         <div className="flex items-start gap-3.5 mb-6">

@@ -292,6 +292,11 @@ model MindJournalEntry {
   helpedOrGotInWay  String?
   takeForward       String?
 
+  // Optional athlete-authored state label ("Something else"). Kept separate
+  // from the fixed `states` vocabulary — never stored inside that array.
+  // Not yet included in Coach context (loadMindJournalContext).
+  customState       String?
+
   @@index([userId, createdAt])
 }
 

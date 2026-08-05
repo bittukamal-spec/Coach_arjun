@@ -19,9 +19,15 @@ import {
   MAX_NOTE_LENGTH,
   MAX_WHAT_HAPPENED_LENGTH,
   MAX_TAKE_FORWARD_LENGTH,
+  MAX_CUSTOM_STATE_LENGTH,
+  FROM_MIND_JOURNAL,
   guidedPreview,
   toggleStateKey,
   textOrUndefined,
+  stateSlotCount,
+  stateTagsForEntry,
+  cameFromMindJournal,
+  mindJournalOriginState,
 } from '../src/pages/mindJournal/constants.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -71,6 +77,35 @@ test('toggleStateKey: selects, deselects, and refuses a third state', () => {
   assert.deepEqual(before, ['calm']);
 });
 
+test('toggleStateKey: a custom-state slot counts toward the two-state maximum', () => {
+  assert.deepEqual(
+    toggleStateKey(['calm'], 'tired', { customOpen: true }),
+    ['calm'],
+    'must refuse a second built-in when Something else already occupies a slot'
+  );
+  assert.deepEqual(toggleStateKey([], 'calm', { customOpen: true }), ['calm']);
+  assert.equal(stateSlotCount(['calm'], true), 2);
+  assert.equal(stateSlotCount(['calm', 'tired'], false), 2);
+});
+
+test('stateTagsForEntry: built-ins are translated; customState is shown verbatim', () => {
+  const mj = translations.en.mindJournal;
+  assert.deepEqual(stateTagsForEntry({ states: ['calm'], customState: null }, mj), ['Calm']);
+  assert.deepEqual(
+    stateTagsForEntry({ states: ['calm'], customState: 'Match-day wired' }, mj),
+    ['Calm', 'Match-day wired']
+  );
+  assert.deepEqual(stateTagsForEntry({ states: [], customState: 'wired' }, mj), ['wired']);
+});
+
+test('mind journal origin marker: only the explicit from flag counts', () => {
+  assert.deepEqual(mindJournalOriginState(), { from: FROM_MIND_JOURNAL });
+  assert.equal(cameFromMindJournal({ from: FROM_MIND_JOURNAL }), true);
+  assert.equal(cameFromMindJournal({ from: 'elsewhere' }), false);
+  assert.equal(cameFromMindJournal(null), false);
+  assert.equal(cameFromMindJournal(undefined), false);
+});
+
 test('guidedPreview: falls through whatHappened → whatNoticed → helpedOrGotInWay → takeForward', () => {
   const empty = { whatHappened: null, whatNoticed: null, helpedOrGotInWay: null, takeForward: null };
   assert.equal(guidedPreview({ ...empty, whatHappened: 'a', whatNoticed: 'b', helpedOrGotInWay: 'c', takeForward: 'd' }), 'a');
@@ -107,7 +142,8 @@ test('every Mind Journal screen reads copy from the shared translation system, w
 
 test('translations.js: every Mind Journal athlete-visible string exists in both English and Hindi', () => {
   const FLAT_KEYS = [
-    'title', 'introHeadline', 'subtitle', 'privacyAria', 'pickHint', 'saving', 'saved', 'errorGeneric', 'errorNetwork', 'retry',
+    'title', 'introHeadline', 'subtitle', 'privacyAria', 'pickHint', 'somethingElse', 'customStateLabel', 'maxStatesReached',
+    'saving', 'saved', 'errorGeneric', 'errorNetwork', 'retry',
     'recentHeading', 'emptyState', 'loadError', 'retryBtn', 'disclosure', 'takeForwardLabel',
     'contextLabel', 'contextDisclosure', 'contextError',
   ];
@@ -160,7 +196,7 @@ test('translations.js: all 8 states and all 5 context types have English and Dev
 
 test('translations.js: Hindi Mind Journal copy is genuine Devanagari, not English left untranslated', () => {
   const hi = translations.hi.mindJournal;
-  for (const key of ['title', 'introHeadline', 'subtitle', 'pickHint', 'recentHeading', 'emptyState', 'loadError', 'retryBtn', 'disclosure', 'takeForwardLabel']) {
+  for (const key of ['title', 'introHeadline', 'subtitle', 'pickHint', 'somethingElse', 'customStateLabel', 'maxStatesReached', 'recentHeading', 'emptyState', 'loadError', 'retryBtn', 'disclosure', 'takeForwardLabel']) {
     assert.match(hi[key], DEVANAGARI_RE, `translations.hi.mindJournal.${key} must contain Devanagari, got: ${hi[key]}`);
   }
   for (const [group, key] of [
@@ -247,7 +283,7 @@ test('home: guided reflections show a translated context label, state tags, a pr
   const row = home.slice(home.indexOf('function EntryRow'), home.indexOf('export default function'));
   assert.match(row, /entry\.entryType === 'GUIDED_REFLECTION'/);
   assert.match(row, /mj\.contextTypes\[entry\.contextType\]/, 'the context type must be translated, never shown raw');
-  assert.match(row, /entry\.states\.map\(k => mj\.states\[k\]\)/, 'state tags map through the translation table with no raw-key fallback');
+  assert.match(row, /stateTagsForEntry\(entry, mj\)/, 'built-in tags translate; customState is shown verbatim');
   assert.match(row, /guidedPreview\(entry\)/, 'the preview must use the agreed field precedence');
   assert.match(row, /isGuided && entry\.takeForward/, 'Take forward gets its own row when present');
   assert.match(row, /\{mj\.takeForwardLabel\}/);
@@ -285,9 +321,35 @@ test('quick note: posts the QUICK_NOTE shape with 1-2 states and an optional not
   assert.match(save, /entryType: 'QUICK_NOTE'/);
   assert.match(save, /states: selected/);
   assert.match(save, /note: textOrUndefined\(note\)/, 'an empty note must be omitted, not sent as an empty string');
+  assert.match(save, /payload\.customState = custom/, 'customState is included when the athlete wrote one');
   assert.doesNotMatch(save, /contextType|whatHappened|whatNoticed|helpedOrGotInWay|takeForward/, 'guided fields are rejected on a quick note');
-  assert.match(quick, /const canSave = selected\.length > 0 && !saving;/, 'at least one state, and no double submit');
+  assert.match(quick, /const canSave = \(selected\.length > 0 \|\| hasCustom\) && !saving;/, 'at least one built-in or custom state, and no double submit');
   assert.match(quick, /disabled=\{!canSave\}/);
+});
+
+test('quick note: Something else opens a labelled custom field bounded at 30 characters', () => {
+  assert.match(quick, /<StateChips/);
+  assert.match(quick, /onCustomToggle=/);
+  assert.match(quick, /customState=\{customState\}/);
+  assert.match(shared, /\{mj\.somethingElse\}/);
+  assert.match(shared, /\{mj\.customStateLabel\}/);
+  assert.match(shared, /maxLength=\{MAX_CUSTOM_STATE_LENGTH\}/);
+  assert.equal(MAX_CUSTOM_STATE_LENGTH, 30);
+});
+
+test('Mind Journal child screens: header back uses history when opened from the journal, else replace', () => {
+  assert.match(shared, /export function useMindJournalBack/);
+  assert.match(shared, /cameFromMindJournal\(location\.state\)/);
+  assert.match(shared, /navigate\(-1\)/);
+  assert.match(shared, /navigate\('\/mind-journal', \{ replace: true \}\)/);
+  assert.match(quick, /useMindJournalBack/);
+  assert.match(quick, /<PageHeader onBack=\{handleBack\}/);
+  assert.doesNotMatch(quick, /backTo="\/mind-journal"/, 'must not Link-push another journal entry');
+  assert.match(step1, /<PageHeader onBack=\{handleBack\}/);
+  assert.doesNotMatch(step1, /backTo="\/mind-journal"/);
+  assert.match(contextScreen, /<PageHeader onBack=\{handleBack\}/);
+  assert.doesNotMatch(contextScreen, /backTo="\/mind-journal"/);
+  assert.match(home, /state=\{mindJournalOriginState\(\)\}/);
 });
 
 test('quick note: bounds the note at 500 characters and shows a live counter', () => {
@@ -318,7 +380,8 @@ test('guided step 1: context type is required and single-select; states stay opt
 });
 
 test('guided step 1: hands its answers to step 2 and writes nothing itself', () => {
-  assert.match(step1, /navigate\('\/mind-journal\/new\/details', \{ state: \{ contextType, states: selected \} \}\)/);
+  assert.match(step1, /navigate\('\/mind-journal\/new\/details', \{ state: next \}\)/);
+  assert.match(step1, /customState: customState\.trim\(\)/);
   assert.doesNotMatch(step1, /apiFetch|method: 'POST'/, 'step 1 must not persist anything');
 });
 
@@ -340,6 +403,7 @@ test('guided step 2: posts the GUIDED_REFLECTION shape and never sends a note', 
   assert.match(save, /entryType: 'GUIDED_REFLECTION'/);
   assert.match(save, /contextType,/);
   assert.match(save, /states,/);
+  assert.match(save, /payload\.customState = custom/, 'customState rides along when present');
   for (const field of ['whatHappened', 'whatNoticed', 'helpedOrGotInWay', 'takeForward']) {
     assert.ok(save.includes(`${field}: textOrUndefined(${field})`), `${field} must be trimmed and omitted when empty`);
   }
@@ -348,17 +412,19 @@ test('guided step 2: posts the GUIDED_REFLECTION shape and never sends a note', 
 
 test('guided step 2: mirrors the server rule that a reflection needs one state or one answer', () => {
   assert.match(step2, /const written = \[whatHappened, whatNoticed, helpedOrGotInWay, takeForward\]\.some\(v => v\.trim\(\)\.length > 0\);/);
-  assert.match(step2, /const hasContent = states\.length > 0 \|\| written;/);
+  assert.match(step2, /const hasContent = states\.length > 0 \|\| trimmedCustom\.length > 0 \|\| written;/);
   assert.match(step2, /const canSave = hasContent && !saving;/);
   assert.match(step2, /\{g\.needSomething\}/, 'the rule is explained rather than left as a dead button');
 });
 
 test('guided step 2: recovers a direct hit, and preserves step 1 answers when going back', () => {
   assert.match(step2, /if \(!contextType\) return <Navigate to="\/mind-journal\/new" replace \/>;/);
-  assert.match(step2, /navigate\('\/mind-journal\/new', \{ state: \{ contextType, states \}, replace: true \}\)/);
+  assert.match(step2, /navigate\('\/mind-journal\/new', \{ state: next, replace: true \}\)/);
+  assert.match(step2, /customState: trimmedCustom/);
   assert.match(step1, /const draft = location\.state \|\| \{\};/, 'step 1 must re-seed from the handed-back state');
   assert.match(step1, /useState\(draft\.contextType \|\| null\)/);
   assert.match(step1, /useState\(draft\.states \|\| \[\]\)/);
+  assert.match(step1, /useState\(draft\.customState \|\| ''\)/);
 });
 
 test('guided step 2: only a real created entry advances to the saved screen', () => {
@@ -404,7 +470,7 @@ test('language never changes what is submitted — payloads carry internal keys 
     const save = handlerBody(source, 'handleSave');
     assert.doesNotMatch(save, /mj\.states|mj\.contextTypes|translations/, `${name} must never send translated label text`);
   }
-  assert.match(step1, /navigate\('\/mind-journal\/new\/details', \{ state: \{ contextType, states: selected \} \}\)/);
+  assert.match(step1, /navigate\('\/mind-journal\/new\/details', \{ state: next \}\)/);
 });
 
 // ── Screen 5: reflection saved ─────────────────────────────────────────────
