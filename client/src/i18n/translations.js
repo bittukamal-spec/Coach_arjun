@@ -1502,7 +1502,8 @@ export const translations = {
     },
     mindJournal: {
       title: 'Mind Journal',
-      subtitle: 'A personal, score-free place to notice what happened and what you want to carry forward.',
+      introHeadline: 'Notice the moment. Carry something useful forward.',
+      subtitle: 'A personal, score-free space for quick notes and guided reflections.',
       privacyAria: 'Arjun context and privacy',
       states: {
         calm:       'Calm',
@@ -3265,7 +3266,8 @@ export const translations = {
     },
     mindJournal: {
       title: 'मन की डायरी',
-      subtitle: 'तुम्हारी अपनी जगह, जहाँ कोई स्कोर नहीं — यहाँ देखो कि क्या हुआ और आगे क्या साथ ले जाना है।',
+      introHeadline: 'पल को देखो। आगे कुछ काम की बात साथ ले चलो।',
+      subtitle: 'तुम्हारी अपनी जगह, जहाँ कोई स्कोर नहीं — छोटे नोट और गाइडेड रिफ्लेक्शन के लिए।',
       privacyAria: 'अर्जुन संदर्भ और गोपनीयता',
       states: {
         calm:       'शांत',
