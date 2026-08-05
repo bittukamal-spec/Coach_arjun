@@ -132,7 +132,10 @@ export default function MindJournalPage() {
       </PageHeader>
 
       <div className="px-page pt-5 max-w-lg mx-auto pb-10">
-        <p className="text-body text-slt mb-6 leading-relaxed">{mj.subtitle}</p>
+        <div className="mb-6" data-testid="mj-intro">
+          <h2 className="text-title font-bold text-ink leading-snug mb-2">{mj.introHeadline}</h2>
+          <p className="text-body text-slt leading-relaxed">{mj.subtitle}</p>
+        </div>
 
         <div className="mb-3 empty:mb-0">
           <SaveStatus
@@ -142,33 +145,37 @@ export default function MindJournalPage() {
         </div>
 
         {/* ── The two ways in ──────────────────────────────────────────── */}
+        {/* Narrow: icon + arrow on one row, title/desc full-width below.
+            sm+: horizontal only when there is enough width for the copy. */}
         <Card
           as={Link}
           to="/mind-journal/new"
           variant="hero"
           data-testid="mj-hero-new"
+          aria-label={mj.newReflection.cardTitle}
           className="block p-5 mb-3 elevation-hero active:scale-[0.99] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
           style={{ '--grad-from': 'var(--brand-primary)', '--grad-to': '#0C4D85' }}
         >
-          <div className="flex items-center gap-4">
-            <span
-              className="w-14 h-14 rounded-full bg-white/20 text-white flex items-center justify-center shrink-0 backdrop-blur-sm"
-              aria-hidden="true"
-            >
-              <BookOpen size={24} />
-            </span>
-            <div className="flex-1 min-w-0">
-              <p className="text-title font-bold text-white">{mj.newReflection.cardTitle}</p>
-              <p className="text-caption text-white/85 mt-1 leading-relaxed">{mj.newReflection.cardDesc}</p>
+          <div className="flex flex-col gap-3.5 sm:flex-row sm:items-center sm:gap-4">
+            <div className="flex items-center justify-between sm:contents">
+              <span
+                className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/20 text-white flex items-center justify-center shrink-0"
+                aria-hidden="true"
+              >
+                <BookOpen size={22} />
+              </span>
+              <span
+                className="w-9 h-9 rounded-full bg-white/15 text-white flex items-center justify-center shrink-0 sm:order-last"
+                aria-hidden="true"
+              >
+                <ArrowRight size={16} />
+              </span>
             </div>
-            <span
-              className="w-10 h-10 rounded-full bg-white/20 text-white flex items-center justify-center shrink-0"
-              aria-hidden="true"
-            >
-              <ArrowRight size={18} />
-            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-title font-bold text-white" aria-hidden="true">{mj.newReflection.cardTitle}</p>
+              <p className="text-caption text-white/85 mt-1.5 leading-relaxed">{mj.newReflection.cardDesc}</p>
+            </div>
           </div>
-          <span className="sr-only">{mj.newReflection.cta}</span>
         </Card>
 
         <Card

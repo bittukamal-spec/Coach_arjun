@@ -252,8 +252,12 @@ describe('Mind Journal home', () => {
 
   test('leads with the approved description and both ways in', async () => {
     renderFlow();
-    expect(await screen.findByText('A personal, score-free place to notice what happened and what you want to carry forward.')).toBeTruthy();
-    expect(screen.getByTestId('mj-hero-new').getAttribute('href')).toBe('/mind-journal/new');
+    expect(await screen.findByRole('heading', { level: 2, name: 'Notice the moment. Carry something useful forward.' })).toBeTruthy();
+    expect(screen.getByText('A personal, score-free space for quick notes and guided reflections.')).toBeTruthy();
+    const hero = screen.getByTestId('mj-hero-new');
+    expect(hero.getAttribute('href')).toBe('/mind-journal/new');
+    expect(hero.getAttribute('aria-label')).toBe('New reflection');
+    expect(screen.getByRole('link', { name: 'New reflection' })).toBe(hero);
     expect(screen.getByTestId('mj-quick-note').getAttribute('href')).toBe('/mind-journal/quick');
     expect(screen.getByTestId('mj-context-row')).toBeTruthy();
     expect(screen.getByTestId('mj-recent-section')).toBeTruthy();
