@@ -107,7 +107,7 @@ test('every Mind Journal screen reads copy from the shared translation system, w
 
 test('translations.js: every Mind Journal athlete-visible string exists in both English and Hindi', () => {
   const FLAT_KEYS = [
-    'title', 'subtitle', 'privacyAria', 'pickHint', 'saving', 'saved', 'errorGeneric', 'errorNetwork', 'retry',
+    'title', 'introHeadline', 'subtitle', 'privacyAria', 'pickHint', 'saving', 'saved', 'errorGeneric', 'errorNetwork', 'retry',
     'recentHeading', 'emptyState', 'loadError', 'retryBtn', 'disclosure', 'takeForwardLabel',
     'contextLabel', 'contextDisclosure', 'contextError',
   ];
@@ -160,7 +160,7 @@ test('translations.js: all 8 states and all 5 context types have English and Dev
 
 test('translations.js: Hindi Mind Journal copy is genuine Devanagari, not English left untranslated', () => {
   const hi = translations.hi.mindJournal;
-  for (const key of ['title', 'subtitle', 'pickHint', 'recentHeading', 'emptyState', 'loadError', 'retryBtn', 'disclosure', 'takeForwardLabel']) {
+  for (const key of ['title', 'introHeadline', 'subtitle', 'pickHint', 'recentHeading', 'emptyState', 'loadError', 'retryBtn', 'disclosure', 'takeForwardLabel']) {
     assert.match(hi[key], DEVANAGARI_RE, `translations.hi.mindJournal.${key} must contain Devanagari, got: ${hi[key]}`);
   }
   for (const [group, key] of [
@@ -173,10 +173,22 @@ test('translations.js: Hindi Mind Journal copy is genuine Devanagari, not Englis
 
 // ── Approved product copy ──────────────────────────────────────────────────
 
-test('translations.js: the home description is the approved personal / score-free line', () => {
+test('translations.js: the home intro uses the approved headline and score-free supporting line', () => {
+  assert.equal(
+    translations.en.mindJournal.introHeadline,
+    'Notice the moment. Carry something useful forward.'
+  );
   assert.equal(
     translations.en.mindJournal.subtitle,
-    'A personal, score-free place to notice what happened and what you want to carry forward.'
+    'A personal, score-free space for quick notes and guided reflections.'
+  );
+  assert.equal(
+    translations.hi.mindJournal.introHeadline,
+    'पल को देखो। आगे कुछ काम की बात साथ ले चलो।'
+  );
+  assert.equal(
+    translations.hi.mindJournal.subtitle,
+    'तुम्हारी अपनी जगह, जहाँ कोई स्कोर नहीं — छोटे नोट और गाइडेड रिफ्लेक्शन के लिए।'
   );
 });
 
@@ -206,8 +218,10 @@ test('no Mind Journal screen introduces scoring, ranking, streak or reward langu
 
 // ── Screen 1: home ─────────────────────────────────────────────────────────
 
-test('home: leads with the approved description and offers both ways in', () => {
+test('home: leads with the approved two-level intro and offers both ways in', () => {
+  assert.match(home, /\{mj\.introHeadline\}/);
   assert.match(home, /\{mj\.subtitle\}/);
+  assert.match(home, /data-testid="mj-intro"/);
   assert.match(home, /to="\/mind-journal\/new"/, 'the prominent New reflection card must open the guided flow');
   assert.match(home, /\{mj\.newReflection\.cardTitle\}/);
   assert.match(home, /to="\/mind-journal\/quick"/, 'the secondary Quick note action must open the quick-note screen');
@@ -494,6 +508,23 @@ test('home: hero, quick-note, context row and recent reflection sections are pre
   assert.match(home, /data-testid="mj-reflection-card"/);
   assert.match(home, /elevation-card|elevation-hero|elevation-row/);
   assert.doesNotMatch(home, /BottomNav/);
+});
+
+test('home: New reflection hero is one accessible action with a stacked-then-horizontal layout', () => {
+  const heroStart = home.indexOf('data-testid="mj-hero-new"');
+  assert.ok(heroStart !== -1);
+  const hero = home.slice(heroStart, heroStart + 2200);
+  assert.match(hero, /aria-label=\{mj\.newReflection\.cardTitle\}/, 'one coherent accessible name');
+  assert.match(hero, /flex flex-col gap-3\.5 sm:flex-row/, 'narrow screens stack; wider may go horizontal');
+  assert.match(hero, /flex items-center justify-between sm:contents/, 'icon and arrow share a top row on narrow screens');
+  assert.match(hero, /\{mj\.newReflection\.cardDesc\}/);
+  // Must not keep the old three-column single-row squeeze.
+  assert.doesNotMatch(
+    hero,
+    /flex items-center gap-4">\s*<span[\s\S]*BookOpen[\s\S]*flex-1 min-w-0[\s\S]*ArrowRight/,
+    'must not place icon, copy and arrow in one cramped horizontal row'
+  );
+  assert.doesNotMatch(hero, /<button|<Link/, 'no nested interactive controls inside the hero card');
 });
 
 test('guided step 2: exposes four distinct prompt sections with live counters', () => {
