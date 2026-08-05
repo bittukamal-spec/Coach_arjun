@@ -1,0 +1,352 @@
+// Real router integration tests for the Mind Journal creation flow (PR 2A).
+//
+// Source-text assertions in mindJournalPage.test.js pin the structure; these
+// mount the real screens under a real <MemoryRouter> and prove the things
+// only a render can: the exact JSON each screen POSTs, that step 1 hands its
+// answers to step 2 and gets them back, that a flagged submission never
+// reads as a save, and that the three kinds of recent entry render the way
+// the product rules require. Only useAuth and apiFetch are mocked.
+
+import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, cleanup, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom';
+
+const authState = { user: { id: 'u1', onboardingDone: true }, token: 'test-token', language: 'en', updateUser: vi.fn() };
+vi.mock('../src/contexts/AuthContext', () => ({ useAuth: () => authState }));
+vi.mock('../src/api', () => ({ apiFetch: vi.fn() }));
+
+const { apiFetch } = await import('../src/api');
+const { default: MindJournalPage } = await import('../src/pages/MindJournalPage.jsx');
+const { default: QuickNotePage } = await import('../src/pages/mindJournal/QuickNotePage.jsx');
+const { default: GuidedReflectionPage } = await import('../src/pages/mindJournal/GuidedReflectionPage.jsx');
+const { default: GuidedReflectionDetailsPage } = await import('../src/pages/mindJournal/GuidedReflectionDetailsPage.jsx');
+const { default: ReflectionSavedPage } = await import('../src/pages/mindJournal/ReflectionSavedPage.jsx');
+const { default: ArjunContextPage } = await import('../src/pages/mindJournal/ArjunContextPage.jsx');
+
+const json = (body, status = 200) => ({ ok: status >= 200 && status < 300, status, json: async () => body });
+
+// The real route table for this feature, so navigation between the screens
+// is exercised rather than simulated.
+function LocationProbe() {
+  const location = useLocation();
+  return <div data-testid="pathname">{location.pathname}</div>;
+}
+
+function renderFlow(initialEntry = '/mind-journal') {
+  return render(
+    <MemoryRouter initialEntries={[initialEntry]}>
+      <LocationProbe />
+      <Routes>
+        <Route path="/mind-journal" element={<MindJournalPage />} />
+        <Route path="/mind-journal/quick" element={<QuickNotePage />} />
+        <Route path="/mind-journal/new" element={<GuidedReflectionPage />} />
+        <Route path="/mind-journal/new/details" element={<GuidedReflectionDetailsPage />} />
+        <Route path="/mind-journal/context" element={<ArjunContextPage />} />
+        <Route path="/mind-journal/saved/:id" element={<ReflectionSavedPage />} />
+      </Routes>
+    </MemoryRouter>
+  );
+}
+
+// Body of the single POST /api/mind-journal call that was made.
+function postedEntry() {
+  const call = apiFetch.mock.calls.find(([p, init]) => p === '/api/mind-journal' && init?.method === 'POST');
+  expect(call, 'a POST to /api/mind-journal must have been made').toBeTruthy();
+  return JSON.parse(call[1].body);
+}
+
+const clickByName = async (name) => userEvent.click(await screen.findByRole('button', { name }));
+
+beforeEach(() => {
+  apiFetch.mockReset();
+  apiFetch.mockImplementation(async () => json({ entries: [], contextEnabled: false }));
+});
+afterEach(cleanup);
+
+// ── Quick note ─────────────────────────────────────────────────────────────
+
+describe('Quick note', () => {
+  test('POSTs exactly the QUICK_NOTE shape, with no guided fields', async () => {
+    apiFetch.mockImplementation(async (p, init) => {
+      if (p === '/api/mind-journal' && init?.method === 'POST') return json({ entry: { id: 'e1', states: ['calm'] } });
+      return json({ entries: [], contextEnabled: false });
+    });
+    renderFlow('/mind-journal/quick');
+
+    await clickByName('Calm');
+    await userEvent.type(screen.getByLabelText('What stood out?'), '  held my rhythm  ');
+    await clickByName('Save note');
+
+    expect(postedEntry()).toEqual({ entryType: 'QUICK_NOTE', states: ['calm'], note: 'held my rhythm' });
+  });
+
+  test('omits an empty note entirely, and returns to the journal on success', async () => {
+    apiFetch.mockImplementation(async (p, init) => {
+      if (p === '/api/mind-journal' && init?.method === 'POST') return json({ entry: { id: 'e1', states: ['tired'] } });
+      return json({ entries: [], contextEnabled: false });
+    });
+    renderFlow('/mind-journal/quick');
+
+    await clickByName('Tired');
+    await clickByName('Save note');
+
+    expect(postedEntry()).toEqual({ entryType: 'QUICK_NOTE', states: ['tired'] });
+    expect((await screen.findByTestId('pathname')).textContent).toBe('/mind-journal');
+  });
+
+  test('Save stays disabled until a state is picked, and refuses a third state', async () => {
+    renderFlow('/mind-journal/quick');
+    const save = await screen.findByRole('button', { name: 'Save note' });
+    expect(save.disabled).toBe(true);
+
+    await clickByName('Calm');
+    expect(save.disabled).toBe(false);
+
+    await clickByName('Focused');
+    await clickByName('Tired');
+    expect((await screen.findByRole('button', { name: 'Tired' })).getAttribute('aria-pressed')).toBe('false');
+    expect((await screen.findByRole('button', { name: 'Calm' })).getAttribute('aria-pressed')).toBe('true');
+  });
+});
+
+// ── Guided reflection ──────────────────────────────────────────────────────
+
+describe('Guided reflection', () => {
+  test('carries step 1 answers into step 2 and POSTs one GUIDED_REFLECTION, never a note', async () => {
+    apiFetch.mockImplementation(async (p, init) => {
+      if (p === '/api/mind-journal' && init?.method === 'POST') return json({ entry: { id: 'r9', takeForward: 'breathe first' } });
+      return json({ entries: [], contextEnabled: false });
+    });
+    renderFlow('/mind-journal/new');
+
+    await clickByName('Competition');
+    await clickByName('Nervous');
+    await clickByName('Continue');
+    expect((await screen.findByTestId('pathname')).textContent).toBe('/mind-journal/new/details');
+
+    await userEvent.type(screen.getByLabelText('What happened?'), 'lost the first set');
+    await userEvent.type(screen.getByLabelText('What do you want to carry forward?'), 'breathe first');
+    await clickByName('Save reflection');
+
+    const body = postedEntry();
+    expect(body).toEqual({
+      entryType: 'GUIDED_REFLECTION',
+      contextType: 'COMPETITION',
+      states: ['nervous'],
+      whatHappened: 'lost the first set',
+      takeForward: 'breathe first',
+    });
+    expect(body).not.toHaveProperty('note');
+    // Exactly one write for the whole reflection.
+    expect(apiFetch.mock.calls.filter(([p, i]) => p === '/api/mind-journal' && i?.method === 'POST')).toHaveLength(1);
+  });
+
+  test('lands on the saved confirmation, which shows Take forward and no score', async () => {
+    apiFetch.mockImplementation(async (p, init) => {
+      if (p === '/api/mind-journal' && init?.method === 'POST') return json({ entry: { id: 'r9', takeForward: 'breathe first' } });
+      return json({ entries: [], contextEnabled: false });
+    });
+    renderFlow('/mind-journal/new');
+
+    await clickByName('Training');
+    await clickByName('Continue');
+    await userEvent.type(screen.getByLabelText('What happened?'), 'good session');
+    await clickByName('Save reflection');
+
+    expect((await screen.findByTestId('pathname')).textContent).toBe('/mind-journal/saved/r9');
+    expect(await screen.findByText('Saved.')).toBeTruthy();
+    expect(screen.getByText('breathe first')).toBeTruthy();
+    // No evaluation of any kind. "scored" appears only in the copy that
+    // rules it out, so the check is for the artifacts, not the word.
+    expect(document.body.textContent).not.toMatch(/streak|points|rank|badge|level|\d+\s*\/\s*\d+|out of \d+/i);
+  });
+
+  test('Continue is blocked until a context type is chosen', async () => {
+    renderFlow('/mind-journal/new');
+    const cont = await screen.findByRole('button', { name: 'Continue' });
+    expect(cont.disabled).toBe(true);
+    await clickByName('Recovery day');
+    expect(cont.disabled).toBe(false);
+  });
+
+  test('going back to step 1 restores the answers already given', async () => {
+    renderFlow('/mind-journal/new');
+    await clickByName('A tough moment');
+    await clickByName('Frustrated');
+    await clickByName('Continue');
+    await screen.findByLabelText('What happened?');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Back' }));
+
+    expect((await screen.findByTestId('pathname')).textContent).toBe('/mind-journal/new');
+    expect((await screen.findByRole('button', { name: 'A tough moment' })).getAttribute('aria-pressed')).toBe('true');
+    expect((await screen.findByRole('button', { name: 'Frustrated' })).getAttribute('aria-pressed')).toBe('true');
+  });
+
+  test('Save is blocked when only a context type was chosen — the server rule, enforced up front', async () => {
+    renderFlow('/mind-journal/new');
+    await clickByName('Something else');
+    await clickByName('Continue');
+
+    const save = await screen.findByRole('button', { name: 'Save reflection' });
+    expect(save.disabled).toBe(true);
+    expect(screen.getByText('Add at least one state or one answer before saving.')).toBeTruthy();
+
+    await userEvent.type(screen.getByLabelText('What did you notice in yourself?'), 'tight shoulders');
+    expect(save.disabled).toBe(false);
+  });
+
+  test('a direct hit on step 2 with no step 1 answer returns to step 1', async () => {
+    renderFlow('/mind-journal/new/details');
+    expect((await screen.findByTestId('pathname')).textContent).toBe('/mind-journal/new');
+  });
+});
+
+// ── Safety ─────────────────────────────────────────────────────────────────
+
+describe('Safety-flagged submission', () => {
+  test('shows guidance and helplines instead of a save confirmation, and does not navigate', async () => {
+    apiFetch.mockImplementation(async (p, init) => {
+      if (p === '/api/mind-journal' && init?.method === 'POST') {
+        return json({ safetyFlag: 'needs_support', guidance: 'Please talk to someone you trust.' });
+      }
+      return json({ entries: [], contextEnabled: false });
+    });
+    renderFlow('/mind-journal/quick');
+
+    await clickByName('Frustrated');
+    await clickByName('Save note');
+
+    expect(await screen.findByText('Please talk to someone you trust.')).toBeTruthy();
+    expect(screen.getByText("You're not alone")).toBeTruthy();
+    // Still on the quick-note screen, and nothing claims the note was kept.
+    expect(screen.getByTestId('pathname').textContent).toBe('/mind-journal/quick');
+    expect(screen.queryByText('Saved ✓')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Save note' })).toBeNull();
+  });
+});
+
+// ── Home ───────────────────────────────────────────────────────────────────
+
+describe('Mind Journal home', () => {
+  const GUIDED = {
+    id: 'g1', entryType: 'GUIDED_REFLECTION', contextType: 'COMPETITION', states: ['nervous'],
+    note: null, whatHappened: 'lost the first set', whatNoticed: null, helpedOrGotInWay: null,
+    takeForward: 'breathe first', createdAt: '2026-08-01T10:00:00.000Z',
+  };
+  const QUICK = {
+    id: 'q1', entryType: 'QUICK_NOTE', contextType: null, states: ['calm'], note: 'steady today',
+    whatHappened: null, whatNoticed: null, helpedOrGotInWay: null, takeForward: null,
+    createdAt: '2026-08-02T10:00:00.000Z',
+  };
+  const LEGACY = {
+    id: 'l1', entryType: null, contextType: null, states: ['tired'], note: 'long week',
+    whatHappened: null, whatNoticed: null, helpedOrGotInWay: null, takeForward: null,
+    createdAt: '2026-07-30T10:00:00.000Z',
+  };
+
+  test('leads with the approved description and both ways in', async () => {
+    renderFlow();
+    expect(await screen.findByText('A personal, score-free place to notice what happened and what you want to carry forward.')).toBeTruthy();
+    expect(screen.getByRole('link', { name: /New reflection/ }).getAttribute('href')).toBe('/mind-journal/new');
+    expect(screen.getByRole('link', { name: 'Quick note' }).getAttribute('href')).toBe('/mind-journal/quick');
+  });
+
+  test('reports the Arjun-context setting and links to its control', async () => {
+    apiFetch.mockImplementation(async () => json({ entries: [], contextEnabled: true }));
+    renderFlow();
+    expect(await screen.findByText('On')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Change' }).getAttribute('href')).toBe('/mind-journal/context');
+  });
+
+  test('defaults the context status to Off', async () => {
+    renderFlow();
+    expect(await screen.findByText('Off')).toBeTruthy();
+  });
+
+  test('renders guided, quick and legacy entries by their own rules', async () => {
+    apiFetch.mockImplementation(async () => json({ entries: [QUICK, GUIDED, LEGACY], contextEnabled: false }));
+    renderFlow();
+
+    // Guided: translated context label, state tag, preview, take-forward row.
+    const guided = (await screen.findByText('lost the first set')).closest('div');
+    expect(within(guided).getByText('Competition')).toBeTruthy();
+    expect(within(guided).getByText('Nervous')).toBeTruthy();
+    expect(within(guided).getByText('Take forward:')).toBeTruthy();
+    expect(within(guided).getByText('breathe first')).toBeTruthy();
+
+    // Quick note and legacy both read as a quick note, with their note text
+    // and no guided scaffolding.
+    expect(screen.getAllByText('Quick note').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText('steady today')).toBeTruthy();
+    expect(screen.getByText('long week')).toBeTruthy();
+    expect(screen.queryByText('What happened?')).toBeNull();
+    expect(screen.queryByText('What did you notice in yourself?')).toBeNull();
+  });
+
+  test('recent rows are inert — nothing in the list is a link or a button', async () => {
+    apiFetch.mockImplementation(async () => json({ entries: [GUIDED, QUICK], contextEnabled: false }));
+    renderFlow();
+    await screen.findByText('lost the first set');
+
+    for (const text of ['lost the first set', 'steady today']) {
+      const row = screen.getByText(text).closest('div');
+      expect(within(row).queryAllByRole('link')).toHaveLength(0);
+      expect(within(row).queryAllByRole('button')).toHaveLength(0);
+    }
+  });
+
+  test('shows the empty state, and a retry on a failed load', async () => {
+    apiFetch.mockImplementation(async () => json({ entries: [], contextEnabled: false }));
+    renderFlow();
+    expect(await screen.findByText('Nothing here yet — start with today.')).toBeTruthy();
+
+    cleanup();
+    apiFetch.mockImplementation(async () => json({ error: 'nope' }, 500));
+    renderFlow();
+    expect(await screen.findByText('Could not load entries')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy();
+  });
+});
+
+// ── Arjun context control ──────────────────────────────────────────────────
+
+describe('Arjun context screen', () => {
+  test('PATCHes the setting on, and reverts with an error when the server refuses', async () => {
+    apiFetch.mockImplementation(async (p, init) => {
+      if (p === '/api/mind-journal/context' && init?.method === 'PATCH') return json({ error: 'nope' }, 500);
+      return json({ entries: [], contextEnabled: false });
+    });
+    renderFlow('/mind-journal/context');
+
+    const box = await screen.findByRole('checkbox');
+    expect(box.checked).toBe(false);
+    await userEvent.click(box);
+
+    const patch = apiFetch.mock.calls.find(([p, i]) => p === '/api/mind-journal/context' && i?.method === 'PATCH');
+    expect(JSON.parse(patch[1].body)).toEqual({ enabled: true });
+    expect((await screen.findByRole('checkbox')).checked).toBe(false);
+    expect(screen.getByText('Could not save — please try again')).toBeTruthy();
+  });
+
+  test('keeps the setting on when the server confirms it', async () => {
+    apiFetch.mockImplementation(async (p, init) => {
+      if (p === '/api/mind-journal/context' && init?.method === 'PATCH') return json({ contextEnabled: true });
+      return json({ entries: [], contextEnabled: false });
+    });
+    renderFlow('/mind-journal/context');
+
+    await userEvent.click(await screen.findByRole('checkbox'));
+    expect((await screen.findByRole('checkbox')).checked).toBe(true);
+  });
+});
+
+// ── Saved screen ───────────────────────────────────────────────────────────
+
+describe('Reflection saved screen', () => {
+  test('a direct hit with no saved entry returns to the journal rather than claiming a save', async () => {
+    renderFlow('/mind-journal/saved/whatever');
+    expect((await screen.findByTestId('pathname')).textContent).toBe('/mind-journal');
+  });
+});

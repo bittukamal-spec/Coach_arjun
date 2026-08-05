@@ -1,10 +1,11 @@
-// Source-text checks for the score-free Mind Journal client rollout, plus
-// full English/Hindi localization coverage. MindJournalPage.jsx/App.jsx/
-// Dashboard.jsx contain JSX and cannot be imported directly by node:test
-// without a transform — matching the established pattern elsewhere in this
-// suite (vizSafety.test.js, playbookOutcomes.test.js), these are
-// source-text assertions. translations.js is a plain module and is
-// imported directly.
+// Mind Journal creation flow — home, quick note, the two guided-reflection
+// steps, the saved confirmation, and the Arjun-context control.
+//
+// The screens are JSX and cannot be imported by node:test without a
+// transform, so they are checked as source text — the established pattern in
+// this suite (vizSafety.test.js, playbookOutcomes.test.js). translations.js
+// and the Mind Journal constants module are plain ESM and are imported and
+// exercised directly.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -12,246 +13,463 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { translations } from '../src/i18n/translations.js';
+import {
+  STATE_KEYS,
+  CONTEXT_TYPE_KEYS,
+  MAX_NOTE_LENGTH,
+  MAX_WHAT_HAPPENED_LENGTH,
+  MAX_TAKE_FORWARD_LENGTH,
+  guidedPreview,
+  toggleStateKey,
+  textOrUndefined,
+} from '../src/pages/mindJournal/constants.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, '..');
+const src = (p) => readFileSync(path.join(root, 'src', p), 'utf8');
 
-const page = readFileSync(path.join(root, 'src/pages/MindJournalPage.jsx'), 'utf8');
-const app = readFileSync(path.join(root, 'src/App.jsx'), 'utf8');
-const dashboard = readFileSync(path.join(root, 'src/pages/Dashboard.jsx'), 'utf8');
+const home = src('pages/MindJournalPage.jsx');
+const quick = src('pages/mindJournal/QuickNotePage.jsx');
+const step1 = src('pages/mindJournal/GuidedReflectionPage.jsx');
+const step2 = src('pages/mindJournal/GuidedReflectionDetailsPage.jsx');
+const savedScreen = src('pages/mindJournal/ReflectionSavedPage.jsx');
+const contextScreen = src('pages/mindJournal/ArjunContextPage.jsx');
+const shared = src('pages/mindJournal/shared.jsx');
+const app = src('App.jsx');
+const dashboard = src('pages/Dashboard.jsx');
 
-const STATE_KEYS = ['calm', 'focused', 'confident', 'motivated', 'nervous', 'frustrated', 'distracted', 'tired'];
+const SCREENS = [
+  ['MindJournalPage', home],
+  ['QuickNotePage', quick],
+  ['GuidedReflectionPage', step1],
+  ['GuidedReflectionDetailsPage', step2],
+  ['ReflectionSavedPage', savedScreen],
+  ['ArjunContextPage', contextScreen],
+];
+
 const DEVANAGARI_RE = /[ऀ-ॿ]/;
+const codeOnly = (s) => s.split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
 
-// ── Localization (section 1) ────────────────────────────────────────────────
+// Body of a top-level async handler, from its declaration to its closing
+// brace at component indent — so payload assertions read only that handler.
+const handlerBody = (source, name) => {
+  const start = source.indexOf(`async function ${name}`);
+  assert.ok(start !== -1, `${name} must exist`);
+  return source.slice(start, source.indexOf('\n  }', start));
+};
 
-test('MindJournalPage: imports and uses the shared translation system, not a hardcoded second language', () => {
-  assert.match(page, /import \{ translations \} from '\.\.\/i18n\/translations'/);
-  assert.match(page, /const t = translations\[language\];/);
-  assert.match(page, /const mj = t\.mindJournal;/);
-  // No page-local hardcoded copy ternary, and no raw Devanagari text in the
-  // component — every visible string comes from mj.*. formatDate's Intl
-  // locale codes ('hi-IN'/'en-IN') are locale identifiers, not copy, so
-  // they're excluded before checking for hardcoded ternary copy / Devanagari.
-  const codeOnly = page.split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
-  const withoutLocaleCodes = codeOnly.replace(/'hi-IN'|'en-IN'/g, '');
-  assert.doesNotMatch(withoutLocaleCodes, /language === 'hi' \? '/, 'must not hardcode a second-language ternary in the component');
-  assert.doesNotMatch(withoutLocaleCodes, DEVANAGARI_RE, 'no hardcoded Devanagari text may appear in the page component');
+// ── Pure helpers (real behaviour, not source text) ─────────────────────────
+
+test('toggleStateKey: selects, deselects, and refuses a third state', () => {
+  assert.deepEqual(toggleStateKey([], 'calm'), ['calm']);
+  assert.deepEqual(toggleStateKey(['calm'], 'tired'), ['calm', 'tired']);
+  assert.deepEqual(toggleStateKey(['calm', 'tired'], 'calm'), ['tired'], 'must deselect an already-selected state');
+  assert.deepEqual(toggleStateKey(['calm', 'tired'], 'focused'), ['calm', 'tired'], 'must refuse a third selection');
+  // Never mutates the array it was given.
+  const before = ['calm'];
+  toggleStateKey(before, 'tired');
+  assert.deepEqual(before, ['calm']);
 });
 
-test('translations.js: every Mind Journal athlete-visible string exists in both English and Hindi', () => {
-  const REQUIRED_KEYS = [
-    'title', 'subtitle', 'pickHint', 'notePlaceholder', 'saveBtn', 'saving', 'saved',
-    'errorGeneric', 'errorNetwork', 'recentHeading', 'emptyState', 'loadError', 'retryBtn',
-    'contextLabel', 'contextDisclosure', 'contextError',
-  ];
-  for (const lang of ['en', 'hi']) {
-    const mj = translations[lang].mindJournal;
-    assert.ok(mj, `translations.${lang}.mindJournal must exist`);
-    for (const key of REQUIRED_KEYS) {
-      assert.equal(typeof mj[key], 'string', `translations.${lang}.mindJournal.${key} must be a non-empty string`);
-      assert.ok(mj[key].length > 0, `translations.${lang}.mindJournal.${key} must not be empty`);
-    }
-    assert.equal(typeof mj.safety.heading, 'string');
-    assert.equal(typeof mj.safety.okBtn, 'string');
+test('guidedPreview: falls through whatHappened → whatNoticed → helpedOrGotInWay → takeForward', () => {
+  const empty = { whatHappened: null, whatNoticed: null, helpedOrGotInWay: null, takeForward: null };
+  assert.equal(guidedPreview({ ...empty, whatHappened: 'a', whatNoticed: 'b', helpedOrGotInWay: 'c', takeForward: 'd' }), 'a');
+  assert.equal(guidedPreview({ ...empty, whatNoticed: 'b', helpedOrGotInWay: 'c', takeForward: 'd' }), 'b');
+  assert.equal(guidedPreview({ ...empty, helpedOrGotInWay: 'c', takeForward: 'd' }), 'c');
+  assert.equal(guidedPreview({ ...empty, takeForward: 'd' }), 'd');
+  assert.equal(guidedPreview(empty), null, 'a legacy/quick row has no guided preview');
+});
+
+test('textOrUndefined: trims, and omits an empty or whitespace-only field entirely', () => {
+  assert.equal(textOrUndefined('  hello  '), 'hello');
+  assert.equal(textOrUndefined(''), undefined);
+  assert.equal(textOrUndefined('   \n  '), undefined);
+});
+
+test('constants mirror the server contract exactly', () => {
+  assert.deepEqual(STATE_KEYS, ['calm', 'focused', 'confident', 'motivated', 'nervous', 'frustrated', 'distracted', 'tired']);
+  assert.deepEqual(CONTEXT_TYPE_KEYS, ['TRAINING', 'COMPETITION', 'TOUGH_MOMENT', 'RECOVERY_DAY', 'SOMETHING_ELSE']);
+  assert.equal(MAX_NOTE_LENGTH, 500);
+  assert.equal(MAX_WHAT_HAPPENED_LENGTH, 1000);
+  assert.equal(MAX_TAKE_FORWARD_LENGTH, 500);
+});
+
+// ── Localization ───────────────────────────────────────────────────────────
+
+test('every Mind Journal screen reads copy from the shared translation system, with no hardcoded second language', () => {
+  for (const [name, source] of SCREENS) {
+    assert.match(source, /import \{ translations \} from '[^']*i18n\/translations'/, `${name} must use the shared translations`);
+    const withoutLocaleCodes = codeOnly(source).replace(/'hi-IN'|'en-IN'/g, '');
+    assert.doesNotMatch(withoutLocaleCodes, /language === 'hi' \? '/, `${name} must not hardcode a second-language ternary`);
+    assert.doesNotMatch(withoutLocaleCodes, DEVANAGARI_RE, `${name} must not contain hardcoded Devanagari copy`);
   }
 });
 
-test('translations.js: every one of the 8 fixed state keys has both an English and a Hindi (Devanagari) label', () => {
+test('translations.js: every Mind Journal athlete-visible string exists in both English and Hindi', () => {
+  const FLAT_KEYS = [
+    'title', 'subtitle', 'pickHint', 'saving', 'saved', 'errorGeneric', 'errorNetwork', 'retry',
+    'recentHeading', 'emptyState', 'loadError', 'retryBtn', 'disclosure', 'takeForwardLabel',
+    'contextLabel', 'contextDisclosure', 'contextError',
+  ];
+  const GROUPED_KEYS = {
+    newReflection: ['cardTitle', 'cardDesc', 'cta'],
+    quickNote: ['action', 'title', 'tag', 'intro', 'statesHeading', 'prompt', 'notePlaceholder', 'saveBtn'],
+    guided: [
+      'title', 'step1', 'step2', 'contextHeading', 'contextHint', 'statesHeading', 'statesHint',
+      'continueBtn', 'detailsIntro', 'whatHappened', 'whatHappenedPlaceholder', 'whatNoticed',
+      'whatNoticedPlaceholder', 'helpedOrGotInWay', 'helpedOrGotInWayPlaceholder', 'takeForward',
+      'takeForwardPlaceholder', 'needSomething', 'saveBtn',
+    ],
+    savedScreen: ['title', 'heading', 'body', 'doneBtn'],
+    contextStatus: ['label', 'on', 'off', 'manage'],
+    contextScreen: ['title', 'heading', 'body', 'notUsed', 'loadError'],
+    safety: ['heading', 'okBtn'],
+  };
+
+  for (const lang of ['en', 'hi']) {
+    const mj = translations[lang].mindJournal;
+    assert.ok(mj, `translations.${lang}.mindJournal must exist`);
+    for (const key of FLAT_KEYS) {
+      assert.equal(typeof mj[key], 'string', `translations.${lang}.mindJournal.${key} must be a string`);
+      assert.ok(mj[key].length > 0, `translations.${lang}.mindJournal.${key} must not be empty`);
+    }
+    for (const [group, keys] of Object.entries(GROUPED_KEYS)) {
+      assert.ok(mj[group], `translations.${lang}.mindJournal.${group} must exist`);
+      for (const key of keys) {
+        assert.equal(typeof mj[group][key], 'string', `translations.${lang}.mindJournal.${group}.${key} must be a string`);
+        assert.ok(mj[group][key].length > 0, `translations.${lang}.mindJournal.${group}.${key} must not be empty`);
+      }
+    }
+  }
+});
+
+test('translations.js: all 8 states and all 5 context types have English and Devanagari labels', () => {
   for (const key of STATE_KEYS) {
-    const en = translations.en.mindJournal.states[key];
-    const hi = translations.hi.mindJournal.states[key];
-    assert.equal(typeof en, 'string', `English label missing for state "${key}"`);
-    assert.ok(en.length > 0, `English label empty for state "${key}"`);
-    assert.equal(typeof hi, 'string', `Hindi label missing for state "${key}"`);
-    assert.match(hi, DEVANAGARI_RE, `Hindi label for "${key}" must be natural Devanagari script, got: ${hi}`);
+    assert.ok(translations.en.mindJournal.states[key]?.length, `English label missing for state "${key}"`);
+    assert.match(translations.hi.mindJournal.states[key], DEVANAGARI_RE, `Hindi state label for "${key}" must be Devanagari`);
+  }
+  for (const key of CONTEXT_TYPE_KEYS) {
+    assert.ok(translations.en.mindJournal.contextTypes[key]?.length, `English label missing for context type "${key}"`);
+    assert.match(translations.hi.mindJournal.contextTypes[key], DEVANAGARI_RE, `Hindi context label for "${key}" must be Devanagari`);
   }
 });
 
 test('translations.js: Hindi Mind Journal copy is genuine Devanagari, not English left untranslated', () => {
   const hi = translations.hi.mindJournal;
-  for (const key of ['title', 'subtitle', 'pickHint', 'notePlaceholder', 'saveBtn', 'saving', 'saved', 'recentHeading', 'emptyState', 'loadError', 'retryBtn', 'contextLabel', 'contextDisclosure', 'contextError']) {
-    assert.match(hi[key], DEVANAGARI_RE, `translations.hi.mindJournal.${key} must contain Devanagari script, got: ${hi[key]}`);
+  for (const key of ['title', 'subtitle', 'pickHint', 'recentHeading', 'emptyState', 'loadError', 'retryBtn', 'disclosure', 'takeForwardLabel']) {
+    assert.match(hi[key], DEVANAGARI_RE, `translations.hi.mindJournal.${key} must contain Devanagari, got: ${hi[key]}`);
   }
-  assert.match(hi.safety.heading, DEVANAGARI_RE);
-  assert.match(hi.safety.okBtn, DEVANAGARI_RE);
+  for (const [group, key] of [
+    ['newReflection', 'cardTitle'], ['quickNote', 'saveBtn'], ['guided', 'whatHappened'],
+    ['savedScreen', 'heading'], ['contextStatus', 'on'], ['contextScreen', 'heading'], ['safety', 'heading'],
+  ]) {
+    assert.match(hi[group][key], DEVANAGARI_RE, `translations.hi.mindJournal.${group}.${key} must contain Devanagari`);
+  }
 });
 
-test('MindJournalPage: renders translated state labels via mj.states[key], never the raw internal key text', () => {
-  const idx = page.indexOf('STATE_KEYS.map(key =>');
-  const block = page.slice(idx, idx + 1100);
-  assert.match(block, /\{mj\.states\[key\]\}/, 'chip label must come from the translation table');
-  assert.doesNotMatch(block, />\{key\}</, 'must never render the raw internal key as the visible label');
-});
+// ── Approved product copy ──────────────────────────────────────────────────
 
-test('MindJournalPage: recent-history items render translated labels via mj.states[k], never a raw key fallback', () => {
-  const idx = page.indexOf('entries.map(entry =>');
-  const block = page.slice(idx, idx + 700);
-  assert.match(block, /entry\.states\.map\(k => mj\.states\[k\]\)/, 'must map through the translation table with no `|| k` raw-key fallback');
-});
-
-test('switching language never changes the API values submitted — the request body always uses internal state keys, not translated labels', () => {
-  // The POST body is built from `selected` (populated by toggleState from
-  // STATE_KEYS, the internal keys) — never from mj.states or any label text.
-  const idx = page.indexOf('async function handleSave');
-  const block = page.slice(idx, page.indexOf('setSaving(false);', idx));
-  assert.match(block, /body: JSON\.stringify\(\{ states: selected, note:/, 'POST body must serialize the raw `selected` keys');
-  assert.doesNotMatch(block, /mj\.states/, 'the save request must never reference translated label text');
-
-  // toggleState only ever pushes STATE_KEYS entries (internal keys) into
-  // `selected`, regardless of which language is active.
-  const toggleIdx = page.indexOf('function toggleState');
-  const toggleBlock = page.slice(toggleIdx, page.indexOf('\n  }', toggleIdx));
-  assert.doesNotMatch(toggleBlock, /language|mj\./, 'state selection must be language-independent');
-});
-
-// ── State chips ──────────────────────────────────────────────────────────
-
-test('MindJournalPage: state chips are accessible <button> elements with aria-pressed reflecting selection', () => {
-  const idx = page.indexOf('STATE_KEYS.map(key =>');
-  const block = page.slice(idx, idx + 700);
-  assert.match(block, /<button/);
-  assert.match(block, /aria-pressed=\{isSelected\}/);
-  assert.match(block, /onClick=\{\(\) => toggleState\(key\)\}/);
-});
-
-test('MindJournalPage: toggleState prevents selecting more than 2, and deselects an already-selected state', () => {
-  const idx = page.indexOf('function toggleState');
-  const block = page.slice(idx, page.indexOf('\n  }', idx));
-  assert.match(block, /if \(prev\.includes\(key\)\) return prev\.filter\(k => k !== key\);/, 'must deselect a selected state');
-  assert.match(block, /if \(prev\.length >= 2\) return prev;/, 'must not allow a third selection');
-});
-
-// ── Note ─────────────────────────────────────────────────────────────────
-
-test('MindJournalPage: note is optional and length-bounded to 500 characters, with a visible counter', () => {
-  assert.match(page, /const MAX_NOTE_LENGTH = 500;/);
-  assert.match(page, /maxLength=\{MAX_NOTE_LENGTH\}/);
-  assert.match(page, /\{note\.length\}\/\{MAX_NOTE_LENGTH\}/);
-  assert.match(page, /note: note\.trim\(\) \? note : undefined/, 'note must be optional in the request payload');
-});
-
-// ── Save behavior ────────────────────────────────────────────────────────
-
-test('MindJournalPage: Save is disabled until at least one state is selected, and while a save is in flight', () => {
-  assert.match(page, /disabled=\{selected\.length === 0 \|\| saving\}/);
-});
-
-test('MindJournalPage: prevents duplicate submissions while saving (guarded at the top of handleSave)', () => {
-  const idx = page.indexOf('async function handleSave');
-  const block = page.slice(idx, idx + 300);
-  assert.match(block, /if \(selected\.length === 0 \|\| saving\) return;/);
-});
-
-test('MindJournalPage: Save POSTs to the new /api/mind-journal endpoint only — never the old scored endpoint', () => {
-  assert.match(page, /apiFetch\('\/api\/mind-journal', \{\s*method: 'POST'/);
-  assert.doesNotMatch(page, /\/api\/mental-fitness/, 'must never call the legacy scored endpoint');
-});
-
-test('MindJournalPage: handles loading, error, and success states for the save action, all from translations', () => {
-  assert.match(page, /saving \? mj\.saving : mj\.saveBtn/, 'loading state');
-  assert.match(page, /setSaveError\(data\?\.error \|\| mj\.errorGeneric\)/, 'error state');
-  assert.match(page, /setSavedJustNow\(true\)/, 'success state');
-  // Stage I: the three states are presented by the shared SaveStatus instead
-  // of three hand-rolled blocks. Every label still comes from translations,
-  // and the SPECIFIC save error is passed through rather than flattened into
-  // a generic "could not save" — the network/server distinction is preserved.
-  assert.match(page, /<SaveStatus/, 'save state must use the shared indicator');
-  assert.match(
-    page,
-    /labels=\{\{ saving: mj\.saving, saved: mj\.saved, saveFailed: saveError, retry: mj\.retry \}\}/,
-    'success/error copy must come from translations, with the specific error preserved'
-  );
-  assert.match(
-    page,
-    /state=\{saving \? 'saving' : saveError \? 'error' : savedJustNow \? 'saved' : 'idle'\}/,
-    'all three existing states must still map to a visible indicator state'
+test('translations.js: the home description is the approved personal / score-free line', () => {
+  assert.equal(
+    translations.en.mindJournal.subtitle,
+    'A personal, score-free place to notice what happened and what you want to carry forward.'
   );
 });
 
-// ── Safety guidance ──────────────────────────────────────────────────────
-
-test('MindJournalPage: a safetyFlag response shows guidance + helplines instead of a false success confirmation', () => {
-  const idx = page.indexOf('async function handleSave');
-  const block = page.slice(idx, page.indexOf('setSaving(false);', idx));
-  assert.match(block, /data\?\.safetyFlag === 'needs_support'/);
-  assert.match(block, /setSafetyGuidance\(data\.guidance/);
-  const safetyIdx = block.indexOf("data?.safetyFlag === 'needs_support'");
-  const successIdx = block.indexOf('data?.entry');
-  assert.ok(safetyIdx !== -1 && successIdx !== -1 && safetyIdx < successIdx);
-
-  assert.match(page, /import HelplineList from '\.\.\/components\/HelplineList'/);
-  const renderIdx = page.indexOf('safetyGuidance ? (');
-  const renderBlock = page.slice(renderIdx, renderIdx + 800);
-  assert.match(renderBlock, /<HelplineList \/>/);
-  assert.match(renderBlock, /\{mj\.safety\.heading\}/);
-  assert.match(renderBlock, /\{mj\.safety\.okBtn\}/);
-  assert.doesNotMatch(renderBlock, /\{mj\.saved\}/, 'must never show a save-success confirmation on the safety branch');
+test('translations.js: Mind Journal copy never makes the absolute claim "private"', () => {
+  const walk = (node, trail) => {
+    for (const [key, value] of Object.entries(node)) {
+      if (typeof value === 'string') {
+        assert.doesNotMatch(value, /\bprivate\b/i, `${trail}.${key} must not claim the journal is "private": ${value}`);
+        assert.doesNotMatch(value, /निजी/, `${trail}.${key} must not claim the journal is "private": ${value}`);
+      } else if (value && typeof value === 'object') {
+        walk(value, `${trail}.${key}`);
+      }
+    }
+  };
+  for (const lang of ['en', 'hi']) walk(translations[lang].mindJournal, `${lang}.mindJournal`);
 });
 
-// ── Recent entries: empty / loading / error / populated, no scores ───────
-
-test('MindJournalPage: recent entries render loading, error, empty, and populated states', () => {
-  assert.match(page, /entries === null/, 'loading state');
-  assert.match(page, /entries === false/, 'error state');
-  assert.match(page, /entries\.length === 0/, 'empty state');
-  assert.match(page, /entries\.map\(entry =>/, 'populated state');
+test('no Mind Journal screen introduces scoring, ranking, streak or reward language', () => {
+  for (const [name, source] of SCREENS) {
+    assert.doesNotMatch(
+      codeOnly(source),
+      /chart|rating|streak|percentage|reward|confetti|xpEarned|fitnessLevel|avgPct|\d+\/100|score|badge|diagnos|profil|auto-prescri/i,
+      `${name} must stay score-free and non-clinical`
+    );
+  }
 });
 
-test('MindJournalPage: each recent entry shows only translated state labels, optional note, and a date — no score field', () => {
-  const idx = page.indexOf('entries.map(entry =>');
-  const block = page.slice(idx, idx + 700);
-  assert.match(block, /entry\.states\.map\(k =>/);
-  assert.match(block, /entry\.note &&/);
-  assert.match(block, /formatDate\(entry\.createdAt\)/);
-  assert.doesNotMatch(block, /score|rating|percentage|streak/i);
+// ── Screen 1: home ─────────────────────────────────────────────────────────
+
+test('home: leads with the approved description and offers both ways in', () => {
+  assert.match(home, /\{mj\.subtitle\}/);
+  assert.match(home, /to="\/mind-journal\/new"/, 'the prominent New reflection card must open the guided flow');
+  assert.match(home, /\{mj\.newReflection\.cardTitle\}/);
+  assert.match(home, /to="\/mind-journal\/quick"/, 'the secondary Quick note action must open the quick-note screen');
+  assert.match(home, /\{mj\.quickNote\.action\}/);
 });
 
-test('MindJournalPage: no chart, numerical rating, streak, mental fitness level, progress percentage, score, or reward animation appears in the actual code', () => {
-  const codeOnly = page.split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
-  assert.doesNotMatch(codeOnly, /chart|rating|streak|percentage|reward|confetti|xpEarned|fitnessLevel|avgPct|\d+\/100|score/i);
+test('home: shows a compact Arjun-context status row linking to the context screen', () => {
+  assert.match(home, /\{mj\.contextStatus\.label\}/);
+  assert.match(home, /contextEnabled \? mj\.contextStatus\.on : mj\.contextStatus\.off/);
+  assert.match(home, /to="\/mind-journal\/context"/);
 });
 
-// ── Optional Arjun context opt-in ──────────────────────────────────────────
-
-test('MindJournalPage: context toggle reflects the server-persisted value on load, not localStorage', () => {
-  assert.match(page, /setContextEnabled\(!!data\.contextEnabled\)/);
-  assert.doesNotMatch(page, /localStorage/, 'context preference must never be sourced from localStorage');
-  assert.match(page, /checked=\{contextEnabled\}/);
+test('home: renders loading, error, empty and populated states for recent reflections', () => {
+  assert.match(home, /entries === null/, 'loading state');
+  assert.match(home, /entries === false/, 'error state');
+  assert.match(home, /entries\.length === 0/, 'empty state');
+  assert.match(home, /entries\.map\(entry =>/, 'populated state');
+  assert.match(home, /\{mj\.loadError\}/);
+  assert.match(home, /\{mj\.emptyState\}/);
 });
 
-test('MindJournalPage: toggling calls PATCH /api/mind-journal/context and reverts to the previous value on failure', () => {
-  const idx = page.indexOf('async function handleContextToggle');
-  const block = page.slice(idx, page.indexOf('\n  }', page.indexOf('setContextSaving(false);', idx)));
-  assert.match(block, /method: 'PATCH'/);
-  assert.match(block, /'\/api\/mind-journal\/context'/);
-  assert.match(block, /setContextEnabled\(previous\)/, 'must restore the previous value on failure');
-  assert.match(block, /setContextError\(true\)/, 'must show an error on failure');
+test('home: guided reflections show a translated context label, state tags, a preview and a distinct Take forward row', () => {
+  const row = home.slice(home.indexOf('function EntryRow'), home.indexOf('export default function'));
+  assert.match(row, /entry\.entryType === 'GUIDED_REFLECTION'/);
+  assert.match(row, /mj\.contextTypes\[entry\.contextType\]/, 'the context type must be translated, never shown raw');
+  assert.match(row, /entry\.states\.map\(k => mj\.states\[k\]\)/, 'state tags map through the translation table with no raw-key fallback');
+  assert.match(row, /guidedPreview\(entry\)/, 'the preview must use the agreed field precedence');
+  assert.match(row, /isGuided && entry\.takeForward/, 'Take forward gets its own row when present');
+  assert.match(row, /\{mj\.takeForwardLabel\}/);
 });
 
-test('MindJournalPage: the opt-in is off by default (component state) and only flips via an explicit toggle', () => {
-  assert.match(page, /const \[contextEnabled, setContextEnabled\] = useState\(false\);/);
+test('home: quick notes and legacy rows render as a quick note, with no empty guided sections', () => {
+  const row = home.slice(home.indexOf('function EntryRow'), home.indexOf('export default function'));
+  // Legacy rows have entryType null, so they take the same branch as an
+  // explicit QUICK_NOTE — states, the note, and nothing guided.
+  assert.match(row, /isGuided \? guidedPreview\(entry\) : entry\.note/);
+  assert.match(row, /: mj\.quickNote\.tag/, 'a non-guided row is labelled as a quick note');
+  // The guided sections are inside `isGuided` guards, so they cannot render
+  // as empty scaffolding for a legacy row.
+  assert.doesNotMatch(row, /\{mj\.guided\./, 'a list row must never surface guided prompt labels');
 });
 
-// ── Routing / product language ────────────────────────────────────────────
-
-test('App.jsx: /mind-journal route renders MindJournalPage', () => {
-  assert.match(app, /import MindJournalPage from '\.\/pages\/MindJournalPage'/);
-  const idx = app.indexOf("path=\"/mind-journal\"");
-  const block = app.slice(idx, idx + 200);
-  assert.match(block, /<MindJournalPage \/>/);
+test('home: recent rows are inert — no chevron, overflow menu, edit or delete affordance', () => {
+  const row = home.slice(home.indexOf('function EntryRow'), home.indexOf('export default function'));
+  assert.doesNotMatch(row, /Chevron|MoreVertical|MoreHorizontal|Trash|Pencil|Edit/, 'rows must not imply an action that does not exist');
+  assert.doesNotMatch(row, /<Link|onClick=/, 'rows must not look or behave as if they open a detail screen');
+  assert.doesNotMatch(home, /mind-journal\/\$\{entry\.id\}/, 'the single-entry route does not exist yet');
 });
 
-test('App.jsx: the old /mental-fitness path redirects to the new score-free experience, and no longer renders the old scored page', () => {
+test('home: never writes — it reads entries and reports the context flag only', () => {
+  assert.doesNotMatch(home, /method: 'POST'/, 'creation happens on the dedicated screens');
+  assert.doesNotMatch(home, /method: 'PATCH'/);
+  assert.doesNotMatch(home, /method: 'DELETE'/);
+  assert.doesNotMatch(home, /\/api\/mental-fitness/, 'must never call the legacy scored endpoint');
+});
+
+// ── Screen 2: quick note ───────────────────────────────────────────────────
+
+test('quick note: posts the QUICK_NOTE shape with 1-2 states and an optional note', () => {
+  const save = handlerBody(quick, 'handleSave');
+  assert.match(save, /entryType: 'QUICK_NOTE'/);
+  assert.match(save, /states: selected/);
+  assert.match(save, /note: textOrUndefined\(note\)/, 'an empty note must be omitted, not sent as an empty string');
+  assert.doesNotMatch(save, /contextType|whatHappened|whatNoticed|helpedOrGotInWay|takeForward/, 'guided fields are rejected on a quick note');
+  assert.match(quick, /const canSave = selected\.length > 0 && !saving;/, 'at least one state, and no double submit');
+  assert.match(quick, /disabled=\{!canSave\}/);
+});
+
+test('quick note: bounds the note at 500 characters and shows a live counter', () => {
+  assert.match(quick, /maxLength=\{MAX_NOTE_LENGTH\}/);
+  assert.match(quick, /e\.target\.value\.slice\(0, MAX_NOTE_LENGTH\)/);
+  assert.match(quick, /\{note\.length\}\/\{MAX_NOTE_LENGTH\}/);
+});
+
+test('quick note: shows the approved prompt, the eight states, and the personal / score-free disclosure', () => {
+  assert.match(quick, /\{qn\.prompt\}/);
+  assert.match(quick, /<StateChips/);
+  assert.match(quick, /\{mj\.pickHint\}/);
+  assert.match(quick, /\{mj\.disclosure\}/);
+});
+
+// ── Screens 3 & 4: guided reflection ───────────────────────────────────────
+
+test('guided step 1: context type is required and single-select; states stay optional', () => {
+  assert.match(step1, /CONTEXT_TYPE_KEYS\.map\(key =>/);
+  assert.match(step1, /onClick=\{\(\) => setContextType\(key\)\}/, 'single-select, not a toggle list');
+  assert.match(step1, /aria-pressed=\{isSelected\}/);
+  assert.match(step1, /\{mj\.contextTypes\[key\]\}/, 'context labels must be translated');
+  assert.match(step1, /disabled=\{!contextType\}/, 'Continue is blocked until a context type is picked');
+  assert.match(step1, /\{g\.statesHint\}/, 'states are labelled optional here');
+});
+
+test('guided step 1: hands its answers to step 2 and writes nothing itself', () => {
+  assert.match(step1, /navigate\('\/mind-journal\/new\/details', \{ state: \{ contextType, states: selected \} \}\)/);
+  assert.doesNotMatch(step1, /apiFetch|method: 'POST'/, 'step 1 must not persist anything');
+});
+
+test('guided step 2: renders the four prompts at the server bounds', () => {
+  for (const [label, bound] of [
+    ['g.whatHappened', 'MAX_WHAT_HAPPENED_LENGTH'],
+    ['g.whatNoticed', 'MAX_WHAT_NOTICED_LENGTH'],
+    ['g.helpedOrGotInWay', 'MAX_HELPED_OR_GOT_IN_WAY_LENGTH'],
+    ['g.takeForward', 'MAX_TAKE_FORWARD_LENGTH'],
+  ]) {
+    assert.ok(step2.includes(`label={${label}}`), `${label} prompt must be rendered`);
+    assert.ok(step2.includes(`maxLength={${bound}}`), `${label} must be bounded by ${bound}`);
+  }
+  assert.match(step2, /\{value\.length\}\/\{maxLength\}/, 'each prompt shows a live counter');
+});
+
+test('guided step 2: posts the GUIDED_REFLECTION shape and never sends a note', () => {
+  const save = handlerBody(step2, 'handleSave');
+  assert.match(save, /entryType: 'GUIDED_REFLECTION'/);
+  assert.match(save, /contextType,/);
+  assert.match(save, /states,/);
+  for (const field of ['whatHappened', 'whatNoticed', 'helpedOrGotInWay', 'takeForward']) {
+    assert.ok(save.includes(`${field}: textOrUndefined(${field})`), `${field} must be trimmed and omitted when empty`);
+  }
+  assert.doesNotMatch(save, /\bnote:/, 'the server rejects a note on a guided reflection');
+});
+
+test('guided step 2: mirrors the server rule that a reflection needs one state or one answer', () => {
+  assert.match(step2, /const written = \[whatHappened, whatNoticed, helpedOrGotInWay, takeForward\]\.some\(v => v\.trim\(\)\.length > 0\);/);
+  assert.match(step2, /const hasContent = states\.length > 0 \|\| written;/);
+  assert.match(step2, /const canSave = hasContent && !saving;/);
+  assert.match(step2, /\{g\.needSomething\}/, 'the rule is explained rather than left as a dead button');
+});
+
+test('guided step 2: recovers a direct hit, and preserves step 1 answers when going back', () => {
+  assert.match(step2, /if \(!contextType\) return <Navigate to="\/mind-journal\/new" replace \/>;/);
+  assert.match(step2, /navigate\('\/mind-journal\/new', \{ state: \{ contextType, states \}, replace: true \}\)/);
+  assert.match(step1, /const draft = location\.state \|\| \{\};/, 'step 1 must re-seed from the handed-back state');
+  assert.match(step1, /useState\(draft\.contextType \|\| null\)/);
+  assert.match(step1, /useState\(draft\.states \|\| \[\]\)/);
+});
+
+test('guided step 2: only a real created entry advances to the saved screen', () => {
+  assert.match(step2, /if \(entry\) navigate\(`\/mind-journal\/saved\/\$\{entry\.id\}`, \{ state: \{ entry \}, replace: true \}\)/);
+});
+
+// ── Safety ─────────────────────────────────────────────────────────────────
+
+test('a safety-flagged submission replaces the form with guidance and helplines, never a save confirmation', () => {
+  assert.match(shared, /data\?\.safetyFlag === 'needs_support'/);
+  assert.match(shared, /setSafety\(\{ guidance: data\.guidance \|\| null \}\)/, 'wrapped so a flag with no guidance text still shows the screen');
+  const flagIdx = shared.indexOf("data?.safetyFlag === 'needs_support'");
+  const successIdx = shared.indexOf('return data?.entry');
+  assert.ok(flagIdx !== -1 && successIdx !== -1 && flagIdx < successIdx, 'the safety branch must be checked before the success path');
+
+  assert.match(shared, /import HelplineList from '\.\.\/\.\.\/components\/HelplineList'/);
+  const card = shared.slice(shared.indexOf('export function SafetyGuidanceCard'), shared.indexOf('export function useMindJournalSave'));
+  assert.match(card, /<HelplineList \/>/);
+  assert.match(card, /\{mj\.safety\.heading\}/);
+  assert.doesNotMatch(card, /\{mj\.saved\}/, 'the safety screen must never read as a successful save');
+
+  for (const [name, source] of [['QuickNotePage', quick], ['GuidedReflectionDetailsPage', step2]]) {
+    assert.match(source, /safety \? \(\s*<SafetyGuidanceCard/, `${name} must show guidance instead of the form when flagged`);
+  }
+});
+
+test('both writing screens surface saving / failed states from translations, with retry', () => {
+  for (const [name, source] of [['QuickNotePage', quick], ['GuidedReflectionDetailsPage', step2]]) {
+    assert.match(source, /<SaveStatus/, `${name} must use the shared save indicator`);
+    assert.match(source, /state=\{saving \? 'saving' : saveError \? 'error' : 'idle'\}/, `${name} save states`);
+    assert.match(
+      source,
+      /labels=\{\{ saving: mj\.saving, saved: mj\.saved, saveFailed: saveError, retry: mj\.retry \}\}/,
+      `${name} must keep the specific error rather than flattening it`
+    );
+  }
+  assert.match(shared, /setSaveError\(data\?\.error \|\| mj\.errorGeneric\)/, 'server error');
+  assert.match(shared, /setSaveError\(mj\.errorNetwork\)/, 'network error');
+});
+
+test('language never changes what is submitted — payloads carry internal keys only', () => {
+  for (const [name, source] of [['QuickNotePage', quick], ['GuidedReflectionDetailsPage', step2]]) {
+    const save = handlerBody(source, 'handleSave');
+    assert.doesNotMatch(save, /mj\.states|mj\.contextTypes|translations/, `${name} must never send translated label text`);
+  }
+  assert.match(step1, /navigate\('\/mind-journal\/new\/details', \{ state: \{ contextType, states: selected \} \}\)/);
+});
+
+// ── Screen 5: reflection saved ─────────────────────────────────────────────
+
+test('saved screen: quiet confirmation, showing Take forward when there is one', () => {
+  assert.match(savedScreen, /\{saved\.heading\}/);
+  assert.match(savedScreen, /\{saved\.body\}/);
+  assert.match(savedScreen, /entry\.takeForward &&/);
+  assert.match(savedScreen, /\{mj\.takeForwardLabel\}/);
+  assert.match(savedScreen, /\{saved\.doneBtn\}/);
+  assert.match(savedScreen, /navigate\('\/mind-journal', \{ replace: true \}\)/);
+});
+
+test('saved screen: a direct hit with no saved entry returns to the journal instead of claiming a save', () => {
+  assert.match(savedScreen, /const entry = location\.state\?\.entry;/);
+  assert.match(savedScreen, /if \(!entry\) return <Navigate to="\/mind-journal" replace \/>;/);
+  assert.doesNotMatch(savedScreen, /apiFetch/, 'there is no single-entry read on the server to call');
+});
+
+// ── Screen 6: Arjun context ────────────────────────────────────────────────
+
+test('context screen: opt-in defaults to off, reflects the server value, and never uses localStorage', () => {
+  assert.match(contextScreen, /const \[contextEnabled, setContextEnabled\] = useState\(false\);/);
+  assert.match(contextScreen, /setContextEnabled\(!!data\.contextEnabled\)/);
+  assert.match(contextScreen, /checked=\{contextEnabled\}/);
+  assert.doesNotMatch(contextScreen, /localStorage/, 'the preference is server state, never local');
+});
+
+test('context screen: toggling PATCHes the context route and reverts on failure', () => {
+  const toggle = contextScreen.slice(contextScreen.indexOf('async function handleContextToggle'));
+  assert.match(toggle, /'\/api\/mind-journal\/context'/);
+  assert.match(toggle, /method: 'PATCH'/);
+  assert.match(toggle, /setContextEnabled\(previous\)/, 'must restore the previous value on failure');
+  assert.match(toggle, /setContextError\(true\)/, 'must tell the athlete it did not save');
+});
+
+test('context screen: explains the restricted use, and states it is never used to score or prescribe', () => {
+  assert.match(contextScreen, /\{cx\.body\}/);
+  assert.match(contextScreen, /\{cx\.notUsed\}/);
+  assert.match(translations.en.mindJournal.contextLabel, /latest 5 Mind Journal entries/);
+  assert.match(contextScreen, /\{cx\.loadError\}/, 'the setting has its own load-error state');
+});
+
+// ── Routing ────────────────────────────────────────────────────────────────
+
+test('App.jsx: all six Mind Journal routes exist and are onboarding-protected', () => {
+  const ROUTES = [
+    ['/mind-journal', 'MindJournalPage'],
+    ['/mind-journal/quick', 'QuickNotePage'],
+    ['/mind-journal/new', 'GuidedReflectionPage'],
+    ['/mind-journal/new/details', 'GuidedReflectionDetailsPage'],
+    ['/mind-journal/context', 'ArjunContextPage'],
+    ['/mind-journal/saved/:id', 'ReflectionSavedPage'],
+  ];
+  for (const [routePath, component] of ROUTES) {
+    const idx = app.indexOf(`path="${routePath}"`);
+    assert.ok(idx !== -1, `route ${routePath} must be registered`);
+    const block = app.slice(idx, idx + 260);
+    assert.match(block, /<ProtectedRoute requireOnboarding=\{true\}>/, `${routePath} must stay behind onboarding`);
+    assert.ok(block.includes(`<${component} />`), `${routePath} must render ${component}`);
+  }
+});
+
+test('App.jsx: every literal Mind Journal segment is declared before the dynamic route', () => {
+  const dynamicIdx = app.indexOf('path="/mind-journal/saved/:id"');
+  for (const literal of ['/mind-journal/quick', '/mind-journal/new', '/mind-journal/new/details', '/mind-journal/context']) {
+    assert.ok(app.indexOf(`path="${literal}"`) < dynamicIdx, `${literal} must be declared before the dynamic route`);
+  }
+});
+
+test('App.jsx: the single-entry route is not added in this PR, and Mind Journal stays full screen', () => {
+  assert.doesNotMatch(app, /path="\/mind-journal\/:id"/, 'the detail route belongs to a later change');
+  // None of these routes are wrapped in the BottomNav layout — they are
+  // declared as bare full-screen routes, matching the original.
+  const idx = app.indexOf('path="/mind-journal"');
+  const block = app.slice(idx, app.indexOf('path="/mental-fitness"'));
+  assert.doesNotMatch(block, /BottomNav/, 'Mind Journal screens stay full screen');
+});
+
+test('App.jsx: /mental-fitness still redirects to /mind-journal, and the old scored page stays unreachable', () => {
   const idx = app.indexOf('path="/mental-fitness"');
-  const block = app.slice(idx, idx + 150);
-  assert.match(block, /<Navigate to="\/mind-journal" replace \/>/);
-  assert.doesNotMatch(app, /MentalFitnessCheckin/, 'the old scored page must no longer be reachable from any route');
+  assert.match(app.slice(idx, idx + 150), /<Navigate to="\/mind-journal" replace \/>/);
+  assert.doesNotMatch(app, /MentalFitnessCheckin/);
 });
 
-test('Dashboard.jsx: the visible check-in link now opens Mind Journal, not the old scored page', () => {
-  // Refinement PR: the entry is now a real <Link to="/mind-journal"> card.
+test('Dashboard.jsx: the visible check-in link still opens Mind Journal, unchanged by this PR', () => {
   assert.match(dashboard, /to="\/mind-journal"/);
-  assert.doesNotMatch(dashboard, /navigate\('\/mental-fitness'\)/);
   assert.doesNotMatch(dashboard, /to="\/mental-fitness"/);
 });

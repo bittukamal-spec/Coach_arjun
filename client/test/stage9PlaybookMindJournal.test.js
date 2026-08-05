@@ -15,6 +15,7 @@ const root = path.join(__dirname, '..');
 
 const playbook = readFileSync(path.join(root, 'src/pages/PlaybookPage.jsx'), 'utf8');
 const mindJournal = readFileSync(path.join(root, 'src/pages/MindJournalPage.jsx'), 'utf8');
+const contextScreen = readFileSync(path.join(root, 'src/pages/mindJournal/ArjunContextPage.jsx'), 'utf8');
 const translations = readFileSync(path.join(root, 'src/i18n/translations.js'), 'utf8');
 
 // ── "What I'm learning" is first ────────────────────────────────────────────
@@ -76,11 +77,24 @@ test('MindJournalPage: uses semantic spacing/type tokens (px-page, text-body/cap
 
 // ── Preserve Mind Journal privacy / opt-in and non-translation of athlete text ──
 
-test('MindJournalPage: privacy opt-in still defaults to false and is only changed by explicit user action', () => {
+// The opt-in moved off the landing screen onto its own Arjun-context screen
+// (PR 2A), so the guarantee is asserted where the control now lives. The
+// landing screen only reports the value and must not be able to change it.
+test('Arjun context screen: opt-in still defaults to false and is only changed by explicit user action', () => {
+  assert.match(contextScreen, /const \[contextEnabled, setContextEnabled\] = useState\(false\);/);
+  assert.match(contextScreen, /onChange=\{handleContextToggle\}/);
+});
+
+test('MindJournalPage: reports the context setting but carries no control that could change it', () => {
   assert.match(mindJournal, /const \[contextEnabled, setContextEnabled\] = useState\(false\);/);
-  assert.match(mindJournal, /onChange=\{handleContextToggle\}/);
+  assert.doesNotMatch(mindJournal, /type="checkbox"/, 'the landing screen must not host the opt-in control');
+  assert.doesNotMatch(mindJournal, /method: 'PATCH'/, 'the landing screen must never write the context setting');
 });
 
 test('MindJournalPage: athlete-authored note/entry text is rendered verbatim, never passed through translation', () => {
-  assert.match(mindJournal, /\{entry\.note && <p[^>]*>\{entry\.note\}<\/p>\}/);
+  // Quick notes and legacy rows preview through `preview`, guided
+  // reflections add the labelled take-forward line — both render the raw
+  // stored string, never a lookup keyed by it.
+  assert.match(mindJournal, /\{showPreview && <p[^>]*>\{preview\}<\/p>\}/);
+  assert.match(mindJournal, /\{entry\.takeForward\}/);
 });

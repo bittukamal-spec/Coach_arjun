@@ -118,13 +118,13 @@ test('Reflections: own section container with existing entries, empty state and 
   assert.match(pbHi, /reflectionsCta:/);
 });
 
-test('Mind Journal entry: a proper quiet card with title, privacy/no-score line and /mind-journal action', () => {
+test('Mind Journal entry: a proper quiet card with title, personal/score-free line and /mind-journal action', () => {
   const block = src.slice(src.indexOf('Mind Journal —'));
   assert.match(block, /<Card/);
   assert.doesNotMatch(block, /variant="hero"/);
   assert.match(block, /navigate\('\/mind-journal'\)/);
   assert.match(block, /\{pb\.journalDesc\}/);
-  assert.match(pbEn, /journalDesc:\s*'Private, no scores — add an entry\.'/);
+  assert.match(pbEn, /journalDesc:\s*'A personal, score-free place to reflect and carry something useful forward\.'/);
   assert.match(pbHi, /कोई स्कोर नहीं/);
 });
 
@@ -202,7 +202,7 @@ test('every athlete-facing string has both an English and a Hindi variant', () =
   assert.match(pbHi, /अभी कोई सीख दर्ज नहीं हुई/);
   assert.match(pbEn, /haven't recorded any lessons yet/);
   assert.match(pbHi, /कोई स्कोर नहीं/);
-  assert.match(pbEn, /no scores/i);
+  assert.match(pbEn, /score-free/i);
   const keysOf = (block) => [...block.matchAll(/^\s{6}([a-zA-Z]+):/gm)].map((m) => m[1]).sort();
   assert.deepEqual(keysOf(pbEn), keysOf(pbHi), 'playbook keys must match across languages');
   // The page reads that namespace rather than branching on language inline.
