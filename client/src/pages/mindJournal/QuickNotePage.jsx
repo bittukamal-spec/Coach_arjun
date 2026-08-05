@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { PenLine } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { translations } from '../../i18n/translations';
-import { PageHeader, SaveStatus } from '../../components/ui';
+import { Card, PageHeader, SaveStatus, Button } from '../../components/ui';
 import { MAX_NOTE_LENGTH, textOrUndefined, toggleStateKey } from './constants';
 import { StateChips, SafetyGuidanceCard, useMindJournalSave } from './shared';
 
@@ -35,33 +36,43 @@ export default function QuickNotePage() {
   }
 
   return (
-    <div className="min-h-screen bg-dark-900 pb-24">
+    <div className="min-h-screen bg-dark-900 pb-10">
       <PageHeader backTo="/mind-journal" title={qn.title} />
 
-      <div className="px-page pt-4 max-w-lg mx-auto">
+      <div className="px-page pt-5 max-w-lg mx-auto">
         {safety ? (
           <SafetyGuidanceCard guidance={safety.guidance} onDismiss={dismissSafety} />
         ) : (
           <>
-            <p className="text-body text-slt mb-6 leading-relaxed">{qn.intro}</p>
+            <h2 className="text-title font-bold text-ink mb-2">{qn.statesHeading}</h2>
+            <p className="text-body text-slt mb-5 leading-relaxed">{qn.intro}</p>
 
-            <p className="text-body font-semibold text-ink mb-3">{qn.statesHeading}</p>
             <StateChips selected={selected} onToggle={key => setSelected(prev => toggleStateKey(prev, key))} />
-            <p className="text-caption text-slt mt-2 mb-6">{mj.pickHint}</p>
+            <p className="text-caption text-slt mt-2.5 mb-6">{mj.pickHint}</p>
 
-            <label htmlFor="quick-note-text" className="block text-body font-semibold text-ink mb-2">
-              {qn.prompt}
-            </label>
-            <textarea
-              id="quick-note-text"
-              value={note}
-              onChange={e => setNote(e.target.value.slice(0, MAX_NOTE_LENGTH))}
-              maxLength={MAX_NOTE_LENGTH}
-              placeholder={qn.notePlaceholder}
-              rows={3}
-              className="input-field resize-none mb-1"
-            />
-            <p className="text-caption text-slt mb-5 text-right">{note.length}/{MAX_NOTE_LENGTH}</p>
+            <Card className="p-4 mb-5 elevation-card" data-testid="mj-writing-card">
+              <div className="flex items-center gap-2.5 mb-3">
+                <span
+                  className="w-9 h-9 rounded-xl bg-brand-50 text-brand-500 flex items-center justify-center shrink-0"
+                  aria-hidden="true"
+                >
+                  <PenLine size={16} />
+                </span>
+                <label htmlFor="quick-note-text" className="text-body font-bold text-ink">
+                  {qn.prompt}
+                </label>
+              </div>
+              <textarea
+                id="quick-note-text"
+                value={note}
+                onChange={e => setNote(e.target.value.slice(0, MAX_NOTE_LENGTH))}
+                maxLength={MAX_NOTE_LENGTH}
+                placeholder={qn.notePlaceholder}
+                rows={4}
+                className="input-field resize-none mb-1 border-0 bg-dark-700/80"
+              />
+              <p className="text-caption text-slt text-right tabular-nums">{note.length}/{MAX_NOTE_LENGTH}</p>
+            </Card>
 
             <div className="mb-3 empty:mb-0">
               <SaveStatus
@@ -71,16 +82,15 @@ export default function QuickNotePage() {
               />
             </div>
 
-            <button
+            <Button
               onClick={handleSave}
               disabled={!canSave}
-              className="w-full py-3.5 rounded-2xl text-white font-bold text-body active:scale-[0.98] transition-transform disabled:opacity-40"
-              style={{ backgroundColor: 'var(--brand-primary)' }}
+              className="w-full"
             >
               {saving ? mj.saving : qn.saveBtn}
-            </button>
+            </Button>
 
-            <p className="text-caption text-slt mt-4 leading-relaxed">{mj.disclosure}</p>
+            <p className="text-caption text-slt mt-5 leading-relaxed text-center">{mj.disclosure}</p>
           </>
         )}
       </div>

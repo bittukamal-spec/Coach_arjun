@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { Lightbulb } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { translations } from '../../i18n/translations';
-import { PageHeader } from '../../components/ui';
-import { CONTEXT_TYPE_KEYS, toggleStateKey } from './constants';
-import { StateChips } from './shared';
+import { PageHeader, Button } from '../../components/ui';
+import { toggleStateKey } from './constants';
+import { StateChips, ContextTypeCards, StepProgress } from './shared';
 
 // ─── Guided reflection, step 1 of 2 — what this was about, and how it felt.
 // Nothing is written to the server here; the two answers are handed to step
@@ -31,48 +32,48 @@ export default function GuidedReflectionPage() {
   }
 
   return (
-    <div className="min-h-screen bg-dark-900 pb-24">
+    <div className="min-h-screen bg-dark-900 pb-10">
       <PageHeader backTo="/mind-journal" title={g.title} />
 
-      <div className="px-page pt-4 max-w-lg mx-auto">
-        <p className="text-micro font-bold text-slt uppercase mb-4">{g.step1}</p>
+      <div className="px-page pt-5 max-w-lg mx-auto">
+        <StepProgress label={g.step1} step={1} />
 
-        {/* ── Context type — the one required answer ─────────────────── */}
-        <p className="text-body font-semibold text-ink mb-1">{g.contextHeading}</p>
-        <p className="text-caption text-slt mb-3">{g.contextHint}</p>
-        <div className="flex flex-wrap gap-2 mb-8">
-          {CONTEXT_TYPE_KEYS.map(key => {
-            const isSelected = contextType === key;
-            return (
-              <button
-                key={key}
-                type="button"
-                aria-pressed={isSelected}
-                onClick={() => setContextType(key)}
-                className="chip min-h-[44px] inline-flex items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
-                style={isSelected ? { borderColor: 'var(--brand-primary)', backgroundColor: 'rgb(var(--brand-primary-rgb) / 0.15)', color: 'var(--brand-primary)' } : undefined}
-              >
-                {mj.contextTypes[key]}
-              </button>
-            );
-          })}
+        <div className="flex items-start gap-3 mb-6 p-3.5 rounded-2xl bg-dark-800 border border-dark-600">
+          <span
+            className="w-9 h-9 rounded-xl bg-brand-50 text-brand-500 flex items-center justify-center shrink-0"
+            aria-hidden="true"
+          >
+            <Lightbulb size={16} />
+          </span>
+          <p className="text-body text-slt leading-relaxed pt-1">{g.step1Intro}</p>
         </div>
 
+        {/* ── Context type — the one required answer ─────────────────── */}
+        <p className="text-body font-bold text-ink mb-1">{g.contextHeading}</p>
+        <p className="text-caption text-slt mb-3">{g.contextHint}</p>
+        <ContextTypeCards value={contextType} onChange={setContextType} />
+
         {/* ── States — optional here, unlike a quick note ────────────── */}
-        <p className="text-body font-semibold text-ink mb-1">{g.statesHeading}</p>
+        <p className="text-body font-bold text-ink mt-8 mb-1">{g.statesHeading}</p>
         <p className="text-caption text-slt mb-3">{g.statesHint}</p>
         <StateChips selected={selected} onToggle={key => setSelected(prev => toggleStateKey(prev, key))} />
 
-        <button
+        <Button
           onClick={handleContinue}
           disabled={!contextType}
-          className="w-full py-3.5 mt-8 rounded-2xl text-white font-bold text-body active:scale-[0.98] transition-transform disabled:opacity-40"
-          style={{ backgroundColor: 'var(--brand-primary)' }}
+          className="w-full mt-8"
         >
           {g.continueBtn}
-        </button>
+        </Button>
 
-        <p className="text-caption text-slt mt-4 leading-relaxed">{mj.disclosure}</p>
+        <Link
+          to="/mind-journal/quick"
+          className="flex items-center justify-center min-h-[44px] mt-3 text-caption font-semibold text-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded"
+        >
+          {g.switchToQuick}
+        </Link>
+
+        <p className="text-caption text-slt mt-4 leading-relaxed text-center">{mj.disclosure}</p>
       </div>
     </div>
   );

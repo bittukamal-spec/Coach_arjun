@@ -57,6 +57,7 @@ function postedEntry() {
 }
 
 const clickByName = async (name) => userEvent.click(await screen.findByRole('button', { name }));
+const clickRadio = async (name) => userEvent.click(await screen.findByRole('radio', { name }));
 
 beforeEach(() => {
   apiFetch.mockReset();
@@ -120,13 +121,13 @@ describe('Guided reflection', () => {
     });
     renderFlow('/mind-journal/new');
 
-    await clickByName('Competition');
+    await clickRadio('Competition');
     await clickByName('Nervous');
     await clickByName('Continue');
     expect((await screen.findByTestId('pathname')).textContent).toBe('/mind-journal/new/details');
 
     await userEvent.type(screen.getByLabelText('What happened?'), 'lost the first set');
-    await userEvent.type(screen.getByLabelText('What do you want to carry forward?'), 'breathe first');
+    await userEvent.type(screen.getByLabelText('What do you want to try or repeat next time?'), 'breathe first');
     await clickByName('Save reflection');
 
     const body = postedEntry();
@@ -149,30 +150,33 @@ describe('Guided reflection', () => {
     });
     renderFlow('/mind-journal/new');
 
-    await clickByName('Training');
+    await clickRadio('Training');
     await clickByName('Continue');
     await userEvent.type(screen.getByLabelText('What happened?'), 'good session');
     await clickByName('Save reflection');
 
     expect((await screen.findByTestId('pathname')).textContent).toBe('/mind-journal/saved/r9');
-    expect(await screen.findByText('Saved.')).toBeTruthy();
+    expect(await screen.findByRole('heading', { level: 2, name: 'Reflection saved' })).toBeTruthy();
     expect(screen.getByText('breathe first')).toBeTruthy();
     // No evaluation of any kind. "scored" appears only in the copy that
     // rules it out, so the check is for the artifacts, not the word.
     expect(document.body.textContent).not.toMatch(/streak|points|rank|badge|level|\d+\s*\/\s*\d+|out of \d+/i);
+    expect(screen.getByRole('button', { name: 'Done' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'View reflections' })).toBeTruthy();
+    expect(screen.queryByTestId('bottom-nav')).toBeNull();
   });
 
   test('Continue is blocked until a context type is chosen', async () => {
     renderFlow('/mind-journal/new');
     const cont = await screen.findByRole('button', { name: 'Continue' });
     expect(cont.disabled).toBe(true);
-    await clickByName('Recovery day');
+    await clickRadio('Recovery day');
     expect(cont.disabled).toBe(false);
   });
 
   test('going back to step 1 restores the answers already given', async () => {
     renderFlow('/mind-journal/new');
-    await clickByName('A tough moment');
+    await clickRadio('A tough moment');
     await clickByName('Frustrated');
     await clickByName('Continue');
     await screen.findByLabelText('What happened?');
@@ -180,20 +184,20 @@ describe('Guided reflection', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Back' }));
 
     expect((await screen.findByTestId('pathname')).textContent).toBe('/mind-journal/new');
-    expect((await screen.findByRole('button', { name: 'A tough moment' })).getAttribute('aria-pressed')).toBe('true');
+    expect((await screen.findByRole('radio', { name: 'A tough moment' })).getAttribute('aria-pressed')).toBe('true');
     expect((await screen.findByRole('button', { name: 'Frustrated' })).getAttribute('aria-pressed')).toBe('true');
   });
 
   test('Save is blocked when only a context type was chosen — the server rule, enforced up front', async () => {
     renderFlow('/mind-journal/new');
-    await clickByName('Something else');
+    await clickRadio('Something else');
     await clickByName('Continue');
 
     const save = await screen.findByRole('button', { name: 'Save reflection' });
     expect(save.disabled).toBe(true);
     expect(screen.getByText('Add at least one state or one answer before saving.')).toBeTruthy();
 
-    await userEvent.type(screen.getByLabelText('What did you notice in yourself?'), 'tight shoulders');
+    await userEvent.type(screen.getByLabelText('What did you notice?'), 'tight shoulders');
     expect(save.disabled).toBe(false);
   });
 
@@ -249,8 +253,11 @@ describe('Mind Journal home', () => {
   test('leads with the approved description and both ways in', async () => {
     renderFlow();
     expect(await screen.findByText('A personal, score-free place to notice what happened and what you want to carry forward.')).toBeTruthy();
-    expect(screen.getByRole('link', { name: /New reflection/ }).getAttribute('href')).toBe('/mind-journal/new');
-    expect(screen.getByRole('link', { name: 'Quick note' }).getAttribute('href')).toBe('/mind-journal/quick');
+    expect(screen.getByTestId('mj-hero-new').getAttribute('href')).toBe('/mind-journal/new');
+    expect(screen.getByTestId('mj-quick-note').getAttribute('href')).toBe('/mind-journal/quick');
+    expect(screen.getByTestId('mj-context-row')).toBeTruthy();
+    expect(screen.getByTestId('mj-recent-section')).toBeTruthy();
+    expect(screen.queryByTestId('bottom-nav')).toBeNull();
   });
 
   test('reports the Arjun-context setting and links to its control', async () => {

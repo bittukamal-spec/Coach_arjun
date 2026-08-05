@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useNavigate, useLocation, Navigate } from 'react-router-dom';
+import { Compass, Eye, Flag, HelpCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { translations } from '../../i18n/translations';
-import { PageHeader, SaveStatus } from '../../components/ui';
+import { Card, PageHeader, SaveStatus, Button } from '../../components/ui';
 import {
   MAX_WHAT_HAPPENED_LENGTH,
   MAX_WHAT_NOTICED_LENGTH,
@@ -10,7 +11,7 @@ import {
   MAX_TAKE_FORWARD_LENGTH,
   textOrUndefined,
 } from './constants';
-import { SafetyGuidanceCard, useMindJournalSave } from './shared';
+import { SafetyGuidanceCard, StepProgress, useMindJournalSave } from './shared';
 
 // ─── Guided reflection, step 2 of 2 — the four prompts, then the single
 // save. Every prompt is optional, but a reflection made of nothing but a
@@ -21,10 +22,20 @@ import { SafetyGuidanceCard, useMindJournalSave } from './shared';
 // One prompt: label, bounded textarea, live counter. Bounds mirror
 // validateEntry.js — the server rejects over-length text outright rather
 // than truncating it, so the input never lets it get that far.
-function PromptField({ id, label, placeholder, value, maxLength, onChange }) {
+function PromptField({ id, label, placeholder, value, maxLength, onChange, icon: Icon, testId }) {
   return (
-    <div className="mb-5">
-      <label htmlFor={id} className="block text-body font-semibold text-ink mb-2">{label}</label>
+    <Card className="p-4 mb-3 elevation-card" data-testid={testId}>
+      <div className="flex items-center gap-2.5 mb-3">
+        <span
+          className="w-9 h-9 rounded-xl bg-brand-50 text-brand-500 flex items-center justify-center shrink-0"
+          aria-hidden="true"
+        >
+          <Icon size={16} />
+        </span>
+        <label htmlFor={id} className="text-body font-bold text-ink leading-snug">
+          {label}
+        </label>
+      </div>
       <textarea
         id={id}
         value={value}
@@ -32,10 +43,10 @@ function PromptField({ id, label, placeholder, value, maxLength, onChange }) {
         maxLength={maxLength}
         placeholder={placeholder}
         rows={3}
-        className="input-field resize-none mb-1"
+        className="input-field resize-none mb-1 border-0 bg-dark-700/80"
       />
-      <p className="text-caption text-slt text-right">{value.length}/{maxLength}</p>
-    </div>
+      <p className="text-caption text-slt text-right tabular-nums">{value.length}/{maxLength}</p>
+    </Card>
   );
 }
 
@@ -86,16 +97,31 @@ export default function GuidedReflectionDetailsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-dark-900 pb-24">
+    <div className="min-h-screen bg-dark-900 pb-10">
       <PageHeader onBack={handleBack} title={g.title} />
 
-      <div className="px-page pt-4 max-w-lg mx-auto">
+      <div className="px-page pt-5 max-w-lg mx-auto">
         {safety ? (
           <SafetyGuidanceCard guidance={safety.guidance} onDismiss={dismissSafety} />
         ) : (
           <>
-            <p className="text-micro font-bold text-slt uppercase mb-4">{g.step2}</p>
-            <p className="text-body text-slt mb-6 leading-relaxed">{g.detailsIntro}</p>
+            <StepProgress label={g.step2} step={2} />
+
+            <div className="flex flex-wrap gap-1.5 mb-4" data-testid="mj-summary-pills">
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-caption font-semibold bg-brand-50 text-brand-500 border border-brand-500/20">
+                {mj.contextTypes[contextType]}
+              </span>
+              {states.map(key => (
+                <span
+                  key={key}
+                  className="inline-flex items-center px-2.5 py-1 rounded-full text-caption font-semibold bg-dark-700 text-ink border border-dark-600"
+                >
+                  {mj.states[key]}
+                </span>
+              ))}
+            </div>
+
+            <p className="text-body text-slt mb-5 leading-relaxed">{g.detailsIntro}</p>
 
             <PromptField
               id="reflection-what-happened"
@@ -104,6 +130,8 @@ export default function GuidedReflectionDetailsPage() {
               value={whatHappened}
               maxLength={MAX_WHAT_HAPPENED_LENGTH}
               onChange={setWhatHappened}
+              icon={Compass}
+              testId="mj-prompt-what-happened"
             />
             <PromptField
               id="reflection-what-noticed"
@@ -112,6 +140,8 @@ export default function GuidedReflectionDetailsPage() {
               value={whatNoticed}
               maxLength={MAX_WHAT_NOTICED_LENGTH}
               onChange={setWhatNoticed}
+              icon={Eye}
+              testId="mj-prompt-what-noticed"
             />
             <PromptField
               id="reflection-helped-or-got-in-way"
@@ -120,6 +150,8 @@ export default function GuidedReflectionDetailsPage() {
               value={helpedOrGotInWay}
               maxLength={MAX_HELPED_OR_GOT_IN_WAY_LENGTH}
               onChange={setHelpedOrGotInWay}
+              icon={HelpCircle}
+              testId="mj-prompt-helped"
             />
             <PromptField
               id="reflection-take-forward"
@@ -128,6 +160,8 @@ export default function GuidedReflectionDetailsPage() {
               value={takeForward}
               maxLength={MAX_TAKE_FORWARD_LENGTH}
               onChange={setTakeForward}
+              icon={Flag}
+              testId="mj-prompt-take-forward"
             />
 
             {!hasContent && <p className="text-caption text-slt mb-3">{g.needSomething}</p>}
@@ -140,16 +174,15 @@ export default function GuidedReflectionDetailsPage() {
               />
             </div>
 
-            <button
+            <Button
               onClick={handleSave}
               disabled={!canSave}
-              className="w-full py-3.5 rounded-2xl text-white font-bold text-body active:scale-[0.98] transition-transform disabled:opacity-40"
-              style={{ backgroundColor: 'var(--brand-primary)' }}
+              className="w-full"
             >
               {saving ? mj.saving : g.saveBtn}
-            </button>
+            </Button>
 
-            <p className="text-caption text-slt mt-4 leading-relaxed">{mj.disclosure}</p>
+            <p className="text-caption text-slt mt-5 leading-relaxed text-center">{mj.disclosure}</p>
           </>
         )}
       </div>
