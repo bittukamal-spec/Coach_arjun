@@ -326,13 +326,25 @@ test('loadCoachingContext: exposes the selected Prescription\'s status and outco
 
 // ── Deterministic retry copy ─────────────────────────────────────────────────
 
-test('getRetryMessage: fixed deterministic copy in both languages, mentioning that nothing changed', () => {
+test('getRetryMessage: fixed deterministic copy in both languages, acknowledging the failure without claiming nothing changed or asking for a resend', () => {
   const en = getRetryMessage('en');
   const hi = getRetryMessage('hi');
   assert.equal(en, getRetryMessage('en'), 'must be deterministic');
   assert.notEqual(en, hi);
-  assert.match(en, /Nothing was changed/i);
-  assert.match(hi, /change nahi hua/i);
+  // The athlete's own message is already persisted by the time this copy can
+  // ever fire (chat.js saves it before the model is called), so it must
+  // never claim nothing changed and must never ask for a resend — that
+  // would duplicate an already-stored message (production incident fix).
+  assert.doesNotMatch(en, /nothing was changed/i);
+  assert.doesNotMatch(en, /send.*(again|last message)/i);
+  assert.doesNotMatch(hi, /change nahi hua/i);
+  assert.doesNotMatch(hi, /dobara bhej/i);
+  // Both languages must still acknowledge the failure and reassure the
+  // athlete their own message is safe — not just avoid the old copy.
+  assert.match(en, /couldn't save/i);
+  assert.match(en, /message is safe/i);
+  assert.match(hi, /save nahi kar paya/i);
+  assert.match(hi, /message safe hai/i);
   assert.equal(getRetryMessage(undefined), en, 'unknown language falls back to English');
 });
 

@@ -68,7 +68,7 @@ test('ANY commit failure — staged transition or plain message-only — falls b
   assert.doesNotMatch(handler, /return emitDeterministicRetry\(loop\.exceededRounds/);
   const catchIdx = handler.indexOf('} catch (commitErr) {');
   assert.ok(catchIdx !== -1);
-  const catchBlock = handler.slice(catchIdx, catchIdx + 700);
+  const catchBlock = handler.slice(catchIdx, catchIdx + 900);
   // No branching on loop.transition here — every commit failure, with or
   // without a staged transition, routes through the same retry.
   assert.doesNotMatch(catchBlock, /if \(loop\.transition\)/);
@@ -192,7 +192,7 @@ test('the save-error retry is reserved for genuine commit failures; empty and ro
 
 test('a commit failure for a NORMAL response with no staged transition also routes through the deterministic retry — never the outer generic error handler with a different message', () => {
   const catchIdx = handler.indexOf('} catch (commitErr) {');
-  const catchBlock = handler.slice(catchIdx, catchIdx + 700);
+  const catchBlock = handler.slice(catchIdx, catchIdx + 900);
   assert.doesNotMatch(catchBlock, /throw commitErr/, 'a plain (non-transition) commit failure must not propagate to the outer catch');
   assert.match(catchBlock, /return emitDeterministicRetry\(reasonCode, commitErr\)/);
 });
@@ -308,4 +308,72 @@ test('emitDeterministicRetry logs before attempting to persist the retry message
 
 test('CoachingStateConflictError is imported from the coaching services barrel for the reason-code check', () => {
   assert.match(src, /const \{[^}]*CoachingStateConflictError[^}]*\} = require\('\.\.\/services\/coaching'\);/s);
+});
+
+// ── P2028 bounded commit-retry (confirmed production incident) ─────────────
+
+test('a retryable commit error is defined as exactly PrismaClientKnownRequestError with code P2028 — nothing broader', () => {
+  assert.match(handler, /const RETRYABLE_COMMIT_ERROR_CODE = 'P2028';/);
+  assert.match(handler, /const isRetryableCommitError = \(e\) => e\?\.name === 'PrismaClientKnownRequestError' && e\?\.code === RETRYABLE_COMMIT_ERROR_CODE;/);
+});
+
+test('commitCoachingTransition is called at most twice — once normally, once more only inside the retryable branch', () => {
+  const calls = [...handler.matchAll(/committed = await commitCoachingTransition\(\{/g)];
+  assert.equal(calls.length, 2, 'exactly one first attempt and one retry call site — no unbounded loop');
+});
+
+test('the retry is gated on isRetryableCommitError and skipped entirely for anything else, including CoachingStateConflictError', () => {
+  const guardIdx = handler.indexOf('if (!isRetryableCommitError(firstCommitErr)) {');
+  assert.ok(guardIdx !== -1);
+  // The non-retryable branch returns immediately — it never falls through
+  // to the second commitCoachingTransition call below it.
+  const guardCloseIdx = handler.indexOf('\n      }', guardIdx);
+  assert.ok(guardCloseIdx !== -1);
+  const guardBlock = handler.slice(guardIdx, guardCloseIdx);
+  assert.match(guardBlock, /return emitDeterministicRetry\(reasonCode, firstCommitErr\);/);
+});
+
+test('a conflict raised BY THE RETRY is classified and handled exactly like a first-attempt conflict, never retried again', () => {
+  const secondAttemptIdx = handler.indexOf('commitAttemptCount = 2;');
+  assert.ok(secondAttemptIdx !== -1);
+  const catchIdx = handler.indexOf('} catch (commitErr) {', secondAttemptIdx);
+  assert.ok(catchIdx !== -1);
+  const catchCloseIdx = handler.indexOf('\n      }', catchIdx);
+  assert.ok(catchCloseIdx !== -1);
+  const catchBlock = handler.slice(catchIdx, catchCloseIdx);
+  assert.match(catchBlock, /const reasonCode = commitErr instanceof CoachingStateConflictError \? 'COACHING_STATE_CONFLICT' : 'COMMIT_FAILURE';/);
+  assert.match(catchBlock, /return emitDeterministicRetry\(reasonCode, commitErr\);/);
+  // No third attempt: nothing between the end of this catch block and the
+  // next SSE write references commitCoachingTransition again.
+  const nextWriteIdx = handler.indexOf('res.write(`data:', catchCloseIdx);
+  assert.ok(nextWriteIdx !== -1);
+  assert.doesNotMatch(handler.slice(catchCloseIdx, nextWriteIdx), /commitCoachingTransition\(/);
+});
+
+test('no individual write inside the transaction is ever retried — only the whole atomic commit is called again', () => {
+  assert.doesNotMatch(src, /tx\.(message|coachingCycle|activeCoachingSelection|prescription)\./, 'chat.js must never reach into the transaction internals of commitCoachingTransition');
+});
+
+test('a successful retry never logs or emits the deterministic fallback — only a content-free recovery note', () => {
+  const idx = handler.indexOf('if (commitRetrySucceeded) {');
+  assert.ok(idx !== -1);
+  const block = handler.slice(idx, handler.indexOf('\n    }', idx) + 5);
+  assert.match(block, /console\.log\('\[chat\] commit_retry_recovered'/);
+  assert.doesNotMatch(block, /emitDeterministicRetry/);
+  assert.doesNotMatch(block, /finalText|retryText/);
+});
+
+test('logDeterministicRetry carries the commit-retry diagnostics as fixed, content-free fields read off the error object', () => {
+  const idx = handler.indexOf('const logDeterministicRetry = (reasonCode, err, extra = {}) => {');
+  const block = handler.slice(idx, handler.indexOf('};', idx) + 1);
+  for (const field of ['commitAttemptCount: err?.commitAttemptCount', 'commitRetryAttempted: err?.commitRetryAttempted', 'commitRetrySucceeded: err?.commitRetrySucceeded', 'firstCommitErrorCode: err?.firstCommitErrorCode', 'finalCommitErrorCode: err?.finalCommitErrorCode']) {
+    assert.ok(block.includes(field), `expected the log payload to include "${field}"`);
+  }
+});
+
+test('both commit-failure branches enrich the thrown error with the same five diagnostic fields before emitting', () => {
+  for (const field of ['commitAttemptCount', 'commitRetryAttempted', 'commitRetrySucceeded', 'firstCommitErrorCode', 'finalCommitErrorCode']) {
+    const assignments = [...handler.matchAll(new RegExp(`\\.${field} = `, 'g'))];
+    assert.equal(assignments.length, 2, `expected "${field}" to be assigned in both the non-retryable and retry-exhausted branches, found ${assignments.length}`);
+  }
 });

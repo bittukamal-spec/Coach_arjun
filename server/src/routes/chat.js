@@ -1224,6 +1224,19 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
         recoveryResponseShape: loop.recoveryResponseShape || null,
         errorName: err?.name || null,
         errorCode: err?.code || null,
+        // Bounded P2028 commit-retry diagnostics (production incident:
+        // COMMIT_FAILURE/P2028 — an interactive-transaction timeout). Read
+        // off the error object rather than a call-site argument, so this
+        // single existing log line stays the one source of truth for both
+        // the commit-failure path and every other deterministic-retry
+        // trigger (empty text/round limit pass err=null, so these are
+        // simply null there). Counts and fixed codes only — never a Prisma
+        // error MESSAGE, which can carry identifiers or values.
+        commitAttemptCount: err?.commitAttemptCount ?? null,
+        commitRetryAttempted: err?.commitRetryAttempted ?? null,
+        commitRetrySucceeded: err?.commitRetrySucceeded ?? null,
+        firstCommitErrorCode: err?.firstCommitErrorCode ?? null,
+        finalCommitErrorCode: err?.finalCommitErrorCode ?? null,
         ...extra,
       }));
     };
@@ -1354,7 +1367,27 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
       }
     }
 
+    // Bounded retry for ONE confirmed-transient Prisma failure (production
+    // incident: COMMIT_FAILURE, errorCode P2028 — an interactive-transaction
+    // timeout under connection-pool pressure — after an approved reply had
+    // already been generated). commitCoachingTransition revalidates ALL live
+    // coaching state again, inside its own atomic transaction, on every
+    // call, so retrying the WHOLE commit is safe: it either succeeds
+    // cleanly, or raises CoachingStateConflictError — a deterministic "this
+    // cannot be committed" result that is never itself retried. Retried at
+    // most once, and ONLY for this one Prisma error code — never
+    // CoachingStateConflictError, never validation/auth/safety/model/
+    // parsing errors. No individual write inside the transaction is ever
+    // retried, only the whole atomic commit — exactly what the first
+    // attempt already does.
+    const RETRYABLE_COMMIT_ERROR_CODE = 'P2028';
+    const isRetryableCommitError = (e) => e?.name === 'PrismaClientKnownRequestError' && e?.code === RETRYABLE_COMMIT_ERROR_CODE;
+
     let committed;
+    let commitAttemptCount = 1;
+    let commitRetryAttempted = false;
+    let commitRetrySucceeded = false;
+    let firstCommitErrorCode = null;
     try {
       committed = await commitCoachingTransition({
         userId: req.userId,
@@ -1364,15 +1397,54 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
         transition: loop.transition,
         userMessageId,
       });
-    } catch (commitErr) {
-      // Any commit failure — a staged coaching-transition conflict, or a
-      // plain message-only commit failure for a normal response with no
-      // transition — must never emit the model's text or a card, and must
-      // never leave partial coaching-state records. Both cases route
-      // through the identical deterministic retry path; the outer generic
-      // error handler must never be the one to speak here.
-      const reasonCode = commitErr instanceof CoachingStateConflictError ? 'COACHING_STATE_CONFLICT' : 'COMMIT_FAILURE';
-      return emitDeterministicRetry(reasonCode, commitErr);
+    } catch (firstCommitErr) {
+      firstCommitErrorCode = firstCommitErr?.code || null;
+      if (!isRetryableCommitError(firstCommitErr)) {
+        // Any commit failure — a staged coaching-transition conflict, or a
+        // plain message-only commit failure for a normal response with no
+        // transition — must never emit the model's text or a card, and must
+        // never leave partial coaching-state records. Both cases route
+        // through the identical deterministic retry path; the outer generic
+        // error handler must never be the one to speak here.
+        const reasonCode = firstCommitErr instanceof CoachingStateConflictError ? 'COACHING_STATE_CONFLICT' : 'COMMIT_FAILURE';
+        firstCommitErr.commitAttemptCount = commitAttemptCount;
+        firstCommitErr.commitRetryAttempted = commitRetryAttempted;
+        firstCommitErr.commitRetrySucceeded = commitRetrySucceeded;
+        firstCommitErr.firstCommitErrorCode = firstCommitErrorCode;
+        firstCommitErr.finalCommitErrorCode = firstCommitErrorCode;
+        return emitDeterministicRetry(reasonCode, firstCommitErr);
+      }
+      commitRetryAttempted = true;
+      commitAttemptCount = 2;
+      try {
+        committed = await commitCoachingTransition({
+          userId: req.userId,
+          chatSessionId: chatSessionId || null,
+          sessionType: sessionType || null,
+          finalText,
+          transition: loop.transition,
+          userMessageId,
+        });
+        commitRetrySucceeded = true;
+      } catch (commitErr) {
+        // A conflict raised BY THE RETRY is never retried again — it is
+        // classified and handled exactly like a first-attempt conflict.
+        const finalCommitErrorCode = commitErr?.code || null;
+        const reasonCode = commitErr instanceof CoachingStateConflictError ? 'COACHING_STATE_CONFLICT' : 'COMMIT_FAILURE';
+        commitErr.commitAttemptCount = commitAttemptCount;
+        commitErr.commitRetryAttempted = commitRetryAttempted;
+        commitErr.commitRetrySucceeded = commitRetrySucceeded;
+        commitErr.firstCommitErrorCode = firstCommitErrorCode;
+        commitErr.finalCommitErrorCode = finalCommitErrorCode;
+        return emitDeterministicRetry(reasonCode, commitErr);
+      }
+    }
+
+    if (commitRetrySucceeded) {
+      // Content-free: attempt count and the transient Prisma code only —
+      // never athlete/assistant text, never a coaching record. Visibility
+      // into how often the transient failure self-heals on retry.
+      console.log('[chat] commit_retry_recovered', JSON.stringify({ commitAttemptCount, firstCommitErrorCode }));
     }
 
     res.write(`data: ${JSON.stringify({ t: 'd', c: finalText })}\n\n`);

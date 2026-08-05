@@ -255,15 +255,22 @@ test('when the loop did NOT spend a recovery, the route makes the one controlled
 
 // ── 16. Genuine commit failure keeps the save-failure handling ─────────────
 
-test('a genuine commit failure still gets the save-failure message, which stays truthful there', async () => {
+test('a genuine commit failure still gets the save-failure message, which never claims nothing changed or asks for a resend', async () => {
   const failingDb = { $transaction: async () => { throw new Error('db down'); } };
   const commit = createCommitCoachingTransition(failingDb);
   await assert.rejects(() => commit({
     userId: 'u1', chatSessionId: 'cs-1', sessionType: null,
     finalText: 'anything', transition: null, userMessageId: 'um-1',
   }));
-  // Nothing was written, so "Nothing was changed" is accurate in that path.
-  assert.match(RESEND_COPY, /Nothing was changed/);
+  // Even though nothing was written here, the athlete's OWN message is
+  // already persisted by chat.js before the model is ever called — so
+  // "nothing was changed" would still be misleading, and asking for a
+  // resend would still duplicate an already-stored message (production
+  // incident fix, corrected further after a confirmed P2028 case where a
+  // bounded retry could make the step commit after all).
+  assert.doesNotMatch(RESEND_COPY, /nothing was changed/i);
+  assert.doesNotMatch(RESEND_COPY, /send.*(again|last message)/i);
+  assert.match(RESEND_COPY, /message is safe/i);
   assert.match(chatSrc, /const emitDeterministicRetry = async \(reasonCode, err\) => \{/);
 });
 
