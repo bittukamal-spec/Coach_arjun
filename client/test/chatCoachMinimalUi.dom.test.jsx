@@ -291,3 +291,142 @@ describe('Coach — header overflow menu', () => {
     expect(document.activeElement).toBe(trigger);
   });
 });
+
+// ── 4. Scroll after reveal + composer remount ───────────────────────────────
+//
+// The bug this covers: the auto-scroll effect keyed only on
+// [messages, waitingForFirst], neither of which changes while a reply reveals
+// or when the composer returns — so the last scroll ran while the message was
+// still empty and the finished reply sat under the composer.
+
+describe('Coach — scroll settles after the reveal and the composer returns', () => {
+  // jsdom has no layout, so scrollIntoView is asserted via a spy: the point is
+  // that a scroll is REQUESTED after the reveal ends and the composer mounts.
+  function spyScroll() {
+    const calls = [];
+    Element.prototype.scrollIntoView = function scrollIntoViewSpy(opts) {
+      calls.push({ composerMounted: !!document.querySelector('textarea'), opts });
+    };
+    return calls;
+  }
+
+  let originalScrollIntoView;
+  beforeEach(() => { originalScrollIntoView = Element.prototype.scrollIntoView; });
+  afterEach(() => { Element.prototype.scrollIntoView = originalScrollIntoView; });
+
+  test('a scroll is requested after the reveal completes AND the composer has remounted', async () => {
+    const stream = makeStream();
+    mockApi({ stream, history: historyTurns() });
+    render(<App />);
+    await sendAndHold(stream);
+    await waitFor(() => expect(composer()).toBeNull());
+
+    const calls = spyScroll();
+    stream.push({ t: 'd', c: NEW_REPLY });
+    stream.push({ t: 'end', id: 'm3' });
+    stream.finish();
+
+    await waitFor(() => expect(visibleReplyText()).toContain(NEW_REPLY), { timeout: 4000 });
+    await waitFor(() => expect(composer()).not.toBeNull(), { timeout: 4000 });
+
+    // The final scroll must happen with the composer already in the DOM —
+    // otherwise it is measuring a layout that is about to change.
+    await waitFor(
+      () => expect(calls.some((c) => c.composerMounted)).toBe(true),
+      { timeout: 4000 }
+    );
+  });
+
+  test('the reserved composer footprint sits above the bottom sentinel, so scrolling to it clears the composer', async () => {
+    mockApi({ stream: makeStream(), history: historyTurns() });
+    render(<App />);
+    await screen.findByText(HISTORY_REPLY);
+
+    // The spacer is the sentinel's immediate previous sibling. If it were page
+    // padding BELOW the sentinel (the original bug), scrolling the sentinel
+    // into view would stop short and leave the reply behind the composer.
+    const scroller = document.querySelector('.overflow-y-auto');
+    const wrapper = scroller.firstElementChild;
+    const sentinel = wrapper.lastElementChild;
+    const spacer = sentinel.previousElementSibling;
+    expect(spacer.getAttribute('aria-hidden')).toBe('true');
+    expect(spacer.style.height).toContain('safe-area-inset-bottom');
+    // And the wrapper itself carries no bottom padding doing the same job.
+    expect(wrapper.style.paddingBottom || '').toBe('');
+  });
+
+  test('reduced motion still ends with a scroll to the latest response', async () => {
+    setReducedMotion(true);
+    const stream = makeStream();
+    mockApi({ stream, history: historyTurns() });
+    render(<App />);
+    await sendAndHold(stream);
+    await waitFor(() => expect(composer()).toBeNull());
+
+    const calls = spyScroll();
+    stream.push({ t: 'd', c: NEW_REPLY });
+    stream.push({ t: 'end', id: 'm3' });
+    stream.finish();
+
+    await waitFor(() => expect(visibleReplyText()).toContain(NEW_REPLY));
+    await waitFor(() => expect(composer()).not.toBeNull());
+    await waitFor(
+      () => expect(calls.some((c) => c.composerMounted)).toBe(true),
+      { timeout: 4000 }
+    );
+  });
+
+  test('a deliberate scroll away from the bottom is not overridden by the reply', async () => {
+    const stream = makeStream();
+    mockApi({ stream, history: historyTurns() });
+    render(<App />);
+    await sendAndHold(stream);
+    await waitFor(() => expect(composer()).toBeNull());
+
+    // jsdom reports 0 for all layout metrics, so drive the component's own
+    // near-bottom maths directly: a large scrollHeight with scrollTop at the
+    // top is unambiguously "scrolled up".
+    const scroller = document.querySelector('.overflow-y-auto');
+    Object.defineProperty(scroller, 'scrollHeight', { value: 5000, configurable: true });
+    Object.defineProperty(scroller, 'clientHeight', { value: 700, configurable: true });
+    scroller.scrollTop = 0;
+    scroller.dispatchEvent(new Event('scroll', { bubbles: true }));
+
+    const calls = spyScroll();
+    stream.push({ t: 'd', c: NEW_REPLY });
+    stream.push({ t: 'end', id: 'm3' });
+    stream.finish();
+
+    await waitFor(() => expect(visibleReplyText()).toContain(NEW_REPLY), { timeout: 4000 });
+    await waitFor(() => expect(composer()).not.toBeNull(), { timeout: 4000 });
+    // Give any stray frame a chance to fire before asserting none did.
+    await new Promise((r) => setTimeout(r, 120));
+    expect(calls).toHaveLength(0);
+  });
+
+  test('sending re-attaches to the bottom even after scrolling up to re-read', async () => {
+    const stream = makeStream();
+    mockApi({ stream, history: historyTurns() });
+    render(<App />);
+    const user = await sendAndHold(stream);
+    stream.push({ t: 'd', c: NEW_REPLY });
+    stream.push({ t: 'end', id: 'm3' });
+    stream.finish();
+    await waitFor(() => expect(composer()).not.toBeNull(), { timeout: 4000 });
+
+    // Scroll up, then send again: the athlete's own action re-attaches them.
+    const scroller = document.querySelector('.overflow-y-auto');
+    Object.defineProperty(scroller, 'scrollHeight', { value: 5000, configurable: true });
+    Object.defineProperty(scroller, 'clientHeight', { value: 700, configurable: true });
+    scroller.scrollTop = 0;
+    scroller.dispatchEvent(new Event('scroll', { bubbles: true }));
+
+    const calls = spyScroll();
+    const stream2 = makeStream();
+    mockApi({ stream: stream2, history: historyTurns() });
+    await user.type(composer(), 'again');
+    await user.click(screen.getByLabelText(/send/i));
+
+    await waitFor(() => expect(calls.length).toBeGreaterThan(0), { timeout: 4000 });
+  });
+});
