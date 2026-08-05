@@ -202,7 +202,7 @@ test('every athlete-facing string has both an English and a Hindi variant', () =
   assert.match(pbHi, /अभी कोई सीख दर्ज नहीं हुई/);
   assert.match(pbEn, /haven't recorded any lessons yet/);
   assert.match(pbHi, /कोई स्कोर नहीं/);
-  assert.match(pbEn, /no scores/i);
+  assert.match(pbEn, /score-free/i);
   const keysOf = (block) => [...block.matchAll(/^\s{6}([a-zA-Z]+):/gm)].map((m) => m[1]).sort();
   assert.deepEqual(keysOf(pbEn), keysOf(pbHi), 'playbook keys must match across languages');
   // The page reads that namespace rather than branching on language inline.
