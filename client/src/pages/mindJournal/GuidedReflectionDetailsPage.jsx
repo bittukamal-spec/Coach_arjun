@@ -10,6 +10,7 @@ import {
   MAX_HELPED_OR_GOT_IN_WAY_LENGTH,
   MAX_TAKE_FORWARD_LENGTH,
   textOrUndefined,
+  cameFromMindJournal,
 } from './constants';
 import { SafetyGuidanceCard, StepProgress, useMindJournalSave } from './shared';
 
@@ -60,6 +61,8 @@ export default function GuidedReflectionDetailsPage() {
   const draft = location.state || {};
   const contextType = draft.contextType || null;
   const states = draft.states || [];
+  const customState = typeof draft.customState === 'string' ? draft.customState : '';
+  const trimmedCustom = customState.trim();
 
   const [whatHappened, setWhatHappened] = useState('');
   const [whatNoticed, setWhatNoticed] = useState('');
@@ -74,17 +77,21 @@ export default function GuidedReflectionDetailsPage() {
   if (!contextType) return <Navigate to="/mind-journal/new" replace />;
 
   const written = [whatHappened, whatNoticed, helpedOrGotInWay, takeForward].some(v => v.trim().length > 0);
-  const hasContent = states.length > 0 || written;
+  const hasContent = states.length > 0 || trimmedCustom.length > 0 || written;
   const canSave = hasContent && !saving;
 
   function handleBack() {
     // Hand step 1 its own answers back so returning does not wipe them.
-    navigate('/mind-journal/new', { state: { contextType, states }, replace: true });
+    // replace keeps the guided step history from stacking, and preserves
+    // the Mind Journal origin marker when it was present.
+    const next = { contextType, states, customState: trimmedCustom };
+    if (cameFromMindJournal(draft)) next.from = draft.from;
+    navigate('/mind-journal/new', { state: next, replace: true });
   }
 
   async function handleSave() {
     if (!canSave) return;
-    const entry = await save({
+    const payload = {
       entryType: 'GUIDED_REFLECTION',
       contextType,
       states,
@@ -92,7 +99,10 @@ export default function GuidedReflectionDetailsPage() {
       whatNoticed: textOrUndefined(whatNoticed),
       helpedOrGotInWay: textOrUndefined(helpedOrGotInWay),
       takeForward: textOrUndefined(takeForward),
-    });
+    };
+    const custom = textOrUndefined(customState);
+    if (custom !== undefined) payload.customState = custom;
+    const entry = await save(payload);
     if (entry) navigate(`/mind-journal/saved/${entry.id}`, { state: { entry }, replace: true });
   }
 
@@ -114,11 +124,19 @@ export default function GuidedReflectionDetailsPage() {
               {states.map(key => (
                 <span
                   key={key}
-                  className="inline-flex items-center px-2.5 py-1 rounded-full text-caption font-semibold bg-dark-700 text-ink border border-dark-600"
+                  className="inline-flex items-center px-2.5 py-1 rounded-full text-caption font-semibold bg-dark-700 text-ink border border-dark-600 max-w-full break-words"
                 >
                   {mj.states[key]}
                 </span>
               ))}
+              {trimmedCustom.length > 0 && (
+                <span
+                  className="inline-flex items-center px-2.5 py-1 rounded-full text-caption font-semibold bg-dark-700 text-ink border border-dark-600 max-w-full break-words"
+                  data-testid="mj-custom-state-pill"
+                >
+                  {trimmedCustom}
+                </span>
+              )}
             </div>
 
             <p className="text-body text-slt mb-5 leading-relaxed">{g.detailsIntro}</p>

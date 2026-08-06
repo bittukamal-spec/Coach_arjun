@@ -1,4 +1,5 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useId, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Brain,
   Check,
@@ -9,6 +10,7 @@ import {
   Frown,
   Heart,
   Moon,
+  PenLine,
   Sparkles,
   Trophy,
   Wind,
@@ -19,13 +21,21 @@ import { translations } from '../../i18n/translations';
 import { apiFetch } from '../../api';
 import HelplineList from '../../components/HelplineList';
 import { Card } from '../../components/ui';
-import { CONTEXT_TYPE_KEYS, STATE_KEYS } from './constants';
+import {
+  CONTEXT_TYPE_KEYS,
+  STATE_KEYS,
+  MAX_CUSTOM_STATE_LENGTH,
+  MAX_STATE_SELECTIONS,
+  cameFromMindJournal,
+  stateSlotCount,
+} from './constants';
 
 // Shared pieces for the two Mind Journal creation screens. Quick Note and
-// the guided reflection both pick from the same eight states and both send
-// athlete-written text through the same server-side safety screen, so the
-// selection rule and the `needs_support` response handling live here once
-// instead of being re-implemented (and drifting) on each screen.
+// the guided reflection both pick from the same eight states (plus an
+// optional athlete-authored "Something else") and both send athlete-written
+// text through the same server-side safety screen, so the selection rule
+// and the `needs_support` response handling live here once instead of being
+// re-implemented (and drifting) on each screen.
 
 // ── Icons ──────────────────────────────────────────────────────────────────
 
@@ -47,6 +57,25 @@ const CONTEXT_ICONS = {
   RECOVERY_DAY: Heart,
   SOMETHING_ELSE: Brain,
 };
+
+// ── Back navigation ────────────────────────────────────────────────────────
+
+// Header back for Mind Journal child screens. When the screen was opened
+// from the journal home (explicit router state), use genuine history back so
+// we return to the existing journal entry rather than pushing another one —
+// that push is what made phone back gestures alternate Quick Note ↔ Journal.
+// Direct hits / refreshes fall back to a replace navigation to the journal.
+export function useMindJournalBack() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  return useCallback(() => {
+    if (cameFromMindJournal(location.state)) {
+      navigate(-1);
+      return;
+    }
+    navigate('/mind-journal', { replace: true });
+  }, [navigate, location.state]);
+}
 
 // ── Progress ───────────────────────────────────────────────────────────────
 
@@ -77,49 +106,177 @@ export function StepProgress({ label, step, total = 2 }) {
 
 // ── State selection ────────────────────────────────────────────────────────
 
-export function StateChips({ selected, onToggle, compact = false }) {
+export function StateChips({
+  selected,
+  onToggle,
+  customOpen = false,
+  onCustomToggle,
+  customState = '',
+  onCustomChange,
+  customError = null,
+  compact = false,
+}) {
   const { language } = useAuth();
   const mj = translations[language].mindJournal;
+  const customFieldId = useId();
+  const customErrorId = useId();
+  const maxHintId = useId();
+  const [announceMax, setAnnounceMax] = useState(false);
+
+  const occupied = stateSlotCount(selected, customOpen);
+  const atMax = occupied >= MAX_STATE_SELECTIONS;
+  const showCustom = typeof onCustomToggle === 'function';
+
+  function refuseExtra() {
+    setAnnounceMax(true);
+  }
+
+  function handleBuiltIn(key) {
+    const isSelected = selected.includes(key);
+    if (!isSelected && atMax) {
+      refuseExtra();
+      return;
+    }
+    setAnnounceMax(false);
+    onToggle(key);
+  }
+
+  function handleCustomToggle() {
+    if (customOpen) {
+      setAnnounceMax(false);
+      onCustomToggle(false);
+      return;
+    }
+    if (atMax) {
+      refuseExtra();
+      return;
+    }
+    setAnnounceMax(false);
+    onCustomToggle(true);
+  }
+
   return (
-    <div
-      className={compact ? 'grid grid-cols-2 gap-2' : 'grid grid-cols-2 gap-2.5'}
-      data-testid="mj-state-chips"
-    >
-      {STATE_KEYS.map(key => {
-        const isSelected = selected.includes(key);
-        const Icon = STATE_ICONS[key] || Wind;
-        return (
-          <button
-            key={key}
-            type="button"
-            aria-pressed={isSelected}
-            onClick={() => onToggle(key)}
-            className={`relative flex items-center gap-2.5 min-h-[48px] px-3 py-2.5 rounded-2xl border text-left transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
-              isSelected
-                ? 'border-brand-500 bg-brand-50 text-brand-500 elevation-row'
-                : 'border-dark-600 bg-dark-800 text-ink'
-            }`}
-          >
-            <span
-              className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
-                isSelected ? 'bg-brand-500 text-white' : 'bg-dark-700 text-slt'
+    <div>
+      <div
+        className={compact ? 'grid grid-cols-2 gap-2' : 'grid grid-cols-2 gap-2.5'}
+        data-testid="mj-state-chips"
+      >
+        {STATE_KEYS.map(key => {
+          const isSelected = selected.includes(key);
+          const blocked = !isSelected && atMax;
+          const Icon = STATE_ICONS[key] || Wind;
+          return (
+            <button
+              key={key}
+              type="button"
+              aria-pressed={isSelected}
+              aria-disabled={blocked || undefined}
+              aria-describedby={blocked ? maxHintId : undefined}
+              onClick={() => handleBuiltIn(key)}
+              className={`relative flex items-center gap-2.5 min-h-[48px] px-3 py-2.5 rounded-2xl border text-left transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
+                isSelected
+                  ? 'border-brand-500 bg-brand-50 text-brand-500 elevation-row'
+                  : blocked
+                    ? 'border-dark-600 bg-dark-800 text-slt opacity-60'
+                    : 'border-dark-600 bg-dark-800 text-ink'
               }`}
-              aria-hidden="true"
             >
-              <Icon size={16} />
-            </span>
-            <span className="text-body font-semibold leading-snug flex-1">{mj.states[key]}</span>
-            {isSelected && (
               <span
-                className="absolute top-2 right-2 w-5 h-5 rounded-full bg-brand-500 text-white flex items-center justify-center"
+                className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
+                  isSelected ? 'bg-brand-500 text-white' : 'bg-dark-700 text-slt'
+                }`}
                 aria-hidden="true"
               >
-                <Check size={12} strokeWidth={3} />
+                <Icon size={16} />
               </span>
+              <span className="text-body font-semibold leading-snug flex-1 break-words">{mj.states[key]}</span>
+              {isSelected && (
+                <span
+                  className="absolute top-2 right-2 w-5 h-5 rounded-full bg-brand-500 text-white flex items-center justify-center"
+                  aria-hidden="true"
+                >
+                  <Check size={12} strokeWidth={3} />
+                </span>
+              )}
+            </button>
+          );
+        })}
+
+        {showCustom && (() => {
+          const blocked = !customOpen && atMax;
+          return (
+            <button
+              key="custom"
+              type="button"
+              aria-pressed={customOpen}
+              aria-disabled={blocked || undefined}
+              aria-describedby={blocked ? maxHintId : undefined}
+              data-testid="mj-something-else"
+              onClick={handleCustomToggle}
+              className={`relative flex items-center gap-2.5 min-h-[48px] px-3 py-2.5 rounded-2xl border text-left transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
+                customOpen
+                  ? 'border-brand-500 bg-brand-50 text-brand-500 elevation-row'
+                  : blocked
+                    ? 'border-dark-600 bg-dark-800 text-slt opacity-60'
+                    : 'border-dark-600 bg-dark-800 text-ink'
+              }`}
+            >
+              <span
+                className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
+                  customOpen ? 'bg-brand-500 text-white' : 'bg-dark-700 text-slt'
+                }`}
+                aria-hidden="true"
+              >
+                <PenLine size={16} />
+              </span>
+              <span className="text-body font-semibold leading-snug flex-1 break-words">{mj.somethingElse}</span>
+              {customOpen && (
+                <span
+                  className="absolute top-2 right-2 w-5 h-5 rounded-full bg-brand-500 text-white flex items-center justify-center"
+                  aria-hidden="true"
+                >
+                  <Check size={12} strokeWidth={3} />
+                </span>
+              )}
+            </button>
+          );
+        })()}
+      </div>
+
+      <p id={maxHintId} className="sr-only" aria-live="polite">
+        {announceMax ? mj.maxStatesReached : ''}
+      </p>
+
+      {showCustom && customOpen && (
+        <div className="mt-3" data-testid="mj-custom-state-field">
+          <label htmlFor={customFieldId} className="block text-body font-bold text-ink mb-2">
+            {mj.customStateLabel}
+          </label>
+          <input
+            id={customFieldId}
+            type="text"
+            value={customState}
+            onChange={e => onCustomChange(e.target.value.slice(0, MAX_CUSTOM_STATE_LENGTH))}
+            maxLength={MAX_CUSTOM_STATE_LENGTH}
+            aria-invalid={customError ? true : undefined}
+            aria-describedby={customError ? customErrorId : undefined}
+            className="input-field w-full min-h-[48px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+            autoComplete="off"
+          />
+          <div className="flex items-start justify-between gap-3 mt-1.5">
+            {customError ? (
+              <p id={customErrorId} role="alert" className="text-caption text-amber-400 leading-snug">
+                {customError}
+              </p>
+            ) : (
+              <span />
             )}
-          </button>
-        );
-      })}
+            <p className="text-caption text-slt text-right tabular-nums shrink-0">
+              {customState.length}/{MAX_CUSTOM_STATE_LENGTH}
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

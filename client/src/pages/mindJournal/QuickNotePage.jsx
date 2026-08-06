@@ -5,7 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { translations } from '../../i18n/translations';
 import { Card, PageHeader, SaveStatus, Button } from '../../components/ui';
 import { MAX_NOTE_LENGTH, textOrUndefined, toggleStateKey } from './constants';
-import { StateChips, SafetyGuidanceCard, useMindJournalSave } from './shared';
+import { StateChips, SafetyGuidanceCard, useMindJournalSave, useMindJournalBack } from './shared';
 
 // ─── Quick note — the fast way into the Mind Journal. One or two states,
 // an optional line, done. No context type and none of the guided prompts:
@@ -13,31 +13,40 @@ import { StateChips, SafetyGuidanceCard, useMindJournalSave } from './shared';
 
 export default function QuickNotePage() {
   const navigate = useNavigate();
+  const handleBack = useMindJournalBack();
   const { language } = useAuth();
   const mj = translations[language].mindJournal;
   const qn = mj.quickNote;
 
   const [selected, setSelected] = useState([]);
+  const [customOpen, setCustomOpen] = useState(false);
+  const [customState, setCustomState] = useState('');
   const [note, setNote] = useState('');
   const { saving, saveError, safety, dismissSafety, save } = useMindJournalSave();
 
-  const canSave = selected.length > 0 && !saving;
+  const trimmedCustom = customState.trim();
+  const hasCustom = customOpen && trimmedCustom.length > 0;
+  const canSave = (selected.length > 0 || hasCustom) && !saving;
 
   async function handleSave() {
     if (!canSave) return;
-    const entry = await save({
+    const payload = {
       entryType: 'QUICK_NOTE',
       states: selected,
       note: textOrUndefined(note),
-    });
+    };
+    const custom = textOrUndefined(customState);
+    if (custom !== undefined) payload.customState = custom;
+    const entry = await save(payload);
     // Only a real created entry navigates — a safety-flagged or failed
     // submission stays here rather than implying the note was kept.
+    // customState is React state and is retained across failed saves.
     if (entry) navigate('/mind-journal', { replace: true, state: { justSaved: true } });
   }
 
   return (
     <div className="min-h-screen bg-dark-900 pb-10">
-      <PageHeader backTo="/mind-journal" title={qn.title} />
+      <PageHeader onBack={handleBack} title={qn.title} />
 
       <div className="px-page pt-5 max-w-lg mx-auto">
         {safety ? (
@@ -47,7 +56,37 @@ export default function QuickNotePage() {
             <h2 className="text-title font-bold text-ink mb-2">{qn.statesHeading}</h2>
             <p className="text-body text-slt mb-5 leading-relaxed">{qn.intro}</p>
 
-            <StateChips selected={selected} onToggle={key => setSelected(prev => toggleStateKey(prev, key))} />
+            <StateChips
+              selected={selected}
+              onToggle={key => setSelected(prev => toggleStateKey(prev, key, { customOpen }))}
+              customOpen={customOpen}
+              onCustomToggle={open => {
+                setCustomOpen(open);
+                if (!open) setCustomState('');
+              }}
+              customState={customState}
+              onCustomChange={setCustomState}
+            />
+            {(selected.length > 0 || hasCustom) && (
+              <div className="flex flex-wrap gap-1.5 mt-3" data-testid="mj-selected-states">
+                {selected.map(key => (
+                  <span
+                    key={key}
+                    className="inline-flex items-center px-2.5 py-1 rounded-full text-caption font-semibold bg-dark-700 text-ink border border-dark-600 max-w-full break-words"
+                  >
+                    {mj.states[key]}
+                  </span>
+                ))}
+                {hasCustom && (
+                  <span
+                    className="inline-flex items-center px-2.5 py-1 rounded-full text-caption font-semibold bg-dark-700 text-ink border border-dark-600 max-w-full break-words"
+                    data-testid="mj-custom-state-pill"
+                  >
+                    {trimmedCustom}
+                  </span>
+                )}
+              </div>
+            )}
             <p className="text-caption text-slt mt-2.5 mb-6">{mj.pickHint}</p>
 
             <Card className="p-4 mb-5 elevation-card" data-testid="mj-writing-card">

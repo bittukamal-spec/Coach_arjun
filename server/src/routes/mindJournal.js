@@ -7,7 +7,8 @@
 // nullable fields (entryType, contextType, whatHappened, whatNoticed,
 // helpedOrGotInWay, takeForward). The currently deployed client still sends
 // only { states, note } — that legacy shape keeps working unchanged. Coach
-// context (loadMindJournalContext.js) is untouched in this PR.
+// context (loadMindJournalContext.js) is untouched in this PR — customState
+// is stored and returned on the journal API but is not yet sent to Coach.
 
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
@@ -19,7 +20,11 @@ const { validateAllowedKeys, validateMindJournalEntry } = require('../services/m
 const prisma = new PrismaClient();
 
 const MAX_ENTRIES = 20;
-const POST_ALLOWED_KEYS = ['states', 'note', 'entryType', 'contextType', 'whatHappened', 'whatNoticed', 'helpedOrGotInWay', 'takeForward'];
+const POST_ALLOWED_KEYS = [
+  'states', 'note', 'entryType', 'contextType',
+  'whatHappened', 'whatNoticed', 'helpedOrGotInWay', 'takeForward',
+  'customState',
+];
 const CONTEXT_ALLOWED_KEYS = ['enabled'];
 
 function serializeEntry(entry) {
@@ -36,6 +41,8 @@ function serializeEntry(entry) {
     whatNoticed: entry.whatNoticed ?? null,
     helpedOrGotInWay: entry.helpedOrGotInWay ?? null,
     takeForward: entry.takeForward ?? null,
+    // Athlete-authored "Something else" label. Legacy rows serialize null.
+    customState: entry.customState ?? null,
   };
 }
 
@@ -53,7 +60,10 @@ function createMindJournalRouter(client = prisma, consentMiddleware = requireGua
 
     const shapeCheck = validateMindJournalEntry(req.body);
     if (!shapeCheck.valid) return res.status(400).json({ error: shapeCheck.error });
-    const { entryType, contextType, states, note, whatHappened, whatNoticed, helpedOrGotInWay, takeForward } = shapeCheck.value;
+    const {
+      entryType, contextType, states, customState, note,
+      whatHappened, whatNoticed, helpedOrGotInWay, takeForward,
+    } = shapeCheck.value;
 
     // Deterministic pre-LLM safety screen across every athlete-authored text
     // field, in a fixed order, stopping at the FIRST flagged field. On a
@@ -63,7 +73,8 @@ function createMindJournalRouter(client = prisma, consentMiddleware = requireGua
     // created, and a structured SafetyEvent (no note/excerpt/summary, and
     // never which field flagged) is recorded.
     let screen = { flagged: false };
-    if (note) screen = screenSafetyText(note);
+    if (customState) screen = screenSafetyText(customState);
+    if (!screen.flagged && note) screen = screenSafetyText(note);
     if (!screen.flagged && whatHappened) screen = screenSafetyText(whatHappened);
     if (!screen.flagged && whatNoticed) screen = screenSafetyText(whatNoticed);
     if (!screen.flagged && helpedOrGotInWay) screen = screenSafetyText(helpedOrGotInWay);
@@ -79,7 +90,18 @@ function createMindJournalRouter(client = prisma, consentMiddleware = requireGua
     }
 
     const entry = await client.mindJournalEntry.create({
-      data: { userId: req.userId, entryType, contextType, states, note, whatHappened, whatNoticed, helpedOrGotInWay, takeForward },
+      data: {
+        userId: req.userId,
+        entryType,
+        contextType,
+        states,
+        customState,
+        note,
+        whatHappened,
+        whatNoticed,
+        helpedOrGotInWay,
+        takeForward,
+      },
     });
 
     res.json({ entry: serializeEntry(entry) });

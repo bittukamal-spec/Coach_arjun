@@ -538,7 +538,7 @@ test('a pre-existing (legacy) entry with all new columns null serializes and loa
     const e = body.entries[0];
     assert.deepEqual(e.states, ['tired']);
     assert.equal(e.note, 'old entry');
-    for (const f of ['entryType', 'contextType', 'whatHappened', 'whatNoticed', 'helpedOrGotInWay', 'takeForward']) {
+    for (const f of ['entryType', 'contextType', 'whatHappened', 'whatNoticed', 'helpedOrGotInWay', 'takeForward', 'customState']) {
       assert.equal(e[f], null, `${f} must be null for a legacy entry`);
     }
   });
@@ -836,6 +836,202 @@ test('GUIDED_REFLECTION → full create + GET serialization round-trip', async (
     assert.equal(e.whatNoticed, 'Shoulders tensed up.');
     assert.equal(e.helpedOrGotInWay, 'A slow exhale before the next play helped.');
     assert.equal(e.takeForward, 'One slow breath after any mistake.');
+    assert.equal(e.customState, null);
+  });
+});
+
+// ── Custom state ("Something else") ─────────────────────────────────────────
+
+test('QUICK_NOTE: built-in only still succeeds and serializes customState null', async () => {
+  const client = makeFakeClient({ usersById: { 'cs-built': adult() } });
+  await withApp(client, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('cs-built')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entryType: 'QUICK_NOTE', states: ['calm', 'focused'] }),
+    });
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.deepEqual(body.entry.states, ['calm', 'focused']);
+    assert.equal(body.entry.customState, null);
+  });
+});
+
+test('QUICK_NOTE: custom-only succeeds', async () => {
+  const client = makeFakeClient({ usersById: { 'cs-only': adult() } });
+  await withApp(client, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('cs-only')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entryType: 'QUICK_NOTE', states: [], customState: 'Match-day wired' }),
+    });
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.deepEqual(body.entry.states, []);
+    assert.equal(body.entry.customState, 'Match-day wired');
+  });
+});
+
+test('QUICK_NOTE: one built-in + custom succeeds', async () => {
+  const client = makeFakeClient({ usersById: { 'cs-mix': adult() } });
+  await withApp(client, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('cs-mix')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entryType: 'QUICK_NOTE', states: ['nervous'], customState: 'wired' }),
+    });
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.deepEqual(body.entry.states, ['nervous']);
+    assert.equal(body.entry.customState, 'wired');
+  });
+});
+
+test('QUICK_NOTE: two built-ins + custom is rejected', async () => {
+  const client = makeFakeClient({ usersById: { 'cs-three': adult() } });
+  await withApp(client, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('cs-three')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entryType: 'QUICK_NOTE', states: ['calm', 'tired'], customState: 'wired',
+      }),
+    });
+    assert.equal(res.status, 400);
+    assert.equal(Object.keys(client.__entriesById).length, 0);
+  });
+});
+
+test('QUICK_NOTE: empty/whitespace customState normalizes to null; custom-only empty is rejected', async () => {
+  const client = makeFakeClient({ usersById: { 'cs-empty': adult() } });
+  await withApp(client, async (baseUrl) => {
+    const withBuiltIn = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('cs-empty')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entryType: 'QUICK_NOTE', states: ['calm'], customState: '   ' }),
+    });
+    assert.equal(withBuiltIn.status, 200);
+    assert.equal((await withBuiltIn.json()).entry.customState, null);
+
+    const customOnlyEmpty = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('cs-empty')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entryType: 'QUICK_NOTE', states: [], customState: '   ' }),
+    });
+    assert.equal(customOnlyEmpty.status, 400);
+  });
+});
+
+test('QUICK_NOTE: customState max 30 enforced; control characters rejected; never truncated', async () => {
+  const client = makeFakeClient({ usersById: { 'cs-bounds': adult() } });
+  await withApp(client, async (baseUrl) => {
+    const tooLong = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('cs-bounds')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entryType: 'QUICK_NOTE', states: [], customState: 'x'.repeat(31) }),
+    });
+    assert.equal(tooLong.status, 400);
+
+    const atLimit = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('cs-bounds')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entryType: 'QUICK_NOTE', states: [], customState: 'x'.repeat(30) }),
+    });
+    assert.equal(atLimit.status, 200);
+    assert.equal((await atLimit.json()).entry.customState.length, 30);
+
+    const control = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('cs-bounds')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entryType: 'QUICK_NOTE', states: [], customState: 'bad\u0001text' }),
+    });
+    assert.equal(control.status, 400);
+  });
+});
+
+test('QUICK_NOTE: customState matching a selected built-in key or English label is rejected', async () => {
+  const client = makeFakeClient({ usersById: { 'cs-dup': adult() } });
+  await withApp(client, async (baseUrl) => {
+    for (const customState of ['calm', 'CALM', 'Calm']) {
+      const res = await fetch(`${baseUrl}/api/mind-journal`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${tokenFor('cs-dup')}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entryType: 'QUICK_NOTE', states: ['calm'], customState }),
+      });
+      assert.equal(res.status, 400, `expected reject for customState=${customState}`);
+    }
+  });
+});
+
+test('GUIDED_REFLECTION: custom state counts toward the two-state maximum', async () => {
+  const client = makeFakeClient({ usersById: { 'gcs-max': adult() } });
+  await withApp(client, async (baseUrl) => {
+    const ok = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('gcs-max')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entryType: 'GUIDED_REFLECTION', contextType: 'TRAINING',
+        states: ['calm'], customState: 'wired',
+      }),
+    });
+    assert.equal(ok.status, 200);
+
+    const tooMany = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('gcs-max')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entryType: 'GUIDED_REFLECTION', contextType: 'TRAINING',
+        states: ['calm', 'tired'], customState: 'wired',
+      }),
+    });
+    assert.equal(tooMany.status, 400);
+  });
+});
+
+test('GUIDED_REFLECTION: context + customState succeeds without narrative text', async () => {
+  const client = makeFakeClient({ usersById: { 'gcs-ctx': adult() } });
+  await withApp(client, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('gcs-ctx')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entryType: 'GUIDED_REFLECTION', contextType: 'RECOVERY_DAY',
+        states: [], customState: 'restless',
+      }),
+    });
+    assert.equal(res.status, 200);
+    assert.equal((await res.json()).entry.customState, 'restless');
+  });
+});
+
+test('GUIDED_REFLECTION: context with empty custom and no other content is rejected', async () => {
+  const client = makeFakeClient({ usersById: { 'gcs-empty': adult() } });
+  await withApp(client, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('gcs-empty')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        entryType: 'GUIDED_REFLECTION', contextType: 'RECOVERY_DAY',
+        states: [], customState: '   ',
+      }),
+    });
+    assert.equal(res.status, 400);
+    assert.equal(Object.keys(client.__entriesById).length, 0);
+  });
+});
+
+test('legacy { states, note } payloads still succeed and return customState null', async () => {
+  const client = makeFakeClient({ usersById: { 'cs-legacy': adult() } });
+  await withApp(client, async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/mind-journal`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${tokenFor('cs-legacy')}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ states: ['focused'], note: 'legacy shape' }),
+    });
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.entry.note, 'legacy shape');
+    assert.equal(body.entry.customState, null);
   });
 });
 
