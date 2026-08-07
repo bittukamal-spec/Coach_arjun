@@ -3,9 +3,9 @@
 // and its MentalFitnessEntry data are untouched; this is a separate,
 // additive surface writing only to MindJournalEntry.
 //
-// Coach context (loadMindJournalContext.js) is untouched — customState and
-// customContext are stored and returned on the journal API but are not yet
-// sent to Coach.
+// Coach context mapping lives in loadMindJournalContext.js (restricted
+// pilot contract). This route stores/returns full journal fields; Coach
+// only receives the loader's minimized projection when consent is on.
 
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
