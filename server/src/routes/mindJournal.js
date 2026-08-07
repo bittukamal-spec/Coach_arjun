@@ -3,12 +3,9 @@
 // and its MentalFitnessEntry data are untouched; this is a separate,
 // additive surface writing only to MindJournalEntry.
 //
-// PR 1 of the guided-reflection redesign: MindJournalEntry gained six
-// nullable fields (entryType, contextType, whatHappened, whatNoticed,
-// helpedOrGotInWay, takeForward). The currently deployed client still sends
-// only { states, note } — that legacy shape keeps working unchanged. Coach
-// context (loadMindJournalContext.js) is untouched in this PR — customState
-// is stored and returned on the journal API but is not yet sent to Coach.
+// Coach context (loadMindJournalContext.js) is untouched — customState and
+// customContext are stored and returned on the journal API but are not yet
+// sent to Coach.
 
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
@@ -23,7 +20,7 @@ const MAX_ENTRIES = 20;
 const POST_ALLOWED_KEYS = [
   'states', 'note', 'entryType', 'contextType',
   'whatHappened', 'whatNoticed', 'helpedOrGotInWay', 'takeForward',
-  'customState',
+  'customState', 'customContext',
 ];
 const CONTEXT_ALLOWED_KEYS = ['enabled'];
 
@@ -33,7 +30,7 @@ function serializeEntry(entry) {
     states: entry.states,
     note: entry.note,
     createdAt: entry.createdAt,
-    // Legacy rows (created before this PR) have all six of these as
+    // Legacy rows (created before guided fields existed) have these as
     // null — a deterministic, already-correct "quick note" shape.
     entryType: entry.entryType ?? null,
     contextType: entry.contextType ?? null,
@@ -41,8 +38,10 @@ function serializeEntry(entry) {
     whatNoticed: entry.whatNoticed ?? null,
     helpedOrGotInWay: entry.helpedOrGotInWay ?? null,
     takeForward: entry.takeForward ?? null,
-    // Athlete-authored "Something else" label. Legacy rows serialize null.
+    // Athlete-authored "Something else" state label. Legacy rows → null.
     customState: entry.customState ?? null,
+    // Athlete-authored context label when contextType is SOMETHING_ELSE.
+    customContext: entry.customContext ?? null,
   };
 }
 
@@ -61,7 +60,7 @@ function createMindJournalRouter(client = prisma, consentMiddleware = requireGua
     const shapeCheck = validateMindJournalEntry(req.body);
     if (!shapeCheck.valid) return res.status(400).json({ error: shapeCheck.error });
     const {
-      entryType, contextType, states, customState, note,
+      entryType, contextType, states, customState, customContext, note,
       whatHappened, whatNoticed, helpedOrGotInWay, takeForward,
     } = shapeCheck.value;
 
@@ -74,6 +73,7 @@ function createMindJournalRouter(client = prisma, consentMiddleware = requireGua
     // never which field flagged) is recorded.
     let screen = { flagged: false };
     if (customState) screen = screenSafetyText(customState);
+    if (!screen.flagged && customContext) screen = screenSafetyText(customContext);
     if (!screen.flagged && note) screen = screenSafetyText(note);
     if (!screen.flagged && whatHappened) screen = screenSafetyText(whatHappened);
     if (!screen.flagged && whatNoticed) screen = screenSafetyText(whatNoticed);
@@ -96,6 +96,7 @@ function createMindJournalRouter(client = prisma, consentMiddleware = requireGua
         contextType,
         states,
         customState,
+        customContext,
         note,
         whatHappened,
         whatNoticed,
@@ -141,11 +142,21 @@ function createMindJournalRouter(client = prisma, consentMiddleware = requireGua
     res.json({ contextEnabled: user.mindJournalContextEnabled });
   });
 
+  // ── GET /:id — one entry the athlete owns ───────────────────────────────
+  // Ownership is checked by loading the row by id ALONE and comparing
+  // userId — a missing id and an id owned by someone else return the
+  // identical 404, so the response never reveals whether another athlete
+  // owns the id.
+  router.get('/:id', authenticate, consentMiddleware, async (req, res) => {
+    const existing = await client.mindJournalEntry.findUnique({ where: { id: req.params.id } });
+    if (!existing || existing.userId !== req.userId) {
+      return res.status(404).json({ error: 'not_found' });
+    }
+    return res.json({ entry: serializeEntry(existing) });
+  });
+
   // ── DELETE /:id — delete one entry the athlete owns ─────────────────────
-  // No PATCH /:id (no editing) and no GET /:id in this PR. Ownership is
-  // checked by loading the row by id ALONE and comparing userId — a missing
-  // id and an id owned by someone else return the identical 404, so the
-  // response never reveals whether another athlete owns the id.
+  // No PATCH /:id (no editing). Same ownership / 404 contract as GET /:id.
   router.delete('/:id', authenticate, consentMiddleware, async (req, res) => {
     const existing = await client.mindJournalEntry.findUnique({ where: { id: req.params.id } });
     if (!existing || existing.userId !== req.userId) {

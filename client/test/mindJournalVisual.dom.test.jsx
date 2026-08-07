@@ -98,4 +98,34 @@ describe('Mind Journal visual / a11y smoke', () => {
     expect(screen.getByTestId('mj-custom-state-field')).toBeTruthy();
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
   });
+
+  test('Guided Step 1: Something else context reveals customContext field with counter at 320px', async () => {
+    setWidth(320);
+    render(
+      <MemoryRouter initialEntries={['/mind-journal/new']}>
+        <Routes><Route path="/mind-journal/new" element={<GuidedReflectionPage />} /></Routes>
+      </MemoryRouter>
+    );
+    await userEvent.click(await screen.findByRole('radio', { name: 'Something else' }));
+    const field = screen.getByLabelText('What was it about?');
+    expect(field).toBeTruthy();
+    expect(field.getAttribute('maxLength')).toBe('80');
+    const long = 'x'.repeat(80);
+    await userEvent.type(field, long);
+    expect(screen.getByText('80/80')).toBeTruthy();
+    expect(field.className).toMatch(/focus-visible:ring/);
+  });
+
+  test('Guided Step 1: Hindi custom context label (no hardcoded English)', async () => {
+    authState.language = 'hi';
+    setWidth(360);
+    render(
+      <MemoryRouter initialEntries={['/mind-journal/new']}>
+        <Routes><Route path="/mind-journal/new" element={<GuidedReflectionPage />} /></Routes>
+      </MemoryRouter>
+    );
+    await userEvent.click(await screen.findByRole('radio', { name: 'कुछ और' }));
+    expect(screen.getByLabelText('किस बारे में था — अपने शब्दों में?')).toBeTruthy();
+    expect(screen.queryByLabelText('What was it about?')).toBeNull();
+  });
 });

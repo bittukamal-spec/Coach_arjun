@@ -5,7 +5,12 @@ import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
 import { Card, PageHeader, SectionLabel, SaveStatus } from '../components/ui';
-import { guidedPreview, mindJournalOriginState, stateTagsForEntry } from './mindJournal/constants';
+import {
+  guidedPreview,
+  mindJournalOriginState,
+  stateTagsForEntry,
+  contextLabelForEntry,
+} from './mindJournal/constants';
 import { contextIconFor } from './mindJournal/shared';
 
 // ─── Mind Journal home — the landing screen for a personal, score-free
@@ -20,9 +25,8 @@ import { contextIconFor } from './mindJournal/shared';
 // the guided flow existed) carry only states and a note, so they render as
 // the quick note they effectively are — never with empty guided sections.
 //
-// Rows are deliberately inert: opening a single entry is a separate change,
-// so there is no chevron, no overflow menu and no edit or delete affordance
-// that would not actually do anything.
+// Each row is an accessible link to Reflection Details. No overflow menu
+// and no inline edit/delete — delete lives on the detail screen only.
 function EntryRow({ entry, mj, dateLabel }) {
   const isGuided = entry.entryType === 'GUIDED_REFLECTION';
   const stateTags = stateTagsForEntry(entry, mj);
@@ -32,9 +36,21 @@ function EntryRow({ entry, mj, dateLabel }) {
   // labelled row rather than twice.
   const showPreview = preview && preview !== entry.takeForward;
   const ContextIcon = contextIconFor(entry.entryType, entry.contextType);
+  const contextLabel = isGuided ? contextLabelForEntry(entry, mj) : null;
+  const typeLabel = isGuided
+    ? (contextLabel || mj.contextTypes.SOMETHING_ELSE)
+    : mj.quickNote.tag;
+  const ariaLabel = [typeLabel, dateLabel, ...(stateTags || [])].filter(Boolean).join(', ');
 
   return (
-    <Card className="p-4 elevation-card" data-testid="mj-reflection-card">
+    <Card
+      as={Link}
+      to={`/mind-journal/${entry.id}`}
+      state={mindJournalOriginState()}
+      className="block p-4 elevation-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+      data-testid="mj-reflection-card"
+      aria-label={ariaLabel}
+    >
       <div className="flex items-start gap-3">
         <span
           className="w-10 h-10 rounded-2xl bg-brand-50 text-brand-500 flex items-center justify-center shrink-0"
@@ -44,10 +60,8 @@ function EntryRow({ entry, mj, dateLabel }) {
         </span>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
-            <p className="text-micro font-bold text-slt uppercase">
-              {isGuided
-                ? (mj.contextTypes[entry.contextType] || mj.contextTypes.SOMETHING_ELSE)
-                : mj.quickNote.tag}
+            <p className="text-micro font-bold text-slt uppercase max-w-full break-words">
+              {typeLabel}
             </p>
             <p className="text-caption text-slt shrink-0">{dateLabel}</p>
           </div>
@@ -65,11 +79,13 @@ function EntryRow({ entry, mj, dateLabel }) {
             </div>
           )}
 
-          {showPreview && <p className="text-caption text-slt mt-2.5 leading-relaxed">{preview}</p>}
+          {showPreview && (
+            <p className="text-caption text-slt mt-2.5 leading-relaxed break-words">{preview}</p>
+          )}
 
           {isGuided && entry.takeForward && (
             <div className="mt-3 pt-3 border-t border-dark-600">
-              <p className="text-caption text-slt leading-relaxed">
+              <p className="text-caption text-slt leading-relaxed break-words">
                 <span className="font-bold text-ink">{mj.takeForwardLabel}: </span>
                 {entry.takeForward}
               </p>

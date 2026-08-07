@@ -20,12 +20,14 @@ import {
   MAX_WHAT_HAPPENED_LENGTH,
   MAX_TAKE_FORWARD_LENGTH,
   MAX_CUSTOM_STATE_LENGTH,
+  MAX_CUSTOM_CONTEXT_LENGTH,
   FROM_MIND_JOURNAL,
   guidedPreview,
   toggleStateKey,
   textOrUndefined,
   stateSlotCount,
   stateTagsForEntry,
+  contextLabelForEntry,
   cameFromMindJournal,
   mindJournalOriginState,
 } from '../src/pages/mindJournal/constants.js';
@@ -39,6 +41,7 @@ const quick = src('pages/mindJournal/QuickNotePage.jsx');
 const step1 = src('pages/mindJournal/GuidedReflectionPage.jsx');
 const step2 = src('pages/mindJournal/GuidedReflectionDetailsPage.jsx');
 const savedScreen = src('pages/mindJournal/ReflectionSavedPage.jsx');
+const detailScreen = src('pages/mindJournal/ReflectionDetailPage.jsx');
 const contextScreen = src('pages/mindJournal/ArjunContextPage.jsx');
 const shared = src('pages/mindJournal/shared.jsx');
 const app = src('App.jsx');
@@ -50,6 +53,7 @@ const SCREENS = [
   ['GuidedReflectionPage', step1],
   ['GuidedReflectionDetailsPage', step2],
   ['ReflectionSavedPage', savedScreen],
+  ['ReflectionDetailPage', detailScreen],
   ['ArjunContextPage', contextScreen],
 ];
 
@@ -98,6 +102,20 @@ test('stateTagsForEntry: built-ins are translated; customState is shown verbatim
   assert.deepEqual(stateTagsForEntry({ states: [], customState: 'wired' }, mj), ['wired']);
 });
 
+test('contextLabelForEntry: prefers customContext for SOMETHING_ELSE; otherwise translated enum', () => {
+  const mj = translations.en.mindJournal;
+  assert.equal(
+    contextLabelForEntry({ contextType: 'SOMETHING_ELSE', customContext: 'selection trial' }, mj),
+    'selection trial'
+  );
+  assert.equal(
+    contextLabelForEntry({ contextType: 'SOMETHING_ELSE', customContext: null }, mj),
+    'Something else'
+  );
+  assert.equal(contextLabelForEntry({ contextType: 'TRAINING', customContext: null }, mj), 'Training');
+  assert.equal(contextLabelForEntry({ contextType: null }, mj), null);
+});
+
 test('mind journal origin marker: only the explicit from flag counts', () => {
   assert.deepEqual(mindJournalOriginState(), { from: FROM_MIND_JOURNAL });
   assert.equal(cameFromMindJournal({ from: FROM_MIND_JOURNAL }), true);
@@ -127,6 +145,8 @@ test('constants mirror the server contract exactly', () => {
   assert.equal(MAX_NOTE_LENGTH, 500);
   assert.equal(MAX_WHAT_HAPPENED_LENGTH, 1000);
   assert.equal(MAX_TAKE_FORWARD_LENGTH, 500);
+  assert.equal(MAX_CUSTOM_STATE_LENGTH, 30);
+  assert.equal(MAX_CUSTOM_CONTEXT_LENGTH, 80);
 });
 
 // ── Localization ───────────────────────────────────────────────────────────
@@ -151,11 +171,15 @@ test('translations.js: every Mind Journal athlete-visible string exists in both 
     newReflection: ['cardTitle', 'cardDesc', 'cta'],
     quickNote: ['action', 'cardDesc', 'title', 'tag', 'intro', 'statesHeading', 'prompt', 'notePlaceholder', 'saveBtn'],
     guided: [
-      'title', 'step1', 'step2', 'step1Intro', 'contextHeading', 'contextHint', 'statesHeading', 'statesHint',
+      'title', 'step1', 'step2', 'step1Intro', 'contextHeading', 'contextHint',
+      'customContextLabel', 'customContextHint', 'customContextRequired',
+      'statesHeading', 'statesHint',
       'continueBtn', 'switchToQuick', 'detailsIntro', 'whatHappened', 'whatHappenedPlaceholder', 'whatNoticed',
       'whatNoticedPlaceholder', 'helpedOrGotInWay', 'helpedOrGotInWayPlaceholder', 'takeForward',
       'takeForwardPlaceholder', 'needSomething', 'saveBtn',
     ],
+    detail: ['title', 'contextHeading', 'statesHeading', 'noteHeading', 'notFound', 'loadError', 'backToJournal'],
+    deleteReflection: ['action', 'title', 'body', 'cancel', 'confirm', 'deleting', 'error'],
     savedScreen: ['title', 'heading', 'body', 'doneBtn', 'viewBtn', 'contextHint'],
     contextStatus: ['label', 'on', 'off', 'manage'],
     contextScreen: ['title', 'heading', 'body', 'latestFive', 'notUsed', 'offKeepsEntries', 'doneBtn', 'loadError'],
@@ -201,6 +225,7 @@ test('translations.js: Hindi Mind Journal copy is genuine Devanagari, not Englis
   }
   for (const [group, key] of [
     ['newReflection', 'cardTitle'], ['quickNote', 'saveBtn'], ['guided', 'whatHappened'],
+    ['guided', 'customContextLabel'], ['detail', 'title'], ['deleteReflection', 'action'],
     ['savedScreen', 'heading'], ['contextStatus', 'on'], ['contextScreen', 'heading'], ['safety', 'heading'],
   ]) {
     assert.match(hi[group][key], DEVANAGARI_RE, `translations.hi.mindJournal.${group}.${key} must contain Devanagari`);
@@ -279,10 +304,10 @@ test('home: renders loading, error, empty and populated states for recent reflec
   assert.match(home, /\{mj\.emptyState\}/);
 });
 
-test('home: guided reflections show a translated context label, state tags, a preview and a distinct Take forward row', () => {
+test('home: guided reflections show a context label (customContext preferred), state tags, a preview and a distinct Take forward row', () => {
   const row = home.slice(home.indexOf('function EntryRow'), home.indexOf('export default function'));
   assert.match(row, /entry\.entryType === 'GUIDED_REFLECTION'/);
-  assert.match(row, /mj\.contextTypes\[entry\.contextType\]/, 'the context type must be translated, never shown raw');
+  assert.match(row, /contextLabelForEntry\(entry, mj\)/, 'prefer customContext; otherwise translate the enum');
   assert.match(row, /stateTagsForEntry\(entry, mj\)/, 'built-in tags translate; customState is shown verbatim');
   assert.match(row, /guidedPreview\(entry\)/, 'the preview must use the agreed field precedence');
   assert.match(row, /isGuided && entry\.takeForward/, 'Take forward gets its own row when present');
@@ -300,11 +325,13 @@ test('home: quick notes and legacy rows render as a quick note, with no empty gu
   assert.doesNotMatch(row, /\{mj\.guided\./, 'a list row must never surface guided prompt labels');
 });
 
-test('home: recent rows are inert — no chevron, overflow menu, edit or delete affordance', () => {
+test('home: recent rows link to Reflection Details with the Mind Journal origin marker', () => {
   const row = home.slice(home.indexOf('function EntryRow'), home.indexOf('export default function'));
-  assert.doesNotMatch(row, /Chevron|MoreVertical|MoreHorizontal|Trash|Pencil|Edit/, 'rows must not imply an action that does not exist');
-  assert.doesNotMatch(row, /<Link|onClick=/, 'rows must not look or behave as if they open a detail screen');
-  assert.doesNotMatch(home, /mind-journal\/\$\{entry\.id\}/, 'the single-entry route does not exist yet');
+  assert.match(row, /to=\{`\/mind-journal\/\$\{entry\.id\}`\}/);
+  assert.match(row, /state=\{mindJournalOriginState\(\)\}/);
+  assert.match(row, /aria-label=\{ariaLabel\}/);
+  assert.doesNotMatch(row, /MoreVertical|MoreHorizontal|Trash|Pencil|Edit/, 'no overflow menu or inline edit/delete');
+  assert.doesNotMatch(row, /method: 'DELETE'/, 'delete lives on the detail screen only');
 });
 
 test('home: never writes — it reads entries and reports the context flag only', () => {
@@ -349,6 +376,9 @@ test('Mind Journal child screens: header back uses history when opened from the 
   assert.doesNotMatch(step1, /backTo="\/mind-journal"/);
   assert.match(contextScreen, /<PageHeader onBack=\{handleBack\}/);
   assert.doesNotMatch(contextScreen, /backTo="\/mind-journal"/);
+  assert.match(detailScreen, /useMindJournalBack/);
+  assert.match(detailScreen, /<PageHeader onBack=\{handleBack\}/);
+  assert.doesNotMatch(detailScreen, /backTo="\/mind-journal"/);
   assert.match(home, /state=\{mindJournalOriginState\(\)\}/);
 });
 
@@ -368,20 +398,33 @@ test('quick note: shows the approved prompt, the eight states, and the personal 
 // ── Screens 3 & 4: guided reflection ───────────────────────────────────────
 
 test('guided step 1: context type is required and single-select; states stay optional', () => {
-  assert.match(step1, /<ContextTypeCards value=\{contextType\} onChange=\{setContextType\}/);
+  assert.match(step1, /<ContextTypeCards value=\{contextType\} onChange=\{handleContextChange\}/);
   assert.match(shared, /CONTEXT_TYPE_KEYS\.map\(key =>/, 'context options render as structured cards');
   assert.match(shared, /onClick=\{\(\) => onChange\(key\)\}/, 'single-select, not a toggle list');
   assert.match(shared, /aria-pressed=\{isSelected\}/);
   assert.match(shared, /\{mj\.contextTypes\[key\]\}/, 'context labels must be translated');
   assert.match(shared, /\{mj\.contextTypeHints\[key\]\}/, 'each context card carries a one-line explanation');
-  assert.match(step1, /disabled=\{!contextType\}/, 'Continue is blocked until a context type is picked');
+  assert.match(step1, /disabled=\{!canContinue\}/, 'Continue is blocked until context (+ custom context when needed) is ready');
   assert.match(step1, /\{g\.statesHint\}/, 'states are labelled optional here');
   assert.match(step1, /\{g\.switchToQuick\}/, 'athletes can switch to the quick-note path');
+});
+
+test('guided step 1: Something else reveals a labelled customContext field with an 80-char counter', () => {
+  assert.match(step1, /contextType === 'SOMETHING_ELSE'/);
+  assert.match(step1, /data-testid="mj-custom-context-field"/);
+  assert.match(step1, /\{g\.customContextLabel\}/);
+  assert.match(step1, /\{g\.customContextHint\}/);
+  assert.match(step1, /maxLength=\{MAX_CUSTOM_CONTEXT_LENGTH\}/);
+  assert.match(step1, /\{customContext\.length\}\/\{MAX_CUSTOM_CONTEXT_LENGTH\}/);
+  assert.equal(MAX_CUSTOM_CONTEXT_LENGTH, 80);
+  assert.match(step1, /customContextRequired/);
+  assert.match(step1, /if \(next !== 'SOMETHING_ELSE'\) setCustomContext\(''\)/, 'switching context clears stale customContext');
 });
 
 test('guided step 1: hands its answers to step 2 and writes nothing itself', () => {
   assert.match(step1, /navigate\('\/mind-journal\/new\/details', \{ state: next \}\)/);
   assert.match(step1, /customState: customState\.trim\(\)/);
+  assert.match(step1, /next\.customContext = customContext\.trim\(\)/);
   assert.doesNotMatch(step1, /apiFetch|method: 'POST'/, 'step 1 must not persist anything');
 });
 
@@ -404,6 +447,7 @@ test('guided step 2: posts the GUIDED_REFLECTION shape and never sends a note', 
   assert.match(save, /contextType,/);
   assert.match(save, /states,/);
   assert.match(save, /payload\.customState = custom/, 'customState rides along when present');
+  assert.match(save, /payload\.customContext = customContext/, 'customContext only for SOMETHING_ELSE');
   for (const field of ['whatHappened', 'whatNoticed', 'helpedOrGotInWay', 'takeForward']) {
     assert.ok(save.includes(`${field}: textOrUndefined(${field})`), `${field} must be trimmed and omitted when empty`);
   }
@@ -489,7 +533,33 @@ test('saved screen: quiet confirmation, showing Take forward when there is one',
 test('saved screen: a direct hit with no saved entry returns to the journal instead of claiming a save', () => {
   assert.match(savedScreen, /const entry = location\.state\?\.entry;/);
   assert.match(savedScreen, /if \(!entry\) return <Navigate to="\/mind-journal" replace \/>;/);
-  assert.doesNotMatch(savedScreen, /apiFetch/, 'there is no single-entry read on the server to call');
+  assert.doesNotMatch(savedScreen, /apiFetch/, 'the saved confirmation still uses router state, not a fetch');
+  assert.match(savedScreen, /contextLabelForEntry\(entry, mj\)/);
+});
+
+// ── Reflection details + delete ────────────────────────────────────────────
+
+test('detail screen: loads one entry by id, uses history back, and confirms before DELETE', () => {
+  assert.match(detailScreen, /\/api\/mind-journal\/\$\{id\}/);
+  assert.match(detailScreen, /useMindJournalBack/);
+  assert.match(detailScreen, /\{d\.title\}/);
+  assert.match(detailScreen, /contextLabelForEntry\(entry, mj\)/);
+  assert.match(detailScreen, /stateTagsForEntry\(entry, mj\)/);
+  assert.match(detailScreen, /method: 'DELETE'/);
+  assert.match(detailScreen, /role="dialog"/);
+  assert.match(detailScreen, /aria-modal="true"/);
+  assert.match(detailScreen, /\{del\.title\}/);
+  assert.match(detailScreen, /\{del\.body\}/);
+  assert.match(detailScreen, /navigate\('\/mind-journal', \{ replace: true \}\)/);
+  assert.match(detailScreen, /\{del\.action\}/);
+  assert.doesNotMatch(detailScreen, /method: 'PATCH'/, 'no editing in this pilot');
+});
+
+test('detail screen: 404 recovery returns to the journal via replace Link', () => {
+  assert.match(detailScreen, /d\.notFound/);
+  assert.match(detailScreen, /to="\/mind-journal"/);
+  assert.match(detailScreen, /replace/);
+  assert.match(detailScreen, /data-testid="mj-detail-back-journal"/);
 });
 
 // ── Screen 6: Arjun context ────────────────────────────────────────────────
@@ -518,7 +588,7 @@ test('context screen: explains the restricted use, and states it is never used t
 
 // ── Routing ────────────────────────────────────────────────────────────────
 
-test('App.jsx: all six Mind Journal routes exist and are onboarding-protected', () => {
+test('App.jsx: all seven Mind Journal routes exist and are onboarding-protected', () => {
   const ROUTES = [
     ['/mind-journal', 'MindJournalPage'],
     ['/mind-journal/quick', 'QuickNotePage'],
@@ -526,6 +596,7 @@ test('App.jsx: all six Mind Journal routes exist and are onboarding-protected', 
     ['/mind-journal/new/details', 'GuidedReflectionDetailsPage'],
     ['/mind-journal/context', 'ArjunContextPage'],
     ['/mind-journal/saved/:id', 'ReflectionSavedPage'],
+    ['/mind-journal/:id', 'ReflectionDetailPage'],
   ];
   for (const [routePath, component] of ROUTES) {
     const idx = app.indexOf(`path="${routePath}"`);
@@ -536,15 +607,21 @@ test('App.jsx: all six Mind Journal routes exist and are onboarding-protected', 
   }
 });
 
-test('App.jsx: every literal Mind Journal segment is declared before the dynamic route', () => {
-  const dynamicIdx = app.indexOf('path="/mind-journal/saved/:id"');
-  for (const literal of ['/mind-journal/quick', '/mind-journal/new', '/mind-journal/new/details', '/mind-journal/context']) {
-    assert.ok(app.indexOf(`path="${literal}"`) < dynamicIdx, `${literal} must be declared before the dynamic route`);
+test('App.jsx: every literal Mind Journal segment and /saved/:id are declared before /:id', () => {
+  const detailIdx = app.indexOf('path="/mind-journal/:id"');
+  assert.ok(detailIdx !== -1, 'detail route must exist');
+  for (const literal of [
+    '/mind-journal/quick',
+    '/mind-journal/new',
+    '/mind-journal/new/details',
+    '/mind-journal/context',
+    '/mind-journal/saved/:id',
+  ]) {
+    assert.ok(app.indexOf(`path="${literal}"`) < detailIdx, `${literal} must be declared before /:id`);
   }
 });
 
-test('App.jsx: the single-entry route is not added in this PR, and Mind Journal stays full screen', () => {
-  assert.doesNotMatch(app, /path="\/mind-journal\/:id"/, 'the detail route belongs to a later change');
+test('App.jsx: Mind Journal stays full screen (no BottomNav layout wrapper)', () => {
   // None of these routes are wrapped in the BottomNav layout — they are
   // declared as bare full-screen routes, matching the original.
   const idx = app.indexOf('path="/mind-journal"');

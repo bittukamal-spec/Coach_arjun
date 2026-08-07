@@ -95,6 +95,10 @@ test('MindJournalPage: athlete-authored note/entry text is rendered verbatim, ne
   // Quick notes and legacy rows preview through `preview`, guided
   // reflections add the labelled take-forward line — both render the raw
   // stored string, never a lookup keyed by it.
-  assert.match(mindJournal, /\{showPreview && <p[^>]*>\{preview\}<\/p>\}/);
+  assert.match(mindJournal, /\{showPreview &&[\s\S]*?\{preview\}/);
   assert.match(mindJournal, /\{entry\.takeForward\}/);
+  assert.doesNotMatch(
+    mindJournal.slice(mindJournal.indexOf('{showPreview'), mindJournal.indexOf('{entry.takeForward}')),
+    /translations\[|mj\.(states|contextTypes)\[preview\]/
+  );
 });

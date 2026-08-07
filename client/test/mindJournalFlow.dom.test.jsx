@@ -22,6 +22,7 @@ const { default: QuickNotePage } = await import('../src/pages/mindJournal/QuickN
 const { default: GuidedReflectionPage } = await import('../src/pages/mindJournal/GuidedReflectionPage.jsx');
 const { default: GuidedReflectionDetailsPage } = await import('../src/pages/mindJournal/GuidedReflectionDetailsPage.jsx');
 const { default: ReflectionSavedPage } = await import('../src/pages/mindJournal/ReflectionSavedPage.jsx');
+const { default: ReflectionDetailPage } = await import('../src/pages/mindJournal/ReflectionDetailPage.jsx');
 const { default: ArjunContextPage } = await import('../src/pages/mindJournal/ArjunContextPage.jsx');
 
 const json = (body, status = 200) => ({ ok: status >= 200 && status < 300, status, json: async () => body });
@@ -52,6 +53,7 @@ function renderFlow(initialEntries = '/mind-journal') {
         <Route path="/mind-journal/new/details" element={<GuidedReflectionDetailsPage />} />
         <Route path="/mind-journal/context" element={<ArjunContextPage />} />
         <Route path="/mind-journal/saved/:id" element={<ReflectionSavedPage />} />
+        <Route path="/mind-journal/:id" element={<ReflectionDetailPage />} />
       </Routes>
     </MemoryRouter>
   );
@@ -269,12 +271,80 @@ describe('Guided reflection', () => {
     expect(screen.queryByTestId('bottom-nav')).toBeNull();
   });
 
-  test('Continue is blocked until a context type is chosen', async () => {
+  test('Continue is blocked until a context type is chosen; Something else also needs customContext', async () => {
     renderFlow('/mind-journal/new');
     const cont = await screen.findByRole('button', { name: 'Continue' });
     expect(cont.disabled).toBe(true);
     await clickRadio('Recovery day');
     expect(cont.disabled).toBe(false);
+
+    await clickRadio('Something else');
+    expect(cont.disabled).toBe(true);
+    expect(screen.getByTestId('mj-custom-context-field')).toBeTruthy();
+    await userEvent.type(screen.getByLabelText('What was it about?'), 'team meeting');
+    expect(cont.disabled).toBe(false);
+  });
+
+  test('customContext carries Step1 → Step2 → back, and is POSTed only for SOMETHING_ELSE', async () => {
+    apiFetch.mockImplementation(async (p, init) => {
+      if (p === '/api/mind-journal' && init?.method === 'POST') {
+        return json({
+          entry: {
+            id: 'r-cc',
+            entryType: 'GUIDED_REFLECTION',
+            contextType: 'SOMETHING_ELSE',
+            customContext: 'selection trial',
+            takeForward: 'stay steady',
+          },
+        });
+      }
+      return json({ entries: [], contextEnabled: false });
+    });
+    renderFlow('/mind-journal/new');
+    await clickRadio('Something else');
+    await userEvent.type(screen.getByLabelText('What was it about?'), '  selection trial  ');
+    await clickByName('Continue');
+
+    expect(screen.getByTestId('mj-summary-pills').textContent).toContain('selection trial');
+    expect(screen.getByTestId('mj-summary-pills').textContent).not.toMatch(/Something else/);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Back' }));
+    expect(screen.getByLabelText('What was it about?').value).toBe('selection trial');
+    await clickByName('Continue');
+    await userEvent.type(screen.getByLabelText('What do you want to try or repeat next time?'), 'stay steady');
+    await clickByName('Save reflection');
+
+    expect(postedEntry()).toEqual({
+      entryType: 'GUIDED_REFLECTION',
+      contextType: 'SOMETHING_ELSE',
+      states: [],
+      customContext: 'selection trial',
+      takeForward: 'stay steady',
+    });
+  });
+
+  test('choosing another context clears customContext from the outgoing payload', async () => {
+    apiFetch.mockImplementation(async (p, init) => {
+      if (p === '/api/mind-journal' && init?.method === 'POST') {
+        return json({ entry: { id: 'r-clear', takeForward: 'ok' } });
+      }
+      return json({ entries: [], contextEnabled: false });
+    });
+    renderFlow('/mind-journal/new');
+    await clickRadio('Something else');
+    await userEvent.type(screen.getByLabelText('What was it about?'), 'stale text');
+    await clickRadio('Training');
+    expect(screen.queryByTestId('mj-custom-context-field')).toBeNull();
+    await clickByName('Continue');
+    await userEvent.type(screen.getByLabelText('What happened?'), 'session');
+    await clickByName('Save reflection');
+    expect(postedEntry()).toEqual({
+      entryType: 'GUIDED_REFLECTION',
+      contextType: 'TRAINING',
+      states: [],
+      whatHappened: 'session',
+    });
+    expect(postedEntry()).not.toHaveProperty('customContext');
   });
 
   test('going back to step 1 restores the answers already given', async () => {
@@ -320,6 +390,7 @@ describe('Guided reflection', () => {
   test('Save is blocked when only a context type was chosen — the server rule, enforced up front', async () => {
     renderFlow('/mind-journal/new');
     await clickRadio('Something else');
+    await userEvent.type(screen.getByLabelText('What was it about?'), 'team meeting');
     await clickByName('Continue');
 
     const save = await screen.findByRole('button', { name: 'Save reflection' });
@@ -435,16 +506,34 @@ describe('Mind Journal home', () => {
     expect(screen.queryByText('What did you notice in yourself?')).toBeNull();
   });
 
-  test('recent rows are inert — nothing in the list is a link or a button', async () => {
+  test('recent rows link to Reflection Details with accessible names', async () => {
     apiFetch.mockImplementation(async () => json({ entries: [GUIDED, QUICK], contextEnabled: false }));
     renderFlow();
     await screen.findByText('lost the first set');
 
-    for (const text of ['lost the first set', 'steady today']) {
-      const row = screen.getByText(text).closest('div');
-      expect(within(row).queryAllByRole('link')).toHaveLength(0);
-      expect(within(row).queryAllByRole('button')).toHaveLength(0);
-    }
+    const guidedLink = screen.getByText('lost the first set').closest('a');
+    expect(guidedLink).toBeTruthy();
+    expect(guidedLink.getAttribute('href')).toBe('/mind-journal/g1');
+    expect(guidedLink.getAttribute('aria-label')).toBeTruthy();
+
+    const quickLink = screen.getByText('steady today').closest('a');
+    expect(quickLink.getAttribute('href')).toBe('/mind-journal/q1');
+  });
+
+  test('SOMETHING_ELSE recent row prefers customContext as the visible context label', async () => {
+    const custom = {
+      ...GUIDED,
+      id: 'g-cc',
+      contextType: 'SOMETHING_ELSE',
+      customContext: 'selection trial',
+      whatHappened: 'day of trials',
+    };
+    apiFetch.mockImplementation(async () => json({ entries: [custom], contextEnabled: false }));
+    renderFlow();
+    await screen.findByText('day of trials');
+    const card = screen.getByTestId('mj-reflection-card');
+    expect(within(card).getByText('selection trial')).toBeTruthy();
+    expect(within(card).queryByText('Something else')).toBeNull();
   });
 
   test('shows the empty state, and a retry on a failed load', async () => {
@@ -498,5 +587,124 @@ describe('Reflection saved screen', () => {
   test('a direct hit with no saved entry returns to the journal rather than claiming a save', async () => {
     renderFlow('/mind-journal/saved/whatever');
     expect((await screen.findByTestId('pathname')).textContent).toBe('/mind-journal');
+  });
+});
+
+// ── Reflection details + delete ────────────────────────────────────────────
+
+describe('Reflection details', () => {
+  const DETAIL = {
+    id: 'd1',
+    entryType: 'GUIDED_REFLECTION',
+    contextType: 'SOMETHING_ELSE',
+    customContext: 'selection trial',
+    states: ['nervous'],
+    customState: 'match tension',
+    note: null,
+    whatHappened: 'lost the opener',
+    whatNoticed: 'jaw tight',
+    helpedOrGotInWay: 'slow breath helped',
+    takeForward: 'breathe first',
+    createdAt: '2026-08-01T10:00:00.000Z',
+  };
+
+  test('home recent row opens the detail page for that id', async () => {
+    apiFetch.mockImplementation(async (p) => {
+      if (p === '/api/mind-journal/d1') return json({ entry: DETAIL });
+      return json({ entries: [DETAIL], contextEnabled: false });
+    });
+    renderFlow('/mind-journal');
+    await userEvent.click(await screen.findByText('lost the opener'));
+    expect((await screen.findByTestId('pathname')).textContent).toBe('/mind-journal/d1');
+    expect(await screen.findByRole('heading', { level: 1, name: 'Reflection' })).toBeTruthy();
+    expect(screen.getByTestId('mj-detail-context').textContent).toContain('selection trial');
+    expect(screen.getByText('match tension')).toBeTruthy();
+    expect(screen.getByText('lost the opener')).toBeTruthy();
+    expect(screen.getByText('breathe first')).toBeTruthy();
+  });
+
+  test('Quick Note details render type, states, and note without empty guided sections', async () => {
+    const quick = {
+      id: 'qn-d',
+      entryType: 'QUICK_NOTE',
+      contextType: null,
+      states: ['calm'],
+      customState: 'wired',
+      note: 'steady today',
+      whatHappened: null,
+      whatNoticed: null,
+      helpedOrGotInWay: null,
+      takeForward: null,
+      customContext: null,
+      createdAt: '2026-08-02T10:00:00.000Z',
+    };
+    apiFetch.mockImplementation(async (p) => {
+      if (p === '/api/mind-journal/qn-d') return json({ entry: quick });
+      return json({ entries: [], contextEnabled: false });
+    });
+    renderFlow('/mind-journal/qn-d');
+    expect(await screen.findByText('Quick note')).toBeTruthy();
+    expect(screen.getByText('Calm')).toBeTruthy();
+    expect(screen.getByText('wired')).toBeTruthy();
+    expect(screen.getByText('steady today')).toBeTruthy();
+    expect(screen.queryByText('What happened?')).toBeNull();
+  });
+
+  test('404 recovery offers a replace link back to the journal', async () => {
+    apiFetch.mockImplementation(async () => json({ error: 'not_found' }, 404));
+    renderFlow('/mind-journal/missing');
+    expect(await screen.findByText('This reflection could not be found.')).toBeTruthy();
+    const link = screen.getByTestId('mj-detail-back-journal');
+    expect(link.getAttribute('href')).toBe('/mind-journal');
+  });
+
+  test('first Delete tap opens confirmation; Cancel does not DELETE', async () => {
+    apiFetch.mockImplementation(async (p) => {
+      if (p === '/api/mind-journal/d1') return json({ entry: DETAIL });
+      return json({ entries: [], contextEnabled: false });
+    });
+    renderFlow('/mind-journal/d1');
+    await screen.findByTestId('mj-delete-trigger');
+    await userEvent.click(screen.getByRole('button', { name: 'Delete reflection' }));
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    expect(screen.getByText('Delete this reflection?')).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(apiFetch.mock.calls.some(([, init]) => init?.method === 'DELETE')).toBe(false);
+  });
+
+  test('confirm DELETE calls the endpoint and replace-navigates home; failure stays on detail', async () => {
+    let deleted = false;
+    apiFetch.mockImplementation(async (p, init) => {
+      if (p === '/api/mind-journal/d1' && init?.method === 'DELETE') {
+        deleted = true;
+        return json({ success: true });
+      }
+      if (p === '/api/mind-journal/d1') return json({ entry: DETAIL });
+      if (p === '/api/mind-journal') {
+        return json({ entries: deleted ? [] : [DETAIL], contextEnabled: false });
+      }
+      return json({ entries: [], contextEnabled: false });
+    });
+    renderFlow(['/mind-journal', '/mind-journal/d1']);
+    await screen.findByTestId('mj-delete-trigger');
+    await userEvent.click(screen.getByRole('button', { name: 'Delete reflection' }));
+    await userEvent.click(screen.getByTestId('mj-delete-confirm-btn'));
+    expect((await screen.findByTestId('pathname')).textContent).toBe('/mind-journal');
+    expect(apiFetch.mock.calls.some(([p, init]) => p === '/api/mind-journal/d1' && init?.method === 'DELETE')).toBe(true);
+
+    cleanup();
+    apiFetch.mockImplementation(async (p, init) => {
+      if (p === '/api/mind-journal/d1' && init?.method === 'DELETE') return json({ error: 'server_error' }, 500);
+      if (p === '/api/mind-journal/d1') return json({ entry: DETAIL });
+      return json({ entries: [], contextEnabled: false });
+    });
+    renderFlow('/mind-journal/d1');
+    await screen.findByTestId('mj-delete-trigger');
+    await userEvent.click(screen.getByRole('button', { name: 'Delete reflection' }));
+    await userEvent.click(screen.getByTestId('mj-delete-confirm-btn'));
+    expect(await screen.findByTestId('mj-delete-error')).toBeTruthy();
+    expect(screen.getByTestId('pathname').textContent).toBe('/mind-journal/d1');
+    expect(screen.getByTestId('mj-delete-trigger')).toBeTruthy();
   });
 });
