@@ -16,6 +16,7 @@ const {
 } = require('../services/coaching');
 const { priorityPhrase } = require('../profile/ruleEngine');
 const loadMindJournalContext = require('../services/mindJournal/loadMindJournalContext');
+const { buildMindJournalContextSection } = loadMindJournalContext;
 const { loadConfirmedProfile } = require('../profile/loadConfirmedProfile');
 const { loadCurrentFocusContext } = require('../profile/loadCurrentFocusContext');
 
@@ -210,27 +211,10 @@ The athlete already has an open Mental Rep prescription from the current coachin
 // whole section is omitted rather than shown empty. Never included in Quick
 // Chat, profile-intro, weekly reports, visualization, self-talk generation,
 // body reset, or debrief generation.
-function buildMindJournalContextSection(mindJournalEntries) {
-  if (!mindJournalEntries || !mindJournalEntries.length) return '';
-  const lines = mindJournalEntries.map((e) => {
-    const when = new Date(e.createdAt).toISOString().slice(0, 10);
-    const states = e.states.join(', ');
-    return `- ${when}: ${states}${e.note ? ` — note: "${e.note}"` : ''}`;
-  }).join('\n');
-
-  return `## Optional Mind Journal Context — athlete opted in
-The athlete opted in to share their latest Mind Journal entries as background context only:
-${lines}
-This is optional background context only, nothing more:
-- Do not calculate or infer a score from these states.
-- Do not diagnose or profile the athlete from this list.
-- Do not treat a journal state as proof of a barrier, and never confirm a barrier from journal entries alone.
-- Do not automatically prescribe a Mental Rep from journal entries — a prescription still requires the normal coaching-state flow.
-- Do not gate any feature, tool, or progress on journal entries.
-- If something here seems relevant, ask the athlete directly rather than assuming it still applies.
-- What the athlete says in THIS conversation always takes priority over this context.
-- Never say a state is objectively good or bad — "nervous" and "tired" are simply what the athlete noticed, not problems to fix by default.`;
-}
+//
+// Restricted field mapping + prompt formatting live in
+// loadMindJournalContext.js (privacy boundary at the data-loading layer).
+// buildMindJournalContextSection is imported from that module above.
 
 // ── Helper: build personalised system prompt ─────────────────────────────
 
