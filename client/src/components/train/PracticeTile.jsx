@@ -37,7 +37,7 @@ function PracticeTile({ name, desc, tone = 'var(--brand-primary)', onClick, foot
       <button
         type="button"
         onClick={onClick}
-        className="w-full min-h-[76px] h-full text-left rounded-2xl border border-dark-600 bg-dark-400 p-3.5 flex flex-col gap-2 elevation-row active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+        className="w-full min-h-[76px] h-full text-center rounded-2xl border border-dark-600 bg-dark-400 p-3.5 flex flex-col items-center gap-2 elevation-row active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
       >
         <PracticeMark tone={tone} />
         <div className="min-w-0">

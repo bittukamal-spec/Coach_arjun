@@ -149,11 +149,16 @@ export default function Dashboard() {
                 className="block rounded-[22px] p-5 elevation-hero active:scale-[0.99] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
                 style={{ background: 'var(--brand-primary)' }}
               >
+                {/* The whole card is a single "open Coach" action, so its
+                    content centers. The icon and chevron columns are the
+                    same width so the centered title/sub sit at the card's
+                    true visual centre instead of being pulled left by the
+                    chevron. */}
                 <div className="flex items-center gap-3.5">
                   <div className="w-12 h-12 rounded-2xl bg-white/15 flex items-center justify-center shrink-0">
                     <MessageCircle size={24} className="text-white" aria-hidden="true" />
                   </div>
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 text-center">
                     <p className="text-xl font-black text-white leading-tight">
                       {L.dashboard.openCoach}
                     </p>
@@ -161,7 +166,9 @@ export default function Dashboard() {
                       {t.heroSub}
                     </p>
                   </div>
-                  <ChevronRight size={20} className="text-white/80 shrink-0" aria-hidden="true" />
+                  <div className="w-12 flex items-center justify-center shrink-0" aria-hidden="true">
+                    <ChevronRight size={20} className="text-white/80" />
+                  </div>
                 </div>
               </Link>
             </div>
@@ -203,7 +210,10 @@ export default function Dashboard() {
                  changed. Home never marks a practice complete. ──────────── */}
             <div className="mb-7">
               <SectionLabel>{t.recommendedLabel}</SectionLabel>
-              <div className="rounded-2xl border border-dark-600 bg-dark-400 p-4 elevation-card">
+              {/* The card exists to launch the recommended practice, so its
+                  title/desc lead-in centers along with the CTA button
+                  below it. */}
+              <div className="rounded-2xl border border-dark-600 bg-dark-400 p-4 elevation-card text-center">
                 <h2 className="text-base font-bold text-ink leading-tight mb-0.5">
                   {primaryAction.title[lang]}
                 </h2>
@@ -242,10 +252,10 @@ export default function Dashboard() {
                       key={q.id}
                       to="/coaching"
                       state={{ prefillMsg: q.prefill[hi ? 'hi' : 'en'] }}
-                      className="rounded-xl border border-dark-600 bg-dark-800 flex items-center gap-2 px-3 py-2.5 min-h-[48px] active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                      className="rounded-xl border border-dark-600 bg-dark-800 flex items-center justify-center gap-2 px-3 py-2.5 min-h-[48px] active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
                     >
                       <Icon size={14} className="text-brand-400 shrink-0" aria-hidden="true" />
-                      <span className="text-[12px] font-semibold text-ink leading-snug">
+                      <span className="text-[12px] font-semibold text-ink leading-snug text-center">
                         {q.label[hi ? 'hi' : 'en']}
                       </span>
                     </Link>
@@ -262,14 +272,17 @@ export default function Dashboard() {
                 to="/mind-journal"
                 className="block rounded-2xl border border-dark-600 bg-dark-800 p-4 active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
               >
-                <div className="flex items-start gap-3.5">
+                {/* Whole card = "open Mind Journal", so it centers like the
+                    Coach hero above; the icon/chevron columns are matched
+                    widths so the centered text isn't pulled off-centre. */}
+                <div className="flex items-center gap-3.5">
                   <div
                     className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
                     style={{ background: 'rgba(217,139,43,0.12)' }}
                   >
                     <Pencil size={18} style={{ color: 'var(--accent-amber)' }} aria-hidden="true" />
                   </div>
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 text-center">
                     <p className="text-base font-bold text-ink mb-0.5">{t.journalTitle}</p>
                     <p className="text-caption text-slt leading-relaxed">
                       {t.journalDesc}
@@ -278,7 +291,9 @@ export default function Dashboard() {
                       {t.journalHint}
                     </p>
                   </div>
-                  <ChevronRight size={16} className="text-muted shrink-0 mt-1" aria-hidden="true" />
+                  <div className="w-10 flex items-center justify-center shrink-0" aria-hidden="true">
+                    <ChevronRight size={16} className="text-muted" />
+                  </div>
                 </div>
               </Link>
             </div>

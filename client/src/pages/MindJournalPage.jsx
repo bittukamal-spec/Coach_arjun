@@ -174,6 +174,12 @@ export default function MindJournalPage() {
           className="block p-5 mb-3 elevation-hero active:scale-[0.99] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
           style={{ '--grad-from': 'var(--brand-primary)', '--grad-to': '#0C4D85' }}
         >
+          {/* The whole card is one "start a guided reflection" action, so
+              its title/description center. Icon and arrow stay the
+              existing stacked-then-horizontal bookends (unchanged from the
+              approved narrow-screen layout) but now match widths, so the
+              centered copy sits at the card's true visual middle instead
+              of drifting toward the icon. */}
           <div className="flex flex-col gap-3.5 sm:flex-row sm:items-center sm:gap-4">
             <div className="flex items-center justify-between sm:contents">
               <span
@@ -183,13 +189,13 @@ export default function MindJournalPage() {
                 <BookOpen size={22} />
               </span>
               <span
-                className="w-9 h-9 rounded-full bg-white/15 text-white flex items-center justify-center shrink-0 sm:order-last"
+                className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/15 text-white flex items-center justify-center shrink-0 sm:order-last"
                 aria-hidden="true"
               >
                 <ArrowRight size={16} />
               </span>
             </div>
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1 text-center">
               <p className="text-title font-bold text-white" aria-hidden="true">{mj.newReflection.cardTitle}</p>
               <p className="text-caption text-white/85 mt-1.5 leading-relaxed">{mj.newReflection.cardDesc}</p>
             </div>
@@ -210,11 +216,13 @@ export default function MindJournalPage() {
           >
             <NotebookPen size={20} />
           </span>
-          <span className="flex-1 min-w-0">
+          <span className="flex-1 min-w-0 text-center">
             <span className="block text-body font-bold text-ink">{mj.quickNote.action}</span>
             <span className="block text-caption text-slt mt-0.5 leading-snug">{mj.quickNote.cardDesc}</span>
           </span>
-          <ArrowRight size={16} className="text-slt shrink-0" aria-hidden="true" />
+          <span className="w-11 flex items-center justify-center shrink-0" aria-hidden="true">
+            <ArrowRight size={16} className="text-slt" />
+          </span>
         </Card>
 
         {/* ── Arjun context status — the control itself lives on its own
