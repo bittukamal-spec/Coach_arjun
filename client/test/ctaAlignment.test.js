@@ -22,6 +22,9 @@ const practiceTile = read('src/components/train/PracticeTile.jsx');
 const trainPage = read('src/pages/TrainPage.jsx');
 const mentalRep = read('src/pages/MentalRepPage.jsx');
 const accountPage = read('src/pages/AccountPage.jsx');
+const dashboard = read('src/pages/Dashboard.jsx');
+const mindJournal = read('src/pages/MindJournalPage.jsx');
+const playbook = read('src/pages/PlaybookPage.jsx');
 
 // ── 1. Shared button primitives stay centered ───────────────────────────────
 
@@ -51,6 +54,68 @@ test('Train practice tile (whole card = "open a tool") centers its icon, name an
 test('Train practice tile\'s secondary "reset history" link stays centered under the centered tile', () => {
   assert.match(trainPage, /self-center/);
   assert.doesNotMatch(trainPage, /self-start/);
+});
+
+// ── 2b. Whole-card feature/action launches center too — a card doesn't stay
+// left-aligned merely because it has a chevron; it centers when its actual
+// job is "start/open this feature", not "identify a destination in a list".
+
+test('Dashboard "Talk to Arjun" hero: the whole card launches Coach, so its copy centers', () => {
+  const idx = dashboard.indexOf('TALK TO ARJUN');
+  assert.notEqual(idx, -1, 'the Talk to Arjun hero section should still exist');
+  const hero = dashboard.slice(idx, idx + 1700);
+  assert.match(hero, /text-center/, 'the title/sub block centers');
+  assert.match(hero, /openCoach/, 'still the same approved copy');
+  assert.match(hero, /to="\/coaching"/, 'still the same route');
+});
+
+test('Dashboard "Today\'s Mental Rep" recommended-practice card centers its lead-in copy', () => {
+  const idx = dashboard.indexOf('RECOMMENDED PRACTICE');
+  assert.notEqual(idx, -1, 'the recommended-practice section should still exist');
+  const card = dashboard.slice(idx, idx + 1400);
+  assert.match(card, /text-center/);
+  assert.match(card, /btn-primary w-full/, 'the CTA button itself is unchanged');
+});
+
+test('Dashboard "Mind Journal" card: whole card launches the journal, so it centers like the Coach hero', () => {
+  const idx = dashboard.indexOf('MIND JOURNAL');
+  assert.notEqual(idx, -1, 'the Mind Journal card section should still exist');
+  const card = dashboard.slice(idx, idx + 1500);
+  assert.match(card, /text-center/);
+  assert.match(card, /journalTitle/);
+  assert.match(card, /to="\/mind-journal"/);
+});
+
+test('Mind Journal "New Reflection" hero: whole card starts a reflection, so its title/desc center', () => {
+  const idx = mindJournal.indexOf('mj-hero-new');
+  assert.notEqual(idx, -1);
+  const hero = mindJournal.slice(idx, idx + 1700);
+  assert.match(hero, /newReflection\.cardTitle\}[\s\S]{0,20}<\/p>/, 'title still renders');
+  assert.match(hero, /flex-1 text-center|text-center flex-1|min-w-0 flex-1 text-center/);
+});
+
+test('Mind Journal "Quick Note" card: whole card starts a note, so its title/desc center', () => {
+  const idx = mindJournal.indexOf('mj-quick-note');
+  assert.notEqual(idx, -1);
+  const card = mindJournal.slice(idx, idx + 900);
+  assert.match(card, /flex-1 min-w-0 text-center/);
+});
+
+test('Playbook "Mind Journal" entry card also centers, matching Home\'s equivalent card', () => {
+  const idx = playbook.indexOf('Mind Journal —');
+  assert.notEqual(idx, -1);
+  const card = playbook.slice(idx, idx + 1300);
+  assert.match(card, /text-center/);
+  assert.match(card, /journalTitle/);
+});
+
+// ── 2c. Saved/summary content inside Playbook stays left — not a CTA card ───
+
+test('Playbook saved Focus Cards and reflections stay left-aligned (saved content, not a CTA card)', () => {
+  const idx = playbook.indexOf('Focus Cards — grouped');
+  assert.notEqual(idx, -1);
+  const section = playbook.slice(idx, idx + 900);
+  assert.match(section, /text-left/);
 });
 
 // ── 3. Choice/context pickers are NOT CTA cards — they keep reading left ────

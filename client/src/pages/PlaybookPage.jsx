@@ -271,11 +271,15 @@ export default function PlaybookPage() {
         </section>
 
         {/* ── Mind Journal — a proper quiet card (flat, never the hero):
-             title, a short privacy/no-score line, and one clear action. ──── */}
+             title, a short privacy/no-score line, and one clear action.
+             The whole card launches the journal (no saved content of its
+             own here), so it centers like Home's matching card; icon and
+             chevron are matched widths so the centered text isn't pulled
+             off-centre. ─────────────────────────────────────────────── */}
         <Card
           as="button"
           onClick={() => navigate('/mind-journal')}
-          className="w-full p-4 text-left flex items-center gap-3 active:scale-[0.98] transition-transform"
+          className="w-full p-4 flex items-center gap-3 active:scale-[0.98] transition-transform"
         >
           <div
             className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
@@ -283,13 +287,15 @@ export default function PlaybookPage() {
           >
             <Pencil size={15} style={{ color: 'var(--accent-amber)' }} aria-hidden="true" />
           </div>
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 text-center">
             <p className="text-body font-bold text-ink">{pb.journalTitle}</p>
             <p className="text-caption text-slt">
               {pb.journalDesc}
             </p>
           </div>
-          <ChevronRight size={13} className="text-muted shrink-0" aria-hidden="true" />
+          <div className="w-9 flex items-center justify-center shrink-0" aria-hidden="true">
+            <ChevronRight size={13} className="text-muted" />
+          </div>
         </Card>
       </div>
     </div>
