@@ -82,7 +82,7 @@ export default function TrainPage() {
                       <button
                         type="button"
                         onClick={() => navigate(p.historyTo)}
-                        className="mt-1.5 self-start min-h-[44px] inline-flex items-center text-[11px] font-semibold text-brand-400 px-1 rounded active:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                        className="mt-1.5 self-center min-h-[44px] inline-flex items-center justify-center text-[11px] font-semibold text-brand-400 px-1 rounded active:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
                       >
                         {t.resetHistory}
                       </button>
