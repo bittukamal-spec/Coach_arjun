@@ -12,6 +12,11 @@
 // Custom state: one optional athlete-authored label stored in `customState`
 // (never inside the fixed `states` array). Counts toward the same 1–2 /
 // 0–2 total-state budget as a built-in selection.
+//
+// Custom context: optional athlete-authored label stored in `customContext`
+// when contextType is SOMETHING_ELSE. Not server-required (legacy rows may
+// have SOMETHING_ELSE with null customContext). Rejected for any other
+// contextType or for quick-note / legacy shapes.
 
 const { STATE_KEYS, STATE_LABELS } = require('./stateVocabulary');
 const { CONTEXT_TYPE_KEYS } = require('./contextTypeVocabulary');
@@ -22,6 +27,7 @@ const MAX_WHAT_NOTICED_LENGTH = 1000;
 const MAX_HELPED_OR_GOT_IN_WAY_LENGTH = 1000;
 const MAX_TAKE_FORWARD_LENGTH = 500;
 const MAX_CUSTOM_STATE_LENGTH = 30;
+const MAX_CUSTOM_CONTEXT_LENGTH = 80;
 
 const ENTRY_TYPES = ['QUICK_NOTE', 'GUIDED_REFLECTION'];
 
@@ -86,6 +92,10 @@ function validateTakeForward(v) {
 
 function validateCustomState(value) {
   return validateBoundedText(value, MAX_CUSTOM_STATE_LENGTH, 'customState');
+}
+
+function validateCustomContext(value) {
+  return validateBoundedText(value, MAX_CUSTOM_CONTEXT_LENGTH, 'customContext');
 }
 
 // Reject a custom label that merely restates a selected built-in key or its
@@ -164,7 +174,7 @@ function validateAllowedKeys(body, allowedKeys) {
 //     note must be absent/null, every narrative field individually optional,
 //     but at least one state (built-in or custom) OR one non-empty narrative
 //     field is required (contextType alone would create an empty-feeling
-//     record).
+//     record). customContext is optional and only allowed with SOMETHING_ELSE.
 function validateMindJournalEntry(body) {
   const entryTypeCheck = validateEntryType(body.entryType);
   if (!entryTypeCheck.valid) return entryTypeCheck;
@@ -185,6 +195,12 @@ function validateMindJournalEntry(body) {
     }
     if (customMatchesSelectedBuiltIn(customStateCheck.value, statesCheck.value)) {
       return { valid: false, error: 'customState must not repeat a selected built-in state' };
+    }
+
+    const customContextCheck = validateCustomContext(body.customContext);
+    if (!customContextCheck.valid) return customContextCheck;
+    if (customContextCheck.value !== null && contextTypeCheck.value !== 'SOMETHING_ELSE') {
+      return { valid: false, error: 'customContext is only used when contextType is SOMETHING_ELSE' };
     }
 
     if (!isAbsentOrNull(body.note)) {
@@ -214,6 +230,7 @@ function validateMindJournalEntry(body) {
         contextType: contextTypeCheck.value,
         states: statesCheck.value,
         customState: customStateCheck.value,
+        customContext: customContextCheck.value,
         note: null,
         whatHappened: whatHappenedCheck.value,
         whatNoticed: whatNoticedCheck.value,
@@ -232,6 +249,7 @@ function validateMindJournalEntry(body) {
     ['whatNoticed', body.whatNoticed],
     ['helpedOrGotInWay', body.helpedOrGotInWay],
     ['takeForward', body.takeForward],
+    ['customContext', body.customContext],
   ]) {
     if (!isAbsentOrNull(value)) {
       return { valid: false, error: `${fieldName} is only used for a guided reflection` };
@@ -264,6 +282,7 @@ function validateMindJournalEntry(body) {
       contextType: null,
       states: statesCheck.value,
       customState: customStateCheck.value,
+      customContext: null,
       note: noteCheck.value,
       whatHappened: null,
       whatNoticed: null,
@@ -281,6 +300,7 @@ module.exports = {
   validateHelpedOrGotInWay,
   validateTakeForward,
   validateCustomState,
+  validateCustomContext,
   validateEntryType,
   validateContextType,
   validateMindJournalEntry,
@@ -292,4 +312,5 @@ module.exports = {
   MAX_HELPED_OR_GOT_IN_WAY_LENGTH,
   MAX_TAKE_FORWARD_LENGTH,
   MAX_CUSTOM_STATE_LENGTH,
+  MAX_CUSTOM_CONTEXT_LENGTH,
 };

@@ -26,6 +26,7 @@ import QuickNotePage from './pages/mindJournal/QuickNotePage';
 import GuidedReflectionPage from './pages/mindJournal/GuidedReflectionPage';
 import GuidedReflectionDetailsPage from './pages/mindJournal/GuidedReflectionDetailsPage';
 import ReflectionSavedPage from './pages/mindJournal/ReflectionSavedPage';
+import ReflectionDetailPage from './pages/mindJournal/ReflectionDetailPage';
 import ArjunContextPage from './pages/mindJournal/ArjunContextPage';
 import VisualizationPage from './pages/VisualizationPage';
 import SelfTalkPage from './pages/SelfTalkPage';
@@ -174,10 +175,9 @@ function App() {
       {/* Mind Journal — score-free, replaces the old scored Mental Fitness
           check-in. Every screen is full screen, no BottomNav.
 
-          Literal segments are declared before any dynamic one: /saved/:id is
-          the only dynamic route here today, and a future single-entry
-          /mind-journal/:id must be added after these so it can never swallow
-          /quick, /new or /context. */}
+          Literal segments and /saved/:id are declared before /:id so the
+          detail route can never swallow /quick, /new, /new/details,
+          /context, or /saved/:id. */}
       <Route
         path="/mind-journal"
         element={
@@ -223,6 +223,14 @@ function App() {
         element={
           <ProtectedRoute requireOnboarding={true}>
             <ReflectionSavedPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/mind-journal/:id"
+        element={
+          <ProtectedRoute requireOnboarding={true}>
+            <ReflectionDetailPage />
           </ProtectedRoute>
         }
       />

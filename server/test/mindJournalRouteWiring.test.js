@@ -38,6 +38,7 @@ const MIND_JOURNAL_ROUTES = [
   { path: '/', method: 'POST' },
   { path: '/', method: 'GET' },
   { path: '/context', method: 'PATCH' },
+  { path: '/:id', method: 'GET' },
   { path: '/:id', method: 'DELETE' },
 ];
 
@@ -81,6 +82,9 @@ test('unauthenticated requests to every Mind Journal route return 401', async ()
 
     const del = await fetch(`${baseUrl}/api/mind-journal/some-id`, { method: 'DELETE' });
     assert.equal(del.status, 401);
+
+    const getOne = await fetch(`${baseUrl}/api/mind-journal/some-id`);
+    assert.equal(getOne.status, 401);
   } finally {
     await stopTestServer(server);
   }
@@ -120,12 +124,24 @@ test('the Mind Journal route only ever writes the approved fields — no score i
   assert.match(createBlock, /\bcontextType\b/);
   assert.match(createBlock, /\bstates\b/);
   assert.match(createBlock, /\bcustomState\b/);
+  assert.match(createBlock, /\bcustomContext\b/);
   assert.match(createBlock, /\bnote\b/);
   assert.match(createBlock, /\bwhatHappened\b/);
   assert.match(createBlock, /\bwhatNoticed\b/);
   assert.match(createBlock, /\bhelpedOrGotInWay\b/);
   assert.match(createBlock, /\btakeForward\b/);
   assert.doesNotMatch(createBlock, /score|rating|\bmood\b|interpretation|\bpoints\b|\blevel\b/i);
+});
+
+test('the Mind Journal GET /:id route only returns an entry already confirmed to be owned by req.userId', () => {
+  const src = readFileSync(path.join(__dirname, '../src/routes/mindJournal.js'), 'utf8');
+  const getIdx = src.indexOf("router.get('/:id'");
+  assert.ok(getIdx !== -1, 'expected a GET /:id route');
+  const deleteIdx = src.indexOf("router.delete('/:id'");
+  const block = src.slice(getIdx, deleteIdx === -1 ? undefined : deleteIdx);
+  assert.match(block, /if \(!existing \|\| existing\.userId !== req\.userId\) \{/);
+  assert.match(block, /return res\.status\(404\)/);
+  assert.match(block, /serializeEntry/);
 });
 
 test('the Mind Journal DELETE route only ever deletes an entry already confirmed to be owned by req.userId', () => {

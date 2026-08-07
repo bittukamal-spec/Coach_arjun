@@ -11,6 +11,7 @@ import {
   MAX_TAKE_FORWARD_LENGTH,
   textOrUndefined,
   cameFromMindJournal,
+  contextLabelForEntry,
 } from './constants';
 import { SafetyGuidanceCard, StepProgress, useMindJournalSave } from './shared';
 
@@ -63,6 +64,13 @@ export default function GuidedReflectionDetailsPage() {
   const states = draft.states || [];
   const customState = typeof draft.customState === 'string' ? draft.customState : '';
   const trimmedCustom = customState.trim();
+  const customContext = contextType === 'SOMETHING_ELSE' && typeof draft.customContext === 'string'
+    ? draft.customContext.trim()
+    : '';
+  const contextLabel = contextLabelForEntry(
+    { contextType, customContext: customContext || null },
+    mj
+  );
 
   const [whatHappened, setWhatHappened] = useState('');
   const [whatNoticed, setWhatNoticed] = useState('');
@@ -85,6 +93,9 @@ export default function GuidedReflectionDetailsPage() {
     // replace keeps the guided step history from stacking, and preserves
     // the Mind Journal origin marker when it was present.
     const next = { contextType, states, customState: trimmedCustom };
+    if (contextType === 'SOMETHING_ELSE' && customContext) {
+      next.customContext = customContext;
+    }
     if (cameFromMindJournal(draft)) next.from = draft.from;
     navigate('/mind-journal/new', { state: next, replace: true });
   }
@@ -102,6 +113,9 @@ export default function GuidedReflectionDetailsPage() {
     };
     const custom = textOrUndefined(customState);
     if (custom !== undefined) payload.customState = custom;
+    if (contextType === 'SOMETHING_ELSE' && customContext) {
+      payload.customContext = customContext;
+    }
     const entry = await save(payload);
     if (entry) navigate(`/mind-journal/saved/${entry.id}`, { state: { entry }, replace: true });
   }
@@ -118,8 +132,8 @@ export default function GuidedReflectionDetailsPage() {
             <StepProgress label={g.step2} step={2} />
 
             <div className="flex flex-wrap gap-1.5 mb-4" data-testid="mj-summary-pills">
-              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-caption font-semibold bg-brand-50 text-brand-500 border border-brand-500/20">
-                {mj.contextTypes[contextType]}
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-caption font-semibold bg-brand-50 text-brand-500 border border-brand-500/20 max-w-full break-words">
+                {contextLabel}
               </span>
               {states.map(key => (
                 <span

@@ -297,6 +297,11 @@ model MindJournalEntry {
   // Not yet included in Coach context (loadMindJournalContext).
   customState       String?
 
+  // Optional athlete-authored context label when contextType is
+  // SOMETHING_ELSE. The enum stays fixed; free text lives here.
+  // Not yet included in Coach context (loadMindJournalContext).
+  customContext     String?
+
   @@index([userId, createdAt])
 }
 

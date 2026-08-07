@@ -3,17 +3,17 @@ import { CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { translations } from '../../i18n/translations';
 import { Card, PageHeader, Button } from '../../components/ui';
-import { guidedPreview, stateTagsForEntry } from './constants';
+import { guidedPreview, stateTagsForEntry, contextLabelForEntry } from './constants';
 import { useMindJournalBack } from './shared';
 
 // ─── Reflection saved — a plain confirmation, deliberately quiet. No score,
 // no rank, no comparison to last time, no reward animation: the reflection
 // was written, and that is the whole event.
 //
-// The saved entry arrives through router state from the save. There is no
-// single-entry read on the server, so a direct hit on this URL (a refresh, a
-// shared link) has nothing to confirm and returns to the journal instead of
-// asserting that something was saved. ───────────────────────────────────────
+// The saved entry arrives through router state from the save. A direct hit
+// on this URL (a refresh, a shared link) has no confirmation payload and
+// returns to the journal instead of asserting that something was saved.
+// Reading one entry by id lives on Reflection Details (/mind-journal/:id). ─
 
 export default function ReflectionSavedPage() {
   const navigate = useNavigate();
@@ -26,9 +26,7 @@ export default function ReflectionSavedPage() {
   const entry = location.state?.entry;
   if (!entry) return <Navigate to="/mind-journal" replace />;
 
-  const contextLabel = entry.contextType
-    ? (mj.contextTypes[entry.contextType] || mj.contextTypes.SOMETHING_ELSE)
-    : null;
+  const contextLabel = contextLabelForEntry(entry, mj);
   const stateTags = stateTagsForEntry(entry, mj);
   const preview = guidedPreview(entry) || entry.note;
   const showPreview = preview && preview !== entry.takeForward;
@@ -60,7 +58,7 @@ export default function ReflectionSavedPage() {
           <div className="flex items-center justify-between gap-2 mb-3">
             {dateLabel && <p className="text-caption font-semibold text-slt">{dateLabel}</p>}
             {contextLabel && (
-              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-caption font-semibold bg-brand-50 text-brand-500">
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-caption font-semibold bg-brand-50 text-brand-500 max-w-full break-words">
                 {contextLabel}
               </span>
             )}

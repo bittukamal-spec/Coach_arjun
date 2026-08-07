@@ -158,10 +158,22 @@ test('MindJournalEntry: customState is a nullable string with no unique/score/mo
   for (const word of ['score', 'mood', 'rating', 'xp', 'inferred', 'label']) {
     // customState itself contains neither of these as a separate scoring field.
     assert.ok(
-      !fieldNames.some((n) => n !== 'customstate' && n.includes(word)),
+      !fieldNames.some((n) => n !== 'customstate' && n !== 'customcontext' && n.includes(word)),
       `MindJournalEntry must not add a(n) ${word} field`
     );
   }
+});
+
+test('MindJournalEntry: customContext is a nullable string (SOMETHING_ELSE free text), not an enum replacement', () => {
+  const entry = getModel('MindJournalEntry');
+  const customContext = getField(entry, 'customContext');
+  assert.equal(customContext.type, 'String');
+  assert.equal(customContext.isRequired, false, 'customContext must be nullable');
+  assert.equal(customContext.isList, false);
+  assert.equal(customContext.isUnique, false);
+  // contextType enum remains — free text must not live there.
+  const contextType = getField(entry, 'contextType');
+  assert.equal(contextType.type, 'MindJournalContextType');
 });
 
 test('the six new fields do not affect the existing unique-constraint guarantee', () => {

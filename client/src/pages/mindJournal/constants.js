@@ -17,6 +17,7 @@ export const MAX_WHAT_NOTICED_LENGTH = 1000;
 export const MAX_HELPED_OR_GOT_IN_WAY_LENGTH = 1000;
 export const MAX_TAKE_FORWARD_LENGTH = 500;
 export const MAX_CUSTOM_STATE_LENGTH = 30;
+export const MAX_CUSTOM_CONTEXT_LENGTH = 80;
 export const MAX_STATE_SELECTIONS = 2;
 
 // Router state marker: child screens opened from the Mind Journal home pass
@@ -71,6 +72,17 @@ export function stateTagsForEntry(entry, mj) {
     : [];
   if (entry?.customState) tags.push(entry.customState);
   return tags;
+}
+
+// Visible context label for guided reflections. Prefer the athlete's
+// customContext when contextType is SOMETHING_ELSE; otherwise the translated
+// enum label. Never translates athlete-written text.
+export function contextLabelForEntry(entry, mj) {
+  if (!entry?.contextType) return null;
+  if (entry.contextType === 'SOMETHING_ELSE' && entry.customContext) {
+    return entry.customContext;
+  }
+  return mj.contextTypes[entry.contextType] || mj.contextTypes.SOMETHING_ELSE;
 }
 
 // Athlete text is sent trimmed, and an empty field is omitted from the
