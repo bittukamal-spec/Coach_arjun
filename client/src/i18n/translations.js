@@ -276,12 +276,22 @@ export const translations = {
       journalTitle: 'Mind Journal',
       journalDesc: 'A personal, score-free place to reflect and carry something useful forward.',
       journalHint: "Write whenever you feel like it — it's just a space for your own words.",
+      // Visual-refresh (approved mockup): the illustrated Mind Journal CTA's
+      // own heading/value/CTA copy — distinct from journalTitle/Desc/Hint
+      // above, which other surfaces (Playbook-style summaries) still read.
+      journalHeading: 'Reflect. Grow. Perform.',
+      journalValue: 'Reflect daily to stay clear and grow — your insights help Arjun coach you better.',
+      journalCta: 'Open Mind Journal',
       greeting: (name) => `Hi, ${name}`,
       athleteFallback: 'Athlete',
       heroSub: 'Talk through whatever is on your mind.',
       contextLabel: "What's today?",
+      // Visual-refresh: the day-context dropdown's own placeholder option,
+      // and the helper line under the merged What's today container.
+      contextPlaceholder: 'Choose your day',
+      recommendHint: 'Recommendations adapt to what you choose.',
       recommendedLabel: 'Recommended practice',
-      helpLabel: 'Need help right now?',
+      helpLabel: 'Pick what you need now',
     },
     // ── Train (Stage E) ──────────────────────────────────────────────────
     // The five real practices only — no invented categories, no practice
@@ -2022,12 +2032,17 @@ export const translations = {
       journalTitle: 'माइंड जर्नल',
       journalDesc: 'तुम्हारी अपनी जगह, कोई स्कोर नहीं — reflect करो और आगे ले जाने लायक बात साथ रखो।',
       journalHint: 'जब मन करे तब लिखो — यह सिर्फ तुम्हारे अपने शब्दों के लिए है।',
+      journalHeading: 'Reflect करो। बढ़ो। बेहतर खेलो।',
+      journalValue: 'रोज़ reflect करो, साफ सोच बनाए रखो और आगे बढ़ो — तुम्हारी insights से अर्जुन तुम्हें बेहतर coach कर पाएगा।',
+      journalCta: 'माइंड जर्नल खोलो',
       greeting: (name) => `हाय, ${name}`,
       athleteFallback: 'एथलीट',
       heroSub: 'मन में जो है, उस पर बात करो।',
       contextLabel: 'आज क्या है?',
+      contextPlaceholder: 'अपना दिन चुनो',
+      recommendHint: 'तुम्हारी पसंद के हिसाब से सुझाव बदलते हैं।',
       recommendedLabel: 'सुझाई गई practice',
-      helpLabel: 'अभी मदद चाहिए?',
+      helpLabel: 'अभी क्या चाहिए, चुनो',
     },
     // ── Train (Stage E) ──────────────────────────────────────────────────
     // The five real practices only — no invented categories, no practice
