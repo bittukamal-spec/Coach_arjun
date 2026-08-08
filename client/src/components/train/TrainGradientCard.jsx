@@ -8,11 +8,25 @@ import { CardWaves, RingMark } from '../visuals/CardArt';
 // stretching it across a full card made Ritual/Focus Card Builder read as
 // blue-to-purple instead of the mockup's solid blue. Keeping a separate
 // map here means this refresh never touches those other screens.
+// Contrast note: white card copy sits directly on these gradients, so each
+// stop's luminance is what makes the text readable. Teal/amber/purple were
+// measured failing WCAG AA at the real rendered text positions (description
+// 2.0–3.6:1 against a 4.5 requirement). Each stop below is scaled down in
+// HSL *lightness only* — hue and saturation are untouched — by the smallest
+// amount that clears AA with a little margin, so the approved teal/amber/
+// purple identity, the wave artwork and the silhouettes all read as before.
+//
+// The teal/amber/purple stops are set so that EVERY point along each
+// gradient clears 4.5:1 against white, not just the spot the copy happens
+// to occupy at one width — the wide Reflection banner in particular moves
+// its text to a lighter part of the ramp as the viewport narrows, which is
+// exactly how the original 360px failure appeared. Blue already passed at
+// every real text position with margin and is deliberately untouched.
 const CARD_GRADIENTS = {
   blue:   { from: '#1F85D0', to: '#0C4D85' },
-  teal:   { from: '#2E7D6B', to: '#22D3C5' },
-  amber:  { from: '#D97F1E', to: '#F5A62E' },
-  purple: { from: '#6366F1', to: '#8B5CF6' },
+  teal:   { from: '#225D4F', to: '#158178' },
+  amber:  { from: '#AB6418', to: '#915A07' },
+  purple: { from: '#5D60F0', to: '#8350F6' },
 };
 
 // Premium gradient practice card (Train redesign). Two layouts:
@@ -56,7 +70,11 @@ function TrainGradientCard({
         </div>
         <div className={wide ? '' : 'flex-1 pr-8'}>
           <h3 className="text-white font-black text-lg leading-tight mb-1 [text-wrap:pretty]">{title}</h3>
-          <p className="text-white/85 text-[13px] leading-snug [text-wrap:pretty]">{desc}</p>
+          {/* Full-opacity white: at 85% the 13px description measured below
+              WCAG AA on every non-blue card. Full white buys ~0.7:1 back,
+              which keeps the gradients lighter/more vivid than darkening
+              them further would have. */}
+          <p className="text-white text-[13px] leading-snug [text-wrap:pretty]">{desc}</p>
         </div>
       </div>
 

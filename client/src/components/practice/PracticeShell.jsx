@@ -67,8 +67,16 @@ export function PracticeIntro({
         <button onClick={onStart} className="btn-gradient w-full py-3.5" style={{ minHeight: '52px' }}>
           {startLabel}
         </button>
+        {/* Secondary intro action (e.g. Pressure Reset's "View history").
+            min-h-[44px] + flex centering give the control itself a real 44px
+            tap target — a taller parent would not, since the button is the
+            interactive element. It stays a quiet text link visually: no
+            background, no border, same muted 12px type as before. */}
         {secondaryLabel && (
-          <button onClick={onSecondary} className="w-full text-center text-xs text-muted font-medium mt-3 active:opacity-70">
+          <button
+            onClick={onSecondary}
+            className="w-full min-h-[44px] flex items-center justify-center text-center text-xs text-muted font-medium mt-3 rounded active:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+          >
             {secondaryLabel}
           </button>
         )}
