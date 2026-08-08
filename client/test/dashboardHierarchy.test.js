@@ -77,8 +77,11 @@ test('the recommended practice is visually secondary to the hero and never compl
   const block = codeBetween('4. RECOMMENDED PRACTICE', '5. CONTINUE COACHING');
   assert.match(block, /navigate\(primaryAction\.to, primaryActionState\)/, 'existing recommendation routing is unchanged');
   assert.doesNotMatch(block, /complete|markDone|POST/i, 'Home never marks a practice complete');
-  // The hero owns the saturated brand surface; the recommendation does not.
-  assert.doesNotMatch(block, /elevation-hero|var\(--brand-primary\)/);
+  // The hero owns the saturated full-bleed gradient surface; the merged
+  // What's today container stays a flat neutral card (a small icon-tile may
+  // still use the brand-primary token as an accent, same as elsewhere on
+  // the app — it just never becomes a second hero-style gradient card).
+  assert.doesNotMatch(block, /elevation-hero|card-hero|linear-gradient/);
 });
 
 test('Continue coaching is deliberately absent, not faked — no session/eligibility guess on Home', () => {
@@ -98,23 +101,24 @@ test('exactly ONE adaptive primary action card — training/match/recovery/just-
   assert.match(src, /primaryAction\.to === '\/mental-rep' && dayContext/);
 });
 
-// ── 2. "What's today?" is a compact segmented selector, not action cards ────
+// ── 2. "What's today?" is a real <select> dropdown, merged with the
+// recommendation into one container (visual refresh) ───────────────────────
 
-test('day-context controls are aria-pressed buttons in one grouped track with 44px targets and a filled selected state', () => {
-  const block = src.slice(src.indexOf('DAY_CONTEXTS.map'), src.indexOf('btn-gradient'));
-  assert.match(block, /aria-pressed=\{dayContext === c\.id\}/);
-  assert.match(block, /min-h-\[44px\]/);
+test('day-context control is a real <select> dropdown covering all four day contexts, with a visible focus ring', () => {
+  const block = src.slice(src.indexOf('<select'), src.indexOf('navigate(primaryAction.to'));
+  assert.match(block, /<select/, 'the pill grid was replaced by a real dropdown');
+  assert.match(block, /aria-label=\{t\.contextLabel\}/);
   assert.match(block, /focus-visible:ring-2/);
-  assert.match(block, /bg-brand-600 text-white/, 'selected chip must be clearly filled');
-  const groupIdx = src.indexOf('role="group"');
-  assert.ok(groupIdx !== -1 && groupIdx < src.indexOf('DAY_CONTEXTS.map'), 'chips sit inside one labelled group track');
+  assert.match(block, /value=\{dayContext \|\| ''\}/, 'controlled by the same dayContext state as before');
+  assert.match(block, /DAY_CONTEXTS\.map/, 'every day context still becomes an option');
+  assert.doesNotMatch(block, /aria-pressed|role="group"/, 'the old pill/group markup is gone');
 });
 
-test('day-context controls only update context — they are never links and never navigate', () => {
+test('day-context dropdown only updates context on change — it is never a link and never calls navigate itself', () => {
   // Slice ends where the separate primary CTA button (which legitimately
   // navigates) begins.
-  const block = src.slice(src.indexOf('DAY_CONTEXTS.map'), src.indexOf('navigate(primaryAction.to'));
-  assert.match(block, /onClick=\{\(\) => pickContext\(c\.id\)\}/);
+  const block = src.slice(src.indexOf('<select'), src.indexOf('navigate(primaryAction.to'));
+  assert.match(block, /onChange=\{e => pickContext\(e\.target\.value \|\| null\)\}/);
   assert.doesNotMatch(block, /<Link|navigate\(/);
 });
 
@@ -130,13 +134,13 @@ test('all four problem shortcuts are real Links to /coaching with unsent prefill
   }
 });
 
-test('shortcut tiles look like actions (icon + bordered tile) while day-context chips do not — the two can\'t be confused', () => {
+test('shortcut tiles look like actions (icon + bordered tile) while the day-context dropdown does not — the two can\'t be confused', () => {
   const shortcutBlock = src.slice(src.indexOf('PROBLEM_SHORTCUTS.map'), src.indexOf('7. MIND JOURNAL'));
-  const chipBlock = src.slice(src.indexOf('DAY_CONTEXTS.map'), src.indexOf('4. RECOMMENDED PRACTICE'));
+  const dropdownBlock = src.slice(src.indexOf('<select'), src.indexOf('navigate(primaryAction.to'));
   assert.match(shortcutBlock, /border border-dark-600/, 'shortcuts are outlined tiles');
   assert.match(shortcutBlock, /<Icon size=/, 'shortcuts carry a small icon');
-  assert.doesNotMatch(chipBlock, /<Icon size=/, 'selector chips carry no icon');
-  assert.doesNotMatch(chipBlock, /className=\{?"?chip/, 'selector no longer uses the generic .chip class the shortcuts once shared');
+  assert.doesNotMatch(dropdownBlock, /<Icon size=/, 'the dropdown carries no lucide shortcut icon');
+  assert.doesNotMatch(dropdownBlock, /className=\{?"?chip/, 'the dropdown never uses the generic .chip class the shortcuts use');
 });
 
 test('the four shortcuts are visually demoted but keep accessible tap targets', () => {
@@ -167,14 +171,18 @@ test('Dashboard still makes exactly one read-only GET /api/playbook — the API 
   assert.doesNotMatch(codeOnly, /method:\s*'(POST|PUT|PATCH|DELETE)'/, 'Home writes nothing');
 });
 
-test('Mind Journal is a larger card linking to /mind-journal with the approved no-score copy and a purpose line', () => {
+test('Mind Journal is an illustrated CTA linking to /mind-journal with the approved heading/value/CTA copy, no score', () => {
   assert.match(src, /to="\/mind-journal"/);
-  // Stage I moved this copy into the `home` namespace; the page wires the key
-  // and the copy itself is asserted where it now lives.
-  assert.ok(src.includes('{t.journalDesc}'));
-  assert.ok(translations.includes(`A personal, score-free place to reflect and carry something useful forward.`));
-  assert.ok(src.includes('{t.journalHint}'), 'one extra short purpose line, no pressure to write daily');
-  assert.ok(translations.includes(`Write whenever you feel like it`));
+  // Visual refresh: the card's own heading/value/CTA live in dedicated
+  // `home` namespace keys, distinct from journalDesc/journalHint (still
+  // defined, still read by other surfaces) so the exact approved copy is
+  // asserted where it now actually renders.
+  assert.ok(src.includes('{t.journalHeading}'));
+  assert.ok(translations.includes('Reflect. Grow. Perform.'));
+  assert.ok(src.includes('{t.journalValue}'), 'one short value statement, tying reflection to Arjun\'s coaching');
+  assert.ok(translations.includes('your insights help Arjun coach you better'));
+  assert.ok(src.includes('{t.journalCta}'), 'an explicit CTA button');
+  assert.ok(translations.includes('Open Mind Journal'));
   assert.doesNotMatch(codeOnly, /daily habit|every day|har din likho/i, 'no pressure-to-write-daily copy');
 });
 

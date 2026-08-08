@@ -50,12 +50,13 @@ test('Dashboard: no Starter Plan coach note, session list, locked-session messag
   assert.doesNotMatch(dashboard, /Complete the previous session first/);
 });
 
-test('Dashboard: renders a score-free Mind Journal card that opens /mind-journal', () => {
-  // Refinement PR: the quiet row became a larger informative card — a real
-  // <Link>, still score-free, with the founder-approved supporting copy.
+test('Dashboard: renders a score-free, illustrated Mind Journal card that opens /mind-journal', () => {
+  // Visual refresh: the card became an illustrated CTA — a real <Link>,
+  // still score-free, with the founder-approved heading/value/CTA copy.
   assert.match(dashboard, /to="\/mind-journal"/);
-  // Stage I: copy moved to the `home` namespace, page renders the key.
-  assert.match(dashboard, /\{t\.journalDesc\}/);
+  assert.match(dashboard, /\{t\.journalHeading\}/);
+  assert.match(dashboard, /\{t\.journalValue\}/);
+  assert.doesNotMatch(dashboard, /\d+\s*\/\s*5|score:\s*\d/i, 'still no numeric score of any kind');
 });
 
 test('Dashboard: stopped requests that only supported hidden sections (Starter Plan, MFS today, progress stat pills)', () => {
@@ -143,20 +144,27 @@ test('Train: retained tools still render — Ritual, Pressure Reset, Match & Pra
   for (const route of ['/ritual', '/body-reset', '/debrief', '/mental-rep', '/self-talk']) {
     assert.ok(train.includes(`'${route}'`), `Train must still route to ${route}`);
   }
-  // Pressure Reset's secondary history route survives the grid rebuild.
-  assert.ok(train.includes("'/body-reset/history'"));
+  // Visual refresh: "View history" was relocated OFF the Train page onto the
+  // Pressure Reset intro screen (BodyResetPage.jsx already exposes it via
+  // PracticeIntro's secondaryLabel/onSecondary — proven in
+  // pressureResetShell.dom.test.jsx and navigationIaCleanup.dom.test.jsx).
+  // Train itself no longer references the route at all.
+  assert.doesNotMatch(train, /'\/body-reset\/history'/, 'Train no longer links to the history route directly');
+  const bodyReset = readFileSync(path.join(root, 'src/pages/BodyResetPage.jsx'), 'utf8');
+  assert.match(bodyReset, /onSecondary=\{\(\) => navigate\('\/body-reset\/history'\)\}/, 'the intro screen still exposes it');
   assert.match(train, /navigate\(p\.to\)/, 'tiles navigate via the route table');
 });
 
-test('Train: the tap-target correction touched only styling — every route is exactly as before', () => {
+test('Train: the tap-target correction touched only styling — every route is exactly as before, minus the relocated history control', () => {
   // Pins the complete route set so a future change can't quietly add,
   // remove or redirect a destination while "just" fixing a tap target.
-  const routeMatches = train.match(/(?:to|historyTo): '([^']+)'/g) || [];
+  // '/body-reset/history' is intentionally absent — see the test above.
+  const routeMatches = train.match(/to: '([^']+)'/g) || [];
   const routes = routeMatches.map(m => m.match(/'([^']+)'/)[1]).sort();
   assert.deepEqual(routes, [
-    '/body-reset', '/body-reset/history', '/debrief', '/mental-rep', '/ritual', '/self-talk',
+    '/body-reset', '/debrief', '/mental-rep', '/ritual', '/self-talk',
   ].sort());
-  assert.match(train, /onClick=\{\(\) => navigate\(p\.historyTo\)\}/, 'history control still navigates via p.historyTo');
+  assert.doesNotMatch(train, /historyTo/, 'the per-practice history route table entry is gone, not just hidden');
 });
 
 test('Train: exactly the five real practices — no invented categories, no fabricated counts', () => {
@@ -169,20 +177,25 @@ test('Train: exactly the five real practices — no invented categories, no fabr
   assert.equal((train.match(/labelKey:/g) || []).length, 3);
 });
 
-test('Train tiles are flat — the grid introduces no gradient, and shared gradient components are untouched', () => {
-  // Comments are stripped so an explanatory mention of the shared gradient
-  // component can never be mistaken for actually using one.
+// Visual refresh (approved mockup): Train's tiles are now deliberately
+// gradient cards — the opposite of the earlier flat-only decision this test
+// used to pin. The old flat PracticeTile.jsx is left untouched and unused
+// (still importable, still flat) rather than deleted, so this only asserts
+// the NEW page actually adopted the approved gradient system.
+test('Train tiles now use the approved blue/teal/amber/purple gradient system from the mockup', () => {
   const stripComments = (s) => s
     .replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .split('\n').filter(l => !l.trim().startsWith('//')).join('\n');
 
+  assert.match(stripComments(train), /TrainGradientCard/, 'the practices render through the new gradient card');
+  for (const variant of ['blue', 'teal', 'amber', 'purple']) {
+    assert.ok(train.includes(`variant: '${variant}'`), `the ${variant} gradient must still be assigned somewhere`);
+  }
+  // The old flat tile stays untouched and unused rather than deleted.
   const tile = stripComments(readFileSync(path.join(root, 'src/components/train/PracticeTile.jsx'), 'utf8'));
   assert.doesNotMatch(tile, /gradient|GradientIconTile|card-hero|btn-gradient/i);
-  assert.doesNotMatch(stripComments(train), /gradient|GradientIconTile|card-hero|btn-gradient/i);
-  // The shared gradient tile still exists for the routes that DO use it.
-  const shared = readFileSync(path.join(root, 'src/components/train/GradientIconTile.jsx'), 'utf8');
-  assert.match(shared, /linear-gradient|--grad-from/);
+  assert.doesNotMatch(stripComments(train), /PracticeTile/, 'Train no longer renders the retired flat tile');
 });
 
 test('Train: two-column grid with a real minimum tile height and accessible targets', () => {

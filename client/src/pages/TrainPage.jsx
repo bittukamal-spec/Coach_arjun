@@ -2,7 +2,8 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
-import PracticeTile from '../components/train/PracticeTile';
+import TrainGradientCard from '../components/train/TrainGradientCard';
+import { AthleteMark, BreathMark, NotebookMark, StopwatchMark, CardsMark } from '../components/visuals/CardArt';
 import { SectionLabel } from '../components/ui';
 
 // The FIVE real practices Arjun actually ships — nothing else. There is no
@@ -12,27 +13,33 @@ import { SectionLabel } from '../components/ui';
 // Grouping is kept only where it still helps an athlete choose: when you
 // play (Ritual, Pressure Reset), after you play (Reflection), and the
 // skill-building pair (Quick Rep, Focus Card Builder). No empty categories.
+//
+// `variant` selects the approved gradient (blue/teal/amber/purple — the
+// same GRADIENT_VARIANTS token family already used on tool-intro screens);
+// `Illustration` is the faint background mark for that card. Pressure
+// Reset's "View history" secondary action is NOT re-added here — it now
+// lives on the Pressure Reset intro screen itself (BodyResetPage.jsx,
+// PracticeIntro's secondaryLabel), which already exposes it. Relocated,
+// not removed.
 const GROUPS = [
   {
     labelKey: 'beforeLabel',
     practices: [
-      { key: 'ritual',   to: '/ritual',      tone: 'var(--brand-primary)' },
-      { key: 'pressure', to: '/body-reset',  tone: '#2E7D6B',
-        // Pressure Reset's existing secondary route — preserved.
-        historyTo: '/body-reset/history' },
+      { key: 'ritual',   to: '/ritual',      variant: 'blue', Illustration: AthleteMark },
+      { key: 'pressure', to: '/body-reset',  variant: 'teal', Illustration: BreathMark },
     ],
   },
   {
     labelKey: 'afterLabel',
     practices: [
-      { key: 'reflection', to: '/debrief', tone: '#D98B2B' },
+      { key: 'reflection', to: '/debrief', variant: 'amber', Illustration: NotebookMark, wide: true },
     ],
   },
   {
     labelKey: 'buildLabel',
     practices: [
-      { key: 'quickRep',  to: '/mental-rep', tone: 'var(--brand-primary)' },
-      { key: 'focusCard', to: '/self-talk',  tone: 'var(--brand-primary)' },
+      { key: 'quickRep',  to: '/mental-rep', variant: 'purple', Illustration: StopwatchMark },
+      { key: 'focusCard', to: '/self-talk',  variant: 'blue',   Illustration: CardsMark },
     ],
   },
 ];
@@ -54,9 +61,9 @@ export default function TrainPage() {
           <p className="text-sm text-slt mt-1">{t.subtitle}</p>
         </div>
 
-        {/* Two-column grid at every width; the tiles simply get more room
-            as the page column widens. Tiles stretch to a shared row height
-            so a long Hindi label never leaves a ragged row. */}
+        {/* Two-column grid at every width; a lone wide practice (Reflection)
+            spans both columns as one banner card instead of leaving an
+            empty cell — the grid stays two-column throughout. */}
         {GROUPS.map(group => (
           <section key={group.labelKey} className="mb-7">
             <SectionLabel>{t[group.labelKey]}</SectionLabel>
@@ -64,29 +71,15 @@ export default function TrainPage() {
               {group.practices.map(p => {
                 const copy = t.practices[p.key];
                 return (
-                  <PracticeTile
+                  <TrainGradientCard
                     key={p.key}
-                    name={copy.name}
+                    title={copy.name}
                     desc={copy.desc}
-                    tone={p.tone}
-                    // A lone practice spans the row rather than leaving an
-                    // empty cell — the grid stays two-column throughout.
-                    className={group.practices.length === 1 ? 'col-span-2' : ''}
+                    variant={p.variant}
+                    Illustration={p.Illustration}
+                    wide={p.wide}
                     onClick={() => navigate(p.to)}
-                    footer={p.historyTo && (
-                      // min-h-[44px] + inline-flex items-center gives the
-                      // whole clickable element a real 44px tap target
-                      // without stretching the button's own compact,
-                      // background-free text-link appearance — it still
-                      // reads as a quiet secondary action, never a button.
-                      <button
-                        type="button"
-                        onClick={() => navigate(p.historyTo)}
-                        className="mt-1.5 self-center min-h-[44px] inline-flex items-center justify-center text-[11px] font-semibold text-brand-400 px-1 rounded active:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
-                      >
-                        {t.resetHistory}
-                      </button>
-                    )}
+                    className={p.wide ? 'col-span-2' : ''}
                   />
                 );
               })}

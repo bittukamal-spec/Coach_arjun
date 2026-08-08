@@ -51,9 +51,20 @@ test('Train practice tile (whole card = "open a tool") centers its icon, name an
   assert.doesNotMatch(practiceTile, /text-left/);
 });
 
-test('Train practice tile\'s secondary "reset history" link stays centered under the centered tile', () => {
-  assert.match(trainPage, /self-center/);
-  assert.doesNotMatch(trainPage, /self-start/);
+// Visual refresh: the Train page's own "View history" secondary link was
+// removed entirely — that access now lives on the Pressure Reset intro
+// screen instead (BodyResetPage.jsx, proven in pressureResetShell.dom.test.jsx
+// and navigationIaCleanup.dom.test.jsx), so there is no more centered
+// secondary link on Train to assert here.
+test('Train page no longer carries its own "reset history" secondary link (relocated to Pressure Reset intro)', () => {
+  // Comments stripped — the page's own explanatory comment about WHERE the
+  // control moved to legitimately contains the phrase "View history".
+  const stripComments = (s) => s
+    .replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .split('\n').filter(l => !l.trim().startsWith('//')).join('\n');
+  assert.doesNotMatch(stripComments(trainPage), /View history/i);
+  assert.doesNotMatch(trainPage, /historyTo/);
 });
 
 // ── 2b. Whole-card feature/action launches center too — a card doesn't stay
@@ -63,26 +74,38 @@ test('Train practice tile\'s secondary "reset history" link stays centered under
 test('Dashboard "Talk to Arjun" hero: the whole card launches Coach, so its copy centers', () => {
   const idx = dashboard.indexOf('TALK TO ARJUN');
   assert.notEqual(idx, -1, 'the Talk to Arjun hero section should still exist');
-  const hero = dashboard.slice(idx, idx + 1700);
+  const hero = dashboard.slice(idx, idx + 2000);
   assert.match(hero, /text-center/, 'the title/sub block centers');
   assert.match(hero, /openCoach/, 'still the same approved copy');
   assert.match(hero, /to="\/coaching"/, 'still the same route');
 });
 
-test('Dashboard "Today\'s Mental Rep" recommended-practice card centers its lead-in copy', () => {
+// Visual refresh: "What's today?" and "Recommended practice" are now one
+// merged container (dropdown row + recommendation row). The recommendation
+// row reads left-to-right (icon, title/desc, CTA button) like a settings/
+// choice row rather than a single-action launch card, so it intentionally
+// does NOT center — matching the approved mockup.
+test('Dashboard merged "What\'s today?" container: recommendation row keeps its existing CTA button and routing, laid out left-to-right', () => {
   const idx = dashboard.indexOf('RECOMMENDED PRACTICE');
   assert.notEqual(idx, -1, 'the recommended-practice section should still exist');
-  const card = dashboard.slice(idx, idx + 1400);
-  assert.match(card, /text-center/);
-  assert.match(card, /btn-primary w-full/, 'the CTA button itself is unchanged');
+  const card = dashboard.slice(idx, idx + 3000);
+  assert.match(card, /btn-primary/, 'the CTA button keeps the approved primary recipe');
+  assert.match(card, /navigate\(primaryAction\.to, primaryActionState\)/, 'routing is unchanged');
+  assert.match(card, /<select/, 'the day-context picker is the new dropdown control');
 });
 
-test('Dashboard "Mind Journal" card: whole card launches the journal, so it centers like the Coach hero', () => {
+// Visual refresh: the Mind Journal CTA is now an illustrated banner (art on
+// the left, copy on the right) rather than a single centered launch row, so
+// its heading/value copy reads left-aligned next to the illustration.
+test('Dashboard "Mind Journal" card: illustrated CTA with the approved heading/value/CTA copy, still opening /mind-journal', () => {
   const idx = dashboard.indexOf('MIND JOURNAL');
   assert.notEqual(idx, -1, 'the Mind Journal card section should still exist');
-  const card = dashboard.slice(idx, idx + 1500);
-  assert.match(card, /text-center/);
+  const card = dashboard.slice(idx, idx + 1700);
+  assert.match(card, /MindJournalArt/, 'the illustrated CTA treatment is present');
   assert.match(card, /journalTitle/);
+  assert.match(card, /journalHeading/);
+  assert.match(card, /journalValue/);
+  assert.match(card, /journalCta/);
   assert.match(card, /to="\/mind-journal"/);
 });
 

@@ -16,7 +16,7 @@
 
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useState } from 'react';
-import { render, screen, cleanup } from '@testing-library/react';
+import { render, screen, cleanup, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom';
 
@@ -84,19 +84,21 @@ async function mockPlaybook() {
 }
 
 describe('Dashboard problem shortcuts — real router integration', () => {
-  test('shortcuts render as real links in their own "Need help right now?" section, structurally separate from Today\'s Mental Rep', async () => {
+  test('shortcuts render as real links in their own "Pick what you need now" section, structurally separate from the day-context dropdown', async () => {
     await mockPlaybook();
     render(<TestApp />);
 
-    const heading = await screen.findByText('Need help right now?');
+    const heading = await screen.findByText('Pick what you need now');
     const nervousLink = await screen.findByRole('link', { name: "I'm nervous" });
-    const trainingChip = await screen.findByRole('button', { name: 'Training today' });
+    // The day-context control is now a real <select> dropdown, not a chip.
+    const contextSelect = await screen.findByRole('combobox', { name: "What's today?" });
+    expect(within(contextSelect).getByRole('option', { name: 'Training today' })).toBeTruthy();
 
     expect(nervousLink.tagName).toBe('A');
     expect(nervousLink.getAttribute('href')).toBe('/coaching');
     expect(heading.compareDocumentPosition(nervousLink) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(nervousLink.closest('main')).toBe(trainingChip.closest('main'));
-    expect(nervousLink.parentElement).not.toBe(trainingChip.parentElement);
+    expect(nervousLink.closest('main')).toBe(contextSelect.closest('main'));
+    expect(nervousLink.parentElement).not.toBe(contextSelect.parentElement);
   });
 
   const CASES = [
@@ -162,7 +164,7 @@ describe('Dashboard problem shortcuts — real router integration', () => {
     expect(JSON.parse(localStorage.getItem('arjun_day_context')).context).toBe('match');
   });
 
-  test('7. context picker buttons remain real buttons on /dashboard and only update dayContext, never navigating', async () => {
+  test('7. the day-context dropdown remains a real <select> on /dashboard and only updates dayContext, never navigating', async () => {
     await mockPlaybook();
     render(<TestApp />);
     const user = userEvent.setup();
@@ -171,11 +173,11 @@ describe('Dashboard problem shortcuts — real router integration', () => {
     // the default Mental Rep action.
     expect((await screen.findAllByText(/Today's Mental Rep/)).length).toBeGreaterThan(0);
 
-    const matchChip = await screen.findByRole('button', { name: 'Match today' });
-    expect(matchChip.tagName).toBe('BUTTON');
-    expect(matchChip.getAttribute('href')).toBeNull();
+    const contextSelect = await screen.findByRole('combobox', { name: "What's today?" });
+    expect(contextSelect.tagName).toBe('SELECT');
+    expect(contextSelect.getAttribute('href')).toBeNull();
 
-    await user.click(matchChip);
+    await user.selectOptions(contextSelect, 'Match today');
 
     // Still on /dashboard — no route probe mounted.
     expect(screen.queryByTestId('pathname')).toBeNull();

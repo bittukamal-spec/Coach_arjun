@@ -372,21 +372,16 @@ describe('TrainPage — Ritual entry, real router integration', () => {
     }
   });
 
-  test('Pressure Reset keeps its secondary history route', async () => {
+  // Visual refresh: "View history" was relocated OFF the Train page onto the
+  // Pressure Reset intro screen itself — it is no longer reachable from
+  // here at all. Its survival on BodyResetPage's intro is proven in
+  // pressureResetShell.dom.test.jsx ("the intro 'View history' secondary
+  // action still navigates to /body-reset/history"), which this change does
+  // not touch.
+  test('Train no longer exposes a "View history" control — it moved to the Pressure Reset intro screen', async () => {
     render(<TrainApp />);
-    const user = userEvent.setup();
-    await user.click(screen.getByRole('button', { name: /View history/i }));
-    expect(await screen.findByTestId('route-probe'))
-      .toHaveProperty('textContent', 'reset-history:/body-reset/history');
-  });
-
-  test('the "View history" control carries an explicit >=44px tap target, not just surrounding whitespace', async () => {
-    render(<TrainApp />);
-    const historyBtn = screen.getByRole('button', { name: /View history/i });
-    // The class must be on the interactive element itself — a 44px parent
-    // wrapper around a small button would not give the control itself a
-    // real 44px hit area.
-    expect(historyBtn.className).toMatch(/min-h-\[44px\]/);
+    expect(screen.queryByRole('button', { name: /View history/i })).toBeNull();
+    expect(screen.queryByText(/View history/i)).toBeNull();
   });
 
   test('Ritual renders in Hindi with the approved support copy', async () => {
