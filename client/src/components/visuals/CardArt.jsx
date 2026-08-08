@@ -99,7 +99,7 @@ export function CardsMark({ className = '' }) {
       <rect x="20" y="46" width="90" height="64" rx="12" transform="rotate(-8 20 46)" />
       <rect x="34" y="34" width="90" height="64" rx="12" transform="rotate(4 34 34)" />
       <rect x="40" y="30" width="90" height="64" rx="12" fill="currentColor" stroke="none" opacity="0.9" />
-      <circle cx="85" cy="62" r="14" stroke="white" opacity="0.8" />
+      <circle cx="85" cy="62" r="14" stroke="currentColor" opacity="0.8" />
     </svg>
   );
 }

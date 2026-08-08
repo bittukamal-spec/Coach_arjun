@@ -1,6 +1,19 @@
 import { ArrowRight } from 'lucide-react';
-import { GRADIENT_VARIANTS } from './GradientIconTile';
 import { CardWaves, RingMark } from '../visuals/CardArt';
+
+// Train-card-specific gradient stops (approved mockup's blue/teal/amber/
+// purple system). Deliberately its OWN token set, not GradientIconTile's
+// GRADIENT_VARIANTS — that shared blue (brand → purple) is tuned for a
+// small 40-56px icon tile elsewhere in the app (tool-intro headers), and
+// stretching it across a full card made Ritual/Focus Card Builder read as
+// blue-to-purple instead of the mockup's solid blue. Keeping a separate
+// map here means this refresh never touches those other screens.
+const CARD_GRADIENTS = {
+  blue:   { from: '#1F85D0', to: '#0C4D85' },
+  teal:   { from: '#2E7D6B', to: '#22D3C5' },
+  amber:  { from: '#D97F1E', to: '#F5A62E' },
+  purple: { from: '#6366F1', to: '#8B5CF6' },
+};
 
 // Premium gradient practice card (Train redesign). Two layouts:
 //  - tile (default): square-ish card for the 2-column groups (Ritual,
@@ -13,7 +26,7 @@ function TrainGradientCard({
   variant = 'blue', title, desc, onClick,
   Illustration, wide = false, className = '',
 }) {
-  const { from, to } = GRADIENT_VARIANTS[variant] || GRADIENT_VARIANTS.blue;
+  const { from, to } = CARD_GRADIENTS[variant] || CARD_GRADIENTS.blue;
   const gradient = `linear-gradient(135deg, ${from} 0%, ${to} 100%)`;
 
   return (
