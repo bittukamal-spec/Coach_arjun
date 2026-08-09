@@ -21,9 +21,13 @@ export function RingMark({ tone = 'currentColor', size = 20 }) {
 
 // Soft flowing wave-line texture — the "wave-line background treatment"
 // requested for the Talk to Arjun hero and every Train gradient card.
-// Two open curves at low opacity; colour is inherited via currentColor so
+// Three open curves at low opacity; colour is inherited via currentColor so
 // each card can tint it (usually just white) without a new prop per case.
-export function CardWaves({ className = '', opacity = 0.16 }) {
+// Mockup-fidelity pass: the lines read as thick, dominant stripes rather
+// than a faint decorative texture at the previous 10px/0.16 defaults, so
+// both are turned down here — every existing caller (Dashboard hero, all
+// five Train cards) picks up the fainter default automatically.
+export function CardWaves({ className = '', opacity = 0.09 }) {
   return (
     <svg
       viewBox="0 0 400 240"
@@ -32,9 +36,9 @@ export function CardWaves({ className = '', opacity = 0.16 }) {
       aria-hidden="true"
       style={{ opacity }}
     >
-      <path d="M-20 60 C 80 20, 160 100, 260 60 S 420 20, 460 60" stroke="white" strokeWidth="10" fill="none" />
-      <path d="M-20 130 C 90 90, 170 170, 270 130 S 430 90, 470 130" stroke="white" strokeWidth="10" fill="none" />
-      <path d="M-20 200 C 100 160, 180 240, 280 200 S 440 160, 480 200" stroke="white" strokeWidth="10" fill="none" />
+      <path d="M-20 60 C 80 20, 160 100, 260 60 S 420 20, 460 60" stroke="white" strokeWidth="5" fill="none" />
+      <path d="M-20 130 C 90 90, 170 170, 270 130 S 430 90, 470 130" stroke="white" strokeWidth="5" fill="none" />
+      <path d="M-20 200 C 100 160, 180 240, 280 200 S 440 160, 480 200" stroke="white" strokeWidth="5" fill="none" />
     </svg>
   );
 }

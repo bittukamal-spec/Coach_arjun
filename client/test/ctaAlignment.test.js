@@ -74,7 +74,7 @@ test('Train page no longer carries its own "reset history" secondary link (reloc
 test('Dashboard "Talk to Arjun" hero: the whole card launches Coach, so its copy centers', () => {
   const idx = dashboard.indexOf('TALK TO ARJUN');
   assert.notEqual(idx, -1, 'the Talk to Arjun hero section should still exist');
-  const hero = dashboard.slice(idx, idx + 2000);
+  const hero = dashboard.slice(idx, idx + 2200);
   assert.match(hero, /text-center/, 'the title/sub block centers');
   assert.match(hero, /openCoach/, 'still the same approved copy');
   assert.match(hero, /to="\/coaching"/, 'still the same route');
@@ -82,13 +82,16 @@ test('Dashboard "Talk to Arjun" hero: the whole card launches Coach, so its copy
 
 // Visual refresh: "What's today?" and "Recommended practice" are now one
 // merged container (dropdown row + recommendation row). The recommendation
-// row reads left-to-right (icon, title/desc, CTA button) like a settings/
-// choice row rather than a single-action launch card, so it intentionally
-// does NOT center — matching the approved mockup.
+// row reads left-aligned (icon, title/desc) like a settings/choice row
+// rather than a single-action launch card, so it intentionally does NOT
+// center — matching the approved mockup. Mockup-fidelity pass: the CTA
+// button moved from beside that row (where its own intrinsic width
+// squeezed the title/desc into a narrow column) to a full-width row below
+// it — same button, same routing, just stacked instead of side-by-side.
 test('Dashboard merged "What\'s today?" container: recommendation row keeps its existing CTA button and routing, laid out left-to-right', () => {
   const idx = dashboard.indexOf('RECOMMENDED PRACTICE');
   assert.notEqual(idx, -1, 'the recommended-practice section should still exist');
-  const card = dashboard.slice(idx, idx + 3000);
+  const card = dashboard.slice(idx, idx + 3600);
   assert.match(card, /btn-primary/, 'the CTA button keeps the approved primary recipe');
   assert.match(card, /navigate\(primaryAction\.to, primaryActionState\)/, 'routing is unchanged');
   assert.match(card, /<select/, 'the day-context picker is the new dropdown control');

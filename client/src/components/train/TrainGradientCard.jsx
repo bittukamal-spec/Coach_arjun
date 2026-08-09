@@ -49,10 +49,10 @@ function TrainGradientCard({
       onClick={onClick}
       style={{ background: gradient }}
       className={`relative overflow-hidden text-left rounded-3xl border border-transparent active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 elevation-card ${
-        wide ? 'w-full min-h-[136px] p-5 flex items-center gap-4' : 'w-full h-full min-h-[212px] p-4 flex flex-col'
+        wide ? 'w-full min-h-[136px] p-5 flex items-center gap-4' : 'w-full min-h-[176px] p-4 flex flex-col'
       } ${className}`}
     >
-      <CardWaves className="text-white" opacity={0.16} />
+      <CardWaves className="text-white" />
 
       {Illustration && (
         <Illustration
@@ -64,23 +64,39 @@ function TrainGradientCard({
         />
       )}
 
-      <div className={wide ? 'relative z-10 flex-1 min-w-0' : 'relative z-10 flex flex-col h-full'}>
+      <div className={wide ? 'relative z-10 flex-1 min-w-0' : 'relative z-10 flex flex-col flex-1'}>
         <div className="w-11 h-11 rounded-full bg-white shadow-sm flex items-center justify-center shrink-0 mb-3">
           <RingMark tone={from} size={20} />
         </div>
-        <div className={wide ? '' : 'flex-1 pr-8'}>
-          <h3 className="text-white font-black text-lg leading-tight mb-1 [text-wrap:pretty]">{title}</h3>
+        {/* Mockup fidelity: the old fixed `pr-8` reserved arrow clearance
+            across the FULL text column height, not just the one corner the
+            arrow badge actually occupies — on the narrower tile cards
+            (Quick Rep, Focus Card Builder) that alone forced the title and
+            every line of the description into a needlessly narrow column.
+            The arrow now sits in normal flow at the end of this same column
+            (pushed down by mt-auto) instead of floating absolutely over the
+            text, so it never needs dedicated padding and the copy gets the
+            card's full width. */}
+        <div className={wide ? '' : 'flex-1 min-w-0'}>
+          <h3 className={`text-white font-black leading-tight mb-1 [text-wrap:pretty] ${wide ? 'text-lg' : 'text-base'}`}>{title}</h3>
           {/* Full-opacity white: at 85% the 13px description measured below
               WCAG AA on every non-blue card. Full white buys ~0.7:1 back,
               which keeps the gradients lighter/more vivid than darkening
               them further would have. */}
           <p className="text-white text-[13px] leading-snug [text-wrap:pretty]">{desc}</p>
         </div>
+        {!wide && (
+          <span className="relative z-10 w-9 h-9 rounded-full bg-white/25 flex items-center justify-center self-end mt-auto shrink-0" aria-hidden="true">
+            <ArrowRight size={16} className="text-white" />
+          </span>
+        )}
       </div>
 
-      <span className="absolute bottom-4 right-4 z-10 w-9 h-9 rounded-full bg-white/25 flex items-center justify-center" aria-hidden="true">
-        <ArrowRight size={16} className="text-white" />
-      </span>
+      {wide && (
+        <span className="absolute bottom-4 right-4 z-10 w-9 h-9 rounded-full bg-white/25 flex items-center justify-center" aria-hidden="true">
+          <ArrowRight size={16} className="text-white" />
+        </span>
+      )}
     </button>
   );
 }
