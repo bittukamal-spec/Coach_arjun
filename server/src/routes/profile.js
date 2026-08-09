@@ -85,6 +85,33 @@ function createProfileRouter(client = prisma, deps = {}) {
     }
   });
 
+  // ── PATCH /answers — Performance Check-in save. NOT consent-gated (a
+  // saved preference/answer update, not coaching, same class as
+  // /current-focus above). Whitelist-enforced server-side in
+  // updateProfileAnswers; see its comment for the full safety contract.
+  const CHECKIN_ERROR_STATUS = {
+    INVALID_QUESTION: 400, INVALID_QUESTION_ID: 400, INVALID_ANSWER_ID: 400,
+    LIMIT_EXCEEDED: 400, EXCLUSIVE_CONFLICT: 400, INVALID_CUSTOM_TEXT: 400, BRANCH_MISMATCH: 400,
+  };
+  router.patch('/answers', authenticate, async (req, res) => {
+    try {
+      const user = await client.user.findUnique({ where: { id: req.userId }, select: USER_SELECT });
+      if (!user) return res.status(404).json({ error: 'User not found' });
+
+      const { profile, session } = await svc.updateProfileAnswers(client, req.userId, req.body || {});
+      const wording = await svc.getOrCreateWording(client, profile, user, user.language || 'en', deps);
+      const focusRow = await svc.loadCurrentFocus(client, req.userId);
+      return res.json(svc.serializeProfile(profile, wording, user, session, focusRow));
+    } catch (e) {
+      if (e.code === 'ONBOARDING_INCOMPLETE') return res.status(422).json({ error: 'ONBOARDING_INCOMPLETE' });
+      if (CHECKIN_ERROR_STATUS[e.code]) {
+        return res.status(CHECKIN_ERROR_STATUS[e.code]).json({ error: e.code, questionId: e.questionId });
+      }
+      console.error('[profile] PATCH /answers failed:', e?.message);
+      return res.status(500).json({ error: 'Server error' });
+    }
+  });
+
   router.post('/start-chat', authenticate, consentMiddleware, async (req, res) => {
     try {
       const { chatSessionId } = await svc.startFirstChat(client, req.userId, deps);

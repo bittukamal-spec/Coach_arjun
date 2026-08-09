@@ -140,7 +140,32 @@ export function useStartingProfile(token) {
     }
   }, [auth]);
 
-  return { phase, profile, consent, safetyGuidance, reload: load, confirm, startChat, changeFocus };
+  // Performance Check-in save. Writes only the narrow, server-whitelisted set
+  // of question ids (goals/supports/strengths/the athlete's own pattern
+  // branch) — see profileService.updateProfileAnswers on the server for the
+  // full safety contract. On success the local profile is replaced with the
+  // server's fresh response so the page reflects the recomputed pattern/
+  // chips immediately, without a second round-trip.
+  const updateAnswers = useCallback(async (answers) => {
+    try {
+      const res = await apiFetch('/api/profile/answers', auth({
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ answers }),
+      }));
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        return { ok: false, error: err.error || 'ERROR', questionId: err.questionId };
+      }
+      const data = await res.json();
+      applyPayload(data);
+      return { ok: true };
+    } catch {
+      return { ok: false, error: 'NETWORK' };
+    }
+  }, [auth, applyPayload]);
+
+  return { phase, profile, consent, safetyGuidance, reload: load, confirm, startChat, changeFocus, updateAnswers };
 }
 
 export default useStartingProfile;
