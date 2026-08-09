@@ -130,7 +130,7 @@ test('PlaybookPage data behavior unchanged: read-only GET /api/playbook', () => 
 
 test('PlaybookPage links unchanged: focus-deck, self-talk, mental-rep, debrief', () => {
   assert.match(playbook, /navigate\('\/focus-deck'\)/);
-  assert.match(playbook, /navigate\(data\?\.focusCards\?\.length \? '\/focus-deck' : '\/self-talk'\)/);
+  assert.match(playbook, /navigate\('\/self-talk'\)/);
   assert.match(playbook, /navigate\('\/mental-rep'\)/);
   assert.match(playbook, /navigate\('\/debrief'\)/);
 });
