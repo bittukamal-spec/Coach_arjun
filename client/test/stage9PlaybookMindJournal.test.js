@@ -16,7 +16,6 @@ const root = path.join(__dirname, '..');
 const playbook = readFileSync(path.join(root, 'src/pages/PlaybookPage.jsx'), 'utf8');
 const mindJournal = readFileSync(path.join(root, 'src/pages/MindJournalPage.jsx'), 'utf8');
 const contextScreen = readFileSync(path.join(root, 'src/pages/mindJournal/ArjunContextPage.jsx'), 'utf8');
-const translations = readFileSync(path.join(root, 'src/i18n/translations.js'), 'utf8');
 
 // ── "What I'm learning" is first ────────────────────────────────────────────
 
@@ -30,23 +29,12 @@ test('PlaybookPage: "What I\'m learning" is the first section, before the weekly
   assert.ok(learningIdx < weekIdx, '"What I\'m learning" must render before the weekly-summary card');
 });
 
-// ── Quiet Mind Journal entry point inside Playbook ──────────────────────────
-
-test('PlaybookPage: has a Mind Journal entry point that navigates to /mind-journal', () => {
-  assert.match(playbook, /onClick=\{\(\) => navigate\('\/mind-journal'\)\}/);
-});
-
-test('PlaybookPage: the Mind Journal entry point is a proper quiet card — flat, never the hero, with a privacy/no-score line', () => {
-  // Refinement PR: the loose text-with-chevron row became a flat Card with
-  // a title, a short privacy/no-score explanation, and one clear action.
-  const idx = playbook.indexOf("navigate('/mind-journal')");
-  const block = playbook.slice(Math.max(0, idx - 300), idx + 700);
-  assert.match(block, /<Card/, 'the Mind Journal entry point is a quiet flat Card');
-  assert.doesNotMatch(block, /variant="hero"/, 'the Mind Journal entry point must not use the hero gradient');
-  assert.match(block, /text-caption text-slt/, 'the supporting line keeps quiet, secondary-weight text styling');
-  assert.match(block, /\{pb\.journalDesc\}/, 'the card explains it is score-free');
-  assert.match(translations, /कोई स्कोर नहीं/);
-});
+// ── Mind Journal entry point removed from Playbook (modernization pass) ────
+// Playbook used to close with a quiet card linking into Mind Journal; that
+// entry point has been removed entirely — Mind Journal is reachable from
+// Home only now. See mindJournalRemovedFromPlaybook.test.js for the focused
+// removal guarantee; MindJournalPage itself and its own privacy/no-score
+// copy (asserted below via `translations`) are untouched.
 
 // ── No scores, diagnosis, profiling, or auto-prescription copy ─────────────
 

@@ -130,7 +130,11 @@ test('PlaybookPage data behavior unchanged: read-only GET /api/playbook', () => 
 
 test('PlaybookPage links unchanged: focus-deck, self-talk, mental-rep, debrief', () => {
   assert.match(playbook, /navigate\('\/focus-deck'\)/);
-  assert.match(playbook, /navigate\(data\?\.focusCards\?\.length \? '\/focus-deck' : '\/self-talk'\)/);
+  // Modernization pass: the shared button that used to branch between
+  // '/focus-deck' and '/self-talk' became two conditionally-rendered
+  // buttons (bold empty-state action vs quiet view-all link) — same two
+  // routes, still gated the same way on whether Focus Cards exist.
+  assert.match(playbook, /onAction=\{\(\) => navigate\('\/self-talk'\)\}/);
   assert.match(playbook, /navigate\('\/mental-rep'\)/);
   assert.match(playbook, /navigate\('\/debrief'\)/);
 });

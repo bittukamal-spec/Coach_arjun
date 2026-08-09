@@ -96,6 +96,12 @@
      5.8:1 on card). Decorative marks keep the brand amber - this token is for
      text and text-adjacent rules only. */
   --accent-amber:       #9A5410;
+  /* Saved-cues teal accent (Playbook redesign). The raw --teal (#22D3C5) is
+     only ~1.7-2.7:1 as TEXT on a light surface, same problem as raw amber
+     above; this darker light-theme value keeps the hue but clears AA
+     (5.1-5.4:1 across card/card-muted/surface). Decorative marks keep the
+     raw --teal — this token is for text/icon rules only. */
+  --accent-teal:        #13776F;
   --surface-warn:       #FFF7ED;              /* warning notice body */
   --border-warn:        #FED7AA;              /* warning notice hairline */
 }
@@ -141,6 +147,7 @@
     --status-error:      #F2A0A0;
     --status-warn:       #FBBF24; /* 8.1:1 on --surface-warn below */
     --accent-amber:      #D98B2B; /* 4.9:1 on the dark amber tint - unchanged from the redesign */
+    --accent-teal:       #22D3C5; /* raw --teal already clears AA (7.2:1+) on every dark surface */
     --surface-warn:      var(--card-muted); /* #1B3044 */
     --border-warn:       #4A3A17;
   }
@@ -186,6 +193,7 @@
   --status-error:      #F2A0A0;
   --status-warn:       #FBBF24; /* 8.1:1 on --surface-warn below */
   --accent-amber:      #D98B2B; /* 4.9:1 on the dark amber tint - unchanged from the redesign */
+  --accent-teal:       #22D3C5; /* raw --teal already clears AA (7.2:1+) on every dark surface */
   --surface-warn:      var(--card-muted); /* #1B3044 */
   --border-warn:       #4A3A17;
 }

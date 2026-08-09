@@ -127,18 +127,18 @@ test('Mind Journal "Quick Note" card: whole card starts a note, so its title/des
   assert.match(card, /flex-1 min-w-0 text-center/);
 });
 
-test('Playbook "Mind Journal" entry card also centers, matching Home\'s equivalent card', () => {
-  const idx = playbook.indexOf('Mind Journal —');
-  assert.notEqual(idx, -1);
-  const card = playbook.slice(idx, idx + 1300);
-  assert.match(card, /text-center/);
-  assert.match(card, /journalTitle/);
+// Modernization pass: the Mind Journal entry point was removed from
+// Playbook entirely (Mind Journal now lives on Home only), so there is no
+// more Playbook "Mind Journal" card to assert centering on here.
+test('Playbook no longer carries a Mind Journal entry point (moved to Home only)', () => {
+  assert.doesNotMatch(playbook, /navigate\('\/mind-journal'\)/);
+  assert.doesNotMatch(playbook, /journalTitle|journalDesc/);
 });
 
 // ── 2c. Saved/summary content inside Playbook stays left — not a CTA card ───
 
-test('Playbook saved Focus Cards and reflections stay left-aligned (saved content, not a CTA card)', () => {
-  const idx = playbook.indexOf('Focus Cards — grouped');
+test('Playbook saved Focus Cards stay left-aligned (saved content, not a CTA card)', () => {
+  const idx = playbook.indexOf('{pb.focusCardsHeading}');
   assert.notEqual(idx, -1);
   const section = playbook.slice(idx, idx + 900);
   assert.match(section, /text-left/);

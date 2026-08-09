@@ -136,7 +136,7 @@ test('the Hindi side of each pilot namespace is actually written in Hindi', () =
 
 test('the keys Stage I introduced exist in both languages', () => {
   const added = {
-    playbook: ['title', 'learningHeading', 'thisWeek', 'focusCardsHeading', 'cuesHeading', 'reflectionsHeading', 'journalDesc'],
+    playbook: ['title', 'learningHeading', 'thisWeek', 'focusCardsHeading', 'cuesHeading', 'reflectionsHeading'],
     home: ['journalTitle', 'journalDesc', 'journalHint'],
     nav: ['language', 'theme', 'themeAuto', 'themeLight', 'themeDark'],
     chat: ['retryBtn'],

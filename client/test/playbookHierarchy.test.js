@@ -32,10 +32,12 @@ const pbHi = playbookNamespace('hi');
 
 // ── 1. Approved content order ───────────────────────────────────────────────
 
-test('Playbook keeps the approved order: intro → What I\'m learning → This week → Focus Cards → Saved cues → Reflections → Mind Journal', () => {
+test('Playbook keeps the approved order: intro → What I\'m learning → This week → Focus Cards → Saved cues → Reflections', () => {
   // Stage I moved this page's copy into the `playbook` translation namespace,
   // so the order is now pinned on the key references rather than on inline
-  // literals. Same sections, same order, same guarantee.
+  // literals. Modernization pass: Mind Journal was removed from this page
+  // entirely (it now lives on Home only), so it is no longer part of this
+  // guarantee — see mindJournalRemovedFromPlaybook.test.js.
   const order = [
     src.indexOf('{pb.intro}'),                     // page introduction
     src.indexOf('{pb.learningHeading}'),
@@ -43,7 +45,6 @@ test('Playbook keeps the approved order: intro → What I\'m learning → This w
     src.indexOf('{pb.focusCardsHeading}'),
     src.indexOf('{pb.cuesHeading}'),
     src.indexOf('{pb.reflectionsHeading}'),
-    src.indexOf("navigate('/mind-journal')"),
   ];
   for (const idx of order) assert.ok(idx !== -1, 'every approved section must exist');
   for (let i = 1; i < order.length; i++) {
@@ -91,12 +92,17 @@ test('Focus Cards: same empty state, same build/view routes, saved cards still o
   assert.match(pbHi, /focusCardsBuild:/);
   assert.match(src, /\{pb\.focusCardsEmpty\}/);
   assert.match(src, /pb\.focusCardsBuild/);
-  assert.match(src, /navigate\(data\?\.focusCards\?\.length \? '\/focus-deck' : '\/self-talk'\)/);
+  // Modernization pass: the single button that used to branch between
+  // '/focus-deck' and '/self-talk' became two conditionally-rendered
+  // buttons (a bold empty-state action vs a quiet view-all link) so the
+  // empty state could get a clearer call to action — same two routes,
+  // same reachability, still gated on the same data.
+  assert.match(src, /onAction=\{\(\) => navigate\('\/self-talk'\)\}/);
   assert.match(src, /navigate\('\/focus-deck'\)/);
 });
 
 test('Saved cues: quiet grouped pills that render the athlete\'s own words verbatim and are NOT interactive chips', () => {
-  const block = src.slice(src.indexOf('Saved reset cues'), src.indexOf('Reflections —'));
+  const block = src.slice(src.indexOf('{pb.cuesHeading}'), src.indexOf('{pb.reflectionsHeading}'));
   assert.match(block, /data\.savedCues\.map/);
   assert.match(block, /<span/);
   assert.doesNotMatch(block, /className="chip"/, 'cue pills must not reuse the interactive .chip treatment');
@@ -107,7 +113,7 @@ test('Saved cues: quiet grouped pills that render the athlete\'s own words verba
 });
 
 test('Reflections: own section container with existing entries, empty state and Start-a-reflection link', () => {
-  const block = src.slice(src.indexOf('Reflections —'), src.indexOf('Mind Journal —'));
+  const block = src.slice(src.indexOf('{pb.reflectionsHeading}'));
   assert.match(block, /data\.reflections\.map/);
   assert.match(block, /\{pb\.reflectionsEmpty\}/);
   assert.match(block, /navigate\('\/debrief'\)/);
@@ -116,16 +122,6 @@ test('Reflections: own section container with existing entries, empty state and 
   assert.match(pbEn, /reflectionsCta:\s*'Start a reflection'/);
   assert.match(pbHi, /reflectionsEmpty:/);
   assert.match(pbHi, /reflectionsCta:/);
-});
-
-test('Mind Journal entry: a proper quiet card with title, personal/score-free line and /mind-journal action', () => {
-  const block = src.slice(src.indexOf('Mind Journal —'));
-  assert.match(block, /<Card/);
-  assert.doesNotMatch(block, /variant="hero"/);
-  assert.match(block, /navigate\('\/mind-journal'\)/);
-  assert.match(block, /\{pb\.journalDesc\}/);
-  assert.match(pbEn, /journalDesc:\s*'A personal, score-free place to reflect and carry something useful forward\.'/);
-  assert.match(pbHi, /कोई स्कोर नहीं/);
 });
 
 // ── 5. Data behavior unchanged ──────────────────────────────────────────────
@@ -174,7 +170,6 @@ test('every athlete-content section survives the restyle', () => {
     'data.focusCards.slice',
     'data.savedCues.map',
     'data.reflections.map',
-    "navigate('/mind-journal')",
   ]) {
     assert.ok(src.includes(marker), `${marker} must survive the Stage F restyle`);
   }
@@ -201,8 +196,10 @@ test('every athlete-facing string has both an English and a Hindi variant', () =
   // `playbook` namespace, which must stay at full EN/HI key parity.
   assert.match(pbHi, /अभी कोई सीख दर्ज नहीं हुई/);
   assert.match(pbEn, /haven't recorded any lessons yet/);
-  assert.match(pbHi, /कोई स्कोर नहीं/);
-  assert.match(pbEn, /score-free/i);
+  // Modernization pass: the intro copy changed (dropped absolute "private"
+  // wording, mentions lessons too) — both languages still render it.
+  assert.match(pbHi, /सब एक ही जगह/);
+  assert.match(pbEn, /all in one place/i);
   const keysOf = (block) => [...block.matchAll(/^\s{6}([a-zA-Z]+):/gm)].map((m) => m[1]).sort();
   assert.deepEqual(keysOf(pbEn), keysOf(pbHi), 'playbook keys must match across languages');
   // The page reads that namespace rather than branching on language inline.
