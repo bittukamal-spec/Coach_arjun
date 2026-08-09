@@ -143,7 +143,7 @@ describe('Performance Check-in — section-scoped entry points', () => {
     expect(screen.queryByRole('heading', { name: 'Performance Check-in' })).toBeNull();
   });
 
-  test('changing an answer, then Next, reaches the review screen showing the diff, and Save updates the profile', async () => {
+  test('changed state: Next reaches the review screen showing the diff, Save is shown and enabled, and Save PATCHes the correct payload', async () => {
     const server = makeServer();
     const user = userEvent.setup();
     renderAt('/starting-profile/check-in?section=strengths', server);
@@ -154,16 +154,69 @@ describe('Performance Check-in — section-scoped entry points', () => {
     expect(screen.getByText('Strengths')).toBeTruthy();
     expect(screen.getByText('Hard-working, Brave')).toBeTruthy();
 
-    await user.click(screen.getByRole('button', { name: 'Save profile' }));
-    // Only the strengths qid is sent — nothing else in this section-scoped run.
+    // Save is present, enabled, and "Go back to questions" (the no-change
+    // action) is NOT shown in the changed state.
+    const saveBtn = screen.getByRole('button', { name: 'Save profile' });
+    expect(saveBtn.disabled).toBe(false);
+    expect(screen.queryByRole('button', { name: 'Go back to questions' })).toBeNull();
+
+    await user.click(saveBtn);
+    // Only the strengths qid is sent — nothing else in this section-scoped
+    // run — and it's the exact new selection.
     await vi.waitFor(() => expect(server.state.calls.some((c) => c === 'PATCH /api/profile/answers')).toBe(true));
+    expect(server.state.profile.checkin.answers.strengths.answerIds).toEqual(['hard_working', 'brave']);
   });
 
-  test('with no changes, the review screen says so and Save still works (idempotent, no destructive write)', async () => {
+  test('changed state: "Go back" (not "Go back to questions") returns to the question screen with the change still selected — draft preserved', async () => {
     const user = userEvent.setup();
     renderAt('/starting-profile/check-in?section=strengths');
-    await user.click(await screen.findByRole('button', { name: 'Next' }));
-    expect(await screen.findByText('No changes yet')).toBeTruthy();
+    const brave = await screen.findByRole('checkbox', { name: /Brave/i });
+    await user.click(brave);
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await screen.findByRole('heading', { name: 'Review your changes' });
+    await user.click(screen.getByRole('button', { name: 'Go back' }));
+    const restored = await screen.findByRole('checkbox', { name: /Brave/i });
+    expect(restored.getAttribute('aria-checked')).toBe('true');
+  });
+
+  describe('no-change state', () => {
+    test('shows "No changes yet" and "Go back to questions", with no Save action rendered at all', async () => {
+      const user = userEvent.setup();
+      renderAt('/starting-profile/check-in?section=strengths');
+      await user.click(await screen.findByRole('button', { name: 'Next' }));
+      expect(await screen.findByRole('heading', { name: 'Review your changes' })).toBeTruthy();
+      expect(screen.getByText('No changes yet')).toBeTruthy();
+      expect(screen.getByText('Go back if you want to update something.')).toBeTruthy();
+      expect(screen.getByRole('button', { name: 'Go back to questions' })).toBeTruthy();
+      // Save is absent, not merely disabled — it must not be possible to
+      // trigger a save at all from this screen.
+      expect(screen.queryByRole('button', { name: 'Save profile' })).toBeNull();
+      expect(screen.queryByRole('button', { name: 'Go back' })).toBeNull();
+    });
+
+    test('no PATCH request is ever sent while there are zero changes', async () => {
+      const server = makeServer();
+      const user = userEvent.setup();
+      renderAt('/starting-profile/check-in?section=strengths', server);
+      await user.click(await screen.findByRole('button', { name: 'Next' }));
+      await screen.findByText('No changes yet');
+      await user.click(screen.getByRole('button', { name: 'Go back to questions' }));
+      // Back to the (only) question in this section-scoped run — not a
+      // network round trip of any kind.
+      await screen.findByRole('checkbox', { name: /Hard-working/i });
+      expect(server.state.calls.some((c) => c === 'PATCH /api/profile/answers')).toBe(false);
+      expect(server.state.calls.filter((c) => c.startsWith('PATCH')).length).toBe(0);
+    });
+
+    test('"Go back to questions" preserves the (unchanged) draft — returns to the same question, same selection', async () => {
+      const user = userEvent.setup();
+      renderAt('/starting-profile/check-in?section=strengths');
+      await user.click(await screen.findByRole('button', { name: 'Next' }));
+      await screen.findByText('No changes yet');
+      await user.click(screen.getByRole('button', { name: 'Go back to questions' }));
+      const hardWorking = await screen.findByRole('checkbox', { name: /Hard-working/i });
+      expect(hardWorking.getAttribute('aria-checked')).toBe('true');
+    });
   });
 
   test('Back from the first (and only) question in a section-scoped run returns to the Performance Profile', async () => {

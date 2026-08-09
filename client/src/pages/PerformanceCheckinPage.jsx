@@ -109,6 +109,11 @@ export default function PerformanceCheckinPage() {
   }
 
   async function handleSave() {
+    // Defence in depth: the Save button is never rendered while there are
+    // zero changes (see the reviewing branch below), but guard here too so
+    // no code path can ever fire an unchanged PATCH.
+    const { anyChange } = computeReviewDiff({ scoped, screensByCategory, original: originalAnswers, current: working, label });
+    if (!anyChange) return;
     // Only send the qids actually in scope for this run — never the whole
     // answers map, even though `working` may carry other categories from a
     // previous full check-in in the same session.
@@ -153,26 +158,34 @@ export default function PerformanceCheckinPage() {
 
   // ── Review before save ────────────────────────────────────────────────────
   if (reviewing) {
+    const { rows, anyChange } = computeReviewDiff({ scoped, screensByCategory, original: originalAnswers, current: working, label });
     return (
       <div className="min-h-screen bg-dark-900 px-page py-4 pb-[calc(2rem+env(safe-area-inset-bottom))]">
         <div className="max-w-md mx-auto">
           <TopBar onBack={handleBack} backAria={t.backAria} />
           <h1 className="text-title font-bold text-ink mb-4">{c.reviewTitle}</h1>
-          <ReviewDiff
-            scoped={scoped}
-            screensByCategory={screensByCategory}
-            original={originalAnswers}
-            current={working}
-            label={label}
-            c={c}
-          />
+          <ReviewDiff rows={rows} anyChange={anyChange} c={c} />
+          {/* No-change state: no Save action is ever rendered, so no PATCH
+              can be sent while nothing has changed (see the guard inside
+              handleSave too, kept as defence in depth). One clear action —
+              "Go back to questions" — reuses handleBack exactly (same draft-
+              preserving, no-API-call navigation as the top-bar chevron). */}
+          {!anyChange && <p className="text-caption text-slt mt-2">{c.noChangesHint}</p>}
           {saveError && <p className="text-caption text-red-400 mt-3" role="alert">{saveError}</p>}
-          <button type="button" onClick={handleSave} disabled={saving} className="btn-primary w-full justify-center py-3 mt-6 disabled:opacity-50">
-            {saving ? c.saving : c.save}
-          </button>
-          <button type="button" onClick={handleBack} className="w-full text-center text-caption text-slt mt-3 py-3 min-h-[44px]">
-            {c.goBack}
-          </button>
+          {anyChange ? (
+            <>
+              <button type="button" onClick={handleSave} disabled={saving} className="btn-primary w-full justify-center py-3 mt-6 disabled:opacity-50">
+                {saving ? c.saving : c.save}
+              </button>
+              <button type="button" onClick={handleBack} className="w-full text-center text-caption text-slt mt-3 py-3 min-h-[44px]">
+                {c.goBack}
+              </button>
+            </>
+          ) : (
+            <button type="button" onClick={handleBack} className="btn-primary w-full justify-center py-3 mt-6">
+              {c.goBackToQuestions}
+            </button>
+          )}
         </div>
       </div>
     );
@@ -254,11 +267,10 @@ function screenAnswerLabels(screenId, answersMap, labelFor) {
 
 // Deterministic client-side comparison, grouped by category (not per raw
 // question — a category reads as one line, matching the approved review
-// layout). "Unchanged" is shown rather than nothing, so an athlete who
-// opened a section and changed nothing still gets a clear confirmation.
-function ReviewDiff({ scoped, screensByCategory, original, current, label, c }) {
+// layout). Pure — no rendering, so the page can know `anyChange` BEFORE
+// deciding whether to render a Save action at all.
+function computeReviewDiff({ scoped, screensByCategory, original, current, label }) {
   const categories = scoped ? [scoped] : SECTION_ORDER;
-  const SECTION_LABEL = { goals: c.sectionGoals, pattern: c.sectionPattern, helps: c.sectionHelps, strengths: c.sectionStrengths };
   let anyChange = false;
 
   const rows = categories.map((cat) => {
@@ -269,6 +281,15 @@ function ReviewDiff({ scoped, screensByCategory, original, current, label, c }) 
     if (changed) anyChange = true;
     return { cat, before, after, changed };
   });
+
+  return { rows, anyChange };
+}
+
+// Pure rendering of the rows `computeReviewDiff` produced. "Unchanged" is
+// shown per-category rather than nothing, so a changed run that left one
+// section untouched still gets a clear confirmation for that section.
+function ReviewDiff({ rows, anyChange, c }) {
+  const SECTION_LABEL = { goals: c.sectionGoals, pattern: c.sectionPattern, helps: c.sectionHelps, strengths: c.sectionStrengths };
 
   if (!anyChange) {
     return <p className="text-body text-slt leading-relaxed">{c.noChanges}</p>;

@@ -117,3 +117,38 @@ test('the Check-in save call sends only the answers in scope for THIS run, never
   assert.match(checkinPage, /for \(const sid of screenIds\)/);
   assert.match(checkinPage, /updateAnswers\(payload\)/);
 });
+
+// ── No-change review correction ─────────────────────────────────────────────
+
+test('the review screen never renders a Save action when there are zero changes — one clear "Go back to questions" action instead', () => {
+  const anyChangeIdx = checkinPage.indexOf('anyChange ? (');
+  assert.notEqual(anyChangeIdx, -1, 'Save/Go-back only render in the anyChange branch');
+  // The Save button JSX itself sits after the `anyChange ? (` branch open,
+  // and before its matching `) : (` no-change branch.
+  const elseIdx = checkinPage.indexOf(') : (', anyChangeIdx);
+  const saveIdx = checkinPage.indexOf('c.save}', anyChangeIdx);
+  assert.ok(elseIdx !== -1 && saveIdx !== -1 && saveIdx < elseIdx, 'Save must be inside the anyChange-true branch, before the no-change branch');
+  const goBackToQuestionsIdx = checkinPage.indexOf('c.goBackToQuestions', elseIdx);
+  assert.ok(goBackToQuestionsIdx !== -1, 'the no-change branch (after the ": (") renders the dedicated back action');
+});
+
+test('handleSave guards against firing while there are zero changes (defence in depth, not just a hidden button)', () => {
+  const idx = checkinPage.indexOf('async function handleSave()');
+  const body = checkinPage.slice(idx, checkinPage.indexOf('\n  }', idx));
+  assert.match(body, /const \{ anyChange \} = computeReviewDiff\(/);
+  assert.match(body, /if \(!anyChange\) return;/);
+});
+
+test('computeReviewDiff is a pure function, reused by both the anyChange guard and the ReviewDiff renderer (one diff implementation)', () => {
+  assert.match(checkinPage, /function computeReviewDiff\(/);
+  assert.equal((checkinPage.match(/computeReviewDiff\(/g) || []).length, 3, 'defined once, called from handleSave and from the reviewing render');
+});
+
+test('the no-change hint copy and "Go back to questions" exist in both languages, and never call it onboarding', () => {
+  for (const lang of ['en', 'hi']) {
+    const block = namespaceBlock(lang, 'performanceCheckin');
+    assert.match(block, /noChangesHint:/, `${lang} missing noChangesHint`);
+    assert.match(block, /goBackToQuestions:/, `${lang} missing goBackToQuestions`);
+    assert.doesNotMatch(block, /onboarding/i);
+  }
+});
