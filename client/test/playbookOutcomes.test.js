@@ -1,7 +1,12 @@
-// Source-text checks for PR-13's "What I'm learning" section on the Mental
-// Playbook page. PlaybookPage.jsx contains JSX and cannot be imported
-// directly by node:test without a transform, so — matching the established
-// pattern elsewhere in this suite — these are source-text assertions.
+// Source-text checks for the "Latest Lesson" section on the Mental Playbook
+// page (formerly "What I'm learning", formerly a list of prescription
+// outcomes). Modernization pass 2 (approved-mockup fidelity) turned this
+// into a single-item overview: only the most recent outcome's lesson is
+// shown, as the strongest text on the page — practice name, situation and
+// outcome-status ("It helped") are intentionally no longer displayed here.
+// PlaybookPage.jsx contains JSX and cannot be imported directly by node:test
+// without a transform, so — matching the established pattern elsewhere in
+// this suite — these are source-text assertions.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -15,74 +20,68 @@ const root = path.join(__dirname, '..');
 const src = readFileSync(path.join(root, 'src/pages/PlaybookPage.jsx'), 'utf8');
 const translations = readFileSync(path.join(root, 'src/i18n/translations.js'), 'utf8');
 
-// ── Outcome label mapping (pure logic, checked via source text) ───────────
+// ── Section renders: heading, empty state, and the single populated item ──
 
-test('PlaybookPage: all four outcome statuses have both English and Hindi labels, no score/percentage language', () => {
-  // Stage I: the labels moved into the `playbook` translation namespace and
-  // the page maps a stored status to a key. Both halves are still asserted —
-  // the mapping here, the EN/HI copy in translations.
-  const keyFor = { HELPED: 'outcomeHelped', HELPED_A_LITTLE: 'outcomeHelpedALittle', DID_NOT_HELP: 'outcomeDidNotHelp', NOT_TRIED: 'outcomeNotTried' };
-  for (const [status, key] of Object.entries(keyFor)) {
-    assert.match(src, new RegExp(`${status}:\\s*'${key}'`), `expected a label key for ${status}`);
-    assert.match(translations, new RegExp(`${key}:`), `expected translated copy for ${status}`);
-  }
-  const labelsIdx = src.indexOf('const OUTCOME_KEYS');
-  const labelsBlock = src.slice(labelsIdx, src.indexOf('};', labelsIdx));
-  assert.doesNotMatch(labelsBlock, /%|score|streak/i);
-});
-
-// ── Section renders: heading, empty state, and per-item fields ────────────
-
-test('PlaybookPage: renders a "What I\'m learning" section with an EN/HI heading', () => {
+test('PlaybookPage: renders a "Latest Lesson" section with an EN/HI heading', () => {
   assert.match(src, /\{pb\.learningHeading\}/);
   assert.match(translations, /learningHeading:/);
 });
 
-test('PlaybookPage: shows an empty state when there are no recorded outcomes yet', () => {
+test('PlaybookPage: reads only the single most recent outcome (data?.practiceOutcomes?.[0])', () => {
+  assert.match(src, /const lesson = data\?\.practiceOutcomes\?\.\[0\] \|\| null;/);
+});
+
+test('PlaybookPage: shows a compact empty state when there is no recorded lesson yet', () => {
   const idx = src.indexOf('{pb.learningHeading}');
-  const block = src.slice(idx, idx + 2600);
-  assert.match(block, /data\?\.practiceOutcomes\?\.length \?/);
+  const block = src.slice(idx, idx + 800);
+  assert.match(block, /lesson\?\.lesson \?/);
+  assert.match(block, /\{pb\.learningEmptyTitle\}/);
   assert.match(block, /\{pb\.learningEmpty\}/);
-  assert.match(translations, /haven't recorded any lessons yet/i);
+  assert.match(translations, /learningEmptyTitle:\s*'No lesson yet'/);
+  assert.match(translations, /Practice a Mental Rep and tell Arjun how it went/);
 });
 
-test('PlaybookPage: each outcome item renders the practice name, situation, translated outcome label, lesson, and a date', () => {
-  const idx = src.indexOf('data.practiceOutcomes.map(');
-  assert.ok(idx !== -1, 'expected practiceOutcomes to be mapped for rendering');
-  // Stage F wrapped the date in the approved date-pill and the outcome in
-  // the status-label recipe, which lengthens the block — every field below
-  // must still be rendered from the same stored values.
-  const block = src.slice(idx, idx + 1200);
-  assert.match(block, /o\.practiceName/);
-  assert.match(block, /o\.situation/);
-  assert.match(block, /outcomeLabel\(o\.outcomeStatus, pb\)/);
-  assert.match(block, /o\.lesson/);
-  assert.match(block, /o\.outcomeRecordedAt/);
-  assert.match(block, /key=\{o\.prescriptionId\}/, 'each item must be keyed by its real prescriptionId');
+test('PlaybookPage: the populated lesson renders the stored lesson text and date, as the dominant text', () => {
+  const idx = src.indexOf('lesson?.lesson ?');
+  assert.ok(idx !== -1, 'expected the lesson to be conditionally rendered');
+  const block = src.slice(Math.max(0, idx - 400), idx + 200);
+  assert.match(block, /lesson\.outcomeRecordedAt/, 'the date is still the stored one');
+  assert.match(block, /lesson\.lesson/);
+  assert.match(block, /text-lg font-bold/, 'the lesson is the strongest/most dominant text in the card');
+  assert.match(block, /break-words/);
 });
 
-test('PlaybookPage: no chart, score, percentage, or streak language appears in the outcomes section', () => {
+test('PlaybookPage: no chart, score, percentage, or streak language appears in the Latest Lesson section', () => {
   const idx = src.indexOf('{pb.learningHeading}');
-  const nextSectionIdx = src.length; // this is the last section in the file
-  const block = src.slice(idx, nextSectionIdx);
+  const block = src.slice(idx, src.indexOf('This week — one number'));
   assert.doesNotMatch(block, /chart|percentage|%\s*success|streak/i);
+});
+
+// ── Outcome-status / practice-name / situation metadata intentionally gone ─
+
+test('practice name, situation, and outcome-status ("It helped") are no longer rendered on the overview', () => {
+  assert.doesNotMatch(src, /o\.practiceName|o\.situation|OUTCOME_KEYS|outcomeLabel/);
+  // The underlying fields are still part of the fetched payload shape —
+  // this pass only stops rendering them, it does not touch the API.
+  assert.match(src, /apiFetch\('\/api\/playbook'/);
 });
 
 // ── Existing Playbook content is preserved ─────────────────────────────────
 
-test('PlaybookPage: existing sections (This week, Recent insight, Focus Cards, Saved cues, Reflections) are all still present', () => {
+test('PlaybookPage: existing sections (This week, Focus Cards, Saved cues, Reflections) are all still present', () => {
   assert.match(src, /\{pb\.thisWeek\}/);
-  assert.match(src, /insightText\(data\.insight, hi\)/);
   assert.match(src, /\{pb\.focusCardsHeading\}/);
   assert.match(src, /\{pb\.cuesHeading\}/);
   assert.match(src, /\{pb\.reflectionsHeading\}/);
 });
 
-test('PlaybookPage: the section keeps the shared flat-card convention under its icon section heading', () => {
-  // Refinement PR: sections now carry an icon SectionHeading and wrap their
-  // content (entries AND empty state) in flat Card containers.
-  const idx = src.indexOf("What I'm learning");
-  const block = src.slice(idx, idx + 2600);
-  assert.match(block, /SectionHeading/);
-  assert.match(block, /<Card /);
+test('PlaybookPage: the "Recent insight" sparkle card was intentionally removed (not part of the approved mockup)', () => {
+  assert.doesNotMatch(src, /insightText|Sparkles|data\.insight/);
+});
+
+test('PlaybookPage: Latest Lesson sits inside a single card under its icon SectionHeading — no nested box', () => {
+  const idx = src.indexOf('Latest Lesson');
+  const block = src.slice(idx, idx + 2000);
+  assert.match(block, /<SectionHeading/);
+  assert.match(block, /<Card/);
 });

@@ -253,7 +253,7 @@ test('the Mind Journal context checkbox is themed and focus-visible', () => {
 
 test('the Focus Card power line wraps instead of truncating', () => {
   const playbook = src('pages/PlaybookPage.jsx');
-  const idx = playbook.indexOf('c.powerLine');
+  const idx = playbook.indexOf('focusCard.powerLine');
   const line = playbook.slice(playbook.lastIndexOf('<p', idx), idx + 40);
   assert.doesNotMatch(line, /\btruncate\b/, 'the athlete-authored power line must not be cut off');
   assert.match(line, /break-words/);

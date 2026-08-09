@@ -36,7 +36,10 @@ function playbookNamespace(lang) {
 test('PlaybookPage: carries no /mind-journal navigation, card, or copy reference', () => {
   assert.doesNotMatch(playbook, /\/mind-journal/);
   assert.doesNotMatch(playbook, /journalTitle|journalDesc/);
-  assert.doesNotMatch(playbook, /Pencil/, 'the Mind Journal card\'s icon import is no longer needed');
+  // Modernization pass 2: Pencil is now the Reflections section icon
+  // (unrelated to Mind Journal), so it is no longer a valid proxy for "the
+  // Mind Journal card is gone" — the /mind-journal and journalTitle/Desc
+  // checks above are the real guarantee.
 });
 
 // ── 2. The now-unused playbook.journalTitle/journalDesc copy is gone ───────

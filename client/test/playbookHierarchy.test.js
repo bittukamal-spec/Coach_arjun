@@ -1,8 +1,10 @@
-// Source-text checks for the Mental Playbook hierarchy refinement: the
-// approved content order is unchanged, every section now sits in a flat
-// Card container under an icon SectionHeading, "This week" remains the
-// page's ONLY signature-gradient card, saved cues became quiet
-// non-interactive pills, and no data/API/route/action changed.
+// Source-text checks for the Mental Playbook hierarchy. Modernization pass 2
+// (approved-mockup fidelity): Playbook is a compact OVERVIEW — one card per
+// category, each showing its single most useful/most recent item, minimal
+// copy, restrained per-section colour accent, no nested boxes. The approved
+// content order is unchanged; no data/API/route/action changed for any
+// section (Mind Journal's removal from Playbook is covered separately in
+// mindJournalRemovedFromPlaybook.test.js).
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -16,10 +18,6 @@ const root = path.join(__dirname, '..');
 const src = readFileSync(path.join(root, 'src/pages/PlaybookPage.jsx'), 'utf8');
 const translations = readFileSync(path.join(root, 'src/i18n/translations.js'), 'utf8');
 
-// Stage I moved this page's athlete-facing copy into the `playbook`
-// translation namespace. These helpers let the existing guarantees keep
-// asserting the COPY (now where it lives) and the page's WIRING separately,
-// instead of matching inline literals that no longer exist in the JSX.
 function playbookNamespace(lang) {
   const langIdx = translations.indexOf(`\n  ${lang}: {`);
   assert.ok(langIdx !== -1, `missing ${lang} translations`);
@@ -32,14 +30,11 @@ const pbHi = playbookNamespace('hi');
 
 // ── 1. Approved content order ───────────────────────────────────────────────
 
-test('Playbook keeps the approved order: intro → What I\'m learning → This week → Focus Cards → Saved cues → Reflections', () => {
-  // Stage I moved this page's copy into the `playbook` translation namespace,
-  // so the order is now pinned on the key references rather than on inline
-  // literals. Modernization pass: Mind Journal was removed from this page
-  // entirely (it now lives on Home only), so it is no longer part of this
-  // guarantee — see mindJournalRemovedFromPlaybook.test.js.
+test('Playbook keeps the approved order: Latest Lesson → This week → Focus Cards → Saved cues → Reflections', () => {
+  // Modernization pass 2 dropped the standalone intro paragraph entirely
+  // (per the approved mockup, the page begins directly with the first
+  // card), so `pb.intro` is no longer part of this guarantee.
   const order = [
-    src.indexOf('{pb.intro}'),                     // page introduction
     src.indexOf('{pb.learningHeading}'),
     src.indexOf('{pb.thisWeek}'),
     src.indexOf('{pb.focusCardsHeading}'),
@@ -52,73 +47,84 @@ test('Playbook keeps the approved order: intro → What I\'m learning → This w
   }
 });
 
+test('the standalone intro paragraph is gone — the page begins directly with the first card', () => {
+  assert.doesNotMatch(src, /\{pb\.intro\}/);
+  assert.doesNotMatch(pbEn, /^\s{6}intro:/m);
+  assert.doesNotMatch(pbHi, /^\s{6}intro:/m);
+});
+
 // ── 2/3. One gradient hero; everything else stays flat ─────────────────────
 
-test('Stage F: the page carries no gradient at all — "This week" moved to the approved flat surface', () => {
+test('Playbook carries no gradient at all', () => {
   assert.equal((src.match(/variant="hero"/g) || []).length, 0);
   assert.doesNotMatch(src, /card-hero|linear-gradient|btn-gradient/);
   assert.match(src, /var\(--surface-elevated\)/, 'the weekly summary uses the approved elevated surface');
 });
 
-test('the weekly summary keeps readable theme-correct text and wraps cleanly — no score or rating inside it', () => {
-  const weekBlock = src.slice(src.indexOf('{pb.thisWeek}'), src.indexOf('Recent insight'));
+test('This week: one number, one label, at most one short secondary line — no score or rating', () => {
+  const weekBlock = src.slice(src.indexOf('{pb.thisWeek}'), src.indexOf('Focus Cards — blue accent'));
   assert.match(weekBlock, /text-ink/, 'theme-correct foreground rather than hardcoded white');
-  assert.match(weekBlock, /break-words/);
   assert.doesNotMatch(weekBlock, /score|rating|\d+\s*\/\s*5|%/i);
-  // Its data and wording are untouched by the restyle.
+  // Its data source is untouched by the restyle.
   assert.match(weekBlock, /data\.weekRepCount/);
   assert.match(weekBlock, /data\.weekResetCount/);
-  assert.match(weekBlock, /data\.topCue/);
-  // The wording itself still exists, in both languages, and still counts
-  // reps/resets without turning them into a score.
   for (const ns of [pbEn, pbHi]) {
-    assert.match(ns, /weekReps:/);
+    assert.match(ns, /weekRepsLabel:/);
     assert.match(ns, /weekResets:/);
-    assert.match(ns, /topCue:/);
   }
 });
 
-test('other sections are flat Cards under icon SectionHeadings — no legacy card classes, no second gradient', () => {
-  assert.ok((src.match(/<SectionHeading icon=/g) || []).length >= 4, 'each major section carries an icon heading');
+test('every section carries an icon heading inside its own single card — no legacy card classes', () => {
+  // Two headings (Latest Lesson, Reflections) wrap onto multiple lines
+  // because they also pass a `right={...}` date pill, so `icon=` isn't
+  // adjacent to the opening tag on the same line — match the opening tag
+  // itself instead of requiring `icon=` right after it.
+  assert.ok((src.match(/<SectionHeading\b/g) || []).length >= 5, 'all five sections carry an icon heading');
   assert.doesNotMatch(src, /card-surface|card-elevated|icon-tile-gradient/);
 });
 
-// ── 4-7. Existing behavior preserved per section ───────────────────────────
+// ── 4-7. Existing behavior preserved per section (now single-item overview) ─
 
-test('Focus Cards: same empty state, same build/view routes, saved cards still open the Focus Deck', () => {
-  assert.match(pbEn, /focusCardsEmpty:\s*'No Focus Cards yet\.'/);
-  assert.match(pbEn, /focusCardsBuild:\s*'Build your first Focus Card →'/);
+test('Focus Cards: shows the single most recent card, same build/view routes, unchanged data', () => {
+  assert.match(pbEn, /focusCardsEmpty:\s*'No Focus Cards yet'/);
+  assert.match(pbEn, /focusCardsBuild:\s*'Build your first Focus Card'/);
   assert.match(pbHi, /focusCardsEmpty:/);
   assert.match(pbHi, /focusCardsBuild:/);
   assert.match(src, /\{pb\.focusCardsEmpty\}/);
   assert.match(src, /pb\.focusCardsBuild/);
-  // Modernization pass: the single button that used to branch between
-  // '/focus-deck' and '/self-talk' became two conditionally-rendered
-  // buttons (a bold empty-state action vs a quiet view-all link) so the
-  // empty state could get a clearer call to action — same two routes,
-  // same reachability, still gated on the same data.
-  assert.match(src, /onAction=\{\(\) => navigate\('\/self-talk'\)\}/);
+  // Modernization pass 2: the overview shows only data.focusCards[0] — the
+  // full array is still fetched/available, just not all rendered here.
+  assert.match(src, /data\?\.focusCards\?\.\[0\]/);
   assert.match(src, /navigate\('\/focus-deck'\)/);
+  assert.match(src, /navigate\('\/self-talk'\)/);
+  // The athlete's own power line still renders verbatim and never truncates.
+  assert.match(src, /focusCard\.powerLine/);
+  assert.doesNotMatch(src, /\btruncate\b/);
 });
 
-test('Saved cues: quiet grouped pills that render the athlete\'s own words verbatim and are NOT interactive chips', () => {
+test('Saved cues: shows the single most recent cue verbatim, still read-only (never a button)', () => {
+  // The `cue` variable is derived once near the top of the component
+  // (`const cue = data?.savedCues?.[0] || null;`), then consumed by the
+  // Saved Cues card further down — check each concern where it lives.
+  assert.match(src, /const cue = data\?\.savedCues\?\.\[0\] \|\| null;/);
   const block = src.slice(src.indexOf('{pb.cuesHeading}'), src.indexOf('{pb.reflectionsHeading}'));
-  assert.match(block, /data\.savedCues\.map/);
-  assert.match(block, /<span/);
-  assert.doesNotMatch(block, /className="chip"/, 'cue pills must not reuse the interactive .chip treatment');
-  assert.match(block, /\{c\.cue\}/, 'cue text renders verbatim — never translated');
+  assert.match(block, /\{cue\.cue\}/, 'cue text renders verbatim — never translated');
+  assert.doesNotMatch(block, /<button[^>]*>[\s\S]*?cue\.cue/, 'the cue text itself must not become a button');
   assert.match(block, /\{pb\.cuesCta\}/);
-  assert.match(pbEn, /cuesCta:\s*"Do today's mental rep →"/);
+  assert.match(pbEn, /cuesCta:\s*"Do today's Mental Rep →"/);
   assert.match(pbHi, /cuesCta:/);
 });
 
-test('Reflections: own section container with existing entries, empty state and Start-a-reflection link', () => {
+test('Reflections: shows the single most recent reflection — date, short context, one takeaway', () => {
+  assert.match(src, /const reflection = data\?\.reflections\?\.\[0\] \|\| null;/);
   const block = src.slice(src.indexOf('{pb.reflectionsHeading}'));
-  assert.match(block, /data\.reflections\.map/);
   assert.match(block, /\{pb\.reflectionsEmpty\}/);
   assert.match(block, /navigate\('\/debrief'\)/);
   assert.match(block, /\{pb\.reflectionsCta\}/);
-  assert.match(pbEn, /reflectionsEmpty:\s*'No reflections yet\.'/);
+  // Athlete-written takeaway/insight still render verbatim.
+  assert.match(block, /reflection\.nextFocus/);
+  assert.match(block, /reflection\.arjunInsight/);
+  assert.match(pbEn, /reflectionsEmpty:\s*'No reflections yet'/);
   assert.match(pbEn, /reflectionsCta:\s*'Start a reflection'/);
   assert.match(pbHi, /reflectionsEmpty:/);
   assert.match(pbHi, /reflectionsCta:/);
@@ -132,56 +138,56 @@ test('Playbook stays read-only over exactly one GET /api/playbook call', () => {
   assert.doesNotMatch(src, /method:\s*'(POST|PUT|PATCH|DELETE)'/);
 });
 
-// ── 5b. Stage F: approved recipes applied, timeline explicitly NOT built ──
+// ── 5b. Dates keep the approved chip recipe; outcome-status/full-history
+// metadata (practice name, situation, outcome label, all cues, all
+// reflections) is intentionally no longer rendered on this overview — the
+// data is still fetched, just not all displayed (see file header). ────────
 
-test('Stage F applies the approved chip recipes to content that already existed', () => {
-  // Dates already in the payload get the date-pill recipe.
+test('dates on the overview keep the approved date-pill recipe, sourced from the real stored values', () => {
   assert.match(src, /chip-date-pill/);
-  assert.match(src, /o\.outcomeRecordedAt/, 'the outcome date is still the stored one');
-  assert.match(src, /r\.createdAt/, 'the reflection date is still the stored one');
-  // The stored outcome status gets the status-label recipe, not a score.
-  assert.match(src, /chip-status-label/);
-  assert.match(src, /outcomeLabel\(o\.outcomeStatus, pb\)/);
-  // The four stored statuses still map to plain result labels, both languages.
-  for (const ns of [pbEn, pbHi]) {
-    for (const k of ['outcomeHelped', 'outcomeHelpedALittle', 'outcomeDidNotHelp', 'outcomeNotTried']) {
-      assert.match(ns, new RegExp(`${k}:`));
-    }
-  }
-  // Athlete-authored cues get the read-only fact-chip recipe.
-  assert.match(src, /chip-fact/);
+  assert.match(src, /lesson\.outcomeRecordedAt/, 'the lesson date is still the stored one');
+  assert.match(src, /reflection\.createdAt/, 'the reflection date is still the stored one');
 });
 
-test('Stage F introduces NO timeline: no month grouping, milestone classification or event feed', () => {
+test('the overview intentionally no longer shows outcome-status ("It helped") language or the old OUTCOME_KEYS mapping', () => {
+  // That metadata row was explicitly dropped per the approved mockup — the
+  // lesson text itself is now the whole, single strongest takeaway.
+  assert.doesNotMatch(src, /OUTCOME_KEYS|outcomeLabel|chip-status-label/);
+  for (const ns of [pbEn, pbHi]) {
+    for (const k of ['outcomeHelped', 'outcomeHelpedALittle', 'outcomeDidNotHelp', 'outcomeNotTried']) {
+      assert.doesNotMatch(ns, new RegExp(`${k}:`));
+    }
+  }
+});
+
+test('Playbook introduces NO timeline: no month grouping, milestone classification or event feed', () => {
   assert.doesNotMatch(src, /timeline|milestone|monthGroup|groupByMonth|eventFeed|routineRow/i);
-  // No date arithmetic that would imply a chronological rebuild.
   assert.doesNotMatch(src, /getMonth\(\)|startOf|endOf|sort\(/);
 });
 
-test('Stage F adds no API surface — still exactly one read-only GET /api/playbook', () => {
+test('Playbook adds no API surface — still exactly one read-only GET /api/playbook', () => {
   assert.equal((src.match(/apiFetch\(/g) || []).length, 1);
   assert.match(src, /apiFetch\('\/api\/playbook'/);
   assert.doesNotMatch(src, /method:\s*'(POST|PUT|PATCH|DELETE)'/);
 });
 
-test('every athlete-content section survives the restyle', () => {
+test('every athlete-content section still reads its real data source', () => {
   for (const marker of [
-    'data.practiceOutcomes.map',
-    'data.focusCards.slice',
-    'data.savedCues.map',
-    'data.reflections.map',
+    'data?.practiceOutcomes?.[0]',
+    'data?.focusCards?.[0]',
+    'data?.savedCues?.[0]',
+    'data?.reflections?.[0]',
   ]) {
-    assert.ok(src.includes(marker), `${marker} must survive the Stage F restyle`);
+    assert.ok(src.includes(marker), `${marker} must be read by the overview`);
   }
 });
 
 test('empty states keep their meaning and their actions', () => {
-  // The copy now lives in the namespace; the page wires each one.
-  assert.match(pbEn, /focusCardsEmpty:\s*'No Focus Cards yet\.'/);
-  assert.match(pbEn, /cuesEmpty:\s*'No saved cues yet\.'/);
-  assert.match(pbEn, /reflectionsEmpty:\s*'No reflections yet\.'/);
-  assert.match(pbEn, /haven't recorded any lessons yet/);
-  for (const key of ['focusCardsEmpty', 'cuesEmpty', 'reflectionsEmpty', 'learningEmpty']) {
+  assert.match(pbEn, /focusCardsEmpty:\s*'No Focus Cards yet'/);
+  assert.match(pbEn, /cuesEmpty:\s*'No saved cues yet'/);
+  assert.match(pbEn, /reflectionsEmpty:\s*'No reflections yet'/);
+  assert.match(pbEn, /Practice a Mental Rep and tell Arjun how it went/);
+  for (const key of ['focusCardsEmpty', 'cuesEmpty', 'reflectionsEmpty', 'learningEmpty', 'learningEmptyTitle']) {
     assert.match(src, new RegExp(`pb\\.${key}`), `${key} must still render`);
     assert.match(pbHi, new RegExp(`${key}:`), `${key} must exist in Hindi`);
   }
@@ -192,14 +198,8 @@ test('empty states keep their meaning and their actions', () => {
 // ── 6. English and Hindi both render ───────────────────────────────────────
 
 test('every athlete-facing string has both an English and a Hindi variant', () => {
-  // Stage I: the page no longer translates inline. Copy lives in the
-  // `playbook` namespace, which must stay at full EN/HI key parity.
-  assert.match(pbHi, /अभी कोई सीख दर्ज नहीं हुई/);
-  assert.match(pbEn, /haven't recorded any lessons yet/);
-  // Modernization pass: the intro copy changed (dropped absolute "private"
-  // wording, mentions lessons too) — both languages still render it.
-  assert.match(pbHi, /सब एक ही जगह/);
-  assert.match(pbEn, /all in one place/i);
+  assert.match(pbHi, /अभी कोई सीख नहीं/);
+  assert.match(pbEn, /Practice a Mental Rep and tell Arjun how it went/);
   const keysOf = (block) => [...block.matchAll(/^\s{6}([a-zA-Z]+):/gm)].map((m) => m[1]).sort();
   assert.deepEqual(keysOf(pbEn), keysOf(pbHi), 'playbook keys must match across languages');
   // The page reads that namespace rather than branching on language inline.
