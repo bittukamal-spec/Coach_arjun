@@ -174,6 +174,12 @@ export const translations = {
       patternReaction: 'Reaction',
       patternEffect: 'Effect',
       patternDuration: 'Duration',
+      // Mobile-fix pass: the compact "My Performance Pattern" flow's own
+      // stage vocabulary — "Trigger" instead of "Situation" for that one
+      // stage; Reaction/Effect reuse the keys above unchanged. Shown when a
+      // stage has no matching saved node: never inferred, never invented.
+      patternTrigger: 'Trigger',
+      patternNotSet: 'Not set yet',
       whatHelpsTitle: 'What Already Helps',
       whatHelpsEmpty: "You haven't named what helps yet — that's one of the first things worth noticing together.",
       strengthsTitle: 'Strengths you named',
@@ -1970,6 +1976,8 @@ export const translations = {
       patternReaction: 'प्रतिक्रिया',
       patternEffect: 'असर',
       patternDuration: 'कितनी देर',
+      patternTrigger: 'ट्रिगर',
+      patternNotSet: 'अभी तय नहीं',
       whatHelpsTitle: 'क्या पहले से मदद करता है',
       whatHelpsEmpty: 'तुमने अभी नहीं बताया कि क्या मदद करता है — साथ में सबसे पहले यही देखने लायक है।',
       strengthsTitle: 'आपके बताए गुण',
