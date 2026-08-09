@@ -89,6 +89,27 @@ describe('Pressure Reset — shared practice shell (Stage 7)', () => {
     expect(await screen.findByTestId('route-probe')).toHaveProperty('textContent', 'history:/body-reset/history');
   });
 
+  // Restores the tap-target guarantee that used to live on the Train page's
+  // own "View history" control (navigationIaCleanup.dom.test.jsx) before the
+  // action was relocated here. The class must sit on the interactive element
+  // itself — a 44px parent wrapper would not give the control a real hit
+  // area — so this asserts on the button, not an ancestor.
+  test('the intro "View history" control keeps a >=44px tap target and a visible focus treatment', () => {
+    render(<TestApp />);
+    const historyBtn = screen.getByRole('button', { name: /View history/i });
+
+    expect(historyBtn.className).toMatch(/min-h-\[44px\]/);
+    // Centred content, so the label sits in the middle of that 44px box
+    // rather than hugging its top edge.
+    expect(historyBtn.className).toMatch(/items-center/);
+    expect(historyBtn.className).toMatch(/justify-center/);
+    // Keyboard users must be able to see where they are.
+    expect(historyBtn.className).toMatch(/focus-visible:ring-2/);
+    // Still a real button, and never wraps another interactive control.
+    expect(historyBtn.tagName).toBe('BUTTON');
+    expect(historyBtn.querySelector('a, button')).toBeNull();
+  });
+
   test('back from intro exits to /train, matching the pre-shell exit destination', async () => {
     render(<TestApp />);
     const user = userEvent.setup();
