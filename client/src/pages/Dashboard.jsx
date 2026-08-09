@@ -154,16 +154,18 @@ export default function Dashboard() {
                  never creates a session, never claims the deterministic
                  follow-up opener, and never touches any chat API. All of
                  that stays inside Coach itself, exactly as before. Visual
-                 refresh only: a stronger two-tone blue gradient, a subtle
-                 wave-line background, a circular icon treatment, and a
-                 circular chevron CTA — the route/behaviour are untouched. */}
+                 refresh only: a richer three-stop blue gradient that darkens
+                 toward the right (was a flat two-stop diagonal), a faint
+                 wave-line background (was reading as dominant stripes), a
+                 circular icon treatment, and a circular chevron CTA — the
+                 route/behaviour are untouched. */}
             <div className="mb-7">
               <Link
                 to="/coaching"
                 className="relative overflow-hidden block rounded-[26px] p-5 elevation-hero active:scale-[0.99] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
-                style={{ background: 'linear-gradient(135deg, #1F85D0 0%, #0C4D85 100%)' }}
+                style={{ background: 'linear-gradient(115deg, #2489D8 0%, #1668AD 50%, #0A3D6B 100%)' }}
               >
-                <CardWaves className="text-white" opacity={0.18} />
+                <CardWaves className="text-white" opacity={0.09} />
                 {/* The whole card is a single "open Coach" action, so its
                     content centers. The icon and chevron columns are the
                     same width so the centered title/sub sit at the card's
@@ -225,7 +227,16 @@ export default function Dashboard() {
                   <ChevronDown size={18} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-brand-600" aria-hidden="true" />
                 </div>
 
-                <div className="flex items-center gap-3">
+                {/* Mockup fidelity: the CTA used to sit beside the icon/copy
+                    row and, being shrink-0 with its own intrinsic width,
+                    squeezed the flex-1 title/description into a narrow
+                    stacked column (worst on the longer "Open Pressure
+                    Reset"/"Start Reflection" labels). The icon+copy row and
+                    the CTA are now stacked instead — the title/description
+                    get the row's full width to wrap naturally, and the CTA
+                    gets the full width below to stay prominent. Same
+                    onClick/route/state as before. */}
+                <div className="flex items-center gap-3 mb-4">
                   <div
                     className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
                     style={{ background: `${primaryAction.tone}1F` }}
@@ -236,13 +247,13 @@ export default function Dashboard() {
                     <h3 className="text-base font-bold text-ink leading-tight">{primaryAction.title[lang]}</h3>
                     <p className="text-caption text-slt leading-snug mt-0.5">{primaryAction.desc[lang]}</p>
                   </div>
-                  <button
-                    onClick={() => navigate(primaryAction.to, primaryActionState)}
-                    className="btn-primary shrink-0 px-4 py-3 text-[13px] leading-tight text-center whitespace-normal"
-                  >
-                    {primaryAction.cta[lang]}
-                  </button>
                 </div>
+                <button
+                  onClick={() => navigate(primaryAction.to, primaryActionState)}
+                  className="btn-primary w-full text-sm"
+                >
+                  {primaryAction.cta[lang]}
+                </button>
 
                 <div className="border-t border-dark-600 mt-4 pt-3 flex items-center justify-center gap-1.5">
                   <Sparkles size={13} className="text-brand-500 shrink-0" aria-hidden="true" />
