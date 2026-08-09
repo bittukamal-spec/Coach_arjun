@@ -238,14 +238,18 @@ describe('Starting Performance Profile', () => {
     await waitFor(() => expect(server.state.profile.agreedPriorityId).toBe('lose_focus'));
   });
 
-  // A profile that was already confirmed opens in the saved view, so the way
-  // back into coaching there is the quiet "Continue coaching" action.
+  // Modernization pass 2 removed "Continue coaching" from the saved view —
+  // the idempotent start-chat call now has exactly one remaining trigger:
+  // the one-time "Got it" completion transition right after confirming.
   test('starting the conversation opens the exact session the server created', async () => {
-    const server = makeServer({ profile: { fitResponse: 'CONFIRMED', agreedPriorityId: 'after_mistake' } });
+    const server = makeServer();
     wire(server);
     render(<App />);
     const user = userEvent.setup();
-    await user.click(await screen.findByRole('button', { name: 'Continue coaching' }));
+    await screen.findByText(PATTERN_ANCHOR);
+    await user.click(screen.getByRole('radio', { name: 'That fits' }));
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    await user.click(await screen.findByRole('button', { name: 'Start with Arjun' }));
     const state = JSON.parse((await screen.findByTestId('coaching-state')).textContent);
     expect(state.chatSessionId).toBe('cs-1');
     expect(server.state.calls).toContain('POST /api/profile/start-chat');
@@ -312,11 +316,14 @@ describe('Starting Performance Profile — confirmation summary and navigation',
   });
 
   test('opening the first conversation passes an explicit return destination, so Back does not reopen the profile', async () => {
-    const server = makeServer({ profile: { fitResponse: 'CONFIRMED', agreedPriorityId: 'after_mistake', agreedPriorityPhrase: 'what happens after a mistake' } });
+    const server = makeServer();
     wire(server);
     render(<App />);
     const user = userEvent.setup();
-    await user.click(await screen.findByRole('button', { name: 'Continue coaching' }));
+    await screen.findByText(PATTERN_ANCHOR);
+    await user.click(screen.getByRole('radio', { name: 'That fits' }));
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    await user.click(await screen.findByRole('button', { name: 'Start with Arjun' }));
     const state = JSON.parse((await screen.findByTestId('coaching-state')).textContent);
     expect(state.chatSessionId).toBe('cs-1');
     expect(state.returnTo).toBe('/dashboard');
@@ -324,11 +331,14 @@ describe('Starting Performance Profile — confirmation summary and navigation',
   });
 
   test('tapping the coaching action twice still opens the one session the server returns', async () => {
-    const server = makeServer({ profile: { fitResponse: 'CONFIRMED', agreedPriorityId: 'after_mistake', agreedPriorityPhrase: 'what happens after a mistake' } });
+    const server = makeServer();
     wire(server);
     render(<App />);
     const user = userEvent.setup();
-    const btn = await screen.findByRole('button', { name: 'Continue coaching' });
+    await screen.findByText(PATTERN_ANCHOR);
+    await user.click(screen.getByRole('radio', { name: 'That fits' }));
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    const btn = await screen.findByRole('button', { name: 'Start with Arjun' });
     await user.click(btn);
     const state = JSON.parse((await screen.findByTestId('coaching-state')).textContent);
     expect(state.chatSessionId).toBe('cs-1');
@@ -406,14 +416,19 @@ describe('Starting Performance Profile — first-time vs saved modes', () => {
     expectNoCompletionUi();
   });
 
-  test('the saved view shows the visual sections, the current focus, the response and the date', async () => {
+  test('the saved view shows the modernized visual sections, the current focus, the response and the date', async () => {
     wire(makeServer({ profile: CONFIRMED }));
     render(<App />);
     await screen.findByText('Your Performance Profile');
     expect(screen.getByText('Current Focus')).toBeTruthy();
-    expect(screen.getByText('Your Starting Pattern')).toBeTruthy();
-    expect(screen.getByText('What Already Helps')).toBeTruthy();
-    expect(screen.getByText('Where We Can Begin')).toBeTruthy();
+    expect(screen.getByText('My Game')).toBeTruthy();
+    expect(screen.getByText('My Performance Pattern')).toBeTruthy();
+    expect(screen.getByText('What Helps Me')).toBeTruthy();
+    expect(screen.getByText('My Strengths')).toBeTruthy();
+    expect(screen.getByText('Refresh my profile')).toBeTruthy();
+    // Modernization pass 2: the old verbose sections are gone from this view.
+    expect(screen.queryByText('Your Starting Pattern')).toBeNull();
+    expect(screen.queryByText('Where We Can Begin')).toBeNull();
     // The headline is the athlete-facing action label, never the
     // mid-sentence phrase used inside prose.
     expect(screen.getByText('Bounce back after mistakes')).toBeTruthy();
@@ -471,15 +486,12 @@ describe('Starting Performance Profile — first-time vs saved modes', () => {
     expect(screen.queryByRole('button', { name: 'Continue' })).toBeNull();
   });
 
-  test('Continue coaching opens the existing conversation without creating another', async () => {
-    const server = makeServer({ profile: CONFIRMED });
-    wire(server);
+  test('Modernization pass 2: the saved view has no Continue coaching action — Coach stays reachable via the bottom nav', async () => {
+    wire(makeServer({ profile: CONFIRMED }));
     render(<App />);
-    const user = userEvent.setup();
-    await user.click(await screen.findByRole('button', { name: 'Continue coaching' }));
-    const state = JSON.parse((await screen.findByTestId('coaching-state')).textContent);
-    expect(state.chatSessionId).toBe('cs-1');
-    expect(server.state.calls.filter((c) => c === 'POST /api/profile/start-chat').length).toBe(1);
+    await screen.findByText('Your Performance Profile');
+    expect(screen.queryByRole('button', { name: 'Continue coaching' })).toBeNull();
+    expect(screen.getByRole('link', { name: /Coach/ })).toBeTruthy();
   });
 
   test('a consent-pending athlete keeps the consent notice in the saved view, and is not offered coaching', async () => {

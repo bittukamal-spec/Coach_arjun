@@ -1,7 +1,9 @@
 // Starting-profile service (PR 3). Pure-ish orchestration over an injectable
 // Prisma-like client + injectable AI/safety deps, so routes stay thin and
 // tests never touch a real DB or the real Anthropic API. Raw OnboardingSession
-// answers are never modified here.
+// answers are never modified here — EXCEPT by `updateProfileAnswers` (PR:
+// Performance Check-in), which is the one deliberate, additive, athlete-
+// initiated exception, scoped to a narrow whitelist (see below).
 
 const { PrismaClient } = require('@prisma/client');
 const { buildRuleOutput, renderSections, groundingAnchors, priorityPhrase } = require('./ruleEngine');
@@ -12,6 +14,8 @@ const { buildDisplayProfile } = require('./displayProfile');
 const { normaliseFocusInput, buildFocusOptions } = require('./currentFocus');
 const { checkFocusScope } = require('./focusScope');
 const realSafety = require('../services/safety');
+const C = require('../onboarding/config');
+const { validateAnswers } = require('../onboarding/validate');
 
 const prisma = new PrismaClient();
 const CORRECTION_MAX = 120;
@@ -130,6 +134,56 @@ async function getOrCreateWording(client, profile, user, language, deps = {}) {
   }
 }
 
+// ── Performance Check-in — editable question ids (additive) ────────────────
+// Goals/supports/strengths are always reachable and branch-independent.
+// Pattern (reaction/effect/duration) follow-up questions are scoped to the
+// athlete's OWN already-resolved branch only — `difficult_moments` and
+// `primary_priority` (which choose the branch) and sport/role/competition
+// level/experience (Settings-owned) are never editable here, so this can
+// never reshape which branch the athlete is on or invalidate other answers.
+const CHECKIN_ALWAYS_EDITABLE = ['broad_goals', 'four_week_outcome', 'supports', 'strengths'];
+
+// Screen ids for the athlete's own branch (config-driven — no per-branch
+// special-casing needed here, same source `buildRuleOutput` already reads).
+function branchScreenIds(branchId) {
+  return C.config.branches[branchId]?.screenIds || [];
+}
+function branchQuestionIds(branchId) {
+  return branchScreenIds(branchId).flatMap((sid) => C.config.branchScreens[sid]?.questionIds || []);
+}
+
+function resolvedBranchId(session) {
+  return session.branchId || C.resolveBranch(session.answers || {}) || 'unsure';
+}
+
+// Grouped SCREEN ids (not raw question ids) so the client can render each
+// section's own titleKey/subtitleKey/question without re-deriving branch
+// logic itself.
+function checkinScreens(session) {
+  const branchId = resolvedBranchId(session);
+  return {
+    goals: ['broad_goals', 'four_week_outcome'],
+    helps: ['supports'],
+    strengths: ['strengths'],
+    pattern: branchScreenIds(branchId),
+  };
+}
+
+function checkinEditableQuestionIds(session) {
+  const branchId = resolvedBranchId(session);
+  return new Set([...CHECKIN_ALWAYS_EDITABLE, ...branchQuestionIds(branchId)]);
+}
+
+// Raw current answers for exactly the editable question ids — never any
+// other stored answer (sport, role, difficult_moments, etc. are omitted).
+function checkinAnswers(session) {
+  const editable = checkinEditableQuestionIds(session);
+  const answers = session.answers || {};
+  const out = {};
+  for (const qid of editable) out[qid] = answers[qid] || { answerIds: [] };
+  return out;
+}
+
 // `focusRow` is the athlete's CurrentCoachingFocus, or null when they have
 // never changed focus — the display layer falls back to agreedPriorityId.
 // Everything added here is derived from already-stored rows; building it
@@ -174,6 +228,14 @@ function serializeProfile(profile, wording, user, session, focusRow = null) {
       generatedAt: profile.generatedAt,
       updatedAt: profile.updatedAt,
       firstChatSessionId: profile.firstChatSessionId,
+      // ── Performance Check-in (additive) — everything the client needs to
+      // render/pre-fill the update flow without duplicating branch logic.
+      // Screen ids only (not raw answer labels — those still come from the
+      // shared client-side onboarding config, same as onboarding itself).
+      checkin: {
+        screens: checkinScreens(session),
+        answers: checkinAnswers(session),
+      },
     },
     consent: consentState(user),
   };
@@ -331,8 +393,70 @@ async function updateCurrentFocus(client, userId, body, deps = {}) {
   return { saved: true, focusRow: row };
 }
 
+// ── Performance Check-in — update structured profile answers ───────────────
+// The one deliberate, additive exception to "raw answers are never modified"
+// at the top of this file: an athlete-initiated refresh of a narrow, server-
+// enforced whitelist of question ids (see checkinEditableQuestionIds above).
+//
+// Reuses the EXACT SAME onboarding validator (`validateAnswers`) onboarding's
+// own PATCH /session route uses, including its branch-consistency check — a
+// submitted qid that isn't reachable in the athlete's OWN resolved branch is
+// rejected the same way it would be during onboarding itself.
+//
+// After a successful merge, `ruleOutput` is recomputed via the existing,
+// pure, deterministic `buildRuleOutput` (no AI, no new StartingProfileWording
+// row — the cached wording's prose sections are no longer rendered on the
+// redesigned overview, so nothing needs regenerating). `fitResponse`,
+// `correctionSelectedId`, `correctionText`, `agreedPriorityId`, `confirmedAt`,
+// `generatedAt` and `firstChatSessionId` are all left untouched: this updates
+// the SAME row, it does not create a new attempt, a new session, or a new
+// profile, and `OnboardingSession.status`/`completedAt` are never touched —
+// completing a Check-in cannot make the athlete "new" again.
+async function updateProfileAnswers(client, userId, body, deps = {}) {
+  const { profile, session } = await getOrCreateProfile(client, userId);
+  const payload = body?.answers && typeof body.answers === 'object' ? body.answers : {};
+  const editable = checkinEditableQuestionIds(session);
+
+  for (const qid of Object.keys(payload)) {
+    if (!editable.has(qid)) {
+      const e = new Error('INVALID_QUESTION');
+      e.code = 'INVALID_QUESTION';
+      e.questionId = qid;
+      throw e;
+    }
+  }
+
+  const merged = { ...(session.answers || {}) };
+  for (const [qid, ans] of Object.entries(payload)) merged[qid] = ans;
+
+  const check = validateAnswers(payload, merged);
+  if (!check.ok) {
+    const e = new Error(check.code);
+    e.code = check.code;
+    e.questionId = check.questionId;
+    throw e;
+  }
+  for (const [qid, cleaned] of Object.entries(check.cleaned)) merged[qid] = cleaned;
+
+  await client.onboardingSession.update({ where: { id: session.id }, data: { answers: merged } });
+  const freshSession = { ...session, answers: merged };
+
+  const ruleOutput = buildRuleOutput(freshSession);
+  const updatedProfile = await client.startingPerformanceProfile.update({
+    where: { id: profile.id },
+    data: {
+      ruleOutput,
+      supportedObservations: ruleOutput.observations,
+      suggestedPriorityId: ruleOutput.suggestedPriorityId,
+    },
+  });
+
+  return { profile: updatedProfile, session: freshSession };
+}
+
 module.exports = {
   prisma, getCompletedSession, getOrCreateProfile, getOrCreateWording, serializeProfile,
   confirmProfile, startFirstChat, consentState, maskEmail, buildWordingInput, difficultMoments,
-  loadCurrentFocus, updateCurrentFocus,
+  loadCurrentFocus, updateCurrentFocus, checkinEditableQuestionIds, checkinScreens, checkinAnswers,
+  updateProfileAnswers,
 };

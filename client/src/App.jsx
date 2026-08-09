@@ -12,6 +12,7 @@ import ChatPage from './pages/ChatPage';
 import AccountPage from './pages/AccountPage';
 import RitualPage from './pages/RitualPage';
 import StartingProfilePage from './pages/StartingProfilePage';
+import PerformanceCheckinPage from './pages/PerformanceCheckinPage';
 import TrainPage from './pages/TrainPage';
 import DebriefPage from './pages/DebriefPage';
 import FocusLockGame from './pages/games/FocusLockGame';
@@ -86,6 +87,16 @@ function App() {
         element={
           <ProtectedRoute requireOnboarding={true}>
             <StartingProfilePage />
+          </ProtectedRoute>
+        }
+      />
+      {/* Performance Check-in — returning-user profile update flow. Reuses
+          the completed profile, never re-triggers onboarding. */}
+      <Route
+        path="/starting-profile/check-in"
+        element={
+          <ProtectedRoute requireOnboarding={true}>
+            <PerformanceCheckinPage />
           </ProtectedRoute>
         }
       />

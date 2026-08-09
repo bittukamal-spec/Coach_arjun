@@ -195,10 +195,12 @@ test('useStartingProfile re-arms its mounted ref on mount, not only on cleanup',
   assert.match(hook, /seq === loadSeq\.current/);
 });
 
-test('the hook still talks to exactly the four profile endpoints', () => {
+test('the hook still talks to exactly the five profile endpoints', () => {
+  // Performance Check-in added PATCH /api/profile/answers alongside the
+  // original four.
   const paths = [...src('hooks/useStartingProfile.js').matchAll(/apiFetch\('([^']+)'/g)].map((m) => m[1]).sort();
   assert.deepEqual(paths, [
-    '/api/profile/confirm', '/api/profile/current-focus',
+    '/api/profile/answers', '/api/profile/confirm', '/api/profile/current-focus',
     '/api/profile/start-chat', '/api/profile/starting',
   ]);
 });

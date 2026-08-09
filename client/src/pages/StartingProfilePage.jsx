@@ -1,6 +1,9 @@
 import { useMemo, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Activity, User as UserIcon, Trophy, Target as TargetIcon, Flag, CheckCircle2 } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import {
+  ChevronLeft, ChevronRight, Activity, User as UserIcon, Trophy, Target as TargetIcon,
+  Flag, CheckCircle2, RefreshCw, Settings as SettingsIcon,
+} from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
@@ -10,8 +13,7 @@ import { useStartingProfile } from '../hooks/useStartingProfile';
 import { SelectableOption, CustomAnswerField } from '../components/onboarding';
 import {
   ProfileSectionCard, ProfileChipGroup, CurrentFocusCard,
-  PerformancePathway, ChangeFocusDialog, ProfileSkeleton, ConsentNotice,
-  ContinueCoachingRow,
+  PerformancePathway, PerformancePatternFlow, ChangeFocusDialog, ProfileSkeleton, ConsentNotice,
 } from '../components/profile';
 import { isValidCustomText } from '../utils/sanitizeCustomText';
 import * as CFG from '../onboarding/config';
@@ -272,15 +274,19 @@ export default function StartingProfilePage() {
         </h1>
         {!savedMode && <p className="text-body text-slt mb-4 leading-relaxed">{t.subtitle}</p>}
 
-        <div className="flex flex-col gap-3">
-          {/* ── Current / suggested focus ── */}
-          {savedMode ? (
+        {savedMode ? (
+          // ── Modernized SAVED-profile overview (approved mockup) ─────────
+          // Compact, six-section overview: Current Focus, My Game, My
+          // Performance Pattern, What Helps Me, My Strengths, Refresh My
+          // Profile. The old verbose report (full snapshot chip wall,
+          // vertical Starting Pattern + notes, prose "A possible pattern"
+          // and "Where we can begin", Continue coaching row, and the
+          // disclaimer footer) is intentionally gone from THIS view —
+          // Coach stays reachable via the bottom nav either way. The
+          // first-time review-before-confirming flow below is untouched.
+          <div className="flex flex-col gap-3">
             <CurrentFocusCard
               label={t.currentFocusLabel}
-              // The server always resolves a current focus for a confirmed
-              // profile (falling back to the agreed starting priority), so the
-              // suggested label is only a defence against an older payload —
-              // without it the whole card would vanish.
               focusLabel={dp?.currentFocus?.label || dp?.suggestedFocus?.label}
               helper={t.currentFocusHelper}
               updatedText={focusUpdated ? t.updatedOn(focusUpdated) : null}
@@ -288,77 +294,147 @@ export default function StartingProfilePage() {
               changeFocusLabel={t.changeFocus}
               changeFocusRef={changeFocusRef}
             />
-          ) : (
+
+            {/* ── My Game — display only; sport/role/level stay Settings-owned. */}
+            {snapshotChips.length > 0 && (
+              <ProfileSectionCard id="profile-game" title={t.myGameTitle}>
+                <ProfileChipGroup items={snapshotChips} ariaLabel={t.myGameTitle} />
+                <Link to="/account" className="inline-flex items-center gap-1 mt-3 min-h-[44px] text-caption font-semibold text-brand-400 active:opacity-70">
+                  <SettingsIcon size={13} aria-hidden="true" />
+                  {t.myGameSettingsLink}
+                </Link>
+              </ProfileSectionCard>
+            )}
+
+            {/* ── My Performance Pattern — compact visual sequence, Review pattern opens the structured edit flow scoped to just this. */}
+            {dp?.startingPattern?.nodes?.length > 0 && (
+              <ProfileSectionCard id="profile-pattern" title={t.patternTitle}>
+                <PerformancePatternFlow nodes={dp.startingPattern.nodes} stepAria={t.patternStepAria} ariaLabel={t.patternTitle} />
+                <button
+                  type="button"
+                  onClick={() => navigate('/starting-profile/check-in?section=pattern')}
+                  className="inline-flex items-center gap-1 mt-4 min-h-[44px] text-caption font-semibold text-brand-400 active:opacity-70"
+                >
+                  {t.reviewPattern} <ChevronRight size={12} aria-hidden="true" />
+                </button>
+              </ProfileSectionCard>
+            )}
+
+            {/* ── What Helps Me — checkmark list; Edit opens the structured edit flow scoped to just this. */}
+            <ProfileSectionCard id="profile-helps" title={t.whatHelpsMeTitle}>
+              {supportChips.length > 0 ? (
+                <ul aria-label={t.whatHelpsMeTitle} className="list-none p-0 flex flex-col gap-2">
+                  {supportChips.map((c) => (
+                    <li key={c.key} className="flex items-start gap-2 text-body text-ink break-words">
+                      <CheckCircle2 size={16} className="text-win-500 shrink-0 mt-0.5" aria-hidden="true" />
+                      {c.label}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-body text-slt leading-relaxed">{t.whatHelpsEmpty}</p>
+              )}
+              <button
+                type="button"
+                onClick={() => navigate('/starting-profile/check-in?section=helps')}
+                className="min-h-[44px] inline-flex items-center mt-3 text-caption font-semibold text-brand-400 active:opacity-70"
+              >
+                {t.editAction}
+              </button>
+            </ProfileSectionCard>
+
+            {/* ── My Strengths — chips; Edit opens the structured edit flow scoped to just this. */}
+            <ProfileSectionCard id="profile-strengths" title={t.myStrengthsTitle}>
+              {strengthChips.length > 0 && <ProfileChipGroup items={strengthChips} ariaLabel={t.myStrengthsTitle} />}
+              <button
+                type="button"
+                onClick={() => navigate('/starting-profile/check-in?section=strengths')}
+                className="min-h-[44px] inline-flex items-center mt-3 text-caption font-semibold text-brand-400 active:opacity-70"
+              >
+                {t.editAction}
+              </button>
+            </ProfileSectionCard>
+
+            {/* ── Refresh my profile — the Performance Check-in entry point. */}
+            <button
+              type="button"
+              onClick={() => navigate('/starting-profile/check-in')}
+              className="w-full text-left flex items-center gap-3 rounded-2xl border border-dark-600 p-4 active:scale-[0.99] transition-transform"
+              style={{ background: 'rgba(23,105,170,0.07)' }}
+            >
+              <span className="w-11 h-11 rounded-full flex items-center justify-center shrink-0" style={{ background: 'rgba(23,105,170,0.14)' }} aria-hidden="true">
+                <RefreshCw size={20} style={{ color: 'var(--brand-primary)' }} />
+              </span>
+              <span className="flex-1 min-w-0">
+                <span className="block font-bold text-ink">{t.refreshProfileTitle}</span>
+                <span className="block text-caption text-slt mt-0.5 break-words">{t.refreshProfileDesc}</span>
+              </span>
+              <ChevronRight size={16} className="text-muted shrink-0" aria-hidden="true" />
+            </button>
+          </div>
+        ) : (
+          // ── First-time review-before-confirming flow — unchanged ────────
+          <div className="flex flex-col gap-3">
             <CurrentFocusCard
               label={t.suggestedFocusLabel}
               focusLabel={dp?.suggestedFocus?.label}
               helper={t.suggestedFocusHelper}
             />
-          )}
 
-          {/* ── Athlete snapshot — now a visible heading, not sr-only ── */}
-          {snapshotChips.length > 0 && (
-            <ProfileSectionCard id="profile-snapshot" title={t.snapshotTitle}>
-              <ProfileChipGroup items={snapshotChips} ariaLabel={t.snapshotTitle} />
-            </ProfileSectionCard>
-          )}
+            {snapshotChips.length > 0 && (
+              <ProfileSectionCard id="profile-snapshot" title={t.snapshotTitle}>
+                <ProfileChipGroup items={snapshotChips} ariaLabel={t.snapshotTitle} />
+              </ProfileSectionCard>
+            )}
 
-          {/* ── Your Starting Pattern — the frozen onboarding baseline ── */}
-          {dp?.startingPattern?.nodes?.length > 0 && (
-            <ProfileSectionCard
-              id="profile-pattern"
-              title={t.startingPatternTitle}
-              note={t.startingPatternNote}
-            >
-              <PerformancePathway
-                nodes={dp.startingPattern.nodes}
-                stepAria={t.patternStepAria}
-                kindLabels={patternKindLabels}
-              />
-              {(dp.startingPattern.notes || []).length > 0 && (
-                <ul className="list-none p-0 mt-3 flex flex-col gap-1">
-                  {dp.startingPattern.notes.map((n) => (
-                    <li key={n.kind} className="text-caption text-slt break-words">{n.text}</li>
-                  ))}
-                </ul>
-              )}
-            </ProfileSectionCard>
-          )}
+            {dp?.startingPattern?.nodes?.length > 0 && (
+              <ProfileSectionCard
+                id="profile-pattern"
+                title={t.startingPatternTitle}
+                note={t.startingPatternNote}
+              >
+                <PerformancePathway
+                  nodes={dp.startingPattern.nodes}
+                  stepAria={t.patternStepAria}
+                  kindLabels={patternKindLabels}
+                />
+                {(dp.startingPattern.notes || []).length > 0 && (
+                  <ul className="list-none p-0 mt-3 flex flex-col gap-1">
+                    {dp.startingPattern.notes.map((n) => (
+                      <li key={n.kind} className="text-caption text-slt break-words">{n.text}</li>
+                    ))}
+                  </ul>
+                )}
+              </ProfileSectionCard>
+            )}
 
-          {/* ── What Already Helps — the athlete's supports.
-               Shown whenever there are supports, and also when BOTH groups are
-               empty, so "nothing named yet" is said once in a real card rather
-               than leaving the page with a silent gap. ── */}
-          {(supportChips.length > 0 || strengthChips.length === 0) && (
-            <ProfileSectionCard id="profile-helps" title={t.whatHelpsTitle}>
-              {supportChips.length > 0
-                ? <ProfileChipGroup items={supportChips} ariaLabel={t.whatHelpsTitle} />
-                : <p className="text-body text-slt leading-relaxed">{t.whatHelpsEmpty}</p>}
-            </ProfileSectionCard>
-          )}
+            {(supportChips.length > 0 || strengthChips.length === 0) && (
+              <ProfileSectionCard id="profile-helps" title={t.whatHelpsTitle}>
+                {supportChips.length > 0
+                  ? <ProfileChipGroup items={supportChips} ariaLabel={t.whatHelpsTitle} />
+                  : <p className="text-body text-slt leading-relaxed">{t.whatHelpsEmpty}</p>}
+              </ProfileSectionCard>
+            )}
 
-          {/* ── Strengths you named — a separate group, omitted when empty ── */}
-          {strengthChips.length > 0 && (
-            <ProfileSectionCard id="profile-strengths" title={t.strengthsTitle}>
-              <ProfileChipGroup items={strengthChips} ariaLabel={t.strengthsTitle} />
-            </ProfileSectionCard>
-          )}
+            {strengthChips.length > 0 && (
+              <ProfileSectionCard id="profile-strengths" title={t.strengthsTitle}>
+                <ProfileChipGroup items={strengthChips} ariaLabel={t.strengthsTitle} />
+              </ProfileSectionCard>
+            )}
 
-          {/* ── A possible pattern — the stored interpretation wording,
-               verbatim. Never regenerated, never re-worded here. ── */}
-          {dp?.interpretation && (
-            <ProfileSectionCard id="profile-interpretation" title={t.sectionPattern}>
-              <p className="text-body text-ink leading-relaxed whitespace-pre-line">{dp.interpretation}</p>
-            </ProfileSectionCard>
-          )}
+            {dp?.interpretation && (
+              <ProfileSectionCard id="profile-interpretation" title={t.sectionPattern}>
+                <p className="text-body text-ink leading-relaxed whitespace-pre-line">{dp.interpretation}</p>
+              </ProfileSectionCard>
+            )}
 
-          {/* ── Where We Can Begin — stored wording, never regenerated ── */}
-          {dp?.nextStep && (
-            <ProfileSectionCard id="profile-begin" title={t.whereWeBeginTitle}>
-              <p className="text-body text-ink leading-relaxed whitespace-pre-line">{dp.nextStep}</p>
-            </ProfileSectionCard>
-          )}
-        </div>
+            {dp?.nextStep && (
+              <ProfileSectionCard id="profile-begin" title={t.whereWeBeginTitle}>
+                <p className="text-body text-ink leading-relaxed whitespace-pre-line">{dp.nextStep}</p>
+              </ProfileSectionCard>
+            )}
+          </div>
+        )}
 
         {safetyGuidance && (
           // Same theme-branched warn tokens as the consent notice: the fixed
@@ -426,19 +502,11 @@ export default function StartingProfilePage() {
           </div>
         )}
 
-        {/* ── Saved profile: one quiet way back into coaching. `startChat` is
-             idempotent server-side, so this reopens the existing first
-             conversation and never creates a second. ── */}
-        {savedMode && !consent.pending && (
-          <div className="mt-5">
-            <ContinueCoachingRow
-              label={t.continueCoaching}
-              busyLabel={t.starting}
-              busy={starting}
-              onClick={handleStartChat}
-            />
-          </div>
-        )}
+        {/* Modernization pass: the "Continue coaching" row was removed from
+            the saved-profile view — Coach stays reachable via the bottom
+            nav, which every savedMode render already mounts. `startChat`/
+            `handleStartChat` remain wired for the one-time completion
+            transition below, which still needs them. */}
 
         {/* Consent still outstanding: a pending minor reopening their profile
             must not be left without the resend action, and gets no route into
@@ -482,7 +550,10 @@ export default function StartingProfilePage() {
 
         {error && <p className="text-caption text-red-400 mt-3" role="alert">{error}</p>}
 
-        <p className="text-caption text-muted mt-6 leading-relaxed text-center">{t.notDiagnosis}</p>
+        {/* Modernization pass: the disclaimer footer was removed from the
+            saved-profile view per the approved mockup; it still shows during
+            the first-time review/confirmation flow, where it matters most. */}
+        {!savedMode && <p className="text-caption text-muted mt-6 leading-relaxed text-center">{t.notDiagnosis}</p>}
 
         {/* Focus-change success is announced, not just shown. */}
         <div role="status" aria-live="polite" className="sr-only">{focusToast || ''}</div>

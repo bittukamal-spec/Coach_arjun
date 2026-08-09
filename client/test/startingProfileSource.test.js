@@ -73,10 +73,12 @@ test('corrections are limited to the athlete\'s own options plus their own words
   assert.match(page, /isValidCustomText\(correctionText, CORRECTION_MAX\)/);
 });
 
-test('the hook talks to the four profile endpoints and nothing else', () => {
+test('the hook talks to the five profile endpoints and nothing else', () => {
+  // Performance Check-in added PATCH /api/profile/answers alongside the
+  // original four — the hook still owns exactly this set.
   const paths = [...hook.matchAll(/apiFetch\('([^']+)'/g)].map((m) => m[1]).sort();
   assert.deepEqual(paths, [
-    '/api/profile/confirm', '/api/profile/current-focus',
+    '/api/profile/answers', '/api/profile/confirm', '/api/profile/current-focus',
     '/api/profile/start-chat', '/api/profile/starting',
   ]);
 });
@@ -181,10 +183,13 @@ test('the saved view shows the current focus and a date, and stays read-only', (
   assert.equal((page.match(/<SelectableOption/g) || []).length, 4);
 });
 
-test('the coaching action in the saved view reuses the idempotent endpoint, never a second start', () => {
-  assert.match(page, /\{savedMode && !consent\.pending && \(/);
-  assert.match(page, /onClick=\{handleStartChat\}/);
-  // One handler, one endpoint — no second creation path was added.
+test('Modernization pass 2: "Continue coaching" was removed from the saved view — Coach stays reachable via the bottom nav instead', () => {
+  assert.doesNotMatch(page, /ContinueCoachingRow/);
+  assert.doesNotMatch(page, /\{savedMode && !consent\.pending && \(/);
+  // The idempotent start-chat call is still used, but ONLY by the one-time
+  // completion transition — no second creation path was added anywhere.
+  assert.match(page, /\{confirmed && !savedMode && \(/);
+  assert.equal((page.match(/onClick=\{handleStartChat\}/g) || []).length, 1);
   assert.equal((page.match(/startChat\(\)/g) || []).length, 1);
 });
 
