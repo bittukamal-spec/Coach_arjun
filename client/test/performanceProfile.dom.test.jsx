@@ -256,19 +256,27 @@ test('My Game chips render the athlete\'s factual answers, and omit what is miss
   expect(within(list2).getAllByRole('listitem')).toHaveLength(1);
 });
 
-// ── 6–7. Starting Pattern pathway ──────────────────────────────────────────
+// ── 6–7. My Performance Pattern — always-3-stage vertical flow (mobile fix) ─
+// Trigger / Reaction / Effect are found by TYPE, never by array position —
+// see PerformancePatternFlow.jsx for why a positional slice used to be able
+// to drop a stage the server actually sent.
 
-test('My Performance Pattern is a compact horizontal sequence, Duration excluded, with a Review pattern action', async () => {
+test('a complete pattern renders exactly Trigger, Reaction, Effect — Duration excluded, with a Review pattern action', async () => {
   renderPage();
   await screen.findByText('My Performance Pattern');
   const ol = await screen.findByRole('list', { name: 'My Performance Pattern' });
-  // Duration is deliberately excluded from this compact overview.
   const items = within(ol).getAllByRole('listitem');
   expect(items).toHaveLength(3);
+  expect(ol.textContent).toContain('Trigger');
+  expect(ol.textContent).toContain('Reaction');
+  expect(ol.textContent).toContain('Effect');
   expect(ol.textContent).toContain('After a mistake');
   expect(ol.textContent).toContain('Frustration with yourself can rise');
   expect(ol.textContent).toContain('Your focus may dip for a bit');
+  // Duration is deliberately excluded from this compact overview, but the
+  // underlying data was never deleted — see the "still fetched" test below.
   expect(ol.textContent).not.toContain('That feeling can stay with you through the session');
+  expect(ol.textContent).not.toMatch(/Not set yet/);
   // Connectors are decorative, never announced.
   for (const el of ol.querySelectorAll('[aria-hidden="true"]')) {
     expect(el.getAttribute('aria-hidden')).toBe('true');
@@ -283,13 +291,65 @@ test('Review pattern navigates into the Performance Check-in flow scoped to just
   expect(await screen.findByTestId('checkin-route')).toHaveProperty('textContent', '/starting-profile/check-in?section=pattern');
 });
 
-test('a pattern with only a situation node renders cleanly, with no empty state', async () => {
+test('all three stages remain present when only a situation node is saved — missing stages show "Not set yet", nothing fabricated', async () => {
   const s = makeServer();
   s.state.profile.displayProfile.startingPattern.nodes = [{ type: 'situation', label: 'Situation', text: 'After a mistake' }];
   renderPage({ server: s });
   await screen.findByText('My Performance Pattern');
   const ol = await screen.findByRole('list', { name: 'My Performance Pattern' });
-  expect(within(ol).getAllByRole('listitem')).toHaveLength(1);
+  const items = within(ol).getAllByRole('listitem');
+  expect(items).toHaveLength(3);
+  expect(ol.textContent).toContain('Trigger');
+  expect(ol.textContent).toContain('After a mistake');
+  // Reaction and Effect each get their own "Not set yet" — never an
+  // invented reaction/effect, and never a silently-omitted stage.
+  const notSetCount = (ol.textContent.match(/Not set yet/g) || []).length;
+  expect(notSetCount).toBe(2);
+});
+
+test('the mapping bug this pass fixes: multiple reaction-dimension nodes no longer crowd out the effect stage', async () => {
+  // Reproduces the exact shape the old positional `nodes.slice(0, 3)` could
+  // drop a real, server-sent effect node for: situation + two reactions +
+  // one effect (four non-duration nodes) — the effect used to be silently
+  // cut off. It must now render, found by type, not position.
+  const s = makeServer();
+  s.state.profile.displayProfile.startingPattern.nodes = [
+    { type: 'situation', label: 'Situation', text: 'After a mistake' },
+    { type: 'reaction', label: 'Reaction', text: 'I keep thinking about it' },
+    { type: 'reaction', label: 'Reaction', text: 'I get angry with myself' },
+    { type: 'effect', label: 'Performance effect', text: 'My focus drops for the next few plays' },
+  ];
+  renderPage({ server: s });
+  await screen.findByText('My Performance Pattern');
+  const ol = await screen.findByRole('list', { name: 'My Performance Pattern' });
+  expect(within(ol).getAllByRole('listitem')).toHaveLength(3);
+  expect(ol.textContent).toContain('My focus drops for the next few plays');
+  expect(ol.textContent).not.toMatch(/Not set yet/);
+});
+
+test('Duration is omitted from the overview but remains in the fetched payload, unchanged', async () => {
+  renderPage();
+  await screen.findByText('My Performance Pattern');
+  // The fixture's DISPLAY.startingPattern.nodes still carries the duration
+  // node — this test fails if anything upstream ever strips it from data.
+  expect(DISPLAY.startingPattern.nodes.some((n) => n.type === 'duration')).toBe(true);
+  const ol = await screen.findByRole('list', { name: 'My Performance Pattern' });
+  expect(ol.textContent).not.toContain('That feeling can stay with you through the session');
+});
+
+test('a long reaction/effect value wraps instead of overflowing', async () => {
+  const s = makeServer();
+  const long = 'A very long saved reaction that a real athlete might genuinely write across several lines on a narrow 320px phone screen without breaking the layout';
+  s.state.profile.displayProfile.startingPattern.nodes = [
+    { type: 'situation', label: 'Situation', text: 'After a mistake' },
+    { type: 'reaction', label: 'Reaction', text: long },
+  ];
+  renderPage({ server: s });
+  await screen.findByText('My Performance Pattern');
+  const ol = await screen.findByRole('list', { name: 'My Performance Pattern' });
+  const value = within(ol).getByText(long);
+  expect(value.className).toMatch(/break-words/);
+  expect(value.className).not.toMatch(/whitespace-nowrap|truncate|line-clamp/);
 });
 
 // ── 8–9. Helps + Where we can begin ────────────────────────────────────────

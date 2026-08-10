@@ -138,6 +138,17 @@ export default function StartingProfilePage() {
     duration: t.patternDuration,
   }), [t]);
 
+  // Mobile-fix pass: the compact "My Performance Pattern" flow (saved view
+  // only) relabels the situation stage "Trigger" — the OLD pathway above
+  // (still used by the first-time review flow) keeps "Situation" unchanged.
+  // Reaction/Effect wording is identical in both, so those two keys are
+  // shared rather than duplicated.
+  const compactPatternLabels = useMemo(() => ({
+    situation: t.patternTrigger,
+    reaction: t.patternReaction,
+    effect: t.patternEffect,
+  }), [t]);
+
   const needsCorrection = fit === 'NOT_REALLY';
   const correctionReady =
     !needsCorrection || !!pickedPriority || isValidCustomText(correctionText, CORRECTION_MAX);
@@ -309,7 +320,12 @@ export default function StartingProfilePage() {
             {/* ── My Performance Pattern — compact visual sequence, Review pattern opens the structured edit flow scoped to just this. */}
             {dp?.startingPattern?.nodes?.length > 0 && (
               <ProfileSectionCard id="profile-pattern" title={t.patternTitle}>
-                <PerformancePatternFlow nodes={dp.startingPattern.nodes} stepAria={t.patternStepAria} ariaLabel={t.patternTitle} />
+                <PerformancePatternFlow
+                  nodes={dp.startingPattern.nodes}
+                  stageLabels={compactPatternLabels}
+                  notSetLabel={t.patternNotSet}
+                  ariaLabel={t.patternTitle}
+                />
                 <button
                   type="button"
                   onClick={() => navigate('/starting-profile/check-in?section=pattern')}
