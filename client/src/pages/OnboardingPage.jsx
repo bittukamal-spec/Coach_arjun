@@ -158,6 +158,9 @@ export default function OnboardingPage() {
     const ans = working[qid] || {};
     const ids = ans.answerIds || [];
     if (ids.length === 0) return !q.required;
+    // limit is 1 for every single-choice question, so this also catches an
+    // in-flight session with >1 stored ids from before it became
+    // single-choice — the ambiguous-state notice above is what resolves it.
     if (ids.length > q.limit) return false;
     const customSel = ids.filter((id) => CFG.isCustom(qid, id));
     if (customSel.length && !isValidCustomText(ans.customText || '', CFG.customMax(qid, customSel[0]))) return false;
@@ -242,7 +245,13 @@ export default function OnboardingPage() {
     const sel = working[qid]?.answerIds || [];
     const atLimit = multi && sel.filter((id) => !CFG.isExclusive(qid, id)).length >= q.limit;
     const isSport = qid === 'sport';
-    const customId = sel.find((id) => CFG.isCustom(qid, id));
+    // Defence in depth for an in-flight onboarding session started before a
+    // question became single-choice: >1 stored ids can't be shown as one
+    // radio selection, so none render pre-selected and the athlete must
+    // choose one — same rule and same notice as Performance Check-in's
+    // CheckinQuestion (questionValid enforces it before Continue enables).
+    const ambiguous = !multi && sel.length > 1;
+    const customId = !ambiguous && sel.find((id) => CFG.isCustom(qid, id));
 
     // Grid only when every label in this set is short (see TILE_MAX_LABEL).
     // Sport additionally carries an emoji marker, so it keeps its tiles
@@ -252,13 +261,16 @@ export default function OnboardingPage() {
     return (
       <div key={qid} className="mb-2">
         {groupLabel && <h2 className="text-body font-semibold text-ink mb-3">{groupLabel}</h2>}
+        {ambiguous && (
+          <p className="text-caption text-amber-400 mb-3" role="status">{ui.chooseOneNotice}</p>
+        )}
         <OptionGrid
           layout={useGrid ? 'grid' : 'stack'}
           multi={multi}
           ariaLabel={groupLabel || label(screen.titleKey)}
         >
           {options.map((a) => {
-            const selected = sel.includes(a.id);
+            const selected = !ambiguous && sel.includes(a.id);
             const disabled = multi && atLimit && !selected && !CFG.isExclusive(qid, a.id);
             return (
               <SelectableOption

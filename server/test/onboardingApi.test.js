@@ -172,7 +172,7 @@ async function fillMistakes(call, ver = 2) {
   await patch({ competition_level: { answerIds: ['state'] }, experience_level: { answerIds: ['competitive'] } }, 'playing_context');
   await patch({ difficult_moments: { answerIds: ['after_mistake', 'lose_focus'] } }, 'difficult_moments');
   await patch({ primary_priority: { answerIds: ['after_mistake'] } }, 'primary_priority');
-  await patch({ mistakes_first_response: { answerIds: ['keep_thinking', 'angry_self'] } }, 'mistakes_first_response');
+  await patch({ mistakes_first_response: { answerIds: ['keep_thinking'] } }, 'mistakes_first_response');
   await patch({ mistakes_next: { answerIds: ['hesitate'] } }, 'mistakes_next');
   await patch({ mistakes_recovery: { answerIds: ['few_minutes'] } }, 'mistakes_recovery');
   await patch({ contextual_pressures: { answerIds: ['own_expectations'] } }, 'contextual_pressures');

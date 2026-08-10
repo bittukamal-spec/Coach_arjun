@@ -375,6 +375,28 @@ const NOTHING_NAMED_YET = {
   hi: (trigger) => `आपने अभी नहीं बताया कि ${trigger} आपकी क्या मदद करता है — साथ में सबसे पहले यही देखने लायक है।`,
 };
 
+// ── Custom-answer dim resolution (Performance Pattern single-choice pass) ──
+// A "something else" answer to a reaction/effect question has no CLAUSE
+// entry (free text isn't a fixed phrase), so buildRuleOutput cannot classify
+// it by looking one up. For almost every reaction/effect question every one
+// of its OWN predefined answers already shares one dim — so that single dim
+// is the obvious, mechanical answer, derived from CLAUSE itself (one source
+// of truth, nothing duplicated here).
+//
+// Two questions are the exception: family_outside_effect and injury_concern
+// each mix reaction- and effect-dim predefined answers on one question, so no
+// single dim can be derived. Both are the SECOND screen of their branch's
+// three-screen arc (source→effect→recovery, stage→concern→recovery) — the
+// same structural position every other branch gives a dedicated effect-only
+// screen. A custom answer to either is classified 'effect' by that screen
+// position, not by reading anything into the athlete's own words.
+const CUSTOM_DIM_OVERRIDE = { family_outside_effect: 'effect', injury_concern: 'effect' };
+function questionDim(qid) {
+  if (CUSTOM_DIM_OVERRIDE[qid]) return CUSTOM_DIM_OVERRIDE[qid];
+  const dims = new Set(Object.keys(CLAUSE).filter((k) => k.startsWith(`${qid}:`)).map((k) => CLAUSE[k].dim));
+  return dims.size === 1 ? [...dims][0] : null;
+}
+
 module.exports = {
   RULE_VERSION, PROHIBITED_PATTERNS, NEUTRAL_ANSWERS, QUICK_RECOVERY, PROLONGED_RECOVERY,
   TRIGGER, BEGIN, CLAUSE, DURATION_PROLONGED, RESILIENCE_NOTE,
@@ -382,4 +404,5 @@ module.exports = {
   UNSURE_TRIGGER, ONSET_PHRASE, INJURY_STAGE, FAMILY_SOURCE, CONTEXT_PHRASE,
   ROLE_LABEL, NOTHING_NAMED_YET, PRIORITY_PHRASE, PRIORITY_PHRASE_FALLBACK, BEGIN_SEQUENCE,
   FOCUS_ACTION_LABEL, CUSTOM_FOCUS_ID, CUSTOM_FOCUS_FALLBACK_LABEL, LEVEL_LABEL, EXPERIENCE_LABEL,
+  questionDim,
 };

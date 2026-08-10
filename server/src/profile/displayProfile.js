@@ -112,9 +112,11 @@ function buildStartingPattern(ruleOutput, L) {
   for (const obs of ruleOutput.observations || []) {
     const type = NODE_KIND[obs.dim];
     if (!type) continue;
-    const text = type === 'duration'
-      ? cfg.DURATION_PROLONGED[L]
-      : cfg.CLAUSE[obs.code]?.[L];
+    // A custom "something else" answer carries its own verbatim text on the
+    // observation (set once, in ruleEngine.js, when it was first recorded) —
+    // shown exactly as the athlete wrote it, never relabelled "Something
+    // else" and never run through CLAUSE, which only knows fixed phrasings.
+    const text = obs.customText || (type === 'duration' ? cfg.DURATION_PROLONGED[L] : cfg.CLAUSE[obs.code]?.[L]);
     if (!text) continue;
     nodes.push({ type, label: NODE_LABEL[type][L], text, code: obs.code });
   }

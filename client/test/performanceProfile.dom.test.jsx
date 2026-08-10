@@ -352,6 +352,30 @@ test('a long reaction/effect value wraps instead of overflowing', async () => {
   expect(value.className).not.toMatch(/whitespace-nowrap|truncate|line-clamp/);
 });
 
+// Performance Pattern single-choice pass: a custom ("something else") answer
+// on any Pattern question now produces a real observation the server sends
+// with its own verbatim text (see server/test/patternSingleChoice.test.js
+// for the server-side half of this contract) — the client renders whatever
+// text the node carries exactly as PerformancePatternFlow already does for
+// a predefined answer, no special-casing needed.
+test('a custom Trigger/Reaction/Effect value displays verbatim, never relabelled "Something else"', async () => {
+  const s = makeServer();
+  s.state.profile.displayProfile.startingPattern.nodes = [
+    { type: 'situation', label: 'Situation', text: 'Before an important trial' },
+    { type: 'reaction', label: 'Reaction', text: 'I rush my routine' },
+    { type: 'effect', label: 'Performance effect', text: 'My decisions get messy' },
+  ];
+  renderPage({ server: s });
+  await screen.findByText('My Performance Pattern');
+  const ol = await screen.findByRole('list', { name: 'My Performance Pattern' });
+  expect(within(ol).getAllByRole('listitem')).toHaveLength(3);
+  expect(ol.textContent).toContain('Before an important trial');
+  expect(ol.textContent).toContain('I rush my routine');
+  expect(ol.textContent).toContain('My decisions get messy');
+  expect(ol.textContent).not.toMatch(/something else/i);
+  expect(ol.textContent).not.toMatch(/Not set yet/);
+});
+
 // ── 8–9. Helps + Where we can begin ────────────────────────────────────────
 
 test('What Helps Me and My Strengths are two separate labelled groups, never one merged list, each with its own Edit action', async () => {
