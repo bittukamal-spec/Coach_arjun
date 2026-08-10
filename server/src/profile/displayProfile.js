@@ -17,6 +17,7 @@
 // no placeholder, no invented value.
 
 const cfg = require('./ruleConfig');
+const C = require('../onboarding/config');
 const { situationPhrase } = require('./ruleEngine');
 const { sanitizeCustomText } = require('../onboarding/sanitize');
 const { resolveCurrentFocus, focusLabel } = require('./currentFocus');
@@ -135,6 +136,56 @@ function buildStartingPattern(ruleOutput, L) {
   return { situation, nodes, notes };
 }
 
+// ── When Pressure Hits: the athlete's OWN answers, unrewritten ────────────
+// Structured ids + verbatim custom text only. No CLAUSE, no phrasing, no
+// interpretation: the client resolves each answer id to the SAME athlete-
+// facing label the question itself showed, so what the profile says is exactly
+// what the athlete tapped.
+//
+// `status` per stage:
+//   'set'       — a usable answer (one id, or a multi-select's ids)
+//   'unset'     — nothing stored: the client shows "Not set yet"
+//   'ambiguous' — a single-choice question carrying >1 stored ids (an athlete
+//                 who answered before it became single-choice). Never resolved
+//                 here by picking one — the client shows "Needs update" and the
+//                 edit flow makes the athlete choose.
+function rawAnswer(answers, questionId) {
+  const q = C.getQuestion(questionId);
+  const stored = answers?.[questionId] || {};
+  const answerIds = Array.isArray(stored.answerIds) ? stored.answerIds : [];
+  const hasCustom = answerIds.some((id) => C.isCustom(questionId, id));
+  const customText = hasCustom ? safeCustom(stored.customText) : null;
+
+  let status = 'set';
+  if (answerIds.length === 0) status = 'unset';
+  else if (q?.type === 'single' && answerIds.length > 1) status = 'ambiguous';
+  else if (hasCustom && !customText && answerIds.length === 1) status = 'unset';
+
+  return { questionId, answerIds, customText, status };
+}
+
+function buildPressure(session, branchId) {
+  const answers = session?.answers || {};
+  const stages = C.pressureStages(branchId).map(({ stage, questionId }) => ({
+    stage,
+    ...rawAnswer(answers, questionId),
+  }));
+  return { branchId, stages };
+}
+
+// The other athlete-answered sections the profile shows verbatim: what helps,
+// strengths, and the goals the athlete set. Same contract as the pressure
+// stages — ids + custom text, never a phrasing of them.
+function buildRawSelections(session) {
+  const answers = session?.answers || {};
+  return {
+    supports: rawAnswer(answers, 'supports'),
+    strengths: rawAnswer(answers, 'strengths'),
+    broadGoals: rawAnswer(answers, 'broad_goals'),
+    fourWeekOutcome: rawAnswer(answers, 'four_week_outcome'),
+  };
+}
+
 // ── What already helps: athlete-selected supports + strengths ─────────────
 // The rule engine has already filtered these to ids it can phrase (dropping
 // `havent_noticed`, `still_figuring`, `different`), so nothing unselected or
@@ -155,6 +206,9 @@ function buildDisplayProfile({ profile, session, wording, focusRow = null, langu
   const ruleOutput = profile?.ruleOutput || {};
   const answers = session?.answers || {};
   const sections = wording?.sections || {};
+  // Stored branch first (set on every save), then re-resolved for rows written
+  // before that column existed. `unsure` is the config's own shallow branch.
+  const branchId = session?.branchId || C.resolveBranch(answers) || 'unsure';
 
   const { supports, strengths } = buildHelps(ruleOutput, L);
 
@@ -177,6 +231,12 @@ function buildDisplayProfile({ profile, session, wording, focusRow = null, langu
     supports,
     strengths,
 
+    // ── Athlete-readable coaching context (what the Profile screen shows) ──
+    // Raw structured answers. The rule engine still runs and still feeds
+    // Coach; it just no longer speaks for the athlete on their own profile.
+    pressure: buildPressure(session, branchId),
+    selections: buildRawSelections(session),
+
     // Existing wording rows, verbatim. No AI call, no new generation.
     interpretation: sections.possiblePattern || null,
     nextStep: sections.whereWeBegin || null,
@@ -190,4 +250,4 @@ function buildDisplayProfile({ profile, session, wording, focusRow = null, langu
   };
 }
 
-module.exports = { buildDisplayProfile, buildSnapshot, buildStartingPattern, buildHelps };
+module.exports = { buildDisplayProfile, buildSnapshot, buildStartingPattern, buildHelps, buildPressure, buildRawSelections, rawAnswer };

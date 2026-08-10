@@ -134,14 +134,20 @@ async function getOrCreateWording(client, profile, user, language, deps = {}) {
   }
 }
 
-// ── Performance Check-in — editable question ids (additive) ────────────────
+// ── Section-scoped profile edits — editable question ids ──────────────────
 // Goals/supports/strengths are always reachable and branch-independent.
-// Pattern (reaction/effect/duration) follow-up questions are scoped to the
-// athlete's OWN already-resolved branch only — `difficult_moments` and
-// `primary_priority` (which choose the branch) and sport/role/competition
-// level/experience (Settings-owned) are never editable here, so this can
-// never reshape which branch the athlete is on or invalidate other answers.
+//
+// The Situation question (primary_priority) IS editable: "When Pressure Hits"
+// asks it first, so an athlete whose hardest moment has changed can say so
+// without redoing anything else. Changing it changes the branch, and the rest
+// of that same flow then asks the NEW branch's follow-ups — which is why the
+// editable set below is resolved from the MERGED answers, not the stored ones.
+//
+// Still never editable here: sport / role / competition level / experience
+// (Settings-owned) and `difficult_moments` (a historical multi-select that no
+// longer drives anything the athlete can see).
 const CHECKIN_ALWAYS_EDITABLE = ['broad_goals', 'four_week_outcome', 'supports', 'strengths'];
+const SITUATION_QID = C.SITUATION_QUESTION_ID;
 
 // Screen ids for the athlete's own branch (config-driven — no per-branch
 // special-casing needed here, same source `buildRuleOutput` already reads).
@@ -165,13 +171,25 @@ function checkinScreens(session) {
     goals: ['broad_goals', 'four_week_outcome'],
     helps: ['supports'],
     strengths: ['strengths'],
+    // Situation first, then this branch's follow-ups: the sequence the
+    // profile displays is the sequence the athlete is asked.
+    pressure: ['primary_priority', ...branchScreenIds(branchId)],
+    // Legacy key for a client bundle loaded before this change — same
+    // branch screens it has always meant.
     pattern: branchScreenIds(branchId),
   };
 }
 
-function checkinEditableQuestionIds(session) {
-  const branchId = resolvedBranchId(session);
-  return new Set([...CHECKIN_ALWAYS_EDITABLE, ...branchQuestionIds(branchId)]);
+// Editable ids for a given set of answers. `answers` defaults to the session's
+// own, and is the MERGED map while validating an incoming edit, so switching
+// the situation makes the new branch's follow-ups editable in the same save.
+function checkinEditableQuestionIds(session, answers = null) {
+  const branchId = answers ? (C.resolveBranch(answers) || 'unsure') : resolvedBranchId(session);
+  return new Set([
+    ...CHECKIN_ALWAYS_EDITABLE,
+    SITUATION_QID,
+    ...branchQuestionIds(branchId),
+  ]);
 }
 
 // Raw current answers for exactly the editable question ids — never any
@@ -201,7 +219,12 @@ function serializeProfile(profile, wording, user, session, focusRow = null) {
       // athlete's own onboarding areas first, then the remaining approved
       // ones. Labels come from ruleConfig so nothing is duplicated client-side.
       focusOptions: buildFocusOptions({
-        ownMomentIds: difficultMoments(session).filter((id) => id !== 'not_sure'),
+        // The athlete's own situation first, then any historical difficult
+        // moments they picked back when onboarding asked for a shortlist.
+        ownMomentIds: [
+          session?.answers?.primary_priority?.answerIds?.[0],
+          ...difficultMoments(session),
+        ].filter((id) => id && id !== 'not_sure'),
         language: wording.language,
       }),
       // The athlete's OWN difficult moments — the only values "Not really"
@@ -415,8 +438,13 @@ async function updateCurrentFocus(client, userId, body, deps = {}) {
 async function updateProfileAnswers(client, userId, body, deps = {}) {
   const { profile, session } = await getOrCreateProfile(client, userId);
   const payload = body?.answers && typeof body.answers === 'object' ? body.answers : {};
-  const editable = checkinEditableQuestionIds(session);
 
+  const merged = { ...(session.answers || {}) };
+  for (const [qid, ans] of Object.entries(payload)) merged[qid] = ans;
+
+  // Whitelisted against the MERGED answers, so a save that changes the
+  // situation may carry that branch's follow-ups — and only those.
+  const editable = checkinEditableQuestionIds(session, merged);
   for (const qid of Object.keys(payload)) {
     if (!editable.has(qid)) {
       const e = new Error('INVALID_QUESTION');
@@ -425,9 +453,6 @@ async function updateProfileAnswers(client, userId, body, deps = {}) {
       throw e;
     }
   }
-
-  const merged = { ...(session.answers || {}) };
-  for (const [qid, ans] of Object.entries(payload)) merged[qid] = ans;
 
   const check = validateAnswers(payload, merged);
   if (!check.ok) {
@@ -438,8 +463,20 @@ async function updateProfileAnswers(client, userId, body, deps = {}) {
   }
   for (const [qid, cleaned] of Object.entries(check.cleaned)) merged[qid] = cleaned;
 
-  await client.onboardingSession.update({ where: { id: session.id }, data: { answers: merged } });
-  const freshSession = { ...session, answers: merged };
+  // The resolved branch and priority are stored alongside the answers so every
+  // later read (rule output, profile display, the edit flow itself) agrees on
+  // which branch the athlete is now on. Answers belonging to a branch they have
+  // moved away from are LEFT IN PLACE — nothing the athlete told us is deleted,
+  // and buildRuleOutput only ever reads the current branch's questions, so a
+  // stale answer cannot leak into the profile.
+  const branchId = C.resolveBranch(merged) || session.branchId || null;
+  const primaryPriorityId = merged.primary_priority?.answerIds?.[0] || session.primaryPriorityId || null;
+
+  await client.onboardingSession.update({
+    where: { id: session.id },
+    data: { answers: merged, branchId, primaryPriorityId },
+  });
+  const freshSession = { ...session, answers: merged, branchId, primaryPriorityId };
 
   const ruleOutput = buildRuleOutput(freshSession);
   const updatedProfile = await client.startingPerformanceProfile.update({

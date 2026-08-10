@@ -22,7 +22,7 @@ export default function CheckinQuestion({ screenId, answers, onChange, labelFor,
   if (!q) return null;
 
   const multi = q.type === 'multi';
-  const options = CFG.displayAnswers(qid, answers);
+  const options = CFG.displayAnswers(qid);
   const current = answers[qid] || { answerIds: [] };
   const sel = current.answerIds || [];
   const atLimit = multi && sel.filter((id) => !CFG.isExclusive(qid, id)).length >= q.limit;

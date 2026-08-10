@@ -62,7 +62,9 @@ function focusPhrase(focusId, customText, language, ruleOutput = null) {
 // surfaced first, then the remaining approved areas. Ids + server-authored
 // labels only — the client never maps an id to a label itself.
 function buildFocusOptions({ ownMomentIds = [], language } = {}) {
-  const own = (ownMomentIds || []).filter(isApprovedFocusId);
+  // De-duplicated: the caller may pass the same id from more than one source
+  // (the athlete's situation is often also one of their difficult moments).
+  const own = [...new Set((ownMomentIds || []).filter(isApprovedFocusId))];
   const seen = new Set(own);
   const rest = APPROVED_FOCUS_IDS.filter((id) => !seen.has(id));
   const toOption = (id, personalised) => ({

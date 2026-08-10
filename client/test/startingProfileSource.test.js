@@ -44,33 +44,43 @@ test('every athlete-facing string on the page comes from translations, not hardc
 // The four prose blocks were replaced by the structured display payload. The
 // page now renders server-authored strings from displayProfile instead of four
 // paragraphs — see the redesign tests further down.
-test('the page renders the server-owned display payload, not raw onboarding answers', () => {
+test('the page renders the athlete\'s own stored answers, resolved through the shared config', () => {
   assert.match(page, /profile\?\.displayProfile/);
-  assert.match(page, /dp\?\.startingPattern/);
+  assert.match(page, /dp\?\.pressure\?\.stages/);
+  assert.match(page, /dp\?\.selections/);
   assert.match(page, /dp\?\.currentFocus/);
-  assert.match(page, /dp\?\.nextStep/);
+  // Labels come from the same translation keys the questions themselves used.
+  assert.match(page, /answerLabels\(/);
+  assert.match(page, /from '\.\.\/onboarding\/labels'/);
 });
 
 test('the page never invents an interpretation of its own', () => {
   assert.doesNotMatch(page, /anthropic|messages\.create/i);
-  // No client-side mapping of an answer id to a psychological label: the only
-  // config lookup left is the correction flow's own difficult_moments options.
-  const cfgLookups = [...page.matchAll(/CFG\.getQuestion\('([^']+)'\)/g)].map((m) => m[1]);
-  assert.deepEqual(cfgLookups, ['difficult_moments']);
+  // No client-side psychological mapping: the label resolver only ever reads
+  // the answer's own translation key.
   for (const map of ['CLAUSE', 'SUPPORT_PHRASE', 'STRENGTH_PHRASE', 'FOCUS_ACTION_LABEL', 'GOAL_LABEL']) {
     assert.doesNotMatch(page, new RegExp(map), `${map} must stay server-side`);
   }
+  // The rule engine's own rendered prose is no longer drawn anywhere.
+  for (const gone of ['dp.interpretation', 'dp?.interpretation', 'dp.nextStep', 'dp?.nextStep', 'startingPattern']) {
+    assert.ok(!page.includes(gone), `${gone} must not be rendered on the profile`);
+  }
 });
 
-test('the three fit answers are the only fit values sent to the server', () => {
-  const fits = [...page.matchAll(/setFit\('([A-Z_]+)'\)/g)].map((m) => m[1]).sort();
-  assert.deepEqual(fits, ['CONFIRMED', 'NOT_REALLY', 'PARTLY']);
+test('the label resolver shows custom athlete text verbatim, and never translates it', () => {
+  const labels = src('onboarding/labels.js');
+  assert.match(labels, /if \(CFG\.isCustom\(qid, id\)\) return raw\.customText \|\| null;/);
+  // An ambiguous or unset answer resolves to nothing — the caller decides
+  // what neutral state to show; this file never picks one of the stored ids.
+  assert.match(labels, /raw\.status === 'unset' \|\| raw\.status === 'ambiguous'/);
 });
 
-test('corrections are limited to the athlete\'s own options plus their own words, with the shared text limit', () => {
-  assert.match(page, /profile\?\.priorityOptions/);
-  assert.match(page, /const CORRECTION_MAX = 120;/);
-  assert.match(page, /isValidCustomText\(correctionText, CORRECTION_MAX\)/);
+test('confirmation sends the one fit value the simplified summary offers', () => {
+  const fits = [...page.matchAll(/confirm\(\{ fit: '([A-Z_]+)' \}\)/g)].map((m) => m[1]);
+  assert.deepEqual(fits, ['CONFIRMED']);
+  // The stored lifecycle contract is untouched: the hook still posts to the
+  // same endpoint, and the server still owns fitResponse/confirmedAt.
+  assert.match(hook, /apiFetch\('\/api\/profile\/confirm'/);
 });
 
 test('the hook talks to the five profile endpoints and nothing else', () => {
@@ -129,10 +139,9 @@ test('the chat footer navigation stays out of this change (reserved for PR 4)', 
 test('the confirmation summary renders a server-supplied phrase, not an onboarding display label', () => {
   assert.match(page, /profile\?\.agreedPriorityPhrase/);
   assert.match(page, /t\.savedBody\(agreedPhrase\)/);
-  // The only remaining config lookup is for the correction option LIST, which
-  // is where display labels belong.
-  const configUses = [...page.matchAll(/CFG\.getQuestion\('difficult_moments'\)/g)];
-  assert.equal(configUses.length, 1);
+  // The page never composes a sentence from a raw onboarding display label:
+  // it has no direct config-question lookup left at all.
+  assert.equal([...page.matchAll(/CFG\.getQuestion\(/g)].length, 0);
 });
 
 test('the confirmation sentence template cannot produce "We\'ll start with When…"', () => {
@@ -158,11 +167,12 @@ test('the completion transition renders only on the screen that just confirmed',
 });
 
 test('the saved view has its own heading and NO subtitle underneath it', () => {
-  assert.match(page, /savedMode \? t\.savedTitleShort : t\.title/);
+  assert.match(page, /savedMode \? t\.savedTitleShort : t\.summaryTitle/);
   // The subtitle renders only in first-time mode.
-  assert.match(page, /\{!savedMode && <p[^>]*>\{t\.subtitle\}<\/p>\}/);
+  assert.match(page, /\{!savedMode && <p[^>]*>\{t\.summarySubtitle\}<\/p>\}/);
   const en = namespaceBlock('en');
   assert.match(en, /savedTitleShort: 'Your Performance Profile'/);
+  assert.match(en, /summaryTitle: 'Your starting profile'/);
 });
 
 test('the saved view shows the current focus and a date, and stays read-only', () => {
@@ -172,15 +182,13 @@ test('the saved view shows the current focus and a date, and stays read-only', (
   // not the mutable current focus, so it is deliberately not rendered here.
   assert.doesNotMatch(page, /FIT_STATUS_KEY/);
   assert.doesNotMatch(page, /t\.currentResponse/);
-  // No editing was built: the only correction field on the page sits inside
-  // the unconfirmed block, above the completion transition.
+  // The profile itself edits nothing inline: every change goes through a
+  // section-scoped flow on its own screen.
+  assert.equal((page.match(/<CustomAnswerField/g) || []).length, 0);
+  assert.equal((page.match(/<SelectableOption/g) || []).length, 0);
   const unconfirmedIdx = page.indexOf('{!confirmed && (');
   const transitionIdx = page.indexOf('{confirmed && !savedMode && (');
-  const fieldIdx = page.indexOf('<CustomAnswerField');
-  assert.ok(unconfirmedIdx !== -1 && transitionIdx !== -1 && fieldIdx !== -1);
-  assert.ok(fieldIdx > unconfirmedIdx && fieldIdx < transitionIdx, 'the correction field must stay in the first-time flow');
-  assert.equal((page.match(/<CustomAnswerField/g) || []).length, 1);
-  assert.equal((page.match(/<SelectableOption/g) || []).length, 4);
+  assert.ok(unconfirmedIdx !== -1 && transitionIdx !== -1);
 });
 
 test('Modernization pass 2: "Continue coaching" was removed from the saved view — Coach stays reachable via the bottom nav instead', () => {
@@ -209,7 +217,7 @@ test('the saved-view strings exist in both languages', () => {
 });
 
 test('the visual redesign is present and shares one component tree across modes', () => {
-  for (const c of ['CurrentFocusCard', 'ProfileChipGroup', 'PerformancePathway', 'ProfileSectionCard', 'ChangeFocusDialog']) {
+  for (const c of ['CurrentFocusCard', 'ProfileChipGroup', 'PressureSequence', 'ProfileSectionCard', 'ChangeFocusDialog']) {
     assert.match(page, new RegExp(c), `missing ${c}`);
   }
   // Still no measurement visuals of any kind.

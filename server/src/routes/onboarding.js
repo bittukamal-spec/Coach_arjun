@@ -8,7 +8,7 @@ const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const authenticate = require('../middleware/authenticate');
 const C = require('../onboarding/config');
-const { validateAnswers, missingRequired } = require('../onboarding/validate');
+const { validateAnswers, missingRequired, QUESTION_BRANCH } = require('../onboarding/validate');
 const { completeOnboarding, USER_SELECT } = require('../onboarding/complete');
 
 const prisma = new PrismaClient();
@@ -121,9 +121,16 @@ function createOnboardingRouter(client = prisma, deps = {}) {
       // Apply cleaned answers (sanitised custom text) into the merged map.
       for (const [qid, cleaned] of Object.entries(check.cleaned)) merged[qid] = cleaned;
 
-      // Prune answers for questions no longer reachable in the resolved branch.
+      // Prune answers for BRANCH questions no longer reachable in the resolved
+      // branch — the case this exists for: the athlete changed their situation
+      // and the old branch's follow-ups no longer apply. Deliberately scoped to
+      // branch questions so an answer to a question that has simply left the
+      // flow (e.g. a context question the simplified flow no longer asks) is
+      // kept rather than deleted out from under the athlete.
       const reachable = C.reachableQuestionIds(merged);
-      const prunedQuestionIds = Object.keys(merged).filter((qid) => !reachable.has(qid));
+      const prunedQuestionIds = Object.keys(merged).filter(
+        (qid) => QUESTION_BRANCH[qid] && !reachable.has(qid)
+      );
       for (const qid of prunedQuestionIds) delete merged[qid];
 
       const branchId = C.resolveBranch(merged);

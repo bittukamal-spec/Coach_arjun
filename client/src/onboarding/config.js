@@ -24,8 +24,23 @@ export function allScreenIds() {
   return [...config.screens.map((s) => s.id), ...Object.keys(config.branchScreens)];
 }
 
+// Answer definitions for a question, following `optionsFrom` so the mirrored
+// Situation question (primary_priority) resolves the SAME answer objects —
+// labels, `custom` and `exclusive` flags included — as the list it borrows
+// from. Mirrors server/src/onboarding/config.js exactly.
+export function answersFor(qid) {
+  const q = getQuestion(qid);
+  if (!q) return [];
+  if (q.optionsFrom) {
+    const base = getQuestion(q.optionsFrom);
+    const exclude = new Set(q.excludeOptions || []);
+    return (base?.answers || []).filter((a) => !exclude.has(a.id));
+  }
+  return q.answers || [];
+}
+
 export function findAnswer(qid, aid) {
-  return getQuestion(qid)?.answers?.find((a) => a.id === aid) || null;
+  return answersFor(qid).find((a) => a.id === aid) || null;
 }
 export const isExclusive = (qid, aid) => !!findAnswer(qid, aid)?.exclusive;
 export const isCustom = (qid, aid) => !!findAnswer(qid, aid)?.custom;
@@ -35,17 +50,18 @@ function selectedIds(answers, qid) {
   return answers?.[qid]?.answerIds || [];
 }
 
+// The Situation question is asked directly, so it is reachable by default.
+// The one case that still skips it is a historical session whose
+// difficult_moments say "I'm not sure yet" (the shallow `unsure` branch).
 export function hasPriority(answers) {
   const dm = selectedIds(answers, 'difficult_moments');
-  if (dm.length === 0) return false;
-  if (dm.length === 1 && dm[0] === 'not_sure') return false;
+  if (dm.length > 0 && dm.every((x) => x === 'not_sure')) return false;
   return true;
 }
 
 export function resolveBranch(answers) {
   const dm = selectedIds(answers, 'difficult_moments');
   if (dm.length > 0 && dm.every((x) => x === 'not_sure')) return 'unsure';
-  if (!hasPriority(answers)) return null;
   const pri = selectedIds(answers, 'primary_priority')[0];
   if (!pri) return null;
   if (pri === 'different') return 'custom';
@@ -77,20 +93,11 @@ export function computeFlowScreenIds(answers) {
   return [...pre, ...branchScreens, ...config.flow.postBranchScreens];
 }
 
-// The list of answer options to DISPLAY for a question given current answers.
-// primary_priority mirrors the athlete's chosen difficult_moments (minus
-// not_sure); everything else is static from the config.
-export function displayAnswers(qid, answers) {
-  const q = getQuestion(qid);
-  if (!q) return [];
-  if (qid === 'primary_priority') {
-    const chosen = selectedIds(answers, 'difficult_moments').filter((id) => id !== 'not_sure');
-    const dm = getQuestion('difficult_moments');
-    return chosen
-      .map((id) => dm.answers.find((a) => a.id === id))
-      .filter(Boolean);
-  }
-  return q.answers || [];
+// The list of answer options to DISPLAY for a question. The Situation question
+// shows the full situation list (it borrows its options from
+// difficult_moments); everything else is static from the config.
+export function displayAnswers(qid) {
+  return answersFor(qid);
 }
 
 // All question ids reachable under the current answers (for prune detection).
@@ -113,6 +120,26 @@ const QUESTION_BRANCH = (() => {
   return map;
 })();
 export const isBranchQuestion = (qid) => qid in QUESTION_BRANCH;
+
+// ── "When Pressure Hits" presentation roles (mirrors the server) ──────────
+export const SITUATION_QUESTION_ID = config.situationQuestionId || 'primary_priority';
+
+export function pressureRoles(branchId) {
+  return config.pressureRoles?.[branchId] || null;
+}
+
+// Ordered [{ stage, questionId }] for a branch, situation first. A stage whose
+// question the branch does not define is omitted, never shown permanently
+// unset.
+export function pressureStages(branchId) {
+  const roles = pressureRoles(branchId);
+  const out = [{ stage: 'situation', questionId: SITUATION_QUESTION_ID }];
+  for (const stage of ['firstResponse', 'impact', 'reset']) {
+    const qid = roles?.[stage];
+    if (qid) out.push({ stage, questionId: qid });
+  }
+  return out;
+}
 
 export function stageForScreen(sid) {
   const s = getScreen(sid);

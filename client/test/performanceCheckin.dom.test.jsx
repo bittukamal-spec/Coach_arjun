@@ -1,10 +1,10 @@
-// Behavioural tests for the Performance Check-in flow (returning-user
-// profile update). Real page + real router; a small fake server backs
-// apiFetch. Mirrors the fake-server pattern used by performanceProfile and
+// Behavioural tests for the section-scoped profile edits (the returning-user
+// update flow). Real page + real router; a small fake server backs apiFetch.
+// Mirrors the fake-server pattern used by performanceProfile and
 // startingProfile's own DOM suites.
 
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, cleanup, within } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 
@@ -20,14 +20,21 @@ const DISPLAY = {
   currentFocus: { id: 'after_mistake', label: 'Bounce back after mistakes', phrase: 'what happens after a mistake', source: 'STARTING_PROFILE', updatedAt: '2026-07-27T00:00:00.000Z', canChange: true },
   suggestedFocus: { id: 'after_mistake', label: 'Bounce back after mistakes' },
   snapshot: { sport: 'Cricket', role: 'Batter', playingContext: 'State', experience: 'Competitive', goals: [{ id: 'confidence', label: 'Confidence' }], fourWeekOutcome: 'Recover faster after mistakes' },
-  startingPattern: {
-    situation: 'after a mistake',
-    nodes: [
-      { type: 'situation', label: 'Situation', text: 'After a mistake' },
-      { type: 'reaction', label: 'Reaction', text: 'Frustration with yourself can rise' },
-      { type: 'effect', label: 'Performance effect', text: 'Your focus may dip for a bit' },
+  startingPattern: { situation: 'after a mistake', nodes: [], notes: [] },
+  pressure: {
+    branchId: 'mistakes',
+    stages: [
+      { stage: 'situation', questionId: 'primary_priority', answerIds: ['after_mistake'], customText: null, status: 'set' },
+      { stage: 'firstResponse', questionId: 'mistakes_first_response', answerIds: ['keep_thinking'], customText: null, status: 'set' },
+      { stage: 'impact', questionId: 'mistakes_next', answerIds: ['hesitate'], customText: null, status: 'set' },
+      { stage: 'reset', questionId: 'mistakes_recovery', answerIds: ['most_of_session'], customText: null, status: 'set' },
     ],
-    notes: [],
+  },
+  selections: {
+    supports: { questionId: 'supports', answerIds: ['clear_preparation'], customText: null, status: 'set' },
+    strengths: { questionId: 'strengths', answerIds: ['hard_working'], customText: null, status: 'set' },
+    broadGoals: { questionId: 'broad_goals', answerIds: ['confidence'], customText: null, status: 'set' },
+    fourWeekOutcome: { questionId: 'four_week_outcome', answerIds: ['recover_faster'], customText: null, status: 'set' },
   },
   supports: [{ id: 'clear_preparation', label: 'Clear preparation' }],
   strengths: [{ id: 'hard_working', label: 'Hard-working' }],
@@ -43,6 +50,7 @@ const CHECKIN_ANSWERS = {
   supports: { answerIds: ['clear_preparation'] },
   broad_goals: { answerIds: ['confidence'] },
   four_week_outcome: { answerIds: ['recover_faster'] },
+  primary_priority: { answerIds: ['after_mistake'] },
   mistakes_first_response: { answerIds: ['keep_thinking'] },
   mistakes_next: { answerIds: ['hesitate'] },
   mistakes_recovery: { answerIds: ['most_of_session'] },
@@ -59,13 +67,20 @@ function makeServer(over = {}) {
       firstChatSessionId: 'cs-1', confirmedAt: '2026-07-27T00:00:00.000Z',
       generatedAt: '2026-07-01T00:00:00.000Z', updatedAt: '2026-07-27T00:00:00.000Z',
       checkin: {
-        screens: { goals: ['broad_goals', 'four_week_outcome'], helps: ['supports'], strengths: ['strengths'], pattern: ['mistakes_first_response', 'mistakes_next', 'mistakes_recovery'] },
+        screens: {
+          goals: ['broad_goals', 'four_week_outcome'],
+          helps: ['supports'],
+          strengths: ['strengths'],
+          pressure: ['primary_priority', 'mistakes_first_response', 'mistakes_next', 'mistakes_recovery'],
+          pattern: ['mistakes_first_response', 'mistakes_next', 'mistakes_recovery'],
+        },
         answers: JSON.parse(JSON.stringify(CHECKIN_ANSWERS)),
       },
       ...(over.profile || {}),
     },
     consent: { pending: false, guardianEmailMasked: null },
     calls: [],
+    patched: [],
   };
   return {
     state,
@@ -73,14 +88,9 @@ function makeServer(over = {}) {
       state.calls.push(`${method} ${p}`);
       if (p === '/api/profile/starting' && method === 'GET') return [200, { profile: state.profile, consent: state.consent }];
       if (p === '/api/profile/answers' && method === 'PATCH') {
+        state.patched.push(body.answers || {});
         for (const [qid, ans] of Object.entries(body.answers || {})) {
           state.profile.checkin.answers[qid] = ans;
-        }
-        // Reflect a strengths change into displayProfile for the "refreshed
-        // values appear immediately" guarantee, same shape the real server
-        // returns from buildDisplayProfile.
-        if (body.answers?.strengths) {
-          state.profile.displayProfile.strengths = body.answers.strengths.answerIds.map((id) => ({ id, label: id === 'brave' ? 'Brave' : id }));
         }
         return [200, { profile: state.profile, consent: state.consent }];
       }
@@ -111,116 +121,191 @@ function renderAt(path, server = makeServer()) {
   return { ...utils, server };
 }
 
+const patchedQids = (server) => server.state.patched.flatMap((p) => Object.keys(p)).sort();
+
 beforeEach(() => { apiFetch.mockReset(); authState.language = 'en'; });
 afterEach(() => cleanup());
 
-describe('Performance Check-in — entry screen (full flow)', () => {
-  test('renders the entry screen with the approved copy, never the word "onboarding"', async () => {
+describe('the retired full check-in', () => {
+  test('the bare check-in URL lands on the Performance Profile instead of a 5–7 minute flow', async () => {
     renderAt('/starting-profile/check-in');
-    expect(await screen.findByRole('heading', { name: 'Performance Check-in' })).toBeTruthy();
-    expect(screen.getByText("Let's update your profile")).toBeTruthy();
-    expect(screen.getByText(/Your current answers are already selected/)).toBeTruthy();
-    expect(screen.getByText(/Takes about 5–7 minutes/)).toBeTruthy();
-    expect(screen.getByText(/See what's changed before you save/)).toBeTruthy();
-    // The approved mockup explicitly drops the "Only you can see this" claim.
-    expect(screen.queryByText(/Only you can see this/i)).toBeNull();
-    expect(document.body.textContent).not.toMatch(/onboarding/i);
+    expect(await screen.findByRole('heading', { name: 'Your Performance Profile' })).toBeTruthy();
+    expect(screen.queryByText(/Takes about 5–7 minutes/)).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Start check-in' })).toBeNull();
   });
 
-  test('Start check-in walks pattern → helps → strengths → goals with existing answers preselected', async () => {
-    const user = userEvent.setup();
-    renderAt('/starting-profile/check-in');
-    await user.click(await screen.findByRole('button', { name: 'Start check-in' }));
-    // Pattern first question: existing answer preselected. Single-choice
-    // (Performance Pattern pass) — radio, not checkbox.
-    expect(await screen.findByRole('radio', { name: /keep thinking/i, checked: true })).toBeTruthy();
+  test('no screen in a scoped edit calls itself onboarding, or a check-in the athlete must finish', async () => {
+    renderAt('/starting-profile/check-in?section=helps');
+    await screen.findByRole('checkbox', { name: /Clear preparation/i });
+    expect(document.body.textContent).not.toMatch(/onboarding/i);
+    expect(document.body.textContent).not.toMatch(/Performance Check-in/i);
   });
 });
 
-describe('Performance Check-in — section-scoped entry points', () => {
-  test('?section=strengths skips the entry screen and opens only the strengths question', async () => {
-    renderAt('/starting-profile/check-in?section=strengths');
-    expect(await screen.findByRole('checkbox', { checked: true, name: /Hard-working/i })).toBeTruthy();
-    expect(screen.queryByRole('heading', { name: 'Performance Check-in' })).toBeNull();
+describe('section-scoped edits open only their own section', () => {
+  test('?section=pressure asks Situation first, then the branch follow-ups — and nothing else', async () => {
+    const user = userEvent.setup();
+    renderAt('/starting-profile/check-in?section=pressure');
+    // 1. Situation, explicitly, with the athlete's stored answer preselected.
+    expect(await screen.findByRole('heading', { name: 'Which situation gives you the most trouble right now?' })).toBeTruthy();
+    expect(screen.getByRole('radio', { name: 'After I make a mistake' }).getAttribute('aria-checked')).toBe('true');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    // 2. First response.
+    expect(await screen.findByRole('heading', { name: 'What usually happens first after you make a mistake?' })).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    // 3. Performance impact.
+    expect(await screen.findByRole('heading', { name: 'What usually happens to your performance next?' })).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    // 4. Reset time — and this is the last one: it saves, it does not continue.
+    expect(await screen.findByRole('heading', { name: 'How long does it usually take you to get back on track?' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeTruthy();
+    // Never any other section's questions.
+    expect(screen.queryByRole('checkbox', { name: /Hard-working/i })).toBeNull();
   });
 
-  test('changed state: Next reaches the review screen showing the diff, Save is shown and enabled, and Save PATCHes the correct payload', async () => {
+  test('the old ?section=pattern bookmark still opens the pressure flow', async () => {
+    renderAt('/starting-profile/check-in?section=pattern');
+    expect(await screen.findByRole('heading', { name: 'Which situation gives you the most trouble right now?' })).toBeTruthy();
+  });
+
+  test('?section=helps opens only the what-helps question', async () => {
+    renderAt('/starting-profile/check-in?section=helps');
+    expect(await screen.findByRole('heading', { name: "When you're struggling, what usually helps you perform better?" })).toBeTruthy();
+    expect(screen.getByRole('checkbox', { name: /Clear preparation/i }).getAttribute('aria-checked')).toBe('true');
+    expect(screen.queryByRole('checkbox', { name: /Hard-working/i })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeTruthy();
+  });
+
+  test('?section=strengths opens only the strengths question', async () => {
+    renderAt('/starting-profile/check-in?section=strengths');
+    expect(await screen.findByRole('heading', { name: 'Which strengths can you rely on in sport?' })).toBeTruthy();
+    expect(screen.getByRole('checkbox', { name: /Hard-working/i }).getAttribute('aria-checked')).toBe('true');
+    expect(screen.queryByRole('checkbox', { name: /Clear preparation/i })).toBeNull();
+  });
+
+  test('?section=goals opens only the two goal questions', async () => {
+    const user = userEvent.setup();
+    renderAt('/starting-profile/check-in?section=goals');
+    expect(await screen.findByRole('heading', { name: 'What would you like help with?' })).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    expect(await screen.findByRole('heading', { name: 'What one change would make the biggest difference in the next four weeks?' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeTruthy();
+  });
+});
+
+describe('a scoped edit saves straight from its last question', () => {
+  test('there is no old-values → new-values review screen anywhere in the flow', async () => {
+    const user = userEvent.setup();
+    renderAt('/starting-profile/check-in?section=strengths');
+    await user.click(await screen.findByRole('checkbox', { name: /Brave/i }));
+    expect(screen.queryByRole('button', { name: 'Next' })).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+    expect(screen.queryByRole('heading', { name: 'Review your changes' })).toBeNull();
+    expect(screen.queryByText('Unchanged')).toBeNull();
+    expect(await screen.findByRole('heading', { name: 'Your Performance Profile' })).toBeTruthy();
+  });
+
+  test('strengths: Save changes PATCHes only the strengths answer, then returns to the profile', async () => {
     const server = makeServer();
     const user = userEvent.setup();
     renderAt('/starting-profile/check-in?section=strengths', server);
-    const brave = await screen.findByRole('checkbox', { name: /Brave/i });
-    await user.click(brave); // now [hard_working, brave]
-    await user.click(screen.getByRole('button', { name: 'Next' }));
-    expect(await screen.findByRole('heading', { name: 'Review your changes' })).toBeTruthy();
-    expect(screen.getByText('Strengths')).toBeTruthy();
-    expect(screen.getByText('Hard-working, Brave')).toBeTruthy();
-
-    // Save is present, enabled, and "Go back to questions" (the no-change
-    // action) is NOT shown in the changed state.
-    const saveBtn = screen.getByRole('button', { name: 'Save profile' });
-    expect(saveBtn.disabled).toBe(false);
-    expect(screen.queryByRole('button', { name: 'Go back to questions' })).toBeNull();
-
-    await user.click(saveBtn);
-    // Only the strengths qid is sent — nothing else in this section-scoped
-    // run — and it's the exact new selection.
-    await vi.waitFor(() => expect(server.state.calls.some((c) => c === 'PATCH /api/profile/answers')).toBe(true));
+    await user.click(await screen.findByRole('checkbox', { name: /Brave/i }));
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+    await vi.waitFor(() => expect(server.state.patched.length).toBe(1));
+    expect(patchedQids(server)).toEqual(['strengths']);
     expect(server.state.profile.checkin.answers.strengths.answerIds).toEqual(['hard_working', 'brave']);
+    // Unrelated sections are untouched, both in the request and in the store.
+    expect(server.state.profile.checkin.answers.supports.answerIds).toEqual(['clear_preparation']);
+    expect(server.state.profile.checkin.answers.mistakes_next.answerIds).toEqual(['hesitate']);
+    expect(await screen.findByRole('heading', { name: 'Your Performance Profile' })).toBeTruthy();
   });
 
-  test('changed state: "Go back" (not "Go back to questions") returns to the question screen with the change still selected — draft preserved', async () => {
+  test('helps: Save changes PATCHes only the supports answer', async () => {
+    const server = makeServer();
     const user = userEvent.setup();
-    renderAt('/starting-profile/check-in?section=strengths');
-    const brave = await screen.findByRole('checkbox', { name: /Brave/i });
-    await user.click(brave);
+    renderAt('/starting-profile/check-in?section=helps', server);
+    await user.click(await screen.findByRole('checkbox', { name: /Staying relaxed/i }));
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+    await vi.waitFor(() => expect(server.state.patched.length).toBe(1));
+    expect(patchedQids(server)).toEqual(['supports']);
+    expect(server.state.profile.checkin.answers.strengths.answerIds).toEqual(['hard_working']);
+  });
+
+  test('goals: Save changes PATCHes only the goal questions', async () => {
+    const server = makeServer();
+    const user = userEvent.setup();
+    renderAt('/starting-profile/check-in?section=goals', server);
+    await user.click(await screen.findByRole('checkbox', { name: /Handling Pressure/i }));
     await user.click(screen.getByRole('button', { name: 'Next' }));
-    await screen.findByRole('heading', { name: 'Review your changes' });
-    await user.click(screen.getByRole('button', { name: 'Go back' }));
-    const restored = await screen.findByRole('checkbox', { name: /Brave/i });
-    expect(restored.getAttribute('aria-checked')).toBe('true');
+    await user.click(await screen.findByRole('radio', { name: 'Stay focused for longer' }));
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+    await vi.waitFor(() => expect(server.state.patched.length).toBe(1));
+    expect(patchedQids(server)).toEqual(['broad_goals', 'four_week_outcome']);
+    // Only goal fields move.
+    expect(server.state.profile.checkin.answers.supports.answerIds).toEqual(['clear_preparation']);
+    expect(server.state.profile.checkin.answers.primary_priority.answerIds).toEqual(['after_mistake']);
   });
 
-  describe('no-change state', () => {
-    test('shows "No changes yet" and "Go back to questions", with no Save action rendered at all', async () => {
-      const user = userEvent.setup();
-      renderAt('/starting-profile/check-in?section=strengths');
-      await user.click(await screen.findByRole('button', { name: 'Next' }));
-      expect(await screen.findByRole('heading', { name: 'Review your changes' })).toBeTruthy();
-      expect(screen.getByText('No changes yet')).toBeTruthy();
-      expect(screen.getByText('Go back if you want to update something.')).toBeTruthy();
-      expect(screen.getByRole('button', { name: 'Go back to questions' })).toBeTruthy();
-      // Save is absent, not merely disabled — it must not be possible to
-      // trigger a save at all from this screen.
-      expect(screen.queryByRole('button', { name: 'Save profile' })).toBeNull();
-      expect(screen.queryByRole('button', { name: 'Go back' })).toBeNull();
-    });
+  test('pressure: the whole four-question sequence saves once, and only its own questions', async () => {
+    const server = makeServer();
+    const user = userEvent.setup();
+    renderAt('/starting-profile/check-in?section=pressure', server);
+    await screen.findByRole('heading', { name: 'Which situation gives you the most trouble right now?' });
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await user.click(await screen.findByRole('radio', { name: /angry/i }));
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await user.click(await screen.findByRole('radio', { name: /I lose focus/i }));
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await user.click(await screen.findByRole('radio', { name: 'A few minutes' }));
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+    await vi.waitFor(() => expect(server.state.patched.length).toBe(1));
+    expect(patchedQids(server)).toEqual(['mistakes_first_response', 'mistakes_next', 'mistakes_recovery', 'primary_priority']);
+    expect(server.state.profile.checkin.answers.mistakes_first_response.answerIds).toEqual(['angry_self']);
+    expect(server.state.profile.checkin.answers.mistakes_recovery.answerIds).toEqual(['few_minutes']);
+    expect(server.state.profile.checkin.answers.strengths.answerIds).toEqual(['hard_working']);
+  });
+});
 
-    test('no PATCH request is ever sent while there are zero changes', async () => {
-      const server = makeServer();
-      const user = userEvent.setup();
-      renderAt('/starting-profile/check-in?section=strengths', server);
-      await user.click(await screen.findByRole('button', { name: 'Next' }));
-      await screen.findByText('No changes yet');
-      await user.click(screen.getByRole('button', { name: 'Go back to questions' }));
-      // Back to the (only) question in this section-scoped run — not a
-      // network round trip of any kind.
-      await screen.findByRole('checkbox', { name: /Hard-working/i });
-      expect(server.state.calls.some((c) => c === 'PATCH /api/profile/answers')).toBe(false);
-      expect(server.state.calls.filter((c) => c.startsWith('PATCH')).length).toBe(0);
-    });
-
-    test('"Go back to questions" preserves the (unchanged) draft — returns to the same question, same selection', async () => {
-      const user = userEvent.setup();
-      renderAt('/starting-profile/check-in?section=strengths');
-      await user.click(await screen.findByRole('button', { name: 'Next' }));
-      await screen.findByText('No changes yet');
-      await user.click(screen.getByRole('button', { name: 'Go back to questions' }));
-      const hardWorking = await screen.findByRole('checkbox', { name: /Hard-working/i });
-      expect(hardWorking.getAttribute('aria-checked')).toBe('true');
-    });
+describe('changing the situation', () => {
+  test('switching to another situation warns once, then asks that branch\'s own questions', async () => {
+    const user = userEvent.setup();
+    renderAt('/starting-profile/check-in?section=pressure');
+    await screen.findByRole('heading', { name: 'Which situation gives you the most trouble right now?' });
+    await user.click(screen.getByRole('radio', { name: 'When I lose focus' }));
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    expect(await screen.findByRole('dialog')).toBeTruthy();
+    expect(screen.getByText(/Your earlier answers stay saved/i)).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Yes, change it' }));
+    expect(await screen.findByRole('heading', { name: 'What usually takes your focus away first?' })).toBeTruthy();
   });
 
-  test('Back from the first (and only) question in a section-scoped run returns to the Performance Profile', async () => {
+  test('keeping the current situation does not change which questions are asked', async () => {
+    const user = userEvent.setup();
+    renderAt('/starting-profile/check-in?section=pressure');
+    await screen.findByRole('heading', { name: 'Which situation gives you the most trouble right now?' });
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    expect(await screen.findByRole('heading', { name: 'What usually happens first after you make a mistake?' })).toBeTruthy();
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+});
+
+describe('drafts and navigation', () => {
+  test('an in-progress change survives navigating Back then forward again', async () => {
+    const user = userEvent.setup();
+    renderAt('/starting-profile/check-in?section=pressure');
+    await screen.findByRole('heading', { name: 'Which situation gives you the most trouble right now?' });
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await screen.findByRole('radio', { checked: true, name: /keep thinking/i });
+    await user.click(screen.getByRole('radio', { name: /angry/i }));
+    await user.click(screen.getAllByRole('button')[0]); // back chevron → Situation
+    await screen.findByRole('heading', { name: 'Which situation gives you the most trouble right now?' });
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    const angry = await screen.findByRole('radio', { name: /angry/i });
+    expect(angry.getAttribute('aria-checked')).toBe('true');
+    expect(screen.getByRole('radio', { name: /keep thinking/i }).getAttribute('aria-checked')).toBe('false');
+  });
+
+  test('Back from the first question of a scoped edit returns to the Performance Profile', async () => {
     const user = userEvent.setup();
     renderAt('/starting-profile/check-in?section=strengths');
     await screen.findByRole('checkbox', { name: /Hard-working/i });
@@ -229,69 +314,50 @@ describe('Performance Check-in — section-scoped entry points', () => {
   });
 });
 
-describe('Performance Check-in — draft preserved across Back/Next', () => {
-  test('an in-progress change survives navigating Back then Next again', async () => {
-    const user = userEvent.setup();
-    renderAt('/starting-profile/check-in?section=pattern');
-    // mistakes_first_response, mistakes_next, mistakes_recovery — 3 screens.
-    // Single-choice (Performance Pattern pass): picking a new option
-    // REPLACES the preselected one, it never adds a second answer.
-    await screen.findByRole('radio', { checked: true, name: /keep thinking/i });
-    await user.click(screen.getByRole('radio', { name: /angry/i }));
-    await user.click(screen.getByRole('button', { name: 'Next' }));
-    await screen.findByRole('heading', { name: /hesitate|next/i, level: 2 }).catch(() => {}); // best-effort, screen 2
-    // Go back to screen 1 and confirm the draft (the replaced selection) survived.
-    await user.click(screen.getAllByRole('button')[0]);
-    const angry = await screen.findByRole('radio', { name: /angry/i });
-    expect(angry.getAttribute('aria-checked')).toBe('true');
-    const keepThinking = screen.getByRole('radio', { name: /keep thinking/i });
-    expect(keepThinking.getAttribute('aria-checked')).toBe('false');
-  });
-});
-
-// ── Performance Pattern questions are single-choice ─────────────────────────
-// mistakes_first_response/mistakes_next/mistakes_recovery are three of the
-// questions converted to single-choice by this pass. Behaviour here is
-// identical for every other converted Pattern question — they all render
-// through this same CheckinQuestion component off the same config contract.
-describe('Performance Check-in — Pattern questions are single-choice', () => {
+// ── Pressure questions are single-choice ───────────────────────────────────
+// primary_priority/mistakes_first_response/mistakes_next/mistakes_recovery all
+// render through the same CheckinQuestion component off the same config
+// contract, so this behaviour holds for every branch's questions.
+describe('pressure questions are single-choice', () => {
   test('picking a new predefined option replaces the previous one — never both selected', async () => {
     const user = userEvent.setup();
-    renderAt('/starting-profile/check-in?section=pattern');
+    renderAt('/starting-profile/check-in?section=pressure');
+    await screen.findByRole('heading', { name: 'Which situation gives you the most trouble right now?' });
+    await user.click(screen.getByRole('button', { name: 'Next' }));
     await screen.findByRole('radio', { name: /keep thinking/i, checked: true });
     await user.click(screen.getByRole('radio', { name: /angry/i }));
     expect(screen.getByRole('radio', { name: /angry/i }).getAttribute('aria-checked')).toBe('true');
     expect(screen.getByRole('radio', { name: /keep thinking/i }).getAttribute('aria-checked')).toBe('false');
-    // Options render as a radiogroup, not a checkbox group.
     expect(screen.queryAllByRole('checkbox').length).toBe(0);
   });
 
-  test('a custom-only answer is accepted, and Save sends exactly one answer id for the question', async () => {
+  test('a custom answer is accepted and saved verbatim as exactly one answer id', async () => {
     const server = makeServer();
     const user = userEvent.setup();
-    renderAt('/starting-profile/check-in?section=pattern', server);
+    renderAt('/starting-profile/check-in?section=pressure', server);
+    await screen.findByRole('heading', { name: 'Which situation gives you the most trouble right now?' });
+    await user.click(screen.getByRole('button', { name: 'Next' }));
     await screen.findByRole('radio', { name: /keep thinking/i, checked: true });
     await user.click(screen.getByRole('radio', { name: 'Something else' }));
     const input = await screen.findByLabelText('Write your own');
-    // Blank custom text blocks Next.
     expect(screen.getByRole('button', { name: 'Next' }).disabled).toBe(true);
     await user.type(input, 'I go completely silent');
     expect(screen.getByRole('button', { name: 'Next' }).disabled).toBe(false);
-    // Picking the custom option cleared the previous predefined selection.
     expect(screen.getByRole('radio', { name: /keep thinking/i }).getAttribute('aria-checked')).toBe('false');
     await user.click(screen.getByRole('button', { name: 'Next' }));
-    await user.click(screen.getByRole('button', { name: 'Next' })); // mistakes_next unchanged
-    await user.click(screen.getByRole('button', { name: 'Next' })); // mistakes_recovery unchanged
-    await user.click(screen.getByRole('button', { name: 'Save profile' }));
-    await vi.waitFor(() => expect(server.state.calls.some((c) => c === 'PATCH /api/profile/answers')).toBe(true));
+    await user.click(await screen.findByRole('button', { name: 'Next' }));
+    await user.click(await screen.findByRole('button', { name: 'Save changes' }));
+    await vi.waitFor(() => expect(server.state.patched.length).toBe(1));
     const sent = server.state.profile.checkin.answers.mistakes_first_response;
     expect(sent.answerIds).toEqual(['something_else']);
     expect(sent.customText).toBe('I go completely silent');
   });
 
-  test('choosing a predefined option after custom text was entered drops the custom text from the outgoing answer', async () => {
+  test('choosing a predefined option after custom text was entered drops the custom text', async () => {
     const user = userEvent.setup();
-    renderAt('/starting-profile/check-in?section=pattern');
+    renderAt('/starting-profile/check-in?section=pressure');
+    await screen.findByRole('heading', { name: 'Which situation gives you the most trouble right now?' });
+    await user.click(screen.getByRole('button', { name: 'Next' }));
     await user.click(await screen.findByRole('radio', { name: 'Something else' }));
     await user.type(await screen.findByLabelText('Write your own'), 'draft text');
     await user.click(screen.getByRole('radio', { name: /become cautious/i }));
@@ -299,18 +365,20 @@ describe('Performance Check-in — Pattern questions are single-choice', () => {
     expect(screen.getByRole('radio', { name: /become cautious/i }).getAttribute('aria-checked')).toBe('true');
   });
 
-  test('a legacy answer with more than one stored id shows the resolution notice, pre-selects nothing, and blocks Next until resolved', async () => {
+  test('a legacy answer with more than one stored id must be resolved by the athlete, never for them', async () => {
     const server = makeServer();
     server.state.profile.checkin.answers.mistakes_first_response = { answerIds: ['keep_thinking', 'angry_self'] };
     const user = userEvent.setup();
-    renderAt('/starting-profile/check-in?section=pattern', server);
-    await screen.findByText('What usually happens first after a mistake?');
+    renderAt('/starting-profile/check-in?section=pressure', server);
+    await screen.findByRole('heading', { name: 'Which situation gives you the most trouble right now?' });
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await screen.findByText('What usually happens first after you make a mistake?');
     // Nothing is silently chosen on the athlete's behalf.
     expect(screen.getByRole('radio', { name: /keep thinking/i }).getAttribute('aria-checked')).toBe('false');
     expect(screen.getByRole('radio', { name: /angry/i }).getAttribute('aria-checked')).toBe('false');
     expect(screen.getByText('Choose the one that fits you best now.')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Next' }).disabled).toBe(true);
-    // Resolving with an explicit tap unblocks Next and leaves exactly one id.
+    // Resolving with an explicit tap unblocks the flow and leaves exactly one.
     await user.click(screen.getByRole('radio', { name: /angry/i }));
     expect(screen.queryByText('Choose the one that fits you best now.')).toBeNull();
     expect(screen.getByRole('button', { name: 'Next' }).disabled).toBe(false);

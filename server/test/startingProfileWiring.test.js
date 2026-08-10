@@ -107,9 +107,13 @@ test('the client starts the first conversation through the gated endpoint and op
   assert.match(page, /chatSessionId: res\.chatSessionId, returnTo: '\/dashboard', enteredFromStartingProfile: true/);
 });
 
-test('the profile screen offers exactly the three fit answers and never claims to be a diagnosis', () => {
+test('the profile screen confirms in one tap, offers a way to change something, and never claims to be a diagnosis', () => {
   const page = clientSrc('pages/StartingProfilePage.jsx');
-  for (const k of ['fitConfirmed', 'fitPartly', 'fitNotReally']) assert.match(page, new RegExp(`t\\.${k}`));
+  // The fit contract is unchanged server-side; the screen now expresses it as
+  // one confirmation plus a scoped edit, instead of three fit radio answers.
+  assert.match(page, /t\.looksRight/);
+  assert.match(page, /t\.changeSomething/);
+  assert.match(page, /confirm\(\{ fit: 'CONFIRMED' \}\)/);
   assert.match(page, /t\.notDiagnosis/);
 });
 

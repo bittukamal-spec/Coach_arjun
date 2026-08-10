@@ -7,12 +7,12 @@
       "titleKey": "onboarding.v2.stages.about"
     },
     {
-      "id": "performance",
-      "titleKey": "onboarding.v2.stages.performance"
-    },
-    {
       "id": "goals",
       "titleKey": "onboarding.v2.stages.goals"
+    },
+    {
+      "id": "performance",
+      "titleKey": "onboarding.v2.stages.performance"
     }
   ],
   "screens": [
@@ -114,27 +114,23 @@
       "sport",
       "role_position",
       "playing_context",
-      "difficult_moments",
+      "broad_goals",
+      "four_week_outcome",
       "primary_priority"
     ],
     "postBranchScreens": [
-      "contextual_pressures",
       "supports",
-      "strengths",
-      "broad_goals",
-      "four_week_outcome"
+      "strengths"
     ]
   },
   "branches": {
     "pre_performance": {
       "screenIds": [
-        "pre_performance_onset",
         "pre_performance_signs",
         "pre_performance_effect",
         "pre_performance_duration"
       ],
       "requiredQuestionIds": [
-        "pre_performance_onset",
         "pre_performance_signs",
         "pre_performance_effect",
         "pre_performance_duration"
@@ -2108,7 +2104,7 @@
     "strengths": {
       "type": "multi",
       "limit": 3,
-      "required": true,
+      "required": false,
       "answers": [
         {
           "id": "hard_working",
@@ -2246,6 +2242,59 @@
           "max": 120
         }
       ]
+    }
+  },
+  "situationQuestionId": "primary_priority",
+  "pressureRoles": {
+    "pre_performance": {
+      "firstResponse": "pre_performance_signs",
+      "impact": "pre_performance_effect",
+      "reset": "pre_performance_duration"
+    },
+    "mistakes": {
+      "firstResponse": "mistakes_first_response",
+      "impact": "mistakes_next",
+      "reset": "mistakes_recovery"
+    },
+    "focus": {
+      "firstResponse": "focus_when",
+      "impact": "focus_effect",
+      "reset": "focus_recovery"
+    },
+    "confidence": {
+      "firstResponse": "confidence_trigger",
+      "impact": "confidence_effect",
+      "reset": "confidence_recovery"
+    },
+    "motivation": {
+      "firstResponse": "motivation_when",
+      "impact": "motivation_effect",
+      "reset": "motivation_recovery"
+    },
+    "coach_selection": {
+      "firstResponse": "coach_selection_moment",
+      "impact": "coach_selection_effect",
+      "reset": "coach_selection_recovery"
+    },
+    "family_outside": {
+      "firstResponse": "family_outside_effect",
+      "impact": null,
+      "reset": "family_outside_recovery"
+    },
+    "injury": {
+      "firstResponse": "injury_concern",
+      "impact": null,
+      "reset": "injury_recovery"
+    },
+    "unsure": {
+      "firstResponse": "unsure_recognition",
+      "impact": null,
+      "reset": "unsure_recovery"
+    },
+    "custom": {
+      "firstResponse": "custom_response",
+      "impact": "custom_effect",
+      "reset": "custom_recovery"
     }
   }
 }

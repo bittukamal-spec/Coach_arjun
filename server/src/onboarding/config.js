@@ -23,24 +23,31 @@ function allScreenIds() {
   return [...config.screens.map((s) => s.id), ...Object.keys(config.branchScreens)];
 }
 
-// Static allowed answer ids for a question. primary_priority derives its
-// options from difficult_moments (minus excluded ids) — the runtime
-// intersection with the athlete's actual selection is enforced in validate.js.
+// Allowed answer ids for a question. primary_priority (the Situation
+// question) derives its options from the difficult_moments answer set minus
+// the excluded ids — the athlete picks their situation from that full list.
 function answerIdsFor(qid) {
+  return answersFor(qid).map((a) => a.id);
+}
+
+// Answer definitions for a question, following `optionsFrom` so a mirrored
+// question (primary_priority) resolves the SAME answer objects — including
+// their `custom`/`exclusive` flags — as the question it borrows from. Before
+// this, primary_priority had no resolvable answers at all, so its "My
+// situation is different" option was never treated as a custom answer.
+function answersFor(qid) {
   const q = getQuestion(qid);
   if (!q) return [];
   if (q.optionsFrom) {
     const base = getQuestion(q.optionsFrom);
     const exclude = new Set(q.excludeOptions || []);
-    return (base?.answers || []).map((a) => a.id).filter((id) => !exclude.has(id));
+    return (base?.answers || []).filter((a) => !exclude.has(a.id));
   }
-  return (q.answers || []).map((a) => a.id);
+  return q.answers || [];
 }
 
 function findAnswer(qid, aid) {
-  const q = getQuestion(qid);
-  if (!q || !q.answers) return null;
-  return q.answers.find((a) => a.id === aid) || null;
+  return answersFor(qid).find((a) => a.id === aid) || null;
 }
 
 function isExclusive(qid, aid) {
@@ -59,18 +66,19 @@ function selectedIds(answers, qid) {
   return answers?.[qid]?.answerIds || [];
 }
 
-// difficult_moments answered with something the athlete can prioritise.
+// Whether the Situation question is reachable. The simplified flow asks it
+// directly, so it is reachable by default; the ONE case that still skips it is
+// a historical session whose difficult_moments say "I'm not sure yet" — those
+// athletes were routed to the shallow `unsure` branch and must stay there.
 function hasPriority(answers) {
   const dm = selectedIds(answers, 'difficult_moments');
-  if (dm.length === 0) return false;
-  if (dm.length === 1 && dm[0] === 'not_sure') return false;
+  if (dm.length > 0 && dm.every((x) => x === 'not_sure')) return false;
   return true;
 }
 
 function resolveBranch(answers) {
   const dm = selectedIds(answers, 'difficult_moments');
   if (dm.length > 0 && dm.every((x) => x === 'not_sure')) return 'unsure';
-  if (!hasPriority(answers)) return null;
   const pri = selectedIds(answers, 'primary_priority')[0];
   if (!pri) return null;
   if (pri === 'different') return 'custom';
@@ -126,9 +134,36 @@ function requiredQuestionIds(answers) {
   return req;
 }
 
+// ── "When Pressure Hits" presentation roles ────────────────────────────────
+// Which existing question feeds each stage of the athlete-facing sequence
+// (Situation → First response → Performance impact → Reset time) for a given
+// branch. A role may be null when a branch structurally has no such question —
+// that stage is then omitted rather than shown permanently unset.
+const SITUATION_QUESTION_ID = config.situationQuestionId || 'primary_priority';
+
+function pressureRoles(branchId) {
+  return config.pressureRoles?.[branchId] || null;
+}
+
+// Ordered [{ stage, questionId }] for a branch, situation first. Stages whose
+// question is not defined for the branch are omitted.
+function pressureStages(branchId) {
+  const roles = pressureRoles(branchId);
+  const out = [{ stage: 'situation', questionId: SITUATION_QUESTION_ID }];
+  for (const stage of ['firstResponse', 'impact', 'reset']) {
+    const qid = roles?.[stage];
+    if (qid) out.push({ stage, questionId: qid });
+  }
+  return out;
+}
+
 module.exports = {
   config,
   VERSION,
+  SITUATION_QUESTION_ID,
+  pressureRoles,
+  pressureStages,
+  answersFor,
   getQuestion,
   getScreen,
   allScreenIds,

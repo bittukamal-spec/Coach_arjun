@@ -175,7 +175,7 @@ export default function OnboardingPage() {
       const q = CFG.getQuestion(qid);
       return ids.map((id) => q.answers.find((a) => a.id === id)).filter(Boolean);
     }
-    return CFG.displayAnswers(qid, working);
+    return CFG.displayAnswers(qid);
   }
 
   // ── Save / advance ────────────────────────────────────────────────────────
