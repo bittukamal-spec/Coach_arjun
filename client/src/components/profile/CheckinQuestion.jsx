@@ -64,7 +64,9 @@ export default function CheckinQuestion({ screenId, answers, onChange, labelFor,
 
   return (
     <div>
-      <h2 className="text-title font-bold text-ink mb-1.5">{title}</h2>
+      {/* The question IS the screen in a scoped edit, so it is the page's one
+          h1 — the entry and review screens that used to carry it are gone. */}
+      <h1 className="text-title font-bold text-ink mb-1.5">{title}</h1>
       {subtitle && <p className="text-body text-slt mb-4 leading-relaxed">{subtitle}</p>}
       {ambiguous && (
         <p className="text-caption text-amber-400 mb-3" role="status">{ui.chooseOneNotice}</p>

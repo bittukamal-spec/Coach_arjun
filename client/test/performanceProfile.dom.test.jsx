@@ -900,7 +900,9 @@ test('the layout cannot scroll horizontally and sets no fixed widths', () => {
   const sources = [page, ...PROFILE_COMPONENTS.map((c) => srcOf(`components/profile/${c}.jsx`))].map(stripComments);
   for (const s of sources) {
     expect(s).not.toMatch(/overflow-x/);
-    expect(s).not.toMatch(/w-\[\d+px\]/);
+    // Fixed widths only: a `min-w-[44px]` touch-target floor is required, not
+    // a layout width, so the lookbehind keeps min-/max- out of this.
+    expect(s).not.toMatch(/(?<!min-)(?<!max-)w-\[\d+px\]/);
     expect(s).not.toMatch(/min-w-\[\d{3,}px\]/);
   }
   // Content is centred and bounded, with safe-area padding at the bottom.

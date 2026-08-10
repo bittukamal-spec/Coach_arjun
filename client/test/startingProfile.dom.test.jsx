@@ -539,6 +539,6 @@ describe('Starting Performance Profile — first-time vs saved modes', () => {
     const column = container.querySelector('.max-w-md');
     expect(column).toBeTruthy();
     expect(column.className).toContain('mx-auto');
-    expect(container.innerHTML).not.toMatch(/w-\[\d+px\]|min-w-\[\d{3,}px\]/);
+    expect(container.innerHTML).not.toMatch(/(?<!min-)(?<!max-)w-\[\d+px\]|min-w-\[\d{3,}px\]/);
   });
 });

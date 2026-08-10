@@ -263,7 +263,7 @@ export default function StartingProfilePage() {
                 <button
                   type="button"
                   onClick={() => navigate(editPath('goals'))}
-                  className="min-h-[44px] inline-flex items-center mt-1 text-caption font-semibold text-brand-500 active:opacity-70"
+                  className="min-h-[44px] min-w-[44px] inline-flex items-center mt-1 text-caption font-semibold text-brand-500 active:opacity-70"
                 >
                   {t.updateGoals}
                 </button>
@@ -274,7 +274,7 @@ export default function StartingProfilePage() {
             {gameChips.length > 0 && (
               <ProfileSectionCard id="profile-game" title={t.myGameTitle}>
                 <ProfileChipGroup items={gameChips} ariaLabel={t.myGameTitle} />
-                <Link to="/account" className="inline-flex items-center gap-1 mt-3 min-h-[44px] text-caption font-semibold text-brand-400 active:opacity-70">
+                <Link to="/account" className="inline-flex items-center gap-1 mt-3 min-h-[44px] min-w-[44px] text-caption font-semibold text-brand-400 active:opacity-70">
                   <SettingsIcon size={13} aria-hidden="true" />
                   {t.myGameSettingsLink}
                 </Link>
@@ -287,7 +287,7 @@ export default function StartingProfilePage() {
               <button
                 type="button"
                 onClick={() => navigate(editPath('pressure'))}
-                className="inline-flex items-center gap-1 mt-4 min-h-[44px] text-caption font-semibold text-brand-400 active:opacity-70"
+                className="inline-flex items-center gap-1 mt-4 min-h-[44px] min-w-[44px] text-caption font-semibold text-brand-400 active:opacity-70"
               >
                 {t.updateAction} <ChevronRight size={12} aria-hidden="true" />
               </button>
@@ -310,7 +310,7 @@ export default function StartingProfilePage() {
               <button
                 type="button"
                 onClick={() => navigate(editPath('helps'))}
-                className="min-h-[44px] inline-flex items-center mt-3 text-caption font-semibold text-brand-400 active:opacity-70"
+                className="min-h-[44px] min-w-[44px] inline-flex items-center mt-3 text-caption font-semibold text-brand-400 active:opacity-70"
               >
                 {t.editAction}
               </button>
@@ -329,7 +329,7 @@ export default function StartingProfilePage() {
               <button
                 type="button"
                 onClick={() => navigate(editPath('strengths'))}
-                className="min-h-[44px] inline-flex items-center mt-3 text-caption font-semibold text-brand-400 active:opacity-70"
+                className="min-h-[44px] min-w-[44px] inline-flex items-center mt-3 text-caption font-semibold text-brand-400 active:opacity-70"
               >
                 {t.editAction}
               </button>
