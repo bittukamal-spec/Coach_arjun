@@ -149,7 +149,7 @@ describe('Adaptive onboarding v2', () => {
     const user = userEvent.setup();
     await toDifficultMoments(user);
     await user.click(checkbox('My situation is different'));
-    const input = await screen.findByLabelText('Your answer');
+    const input = await screen.findByLabelText('Write your own');
     expect(cont().disabled).toBe(true); // empty custom blocks
     await user.type(input, 'exam pressure');
     expect(cont().disabled).toBe(false);
@@ -183,10 +183,11 @@ describe('Adaptive onboarding v2', () => {
     await user.click(await screen.findByRole('radio', { name: 'After I make a mistake' }));
     await user.click(cont());
     expect(await screen.findByRole('heading', { name: 'What usually happens first after a mistake?' })).toBeTruthy();
-    await user.click(checkbox('I keep thinking about it'));
+    // Single-choice (Performance Pattern pass) — radio, not checkbox.
+    await user.click(radio('I keep thinking about it'));
     await user.click(cont());
     expect(await screen.findByRole('heading', { name: 'What tends to happen next?' })).toBeTruthy();
-    await user.click(checkbox('I hesitate'));
+    await user.click(radio('I hesitate'));
     await user.click(cont());
     expect(await screen.findByRole('heading', { name: 'How long does it usually affect you?' })).toBeTruthy();
   });
@@ -203,9 +204,10 @@ describe('Adaptive onboarding v2', () => {
     expect(await screen.findByRole('heading', { name: 'When do you first notice the pressure or nerves?' })).toBeTruthy();
     await user.click(radio('Just before I perform'));
     await user.click(cont());
-    await user.click(await screen.findByRole('checkbox', { name: 'Tight or tense body' }));
+    // Single-choice (Performance Pattern pass) — radio, not checkbox.
+    await user.click(await screen.findByRole('radio', { name: 'Tight or tense body' }));
     await user.click(cont());
-    await user.click(await screen.findByRole('checkbox', { name: 'I rush' }));
+    await user.click(await screen.findByRole('radio', { name: 'I rush' }));
     await user.click(cont());
     // the 4th, branch-specific duration screen
     expect(await screen.findByRole('heading', { name: 'How long does the pressure stay disruptive?' })).toBeTruthy();

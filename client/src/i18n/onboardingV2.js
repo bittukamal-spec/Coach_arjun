@@ -11,6 +11,7 @@ const RECOVERY_EN = {
   evenAfter: 'Even after it finishes',
   itVaries: 'It varies',
   haventNoticed: "I haven't noticed",
+  somethingElse: 'Something else',
 };
 const RECOVERY_HI = {
   oneTwoActions: 'एक या दो एक्शन',
@@ -19,6 +20,7 @@ const RECOVERY_HI = {
   evenAfter: 'खत्म होने के बाद भी',
   itVaries: 'हर बार अलग',
   haventNoticed: 'मैंने ध्यान नहीं दिया',
+  somethingElse: 'कुछ और',
 };
 
 export const onboardingV2En = {
@@ -34,8 +36,9 @@ export const onboardingV2En = {
     loadError: "We couldn't load your onboarding. Please try again.",
     incomplete: 'Please finish the highlighted question first.',
     answersCleared: 'Your earlier answers for the previous situation were cleared.',
-    customLabel: 'Your answer',
+    customLabel: 'Write your own',
     customPlaceholder: 'Type your answer',
+    chooseOneNotice: 'Choose the one that fits you best now.',
     competitionGroup: 'Where do you mostly compete?',
     experienceGroup: 'How would you describe your experience?',
     progressLabel: (n, total) => `Stage ${n} of ${total}`,
@@ -141,7 +144,7 @@ export const onboardingV2En = {
   },
   prePerformanceDuration: {
     settlesAtStart: 'It settles once I start', firstFewMinutes: 'The first few minutes', mostOfPerformance: 'Most of the performance',
-    lingersAfter: 'It lingers even after', itVaries: 'It varies', haventNoticed: "I haven't noticed",
+    lingersAfter: 'It lingers even after', itVaries: 'It varies', haventNoticed: "I haven't noticed", somethingElse: 'Something else',
   },
   mistakesFirstResponse: {
     keepThinking: 'I keep thinking about it', angrySelf: 'I get angry with myself', becomeCautious: 'I become cautious',
@@ -220,6 +223,7 @@ export const onboardingV2En = {
     struggleConsistency: 'I struggle to train consistently',
     pressureToProve: 'I feel pressure to prove myself',
     noneFit: 'None of these quite fit',
+    somethingElse: 'Something else',
   },
   unsureRecovery: RECOVERY_EN,
   customResponse: {
@@ -274,8 +278,9 @@ export const onboardingV2Hi = {
     loadError: 'ऑनबोर्डिंग लोड नहीं हो सका। कृपया फिर से कोशिश करें।',
     incomplete: 'कृपया पहले हाइलाइट किया गया सवाल पूरा करें।',
     answersCleared: 'पिछली स्थिति के लिए आपके पहले के जवाब हटा दिए गए।',
-    customLabel: 'आपका जवाब',
+    customLabel: 'अपने शब्दों में लिखें',
     customPlaceholder: 'अपना जवाब लिखें',
+    chooseOneNotice: 'अभी जो आप पर सबसे सही बैठता है, वह चुनें।',
     competitionGroup: 'आप ज़्यादातर कहाँ खेलते हैं?',
     experienceGroup: 'आप अपने अनुभव को कैसे बताएंगे?',
     progressLabel: (n, total) => `चरण ${n} / ${total}`,
@@ -381,7 +386,7 @@ export const onboardingV2Hi = {
   },
   prePerformanceDuration: {
     settlesAtStart: 'शुरू होते ही शांत हो जाता है', firstFewMinutes: 'पहले कुछ मिनट', mostOfPerformance: 'ज़्यादातर प्रदर्शन',
-    lingersAfter: 'बाद तक भी बना रहता है', itVaries: 'हर बार अलग', haventNoticed: 'मैंने ध्यान नहीं दिया',
+    lingersAfter: 'बाद तक भी बना रहता है', itVaries: 'हर बार अलग', haventNoticed: 'मैंने ध्यान नहीं दिया', somethingElse: 'कुछ और',
   },
   mistakesFirstResponse: {
     keepThinking: 'मैं उसी के बारे में सोचता रहता हूं', angrySelf: 'मुझे खुद पर गुस्सा आता है', becomeCautious: 'मैं सतर्क हो जाता हूं',
@@ -460,6 +465,7 @@ export const onboardingV2Hi = {
     struggleConsistency: 'मुझे लगातार ट्रेनिंग करना मुश्किल लगता है',
     pressureToProve: 'मुझे खुद को साबित करने का दबाव महसूस होता है',
     noneFit: 'इनमें से कोई ठीक से फिट नहीं बैठता',
+    somethingElse: 'कुछ और',
   },
   unsureRecovery: RECOVERY_HI,
   customResponse: {

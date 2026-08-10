@@ -78,7 +78,14 @@ function buildRuleOutput(session) {
     const ids = selIds(answers, qid);
     if (isDuration) {
       const d = ids[0];
-      if (cfg.PROLONGED_RECOVERY.has(d)) durationObs = { code: `${qid}:${d}`, dim: 'duration', questionId: qid, answerId: d };
+      if (d && C.isCustom(qid, d)) {
+        // A custom recovery answer has no PROLONGED_RECOVERY/QUICK_RECOVERY
+        // entry to classify it by (those sets are keyed to fixed predefined
+        // ids) — the athlete's own words become the duration observation
+        // directly, shown verbatim, never guessed at as quick or prolonged.
+        const text = String(answers[qid]?.customText || '').trim();
+        if (text) durationObs = { code: `${qid}:${d}`, dim: 'duration', questionId: qid, answerId: d, customText: text };
+      } else if (cfg.PROLONGED_RECOVERY.has(d)) durationObs = { code: `${qid}:${d}`, dim: 'duration', questionId: qid, answerId: d };
       else if (cfg.QUICK_RECOVERY.has(d)) resilience = true;
       continue;
     }
@@ -91,6 +98,20 @@ function buildRuleOutput(session) {
 
     for (const aid of ids) {
       if (cfg.NEUTRAL_ANSWERS.has(aid)) continue; // suppress no-problem answers
+      if (C.isCustom(qid, aid)) {
+        // A custom "something else" answer has no CLAUSE entry to classify
+        // it by — cfg.questionDim resolves which stage this question feeds
+        // (from CLAUSE itself, or the one documented override) so the
+        // athlete's own words still become a real reaction/effect
+        // observation instead of being silently dropped.
+        const dim = cfg.questionDim(qid);
+        const text = String(answers[qid]?.customText || '').trim();
+        if (dim && text) {
+          const obs = { code: `${qid}:${aid}`, dim, questionId: qid, answerId: aid, customText: text };
+          (dim === 'reaction' ? reaction : effect).push(obs);
+        }
+        continue;
+      }
       const clause = cfg.CLAUSE[`${qid}:${aid}`];
       if (!clause) continue;
       const obs = { code: `${qid}:${aid}`, dim: clause.dim, questionId: qid, answerId: aid };
@@ -215,7 +236,7 @@ function renderSections(ro, lang = 'en') {
   if (usedAsSituation && shown.some((o) => o.dim !== 'duration' && o.code !== usedAsSituation)) {
     shown = shown.filter((o) => o.code !== usedAsSituation);
   }
-  const obsClauses = shown.map((o) => (o.dim === 'duration' ? cfg.DURATION_PROLONGED[L] : cfg.CLAUSE[o.code]?.[L])).filter(Boolean);
+  const obsClauses = shown.map((o) => o.customText || (o.dim === 'duration' ? cfg.DURATION_PROLONGED[L] : cfg.CLAUSE[o.code]?.[L])).filter(Boolean);
   const onsetLabel = pick(cfg.ONSET_PHRASE, ro.onset, L);
   const sourceLabel = pick(cfg.FAMILY_SOURCE, ro.source, L);
   const contextLabel = pick(cfg.CONTEXT_PHRASE, ro.contextual[0], L);
@@ -317,7 +338,7 @@ function groundingAnchors(ro, lang = 'en') {
 
   add('sport', [pick(cfg.SPORT_LABEL, ro.sportId, L) || ro.sport]);
   add('situation', [situationPhrase(ro, L)]);
-  add('pattern', ro.observations.map((o) => (o.dim === 'duration' ? cfg.DURATION_PROLONGED[L] : cfg.CLAUSE[o.code]?.[L])));
+  add('pattern', ro.observations.map((o) => o.customText || (o.dim === 'duration' ? cfg.DURATION_PROLONGED[L] : cfg.CLAUSE[o.code]?.[L])));
   add('goal', [pick(cfg.OUTCOME_LABEL, ro.outcome, L), ...ro.goals.map((g) => pick(cfg.GOAL_LABEL, g, L))]);
   add('helps', [
     ...ro.supports.map((s) => pick(cfg.SUPPORT_PHRASE, s, L)),

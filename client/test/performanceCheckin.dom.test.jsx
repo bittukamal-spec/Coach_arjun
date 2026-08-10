@@ -131,8 +131,9 @@ describe('Performance Check-in — entry screen (full flow)', () => {
     const user = userEvent.setup();
     renderAt('/starting-profile/check-in');
     await user.click(await screen.findByRole('button', { name: 'Start check-in' }));
-    // Pattern first question: existing answer preselected.
-    expect(await screen.findByRole('checkbox', { name: /keep thinking/i, checked: true })).toBeTruthy();
+    // Pattern first question: existing answer preselected. Single-choice
+    // (Performance Pattern pass) — radio, not checkbox.
+    expect(await screen.findByRole('radio', { name: /keep thinking/i, checked: true })).toBeTruthy();
   });
 });
 
@@ -233,13 +234,85 @@ describe('Performance Check-in — draft preserved across Back/Next', () => {
     const user = userEvent.setup();
     renderAt('/starting-profile/check-in?section=pattern');
     // mistakes_first_response, mistakes_next, mistakes_recovery — 3 screens.
-    await screen.findByRole('checkbox', { checked: true, name: /keep thinking/i });
-    await user.click(screen.getByRole('checkbox', { name: /angry/i })); // add a second answer
+    // Single-choice (Performance Pattern pass): picking a new option
+    // REPLACES the preselected one, it never adds a second answer.
+    await screen.findByRole('radio', { checked: true, name: /keep thinking/i });
+    await user.click(screen.getByRole('radio', { name: /angry/i }));
     await user.click(screen.getByRole('button', { name: 'Next' }));
     await screen.findByRole('heading', { name: /hesitate|next/i, level: 2 }).catch(() => {}); // best-effort, screen 2
-    // Go back to screen 1 and confirm the draft (both selections) survived.
+    // Go back to screen 1 and confirm the draft (the replaced selection) survived.
     await user.click(screen.getAllByRole('button')[0]);
-    const angry = await screen.findByRole('checkbox', { name: /angry/i });
+    const angry = await screen.findByRole('radio', { name: /angry/i });
     expect(angry.getAttribute('aria-checked')).toBe('true');
+    const keepThinking = screen.getByRole('radio', { name: /keep thinking/i });
+    expect(keepThinking.getAttribute('aria-checked')).toBe('false');
+  });
+});
+
+// ── Performance Pattern questions are single-choice ─────────────────────────
+// mistakes_first_response/mistakes_next/mistakes_recovery are three of the
+// questions converted to single-choice by this pass. Behaviour here is
+// identical for every other converted Pattern question — they all render
+// through this same CheckinQuestion component off the same config contract.
+describe('Performance Check-in — Pattern questions are single-choice', () => {
+  test('picking a new predefined option replaces the previous one — never both selected', async () => {
+    const user = userEvent.setup();
+    renderAt('/starting-profile/check-in?section=pattern');
+    await screen.findByRole('radio', { name: /keep thinking/i, checked: true });
+    await user.click(screen.getByRole('radio', { name: /angry/i }));
+    expect(screen.getByRole('radio', { name: /angry/i }).getAttribute('aria-checked')).toBe('true');
+    expect(screen.getByRole('radio', { name: /keep thinking/i }).getAttribute('aria-checked')).toBe('false');
+    // Options render as a radiogroup, not a checkbox group.
+    expect(screen.queryAllByRole('checkbox').length).toBe(0);
+  });
+
+  test('a custom-only answer is accepted, and Save sends exactly one answer id for the question', async () => {
+    const server = makeServer();
+    const user = userEvent.setup();
+    renderAt('/starting-profile/check-in?section=pattern', server);
+    await screen.findByRole('radio', { name: /keep thinking/i, checked: true });
+    await user.click(screen.getByRole('radio', { name: 'Something else' }));
+    const input = await screen.findByLabelText('Write your own');
+    // Blank custom text blocks Next.
+    expect(screen.getByRole('button', { name: 'Next' }).disabled).toBe(true);
+    await user.type(input, 'I go completely silent');
+    expect(screen.getByRole('button', { name: 'Next' }).disabled).toBe(false);
+    // Picking the custom option cleared the previous predefined selection.
+    expect(screen.getByRole('radio', { name: /keep thinking/i }).getAttribute('aria-checked')).toBe('false');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await user.click(screen.getByRole('button', { name: 'Next' })); // mistakes_next unchanged
+    await user.click(screen.getByRole('button', { name: 'Next' })); // mistakes_recovery unchanged
+    await user.click(screen.getByRole('button', { name: 'Save profile' }));
+    await vi.waitFor(() => expect(server.state.calls.some((c) => c === 'PATCH /api/profile/answers')).toBe(true));
+    const sent = server.state.profile.checkin.answers.mistakes_first_response;
+    expect(sent.answerIds).toEqual(['something_else']);
+    expect(sent.customText).toBe('I go completely silent');
+  });
+
+  test('choosing a predefined option after custom text was entered drops the custom text from the outgoing answer', async () => {
+    const user = userEvent.setup();
+    renderAt('/starting-profile/check-in?section=pattern');
+    await user.click(await screen.findByRole('radio', { name: 'Something else' }));
+    await user.type(await screen.findByLabelText('Write your own'), 'draft text');
+    await user.click(screen.getByRole('radio', { name: /become cautious/i }));
+    expect(screen.queryByLabelText('Write your own')).toBeNull();
+    expect(screen.getByRole('radio', { name: /become cautious/i }).getAttribute('aria-checked')).toBe('true');
+  });
+
+  test('a legacy answer with more than one stored id shows the resolution notice, pre-selects nothing, and blocks Next until resolved', async () => {
+    const server = makeServer();
+    server.state.profile.checkin.answers.mistakes_first_response = { answerIds: ['keep_thinking', 'angry_self'] };
+    const user = userEvent.setup();
+    renderAt('/starting-profile/check-in?section=pattern', server);
+    await screen.findByText('What usually happens first after a mistake?');
+    // Nothing is silently chosen on the athlete's behalf.
+    expect(screen.getByRole('radio', { name: /keep thinking/i }).getAttribute('aria-checked')).toBe('false');
+    expect(screen.getByRole('radio', { name: /angry/i }).getAttribute('aria-checked')).toBe('false');
+    expect(screen.getByText('Choose the one that fits you best now.')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Next' }).disabled).toBe(true);
+    // Resolving with an explicit tap unblocks Next and leaves exactly one id.
+    await user.click(screen.getByRole('radio', { name: /angry/i }));
+    expect(screen.queryByText('Choose the one that fits you best now.')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Next' }).disabled).toBe(false);
   });
 });

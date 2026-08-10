@@ -26,7 +26,15 @@ export default function CheckinQuestion({ screenId, answers, onChange, labelFor,
   const current = answers[qid] || { answerIds: [] };
   const sel = current.answerIds || [];
   const atLimit = multi && sel.filter((id) => !CFG.isExclusive(qid, id)).length >= q.limit;
-  const customId = sel.find((id) => CFG.isCustom(qid, id));
+  // Athletes who answered this question back when it allowed more than one
+  // selection can still have >1 stored ids for a question that is now
+  // single-choice. Nothing here was silently dropped — see
+  // checkinScreenValid, which keeps Next disabled until the athlete
+  // resolves it. While ambiguous, no option is shown pre-selected (a
+  // radiogroup with none checked is valid) and the custom field stays
+  // hidden rather than guessing which of the stored ids should "win".
+  const ambiguous = !multi && sel.length > 1;
+  const customId = !ambiguous && sel.find((id) => CFG.isCustom(qid, id));
 
   function setAnswer(next) {
     onChange({ ...answers, [qid]: next });
@@ -58,9 +66,12 @@ export default function CheckinQuestion({ screenId, answers, onChange, labelFor,
     <div>
       <h2 className="text-title font-bold text-ink mb-1.5">{title}</h2>
       {subtitle && <p className="text-body text-slt mb-4 leading-relaxed">{subtitle}</p>}
+      {ambiguous && (
+        <p className="text-caption text-amber-400 mb-3" role="status">{ui.chooseOneNotice}</p>
+      )}
       <div className="flex flex-col gap-2" role="radiogroup" aria-label={title}>
         {options.map((a) => {
-          const selected = sel.includes(a.id);
+          const selected = !ambiguous && sel.includes(a.id);
           const disabled = multi && atLimit && !selected && !CFG.isExclusive(qid, a.id);
           return (
             <SelectableOption
@@ -91,7 +102,11 @@ export default function CheckinQuestion({ screenId, answers, onChange, labelFor,
 
 // Whether the current answer for this screen's question is valid enough to
 // continue — required questions need >=1 id, and a selected custom id needs
-// non-empty (sanitisable) custom text.
+// non-empty (sanitisable) custom text. A single-choice question carrying >1
+// stored ids (an athlete who answered before it became single-choice) is
+// never valid as-is: the athlete must pick one before moving on — see the
+// ambiguous-state notice in the component above, which is the only UI this
+// resolves through.
 export function checkinScreenValid(screenId, answers) {
   const screen = CFG.getScreen(screenId);
   if (!screen) return true;
@@ -100,6 +115,7 @@ export function checkinScreenValid(screenId, answers) {
   const ans = answers[qid];
   const ids = ans?.answerIds || [];
   if (q?.required && ids.length === 0) return false;
+  if (q?.type === 'single' && ids.length > 1) return false;
   const customId = ids.find((id) => CFG.isCustom(qid, id));
   if (customId && !(ans?.customText && ans.customText.trim())) return false;
   return true;

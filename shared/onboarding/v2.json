@@ -228,7 +228,7 @@
       ]
     },
     "pre_performance_signs": {
-      "type": "multi", "limit": 2, "required": true,
+      "type": "single", "limit": 1, "required": true,
       "answers": [
         { "id": "fast_heartbeat", "key": "onboarding.v2.prePerformanceSigns.fastHeartbeat" },
         { "id": "tense_body", "key": "onboarding.v2.prePerformanceSigns.tenseBody" },
@@ -242,7 +242,7 @@
       ]
     },
     "pre_performance_effect": {
-      "type": "multi", "limit": 2, "required": true,
+      "type": "single", "limit": 1, "required": true,
       "answers": [
         { "id": "hesitate", "key": "onboarding.v2.prePerformanceEffect.hesitate" },
         { "id": "rush", "key": "onboarding.v2.prePerformanceEffect.rush" },
@@ -263,11 +263,12 @@
         { "id": "most_of_performance", "key": "onboarding.v2.prePerformanceDuration.mostOfPerformance" },
         { "id": "lingers_after", "key": "onboarding.v2.prePerformanceDuration.lingersAfter" },
         { "id": "it_varies", "key": "onboarding.v2.prePerformanceDuration.itVaries", "exclusive": true },
-        { "id": "havent_noticed", "key": "onboarding.v2.prePerformanceDuration.haventNoticed", "exclusive": true }
+        { "id": "havent_noticed", "key": "onboarding.v2.prePerformanceDuration.haventNoticed", "exclusive": true },
+        { "id": "something_else", "key": "onboarding.v2.prePerformanceDuration.somethingElse", "custom": true, "max": 120 }
       ]
     },
     "mistakes_first_response": {
-      "type": "multi", "limit": 2, "required": true,
+      "type": "single", "limit": 1, "required": true,
       "answers": [
         { "id": "keep_thinking", "key": "onboarding.v2.mistakesFirstResponse.keepThinking" },
         { "id": "angry_self", "key": "onboarding.v2.mistakesFirstResponse.angrySelf" },
@@ -281,7 +282,7 @@
       ]
     },
     "mistakes_next": {
-      "type": "multi", "limit": 2, "required": true,
+      "type": "single", "limit": 1, "required": true,
       "answers": [
         { "id": "hesitate", "key": "onboarding.v2.mistakesNext.hesitate" },
         { "id": "another_mistake", "key": "onboarding.v2.mistakesNext.anotherMistake" },
@@ -302,11 +303,12 @@
         { "id": "most_of_session", "key": "onboarding.v2.recovery.mostOfSession" },
         { "id": "even_after", "key": "onboarding.v2.recovery.evenAfter" },
         { "id": "it_varies", "key": "onboarding.v2.recovery.itVaries", "exclusive": true },
-        { "id": "havent_noticed", "key": "onboarding.v2.recovery.haventNoticed", "exclusive": true }
+        { "id": "havent_noticed", "key": "onboarding.v2.recovery.haventNoticed", "exclusive": true },
+        { "id": "something_else", "key": "onboarding.v2.recovery.somethingElse", "custom": true, "max": 120 }
       ]
     },
     "focus_when": {
-      "type": "multi", "limit": 2, "required": true,
+      "type": "single", "limit": 1, "required": true,
       "answers": [
         { "id": "before_start", "key": "onboarding.v2.focusWhen.beforeStart" },
         { "id": "after_mistake", "key": "onboarding.v2.focusWhen.afterMistake" },
@@ -320,7 +322,7 @@
       ]
     },
     "focus_effect": {
-      "type": "multi", "limit": 2, "required": true,
+      "type": "single", "limit": 1, "required": true,
       "answers": [
         { "id": "miss_cues", "key": "onboarding.v2.focusEffect.missCues" },
         { "id": "slow_reactions", "key": "onboarding.v2.focusEffect.slowReactions" },
@@ -339,11 +341,12 @@
         { "id": "most_of_session", "key": "onboarding.v2.recovery.mostOfSession" },
         { "id": "even_after", "key": "onboarding.v2.recovery.evenAfter" },
         { "id": "it_varies", "key": "onboarding.v2.recovery.itVaries", "exclusive": true },
-        { "id": "havent_noticed", "key": "onboarding.v2.recovery.haventNoticed", "exclusive": true }
+        { "id": "havent_noticed", "key": "onboarding.v2.recovery.haventNoticed", "exclusive": true },
+        { "id": "something_else", "key": "onboarding.v2.recovery.somethingElse", "custom": true, "max": 120 }
       ]
     },
     "confidence_trigger": {
-      "type": "multi", "limit": 2, "required": true,
+      "type": "single", "limit": 1, "required": true,
       "answers": [
         { "id": "after_mistake", "key": "onboarding.v2.confidenceTrigger.afterMistake" },
         { "id": "after_poor_result", "key": "onboarding.v2.confidenceTrigger.afterPoorResult" },
@@ -356,7 +359,7 @@
       ]
     },
     "confidence_effect": {
-      "type": "multi", "limit": 2, "required": true,
+      "type": "single", "limit": 1, "required": true,
       "answers": [
         { "id": "play_safe", "key": "onboarding.v2.confidenceEffect.playSafe" },
         { "id": "hesitate", "key": "onboarding.v2.confidenceEffect.hesitate" },
@@ -375,11 +378,12 @@
         { "id": "most_of_session", "key": "onboarding.v2.recovery.mostOfSession" },
         { "id": "even_after", "key": "onboarding.v2.recovery.evenAfter" },
         { "id": "it_varies", "key": "onboarding.v2.recovery.itVaries", "exclusive": true },
-        { "id": "havent_noticed", "key": "onboarding.v2.recovery.haventNoticed", "exclusive": true }
+        { "id": "havent_noticed", "key": "onboarding.v2.recovery.haventNoticed", "exclusive": true },
+        { "id": "something_else", "key": "onboarding.v2.recovery.somethingElse", "custom": true, "max": 120 }
       ]
     },
     "motivation_when": {
-      "type": "multi", "limit": 2, "required": true,
+      "type": "single", "limit": 1, "required": true,
       "answers": [
         { "id": "after_bad_result", "key": "onboarding.v2.motivationWhen.afterBadResult" },
         { "id": "repetitive_training", "key": "onboarding.v2.motivationWhen.repetitiveTraining" },
@@ -392,7 +396,7 @@
       ]
     },
     "motivation_effect": {
-      "type": "multi", "limit": 2, "required": true,
+      "type": "single", "limit": 1, "required": true,
       "answers": [
         { "id": "skip_or_shorten", "key": "onboarding.v2.motivationEffect.skipOrShorten" },
         { "id": "go_through_motions", "key": "onboarding.v2.motivationEffect.goThroughMotions" },
@@ -410,11 +414,12 @@
         { "id": "most_of_session", "key": "onboarding.v2.recovery.mostOfSession" },
         { "id": "even_after", "key": "onboarding.v2.recovery.evenAfter" },
         { "id": "it_varies", "key": "onboarding.v2.recovery.itVaries", "exclusive": true },
-        { "id": "havent_noticed", "key": "onboarding.v2.recovery.haventNoticed", "exclusive": true }
+        { "id": "havent_noticed", "key": "onboarding.v2.recovery.haventNoticed", "exclusive": true },
+        { "id": "something_else", "key": "onboarding.v2.recovery.somethingElse", "custom": true, "max": 120 }
       ]
     },
     "coach_selection_moment": {
-      "type": "multi", "limit": 2, "required": true,
+      "type": "single", "limit": 1, "required": true,
       "answers": [
         { "id": "critical_feedback", "key": "onboarding.v2.coachSelectionMoment.criticalFeedback" },
         { "id": "public_feedback", "key": "onboarding.v2.coachSelectionMoment.publicFeedback" },
@@ -427,7 +432,7 @@
       ]
     },
     "coach_selection_effect": {
-      "type": "multi", "limit": 2, "required": true,
+      "type": "single", "limit": 1, "required": true,
       "answers": [
         { "id": "overthink", "key": "onboarding.v2.coachSelectionEffect.overthink" },
         { "id": "play_safe", "key": "onboarding.v2.coachSelectionEffect.playSafe" },
@@ -447,7 +452,8 @@
         { "id": "most_of_session", "key": "onboarding.v2.recovery.mostOfSession" },
         { "id": "even_after", "key": "onboarding.v2.recovery.evenAfter" },
         { "id": "it_varies", "key": "onboarding.v2.recovery.itVaries", "exclusive": true },
-        { "id": "havent_noticed", "key": "onboarding.v2.recovery.haventNoticed", "exclusive": true }
+        { "id": "havent_noticed", "key": "onboarding.v2.recovery.haventNoticed", "exclusive": true },
+        { "id": "something_else", "key": "onboarding.v2.recovery.somethingElse", "custom": true, "max": 120 }
       ]
     },
     "family_outside_source": {
@@ -464,7 +470,7 @@
       ]
     },
     "family_outside_effect": {
-      "type": "multi", "limit": 2, "required": true,
+      "type": "single", "limit": 1, "required": true,
       "answers": [
         { "id": "extra_pressure", "key": "onboarding.v2.familyOutsideEffect.extraPressure" },
         { "id": "fear_letting_down", "key": "onboarding.v2.familyOutsideEffect.fearLettingDown" },
@@ -484,7 +490,8 @@
         { "id": "most_of_session", "key": "onboarding.v2.recovery.mostOfSession" },
         { "id": "even_after", "key": "onboarding.v2.recovery.evenAfter" },
         { "id": "it_varies", "key": "onboarding.v2.recovery.itVaries", "exclusive": true },
-        { "id": "havent_noticed", "key": "onboarding.v2.recovery.haventNoticed", "exclusive": true }
+        { "id": "havent_noticed", "key": "onboarding.v2.recovery.haventNoticed", "exclusive": true },
+        { "id": "something_else", "key": "onboarding.v2.recovery.somethingElse", "custom": true, "max": 120 }
       ]
     },
     "injury_stage": {
@@ -498,7 +505,7 @@
       ]
     },
     "injury_concern": {
-      "type": "multi", "limit": 2, "required": true,
+      "type": "single", "limit": 1, "required": true,
       "answers": [
         { "id": "re_injury_fear", "key": "onboarding.v2.injuryConcern.reInjuryFear" },
         { "id": "lost_form", "key": "onboarding.v2.injuryConcern.lostForm" },
@@ -518,11 +525,12 @@
         { "id": "most_of_session", "key": "onboarding.v2.recovery.mostOfSession" },
         { "id": "even_after", "key": "onboarding.v2.recovery.evenAfter" },
         { "id": "it_varies", "key": "onboarding.v2.recovery.itVaries", "exclusive": true },
-        { "id": "havent_noticed", "key": "onboarding.v2.recovery.haventNoticed", "exclusive": true }
+        { "id": "havent_noticed", "key": "onboarding.v2.recovery.haventNoticed", "exclusive": true },
+        { "id": "something_else", "key": "onboarding.v2.recovery.somethingElse", "custom": true, "max": 120 }
       ]
     },
     "unsure_recognition": {
-      "type": "multi", "limit": 2, "required": true,
+      "type": "single", "limit": 1, "required": true,
       "answers": [
         { "id": "differ_comp_vs_training", "key": "onboarding.v2.unsureRecognition.differCompVsTraining" },
         { "id": "one_mistake_snowballs", "key": "onboarding.v2.unsureRecognition.oneMistakeSnowballs" },
@@ -531,7 +539,8 @@
         { "id": "compare_to_others", "key": "onboarding.v2.unsureRecognition.compareToOthers" },
         { "id": "struggle_consistency", "key": "onboarding.v2.unsureRecognition.struggleConsistency" },
         { "id": "pressure_to_prove", "key": "onboarding.v2.unsureRecognition.pressureToProve" },
-        { "id": "none_fit", "key": "onboarding.v2.unsureRecognition.noneFit", "exclusive": true }
+        { "id": "none_fit", "key": "onboarding.v2.unsureRecognition.noneFit", "exclusive": true },
+        { "id": "something_else", "key": "onboarding.v2.unsureRecognition.somethingElse", "custom": true, "max": 120 }
       ]
     },
     "unsure_recovery": {
@@ -542,11 +551,12 @@
         { "id": "most_of_session", "key": "onboarding.v2.recovery.mostOfSession" },
         { "id": "even_after", "key": "onboarding.v2.recovery.evenAfter" },
         { "id": "it_varies", "key": "onboarding.v2.recovery.itVaries", "exclusive": true },
-        { "id": "havent_noticed", "key": "onboarding.v2.recovery.haventNoticed", "exclusive": true }
+        { "id": "havent_noticed", "key": "onboarding.v2.recovery.haventNoticed", "exclusive": true },
+        { "id": "something_else", "key": "onboarding.v2.recovery.somethingElse", "custom": true, "max": 120 }
       ]
     },
     "custom_response": {
-      "type": "multi", "limit": 2, "required": true,
+      "type": "single", "limit": 1, "required": true,
       "answers": [
         { "id": "body_tense", "key": "onboarding.v2.customResponse.bodyTense" },
         { "id": "negative_thoughts", "key": "onboarding.v2.customResponse.negativeThoughts" },
@@ -558,7 +568,7 @@
       ]
     },
     "custom_effect": {
-      "type": "multi", "limit": 2, "required": true,
+      "type": "single", "limit": 1, "required": true,
       "answers": [
         { "id": "hesitate", "key": "onboarding.v2.customEffect.hesitate" },
         { "id": "rush", "key": "onboarding.v2.customEffect.rush" },
@@ -577,7 +587,8 @@
         { "id": "most_of_session", "key": "onboarding.v2.recovery.mostOfSession" },
         { "id": "even_after", "key": "onboarding.v2.recovery.evenAfter" },
         { "id": "it_varies", "key": "onboarding.v2.recovery.itVaries", "exclusive": true },
-        { "id": "havent_noticed", "key": "onboarding.v2.recovery.haventNoticed", "exclusive": true }
+        { "id": "havent_noticed", "key": "onboarding.v2.recovery.haventNoticed", "exclusive": true },
+        { "id": "something_else", "key": "onboarding.v2.recovery.somethingElse", "custom": true, "max": 120 }
       ]
     },
     "contextual_pressures": {
