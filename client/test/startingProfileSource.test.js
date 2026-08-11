@@ -263,3 +263,34 @@ test('the situation question and the pressure stage order are read from config, 
     assert.match(source, /'firstResponse', 'impact', 'reset', 'context'/);
   }
 });
+
+// ── One place per idea ─────────────────────────────────────────────────────
+// Goals (the broader areas), Current Focus (what they're working on now) and
+// the 4-week target (the near-term outcome) each appear once, in one card.
+
+test('the goals edit affordance exists exactly once on the profile', () => {
+  assert.equal([...page.matchAll(/editPath\('goals'\)/g)].length, 1);
+});
+
+test('the starting-summary copy names Arjun and says it is background, in both languages', () => {
+  const en = namespaceBlock('en');
+  const hi = namespaceBlock('hi');
+  assert.match(en, /summarySubtitle: "This is what you told Arjun\. He'll use it as background and still check what's happening today\."/);
+  assert.match(hi, /summarySubtitle: '.*Arjun.*'/);
+  assert.match(hi, /[ऀ-ॿ]/);
+  // The confirmation controls and their contract are untouched by the copy fix.
+  assert.match(en, /looksRight: 'Looks right'/);
+  assert.match(en, /changeSomething: 'Change something'/);
+  assert.match(page, /confirm\(\{ fit: 'CONFIRMED' \}\)/);
+});
+
+test('the three goal-ish labels are distinct in both languages', () => {
+  for (const lang of ['en', 'hi']) {
+    const block = namespaceBlock(lang);
+    const grab = (key) => block.match(new RegExp(`${key}: '([^']+)'`))?.[1];
+    const values = [grab('goalsLabel'), grab('fourWeekLabel'), grab('currentFocusLabel')];
+    assert.equal(new Set(values).size, 3, `${lang}: goals/4-week/current-focus labels must not collide`);
+  }
+  assert.equal(namespaceBlock('en').match(/goalsLabel: '([^']+)'/)[1], 'Goals');
+  assert.equal(namespaceBlock('en').match(/fourWeekLabel: '([^']+)'/)[1], '4-week target');
+});

@@ -240,14 +240,16 @@ export const translations = {
       // A single-choice answer stored with more than one value (answered
       // before the question became single-choice). Never resolved for them.
       needsUpdate: 'Needs update',
-      // Goals live with Current Focus — the one place that answers "what am I
-      // working on", so they never become uneditable.
-      goalsLabel: 'Working on',
-      fourWeekLabel: '4-week goal',
+      // Three distinct ideas, one place each: Goals are the broader areas the
+      // athlete wants to improve (My Game), Current Focus is what they and
+      // Arjun are actively working on, and the 4-week target is the near-term
+      // outcome that sits with it.
+      goalsLabel: 'Goals',
+      fourWeekLabel: '4-week target',
       updateGoals: 'Update goals',
       // ── First-time "Your starting profile" summary ──────────────────────
       summaryTitle: 'Your starting profile',
-      summarySubtitle: "This is what you told us. Arjun will remember it, and still ask how today went.",
+      summarySubtitle: "This is what you told Arjun. He'll use it as background and still check what's happening today.",
       summaryMainFocus: 'Main focus',
       summaryWhenPressure: 'When pressure hits',
       summaryWhatHelps: 'What helps',
@@ -2057,12 +2059,12 @@ export const translations = {
       },
       notSetYet: 'अभी सेट नहीं है',
       needsUpdate: 'अपडेट चाहिए',
-      goalsLabel: 'किस पर काम',
-      fourWeekLabel: '4 हफ्ते का लक्ष्य',
+      goalsLabel: 'लक्ष्य',
+      fourWeekLabel: '4 हफ्ते का टारगेट',
       updateGoals: 'लक्ष्य अपडेट करो',
       // ── First-time "Your starting profile" summary ──────────────────────
       summaryTitle: 'तुम्हारी शुरुआती प्रोफाइल',
-      summarySubtitle: 'यह तुमने हमें बताया है। Arjun इसे याद रखेगा, और फिर भी पूछेगा कि आज कैसा रहा।',
+      summarySubtitle: 'यह तुमने Arjun को बताया है। वह इसे बैकग्राउंड की तरह इस्तेमाल करेगा, और फिर भी पूछेगा कि आज क्या चल रहा है।',
       summaryMainFocus: 'मुख्य फोकस',
       summaryWhenPressure: 'जब दबाव आता है',
       summaryWhatHelps: 'क्या मदद करता है',

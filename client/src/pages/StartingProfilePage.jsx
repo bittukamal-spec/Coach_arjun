@@ -249,35 +249,47 @@ export default function StartingProfilePage() {
               changeFocusLabel={t.changeFocus}
               changeFocusRef={changeFocusRef}
             >
-              {/* Goals stay reachable and editable in their own right — they
-                  did not disappear with the full check-in. */}
+              {/* The near-term outcome sits with the focus it belongs to —
+                  secondary to it, and the only other thing in this card. The
+                  broader areas the athlete wants to improve are NOT repeated
+                  here; they live in My Game. */}
               <div className="mt-3 pt-3 border-t border-dark-600">
-                <p className="text-micro font-bold text-slt uppercase">{t.goalsLabel}</p>
-                <p className={`text-body break-words ${goalLabels.length ? 'text-ink' : 'text-muted italic'}`}>
-                  {goalLabels.length ? goalLabels.join(' · ') : t.notSetYet}
-                </p>
-                <p className="text-micro font-bold text-slt uppercase mt-2">{t.fourWeekLabel}</p>
+                <p className="text-micro font-bold text-slt uppercase">{t.fourWeekLabel}</p>
                 <p className={`text-body break-words ${fourWeekLabel ? 'text-ink' : 'text-muted italic'}`}>
                   {fourWeekLabel || t.notSetYet}
                 </p>
-                <button
-                  type="button"
-                  onClick={() => navigate(editPath('goals'))}
-                  className="min-h-[44px] min-w-[44px] inline-flex items-center mt-1 text-caption font-semibold text-brand-500 active:opacity-70"
-                >
-                  {t.updateGoals}
-                </button>
               </div>
             </CurrentFocusCard>
 
-            {/* ── My Game — display only; sport/role/level stay Settings-owned. */}
-            {gameChips.length > 0 && (
+            {/* ── My Game — the stable context: sport/role/level stay
+                Settings-owned, and the broader goals the athlete chose sit
+                here as facts about them, edited in their own scoped flow. */}
+            {(gameChips.length > 0 || goalLabels.length > 0) && (
               <ProfileSectionCard id="profile-game" title={t.myGameTitle}>
-                <ProfileChipGroup items={gameChips} ariaLabel={t.myGameTitle} />
+                {gameChips.length > 0 && <ProfileChipGroup items={gameChips} ariaLabel={t.myGameTitle} />}
                 <Link to="/account" className="inline-flex items-center gap-1 mt-3 min-h-[44px] min-w-[44px] text-caption font-semibold text-brand-400 active:opacity-70">
                   <SettingsIcon size={13} aria-hidden="true" />
                   {t.myGameSettingsLink}
                 </Link>
+
+                <div className="mt-3 pt-3 border-t border-dark-600">
+                  <p className="text-micro font-bold text-slt uppercase mb-1.5">{t.goalsLabel}</p>
+                  {goalLabels.length > 0 ? (
+                    <ProfileChipGroup
+                      items={goalLabels.map((text) => ({ key: text, label: text }))}
+                      ariaLabel={t.goalsLabel}
+                    />
+                  ) : (
+                    <p className="text-body text-muted italic">{t.notSetYet}</p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => navigate(editPath('goals'))}
+                    className="min-h-[44px] min-w-[44px] inline-flex items-center mt-1 text-caption font-semibold text-brand-400 active:opacity-70"
+                  >
+                    {t.updateGoals}
+                  </button>
+                </div>
               </ProfileSectionCard>
             )}
 

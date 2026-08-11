@@ -543,27 +543,49 @@ test('What Helps Me and My Strengths each open only their own question', async (
 
 // ── Goals stay reachable ───────────────────────────────────────────────────
 
-test('the goals the athlete set are shown with Current Focus, with their own scoped edit', async () => {
+test('Current Focus carries the focus and its 4-week target — and does not repeat the broad goals', async () => {
   renderPage();
   await screen.findByText('Current Focus');
   const card = document.querySelector('[aria-labelledby="profile-focus-heading"]');
-  expect(within(card).getByText('Working on')).toBeTruthy();
-  expect(within(card).getByText('Focus & Concentration · Building Confidence')).toBeTruthy();
-  expect(within(card).getByText('4-week goal')).toBeTruthy();
+  // The active focus, then the near-term outcome that belongs to it.
+  expect(within(card).getByText('Bounce back after mistakes')).toBeTruthy();
+  expect(within(card).getByText('4-week target')).toBeTruthy();
   expect(within(card).getByText('Enjoy competing more')).toBeTruthy();
-  await userEvent.click(within(card).getByRole('button', { name: 'Update goals' }));
+  // The broader areas are NOT restated here — three near-identical lines in
+  // one card is what this replaced.
+  expect(within(card).queryByText('Working on')).toBeNull();
+  expect(within(card).queryByText('Goals')).toBeNull();
+  expect(within(card).queryByText('Focus & Concentration · Building Confidence')).toBeNull();
+  expect(within(card).queryByRole('button', { name: 'Update goals' })).toBeNull();
+  // Changing focus still lives here.
+  expect(within(card).getByRole('button', { name: 'Change focus' })).toBeTruthy();
+});
+
+test('the broad goals sit in My Game, once, with their own scoped edit', async () => {
+  renderPage();
+  const gameCard = (await screen.findByRole('heading', { name: 'My Game' })).closest('section');
+  expect(within(gameCard).getByText('Goals')).toBeTruthy();
+  const goals = within(gameCard).getByRole('list', { name: 'Goals' });
+  expect(goals.textContent).toContain('Focus & Concentration');
+  expect(goals.textContent).toContain('Building Confidence');
+  // Exactly one goals edit affordance on the whole page.
+  expect(screen.getAllByRole('button', { name: 'Update goals' })).toHaveLength(1);
+  await userEvent.click(within(gameCard).getByRole('button', { name: 'Update goals' }));
   expect(await screen.findByTestId('checkin-route')).toHaveProperty('textContent', '/starting-profile/check-in?section=goals');
 });
 
-test('an athlete with no goals still gets the block and the way to set them', async () => {
+test('an athlete with no goals still gets the goals block and the way to set them', async () => {
   const s = makeServer();
   s.state.profile.displayProfile.selections.broadGoals = { questionId: 'broad_goals', answerIds: [], customText: null, status: 'unset' };
   s.state.profile.displayProfile.selections.fourWeekOutcome = { questionId: 'four_week_outcome', answerIds: [], customText: null, status: 'unset' };
   renderPage({ server: s });
-  await screen.findByText('Current Focus');
+  const gameCard = (await screen.findByRole('heading', { name: 'My Game' })).closest('section');
+  expect(within(gameCard).getByText('Goals')).toBeTruthy();
+  expect(within(gameCard).getByText('Not set yet')).toBeTruthy();
+  expect(within(gameCard).getByRole('button', { name: 'Update goals' })).toBeTruthy();
+  // The focus card reports its own missing target, on its own.
   const card = document.querySelector('[aria-labelledby="profile-focus-heading"]');
-  expect(within(card).getAllByText('Not set yet')).toHaveLength(2);
-  expect(within(card).getByRole('button', { name: 'Update goals' })).toBeTruthy();
+  expect(within(card).getAllByText('Not set yet')).toHaveLength(1);
 });
 
 // ── 10–13. Modes ───────────────────────────────────────────────────────────
