@@ -80,22 +80,24 @@ test('the real canonical config passes validation', () => {
 });
 
 // ── Branch resolution + required-per-branch ─────────────────────────────────
-test('pre_performance branch has four screens, all required', () => {
-  const a = {
-    difficult_moments: { answerIds: ['before_important_performance'] },
-    primary_priority: { answerIds: ['before_important_performance'] },
-  };
+test('pre_performance branch asks first response → impact → reset, all required', () => {
+  const a = { primary_priority: { answerIds: ['before_important_performance'] } };
   assert.equal(C.resolveBranch(a), 'pre_performance');
   const flow = C.computeFlowScreenIds(a);
-  for (const s of ['pre_performance_onset', 'pre_performance_signs', 'pre_performance_effect', 'pre_performance_duration']) {
+  for (const s of ['pre_performance_signs', 'pre_performance_effect', 'pre_performance_duration']) {
     assert.ok(flow.includes(s), `missing ${s}`);
   }
+  // The onset question is context, not one of the three pressure stages: it is
+  // no longer asked, and asking it is what made this branch a question longer
+  // than every other one.
+  assert.ok(!flow.includes('pre_performance_onset'), 'onset must not be in the flow');
   const req = C.requiredQuestionIds(a);
-  assert.ok(req.includes('pre_performance_duration'), 'the 4th pre-performance question must be required');
+  assert.ok(req.includes('pre_performance_duration'), 'the reset question must be required');
+  assert.ok(!req.includes('pre_performance_onset'));
 });
 
 test('mistakes branch has three required branch questions', () => {
-  const a = { difficult_moments: { answerIds: ['after_mistake'] }, primary_priority: { answerIds: ['after_mistake'] } };
+  const a = { primary_priority: { answerIds: ['after_mistake'] } };
   assert.equal(C.resolveBranch(a), 'mistakes');
   const req = C.requiredQuestionIds(a).filter((q) => q.startsWith('mistakes_'));
   assert.deepEqual(req.sort(), ['mistakes_first_response', 'mistakes_next', 'mistakes_recovery']);
@@ -111,10 +113,7 @@ test('difficult_moments = [not_sure] resolves to the shallow unsure branch and s
 });
 
 test('custom priority routes to the custom branch (free text never drives branch logic)', () => {
-  const a = {
-    difficult_moments: { answerIds: ['different'], customText: 'exam stress bleeds into matches' },
-    primary_priority: { answerIds: ['different'] },
-  };
+  const a = { primary_priority: { answerIds: ['different'], customText: 'exam stress bleeds into matches' } };
   assert.equal(C.resolveBranch(a), 'custom');
   assert.ok(C.computeFlowScreenIds(a).includes('custom_response'));
 });
@@ -128,9 +127,19 @@ test('validateAnswers enforces limit, exclusivity, unknown ids, and custom text'
   assert.equal(validateAnswers({ nope: { answerIds: ['x'] } }, {}).code, 'INVALID_QUESTION_ID');
 });
 
-test('validateAnswers enforces primary_priority ∈ selected difficult_moments', () => {
-  const merged = { difficult_moments: { answerIds: ['after_mistake'] }, primary_priority: { answerIds: ['lose_focus'] } };
-  assert.equal(validateAnswers({ primary_priority: { answerIds: ['lose_focus'] } }, merged).code, 'INVALID_ANSWER_ID');
+test('the Situation question accepts any situation in the list, and only those', () => {
+  // Asked directly now, so it is no longer intersected with a separate
+  // multi-select. Historical answers stay valid (the allowed set is a
+  // superset of the old rule) and unknown ids are still rejected.
+  const legacy = { difficult_moments: { answerIds: ['after_mistake'] } };
+  assert.equal(validateAnswers({ primary_priority: { answerIds: ['lose_focus'] } }, legacy).ok, true);
+  assert.equal(validateAnswers({ primary_priority: { answerIds: ['after_mistake'] } }, legacy).ok, true);
+  assert.equal(validateAnswers({ primary_priority: { answerIds: ['bogus'] } }, {}).code, 'INVALID_ANSWER_ID');
+  // 'not_sure' is excluded from the situation list — it is not a situation.
+  assert.equal(validateAnswers({ primary_priority: { answerIds: ['not_sure'] } }, {}).code, 'INVALID_ANSWER_ID');
+  // "My situation is different" now carries its own words, so empty custom
+  // text is rejected on the Situation question itself.
+  assert.equal(validateAnswers({ primary_priority: { answerIds: ['different'] } }, {}).code, 'INVALID_CUSTOM_TEXT');
 });
 
 test('validateAnswers rejects a branch answer that does not match the resolved branch', () => {
@@ -206,4 +215,57 @@ test('missingRequired lists unanswered required questions and clears when comple
   const partial = { difficult_moments: { answerIds: ['after_mistake'] }, primary_priority: { answerIds: ['after_mistake'] } };
   assert.ok(missingRequired(partial).includes('supports'));
   assert.equal(isAnswered(partial, 'difficult_moments'), true);
+});
+
+// ── Branch precedence: an explicit Situation always wins ──────────────────
+// A historical athlete may carry difficult_moments = ['not_sure'] from the
+// shallow `unsure` branch. Once they name a real situation, that situation —
+// and only that situation — decides which branch is active. The legacy answer
+// stays stored; it just stops deciding.
+
+const LEGACY_UNSURE = {
+  sport: { answerIds: ['cricket'] },
+  difficult_moments: { answerIds: ['not_sure'] },
+  unsure_recognition: { answerIds: ['one_mistake_snowballs'] },
+  unsure_recovery: { answerIds: ['few_minutes'] },
+};
+
+test('legacy not_sure with no Situation still resolves to the shallow unsure branch', () => {
+  assert.equal(C.resolveBranch(LEGACY_UNSURE), 'unsure');
+  assert.equal(C.hasPriority(LEGACY_UNSURE), false);
+  const flow = C.computeFlowScreenIds(LEGACY_UNSURE);
+  assert.ok(!flow.includes('primary_priority'), 'the situation screen stays skipped for them');
+  assert.ok(flow.includes('unsure_recognition'));
+});
+
+test('legacy not_sure plus an explicit Situation resolves to that situation\'s branch', () => {
+  const merged = { ...LEGACY_UNSURE, primary_priority: { answerIds: ['after_mistake'] } };
+  assert.equal(C.resolveBranch(merged), 'mistakes');
+  assert.equal(C.hasPriority(merged), true);
+  const flow = C.computeFlowScreenIds(merged);
+  assert.ok(flow.includes('mistakes_first_response'));
+  assert.ok(!flow.includes('unsure_recognition'), 'the old branch is no longer active');
+});
+
+test('a different explicit Situation resolves to its own branch, deterministically', () => {
+  for (const [pri, branch] of [['confidence_drops', 'confidence'], ['lose_focus', 'focus'], ['injury_return', 'injury'], ['different', 'custom']]) {
+    const merged = { ...LEGACY_UNSURE, primary_priority: { answerIds: [pri] } };
+    assert.equal(C.resolveBranch(merged), branch, `${pri} should resolve to ${branch}`);
+    // Same answers in, same branch out — every time.
+    assert.equal(C.resolveBranch(merged), C.resolveBranch({ ...merged }));
+  }
+});
+
+test('the legacy not_sure and unsure answers are still readable after the switch', () => {
+  const merged = { ...LEGACY_UNSURE, primary_priority: { answerIds: ['after_mistake'] } };
+  assert.deepEqual(merged.difficult_moments.answerIds, ['not_sure']);
+  assert.deepEqual(merged.unsure_recognition.answerIds, ['one_mistake_snowballs']);
+  // …but they are not part of the active flow any more.
+  assert.ok(!C.reachableQuestionIds(merged).has('unsure_recognition'));
+});
+
+test('a brand-new athlete (no difficult_moments at all) is unaffected by the precedence rule', () => {
+  assert.equal(C.hasPriority({}), true);
+  assert.equal(C.resolveBranch({}), null, 'no situation yet — no branch yet');
+  assert.equal(C.resolveBranch({ primary_priority: { answerIds: ['lose_focus'] } }), 'focus');
 });

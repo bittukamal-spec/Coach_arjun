@@ -34,6 +34,8 @@ const DISPLAY = {
     goals: [{ id: 'focus', label: 'Focus' }, { id: 'confidence', label: 'Confidence' }],
     fourWeekOutcome: 'Enjoy competing more',
   },
+  // Still sent (Coach reads the rule output), and deliberately still carries
+  // the rule engine's phrasings — the profile must not show any of them.
   startingPattern: {
     situation: 'after a mistake',
     nodes: [
@@ -43,6 +45,22 @@ const DISPLAY = {
       { type: 'duration', label: 'Duration', text: 'That feeling can stay with you through the session', code: 'e:f' },
     ],
     notes: [],
+  },
+  // What the athlete actually tapped — the only thing the page shows.
+  pressure: {
+    branchId: 'mistakes',
+    stages: [
+      { stage: 'situation', questionId: 'primary_priority', answerIds: ['after_mistake'], customText: null, status: 'set' },
+      { stage: 'firstResponse', questionId: 'mistakes_first_response', answerIds: ['angry_self'], customText: null, status: 'set' },
+      { stage: 'impact', questionId: 'mistakes_next', answerIds: ['lose_focus'], customText: null, status: 'set' },
+      { stage: 'reset', questionId: 'mistakes_recovery', answerIds: ['few_minutes'], customText: null, status: 'set' },
+    ],
+  },
+  selections: {
+    supports: { questionId: 'supports', answerIds: ['pre_routine', 'remembering_success'], customText: null, status: 'set' },
+    strengths: { questionId: 'strengths', answerIds: ['hard_working', 'supportive'], customText: null, status: 'set' },
+    broadGoals: { questionId: 'broad_goals', answerIds: ['focus', 'confidence'], customText: null, status: 'set' },
+    fourWeekOutcome: { questionId: 'four_week_outcome', answerIds: ['enjoy_competing'], customText: null, status: 'set' },
   },
   supports: [
     { id: 'pre_routine', label: 'Routine before you perform' },
@@ -157,17 +175,29 @@ test('the saved profile renders the modernized compact visual structure (approve
   expect(screen.getByText('Current Focus')).toBeTruthy();
   expect(screen.getByText('Bounce back after mistakes')).toBeTruthy();
   expect(screen.getByText('My Game')).toBeTruthy();
-  expect(screen.getByText('My Performance Pattern')).toBeTruthy();
+  expect(screen.getByText('When Pressure Hits')).toBeTruthy();
   expect(screen.getByText('What Helps Me')).toBeTruthy();
   expect(screen.getByText('My Strengths')).toBeTruthy();
-  expect(screen.getByText('Refresh my profile')).toBeTruthy();
-  // Modernization pass 2: the old verbose sections, the Continue coaching
-  // row, and the disclaimer footer are all intentionally gone from THIS view.
+  // The abstract name is gone from the athlete's vocabulary entirely.
+  expect(document.body.textContent).not.toMatch(/My Performance Pattern/);
+  expect(document.body.textContent).not.toMatch(/Performance Check-in/);
+  // No full-profile refresh: sections are edited one at a time.
+  expect(screen.queryByText('Refresh my profile')).toBeNull();
+  expect(screen.queryByText(/Take a Performance Check-in/)).toBeNull();
+  expect(screen.queryByText(/5–7 minutes/)).toBeNull();
+  // The old verbose report sections stay gone.
   expect(screen.queryByText('Your Starting Pattern')).toBeNull();
   expect(screen.queryByText('Where We Can Begin')).toBeNull();
   expect(screen.queryByText('A possible pattern')).toBeNull();
   expect(screen.queryByRole('button', { name: 'Continue coaching' })).toBeNull();
   expect(screen.queryByText(/not a doctor or therapist/i)).toBeNull();
+});
+
+test('the five sections are exactly Current Focus, My Game, When Pressure Hits, What Helps Me, My Strengths', async () => {
+  renderPage();
+  await screen.findByRole('heading', { level: 1, name: 'Your Performance Profile' });
+  const headings = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent.trim());
+  expect(headings).toEqual(['Current Focus', 'My Game', 'When Pressure Hits', 'What Helps Me', 'My Strengths']);
 });
 
 test('there is no subtitle under "Your Performance Profile"', async () => {
@@ -242,9 +272,12 @@ test('My Game chips render the athlete\'s factual answers, and omit what is miss
   renderPage();
   const list = await screen.findByRole('list', { name: 'My Game' });
   const text = list.textContent;
-  for (const chip of ['Cricket', 'Batter', 'State', 'Competitive', 'Goals: Focus, Confidence', '4-week goal: Enjoy competing more']) {
+  for (const chip of ['Cricket', 'Batter', 'State', 'Competitive']) {
     expect(text).toContain(chip);
   }
+  // Goals are not sporting facts — they live with Current Focus, where the
+  // athlete can act on them.
+  expect(text).not.toMatch(/Goals:|4-week goal:/);
   cleanup();
 
   const sparse = makeServer();
@@ -256,124 +289,189 @@ test('My Game chips render the athlete\'s factual answers, and omit what is miss
   expect(within(list2).getAllByRole('listitem')).toHaveLength(1);
 });
 
-// ── 6–7. My Performance Pattern — always-3-stage vertical flow (mobile fix) ─
-// Trigger / Reaction / Effect are found by TYPE, never by array position —
-// see PerformancePatternFlow.jsx for why a positional slice used to be able
-// to drop a stage the server actually sent.
+// ── 6–7. When Pressure Hits — the athlete's own answers ───────────────────
+// The whole point of this section: it repeats what the athlete tapped. The
+// rule engine's phrasing is still in the payload (Coach uses it) and must
+// never appear here.
 
-test('a complete pattern renders exactly Trigger, Reaction, Effect — Duration excluded, with a Review pattern action', async () => {
+test('the pressure sequence shows Situation → First response → Performance impact, plus reset time', async () => {
   renderPage();
-  await screen.findByText('My Performance Pattern');
-  const ol = await screen.findByRole('list', { name: 'My Performance Pattern' });
+  await screen.findByText('When Pressure Hits');
+  const ol = await screen.findByRole('list', { name: 'When Pressure Hits' });
   const items = within(ol).getAllByRole('listitem');
   expect(items).toHaveLength(3);
-  expect(ol.textContent).toContain('Trigger');
-  expect(ol.textContent).toContain('Reaction');
-  expect(ol.textContent).toContain('Effect');
-  expect(ol.textContent).toContain('After a mistake');
-  expect(ol.textContent).toContain('Frustration with yourself can rise');
-  expect(ol.textContent).toContain('Your focus may dip for a bit');
-  // Duration is deliberately excluded from this compact overview, but the
-  // underlying data was never deleted — see the "still fetched" test below.
-  expect(ol.textContent).not.toContain('That feeling can stay with you through the session');
-  expect(ol.textContent).not.toMatch(/Not set yet/);
+  expect(ol.textContent).toContain('Situation');
+  expect(ol.textContent).toContain('First response');
+  expect(ol.textContent).toContain('Performance impact');
+  // Plain stage names — no Trigger/Reaction/Effect/Duration jargon.
+  expect(ol.textContent).not.toMatch(/Trigger|Reaction|Duration/);
+  // Reset time sits under the sequence as one short line.
+  expect(screen.getByText('Reset time · A few minutes')).toBeTruthy();
   // Connectors are decorative, never announced.
   for (const el of ol.querySelectorAll('[aria-hidden="true"]')) {
     expect(el.getAttribute('aria-hidden')).toBe('true');
   }
-  const reviewLink = screen.getByRole('button', { name: /Review pattern/ });
-  expect(reviewLink).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Update' })).toBeTruthy();
 });
 
-test('Review pattern navigates into the Performance Check-in flow scoped to just the pattern', async () => {
+test('each stage shows the athlete\'s own answer verbatim, never the rule engine\'s phrasing', async () => {
   renderPage();
-  await userEvent.click(await screen.findByRole('button', { name: /Review pattern/ }));
-  expect(await screen.findByTestId('checkin-route')).toHaveProperty('textContent', '/starting-profile/check-in?section=pattern');
+  const ol = await screen.findByRole('list', { name: 'When Pressure Hits' });
+  // Exactly the labels the questions themselves showed.
+  expect(ol.textContent).toContain('After I make a mistake');
+  expect(ol.textContent).toContain('I get angry with myself');
+  expect(ol.textContent).toContain('I lose focus');
+  // The paraphrases the payload still carries are nowhere on the page.
+  expect(document.body.textContent).not.toContain('Frustration with yourself can rise');
+  expect(document.body.textContent).not.toContain('Your focus may dip for a bit');
+  expect(document.body.textContent).not.toContain('That feeling can stay with you through the session');
 });
 
-test('all three stages remain present when only a situation node is saved — missing stages show "Not set yet", nothing fabricated', async () => {
-  const s = makeServer();
-  s.state.profile.displayProfile.startingPattern.nodes = [{ type: 'situation', label: 'Situation', text: 'After a mistake' }];
-  renderPage({ server: s });
-  await screen.findByText('My Performance Pattern');
-  const ol = await screen.findByRole('list', { name: 'My Performance Pattern' });
-  const items = within(ol).getAllByRole('listitem');
-  expect(items).toHaveLength(3);
-  expect(ol.textContent).toContain('Trigger');
-  expect(ol.textContent).toContain('After a mistake');
-  // Reaction and Effect each get their own "Not set yet" — never an
-  // invented reaction/effect, and never a silently-omitted stage.
-  const notSetCount = (ol.textContent.match(/Not set yet/g) || []).length;
-  expect(notSetCount).toBe(2);
+test('Update opens the pressure questions only', async () => {
+  renderPage();
+  await userEvent.click(await screen.findByRole('button', { name: 'Update' }));
+  expect(await screen.findByTestId('checkin-route')).toHaveProperty('textContent', '/starting-profile/check-in?section=pressure');
 });
 
-test('the mapping bug this pass fixes: multiple reaction-dimension nodes no longer crowd out the effect stage', async () => {
-  // Reproduces the exact shape the old positional `nodes.slice(0, 3)` could
-  // drop a real, server-sent effect node for: situation + two reactions +
-  // one effect (four non-duration nodes) — the effect used to be silently
-  // cut off. It must now render, found by type, not position.
+test('a missing answer shows "Not set yet" — never an invented one', async () => {
   const s = makeServer();
-  s.state.profile.displayProfile.startingPattern.nodes = [
-    { type: 'situation', label: 'Situation', text: 'After a mistake' },
-    { type: 'reaction', label: 'Reaction', text: 'I keep thinking about it' },
-    { type: 'reaction', label: 'Reaction', text: 'I get angry with myself' },
-    { type: 'effect', label: 'Performance effect', text: 'My focus drops for the next few plays' },
+  s.state.profile.displayProfile.pressure.stages = [
+    { stage: 'situation', questionId: 'primary_priority', answerIds: ['after_mistake'], customText: null, status: 'set' },
+    { stage: 'firstResponse', questionId: 'mistakes_first_response', answerIds: [], customText: null, status: 'unset' },
+    { stage: 'impact', questionId: 'mistakes_next', answerIds: [], customText: null, status: 'unset' },
+    { stage: 'reset', questionId: 'mistakes_recovery', answerIds: [], customText: null, status: 'unset' },
   ];
   renderPage({ server: s });
-  await screen.findByText('My Performance Pattern');
-  const ol = await screen.findByRole('list', { name: 'My Performance Pattern' });
+  const ol = await screen.findByRole('list', { name: 'When Pressure Hits' });
   expect(within(ol).getAllByRole('listitem')).toHaveLength(3);
-  expect(ol.textContent).toContain('My focus drops for the next few plays');
-  expect(ol.textContent).not.toMatch(/Not set yet/);
+  expect(ol.textContent).toContain('After I make a mistake');
+  expect((ol.textContent.match(/Not set yet/g) || []).length).toBe(2);
+  expect(screen.getByText('Reset time · Not set yet')).toBeTruthy();
 });
 
-test('Duration is omitted from the overview but remains in the fetched payload, unchanged', async () => {
-  renderPage();
-  await screen.findByText('My Performance Pattern');
-  // The fixture's DISPLAY.startingPattern.nodes still carries the duration
-  // node — this test fails if anything upstream ever strips it from data.
-  expect(DISPLAY.startingPattern.nodes.some((n) => n.type === 'duration')).toBe(true);
-  const ol = await screen.findByRole('list', { name: 'My Performance Pattern' });
-  expect(ol.textContent).not.toContain('That feeling can stay with you through the session');
-});
-
-test('a long reaction/effect value wraps instead of overflowing', async () => {
+test('an ambiguous historical answer shows "Needs update" — no value is silently chosen', async () => {
   const s = makeServer();
-  const long = 'A very long saved reaction that a real athlete might genuinely write across several lines on a narrow 320px phone screen without breaking the layout';
-  s.state.profile.displayProfile.startingPattern.nodes = [
-    { type: 'situation', label: 'Situation', text: 'After a mistake' },
-    { type: 'reaction', label: 'Reaction', text: long },
-  ];
+  s.state.profile.displayProfile.pressure.stages[1] = {
+    stage: 'firstResponse', questionId: 'mistakes_first_response',
+    answerIds: ['keep_thinking', 'angry_self'], customText: null, status: 'ambiguous',
+  };
   renderPage({ server: s });
-  await screen.findByText('My Performance Pattern');
-  const ol = await screen.findByRole('list', { name: 'My Performance Pattern' });
+  const ol = await screen.findByRole('list', { name: 'When Pressure Hits' });
+  expect(ol.textContent).toContain('Needs update');
+  // Neither stored answer is presented as the athlete's choice.
+  expect(ol.textContent).not.toContain('I keep thinking about it');
+  expect(ol.textContent).not.toContain('I get angry with myself');
+});
+
+test('a custom answer displays verbatim, never relabelled "Something else"', async () => {
+  const s = makeServer();
+  s.state.profile.displayProfile.pressure.stages[1] = {
+    stage: 'firstResponse', questionId: 'mistakes_first_response',
+    answerIds: ['something_else'], customText: 'I go completely silent', status: 'set',
+  };
+  renderPage({ server: s });
+  const ol = await screen.findByRole('list', { name: 'When Pressure Hits' });
+  expect(ol.textContent).toContain('I go completely silent');
+  expect(ol.textContent).not.toMatch(/something else/i);
+});
+
+test('custom athlete text is never translated', async () => {
+  authState.language = 'hi';
+  const s = makeServer();
+  s.state.profile.displayProfile.pressure.stages[1] = {
+    stage: 'firstResponse', questionId: 'mistakes_first_response',
+    answerIds: ['something_else'], customText: 'I go completely silent', status: 'set',
+  };
+  renderPage({ server: s });
+  const ol = await screen.findByRole('list', { name: 'जब दबाव आता है' });
+  expect(ol.textContent).toContain('I go completely silent');
+});
+
+test('a branch whose questions produce a real impact keeps the four-stage sequence', async () => {
+  renderPage();
+  const ol = await screen.findByRole('list', { name: 'When Pressure Hits' });
+  expect(ol.textContent).toContain('First response');
+  expect(ol.textContent).toContain('Performance impact');
+  expect(ol.textContent).not.toContain('What usually happens');
+});
+
+test('a branch that never asked for a separate impact says "What usually happens" instead of "First response"', async () => {
+  const s = makeServer();
+  // family/outside asks one combined question, not a response AND an impact.
+  s.state.profile.displayProfile.pressure = {
+    branchId: 'family_outside',
+    stages: [
+      { stage: 'situation', questionId: 'primary_priority', answerIds: ['family_expectations'], customText: null, status: 'set' },
+      { stage: 'firstResponse', questionId: 'family_outside_effect', answerIds: ['play_safe'], customText: null, status: 'set' },
+      { stage: 'reset', questionId: 'family_outside_recovery', answerIds: ['few_minutes'], customText: null, status: 'set' },
+      { stage: 'context', questionId: 'family_outside_source', answerIds: ['parents', 'friends_peers'], customText: null, status: 'set' },
+    ],
+  };
+  renderPage({ server: s });
+  const ol = await screen.findByRole('list', { name: 'When Pressure Hits' });
+  expect(within(ol).getAllByRole('listitem')).toHaveLength(2);
+  expect(ol.textContent).toContain('What usually happens');
+  // No stage the athlete was never asked for is implied, in either direction.
+  expect(ol.textContent).not.toContain('First response');
+  expect(ol.textContent).not.toContain('Performance impact');
+  expect(ol.textContent).not.toContain('Not set yet');
+  // The branch's own non-sequence question is visible, in its own plain words.
+  const context = screen.getByText('Main outside pressure').closest('p');
+  expect(context.textContent).toBe('Main outside pressure · Parents · Friends or peers');
+});
+
+test('the injury branch labels its own question in its own words, and shows where the athlete is now', async () => {
+  const s = makeServer();
+  s.state.profile.displayProfile.pressure = {
+    branchId: 'injury',
+    stages: [
+      { stage: 'situation', questionId: 'primary_priority', answerIds: ['injury_return'], customText: null, status: 'set' },
+      { stage: 'firstResponse', questionId: 'injury_concern', answerIds: ['re_injury_fear'], customText: null, status: 'set' },
+      { stage: 'reset', questionId: 'injury_recovery', answerIds: ['few_minutes'], customText: null, status: 'set' },
+      { stage: 'context', questionId: 'injury_stage', answerIds: ['recovering_not_playing'], customText: null, status: 'set' },
+    ],
+  };
+  renderPage({ server: s });
+  const ol = await screen.findByRole('list', { name: 'When Pressure Hits' });
+  // "What's on your mind most?" is not a first response — it is labelled for
+  // what it actually asked.
+  expect(ol.textContent).toContain("What's on your mind");
+  expect(ol.textContent).not.toContain('First response');
+  expect(ol.textContent).toContain('Fear of re-injury');
+  const context = screen.getByText('Where you are now').closest('p');
+  expect(context.textContent).toBe('Where you are now · Recovering, not playing yet');
+});
+
+test('a stage the athlete\'s branch never asks is omitted, not shown permanently unset', async () => {
+  const s = makeServer();
+  // The injury branch has no performance-impact question of its own.
+  s.state.profile.displayProfile.pressure = {
+    branchId: 'injury',
+    stages: [
+      { stage: 'situation', questionId: 'primary_priority', answerIds: ['injury_return'], customText: null, status: 'set' },
+      { stage: 'firstResponse', questionId: 'injury_concern', answerIds: ['re_injury_fear'], customText: null, status: 'set' },
+      { stage: 'reset', questionId: 'injury_recovery', answerIds: ['few_minutes'], customText: null, status: 'set' },
+    ],
+  };
+  renderPage({ server: s });
+  const ol = await screen.findByRole('list', { name: 'When Pressure Hits' });
+  expect(within(ol).getAllByRole('listitem')).toHaveLength(2);
+  expect(ol.textContent).not.toContain('Performance impact');
+  expect(ol.textContent).not.toContain('Not set yet');
+});
+
+test('a long custom answer wraps instead of overflowing', async () => {
+  const s = makeServer();
+  const long = 'A very long answer that a real athlete might genuinely write across several lines on a narrow 320px phone screen without breaking the layout';
+  s.state.profile.displayProfile.pressure.stages[1] = {
+    stage: 'firstResponse', questionId: 'mistakes_first_response',
+    answerIds: ['something_else'], customText: long, status: 'set',
+  };
+  renderPage({ server: s });
+  const ol = await screen.findByRole('list', { name: 'When Pressure Hits' });
   const value = within(ol).getByText(long);
   expect(value.className).toMatch(/break-words/);
   expect(value.className).not.toMatch(/whitespace-nowrap|truncate|line-clamp/);
-});
-
-// Performance Pattern single-choice pass: a custom ("something else") answer
-// on any Pattern question now produces a real observation the server sends
-// with its own verbatim text (see server/test/patternSingleChoice.test.js
-// for the server-side half of this contract) — the client renders whatever
-// text the node carries exactly as PerformancePatternFlow already does for
-// a predefined answer, no special-casing needed.
-test('a custom Trigger/Reaction/Effect value displays verbatim, never relabelled "Something else"', async () => {
-  const s = makeServer();
-  s.state.profile.displayProfile.startingPattern.nodes = [
-    { type: 'situation', label: 'Situation', text: 'Before an important trial' },
-    { type: 'reaction', label: 'Reaction', text: 'I rush my routine' },
-    { type: 'effect', label: 'Performance effect', text: 'My decisions get messy' },
-  ];
-  renderPage({ server: s });
-  await screen.findByText('My Performance Pattern');
-  const ol = await screen.findByRole('list', { name: 'My Performance Pattern' });
-  expect(within(ol).getAllByRole('listitem')).toHaveLength(3);
-  expect(ol.textContent).toContain('Before an important trial');
-  expect(ol.textContent).toContain('I rush my routine');
-  expect(ol.textContent).toContain('My decisions get messy');
-  expect(ol.textContent).not.toMatch(/something else/i);
-  expect(ol.textContent).not.toMatch(/Not set yet/);
 });
 
 // ── 8–9. Helps + Where we can begin ────────────────────────────────────────
@@ -384,10 +482,12 @@ test('What Helps Me and My Strengths are two separate labelled groups, never one
   const strengths = await screen.findByRole('list', { name: 'My Strengths' });
   expect(helps).not.toBe(strengths);
 
-  for (const chip of ['Routine before you perform', 'Remembering past success']) {
+  for (const chip of ['A routine before performing', 'Remembering previous success']) {
     expect(helps.textContent).toContain(chip);
     expect(strengths.textContent).not.toContain(chip);
   }
+  // The rule engine's own phrasing of the same answers never appears.
+  expect(document.body.textContent).not.toContain('Routine before you perform');
   for (const chip of ['Hard-working', 'Supportive teammate']) {
     expect(strengths.textContent).toContain(chip);
     expect(helps.textContent).not.toContain(chip);
@@ -410,7 +510,7 @@ test('"My Strengths" is a real heading, in English and in Hindi', async () => {
 
 test('an empty strengths group still renders its heading and Edit action, without a chip list', async () => {
   const s = makeServer();
-  s.state.profile.displayProfile.strengths = [];
+  s.state.profile.displayProfile.selections.strengths = { questionId: 'strengths', answerIds: [], customText: null, status: 'unset' };
   renderPage({ server: s });
   expect(await screen.findByRole('heading', { name: 'My Strengths' })).toBeTruthy();
   expect(screen.queryByRole('list', { name: 'My Strengths' })).toBeNull();
@@ -419,49 +519,143 @@ test('an empty strengths group still renders its heading and Edit action, withou
   expect(screen.getAllByRole('button', { name: 'Edit' }).length).toBeGreaterThanOrEqual(1);
 });
 
-test('with nothing named, What Helps Me shows the fallback line instead of an empty list', async () => {
+test('with nothing named, What Helps Me shows "Not set yet" instead of an empty list', async () => {
   const s = makeServer();
-  s.state.profile.displayProfile.supports = [];
+  s.state.profile.displayProfile.selections.supports = { questionId: 'supports', answerIds: [], customText: null, status: 'unset' };
   renderPage({ server: s });
   await screen.findByText('What Helps Me');
-  expect(screen.getByText(/haven't named what helps yet/i)).toBeTruthy();
   expect(screen.queryByRole('list', { name: 'What Helps Me' })).toBeNull();
+  expect(screen.getAllByText('Not set yet').length).toBeGreaterThanOrEqual(1);
+});
+
+test('What Helps Me and My Strengths each open only their own question', async () => {
+  renderPage();
+  await screen.findByText('What Helps Me');
+  const [helpsEdit, strengthsEdit] = screen.getAllByRole('button', { name: 'Edit' });
+  await userEvent.click(helpsEdit);
+  expect(await screen.findByTestId('checkin-route')).toHaveProperty('textContent', '/starting-profile/check-in?section=helps');
+  cleanup();
+  renderPage();
+  await screen.findByText('My Strengths');
+  await userEvent.click(screen.getAllByRole('button', { name: 'Edit' })[1]);
+  expect(await screen.findByTestId('checkin-route')).toHaveProperty('textContent', '/starting-profile/check-in?section=strengths');
+});
+
+// ── Goals stay reachable ───────────────────────────────────────────────────
+
+test('Current Focus carries the focus and its 4-week target — and does not repeat the broad goals', async () => {
+  renderPage();
+  await screen.findByText('Current Focus');
+  const card = document.querySelector('[aria-labelledby="profile-focus-heading"]');
+  // The active focus, then the near-term outcome that belongs to it.
+  expect(within(card).getByText('Bounce back after mistakes')).toBeTruthy();
+  expect(within(card).getByText('4-week target')).toBeTruthy();
+  expect(within(card).getByText('Enjoy competing more')).toBeTruthy();
+  // The broader areas are NOT restated here — three near-identical lines in
+  // one card is what this replaced.
+  expect(within(card).queryByText('Working on')).toBeNull();
+  expect(within(card).queryByText('Goals')).toBeNull();
+  expect(within(card).queryByText('Focus & Concentration · Building Confidence')).toBeNull();
+  expect(within(card).queryByRole('button', { name: 'Update goals' })).toBeNull();
+  // Changing focus still lives here.
+  expect(within(card).getByRole('button', { name: 'Change focus' })).toBeTruthy();
+});
+
+test('the broad goals sit in My Game, once, with their own scoped edit', async () => {
+  renderPage();
+  const gameCard = (await screen.findByRole('heading', { name: 'My Game' })).closest('section');
+  expect(within(gameCard).getByText('Goals')).toBeTruthy();
+  const goals = within(gameCard).getByRole('list', { name: 'Goals' });
+  expect(goals.textContent).toContain('Focus & Concentration');
+  expect(goals.textContent).toContain('Building Confidence');
+  // Exactly one goals edit affordance on the whole page.
+  expect(screen.getAllByRole('button', { name: 'Update goals' })).toHaveLength(1);
+  await userEvent.click(within(gameCard).getByRole('button', { name: 'Update goals' }));
+  expect(await screen.findByTestId('checkin-route')).toHaveProperty('textContent', '/starting-profile/check-in?section=goals');
+});
+
+test('an athlete with no goals still gets the goals block and the way to set them', async () => {
+  const s = makeServer();
+  s.state.profile.displayProfile.selections.broadGoals = { questionId: 'broad_goals', answerIds: [], customText: null, status: 'unset' };
+  s.state.profile.displayProfile.selections.fourWeekOutcome = { questionId: 'four_week_outcome', answerIds: [], customText: null, status: 'unset' };
+  renderPage({ server: s });
+  const gameCard = (await screen.findByRole('heading', { name: 'My Game' })).closest('section');
+  expect(within(gameCard).getByText('Goals')).toBeTruthy();
+  expect(within(gameCard).getByText('Not set yet')).toBeTruthy();
+  expect(within(gameCard).getByRole('button', { name: 'Update goals' })).toBeTruthy();
+  // The focus card reports its own missing target, on its own.
+  const card = document.querySelector('[aria-labelledby="profile-focus-heading"]');
+  expect(within(card).getAllByText('Not set yet')).toHaveLength(1);
 });
 
 // ── 10–13. Modes ───────────────────────────────────────────────────────────
 
-test('Refresh my profile navigates into the full Performance Check-in flow (no section scope)', async () => {
-  renderPage();
-  await userEvent.click(await screen.findByRole('button', { name: /Refresh my profile/ }));
-  expect(await screen.findByTestId('checkin-route')).toHaveProperty('textContent', '/starting-profile/check-in');
-});
-
-test('saved mode has no fit controls and no onboarding-completion language', async () => {
+test('nothing on the saved profile starts a full-profile refresh', async () => {
   renderPage();
   await screen.findByRole('heading', { level: 1, name: 'Your Performance Profile' });
-  for (const label of ['That fits', 'Partly', 'Not really', 'Got it', 'Start with Arjun', 'Not now']) {
-    expect(screen.queryByText(label)).toBeNull();
-  }
-  expect(screen.queryByText('Does this fit?')).toBeNull();
+  // Every edit entry point is section-scoped.
+  const scoped = ['?section=pressure', '?section=helps', '?section=strengths', '?section=goals'];
+  const pageSrc = srcOf('pages/StartingProfilePage.jsx');
+  for (const q of scoped) expect(pageSrc).toContain(q.slice(1).split('=')[1]);
+  expect(pageSrc).not.toMatch(/navigate\('\/starting-profile\/check-in'\)/);
 });
 
-test('first-time mode keeps the fit controls and shows the suggested focus', async () => {
+test('saved mode has no onboarding-completion language', async () => {
+  renderPage();
+  await screen.findByRole('heading', { level: 1, name: 'Your Performance Profile' });
+  for (const label of ['Looks right', 'Change something', 'Got it', 'Start with Arjun', 'Not now']) {
+    expect(screen.queryByText(label)).toBeNull();
+  }
+});
+
+test('first-time mode is a plain read-back of what the athlete told us', async () => {
   const s = makeServer({ profile: { fitResponse: null, agreedPriorityId: null } });
   renderPage({ server: s, entryMode: null });
-  expect(await screen.findByText('Does this fit?')).toBeTruthy();
-  expect(screen.getByText('That fits')).toBeTruthy();
-  expect(screen.getByText('Partly')).toBeTruthy();
-  expect(screen.getByText('Not really')).toBeTruthy();
-  expect(screen.getByText('Suggested Starting Focus')).toBeTruthy();
-  // The full visual profile is still shown, so the athlete can decide.
-  expect(screen.getByText('Your Starting Pattern')).toBeTruthy();
-  expect(screen.getByText('What Already Helps')).toBeTruthy();
+  expect(await screen.findByRole('heading', { level: 1, name: 'Your starting profile' })).toBeTruthy();
+  const headings = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent.trim());
+  expect(headings).toEqual(['Main focus', 'When pressure hits', 'What helps', 'Strengths']);
+  expect(screen.getByText('Bounce back after mistakes')).toBeTruthy();
+  expect(screen.getByText('After I make a mistake')).toBeTruthy();
+  expect(screen.getByText('I get angry with myself')).toBeTruthy();
+  expect(screen.getByText('I lose focus')).toBeTruthy();
+  expect(screen.getByText('Reset time · A few minutes')).toBeTruthy();
+  expect(screen.getByText('A routine before performing · Remembering previous success')).toBeTruthy();
+  expect(screen.getByText('Hard-working · Supportive teammate')).toBeTruthy();
+  // One clear confirmation, one way to change something.
+  expect(screen.getByRole('button', { name: 'Looks right' })).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Change something' })).toBeTruthy();
+});
+
+test('the first-time summary shows no interpretive report of the athlete', async () => {
+  const s = makeServer({ profile: { fitResponse: null, agreedPriorityId: null } });
+  renderPage({ server: s, entryMode: null });
+  await screen.findByRole('heading', { level: 1, name: 'Your starting profile' });
+  // The AI wording sections and rule-engine prose are all absent.
+  for (const gone of ['Does this fit?', 'A possible pattern', 'Where We Can Begin', 'Your Starting Pattern',
+    'One possible pattern is that after a mistake, your focus may slip.', 'Frustration with yourself can rise']) {
+    expect(document.body.textContent).not.toContain(gone);
+  }
+});
+
+test('"Change something" opens the pressure edit rather than a correction note', async () => {
+  const s = makeServer({ profile: { fitResponse: null, agreedPriorityId: null } });
+  renderPage({ server: s, entryMode: null });
+  await userEvent.click(await screen.findByRole('button', { name: 'Change something' }));
+  expect(await screen.findByTestId('checkin-route')).toHaveProperty('textContent', '/starting-profile/check-in?section=pressure');
+});
+
+test('"Looks right" confirms with the same stored contract as before', async () => {
+  const s = makeServer({ profile: { fitResponse: null, agreedPriorityId: null } });
+  renderPage({ server: s, entryMode: null });
+  await userEvent.click(await screen.findByRole('button', { name: 'Looks right' }));
+  await waitFor(() => expect(s.state.calls.some((c) => c === 'POST /api/profile/confirm')).toBe(true));
+  expect(s.state.profile.fitResponse).toBe('CONFIRMED');
 });
 
 test('first-time mode has no Change focus control at all', async () => {
   const s = makeServer({ profile: { fitResponse: null, agreedPriorityId: null } });
   renderPage({ server: s, entryMode: null });
-  await screen.findByText('Does this fit?');
+  await screen.findByRole('heading', { level: 1, name: 'Your starting profile' });
   expect(screen.queryByRole('button', { name: 'Change focus' })).toBeNull();
 });
 
@@ -674,14 +868,14 @@ test('the saved-profile Current Focus still updates successfully after the metad
 test('a direct visit with no navigation state still lands in saved mode from stored data', async () => {
   renderPage({ entryMode: null });
   expect(await screen.findByRole('heading', { level: 1, name: 'Your Performance Profile' })).toBeTruthy();
-  expect(screen.queryByText('Does this fit?')).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Looks right' })).toBeNull();
 });
 
 test('consent-pending: the full profile is readable, resend works, and there is no route into coaching', async () => {
   const s = makeServer({ consent: { pending: true, guardianEmailMasked: 'p•••••@example.com' } });
   renderPage({ server: s });
   await screen.findByRole('heading', { level: 1, name: 'Your Performance Profile' });
-  expect(screen.getByText('My Performance Pattern')).toBeTruthy();
+  expect(screen.getByText('When Pressure Hits')).toBeTruthy();
   expect(screen.getByText('Waiting for parent/guardian consent')).toBeTruthy();
   expect(screen.getByText(/p•••••@example\.com/)).toBeTruthy();
   // Absent, not merely disabled.
@@ -752,7 +946,7 @@ test('a load failure shows athlete-facing copy and a working retry', async () =>
 const page = srcOf('pages/StartingProfilePage.jsx');
 const PROFILE_COMPONENTS = [
   'ProfileSectionCard', 'ProfileChipGroup', 'CurrentFocusCard',
-  'PerformancePathway', 'ChangeFocusDialog', 'ProfileSkeleton', 'ConsentNotice',
+  'PressureSequence', 'ChangeFocusDialog', 'ProfileSkeleton', 'ConsentNotice',
 ];
 
 // Comments legitimately discuss `dark:` and hex values, so assertions run
@@ -783,7 +977,9 @@ test('the layout cannot scroll horizontally and sets no fixed widths', () => {
   const sources = [page, ...PROFILE_COMPONENTS.map((c) => srcOf(`components/profile/${c}.jsx`))].map(stripComments);
   for (const s of sources) {
     expect(s).not.toMatch(/overflow-x/);
-    expect(s).not.toMatch(/w-\[\d+px\]/);
+    // Fixed widths only: a `min-w-[44px]` touch-target floor is required, not
+    // a layout width, so the lookbehind keeps min-/max- out of this.
+    expect(s).not.toMatch(/(?<!min-)(?<!max-)w-\[\d+px\]/);
     expect(s).not.toMatch(/min-w-\[\d{3,}px\]/);
   }
   // Content is centred and bounded, with safe-area padding at the bottom.
@@ -805,8 +1001,8 @@ test('every interactive control meets the 44px touch target, and chips are not b
   const chips = srcOf('components/profile/ProfileChipGroup.jsx');
   expect(chips).not.toMatch(/<button/);
   expect(chips).toMatch(/<li/);
-  const pathway = srcOf('components/profile/PerformancePathway.jsx');
-  expect(pathway).not.toMatch(/<button/);
+  const sequence = srcOf('components/profile/PressureSequence.jsx');
+  expect(sequence).not.toMatch(/<button/);
   for (const c of ['CurrentFocusCard', 'ChangeFocusDialog', 'ConsentNotice']) {
     const s = srcOf(`components/profile/${c}.jsx`);
     const buttons = s.match(/className="[^"]*"/g)?.filter((cn) => /py-3|min-h-\[44px\]|w-11|h-11/.test(cn)) || [];
@@ -882,38 +1078,26 @@ test('loading renders no navigation, so the bar cannot flash before the mode is 
   expect(navBar()).toBeNull();
 });
 
-test('the first-time confirmation renders no navigation', async () => {
+test('the first-time summary renders no navigation', async () => {
   const s = makeServer({ profile: { fitResponse: null, agreedPriorityId: null } });
   renderPage({ server: s, entryMode: null });
-  await screen.findByText('Does this fit?');
+  await screen.findByRole('heading', { level: 1, name: 'Your starting profile' });
   expect(navBar()).toBeNull();
 });
 
-test('the Got-it transition renders no navigation, and keeps its three actions distinct', async () => {
+test('the Got-it transition renders no navigation, and keeps its actions distinct', async () => {
   const s = makeServer({ profile: { fitResponse: null, agreedPriorityId: null } });
   renderPage({ server: s, entryMode: 'onboarding-completion' });
-  await screen.findByText('Does this fit?');
+  await screen.findByRole('heading', { level: 1, name: 'Your starting profile' });
 
-  // First-time step 1: Continue.
-  await userEvent.click(screen.getByText('That fits'));
-  await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Looks right' }));
 
-  // Step 2: the Got it transition — a separate screen with its own actions.
+  // The Got it transition — a separate screen with its own actions.
   expect(await screen.findByText('Got it')).toBeTruthy();
   expect(navBar()).toBeNull();
-  // Start with Arjun is its own distinct action, not a renamed Continue.
   expect(screen.getByRole('button', { name: 'Start with Arjun' })).toBeTruthy();
   expect(screen.getByRole('button', { name: 'Not now' })).toBeTruthy();
-  expect(screen.queryByRole('button', { name: 'Continue' })).toBeNull();
-});
-
-test('an unsaved first-time profile mid-correction still renders no navigation', async () => {
-  const s = makeServer({ profile: { fitResponse: null, agreedPriorityId: null } });
-  renderPage({ server: s, entryMode: null });
-  await screen.findByText('Does this fit?');
-  await userEvent.click(screen.getByText('Not really'));
-  expect(await screen.findByText('What should we start with instead?')).toBeTruthy();
-  expect(navBar()).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Looks right' })).toBeNull();
 });
 
 // ── Stage H (modernization pass 2): Continue coaching row removed ──────────

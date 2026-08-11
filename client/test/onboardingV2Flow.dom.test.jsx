@@ -83,8 +83,9 @@ const cont = () => screen.getByRole('button', { name: /^(Continue|Finish)$/ });
 const radio = (name) => screen.getByRole('radio', { name });
 const checkbox = (name) => screen.getByRole('checkbox', { name });
 
-// Advance through the fixed About-you screens into difficult_moments.
-async function toDifficultMoments(user) {
+// Advance through the fixed About-you screens into "What would you like help
+// with?" — the first screen of the simplified sequence after the sport facts.
+async function toHelpWith(user) {
   await user.click(await screen.findByRole('radio', { name: 'Cricket' }));
   await user.click(cont());
   await user.click(await screen.findByRole('radio', { name: 'No fixed role' }));
@@ -92,7 +93,18 @@ async function toDifficultMoments(user) {
   await user.click(await screen.findByRole('radio', { name: 'State level' }));
   await user.click(screen.getByRole('radio', { name: 'Semi-serious' }));
   await user.click(cont());
-  await screen.findByRole('heading', { name: 'Which moments feel hardest right now?' });
+  await screen.findByRole('heading', { name: 'What would you like help with?' });
+}
+
+// …and on into the Situation question (help with → 4-week change → situation).
+async function toSituation(user) {
+  await toHelpWith(user);
+  await user.click(checkbox('Recovering from Setbacks'));
+  await user.click(cont());
+  await screen.findByRole('heading', { name: 'What one change would make the biggest difference in the next four weeks?' });
+  await user.click(radio('Recover faster after mistakes'));
+  await user.click(cont());
+  await screen.findByRole('heading', { name: 'Which situation gives you the most trouble right now?' });
 }
 
 beforeEach(() => { localStorage.clear(); authState.language = 'en'; authState.user = { id: 'u1', onboardingDone: false, name: 'A' }; });
@@ -124,116 +136,128 @@ describe('Adaptive onboarding v2', () => {
     expect(cont().disabled).toBe(false);
   });
 
-  test('difficult_moments enforces the 3-limit and not_sure is exclusive', async () => {
+  test('"What would you like help with?" is a multi-select capped at three', async () => {
     wire(makeServer());
     render(<App />);
     const user = userEvent.setup();
-    await toDifficultMoments(user);
-    await user.click(checkbox('After I make a mistake'));
-    await user.click(checkbox('When I lose focus'));
-    await user.click(checkbox('When my confidence drops'));
-    // fourth disabled at limit
-    expect(checkbox('After a poor result').disabled).toBe(true);
-    // exclusive not_sure clears the others
-    await user.click(checkbox("I'm not sure yet"));
-    expect(checkbox("I'm not sure yet").getAttribute('aria-checked')).toBe('true');
-    expect(checkbox('After I make a mistake').getAttribute('aria-checked')).toBe('false');
-    // choosing a normal one clears the exclusive
-    await user.click(checkbox('After I make a mistake'));
-    expect(checkbox("I'm not sure yet").getAttribute('aria-checked')).toBe('false');
+    await toHelpWith(user);
+    await user.click(checkbox('Focus & Concentration'));
+    await user.click(checkbox('Handling Pressure'));
+    await user.click(checkbox('Building Confidence'));
+    expect(checkbox('Staying Motivated').disabled).toBe(true);
+    // Unpicking one frees the slot again.
+    await user.click(checkbox('Handling Pressure'));
+    expect(checkbox('Staying Motivated').disabled).toBe(false);
   });
 
-  test('custom difficult-moment counts toward the limit and needs valid text', async () => {
+  test('the 4-week change is one answer, and it is asked before the pressure questions', async () => {
     wire(makeServer());
     render(<App />);
     const user = userEvent.setup();
-    await toDifficultMoments(user);
-    await user.click(checkbox('My situation is different'));
+    await toHelpWith(user);
+    await user.click(checkbox('Recovering from Setbacks'));
+    await user.click(cont());
+    const heading = await screen.findByRole('heading', { name: 'What one change would make the biggest difference in the next four weeks?' });
+    expect(heading).toBeTruthy();
+    await user.click(radio('Recover faster after mistakes'));
+    await user.click(radio('Stay focused for longer'));
+    // Single-choice: the second answer replaces the first, never adds to it.
+    expect(radio('Recover faster after mistakes').getAttribute('aria-checked')).toBe('false');
+    expect(radio('Stay focused for longer').getAttribute('aria-checked')).toBe('true');
+  });
+
+  test('the athlete explicitly chooses their situation, from the whole situation list', async () => {
+    wire(makeServer());
+    render(<App />);
+    const user = userEvent.setup();
+    await toSituation(user);
+    // Every situation is offered — the athlete is not limited to a shortlist
+    // they picked on an earlier screen, and it is a single choice.
+    for (const name of [
+      'After I make a mistake', 'Before an important performance', 'When the pressure increases',
+      'When I lose focus', 'When my confidence drops', 'When training motivation is low',
+      'When selection feels uncertain', 'My situation is different',
+    ]) {
+      expect(radio(name)).toBeTruthy();
+    }
+    // "I'm not sure yet" is not a situation, so it is not offered here.
+    expect(screen.queryByRole('radio', { name: "I'm not sure yet" })).toBeNull();
+    expect(screen.queryByRole('checkbox', { name: 'After I make a mistake' })).toBeNull();
+  });
+
+  test('a custom situation keeps the athlete\'s own words on the Situation question itself', async () => {
+    wire(makeServer());
+    render(<App />);
+    const user = userEvent.setup();
+    await toSituation(user);
+    await user.click(radio('My situation is different'));
     const input = await screen.findByLabelText('Write your own');
     expect(cont().disabled).toBe(true); // empty custom blocks
     await user.type(input, 'exam pressure');
     expect(cont().disabled).toBe(false);
-    // counts as one of three
-    await user.click(checkbox('After I make a mistake'));
-    await user.click(checkbox('When I lose focus'));
-    expect(checkbox('When my confidence drops').disabled).toBe(true);
   });
 
-  test('primary_priority only shows the difficult moments the athlete chose', async () => {
+  test('the mistakes branch asks first response → performance impact → reset time', async () => {
     wire(makeServer());
     render(<App />);
     const user = userEvent.setup();
-    await toDifficultMoments(user);
-    await user.click(checkbox('After I make a mistake'));
-    await user.click(checkbox('When I lose focus'));
+    await toSituation(user);
+    await user.click(radio('After I make a mistake'));
     await user.click(cont());
-    expect(await screen.findByRole('heading', { name: 'Which one affects you most right now?' })).toBeTruthy();
-    expect(radio('After I make a mistake')).toBeTruthy();
-    expect(radio('When I lose focus')).toBeTruthy();
-    expect(screen.queryByRole('radio', { name: 'When my confidence drops' })).toBeNull();
-  });
-
-  test('mistakes branch renders its three screens in order', async () => {
-    wire(makeServer());
-    render(<App />);
-    const user = userEvent.setup();
-    await toDifficultMoments(user);
-    await user.click(checkbox('After I make a mistake'));
-    await user.click(cont());
-    await user.click(await screen.findByRole('radio', { name: 'After I make a mistake' }));
-    await user.click(cont());
-    expect(await screen.findByRole('heading', { name: 'What usually happens first after a mistake?' })).toBeTruthy();
-    // Single-choice (Performance Pattern pass) — radio, not checkbox.
+    // Each question names the situation it follows, in that order.
+    expect(await screen.findByRole('heading', { name: 'What usually happens first after you make a mistake?' })).toBeTruthy();
     await user.click(radio('I keep thinking about it'));
     await user.click(cont());
-    expect(await screen.findByRole('heading', { name: 'What tends to happen next?' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'What usually happens to your performance next?' })).toBeTruthy();
     await user.click(radio('I hesitate'));
     await user.click(cont());
-    expect(await screen.findByRole('heading', { name: 'How long does it usually affect you?' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'How long does it usually take you to get back on track?' })).toBeTruthy();
+    // Reset time is one answer from the plain-language set.
+    expect(radio('A few minutes')).toBeTruthy();
+    expect(radio('Most of the session or match')).toBeTruthy();
   });
 
-  test('pre_performance branch renders FOUR screens', async () => {
+  test('the pre-performance branch asks the same three stages — no extra onset question', async () => {
     wire(makeServer());
     render(<App />);
     const user = userEvent.setup();
-    await toDifficultMoments(user);
-    await user.click(checkbox('Before an important performance'));
+    await toSituation(user);
+    await user.click(radio('Before an important performance'));
     await user.click(cont());
-    await user.click(await screen.findByRole('radio', { name: 'Before an important performance' }));
+    expect(await screen.findByRole('heading', { name: 'Before an important performance, what usually happens first?' })).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'When do you first notice the pressure or nerves?' })).toBeNull();
+    await user.click(radio('Tight or tense body'));
     await user.click(cont());
-    expect(await screen.findByRole('heading', { name: 'When do you first notice the pressure or nerves?' })).toBeTruthy();
-    await user.click(radio('Just before I perform'));
+    expect(await screen.findByRole('heading', { name: 'What usually happens to your performance next?' })).toBeTruthy();
+    await user.click(radio('I rush'));
     await user.click(cont());
-    // Single-choice (Performance Pattern pass) — radio, not checkbox.
-    await user.click(await screen.findByRole('radio', { name: 'Tight or tense body' }));
-    await user.click(cont());
-    await user.click(await screen.findByRole('radio', { name: 'I rush' }));
-    await user.click(cont());
-    // the 4th, branch-specific duration screen
-    expect(await screen.findByRole('heading', { name: 'How long does the pressure stay disruptive?' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'How long does it usually take you to get back on track?' })).toBeTruthy();
   });
 
-  test('choosing only "I\'m not sure yet" skips priority and enters the shallow unsure branch', async () => {
-    wire(makeServer());
-    render(<App />);
-    const user = userEvent.setup();
-    await toDifficultMoments(user);
-    await user.click(checkbox("I'm not sure yet"));
-    await user.click(cont());
-    // no priority screen — straight to recognition
-    expect(await screen.findByRole('heading', { name: 'Which sounds most like you recently?' })).toBeTruthy();
-    expect(screen.queryByRole('heading', { name: 'Which one affects you most right now?' })).toBeNull();
-  });
-
-  test('contextual_pressures is optional — Continue is enabled with nothing selected', async () => {
+  test('a historical "not sure yet" session still skips the situation and keeps its unsure branch', async () => {
+    // Existing athletes routed to the shallow branch before the simplification
+    // are never re-routed or re-onboarded by it.
     wire(makeServer({ answers: {
       sport: { answerIds: ['cricket'] }, role_position: { answerIds: ['none'] },
       competition_level: { answerIds: ['state'] }, experience_level: { answerIds: ['competitive'] },
-      difficult_moments: { answerIds: ['after_mistake'] }, primary_priority: { answerIds: ['after_mistake'] },
-      mistakes_first_response: { answerIds: ['keep_thinking'] }, mistakes_next: { answerIds: ['hesitate'] }, mistakes_recovery: { answerIds: ['few_minutes'] },
-    }, currentStepId: 'contextual_pressures', branchId: 'mistakes' }));
+      difficult_moments: { answerIds: ['not_sure'] },
+    }, currentStepId: 'unsure_recognition', branchId: 'unsure' }));
     render(<App />);
-    expect(await screen.findByRole('heading', { name: 'What can make this harder?' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Which sounds most like you recently?' })).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Which situation gives you the most trouble right now?' })).toBeNull();
+  });
+
+  test('strengths is optional — Finish is enabled with nothing selected', async () => {
+    wire(makeServer({ answers: {
+      sport: { answerIds: ['cricket'] }, role_position: { answerIds: ['none'] },
+      competition_level: { answerIds: ['state'] }, experience_level: { answerIds: ['competitive'] },
+      broad_goals: { answerIds: ['resilience'] }, four_week_outcome: { answerIds: ['recover_faster'] },
+      primary_priority: { answerIds: ['after_mistake'] },
+      mistakes_first_response: { answerIds: ['keep_thinking'] }, mistakes_next: { answerIds: ['hesitate'] }, mistakes_recovery: { answerIds: ['few_minutes'] },
+      supports: { answerIds: ['clear_preparation'] },
+    }, currentStepId: 'strengths', branchId: 'mistakes' }));
+    render(<App />);
+    expect(await screen.findByRole('heading', { name: 'Which strengths can you rely on in sport?' })).toBeTruthy();
     expect(cont().disabled).toBe(false);
   });
 
@@ -256,7 +280,8 @@ describe('Adaptive onboarding v2', () => {
     wire(makeServer({ answers: {
       sport: { answerIds: ['cricket'] }, role_position: { answerIds: ['none'] },
       competition_level: { answerIds: ['state'] }, experience_level: { answerIds: ['competitive'] },
-      difficult_moments: { answerIds: ['after_mistake', 'lose_focus'] }, primary_priority: { answerIds: ['after_mistake'] },
+      broad_goals: { answerIds: ['resilience'] }, four_week_outcome: { answerIds: ['recover_faster'] },
+      primary_priority: { answerIds: ['after_mistake'] },
       mistakes_first_response: { answerIds: ['keep_thinking'] },
     }, currentStepId: 'primary_priority', branchId: 'mistakes', primaryPriorityId: 'after_mistake', revision: 3 }));
     render(<App />);
@@ -268,7 +293,7 @@ describe('Adaptive onboarding v2', () => {
     expect(screen.getByText(/earlier answers about the previous situation will be removed/i)).toBeTruthy();
     await user.click(screen.getByRole('button', { name: 'Yes, change it' }));
     // now on the focus branch's first screen
-    expect(await screen.findByRole('heading', { name: 'When does your focus usually drift?' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'What usually takes your focus away first?' })).toBeTruthy();
   });
 
   test('a newer server revision with unsaved local edits surfaces a conflict choice', async () => {
@@ -288,14 +313,14 @@ describe('Adaptive onboarding v2', () => {
     wire(makeServer({ answers: {
       sport: { answerIds: ['cricket'] }, role_position: { answerIds: ['none'] },
       competition_level: { answerIds: ['state'] }, experience_level: { answerIds: ['competitive'] },
-      difficult_moments: { answerIds: ['after_mistake'] }, primary_priority: { answerIds: ['after_mistake'] },
+      broad_goals: { answerIds: ['confidence'] }, four_week_outcome: { answerIds: ['recover_faster'] },
+      primary_priority: { answerIds: ['after_mistake'] },
       mistakes_first_response: { answerIds: ['keep_thinking'] }, mistakes_next: { answerIds: ['hesitate'] }, mistakes_recovery: { answerIds: ['few_minutes'] },
-      contextual_pressures: { answerIds: [] }, supports: { answerIds: ['clear_preparation'] }, strengths: { answerIds: ['brave'] },
-      broad_goals: { answerIds: ['confidence'] },
-    }, currentStepId: 'four_week_outcome', branchId: 'mistakes' }));
+      supports: { answerIds: ['clear_preparation'] },
+    }, currentStepId: 'strengths', branchId: 'mistakes' }));
     render(<App />);
     const user = userEvent.setup();
-    await user.click(await screen.findByRole('radio', { name: 'Recover faster after mistakes' }));
+    await user.click(await screen.findByRole('checkbox', { name: 'Brave' }));
     await user.click(screen.getByRole('button', { name: 'Finish' }));
     await screen.findByText('starting profile');
     expect(authState.updateUser).toHaveBeenCalled();
@@ -461,8 +486,8 @@ describe('Adaptive onboarding v2', () => {
 
     // Multi-select: the checkbox slot is present even when unselected, so it
     // reads as "you may pick several" before anything is chosen.
-    await screen.findByRole('heading', { name: 'Which moments feel hardest right now?' });
-    const box = checkbox('After I make a mistake');
+    await screen.findByRole('heading', { name: 'What would you like help with?' });
+    const box = checkbox('Focus & Concentration');
     expect(box.getAttribute('aria-checked')).toBe('false');
     expect(box.querySelector('.rounded-md')).toBeTruthy();
   });
@@ -471,12 +496,12 @@ describe('Adaptive onboarding v2', () => {
     wire(makeServer());
     render(<App />);
     const user = userEvent.setup();
-    await toDifficultMoments(user);
-    await user.click(checkbox('After I make a mistake'));
-    await user.click(checkbox('When I lose focus'));
-    await user.click(checkbox('When my confidence drops'));
+    await toHelpWith(user);
+    await user.click(checkbox('Focus & Concentration'));
+    await user.click(checkbox('Handling Pressure'));
+    await user.click(checkbox('Building Confidence'));
 
-    const blocked = checkbox('After a poor result');
+    const blocked = checkbox('Staying Motivated');
     expect(blocked.disabled).toBe(true);
     expect(blocked.className).toMatch(/opacity-\[0\.55\]/);
     // Dimmed, but never wearing the selected treatment.
@@ -488,8 +513,8 @@ describe('Adaptive onboarding v2', () => {
     wire(makeServer());
     render(<App />);
     const user = userEvent.setup();
-    await toDifficultMoments(user);
-    await user.click(checkbox('After I make a mistake'));
+    await toHelpWith(user);
+    await user.click(checkbox('Focus & Concentration'));
 
     const footer = document.querySelector('footer');
     expect(footer.textContent).toContain('1 of 3 selected');

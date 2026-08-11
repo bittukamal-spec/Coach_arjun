@@ -25,6 +25,7 @@ export default function CurrentFocusCard({
   onChangeFocus,  // omit to hide the control (first-time mode)
   changeFocusLabel,
   changeFocusRef,
+  children,       // goals block — the rest of "what am I working on"
 }) {
   if (!focusLabel) return null;
   const hasMeta = !!(updatedText || onChangeFocus);
@@ -49,6 +50,8 @@ export default function CurrentFocusCard({
           {helper && <p className="text-caption text-slt mt-1 break-words">{helper}</p>}
         </div>
       </div>
+
+      {children}
 
       {hasMeta && (
         <>

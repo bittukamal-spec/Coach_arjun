@@ -38,6 +38,21 @@ const DISPLAY = {
     ],
     notes: [],
   },
+  pressure: {
+    branchId: 'mistakes',
+    stages: [
+      { stage: 'situation', questionId: 'primary_priority', answerIds: ['after_mistake'], customText: null, status: 'set' },
+      { stage: 'firstResponse', questionId: 'mistakes_first_response', answerIds: ['keep_thinking'], customText: null, status: 'set' },
+      { stage: 'impact', questionId: 'mistakes_next', answerIds: ['hesitate'], customText: null, status: 'set' },
+      { stage: 'reset', questionId: 'mistakes_recovery', answerIds: ['few_minutes'], customText: null, status: 'set' },
+    ],
+  },
+  selections: {
+    supports: { questionId: 'supports', answerIds: ['clear_preparation'], customText: null, status: 'set' },
+    strengths: { questionId: 'strengths', answerIds: ['hard_working'], customText: null, status: 'set' },
+    broadGoals: { questionId: 'broad_goals', answerIds: ['confidence'], customText: null, status: 'set' },
+    fourWeekOutcome: { questionId: 'four_week_outcome', answerIds: ['recover_faster'], customText: null, status: 'set' },
+  },
   supports: [{ id: 'clear_preparation', label: 'Clear preparation' }],
   strengths: [{ id: 'hard_working', label: 'Hard-working' }],
   interpretation: SECTIONS.possiblePattern,
@@ -64,8 +79,9 @@ const FOCUS_OPTIONS = [
   { id: 'lose_focus', label: 'Regain focus', personalised: true },
 ];
 
-// The one visible anchor that is present in every mode.
-const PATTERN_ANCHOR = 'After a mistake';
+// The one visible anchor present in every mode: the athlete's own situation
+// answer, exactly as the question offered it.
+const PATTERN_ANCHOR = 'After I make a mistake';
 
 function makeServer(over = {}) {
   const state = {
@@ -174,68 +190,55 @@ beforeEach(() => { authState.language = 'en'; apiFetch.mockReset(); });
 afterEach(() => cleanup());
 
 describe('Starting Performance Profile', () => {
-  test('shows the four sections and the fit question, and says it is not a diagnosis', async () => {
+  test('shows the starting-profile summary of what the athlete told us, and says it is not a diagnosis', async () => {
     wire(makeServer());
     render(<App />);
     await screen.findByText(PATTERN_ANCHOR);
-    expect(screen.getByText('Your Starting Pattern')).toBeTruthy();
-    expect(screen.getByText('What Already Helps')).toBeTruthy();
-    expect(screen.getByText('Where We Can Begin')).toBeTruthy();
-    expect(screen.getByText(SECTIONS.whereWeBegin)).toBeTruthy();
-    expect(screen.getByRole('radio', { name: 'That fits' })).toBeTruthy();
-    expect(screen.getByRole('radio', { name: 'Partly' })).toBeTruthy();
-    expect(screen.getByRole('radio', { name: 'Not really' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: 'Your starting profile' })).toBeTruthy();
+    expect(screen.getByText('Main focus')).toBeTruthy();
+    expect(screen.getByText('When pressure hits')).toBeTruthy();
+    expect(screen.getByText('What helps')).toBeTruthy();
+    expect(screen.getByText('Strengths')).toBeTruthy();
+    // Their own answers, not the rule engine's phrasing of them.
+    expect(screen.getByText('I keep thinking about it')).toBeTruthy();
+    expect(screen.getByText('I hesitate')).toBeTruthy();
+    expect(document.body.textContent).not.toContain('Your attention may stay on what went wrong');
+    expect(document.body.textContent).not.toContain(SECTIONS.whereWeBegin);
+    expect(screen.getByRole('button', { name: 'Looks right' })).toBeTruthy();
     expect(screen.getByText(/not a doctor or therapist/i)).toBeTruthy();
   });
 
-  test('the athlete cannot continue without answering whether it fits', async () => {
+  test('the old verbose interpretive report is gone from the first-time screen', async () => {
     wire(makeServer());
     render(<App />);
     await screen.findByText(PATTERN_ANCHOR);
-    expect(screen.getByRole('button', { name: 'Continue' }).disabled).toBe(true);
+    for (const gone of ['Your Starting Pattern', 'What Already Helps', 'Where We Can Begin', 'Does this fit?']) {
+      expect(screen.queryByText(gone)).toBeNull();
+    }
   });
 
-  test('"That fits" confirms, then offers the first conversation', async () => {
+  test('"Looks right" confirms, then offers the first conversation', async () => {
     const server = makeServer();
     wire(server);
     render(<App />);
     const user = userEvent.setup();
     await screen.findByText(PATTERN_ANCHOR);
-    await user.click(screen.getByRole('radio', { name: 'That fits' }));
-    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    await user.click(screen.getByRole('button', { name: 'Looks right' }));
     await screen.findByRole('button', { name: 'Start with Arjun' });
     expect(server.state.profile.fitResponse).toBe('CONFIRMED');
-    // The fit question is not asked a second time.
-    expect(screen.queryByRole('radio', { name: 'That fits' })).toBeNull();
+    // Confirmation is not asked a second time.
+    expect(screen.queryByRole('button', { name: 'Looks right' })).toBeNull();
   });
 
-  test('"Not really" asks what to start with instead, offering only the athlete\'s own answers', async () => {
-    wire(makeServer());
-    render(<App />);
-    const user = userEvent.setup();
-    await screen.findByText(PATTERN_ANCHOR);
-    await user.click(screen.getByRole('radio', { name: 'Not really' }));
-    await screen.findByText('What should we start with instead?');
-    // From priorityOptions: after_mistake + lose_focus, and nothing else.
-    expect(screen.getByRole('radio', { name: 'After I make a mistake' })).toBeTruthy();
-    expect(screen.getByRole('radio', { name: 'When I lose focus' })).toBeTruthy();
-    expect(screen.queryByRole('radio', { name: /family/i })).toBeNull();
-    // Continue stays blocked until a correction is given.
-    expect(screen.getByRole('button', { name: 'Continue' }).disabled).toBe(true);
-    await user.click(screen.getByRole('radio', { name: 'When I lose focus' }));
-    expect(screen.getByRole('button', { name: 'Continue' }).disabled).toBe(false);
-  });
-
-  test('the agreed focus is what gets saved when the athlete corrects it', async () => {
+  test('confirming stores the agreed priority the server resolved', async () => {
     const server = makeServer();
     wire(server);
     render(<App />);
     const user = userEvent.setup();
     await screen.findByText(PATTERN_ANCHOR);
-    await user.click(screen.getByRole('radio', { name: 'Not really' }));
-    await user.click(await screen.findByRole('radio', { name: 'When I lose focus' }));
-    await user.click(screen.getByRole('button', { name: 'Continue' }));
-    await waitFor(() => expect(server.state.profile.agreedPriorityId).toBe('lose_focus'));
+    await user.click(screen.getByRole('button', { name: 'Looks right' }));
+    await waitFor(() => expect(server.state.profile.agreedPriorityId).toBe('after_mistake'));
+    expect(server.state.profile.confirmedAt !== undefined).toBe(true);
   });
 
   // Modernization pass 2 removed "Continue coaching" from the saved view —
@@ -247,8 +250,7 @@ describe('Starting Performance Profile', () => {
     render(<App />);
     const user = userEvent.setup();
     await screen.findByText(PATTERN_ANCHOR);
-    await user.click(screen.getByRole('radio', { name: 'That fits' }));
-    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    await user.click(screen.getByRole('button', { name: 'Looks right' }));
     await user.click(await screen.findByRole('button', { name: 'Start with Arjun' }));
     const state = JSON.parse((await screen.findByTestId('coaching-state')).textContent);
     expect(state.chatSessionId).toBe('cs-1');
@@ -284,8 +286,9 @@ describe('Starting Performance Profile', () => {
     authState.language = 'hi';
     wire(makeServer());
     render(<App />);
-    await screen.findByText('हम यहाँ से शुरू कर रहे हैं');
-    expect(screen.getByRole('radio', { name: 'हाँ, यही है' })).toBeTruthy();
+    await screen.findByRole('heading', { level: 1, name: 'तुम्हारी शुरुआती प्रोफाइल' });
+    expect(screen.getByRole('button', { name: 'सही है' })).toBeTruthy();
+    expect(screen.getByText('जब दबाव आता है')).toBeTruthy();
   });
 });
 
@@ -296,22 +299,19 @@ describe('Starting Performance Profile — confirmation summary and navigation',
     render(<App />);
     const user = userEvent.setup();
     await screen.findByText(PATTERN_ANCHOR);
-    await user.click(screen.getByRole('radio', { name: 'That fits' }));
-    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    await user.click(screen.getByRole('button', { name: 'Looks right' }));
     await screen.findByText("We'll start by exploring what happens after a mistake.");
     expect(screen.queryByText(/start with When/i)).toBeNull();
     expect(screen.queryByText(/After I make a mistake\./)).toBeNull();
   });
 
-  test('a corrected focus is summarised with its own conversational phrase', async () => {
-    const server = makeServer();
+  test('the summary phrase comes from the server, whatever priority it resolved', async () => {
+    const server = makeServer({ profile: { suggestedPriorityId: 'lose_focus' } });
     wire(server);
     render(<App />);
     const user = userEvent.setup();
     await screen.findByText(PATTERN_ANCHOR);
-    await user.click(screen.getByRole('radio', { name: 'Not really' }));
-    await user.click(await screen.findByRole('radio', { name: 'When I lose focus' }));
-    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    await user.click(screen.getByRole('button', { name: 'Looks right' }));
     await screen.findByText("We'll start by exploring what pulls your focus away.");
   });
 
@@ -321,8 +321,7 @@ describe('Starting Performance Profile — confirmation summary and navigation',
     render(<App />);
     const user = userEvent.setup();
     await screen.findByText(PATTERN_ANCHOR);
-    await user.click(screen.getByRole('radio', { name: 'That fits' }));
-    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    await user.click(screen.getByRole('button', { name: 'Looks right' }));
     await user.click(await screen.findByRole('button', { name: 'Start with Arjun' }));
     const state = JSON.parse((await screen.findByTestId('coaching-state')).textContent);
     expect(state.chatSessionId).toBe('cs-1');
@@ -336,8 +335,7 @@ describe('Starting Performance Profile — confirmation summary and navigation',
     render(<App />);
     const user = userEvent.setup();
     await screen.findByText(PATTERN_ANCHOR);
-    await user.click(screen.getByRole('radio', { name: 'That fits' }));
-    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    await user.click(screen.getByRole('button', { name: 'Looks right' }));
     const btn = await screen.findByRole('button', { name: 'Start with Arjun' });
     await user.click(btn);
     const state = JSON.parse((await screen.findByTestId('coaching-state')).textContent);
@@ -358,9 +356,9 @@ const CONFIRMED = {
   firstChatSessionId: 'cs-1',
 };
 
-const COMPLETION_CONTROLS = ['That fits', 'Partly', 'Not really', 'Got it', 'Start with Arjun', 'Not now'];
+const COMPLETION_CONTROLS = ['Looks right', 'Change something', 'Got it', 'Start with Arjun', 'Not now'];
 function expectNoCompletionUi() {
-  expect(screen.queryByText('Does this fit?')).toBeNull();
+  expect(screen.queryByText('Your starting profile')).toBeNull();
   for (const name of COMPLETION_CONTROLS) {
     expect(screen.queryByRole('radio', { name })).toBeNull();
     expect(screen.queryByRole('button', { name })).toBeNull();
@@ -377,8 +375,8 @@ describe('Starting Performance Profile — first-time vs saved modes', () => {
       </MemoryRouter>
     );
     await screen.findByText(PATTERN_ANCHOR);
-    expect(screen.getByText('Does this fit?')).toBeTruthy();
-    expect(screen.getByRole('radio', { name: 'That fits' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: 'Your starting profile' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Looks right' })).toBeTruthy();
     expect(screen.queryByText('Your Performance Profile')).toBeNull();
   });
 
@@ -395,8 +393,7 @@ describe('Starting Performance Profile — first-time vs saved modes', () => {
     );
     const user = userEvent.setup();
     await screen.findByText(PATTERN_ANCHOR);
-    await user.click(screen.getByRole('radio', { name: 'That fits' }));
-    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    await user.click(screen.getByRole('button', { name: 'Looks right' }));
     expect(await screen.findByRole('button', { name: 'Start with Arjun' })).toBeTruthy();
     expect(screen.getByText('Got it')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Not now' })).toBeTruthy();
@@ -422,11 +419,12 @@ describe('Starting Performance Profile — first-time vs saved modes', () => {
     await screen.findByText('Your Performance Profile');
     expect(screen.getByText('Current Focus')).toBeTruthy();
     expect(screen.getByText('My Game')).toBeTruthy();
-    expect(screen.getByText('My Performance Pattern')).toBeTruthy();
+    expect(screen.getByText('When Pressure Hits')).toBeTruthy();
     expect(screen.getByText('What Helps Me')).toBeTruthy();
     expect(screen.getByText('My Strengths')).toBeTruthy();
-    expect(screen.getByText('Refresh my profile')).toBeTruthy();
-    // Modernization pass 2: the old verbose sections are gone from this view.
+    // No full-profile refresh, and no abstract "pattern" vocabulary.
+    expect(screen.queryByText('Refresh my profile')).toBeNull();
+    expect(screen.queryByText('My Performance Pattern')).toBeNull();
     expect(screen.queryByText('Your Starting Pattern')).toBeNull();
     expect(screen.queryByText('Where We Can Begin')).toBeNull();
     // The headline is the athlete-facing action label, never the
@@ -483,7 +481,7 @@ describe('Starting Performance Profile — first-time vs saved modes', () => {
     await screen.findByText('Your Performance Profile');
     expect(screen.queryAllByRole('radio').length).toBe(0);
     expect(screen.queryByRole('textbox')).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Continue' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Looks right' })).toBeNull();
   });
 
   test('Modernization pass 2: the saved view has no Continue coaching action — Coach stays reachable via the bottom nav', async () => {
@@ -541,6 +539,6 @@ describe('Starting Performance Profile — first-time vs saved modes', () => {
     const column = container.querySelector('.max-w-md');
     expect(column).toBeTruthy();
     expect(column.className).toContain('mx-auto');
-    expect(container.innerHTML).not.toMatch(/w-\[\d+px\]|min-w-\[\d{3,}px\]/);
+    expect(container.innerHTML).not.toMatch(/(?<!min-)(?<!max-)w-\[\d+px\]|min-w-\[\d{3,}px\]/);
   });
 });

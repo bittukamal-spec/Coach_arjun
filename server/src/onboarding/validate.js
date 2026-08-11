@@ -21,16 +21,12 @@ function err(code, message) {
   return { ok: false, code, error: message };
 }
 
-function selected(answers, qid) {
-  return answers?.[qid]?.answerIds || [];
-}
-
-// Allowed answer ids for a question given the merged context. primary_priority
-// is restricted to the athlete's own selected difficult_moments (minus not_sure).
-function allowedIds(qid, merged) {
-  if (qid === 'primary_priority') {
-    return selected(merged, 'difficult_moments').filter((id) => id !== 'not_sure');
-  }
+// Allowed answer ids for a question. The Situation question
+// (primary_priority) is answered directly from the full situation list, so its
+// allowed set is the config's own — a superset of the old rule (which
+// intersected it with a separate difficult_moments multi-select), so every
+// historically stored answer stays valid.
+function allowedIds(qid) {
   return C.answerIdsFor(qid);
 }
 
@@ -53,7 +49,7 @@ function validateAnswers(payload, merged) {
       return { ...err('INVALID_ANSWER_ID', `Duplicate answer in '${qid}'`), questionId: qid };
     }
     // Every id must be allowed for this question in this context.
-    const allowed = new Set(allowedIds(qid, merged));
+    const allowed = new Set(allowedIds(qid));
     for (const id of ids) {
       if (!allowed.has(id)) {
         return { ...err('INVALID_ANSWER_ID', `Answer '${id}' invalid for '${qid}'`), questionId: qid };

@@ -70,6 +70,26 @@ function validateConfig(cfg) {
     }
   }
 
+  // Presentation mapping for "When Pressure Hits": every role must name a
+  // real question that belongs to that branch (or be null, for a branch that
+  // structurally has no such stage). This is a view over existing questions —
+  // it never introduces a question of its own.
+  if (cfg.situationQuestionId && !questionIds.has(cfg.situationQuestionId)) {
+    fail(`situationQuestionId '${cfg.situationQuestionId}' is not a question`);
+  }
+  for (const [bid, roles] of Object.entries(cfg.pressureRoles || {})) {
+    if (!cfg.branches?.[bid]) fail(`pressureRoles: unknown branch '${bid}'`);
+    const owned = new Set(
+      (cfg.branches?.[bid]?.screenIds || []).flatMap((sid) => cfg.branchScreens?.[sid]?.questionIds || [])
+    );
+    for (const role of ['firstResponse', 'impact', 'reset', 'context']) {
+      const qid = roles[role];
+      if (qid === null || qid === undefined) continue;
+      if (!questionIds.has(qid)) fail(`pressureRoles.${bid}.${role}: unknown question '${qid}'`);
+      else if (!owned.has(qid)) fail(`pressureRoles.${bid}.${role}: '${qid}' is not in branch '${bid}'`);
+    }
+  }
+
   const dm = cfg.questions?.difficult_moments;
   const dmIds = new Set((dm?.answers || []).map((a) => a.id));
   const branchIds = new Set(Object.keys(cfg.branches || {}));

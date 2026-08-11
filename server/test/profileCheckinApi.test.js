@@ -299,3 +299,273 @@ test('custom text on an editable question gets the same input-hygiene sanitisati
     assert.equal(stored, 'a clear goal');
   });
 });
+
+// ── When Pressure Hits — the Situation question is editable ────────────────
+// The returning "Update" flow asks Situation first, so an athlete whose
+// hardest moment has changed can say so without redoing anything else.
+
+test('checkin.screens.pressure asks the Situation first, then the athlete\'s own branch follow-ups', async () => {
+  const client = makeClient();
+  await withApp(client, makeDeps(), async (baseUrl) => {
+    const j = await (await api(baseUrl, tokenFor('u1'))('GET', '/api/profile/starting')).json();
+    assert.deepEqual(j.profile.checkin.screens.pressure, [
+      'primary_priority', 'mistakes_first_response', 'mistakes_next', 'mistakes_recovery',
+    ]);
+    // The athlete's stored situation is sent so the flow can pre-select it.
+    assert.deepEqual(j.profile.checkin.answers.primary_priority.answerIds, ['after_mistake']);
+  });
+});
+
+test('changing the situation in one save moves the branch, and keeps every earlier answer stored', async () => {
+  const client = makeClient();
+  await withApp(client, makeDeps(), async (baseUrl) => {
+    const call = api(baseUrl, tokenFor('u1'));
+    await call('GET', '/api/profile/starting');
+    const r = await call('PATCH', '/api/profile/answers', {
+      answers: {
+        primary_priority: { answerIds: ['lose_focus'] },
+        focus_when: { answerIds: ['own_thoughts'] },
+        focus_effect: { answerIds: ['wrong_decisions'] },
+        focus_recovery: { answerIds: ['few_minutes'] },
+      },
+    });
+    assert.equal(r.status, 200);
+    const j = await r.json();
+
+    // The stored branch follows the athlete's new situation…
+    assert.equal(client.__sessions[0].branchId, 'focus');
+    assert.equal(client.__sessions[0].primaryPriorityId, 'lose_focus');
+    assert.equal(j.profile.displayProfile.pressure.branchId, 'focus');
+    assert.deepEqual(
+      j.profile.displayProfile.pressure.stages.map((s) => [s.stage, s.answerIds[0]]),
+      [['situation', 'lose_focus'], ['firstResponse', 'own_thoughts'], ['impact', 'wrong_decisions'], ['reset', 'few_minutes']],
+    );
+    // …and NOTHING the athlete previously told us is deleted. The old
+    // branch's answers are still on the session, simply not part of the
+    // profile any more.
+    assert.deepEqual(client.__sessions[0].answers.mistakes_first_response, ANSWERS.mistakes_first_response);
+    assert.deepEqual(client.__sessions[0].answers.mistakes_recovery, ANSWERS.mistakes_recovery);
+    // Unrelated sections are untouched.
+    assert.deepEqual(client.__sessions[0].answers.supports, ANSWERS.supports);
+    assert.deepEqual(client.__sessions[0].answers.strengths, ANSWERS.strengths);
+    assert.deepEqual(client.__sessions[0].answers.broad_goals, ANSWERS.broad_goals);
+    // The one-time confirmation contract is untouched by an answer edit.
+    assert.equal(j.profile.fitResponse, 'CONFIRMED');
+    assert.ok(j.profile.confirmedAt);
+    assert.equal(client.__sessions[0].status, 'COMPLETED');
+  });
+});
+
+test('a new branch\'s follow-up is still rejected unless the situation moves with it', async () => {
+  const client = makeClient();
+  await withApp(client, makeDeps(), async (baseUrl) => {
+    const call = api(baseUrl, tokenFor('u1'));
+    await call('GET', '/api/profile/starting');
+    const r = await call('PATCH', '/api/profile/answers', { answers: { focus_when: { answerIds: ['own_thoughts'] } } });
+    assert.equal(r.status, 400);
+    assert.equal((await r.json()).error, 'INVALID_QUESTION');
+    assert.equal(client.__sessions[0].branchId, 'mistakes');
+  });
+});
+
+test('a goals-only save moves goal fields and nothing else', async () => {
+  const client = makeClient();
+  await withApp(client, makeDeps(), async (baseUrl) => {
+    const call = api(baseUrl, tokenFor('u1'));
+    await call('GET', '/api/profile/starting');
+    const r = await call('PATCH', '/api/profile/answers', {
+      answers: {
+        broad_goals: { answerIds: ['focus', 'pressure'] },
+        four_week_outcome: { answerIds: ['stay_focused'] },
+      },
+    });
+    assert.equal(r.status, 200);
+    const stored = client.__sessions[0].answers;
+    assert.deepEqual(stored.broad_goals.answerIds, ['focus', 'pressure']);
+    assert.deepEqual(stored.four_week_outcome.answerIds, ['stay_focused']);
+    for (const qid of ['supports', 'strengths', 'primary_priority', 'mistakes_first_response', 'mistakes_next', 'mistakes_recovery', 'sport']) {
+      assert.deepEqual(stored[qid], ANSWERS[qid], `${qid} must not move`);
+    }
+  });
+});
+
+// ── Existing-user compatibility ────────────────────────────────────────────
+
+test('a historical profile with no goals/strengths still loads, and reports what is not set yet', async () => {
+  const answers = { ...ANSWERS };
+  delete answers.broad_goals;
+  delete answers.strengths;
+  const client = makeClient({ answers });
+  await withApp(client, makeDeps(), async (baseUrl) => {
+    const r = await api(baseUrl, tokenFor('u1'))('GET', '/api/profile/starting');
+    assert.equal(r.status, 200);
+    const dp = (await r.json()).profile.displayProfile;
+    assert.equal(dp.selections.broadGoals.status, 'unset');
+    assert.equal(dp.selections.strengths.status, 'unset');
+    // Nothing was invented, and nothing was written back to the session.
+    assert.equal(client.__sessions[0].answers.broad_goals, undefined);
+    assert.equal(client.__sessions[0].status, 'COMPLETED');
+  });
+});
+
+test('a historical multi-answer on a now-single question is reported ambiguous, never resolved for the athlete', async () => {
+  const client = makeClient({
+    answers: { ...ANSWERS, mistakes_first_response: { answerIds: ['keep_thinking', 'angry_self'] } },
+  });
+  await withApp(client, makeDeps(), async (baseUrl) => {
+    const j = await (await api(baseUrl, tokenFor('u1'))('GET', '/api/profile/starting')).json();
+    const stage = j.profile.displayProfile.pressure.stages.find((s) => s.stage === 'firstResponse');
+    assert.equal(stage.status, 'ambiguous');
+    assert.deepEqual(stage.answerIds, ['keep_thinking', 'angry_self']);
+    // Both ids survive on the session — nothing is silently dropped.
+    assert.deepEqual(client.__sessions[0].answers.mistakes_first_response.answerIds, ['keep_thinking', 'angry_self']);
+  });
+});
+
+// ── Legacy `unsure` athletes ───────────────────────────────────────────────
+// A historical athlete carrying difficult_moments = ['not_sure'] used to be
+// stuck: the Update flow offered them the Situation question, accepted the
+// answer, and then kept the shallow `unsure` branch — so their profile showed
+// a new situation next to the OLD branch's follow-up answer, and the new
+// branch's questions were rejected. The explicit situation now decides.
+
+const LEGACY_UNSURE_ANSWERS = {
+  sport: { answerIds: ['cricket'] },
+  role_position: { answerIds: ['batter'] },
+  competition_level: { answerIds: ['state'] },
+  experience_level: { answerIds: ['competitive'] },
+  difficult_moments: { answerIds: ['not_sure'] },
+  unsure_recognition: { answerIds: ['one_mistake_snowballs'] },
+  unsure_recovery: { answerIds: ['few_minutes'] },
+  supports: { answerIds: ['clear_preparation'] },
+  strengths: { answerIds: ['hard_working'] },
+  broad_goals: { answerIds: ['confidence'] },
+  four_week_outcome: { answerIds: ['recover_faster'] },
+};
+
+function legacyUnsureClient() {
+  const client = makeClient({ answers: JSON.parse(JSON.stringify(LEGACY_UNSURE_ANSWERS)) });
+  client.__sessions[0].branchId = 'unsure';
+  client.__sessions[0].primaryPriorityId = null;
+  return client;
+}
+
+test('a legacy unsure athlete loads their profile unchanged, and opening it writes nothing', async () => {
+  const client = legacyUnsureClient();
+  await withApp(client, makeDeps(), async (baseUrl) => {
+    const call = api(baseUrl, tokenFor('u1'));
+    const j = await (await call('GET', '/api/profile/starting')).json();
+    assert.equal(j.profile.displayProfile.pressure.branchId, 'unsure');
+    // The Situation question is offered so they can move off the shallow branch.
+    assert.deepEqual(j.profile.checkin.screens.pressure, ['primary_priority', 'unsure_recognition', 'unsure_recovery']);
+    // No forced re-onboarding, and nothing written just by looking.
+    assert.equal(client.__sessions[0].status, 'COMPLETED');
+    assert.deepEqual(client.__sessions[0].answers, LEGACY_UNSURE_ANSWERS);
+    assert.equal(client.__sessions[0].branchId, 'unsure');
+  });
+});
+
+test('choosing a real Situation moves a legacy unsure athlete onto that branch for good', async () => {
+  const client = legacyUnsureClient();
+  await withApp(client, makeDeps(), async (baseUrl) => {
+    const call = api(baseUrl, tokenFor('u1'));
+    await call('GET', '/api/profile/starting');
+    const r = await call('PATCH', '/api/profile/answers', {
+      answers: {
+        primary_priority: { answerIds: ['after_mistake'] },
+        mistakes_first_response: { answerIds: ['angry_self'] },
+        mistakes_next: { answerIds: ['lose_focus'] },
+        mistakes_recovery: { answerIds: ['few_minutes'] },
+      },
+    });
+    assert.equal(r.status, 200, 'the new branch\'s follow-ups are accepted in the same save');
+    const j = await r.json();
+
+    // The active branch is the one the athlete named.
+    assert.equal(client.__sessions[0].branchId, 'mistakes');
+    assert.equal(client.__sessions[0].primaryPriorityId, 'after_mistake');
+    assert.equal(j.profile.displayProfile.pressure.branchId, 'mistakes');
+
+    // The profile shows the new situation with the NEW branch's answers only —
+    // never the old unsure answer next to a new situation.
+    assert.deepEqual(
+      j.profile.displayProfile.pressure.stages.map((s) => [s.stage, s.questionId, s.answerIds[0]]),
+      [['situation', 'primary_priority', 'after_mistake'],
+        ['firstResponse', 'mistakes_first_response', 'angry_self'],
+        ['impact', 'mistakes_next', 'lose_focus'],
+        ['reset', 'mistakes_recovery', 'few_minutes']],
+    );
+    assert.equal(JSON.stringify(j.profile.displayProfile.pressure).includes('unsure'), false);
+
+    // The legacy answers are still stored — inactive, never deleted.
+    assert.deepEqual(client.__sessions[0].answers.unsure_recognition.answerIds, ['one_mistake_snowballs']);
+    assert.deepEqual(client.__sessions[0].answers.difficult_moments.answerIds, ['not_sure']);
+
+    // They no longer influence the active rule output or Coach background.
+    assert.equal(client.__profiles[0].ruleOutput.branch, 'mistakes');
+    assert.equal(client.__profiles[0].ruleOutput.recognition, null);
+    assert.equal(
+      client.__profiles[0].ruleOutput.observations.every((o) => o.questionId.startsWith('mistakes_')),
+      true,
+    );
+
+    // Unrelated sections untouched.
+    assert.deepEqual(client.__sessions[0].answers.supports, LEGACY_UNSURE_ANSWERS.supports);
+    assert.deepEqual(client.__sessions[0].answers.strengths, LEGACY_UNSURE_ANSWERS.strengths);
+    assert.deepEqual(client.__sessions[0].answers.broad_goals, LEGACY_UNSURE_ANSWERS.broad_goals);
+    assert.deepEqual(client.__sessions[0].answers.four_week_outcome, LEGACY_UNSURE_ANSWERS.four_week_outcome);
+    // Confirmation state untouched.
+    assert.equal(j.profile.fitResponse, 'CONFIRMED');
+    assert.ok(j.profile.confirmedAt);
+  });
+});
+
+test('after the switch the new branch\'s questions are the editable ones, and the old branch\'s are not', async () => {
+  const client = legacyUnsureClient();
+  await withApp(client, makeDeps(), async (baseUrl) => {
+    const call = api(baseUrl, tokenFor('u1'));
+    await call('GET', '/api/profile/starting');
+    await call('PATCH', '/api/profile/answers', {
+      answers: {
+        primary_priority: { answerIds: ['after_mistake'] },
+        mistakes_first_response: { answerIds: ['angry_self'] },
+        mistakes_next: { answerIds: ['lose_focus'] },
+        mistakes_recovery: { answerIds: ['few_minutes'] },
+      },
+    });
+    const j = await (await call('GET', '/api/profile/starting')).json();
+    assert.deepEqual(j.profile.checkin.screens.pressure, [
+      'primary_priority', 'mistakes_first_response', 'mistakes_next', 'mistakes_recovery',
+    ]);
+    assert.equal(j.profile.checkin.answers.unsure_recognition, undefined, 'the old branch is no longer editable');
+    // A stale unsure answer can no longer be written either.
+    const bad = await call('PATCH', '/api/profile/answers', { answers: { unsure_recognition: { answerIds: ['compare_to_others'] } } });
+    assert.equal(bad.status, 400);
+    assert.equal((await bad.json()).error, 'INVALID_QUESTION');
+  });
+});
+
+test('the secondary-context question each branch asks is carried to the client', async () => {
+  const client = makeClient({
+    answers: {
+      ...ANSWERS,
+      primary_priority: { answerIds: ['injury_return'] },
+      injury_stage: { answerIds: ['recovering_not_playing'] },
+      injury_concern: { answerIds: ['re_injury_fear'] },
+      injury_recovery: { answerIds: ['few_minutes'] },
+    },
+  });
+  client.__sessions[0].branchId = 'injury';
+  await withApp(client, makeDeps(), async (baseUrl) => {
+    const j = await (await api(baseUrl, tokenFor('u1'))('GET', '/api/profile/starting')).json();
+    const stages = j.profile.displayProfile.pressure.stages;
+    // No fabricated performance impact…
+    assert.equal(stages.some((s) => s.stage === 'impact'), false);
+    // …and the question they DID answer is not invisible.
+    const context = stages.find((s) => s.stage === 'context');
+    assert.equal(context.questionId, 'injury_stage');
+    assert.deepEqual(context.answerIds, ['recovering_not_playing']);
+    // It is asked in the scoped edit flow too, so it stays editable.
+    assert.ok(j.profile.checkin.screens.pressure.includes('injury_stage'));
+  });
+});

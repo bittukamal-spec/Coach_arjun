@@ -5,7 +5,7 @@
 // conversation, so no reply chips and no [SUGGEST:] tag are attached.
 
 const cfg = require('./ruleConfig');
-const { joinClauses, sentences, tidy, priorityPhrase } = require('./ruleEngine');
+const { sentences, priorityPhrase } = require('./ruleEngine');
 
 const firstName = (name) => String(name || '').trim().split(/\s+/)[0] || (name || '');
 
@@ -14,39 +14,27 @@ function triggerPhrase(priorityId, lang) {
     || (lang === 'hi' ? 'जिस स्थिति को हमने चुना उसमें' : 'the situation we chose');
 }
 
-// Short, non-prescriptive summary of the agreed pattern for the CONFIRMED path.
-function shortPattern(ruleOutput, lang) {
-  const trigger = triggerPhrase(ruleOutput.agreedPriorityId || ruleOutput.priorityId, lang);
-  const clauses = (ruleOutput.observations || [])
-    .slice(0, 2)
-    .map((o) => (o.dim === 'duration' ? cfg.DURATION_PROLONGED[lang] : cfg.CLAUSE[o.code]?.[lang]))
-    .filter(Boolean);
-  if (clauses.length === 0) {
-    return lang === 'hi' ? `${trigger} चीज़ें कठिन हो सकती हैं` : `things can get harder ${trigger}`;
-  }
-  // Same composer as the profile sections — connectors are added exactly once,
-  // by the composer, never carried in by a clause.
-  const joined = joinClauses(clauses, lang);
-  return tidy(lang === 'hi' ? `${trigger} ${joined}` : `${trigger}, ${joined}`);
-}
-
-
 // Returns the stored assistant Message content — plain prose, no markers.
 function buildFirstMessage(profile, ruleOutput, user) {
   const lang = user?.language === 'hi' ? 'hi' : 'en';
   const name = firstName(user?.name);
   const priorityId = profile.agreedPriorityId || ruleOutput.suggestedPriorityId;
-  const roWithAgreed = { ...ruleOutput, agreedPriorityId: priorityId };
   // Conversational phrase, never the raw onboarding display label — the same
   // source the profile confirmation summary uses.
   const focus = priorityPhrase(priorityId, lang, ruleOutput);
   let body;
 
   if (profile.fitResponse === 'CONFIRMED') {
-    const pat = shortPattern(roWithAgreed, lang);
+    // Names the SITUATION the athlete chose and nothing else. The profile they
+    // just read shows their own words ("I get angry with myself"); opening the
+    // conversation with a rewritten version of them ("frustration with
+    // yourself can rise") is exactly the mismatch the simplified profile
+    // exists to remove, so the pattern is not restated here at all. Arjun asks
+    // about today instead — the barrier is still established in conversation.
+    const trigger = triggerPhrase(priorityId, lang);
     body = lang === 'hi'
-      ? sentences([`नमस्ते, ${name}। आपसे मिलकर अच्छा लगा।\n\nआपने बताया कि ${pat}।`, 'चलिए एक हाल के उदाहरण से शुरू करते हैं — क्या हुआ था?'])
-      : sentences([`Hi, ${name}. Great to meet you.\n\nYou shared that ${pat}.`, "Let's start with a recent example — what happened?"]);
+      ? sentences([`नमस्ते, ${name}। आपसे मिलकर अच्छा लगा।\n\nआपने चुना कि अभी सबसे मुश्किल पल ${trigger} है।`, 'चलिए एक हाल के उदाहरण से शुरू करते हैं — क्या हुआ था?'])
+      : sentences([`Hi, ${name}. Great to meet you.\n\nYou told me the moment that gives you the most trouble right now is ${trigger}.`, "Let's start with a recent example — what happened?"]);
   } else if (profile.fitResponse === 'PARTLY') {
     body = lang === 'hi'
       ? sentences([`नमस्ते, ${name}। सुधारने के लिए धन्यवाद।`, `हम ${focus} — इसी को समझने से शुरू करेंगे।`, 'किसी हाल के ट्रेनिंग या मुक़ाबले के पल के बारे में सोचें जब यह दिखा — क्या हुआ था?'])
@@ -61,4 +49,4 @@ function buildFirstMessage(profile, ruleOutput, user) {
   return body;
 }
 
-module.exports = { buildFirstMessage, shortPattern, triggerPhrase };
+module.exports = { buildFirstMessage, triggerPhrase };
