@@ -384,3 +384,84 @@ describe('pressure questions are single-choice', () => {
     expect(screen.getByRole('button', { name: 'Next' }).disabled).toBe(false);
   });
 });
+
+// ── Legacy `unsure` athletes ───────────────────────────────────────────────
+// Their stored difficult_moments = ['not_sure'] used to keep them on the
+// shallow branch no matter which situation they picked, so the flow asked the
+// old branch's questions after a brand-new situation. The explicit situation
+// now decides, on the client exactly as on the server.
+
+function legacyUnsureServer() {
+  const server = makeServer();
+  const p = server.state.profile;
+  p.displayProfile.pressure = {
+    branchId: 'unsure',
+    stages: [
+      { stage: 'situation', questionId: 'primary_priority', answerIds: [], customText: null, status: 'unset' },
+      { stage: 'firstResponse', questionId: 'unsure_recognition', answerIds: ['one_mistake_snowballs'], customText: null, status: 'set' },
+      { stage: 'reset', questionId: 'unsure_recovery', answerIds: ['few_minutes'], customText: null, status: 'set' },
+    ],
+  };
+  p.checkin.screens.pressure = ['primary_priority', 'unsure_recognition', 'unsure_recovery'];
+  p.checkin.answers = {
+    ...p.checkin.answers,
+    primary_priority: { answerIds: [] },
+    unsure_recognition: { answerIds: ['one_mistake_snowballs'] },
+    unsure_recovery: { answerIds: ['few_minutes'] },
+  };
+  delete p.checkin.answers.mistakes_first_response;
+  delete p.checkin.answers.mistakes_next;
+  delete p.checkin.answers.mistakes_recovery;
+  return server;
+}
+
+test('a legacy unsure athlete who picks a real situation is asked THAT situation\'s questions', async () => {
+  const server = legacyUnsureServer();
+  const user = userEvent.setup();
+  renderAt('/starting-profile/check-in?section=pressure', server);
+  await screen.findByRole('heading', { name: 'Which situation gives you the most trouble right now?' });
+  await user.click(screen.getByRole('radio', { name: 'After I make a mistake' }));
+  await user.click(screen.getByRole('button', { name: 'Next' }));
+  // They are told once that the old branch's answers stay saved…
+  expect(await screen.findByRole('dialog')).toBeTruthy();
+  expect(screen.getByText(/Your earlier answers stay saved/i)).toBeTruthy();
+  await user.click(screen.getByRole('button', { name: 'Yes, change it' }));
+  // …and then answer the questions for the situation they actually chose.
+  expect(screen.queryByRole('heading', { name: 'Which sounds most like you recently?' })).toBeNull();
+  expect(await screen.findByRole('heading', { name: 'What usually happens first after you make a mistake?' })).toBeTruthy();
+});
+
+test('their save carries the new situation and its own branch answers, and nothing from the old one', async () => {
+  const server = legacyUnsureServer();
+  const user = userEvent.setup();
+  renderAt('/starting-profile/check-in?section=pressure', server);
+  await screen.findByRole('heading', { name: 'Which situation gives you the most trouble right now?' });
+  await user.click(screen.getByRole('radio', { name: 'After I make a mistake' }));
+  await user.click(screen.getByRole('button', { name: 'Next' }));
+  await user.click(await screen.findByRole('button', { name: 'Yes, change it' }));
+  await user.click(await screen.findByRole('radio', { name: /angry/i }));
+  await user.click(screen.getByRole('button', { name: 'Next' }));
+  await user.click(await screen.findByRole('radio', { name: /I lose focus/i }));
+  await user.click(screen.getByRole('button', { name: 'Next' }));
+  await user.click(await screen.findByRole('radio', { name: 'A few minutes' }));
+  await user.click(screen.getByRole('button', { name: 'Save changes' }));
+  await vi.waitFor(() => expect(server.state.patched.length).toBe(1));
+  expect(patchedQids(server)).toEqual(['mistakes_first_response', 'mistakes_next', 'mistakes_recovery', 'primary_priority']);
+  // The old branch's answer is never re-sent, and never overwritten either.
+  expect(server.state.patched[0].unsure_recognition).toBeUndefined();
+  expect(server.state.profile.checkin.answers.unsure_recognition.answerIds).toEqual(['one_mistake_snowballs']);
+  // Unrelated sections untouched.
+  expect(server.state.profile.checkin.answers.supports.answerIds).toEqual(['clear_preparation']);
+  expect(server.state.profile.checkin.answers.strengths.answerIds).toEqual(['hard_working']);
+});
+
+test('their profile shows "Not set yet" for a situation they have not chosen — never a stale one', async () => {
+  const server = legacyUnsureServer();
+  renderAt('/starting-profile', server);
+  const ol = await screen.findByRole('list', { name: 'When Pressure Hits' });
+  expect(ol.textContent).toContain('Situation');
+  expect(ol.textContent).toContain('Not set yet');
+  // The shallow branch asked one combined question, so it is labelled as one.
+  expect(ol.textContent).toContain('What usually happens');
+  expect(ol.textContent).not.toContain('First response');
+});

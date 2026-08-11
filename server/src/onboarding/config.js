@@ -67,22 +67,36 @@ function selectedIds(answers, qid) {
 }
 
 // Whether the Situation question is reachable. The simplified flow asks it
-// directly, so it is reachable by default; the ONE case that still skips it is
-// a historical session whose difficult_moments say "I'm not sure yet" — those
-// athletes were routed to the shallow `unsure` branch and must stay there.
+// directly, so it is reachable by default. The ONE case that skips it is a
+// historical session whose difficult_moments say "I'm not sure yet" AND which
+// has never answered the Situation question — those athletes were routed to
+// the shallow `unsure` branch. Once they DO answer it, it is theirs.
 function hasPriority(answers) {
+  if (selectedIds(answers, 'primary_priority').length > 0) return true;
   const dm = selectedIds(answers, 'difficult_moments');
   if (dm.length > 0 && dm.every((x) => x === 'not_sure')) return false;
   return true;
 }
 
+// ── Branch precedence ──────────────────────────────────────────────────────
+// An EXPLICIT Situation always wins. A historical `difficult_moments =
+// ['not_sure']` may only select the shallow `unsure` branch while there is no
+// valid Situation to read — otherwise a legacy athlete who picks "After I make
+// a mistake" would keep the unsure branch, and their profile would show that
+// new situation next to the old branch's follow-up answers.
+//
+// The legacy answer is never deleted; it simply stops deciding the branch the
+// moment the athlete says what their situation actually is.
 function resolveBranch(answers) {
+  const pri = selectedIds(answers, 'primary_priority')[0];
+  if (pri) {
+    if (pri === 'different') return 'custom';
+    const branchId = config.priorityToBranch[pri];
+    if (branchId) return branchId;
+  }
   const dm = selectedIds(answers, 'difficult_moments');
   if (dm.length > 0 && dm.every((x) => x === 'not_sure')) return 'unsure';
-  const pri = selectedIds(answers, 'primary_priority')[0];
-  if (!pri) return null;
-  if (pri === 'different') return 'custom';
-  return config.priorityToBranch[pri] || null;
+  return null;
 }
 
 function branchScreenVisible(branchId, screenId, answers) {
@@ -146,11 +160,20 @@ function pressureRoles(branchId) {
 }
 
 // Ordered [{ stage, questionId }] for a branch, situation first. Stages whose
-// question is not defined for the branch are omitted.
+// question is not defined for the branch are omitted — a branch that never
+// asked for a performance impact simply has no impact stage, and nothing is
+// invented to fill it.
+//
+// `context` is the one branch-specific question that is NOT part of the
+// sequence (injury: where they are now; family/outside: where the pressure
+// comes from). It is carried last and shown as a short secondary line, so a
+// required question the athlete answered is never invisible to them.
+const PRESSURE_STAGE_ORDER = ['firstResponse', 'impact', 'reset', 'context'];
+
 function pressureStages(branchId) {
   const roles = pressureRoles(branchId);
   const out = [{ stage: 'situation', questionId: SITUATION_QUESTION_ID }];
-  for (const stage of ['firstResponse', 'impact', 'reset']) {
+  for (const stage of PRESSURE_STAGE_ORDER) {
     const qid = roles?.[stage];
     if (qid) out.push({ stage, questionId: qid });
   }

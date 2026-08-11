@@ -82,7 +82,7 @@ function validateConfig(cfg) {
     const owned = new Set(
       (cfg.branches?.[bid]?.screenIds || []).flatMap((sid) => cfg.branchScreens?.[sid]?.questionIds || [])
     );
-    for (const role of ['firstResponse', 'impact', 'reset']) {
+    for (const role of ['firstResponse', 'impact', 'reset', 'context']) {
       const qid = roles[role];
       if (qid === null || qid === undefined) continue;
       if (!questionIds.has(qid)) fail(`pressureRoles.${bid}.${role}: unknown question '${qid}'`);

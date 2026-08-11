@@ -254,16 +254,21 @@ Treat this as the athlete's present priority. The Starting Performance Profile r
     const s = startingProfile.sections;
     profileSection = `\n\n## Confirmed Starting Profile (athlete-reviewed — primary context)\nGenerated from the athlete's onboarding answers, then reviewed by them: ${fitLabel}. Agreed first focus: ${startingProfile.agreedPriorityId || 'not set'}.\n- What matters to them: ${s.whatMatters || ''}\n- A possible pattern (tentative): ${s.possiblePattern || ''}\n- What already helps: ${s.whatHelps || ''}\n- Where to begin: ${s.whereWeBegin || ''}\nThis is the athlete's own confirmed/corrected understanding — treat it as the primary context for their mental game, above older raw fields. Do NOT ask them again whether the pattern fits (already resolved on the profile screen). Never present it as a diagnosis, score, or fixed trait.`;
 
-    // The same facts in the athlete's OWN structured terms, so you can refer to
-    // what they told us without paraphrasing it back at them. Deterministic —
-    // read from their stored answers, never generated.
+    // The same facts, stage by stage, read deterministically from their stored
+    // answers — never generated. Where the athlete wrote their own words those
+    // words appear verbatim; where they picked a predefined option this carries
+    // the rule engine's internal phrasing of it, NOT the label they tapped
+    // (the athlete-facing labels live in the client translation tables, which
+    // the server has no access to). That is why the block below tells you these
+    // are internal notes and forbids quoting them back.
     const steps = (startingProfile.patternSteps || []).map((s) => `${s.label}: ${s.text}`);
     if (steps.length || startingProfile.supports?.length || startingProfile.strengths?.length) {
       profileSection += `\n\n### What they told us (background only)\n`
         + (steps.length ? `- When pressure hits — ${steps.join(' → ')}\n` : '')
         + (startingProfile.supports?.length ? `- What helps them: ${startingProfile.supports.join(', ')}\n` : '')
         + (startingProfile.strengths?.length ? `- Strengths they named: ${startingProfile.strengths.join(', ')}\n` : '')
-        + `This is BACKGROUND, not today's conclusion. You may ASK whether today is similar ("last time, after a mistake you got angry with yourself and then lost focus — was today like that?"). You must NEVER treat it as the confirmed barrier for this conversation: the athlete still has to describe what happened today, and still has to confirm the barrier in their own words before any Mental Rep is offered.`;
+        + `These are Arjun's internal notes, not the athlete's own wording — NEVER quote them back verbatim; if you refer to them, use plain everyday words.\n`
+        + `This is BACKGROUND, not today's conclusion. You may ASK whether today is similar ("last time it was after a mistake — was today like that?"). You must NEVER treat it as the confirmed barrier for this conversation: the athlete still has to describe what happened today, and still has to confirm the barrier in their own words before any Mental Rep is offered.`;
     }
   }
 

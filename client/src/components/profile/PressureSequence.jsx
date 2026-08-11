@@ -15,7 +15,7 @@
 // athlete, in the edit flow.
 
 import { Zap, Brain, Target } from 'lucide-react';
-import { answerLabel } from '../../onboarding/labels';
+import { answerLabel, answerLabels } from '../../onboarding/labels';
 
 const SEQUENCE = ['situation', 'firstResponse', 'impact'];
 
@@ -40,10 +40,20 @@ export default function PressureSequence({ stages, labelFor, t, ariaLabel }) {
   const byStage = (name) => (stages || []).find((s) => s && s.stage === name) || null;
   const shown = SEQUENCE.filter((name) => byStage(name));
   const reset = byStage('reset');
+  const context = byStage('context');
+
+  // Some branches never asked for a performance impact as its own question —
+  // they asked one combined "what happens" question instead. Calling that
+  // answer a "First response" when nothing follows it would imply a step the
+  // athlete was never asked for, so the sequence tells the truth about what
+  // they actually answered.
+  const hasImpact = !!byStage('impact');
+  const firstResponseLabel = t.pressureStageByQuestion?.[byStage('firstResponse')?.questionId]
+    || (hasImpact ? t.pressureFirstResponse : t.pressureWhatHappens);
 
   const STAGE_LABEL = {
     situation: t.pressureSituation,
-    firstResponse: t.pressureFirstResponse,
+    firstResponse: firstResponseLabel,
     impact: t.pressureImpact,
   };
 
@@ -87,6 +97,18 @@ export default function PressureSequence({ stages, labelFor, t, ariaLabel }) {
           );
         })}
       </ol>
+
+      {/* Secondary context: the one branch-specific question that is not part
+          of the sequence (where the athlete is in their injury; where the
+          outside pressure comes from). Shown so a question they answered is
+          never invisible, and labelled in that branch's own plain words. */}
+      {context && (
+        <p className="text-caption text-slt mt-3 break-words">
+          <span className="font-semibold">{t.pressureContextByQuestion?.[context.questionId] || t.pressureContext}</span>
+          {' · '}
+          {answerLabels(context, labelFor).join(' · ') || stageValue(context, labelFor, t).text}
+        </p>
+      )}
 
       {reset && (
         <p className="text-caption text-slt mt-3 break-words">

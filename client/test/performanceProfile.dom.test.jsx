@@ -387,6 +387,61 @@ test('custom athlete text is never translated', async () => {
   expect(ol.textContent).toContain('I go completely silent');
 });
 
+test('a branch whose questions produce a real impact keeps the four-stage sequence', async () => {
+  renderPage();
+  const ol = await screen.findByRole('list', { name: 'When Pressure Hits' });
+  expect(ol.textContent).toContain('First response');
+  expect(ol.textContent).toContain('Performance impact');
+  expect(ol.textContent).not.toContain('What usually happens');
+});
+
+test('a branch that never asked for a separate impact says "What usually happens" instead of "First response"', async () => {
+  const s = makeServer();
+  // family/outside asks one combined question, not a response AND an impact.
+  s.state.profile.displayProfile.pressure = {
+    branchId: 'family_outside',
+    stages: [
+      { stage: 'situation', questionId: 'primary_priority', answerIds: ['family_expectations'], customText: null, status: 'set' },
+      { stage: 'firstResponse', questionId: 'family_outside_effect', answerIds: ['play_safe'], customText: null, status: 'set' },
+      { stage: 'reset', questionId: 'family_outside_recovery', answerIds: ['few_minutes'], customText: null, status: 'set' },
+      { stage: 'context', questionId: 'family_outside_source', answerIds: ['parents', 'friends_peers'], customText: null, status: 'set' },
+    ],
+  };
+  renderPage({ server: s });
+  const ol = await screen.findByRole('list', { name: 'When Pressure Hits' });
+  expect(within(ol).getAllByRole('listitem')).toHaveLength(2);
+  expect(ol.textContent).toContain('What usually happens');
+  // No stage the athlete was never asked for is implied, in either direction.
+  expect(ol.textContent).not.toContain('First response');
+  expect(ol.textContent).not.toContain('Performance impact');
+  expect(ol.textContent).not.toContain('Not set yet');
+  // The branch's own non-sequence question is visible, in its own plain words.
+  const context = screen.getByText('Main outside pressure').closest('p');
+  expect(context.textContent).toBe('Main outside pressure · Parents · Friends or peers');
+});
+
+test('the injury branch labels its own question in its own words, and shows where the athlete is now', async () => {
+  const s = makeServer();
+  s.state.profile.displayProfile.pressure = {
+    branchId: 'injury',
+    stages: [
+      { stage: 'situation', questionId: 'primary_priority', answerIds: ['injury_return'], customText: null, status: 'set' },
+      { stage: 'firstResponse', questionId: 'injury_concern', answerIds: ['re_injury_fear'], customText: null, status: 'set' },
+      { stage: 'reset', questionId: 'injury_recovery', answerIds: ['few_minutes'], customText: null, status: 'set' },
+      { stage: 'context', questionId: 'injury_stage', answerIds: ['recovering_not_playing'], customText: null, status: 'set' },
+    ],
+  };
+  renderPage({ server: s });
+  const ol = await screen.findByRole('list', { name: 'When Pressure Hits' });
+  // "What's on your mind most?" is not a first response — it is labelled for
+  // what it actually asked.
+  expect(ol.textContent).toContain("What's on your mind");
+  expect(ol.textContent).not.toContain('First response');
+  expect(ol.textContent).toContain('Fear of re-injury');
+  const context = screen.getByText('Where you are now').closest('p');
+  expect(context.textContent).toBe('Where you are now · Recovering, not playing yet');
+});
+
 test('a stage the athlete\'s branch never asks is omitted, not shown permanently unset', async () => {
   const s = makeServer();
   // The injury branch has no performance-impact question of its own.

@@ -126,9 +126,14 @@ function buildRuleOutput(session) {
   const observations = [...reaction, ...effect].slice(0, room);
   if (durationObs) observations.push(durationObs);
 
-  // The athlete's recognition (unsure branch) still names a situation, so a
-  // profile is never left without one.
-  const recognition = selIds(answers, 'unsure_recognition').find((id) => cfg.UNSURE_TRIGGER[id]) || null;
+  // The athlete's recognition names a situation on the unsure branch, so a
+  // profile there is never left without one. Read ONLY while that branch is
+  // the active one: an athlete who has since named a real situation has moved
+  // off it, and their old recognition answer — still stored, never deleted —
+  // must not keep feeding the current rule output.
+  const recognition = branchId === 'unsure'
+    ? (selIds(answers, 'unsure_recognition').find((id) => cfg.UNSURE_TRIGGER[id]) || null)
+    : null;
   // The athlete's own first real difficult moment, when no single priority
   // was chosen — still their answer, not an inference.
   const ownMoments = selIds(answers, 'difficult_moments').filter((id) => id !== 'not_sure' && id !== 'different');

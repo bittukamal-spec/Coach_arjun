@@ -220,6 +220,22 @@ export const translations = {
       pressureImpact: 'Performance impact',
       pressureReset: 'Reset time',
       pressureResetInline: (value) => `Reset time · ${value}`,
+      // A branch that never asked for a separate performance impact asked one
+      // combined question instead — its answer is labelled for what it is,
+      // rather than implying a step the athlete was never asked for.
+      pressureWhatHappens: 'What usually happens',
+      // Per-question overrides, where a branch's own question deserves its own
+      // plain label.
+      pressureStageByQuestion: {
+        injury_concern: "What's on your mind",
+      },
+      // Secondary context: a branch-specific question that sits outside the
+      // sequence but that the athlete did answer, so it is never invisible.
+      pressureContext: 'Also',
+      pressureContextByQuestion: {
+        injury_stage: 'Where you are now',
+        family_outside_source: 'Main outside pressure',
+      },
       notSetYet: 'Not set yet',
       // A single-choice answer stored with more than one value (answered
       // before the question became single-choice). Never resolved for them.
@@ -2030,6 +2046,15 @@ export const translations = {
       pressureImpact: 'खेल पर असर',
       pressureReset: 'वापस आने में समय',
       pressureResetInline: (value) => `वापस आने में समय · ${value}`,
+      pressureWhatHappens: 'आम तौर पर क्या होता है',
+      pressureStageByQuestion: {
+        injury_concern: 'मन में क्या चलता है',
+      },
+      pressureContext: 'साथ ही',
+      pressureContextByQuestion: {
+        injury_stage: 'अभी आप कहाँ हैं',
+        family_outside_source: 'मुख्य बाहरी दबाव',
+      },
       notSetYet: 'अभी सेट नहीं है',
       needsUpdate: 'अपडेट चाहिए',
       goalsLabel: 'किस पर काम',

@@ -216,3 +216,56 @@ test('missingRequired lists unanswered required questions and clears when comple
   assert.ok(missingRequired(partial).includes('supports'));
   assert.equal(isAnswered(partial, 'difficult_moments'), true);
 });
+
+// ── Branch precedence: an explicit Situation always wins ──────────────────
+// A historical athlete may carry difficult_moments = ['not_sure'] from the
+// shallow `unsure` branch. Once they name a real situation, that situation —
+// and only that situation — decides which branch is active. The legacy answer
+// stays stored; it just stops deciding.
+
+const LEGACY_UNSURE = {
+  sport: { answerIds: ['cricket'] },
+  difficult_moments: { answerIds: ['not_sure'] },
+  unsure_recognition: { answerIds: ['one_mistake_snowballs'] },
+  unsure_recovery: { answerIds: ['few_minutes'] },
+};
+
+test('legacy not_sure with no Situation still resolves to the shallow unsure branch', () => {
+  assert.equal(C.resolveBranch(LEGACY_UNSURE), 'unsure');
+  assert.equal(C.hasPriority(LEGACY_UNSURE), false);
+  const flow = C.computeFlowScreenIds(LEGACY_UNSURE);
+  assert.ok(!flow.includes('primary_priority'), 'the situation screen stays skipped for them');
+  assert.ok(flow.includes('unsure_recognition'));
+});
+
+test('legacy not_sure plus an explicit Situation resolves to that situation\'s branch', () => {
+  const merged = { ...LEGACY_UNSURE, primary_priority: { answerIds: ['after_mistake'] } };
+  assert.equal(C.resolveBranch(merged), 'mistakes');
+  assert.equal(C.hasPriority(merged), true);
+  const flow = C.computeFlowScreenIds(merged);
+  assert.ok(flow.includes('mistakes_first_response'));
+  assert.ok(!flow.includes('unsure_recognition'), 'the old branch is no longer active');
+});
+
+test('a different explicit Situation resolves to its own branch, deterministically', () => {
+  for (const [pri, branch] of [['confidence_drops', 'confidence'], ['lose_focus', 'focus'], ['injury_return', 'injury'], ['different', 'custom']]) {
+    const merged = { ...LEGACY_UNSURE, primary_priority: { answerIds: [pri] } };
+    assert.equal(C.resolveBranch(merged), branch, `${pri} should resolve to ${branch}`);
+    // Same answers in, same branch out — every time.
+    assert.equal(C.resolveBranch(merged), C.resolveBranch({ ...merged }));
+  }
+});
+
+test('the legacy not_sure and unsure answers are still readable after the switch', () => {
+  const merged = { ...LEGACY_UNSURE, primary_priority: { answerIds: ['after_mistake'] } };
+  assert.deepEqual(merged.difficult_moments.answerIds, ['not_sure']);
+  assert.deepEqual(merged.unsure_recognition.answerIds, ['one_mistake_snowballs']);
+  // …but they are not part of the active flow any more.
+  assert.ok(!C.reachableQuestionIds(merged).has('unsure_recognition'));
+});
+
+test('a brand-new athlete (no difficult_moments at all) is unaffected by the precedence rule', () => {
+  assert.equal(C.hasPriority({}), true);
+  assert.equal(C.resolveBranch({}), null, 'no situation yet — no branch yet');
+  assert.equal(C.resolveBranch({ primary_priority: { answerIds: ['lose_focus'] } }), 'focus');
+});

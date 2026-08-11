@@ -2279,12 +2279,14 @@
     "family_outside": {
       "firstResponse": "family_outside_effect",
       "impact": null,
-      "reset": "family_outside_recovery"
+      "reset": "family_outside_recovery",
+      "context": "family_outside_source"
     },
     "injury": {
       "firstResponse": "injury_concern",
       "impact": null,
-      "reset": "injury_recovery"
+      "reset": "injury_recovery",
+      "context": "injury_stage"
     },
     "unsure": {
       "firstResponse": "unsure_recognition",

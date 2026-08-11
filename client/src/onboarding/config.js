@@ -51,21 +51,28 @@ function selectedIds(answers, qid) {
 }
 
 // The Situation question is asked directly, so it is reachable by default.
-// The one case that still skips it is a historical session whose
-// difficult_moments say "I'm not sure yet" (the shallow `unsure` branch).
+// The one case that skips it is a historical session whose difficult_moments
+// say "I'm not sure yet" and which has never answered the Situation question.
 export function hasPriority(answers) {
+  if (selectedIds(answers, 'primary_priority').length > 0) return true;
   const dm = selectedIds(answers, 'difficult_moments');
   if (dm.length > 0 && dm.every((x) => x === 'not_sure')) return false;
   return true;
 }
 
+// An EXPLICIT Situation always wins; a historical `difficult_moments =
+// ['not_sure']` only selects the shallow `unsure` branch while there is no
+// valid Situation to read. Mirrors server/src/onboarding/config.js exactly.
 export function resolveBranch(answers) {
+  const pri = selectedIds(answers, 'primary_priority')[0];
+  if (pri) {
+    if (pri === 'different') return 'custom';
+    const branchId = config.priorityToBranch[pri];
+    if (branchId) return branchId;
+  }
   const dm = selectedIds(answers, 'difficult_moments');
   if (dm.length > 0 && dm.every((x) => x === 'not_sure')) return 'unsure';
-  const pri = selectedIds(answers, 'primary_priority')[0];
-  if (!pri) return null;
-  if (pri === 'different') return 'custom';
-  return config.priorityToBranch[pri] || null;
+  return null;
 }
 
 function branchScreenVisible(branchId, screenId, answers) {
@@ -130,11 +137,12 @@ export function pressureRoles(branchId) {
 
 // Ordered [{ stage, questionId }] for a branch, situation first. A stage whose
 // question the branch does not define is omitted, never shown permanently
-// unset.
+// unset. `context` is the branch's one non-sequence question, shown as a short
+// secondary line. Mirrors server/src/onboarding/config.js exactly.
 export function pressureStages(branchId) {
   const roles = pressureRoles(branchId);
   const out = [{ stage: 'situation', questionId: SITUATION_QUESTION_ID }];
-  for (const stage of ['firstResponse', 'impact', 'reset']) {
+  for (const stage of ['firstResponse', 'impact', 'reset', 'context']) {
     const qid = roles?.[stage];
     if (qid) out.push({ stage, questionId: qid });
   }

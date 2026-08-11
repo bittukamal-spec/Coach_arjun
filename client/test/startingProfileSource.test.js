@@ -223,3 +223,43 @@ test('the visual redesign is present and shares one component tree across modes'
   // Still no measurement visuals of any kind.
   assert.doesNotMatch(page, /recharts|RadarChart|Gauge|skill-bar|percentile/i);
 });
+
+// ── Branch precedence must not drift between client and server ────────────
+// The client recomputes the branch while the athlete is mid-edit (to decide
+// which follow-ups to ask); the server recomputes it on save. If the two
+// disagree, an athlete is asked one branch's questions and has them rejected
+// by the other — which is exactly the defect this rule fixes for legacy
+// `unsure` athletes.
+
+const clientConfig = src('onboarding/config.js');
+const serverConfig = readFileSync(path.join(__dirname, '../../server/src/onboarding/config.js'), 'utf8');
+
+const resolveBranchBody = (source) => {
+  const start = source.indexOf('resolveBranch(answers) {');
+  assert.notEqual(start, -1, 'resolveBranch not found');
+  return source.slice(start, source.indexOf('\n}', start));
+};
+
+test('an explicit Situation decides the branch before any legacy not_sure answer, on both sides', () => {
+  for (const [name, source] of [['client', clientConfig], ['server', serverConfig]]) {
+    const body = resolveBranchBody(source);
+    const priIdx = body.indexOf("selectedIds(answers, 'primary_priority')");
+    const dmIdx = body.indexOf("selectedIds(answers, 'difficult_moments')");
+    assert.ok(priIdx !== -1 && dmIdx !== -1, `${name}: both reads must exist`);
+    assert.ok(priIdx < dmIdx, `${name}: the explicit Situation must be read first`);
+    assert.match(body, /not_sure/, `${name}: the legacy fallback is still honoured`);
+  }
+});
+
+test('the two implementations of resolveBranch are the same logic, not two dialects', () => {
+  const normalise = (s) => s.replace(/\/\/.*$/gm, '').replace(/\s+/g, ' ').replace(/^export /, '').trim();
+  assert.equal(normalise(resolveBranchBody(clientConfig)), normalise(resolveBranchBody(serverConfig)));
+});
+
+test('the situation question and the pressure stage order are read from config, not hardcoded per branch', () => {
+  for (const source of [clientConfig, serverConfig]) {
+    assert.match(source, /config\.situationQuestionId/);
+    assert.match(source, /config\.pressureRoles/);
+    assert.match(source, /'firstResponse', 'impact', 'reset', 'context'/);
+  }
+});

@@ -11,7 +11,7 @@ const jwt = require('jsonwebtoken');
 const express = require('express');
 
 const { createProfileRouter } = require('../src/routes/profile');
-const { buildDisplayProfile } = require('../src/profile/displayProfile');
+const { buildDisplayProfile, buildStartingPattern } = require('../src/profile/displayProfile');
 const {
   buildFocusOptions, resolveCurrentFocus, normaliseFocusInput,
   focusLabel, focusPhrase, APPROVED_FOCUS_IDS,
@@ -1218,7 +1218,14 @@ test('a branch with no performance-impact question simply omits that stage', () 
     wording: { sections: {} },
     language: 'en',
   });
-  assert.deepEqual(dp.pressure.stages.map((s) => s.stage), ['situation', 'firstResponse', 'reset']);
+  // No performance impact is fabricated for a branch that never asked for one…
+  assert.equal(dp.pressure.stages.some((s) => s.stage === 'impact'), false);
+  // …and the branch's own non-sequence question is carried as secondary
+  // context, so a question the athlete answered is never invisible.
+  assert.deepEqual(dp.pressure.stages.map((s) => s.stage), ['situation', 'firstResponse', 'reset', 'context']);
+  const context = dp.pressure.stages.find((s) => s.stage === 'context');
+  assert.equal(context.questionId, 'injury_stage');
+  assert.deepEqual(context.answerIds, ['recovering_not_playing']);
 });
 
 test('the branch is re-resolved for rows written before branchId was stored', () => {
@@ -1320,4 +1327,117 @@ test('a profile with no stored background adds no block at all', () => {
 test('quick chat never receives the background block either', () => {
   const prompt = buildSystemPrompt(CHAT_USER, [], [], 'general', { isQuickChat: true, startingProfile: BACKGROUND_PROFILE });
   assert.doesNotMatch(prompt, /### What they told us/);
+});
+
+// ── The first coaching message must not re-word the athlete's answers ─────
+// The profile they just read shows their own words. Opening the conversation
+// with a rewritten version of them is the exact mismatch the simplification
+// exists to remove.
+
+const { buildFirstMessage } = require('../src/profile/firstMessage');
+const { buildRuleOutput } = require('../src/profile/ruleEngine');
+
+const MISTAKES_SESSION = {
+  branchId: 'mistakes',
+  primaryPriorityId: 'after_mistake',
+  answers: {
+    primary_priority: { answerIds: ['after_mistake'] },
+    mistakes_first_response: { answerIds: ['angry_self'] },
+    mistakes_next: { answerIds: ['lose_focus'] },
+    mistakes_recovery: { answerIds: ['most_of_session'] },
+  },
+};
+
+test('the first chat message names the situation and never restates the pattern in rule-engine words', () => {
+  const ro = buildRuleOutput(MISTAKES_SESSION);
+  const msg = buildFirstMessage({ fitResponse: 'CONFIRMED', agreedPriorityId: 'after_mistake' }, ro, { name: 'Rahul', language: 'en' });
+  assert.match(msg, /after a mistake/, 'the athlete\'s own situation is named');
+  assert.match(msg, /what happened\?$/, 'it still asks about today');
+  // The clause phrasings for the answers they picked must not appear.
+  for (const code of ['mistakes_first_response:angry_self', 'mistakes_next:lose_focus']) {
+    assert.ok(!msg.includes(cfg.CLAUSE[code].en), `rule-engine phrasing leaked: ${cfg.CLAUSE[code].en}`);
+  }
+  assert.ok(!msg.includes(cfg.DURATION_PROLONGED.en));
+});
+
+test('the Hindi first message is equally free of rule-engine phrasing', () => {
+  const ro = buildRuleOutput(MISTAKES_SESSION);
+  const msg = buildFirstMessage({ fitResponse: 'CONFIRMED', agreedPriorityId: 'after_mistake' }, ro, { name: 'Rahul', language: 'hi' });
+  for (const code of ['mistakes_first_response:angry_self', 'mistakes_next:lose_focus']) {
+    assert.ok(!msg.includes(cfg.CLAUSE[code].hi), `rule-engine phrasing leaked: ${cfg.CLAUSE[code].hi}`);
+  }
+  assert.match(msg, /[ऀ-ॿ]/);
+});
+
+test('nothing builds the old paraphrased pattern summary any more', () => {
+  const firstMessageSrc = require('node:fs').readFileSync(require.resolve('../src/profile/firstMessage'), 'utf8');
+  assert.ok(!firstMessageSrc.includes('shortPattern'), 'the paraphrase generator is gone, not merely unused');
+  assert.ok(!firstMessageSrc.includes('cfg.CLAUSE'));
+});
+
+// ── Coach background: verbatim where the athlete wrote it, never quotable ──
+
+test('a custom answer reaches Coach background verbatim, exactly as the athlete wrote it', async () => {
+  const ro = buildRuleOutput({
+    branchId: 'mistakes',
+    primaryPriorityId: 'after_mistake',
+    answers: {
+      primary_priority: { answerIds: ['after_mistake'] },
+      mistakes_first_response: { answerIds: ['something_else'], customText: 'I go completely silent' },
+      mistakes_next: { answerIds: ['lose_focus'] },
+      mistakes_recovery: { answerIds: ['few_minutes'] },
+    },
+  });
+  const client = {
+    startingPerformanceProfile: {
+      findFirst: async () => ({
+        fitResponse: 'CONFIRMED', agreedPriorityId: 'after_mistake', ruleOutput: ro,
+        wordingVariants: [{ language: 'en', sections: CONFIRMED_PROFILE.sections }],
+      }),
+    },
+  };
+  const loaded = await loadConfirmedProfile('u1', 'en', client);
+  assert.ok(loaded.patternSteps.some((s) => s.text === 'I go completely silent'), 'custom text is carried unchanged');
+  const prompt = buildSystemPrompt(CHAT_USER, [], [], 'general', { startingProfile: loaded, currentFocus: null });
+  assert.match(prompt, /I go completely silent/);
+});
+
+test('Coach is told the background is internal notes and must not be quoted back', () => {
+  const prompt = buildSystemPrompt(CHAT_USER, [], [], 'general', { startingProfile: BACKGROUND_PROFILE, currentFocus: null });
+  assert.match(prompt, /internal notes, not the athlete's own wording/);
+  assert.match(prompt, /NEVER quote them back verbatim/);
+  assert.match(prompt, /use plain everyday words/);
+});
+
+test('the frozen coaching loop safeguards are all still stated, unweakened', () => {
+  const prompt = buildSystemPrompt(CHAT_USER, [], [], 'general', { startingProfile: BACKGROUND_PROFILE, currentFocus: null });
+  assert.match(prompt, /This is BACKGROUND, not today's conclusion/);
+  assert.match(prompt, /You may ASK whether today is similar/);
+  assert.match(prompt, /NEVER treat it as the confirmed barrier for this conversation/);
+  assert.match(prompt, /still has to describe what happened today/);
+  assert.match(prompt, /still has to confirm the barrier in their own words before any Mental Rep is offered/);
+});
+
+test('a stale unsure answer cannot enter Coach background once the athlete has a real situation', () => {
+  const ro = buildRuleOutput({
+    branchId: 'mistakes',
+    primaryPriorityId: 'after_mistake',
+    answers: {
+      difficult_moments: { answerIds: ['not_sure'] },
+      // A recognition phrase that is distinct from every situation phrase, so
+      // its absence below is real evidence and not a coincidental match.
+      unsure_recognition: { answerIds: ['compare_to_others'] },
+      primary_priority: { answerIds: ['after_mistake'] },
+      mistakes_first_response: { answerIds: ['angry_self'] },
+      mistakes_next: { answerIds: ['lose_focus'] },
+      mistakes_recovery: { answerIds: ['few_minutes'] },
+    },
+  });
+  assert.equal(ro.recognition, null, 'the legacy recognition no longer feeds the active rule output');
+  assert.equal(ro.observations.every((o) => o.questionId.startsWith('mistakes_')), true);
+  const prompt = buildSystemPrompt(CHAT_USER, [], [], 'general', {
+    startingProfile: { ...CONFIRMED_PROFILE, patternSteps: buildStartingPattern(ro, 'en').nodes, supports: [], strengths: [] },
+    currentFocus: null,
+  });
+  assert.ok(!prompt.includes(cfg.UNSURE_TRIGGER.compare_to_others.en));
 });
