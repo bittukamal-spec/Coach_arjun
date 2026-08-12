@@ -65,7 +65,7 @@ export const translations = {
       previewHint: 'Swipe to explore',
       preview: {
         coachCard: {
-          title: 'Coach',
+          title: 'Talk it through',
           line: 'Work through what\'s happening.',
           q1: 'What\'s been getting in the way lately?',
           a1: 'After one mistake I start rushing.',
@@ -73,7 +73,7 @@ export const translations = {
           a2: 'Trying to fix it quickly.',
         },
         repsCard: {
-          title: 'Mental Reps',
+          title: 'Train the moment',
           line: 'Short practice for the moment you need it.',
           repTitle: 'Reset after a mistake',
           meta: '2 min',
@@ -83,16 +83,16 @@ export const translations = {
           cta: 'Start Mental Rep',
         },
         playbookCard: {
-          title: 'Playbook',
-          line: 'Keep the cues and lessons that help.',
+          title: 'Keep what works',
+          line: 'Save cues and lessons that help you.',
           lessonLabel: 'Latest lesson',
           lesson: 'One mistake doesn\'t have to become the next one.',
           cueLabel: 'Saved cue',
           cue: 'Next ball.',
         },
         profileCard: {
-          title: 'Arjun remembers your game',
-          line: 'So you don\'t start from zero every time.',
+          title: 'Learn your patterns',
+          line: 'Arjun remembers your game.',
           screenTitle: 'When pressure hits',
           situationLabel: 'Situation',
           situation: 'After I make a mistake',
@@ -2038,7 +2038,7 @@ export const translations = {
       previewHint: 'स्वाइप करो',
       preview: {
         coachCard: {
-          title: 'Coach',
+          title: 'बात करके सुलझाओ',
           line: 'जो हो रहा है, उसे बात करके सुलझाओ।',
           q1: 'पिछले कुछ समय में क्या रुकावट बन रहा है?',
           a1: 'एक गलती के बाद मैं जल्दबाज़ी करने लगता हूं।',
@@ -2046,7 +2046,7 @@ export const translations = {
           a2: 'तुरंत सुधारने की कोशिश।',
         },
         repsCard: {
-          title: 'Mental Reps',
+          title: 'उस पल को ट्रेन करो',
           line: 'जिस पल ज़रूरत हो, उसके लिए छोटा अभ्यास।',
           repTitle: 'गलती के बाद रीसेट',
           meta: '2 मिनट',
@@ -2056,16 +2056,16 @@ export const translations = {
           cta: 'Mental Rep शुरू करो',
         },
         playbookCard: {
-          title: 'Playbook',
-          line: 'जो cues और सीख काम आती हैं, वो संभालकर रखो।',
+          title: 'जो काम आया, वो रखो',
+          line: 'काम आने वाले cues और सीख सेव करो।',
           lessonLabel: 'ताज़ा सीख',
           lesson: 'एक गलती को अगली गलती बनना ज़रूरी नहीं।',
           cueLabel: 'सेव किया cue',
           cue: 'अगली गेंद।',
         },
         profileCard: {
-          title: 'Arjun तुम्हारा खेल याद रखता है',
-          line: 'ताकि हर बार शून्य से शुरू न करना पड़े।',
+          title: 'अपने पैटर्न समझो',
+          line: 'Arjun तुम्हारा खेल याद रखता है।',
           screenTitle: 'जब दबाव आता है',
           situationLabel: 'हालात',
           situation: 'जब मैं गलती करता हूं',

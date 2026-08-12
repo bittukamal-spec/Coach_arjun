@@ -128,8 +128,10 @@ describe('benefit tags', () => {
   test('each tag carries its own accent rather than one shared pill style', () => {
     renderHome();
     const tags = screen.getByRole('region', { name: 'What you get' });
-    const colours = LABELS.map((label) => within(tags).getByText(label).style.color);
-    expect(new Set(colours).size).toBe(5);
+    // The accent lives on each tag's icon tile, one colour per benefit.
+    const tiles = within(tags).getAllByRole('listitem').map((li) => li.querySelector('span').style.background);
+    expect(tiles).toHaveLength(5);
+    expect(new Set(tiles).size).toBe(5);
     // No supporting sentence under a tag.
     for (const item of within(tags).getAllByRole('listitem')) {
       expect(item.textContent.length).toBeLessThanOrEqual(20);
@@ -152,7 +154,7 @@ describe('app preview', () => {
   test('shows the four current product areas', () => {
     renderHome();
     const region = screen.getByRole('region', { name: 'Inside Arjun' });
-    for (const title of ['Coach', 'Mental Reps', 'Playbook', 'Arjun remembers your game']) {
+    for (const title of ['Talk it through', 'Train the moment', 'Keep what works', 'Learn your patterns']) {
       expect(within(region).getByRole('heading', { name: title })).toBeTruthy();
     }
   });
@@ -388,8 +390,11 @@ describe('pricing', () => {
     renderHome();
     const badges = screen.getAllByText('Popular');
     expect(badges).toHaveLength(1);
-    const yearlyCard = screen.getByText('₹2,499 / year').closest('div');
+    const yearlyCard = screen.getByRole('button', { name: 'Choose yearly' }).closest('div');
     expect(yearlyCard.textContent).toMatch(/Popular/);
+    expect(yearlyCard.textContent).toMatch(/₹2,499 \/ year/);
+    const monthlyCard = screen.getByRole('button', { name: 'Choose monthly' }).closest('div');
+    expect(monthlyCard.textContent).not.toMatch(/Popular/);
   });
 
   test('both plans list the benefits, yearly adds one', () => {

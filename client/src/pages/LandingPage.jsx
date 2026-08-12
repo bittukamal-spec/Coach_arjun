@@ -13,6 +13,9 @@ import {
   CoachPreview, GameChips, HeroPhone, PlaybookPreview, PressureFlow,
   ProfilePreview, RepsPreview, WorksList,
 } from '../components/landing/LandingMockups';
+import {
+  AthleteMark, BreathMark, CardsMark, StopwatchMark,
+} from '../components/visuals/CardArt';
 
 // Public homepage. Deliberately a fixed light surface rather than the app's
 // themed tokens: this is the first screen a visitor sees, the approved
@@ -28,18 +31,22 @@ const BRAND = '#185FA5';
 // The four use cases, each with its own restrained tint so the row doesn't
 // read as four identical white SaaS cards. Same four-accent family the
 // authenticated Train cards use — blue, teal, amber, violet.
+// The four use cases. Each gets its own tint AND its own sport mark — the
+// same silhouettes the authenticated Train cards use (CardArt.jsx), so the
+// section carries sport imagery without shipping a single binary asset or a
+// stock photo.
 const HELP_TINTS = [
-  { bg: '#E3EEFA', fg: BRAND,     Icon: Flag },        // preparation — blue
-  { bg: '#DDF0EC', fg: '#13776F', Icon: Activity },    // reset — teal
-  { bg: '#FAEBD8', fg: '#9A5410', Icon: Target },      // focus — amber
-  { bg: '#E8E4FB', fg: '#5546C9', Icon: RotateCcw },   // reflection — violet
+  { bg: '#E3EEFA', fg: BRAND,     Icon: Flag,      Art: AthleteMark },   // before a match — blue
+  { bg: '#DDF0EC', fg: '#13776F', Icon: Activity,  Art: BreathMark },    // under pressure — teal
+  { bg: '#FAEBD8', fg: '#9A5410', Icon: RotateCcw, Art: StopwatchMark }, // after a setback — amber
+  { bg: '#E8E4FB', fg: '#5546C9', Icon: Target,    Art: CardsMark },     // build the mental game — violet
 ];
 
 // Personalisation cards — one accent each, in the same family.
 const PERSONAL_TINTS = [
   { bg: '#E3EEFA', fg: BRAND,     Icon: Trophy },   // your game — blue
-  { bg: '#E8E4FB', fg: '#5546C9', Icon: Gauge },    // when pressure hits — violet
-  { bg: '#DDF0EC', fg: '#13776F', Icon: Sparkles }, // what works — teal
+  { bg: '#DDF0EC', fg: '#13776F', Icon: Gauge },    // when pressure hits — teal
+  { bg: '#E8E4FB', fg: '#5546C9', Icon: Sparkles }, // what works — violet
 ];
 
 // Sport-psychology principles — a lighter wash of the same accents, so the
@@ -158,7 +165,7 @@ function LandingPage() {
       {/* Order: brand · language · install · menu. Install is a visible header
           action rather than a menu item, and shares the one PWA handler with
           every other Download CTA on the page. */}
-      <header className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-5 py-4">
+      <header className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-5 py-3">
         <div className="flex items-center gap-2">
           <ArjunLogo size={32} className="shrink-0 rounded-xl" />
           <span className="text-[19px] font-black tracking-tight">Arjun</span>
@@ -169,14 +176,14 @@ function LandingPage() {
             type="button"
             onClick={toggleLanguage}
             aria-label={t.langLabel}
-            className={`flex min-h-[44px] shrink-0 items-center rounded-full border ${BORDER} bg-white p-1 text-[12.5px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5] focus-visible:ring-offset-2`}
+            className={`flex h-10 shrink-0 items-center rounded-full border ${BORDER} bg-white p-[3px] text-[12px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5] focus-visible:ring-offset-2`}
           >
-            <span className={`rounded-full px-2 py-1.5 ${language === 'hi' ? 'bg-[#185FA5] text-white' : BODY}`}>हिंदी</span>
+            <span className={`rounded-full px-2.5 py-1.5 ${language === 'hi' ? 'bg-[#185FA5] text-white' : BODY}`}>हिंदी</span>
             <span className={`rounded-full px-2 py-1.5 ${language === 'en' ? 'bg-[#185FA5] text-white' : BODY}`}>EN</span>
           </button>
 
           {installed ? (
-            <span className={`flex min-h-[44px] shrink-0 items-center gap-1 rounded-full border ${BORDER} bg-white px-2.5 text-[12.5px] font-semibold ${BODY}`}>
+            <span className={`flex h-10 shrink-0 items-center gap-1 rounded-full border ${BORDER} bg-white px-2.5 text-[12px] font-semibold ${BODY}`}>
               <Check size={15} className="text-[#13776F]" aria-hidden="true" />
               <span className="hidden xs:inline">{t.installDone}</span>
             </span>
@@ -185,7 +192,7 @@ function LandingPage() {
               type="button"
               onClick={handleInstall}
               aria-label={t.installApp}
-              className="flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-full bg-[#185FA5] px-3 text-[13px] font-bold text-white shadow-[0_3px_10px_rgba(24,95,165,0.25)] transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5] focus-visible:ring-offset-2 xs:px-4"
+              className="flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-[#185FA5] px-3.5 text-[13px] font-bold text-white shadow-[0_3px_10px_rgba(24,95,165,0.25)] transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5] focus-visible:ring-offset-2 xs:px-4"
             >
               <Download size={16} aria-hidden="true" />
               <span className="hidden xs:inline">{t.installShort}</span>
@@ -199,7 +206,7 @@ function LandingPage() {
               aria-label={menuOpen ? t.menuClose : t.menuOpen}
               aria-expanded={menuOpen}
               aria-controls="landing-menu"
-              className={`flex h-11 w-11 items-center justify-center rounded-full border ${BORDER} bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5] focus-visible:ring-offset-2`}
+              className={`flex h-10 w-10 items-center justify-center rounded-full border ${BORDER} bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5] focus-visible:ring-offset-2`}
             >
               {menuOpen
                 ? <X size={20} aria-hidden="true" />
@@ -261,7 +268,7 @@ function LandingPage() {
                 balanced so the accent phrase never strands one short word. */}
             {/* Two logical lines: the statement, then the accented promise on
                 its own line. Each half still wraps freely inside its column. */}
-            <h1 className="text-[38px] font-black leading-[1.06] tracking-tight [text-wrap:balance] xs:text-[44px] lg:text-[52px]">
+            <h1 className="text-[42px] font-black leading-[0.98] tracking-[-0.02em] [text-wrap:balance] xs:text-[48px] lg:text-[58px]">
               {t.headlineLead}
               <span className="block text-[#185FA5]">{t.headlineAccent}</span>
             </h1>
@@ -283,23 +290,36 @@ function LandingPage() {
           {/* The device sits after the copy + CTA on mobile and beside them from
               lg up, so the fold stays copy → CTA → phone → tags → How Arjun
               helps rather than pushing the sections down. */}
-          <div className="mt-6 lg:mt-0">
+          <div className="mt-7 lg:mt-0">
             <HeroPhone t={t} label={t.heroVisualAlt} />
           </div>
         </section>
 
         {/* ── Benefit tags ────────────────────────────────────────────────── */}
         {/* Separate coloured tags, one accent each — not five identical pills. */}
-        <section className="mx-auto max-w-5xl px-5 pt-7" aria-label={t.tagsLabel}>
-          <ul className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 sm:flex-wrap sm:overflow-visible">
-            {benefitTags.map(({ Icon, label, bg, fg }) => (
+        <section className="mx-auto max-w-5xl px-5 pt-8" aria-label={t.tagsLabel}>
+          {/* One elevated rail: circular tinted icon, label, nothing else. It
+              scrolls on a phone and settles into a single white container from
+              `sm` up, as in the approved direction. */}
+          <ul className={`no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 sm:mx-0 sm:justify-between sm:gap-1 sm:overflow-visible sm:rounded-[1.75rem] sm:border ${BORDER} sm:bg-white sm:px-3 sm:py-3 sm:shadow-[0_6px_22px_rgba(15,23,42,0.06)]`}>
+            {benefitTags.map(({ Icon, label, bg, fg }, i) => (
               <li
                 key={label}
-                className="flex shrink-0 items-center gap-2 rounded-2xl px-3.5 py-2.5"
+                className={`flex shrink-0 items-center gap-2.5 rounded-2xl px-3 py-2.5 sm:flex-1 sm:justify-center sm:rounded-none sm:border-0 sm:bg-transparent sm:px-3 ${
+                  i > 0 ? `sm:border-l ${BORDER}` : ''
+                }`}
                 style={{ background: bg, border: `1px solid ${fg}22` }}
               >
-                <Icon size={16} style={{ color: fg }} aria-hidden="true" />
-                <span className="whitespace-nowrap text-[13px] font-bold" style={{ color: fg }}>{label}</span>
+                <span
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl"
+                  style={{ background: `${fg}1F` }}
+                  aria-hidden="true"
+                >
+                  <Icon size={18} style={{ color: fg }} />
+                </span>
+                <span className="whitespace-nowrap text-[13px] font-bold text-[#0F172A] sm:max-w-[10ch] sm:whitespace-normal sm:text-[12.5px] sm:leading-tight">
+                  {label}
+                </span>
               </li>
             ))}
           </ul>
@@ -315,25 +335,40 @@ function LandingPage() {
             className="mt-4"
           >
             {t.helps.map((help, i) => {
-              const { bg, fg, Icon } = HELP_TINTS[i];
+              const { bg, fg, Icon, Art } = HELP_TINTS[i];
               return (
                 <div
                   key={help.title}
-                  className="flex h-full min-h-[168px] flex-col rounded-3xl border p-4"
+                  className="relative flex h-full min-h-[236px] flex-col overflow-hidden rounded-3xl border p-4"
                   style={{
-                    background: `linear-gradient(155deg, ${bg} 0%, ${bg}66 58%, #FFFFFF 100%)`,
-                    borderColor: `${fg}22`,
+                    background: `linear-gradient(160deg, ${bg} 0%, ${bg}88 52%, #FFFFFF 100%)`,
+                    borderColor: `${fg}26`,
                   }}
                 >
+                  {/* Sport imagery band filling the lower half of the card —
+                      the same silhouettes the app's Train cards use, sized up
+                      so they read as imagery rather than as a watermark. */}
                   <span
-                    className="flex h-11 w-11 items-center justify-center rounded-2xl text-white shadow-[0_4px_12px_rgba(15,23,42,0.10)]"
+                    className="pointer-events-none absolute inset-x-0 bottom-0 block h-[48%] rounded-b-3xl"
+                    style={{ background: `linear-gradient(180deg, transparent 0%, ${fg}1A 100%)` }}
+                    aria-hidden="true"
+                  />
+                  <span
+                    className="pointer-events-none absolute -bottom-1 right-2 block h-32 w-32 opacity-[0.32]"
+                    style={{ color: fg }}
+                    aria-hidden="true"
+                  >
+                    <Art className="h-full w-full" />
+                  </span>
+                  <span
+                    className="relative flex h-11 w-11 items-center justify-center rounded-2xl text-white shadow-[0_4px_12px_rgba(15,23,42,0.12)]"
                     style={{ background: fg }}
                     aria-hidden="true"
                   >
                     <Icon size={19} />
                   </span>
-                  <h3 className="mt-4 text-[15px] font-bold leading-snug">{help.title}</h3>
-                  <p className={`mt-1 text-[13px] leading-snug ${BODY}`}>{help.line}</p>
+                  <h3 className="relative mt-4 text-[16px] font-bold leading-snug">{help.title}</h3>
+                  <p className={`relative mt-1 text-[13px] leading-snug ${BODY}`}>{help.line}</p>
                 </div>
               );
             })}
@@ -341,7 +376,10 @@ function LandingPage() {
         </section>
 
         {/* ── Inside Arjun ────────────────────────────────────────────────── */}
-        <section className="mx-auto max-w-5xl px-5 pt-10">
+        {/* A full-bleed tinted canvas breaks the heading/card/heading rhythm
+            and lets the dark product crops sit on something other than white. */}
+        <section className="mt-12 bg-[#F1F5FA] py-11">
+          <div className="mx-auto max-w-5xl px-5">
           <div className="flex items-baseline justify-between gap-3">
             <h2 className="text-[22px] font-black tracking-tight">{t.previewTitle}</h2>
             <p className={`text-[12.5px] font-semibold ${BODY}`}>{t.previewHint}</p>
@@ -354,35 +392,45 @@ function LandingPage() {
           >
             {previewCards}
           </LandingCarousel>
+          </div>
         </section>
 
         {/* ── Built around you ─────────────────────────────────────────────── */}
         {/* Mirrors the athlete's real Profile sections — My Game, When
             Pressure Hits, What Helps Me — so the claim stays inside what the
             athlete themselves told Arjun. No traits, no scoring. */}
-        <section className="mx-auto max-w-5xl px-5 pt-12">
-          <h2 className="text-[22px] font-black tracking-tight">{t.personalTitle}</h2>
-          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+        <section className="relative mx-auto max-w-5xl px-5 pt-12">
+          {/* One athlete figure, part of the composition rather than a card —
+              the same silhouette the Ritual card uses inside the app. */}
+          <span
+            className="pointer-events-none absolute -bottom-2 right-2 block h-40 w-40 opacity-[0.08] sm:h-56 sm:w-56"
+            style={{ color: BRAND }}
+            aria-hidden="true"
+          >
+            <AthleteMark className="h-full w-full" />
+          </span>
+          <h2 className="relative text-[22px] font-black tracking-tight">{t.personalTitle}</h2>
+          <div className="relative mt-4 grid gap-3 sm:grid-cols-3">
             {t.personal.map((item, i) => {
               const { bg, fg, Icon } = PERSONAL_TINTS[i];
               return (
                 <div
                   key={item.title}
-                  className="flex flex-col rounded-3xl border p-4"
+                  className="relative flex flex-col overflow-hidden rounded-3xl border p-5"
                   style={{
-                    background: `linear-gradient(155deg, ${bg} 0%, ${bg}55 62%, #FFFFFF 100%)`,
-                    borderColor: `${fg}22`,
+                    background: `linear-gradient(155deg, ${bg} 0%, ${bg}77 60%, #FFFFFF 100%)`,
+                    borderColor: `${fg}26`,
                   }}
                 >
-                  <div className="flex items-center gap-2.5">
+                  <div className="flex items-center gap-3">
                     <span
-                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-white shadow-[0_4px_12px_rgba(15,23,42,0.10)]"
+                      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-white shadow-[0_6px_16px_rgba(15,23,42,0.14)]"
                       style={{ background: fg }}
                       aria-hidden="true"
                     >
-                      <Icon size={18} />
+                      <Icon size={22} />
                     </span>
-                    <h3 className="text-[15px] font-bold leading-snug">{item.title}</h3>
+                    <h3 className="text-[16px] font-bold leading-snug">{item.title}</h3>
                   </div>
                   <div className="mt-3.5" aria-hidden="true">
                     {i === 0 && <GameChips chips={t.personalGameChips} fg={fg} />}
@@ -470,14 +518,16 @@ function LandingPage() {
               className="relative flex flex-col rounded-3xl border-2 border-[#185FA5] p-5 shadow-[0_8px_28px_rgba(24,95,165,0.12)]"
               style={{ background: 'linear-gradient(160deg, #EDF4FC 0%, #FFFFFF 72%)' }}
             >
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-[12px] font-bold uppercase tracking-[0.12em] text-[#185FA5]">{t.planYearly}</p>
-                <span className="rounded-full bg-[#185FA5] px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-[0.08em] text-white">
-                  {t.planPopular}
+              <span className="absolute right-4 top-4 rounded-full bg-[#185FA5] px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-[0.08em] text-white">
+                {t.planPopular}
+              </span>
+              <p className="text-[12px] font-bold uppercase tracking-[0.12em] text-[#185FA5]">{t.planYearly}</p>
+              <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1.5">
+                <p className="text-[28px] font-black leading-none">{t.planYearlyPrice}</p>
+                <span className="rounded-full bg-[#E2F2E6] px-2.5 py-1 text-[11.5px] font-bold text-[#1F7A46]">
+                  {t.planSave}
                 </span>
               </div>
-              <p className="mt-2 text-[28px] font-black leading-none">{t.planYearlyPrice}</p>
-              <p className="mt-1.5 text-[13px] font-bold text-[#1F7A46]">{t.planSave}</p>
               <ul className="mt-5 flex-1 space-y-2.5">
                 {[...t.planBenefits, t.planYearlyExtra].map((benefit) => (
                   <li key={benefit} className="flex items-start gap-2 text-[13.5px] leading-snug">

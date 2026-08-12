@@ -136,14 +136,16 @@ function PhoneNav({ active = 2 }) {
 // Arjun asks focused questions and checks its understanding BEFORE any Mental
 // Rep is suggested — that is the real coaching loop, so that is what the hero
 // shows. The Yes / Not quite replies are the real confirmation chips.
-export function CoachScreen({ t, turns, chips = true }) {
+// `anchor` decides where the conversation sits. A full device shows it at the
+// bottom, above the nav, the way a real chat does; a CROPPED device (the hero
+// and the Coach story, where the lower part of the phone runs past the edge)
+// anchors it to the top so the visible part of the screen is the conversation
+// rather than empty canvas.
+export function CoachScreen({ t, turns, chips = true, anchor = 'bottom' }) {
   return (
     <>
       <ScreenHeader title={t.coach || 'Arjun'} />
-      {/* A real chat sits at the BOTTOM of the screen, above the nav — the
-          turns and their reply chips push down together rather than floating
-          under the header. */}
-      <div className="mt-auto">
+      <div className={anchor === 'bottom' ? 'mt-auto' : ''}>
         <div className="flex flex-col gap-[0.7em] px-[1em] py-[0.9em]">
           {turns.map(([who, text]) => (
             who === 'arjun'

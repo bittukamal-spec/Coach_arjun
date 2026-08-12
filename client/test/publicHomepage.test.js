@@ -29,6 +29,7 @@ const app = read('src/App.jsx');
 const viteConfig = read('vite.config.js');
 const tailwind = read('tailwind.config.js');
 const indexCss = read('src/index.css');
+const cardArt = read('src/components/visuals/CardArt.jsx');
 
 const { translations } = await import('../src/i18n/translations.js');
 const en = translations.en.landing;
@@ -119,8 +120,8 @@ test('the hero phone shows Arjun asking and checking, not prescribing', () => {
   assert.equal(p.chipNo, 'Not quite');
   // No Mental Rep is prescribed in the hero conversation.
   const hero = mockups.slice(mockups.indexOf('export function HeroPhone'), mockups.indexOf('// ── Inside Arjun'));
-  assert.doesNotMatch(hero, /MentalRepScreen|repTitle|Start/);
-  assert.match(hero, /<PhoneFrame style=/);
+  assert.doesNotMatch(hero, /MentalRepScreen|repTitle|Start Mental Rep/);
+  assert.match(hero, /<PhoneFrame className="mx-auto rotate-/);
   assert.match(hero, /<CoachScreen/);
 });
 
@@ -135,19 +136,16 @@ test('the phone frame is a real device, not a rounded card', () => {
   assert.match(phoneFrame, /rounded-l-sm/, 'side-button suggestion');
 });
 
-test('devices are sized as devices — narrow, with the carousel phone narrower still', () => {
-  const widths = [...mockups.matchAll(/clamp\((\d+)px, (\d+)vw, (\d+)px\)/g)]
-    .map(([, min, vw, max]) => ({ min: Number(min), vw: Number(vw), max: Number(max) }));
-  assert.equal(widths.length, 2, 'hero device and carousel device');
-  const [hero, preview] = widths;
-  // ~60% of a 360px viewport for the hero, ~50% for the carousel previews.
-  assert.equal(hero.vw, 60);
-  assert.equal(preview.vw, 50);
-  assert.ok(hero.max <= 235 && preview.max <= 190, 'devices never balloon on desktop');
-  assert.ok(preview.vw < hero.vw && preview.max < hero.max, 'carousel devices are the narrower pair');
-  // The device sets its own width — it never stretches to its container.
-  assert.doesNotMatch(mockups, /<PhoneFrame[^>]*w-full/);
-  assert.match(mockups, /flex justify-center/, 'the device is centred inside its card');
+test('the hero device is presented large, tilted and cropped on a support panel', () => {
+  const hero = mockups.slice(mockups.indexOf('export function HeroPhone'), mockups.indexOf('// ── Inside Arjun'));
+  const widths = [...hero.matchAll(/clamp\((\d+)px, (\d+)vw, (\d+)px\)/g)].map((m) => Number(m[2]));
+  // ~76% of the content column on mobile — a product visual, not a thumbnail.
+  assert.ok(widths.includes(76), `hero device should fill ~76vw, got ${widths.join(', ')}`);
+  assert.match(hero, /linear-gradient\(165deg,#DCE9F8/, 'pale-blue panel behind the device');
+  assert.match(hero, /radial-gradient\(#B9CFEA/, 'dotted-grid support mark');
+  assert.match(hero, /rotate-\[-4deg\]/, 'the device is tilted, as in the approved mockup');
+  assert.match(hero, /aspect-\[390\/470\] overflow-hidden/, 'and cropped at the bottom');
+  assert.doesNotMatch(mockups, /<PhoneFrame[^>]*w-full/, 'the device sets its own width');
 });
 
 test('the screen scales with the device instead of being re-tuned per breakpoint', () => {
@@ -265,6 +263,29 @@ test('How Arjun helps has exactly the four intended use cases, in order', () => 
   assert.equal(new Set([...tintBlock.matchAll(/Icon: (\w+)/g)].map((m) => m[1])).size, 4);
 });
 
+test('each How Arjun helps card carries a sport mark from the app\'s own art set', () => {
+  const tintBlock = landing.slice(landing.indexOf('const HELP_TINTS'), landing.indexOf('];', landing.indexOf('const HELP_TINTS')));
+  const art = [...tintBlock.matchAll(/Art: (\w+)/g)].map((m) => m[1]);
+  assert.equal(art.length, 4);
+  assert.equal(new Set(art).size, 4, 'a different sport mark per card');
+  // Reused from the authenticated Train cards — no new binary asset, no stock photo.
+  assert.match(landing, /from '\.\.\/components\/visuals\/CardArt'/);
+  for (const mark of art) assert.ok(cardArt.includes(`export function ${mark}`), `${mark} must come from CardArt`);
+  assert.doesNotMatch(landing, /\.(png|jpe?g|webp|avif)/i, 'no image files were added to the page');
+});
+
+test('the benefit strip uses one tinted icon tile per benefit and no subtext', () => {
+  const strip = section('{/* ── Benefit tags', '{/* ── How Arjun helps');
+  assert.match(strip, /h-10 w-10 shrink-0 items-center justify-center rounded-2xl/, 'rounded icon tile');
+  assert.match(strip, /background: `\$\{fg\}1F`/, 'the tile carries the semantic colour');
+  assert.match(strip, /sm:border-l/, 'items are divided inside the one container');
+  assert.match(strip, /sm:rounded-\[1\.75rem\]/, 'one elevated container from sm up');
+  assert.match(strip, /overflow-x-auto/, 'scrollable on a phone');
+  // Label only — the strip renders the key and the text, and nothing else.
+  assert.equal((strip.match(/>\s*\{label\}/g) || []).length, 1, 'the label is the only copy in a tag');
+  assert.doesNotMatch(strip, /\{t\.(tagsLabel|subtitle)\}[\s\S]{0,80}<p/, 'no supporting sentence under a tag');
+});
+
 test('How Arjun helps sits directly after the hero and its benefit tags', () => {
   const order = ['{/* ── Hero', '{/* ── Benefit tags', '{/* ── How Arjun helps', '{/* ── Inside Arjun ']
     .map((marker) => landing.indexOf(marker));
@@ -288,19 +309,34 @@ test('the five benefit tags each carry their own accent, not one shared pill sty
   }
 });
 
-test('Inside Arjun shows four current product screens', () => {
+test('Inside Arjun shows four current product stories', () => {
   assert.deepEqual(
     [en.preview.coachCard.title, en.preview.repsCard.title, en.preview.playbookCard.title, en.preview.profileCard.title],
-    ['Coach', 'Mental Reps', 'Playbook', 'Arjun remembers your game'],
+    ['Talk it through', 'Train the moment', 'Keep what works', 'Learn your patterns'],
   );
   assert.match(landing, /<CoachPreview key="coach" t=\{previews\.coachCard\} \/>/);
   assert.match(landing, /<RepsPreview key="reps" t=\{previews\.repsCard\} \/>/);
   assert.match(landing, /<PlaybookPreview key="playbook" t=\{previews\.playbookCard\} \/>/);
   assert.match(landing, /<ProfilePreview key="profile" t=\{previews\.profileCard\} \/>/);
-  // Every preview is a device frame, all the same size.
   const inside = mockups.slice(mockups.indexOf('// ── Inside Arjun'), mockups.indexOf('// ── Built-around-you'));
-  assert.equal((inside.match(/<PhoneFrame/g) || []).length, 1, 'one shared frame recipe for all four');
-  assert.equal((inside.match(/<Preview /g) || []).length, 4);
+  assert.equal((inside.match(/<Story /g) || []).length, 4, 'four stories');
+  // NOT four identical device frames: only the Coach story uses a device, and
+  // it is cropped by its card; the other three enlarge the UI itself.
+  assert.equal((inside.match(/<PhoneFrame/g) || []).length, 1, 'one device, not four');
+  assert.match(inside, /<PhoneFrame>/, 'the Coach device sits inside the card art area');
+  assert.match(inside, /-right-4 top-0 w-\[88%\] rotate-/, 'the Mental Rep card is enlarged and offset');
+  // Copy on top, product UI cropped by the card's bottom edge.
+  const story = inside.slice(inside.indexOf('function Story('), inside.indexOf('const TINTS'));
+  assert.ok(story.indexOf('{title}') < story.indexOf('{children}'), 'copy sits above the art');
+  assert.match(story, /overflow-hidden rounded-3xl border/, 'the card crops its art');
+  assert.match(inside, /rotate-\[3deg\]/, 'the Playbook cards are offset from each other');
+  // Four different art heights — the compositions are not one block repeated.
+  const heights = [...inside.matchAll(/artClass="h-\[(\d+)px\]"/g)].map((m) => Number(m[1]));
+  assert.equal(heights.length, 4);
+  assert.ok(new Set(heights).size >= 3, `story art heights should vary, got ${heights.join(', ')}`);
+  // Each story carries its own accent.
+  const tints = [...inside.matchAll(/tint=\{TINTS\.(\w+)\}/g)].map((m) => m[1]);
+  assert.deepEqual(tints, ['blue', 'teal', 'amber', 'violet']);
 });
 
 test('the Coach preview is a real coaching exchange, not a generic AI chat', () => {
@@ -336,7 +372,8 @@ test('the fourth preview is the real When Pressure Hits profile section', () => 
     ['Situation', 'First response', 'Performance impact'],
   );
   assert.match(p.resetTime, /^Reset time · /);
-  assert.equal(p.title, 'Arjun remembers your game');
+  assert.equal(p.title, 'Learn your patterns');
+  assert.equal(p.line, 'Arjun remembers your game.');
 });
 
 // ── 6. Built around you ─────────────────────────────────────────────────────
