@@ -110,11 +110,11 @@ export default function PricingPage() {
           {/* Yearly — highlighted */}
           <div className="bg-dark-400 border-2 border-brand-500 rounded-2xl p-5 relative overflow-hidden">
             <span className="inline-flex items-center bg-saffron-500/20 text-saffron-400 text-[10px] font-bold px-2.5 py-1 rounded-full mb-3">
-              {t.bestValue} · {t.save590}
+              {t.bestValue} · {t.saveYearly}
             </span>
             <p className="text-xs font-bold text-brand-400 uppercase tracking-wide mb-1">{t.yearly}</p>
             <p className="text-3xl font-black text-ink leading-none mb-1">{t.yearlyPrice}</p>
-            <p className="text-xs text-brand-300 font-semibold">{t.monthlyEquiv} · {t.twoMonthsFree}</p>
+            <p className="text-xs text-brand-300 font-semibold">{t.monthlyEquiv}</p>
             <p className="text-[11px] text-slt mt-0.5 mb-4">{t.billedYearly}</p>
             <button
               onClick={() => handleSubscribe('yearly')}
