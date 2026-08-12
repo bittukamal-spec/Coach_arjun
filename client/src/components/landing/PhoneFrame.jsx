@@ -14,6 +14,15 @@ import { BookOpen, Bookmark, Dumbbell, Home, MessageCircle, User, Zap } from 'lu
 //
 // Nothing here shows audio, a waveform, a microphone, a score, a streak or a
 // progress graph — none of those exist in the product.
+//
+// SIZING. The device is a real 390×844 box (`aspect-[390/844]`), so it stays
+// narrow and tall at every width, and the caller sets only its width. The
+// DEVICE is the CSS container; the screen inside reads its base font-size
+// from it (`3.95cqw` — about 8.3px on a 216px device), and every size inside
+// is written in `em`. So the whole UI scales with the device like a
+// scaled-down screenshot rather than a page reflowing into a small box. The
+// Tailwind `text-[9px]` on the screen is the fallback for engines without
+// container query units.
 
 export const DARK = {
   bg: '#07131F',
@@ -26,23 +35,49 @@ export const DARK = {
   accent: '#5FA8DE',
 };
 
-// The device itself: narrow phone proportions, black bezel, dynamic-island
-// cutout, soft outer shadow. `w` lets a caller size the hero phone slightly
-// larger than the carousel phones while keeping identical proportions.
-export function PhoneFrame({ children, className = '', screenClassName = '' }) {
+// The device itself: 390/844 proportions, thin bezel, brushed outer rim,
+// small speaker cutout, soft ground shadow and a suggestion of side buttons.
+export function PhoneFrame({ children, className = '', style }) {
   return (
-    <div
-      className={`relative rounded-[2.4rem] bg-[#0A0F16] p-[7px] shadow-[0_26px_60px_rgba(9,20,35,0.34)] ring-1 ring-black/20 ${className}`}
-    >
+    <div className={`relative ${className}`} style={style}>
+      {/* side buttons — a hint of hardware, not a drawing of a product */}
+      <span
+        aria-hidden="true"
+        className="absolute left-[-1.5px] top-[22%] h-[7%] w-[2px] rounded-l-sm"
+        style={{ background: 'linear-gradient(180deg,#3A4450,#232A33)' }}
+      />
+      <span
+        aria-hidden="true"
+        className="absolute left-[-1.5px] top-[33%] h-[10%] w-[2px] rounded-l-sm"
+        style={{ background: 'linear-gradient(180deg,#3A4450,#232A33)' }}
+      />
+      <span
+        aria-hidden="true"
+        className="absolute right-[-1.5px] top-[28%] h-[12%] w-[2px] rounded-r-sm"
+        style={{ background: 'linear-gradient(180deg,#3A4450,#232A33)' }}
+      />
+
+      {/* `containerType` sits on the DEVICE, and the screen's base font-size is
+          read from it — a container cannot size itself, so these must be two
+          different elements. Everything inside the screen is in `em`, so the
+          whole UI scales with the device exactly like a scaled screenshot. */}
       <div
-        className={`relative flex flex-col overflow-hidden rounded-[2rem] ${screenClassName}`}
-        style={{ background: DARK.bg }}
+        className="relative aspect-[390/844] w-full rounded-[13%/6%] p-[1.6%] shadow-[0_18px_38px_-12px_rgba(9,20,35,0.42)]"
+        style={{
+          background: 'linear-gradient(150deg,#2C333C 0%,#12171D 34%,#0A0E13 100%)',
+          containerType: 'inline-size',
+        }}
       >
-        {/* dynamic island */}
-        <div className="flex justify-center pt-2">
-          <span className="h-[16px] w-[64px] rounded-full bg-black" />
+        <div
+          className="relative flex h-full w-full flex-col overflow-hidden rounded-[11.5%/5.3%] text-[9px]"
+          style={{ background: DARK.bg, fontSize: '3.95cqw' }}
+        >
+          {/* speaker / island */}
+          <div className="flex shrink-0 justify-center pt-[0.7em]">
+            <span className="h-[1.15em] w-[4.6em] rounded-full bg-black" />
+          </div>
+          {children}
         </div>
-        {children}
       </div>
     </div>
   );
@@ -51,11 +86,11 @@ export function PhoneFrame({ children, className = '', screenClassName = '' }) {
 // Coach header — the real one is an on-dark bar with the Arjun mark.
 function ScreenHeader({ title }) {
   return (
-    <div className="flex items-center gap-2 px-3.5 pb-2.5 pt-2" style={{ borderBottom: `1px solid ${DARK.line}` }}>
-      <span className="flex h-5 w-5 items-center justify-center rounded-md" style={{ background: DARK.accent }}>
-        <MessageCircle size={11} className="text-[#07131F]" />
+    <div className="flex shrink-0 items-center gap-[0.5em] px-[1em] pb-[0.7em] pt-[0.6em]" style={{ borderBottom: `1px solid ${DARK.line}` }}>
+      <span className="flex h-[1.5em] w-[1.5em] items-center justify-center rounded-[0.4em]" style={{ background: DARK.accent }}>
+        <MessageCircle className="h-[0.9em] w-[0.9em]" style={{ color: DARK.bg }} />
       </span>
-      <span className="text-[11px] font-bold" style={{ color: DARK.ink }}>{title}</span>
+      <span className="text-[1.05em] font-bold leading-none" style={{ color: DARK.ink }}>{title}</span>
     </div>
   );
 }
@@ -63,13 +98,13 @@ function ScreenHeader({ title }) {
 // The real Coach renders Arjun as plain text (no bubble) and the athlete as a
 // tinted bubble on --surface-selected. Reproduced exactly.
 function ArjunTurn({ children }) {
-  return <p className="text-[10.5px] leading-snug" style={{ color: DARK.ink }}>{children}</p>;
+  return <p className="text-[1em] leading-snug" style={{ color: DARK.ink }}>{children}</p>;
 }
 
 function AthleteTurn({ children }) {
   return (
     <p
-      className="ml-auto max-w-[82%] rounded-2xl rounded-br-md px-2.5 py-1.5 text-[10.5px] leading-snug"
+      className="ml-auto max-w-[82%] rounded-[1.1em] rounded-br-[0.35em] px-[0.7em] py-[0.45em] text-[1em] leading-snug"
       style={{ background: DARK.muted, border: `1px solid ${DARK.line}`, color: DARK.ink }}
     >
       {children}
@@ -82,13 +117,13 @@ const NAV = [Home, Dumbbell, MessageCircle, BookOpen, User];
 function PhoneNav({ active = 2 }) {
   return (
     <div
-      className="mt-auto flex items-center justify-around px-2 py-2.5"
-      style={{ background: '#07131F', borderTop: `1px solid ${DARK.line}` }}
+      className="mt-auto flex shrink-0 items-center justify-around px-[0.6em] py-[0.7em]"
+      style={{ background: DARK.bg, borderTop: `1px solid ${DARK.line}` }}
     >
       {NAV.map((Icon, i) => (
         <Icon
           key={i}
-          size={13}
+          className="h-[1.35em] w-[1.35em]"
           strokeWidth={i === active ? 2.5 : 1.8}
           style={{ color: i === active ? DARK.accent : '#5A6B7C' }}
         />
@@ -105,26 +140,31 @@ export function CoachScreen({ t, turns, chips = true }) {
   return (
     <>
       <ScreenHeader title={t.coach || 'Arjun'} />
-      <div className="flex flex-col gap-2.5 px-3.5 py-3">
-        {turns.map(([who, text]) => (
-          who === 'arjun'
-            ? <ArjunTurn key={text}>{text}</ArjunTurn>
-            : <AthleteTurn key={text}>{text}</AthleteTurn>
-        ))}
-      </div>
-      {chips && (
-        <div className="flex gap-2 px-3.5 pb-3">
-          {[t.chipYes, t.chipNo].map((chip) => (
-            <span
-              key={chip}
-              className="rounded-full px-3 py-1.5 text-[10px] font-semibold"
-              style={{ border: `1px solid ${DARK.line}`, color: DARK.sub, background: DARK.card }}
-            >
-              {chip}
-            </span>
+      {/* A real chat sits at the BOTTOM of the screen, above the nav — the
+          turns and their reply chips push down together rather than floating
+          under the header. */}
+      <div className="mt-auto">
+        <div className="flex flex-col gap-[0.7em] px-[1em] py-[0.9em]">
+          {turns.map(([who, text]) => (
+            who === 'arjun'
+              ? <ArjunTurn key={text}>{text}</ArjunTurn>
+              : <AthleteTurn key={text}>{text}</AthleteTurn>
           ))}
         </div>
-      )}
+        {chips && (
+          <div className="flex gap-[0.5em] px-[1em] pb-[0.9em]">
+            {[t.chipYes, t.chipNo].map((chip) => (
+              <span
+                key={chip}
+                className="rounded-full px-[0.9em] py-[0.45em] text-[0.95em] font-semibold leading-none"
+                style={{ border: `1px solid ${DARK.line}`, color: DARK.sub, background: DARK.card }}
+              >
+                {chip}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
       <PhoneNav />
     </>
   );
@@ -135,23 +175,23 @@ export function MentalRepScreen({ t }) {
   return (
     <>
       <ScreenHeader title={t.title} />
-      <div className="flex-1 px-3.5 py-3">
-        <div className="flex items-center gap-2">
-          <span className="flex h-6 w-6 items-center justify-center rounded-lg" style={{ background: 'rgba(95,168,222,0.16)' }}>
-            <Zap size={12} style={{ color: DARK.accent }} />
+      <div className="flex-1 px-[1em] py-[0.9em]">
+        <div className="flex items-center gap-[0.5em]">
+          <span className="flex h-[1.7em] w-[1.7em] items-center justify-center rounded-[0.5em]" style={{ background: 'rgba(95,168,222,0.16)' }}>
+            <Zap className="h-[0.95em] w-[0.95em]" style={{ color: DARK.accent }} />
           </span>
-          <span className="text-[9px] font-bold uppercase tracking-[0.1em]" style={{ color: DARK.dim }}>{t.meta}</span>
+          <span className="text-[0.85em] font-bold uppercase tracking-[0.1em] leading-none" style={{ color: DARK.dim }}>{t.meta}</span>
         </div>
-        <p className="mt-2 text-[13px] font-bold leading-snug" style={{ color: DARK.ink }}>{t.repTitle}</p>
-        <ol className="mt-3 space-y-1.5">
+        <p className="mt-[0.7em] text-[1.2em] font-bold leading-snug" style={{ color: DARK.ink }}>{t.repTitle}</p>
+        <ol className="mt-[0.9em] space-y-[0.45em]">
           {[t.step1, t.step2, t.step3].map((step, i) => (
             <li
               key={step}
-              className="flex items-center gap-2 rounded-xl px-2.5 py-2 text-[10.5px]"
+              className="flex items-center gap-[0.5em] rounded-[0.8em] px-[0.7em] py-[0.55em] text-[0.95em] leading-snug"
               style={{ background: DARK.card, border: `1px solid ${DARK.line}`, color: DARK.sub }}
             >
               <span
-                className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[8.5px] font-bold"
+                className="flex h-[1.4em] w-[1.4em] shrink-0 items-center justify-center rounded-full text-[0.8em] font-bold"
                 style={{ background: 'rgba(95,168,222,0.16)', color: DARK.accent }}
               >
                 {i + 1}
@@ -161,8 +201,8 @@ export function MentalRepScreen({ t }) {
           ))}
         </ol>
         <span
-          className="mt-4 flex w-full items-center justify-center rounded-xl py-2.5 text-[11px] font-bold"
-          style={{ background: DARK.accent, color: '#07131F' }}
+          className="mt-[1.1em] flex w-full items-center justify-center rounded-[0.8em] py-[0.7em] text-[1em] font-bold"
+          style={{ background: DARK.accent, color: DARK.bg }}
         >
           {t.cta}
         </span>
@@ -177,18 +217,18 @@ export function PlaybookScreen({ t }) {
   return (
     <>
       <ScreenHeader title={t.title} />
-      <div className="flex-1 space-y-2.5 px-3.5 py-3">
-        <div className="rounded-xl p-2.5" style={{ background: DARK.card, border: `1px solid ${DARK.line}` }}>
-          <span className="text-[8.5px] font-bold uppercase tracking-[0.1em]" style={{ color: DARK.accent }}>
+      <div className="flex-1 space-y-[0.6em] px-[1em] py-[0.9em]">
+        <div className="rounded-[0.8em] p-[0.7em]" style={{ background: DARK.card, border: `1px solid ${DARK.line}` }}>
+          <span className="text-[0.8em] font-bold uppercase tracking-[0.1em]" style={{ color: DARK.accent }}>
             {t.lessonLabel}
           </span>
-          <p className="mt-1.5 text-[11px] leading-snug" style={{ color: DARK.ink }}>{t.lesson}</p>
+          <p className="mt-[0.5em] text-[1em] leading-snug" style={{ color: DARK.ink }}>{t.lesson}</p>
         </div>
-        <div className="rounded-xl p-2.5" style={{ background: DARK.card, border: `1px solid ${DARK.line}` }}>
-          <span className="flex items-center gap-1.5 text-[8.5px] font-bold uppercase tracking-[0.1em]" style={{ color: '#22D3C5' }}>
-            <Bookmark size={10} /> {t.cueLabel}
+        <div className="rounded-[0.8em] p-[0.7em]" style={{ background: DARK.card, border: `1px solid ${DARK.line}` }}>
+          <span className="flex items-center gap-[0.4em] text-[0.8em] font-bold uppercase tracking-[0.1em]" style={{ color: '#22D3C5' }}>
+            <Bookmark className="h-[1em] w-[1em]" /> {t.cueLabel}
           </span>
-          <p className="mt-1.5 text-[12px] font-bold leading-snug" style={{ color: DARK.ink }}>{t.cue}</p>
+          <p className="mt-[0.5em] text-[1.1em] font-bold leading-snug" style={{ color: DARK.ink }}>{t.cue}</p>
         </div>
       </div>
       <PhoneNav active={3} />
@@ -208,15 +248,15 @@ export function PressureScreen({ t }) {
   return (
     <>
       <ScreenHeader title={t.screenTitle} />
-      <div className="flex-1 space-y-2 px-3.5 py-3">
+      <div className="flex-1 space-y-[0.5em] px-[1em] py-[0.9em]">
         {rows.map(([label, value]) => (
-          <div key={label} className="rounded-xl p-2.5" style={{ background: DARK.card, border: `1px solid ${DARK.line}` }}>
-            <p className="text-[8.5px] font-bold uppercase tracking-[0.1em]" style={{ color: DARK.dim }}>{label}</p>
-            <p className="mt-1 text-[11px] leading-snug" style={{ color: DARK.ink }}>{value}</p>
+          <div key={label} className="rounded-[0.8em] p-[0.7em]" style={{ background: DARK.card, border: `1px solid ${DARK.line}` }}>
+            <p className="text-[0.8em] font-bold uppercase tracking-[0.1em]" style={{ color: DARK.dim }}>{label}</p>
+            <p className="mt-[0.35em] text-[1em] leading-snug" style={{ color: DARK.ink }}>{value}</p>
           </div>
         ))}
         <p
-          className="rounded-full px-3 py-1.5 text-center text-[9.5px] font-semibold"
+          className="rounded-full px-[0.9em] py-[0.5em] text-center text-[0.85em] font-semibold"
           style={{ background: 'rgba(95,168,222,0.12)', color: DARK.accent }}
         >
           {t.resetTime}

@@ -26,8 +26,10 @@ import {
 export function HeroPhone({ t, label }) {
   const p = t.phone;
   return (
-    <div role="img" aria-label={label} className="relative mx-auto w-full max-w-[264px]">
-      <PhoneFrame>
+    // Device width, not container width: ~60% of a 360px viewport, never wider
+    // than 250px, so the page keeps real whitespace either side of it.
+    <div role="img" aria-label={label} className="relative flex justify-center">
+      <PhoneFrame style={{ width: 'clamp(200px, 60vw, 235px)' }}>
         <CoachScreen
           t={p}
           turns={[
@@ -51,8 +53,10 @@ function Preview({ title, line, children }) {
     <div className="flex h-full flex-col">
       <h3 className="text-[15px] font-bold text-[#0F172A]">{title}</h3>
       <p className="mt-1 text-[12.5px] leading-snug text-[#5A6B80]">{line}</p>
-      <div className="mt-3.5" aria-hidden="true">
-        <PhoneFrame className="mx-auto w-full max-w-[224px]" screenClassName="min-h-[352px]">
+      {/* The card may be wide enough to reveal the next slide; the DEVICE
+          stays narrow and centred inside it. */}
+      <div className="mt-3.5 flex justify-center" aria-hidden="true">
+        <PhoneFrame style={{ width: 'clamp(172px, 50vw, 190px)' }}>
           {children}
         </PhoneFrame>
       </div>

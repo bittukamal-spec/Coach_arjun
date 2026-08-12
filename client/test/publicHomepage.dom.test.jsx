@@ -341,10 +341,16 @@ describe('hero device', () => {
   test('the hero visual is one realistic phone, not a stack of marketing cards', () => {
     renderHome();
     const visual = screen.getByRole('img', { name: /Coach asking/i });
-    // A single device frame, and the app's real dark screen inside it.
+    // A single device box, in real phone proportions, with the app's dark
+    // screen inside it and a width set on the device rather than the card.
     const screens = visual.querySelectorAll('[style*="rgb(7, 19, 31)"]');
     expect(screens.length).toBeGreaterThan(0);
-    expect(visual.querySelectorAll('.rounded-\\[2\\.4rem\\]')).toHaveLength(1);
+    const device = visual.querySelector('[class*="aspect-[390/844]"]');
+    expect(device).toBeTruthy();
+    expect(visual.querySelectorAll('[class*="aspect-[390/844]"]')).toHaveLength(1);
+    // The device carries its own width; jsdom drops clamp() values, so the
+    // exact width contract is asserted in the source suite instead.
+    expect(visual.className).not.toMatch(/max-w-/);
   });
 });
 

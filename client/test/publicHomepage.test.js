@@ -120,18 +120,44 @@ test('the hero phone shows Arjun asking and checking, not prescribing', () => {
   // No Mental Rep is prescribed in the hero conversation.
   const hero = mockups.slice(mockups.indexOf('export function HeroPhone'), mockups.indexOf('// ── Inside Arjun'));
   assert.doesNotMatch(hero, /MentalRepScreen|repTitle|Start/);
-  assert.match(hero, /<PhoneFrame>/);
+  assert.match(hero, /<PhoneFrame style=/);
   assert.match(hero, /<CoachScreen/);
 });
 
-test('the phone frame is a real device frame, not a card', () => {
-  assert.match(phoneFrame, /rounded-\[2\.4rem\]/, 'rounded device shell');
-  assert.match(phoneFrame, /bg-\[#0A0F16\]/, 'dark bezel');
-  assert.match(phoneFrame, /h-\[16px\] w-\[64px\] rounded-full bg-black/, 'dynamic-island cutout');
-  assert.match(phoneFrame, /shadow-\[0_26px_60px/, 'device shadow');
-  // Narrow phone proportions — never as wide as a marketing card.
-  const heroWidth = Number(mockups.match(/max-w-\[(\d+)px\]/)[1]);
-  assert.ok(heroWidth <= 280, `hero device should stay narrow, got ${heroWidth}px`);
+test('the phone frame is a real device, not a rounded card', () => {
+  // A true 390×844 device box, so it is always narrow and tall.
+  assert.match(phoneFrame, /aspect-\[390\/844\]/, 'real phone proportions');
+  assert.match(phoneFrame, /rounded-\[13%\/6%\]/, 'realistic corner radius');
+  assert.match(phoneFrame, /p-\[1\.6%\]/, 'thin bezel, not a thick black border');
+  assert.match(phoneFrame, /linear-gradient\(150deg,#2C333C/, 'brushed outer rim');
+  assert.match(phoneFrame, /h-\[1\.15em\] w-\[4\.6em\] rounded-full bg-black/, 'small speaker cutout');
+  assert.match(phoneFrame, /shadow-\[0_18px_38px/, 'device shadow beneath it');
+  assert.match(phoneFrame, /rounded-l-sm/, 'side-button suggestion');
+});
+
+test('devices are sized as devices — narrow, with the carousel phone narrower still', () => {
+  const widths = [...mockups.matchAll(/clamp\((\d+)px, (\d+)vw, (\d+)px\)/g)]
+    .map(([, min, vw, max]) => ({ min: Number(min), vw: Number(vw), max: Number(max) }));
+  assert.equal(widths.length, 2, 'hero device and carousel device');
+  const [hero, preview] = widths;
+  // ~60% of a 360px viewport for the hero, ~50% for the carousel previews.
+  assert.equal(hero.vw, 60);
+  assert.equal(preview.vw, 50);
+  assert.ok(hero.max <= 235 && preview.max <= 190, 'devices never balloon on desktop');
+  assert.ok(preview.vw < hero.vw && preview.max < hero.max, 'carousel devices are the narrower pair');
+  // The device sets its own width — it never stretches to its container.
+  assert.doesNotMatch(mockups, /<PhoneFrame[^>]*w-full/);
+  assert.match(mockups, /flex justify-center/, 'the device is centred inside its card');
+});
+
+test('the screen scales with the device instead of being re-tuned per breakpoint', () => {
+  // One container-relative base font-size; everything inside is in em.
+  assert.match(phoneFrame, /containerType: 'inline-size'/);
+  assert.match(phoneFrame, /fontSize: '3\.95cqw'/);
+  assert.match(phoneFrame, /text-\[9px\]/, 'px fallback where container units are unsupported');
+  const emSizes = phoneFrame.match(/text-\[[\d.]+em\]/g) || [];
+  assert.ok(emSizes.length >= 8, `internal type should be em-based, found ${emSizes.length}`);
+  assert.doesNotMatch(phoneFrame, /text-\[1[0-9](\.\d)?px\]/, 'no fixed px type left inside the screen');
 });
 
 test('device screens use the app\'s real dark theme while the page stays light', () => {

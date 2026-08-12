@@ -283,7 +283,7 @@ function LandingPage() {
           {/* The device sits after the copy + CTA on mobile and beside them from
               lg up, so the fold stays copy → CTA → phone → tags → How Arjun
               helps rather than pushing the sections down. */}
-          <div className="mt-8 lg:mt-0">
+          <div className="mt-6 lg:mt-0">
             <HeroPhone t={t} label={t.heroVisualAlt} />
           </div>
         </section>
