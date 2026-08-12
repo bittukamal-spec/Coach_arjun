@@ -1,4 +1,6 @@
-import { BookOpen, Dumbbell, Home, Layers, MessageCircle, User, Zap } from 'lucide-react';
+import {
+  Bookmark, BookOpen, Check, Dumbbell, Home, Layers, MessageCircle, User, Zap,
+} from 'lucide-react';
 import { ArjunLogo } from '../ArjunLogo';
 
 // Product visuals for the public homepage, drawn in CSS/JSX rather than
@@ -79,15 +81,43 @@ function PhoneNav() {
 // A partly-obscured screen sitting behind the hero phone.
 // `align="right"` is what makes the right-hand card readable: only its right
 // portion is visible past the phone, so its text has to sit there too.
-function BehindCard({ title, items, align = 'left', className = '' }) {
+function BehindCard({ title, Icon, tint, items, align = 'left', className = '' }) {
   return (
     <div className={`rounded-2xl border ${BORDER} bg-white p-3 shadow-[0_6px_20px_rgba(15,23,42,0.07)] ${align === 'right' ? 'text-right' : ''} ${className}`}>
-      <p className="text-[10px] font-bold text-[#0F172A]">{title}</p>
+      <div className={`flex items-center gap-1.5 ${align === 'right' ? 'flex-row-reverse' : ''}`}>
+        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md" style={{ background: tint.bg }}>
+          <Icon size={11} style={{ color: tint.fg }} />
+        </span>
+        <p className="text-[10px] font-bold text-[#0F172A]">{title}</p>
+      </div>
       {items.map((item) => (
-        <p key={item} className={`mt-2 rounded-lg border ${BORDER} bg-[#FAFBFD] px-2 py-1.5 text-[9px] leading-snug text-[#5A6B80]`}>
+        <p
+          key={item}
+          className={`mt-2 rounded-lg border ${BORDER} bg-[#FAFBFD] px-2 py-1.5 text-[9px] leading-snug text-[#5A6B80] ${
+            align === 'right' ? 'border-r-2' : 'border-l-2'
+          }`}
+          style={align === 'right' ? { borderRightColor: tint.fg } : { borderLeftColor: tint.fg }}
+        >
           {item}
         </p>
       ))}
+    </div>
+  );
+}
+
+// The layered card that overlaps the phone at every width, so the hero reads
+// as a stack of real screens on mobile too — where the two side screens have
+// no room to sit.
+function FloatingCue({ label, cue }) {
+  return (
+    <div
+      className={`absolute -bottom-3 right-0 w-40 rounded-2xl border ${BORDER} bg-white px-3 py-2.5 shadow-[0_10px_28px_rgba(15,23,42,0.14)] xs:right-2 sm:right-auto sm:left-2 sm:-bottom-5`}
+    >
+      <div className="flex items-center gap-1.5">
+        <Bookmark size={11} className="text-[#13776F]" />
+        <span className="text-[8.5px] font-bold uppercase tracking-[0.08em] text-[#13776F]">{label}</span>
+      </div>
+      <p className="mt-1 text-[12px] font-bold leading-snug text-[#0F172A]">{cue}</p>
     </div>
   );
 }
@@ -98,15 +128,19 @@ export function HeroPhone({ t, label }) {
     // The behind-cards sit INSIDE this wrapper rather than at negative
     // offsets, so they are partly obscured by the phone instead of being
     // sliced off by the viewport edge on a narrow screen.
-    <div role="img" aria-label={label} className="relative mx-auto w-full max-w-[460px]">
-      <BehindCard
-        title={p.behindReps}
-        items={[p.behindRepsItem1, p.behindRepsItem2]}
-        className="absolute left-0 top-16 hidden w-32 -rotate-[4deg] sm:block"
-      />
+    <div role="img" aria-label={label} className="relative mx-auto w-full max-w-[500px]">
       <BehindCard
         title={p.behindPlaybook}
+        Icon={BookOpen}
+        tint={{ bg: '#EEF4FC', fg: '#185FA5' }}
         items={[p.behindPlaybookItem1, p.behindPlaybookItem2]}
+        className="absolute left-0 top-14 hidden w-32 -rotate-[4deg] sm:block"
+      />
+      <BehindCard
+        title={p.behindFocus}
+        Icon={Layers}
+        tint={{ bg: '#F1EFFD', fg: '#5546C9' }}
+        items={[p.behindFocusItem1, p.behindFocusItem2]}
         align="right"
         className="absolute right-0 top-24 hidden w-32 rotate-[4deg] sm:block"
       />
@@ -129,6 +163,8 @@ export function HeroPhone({ t, label }) {
 
         <PhoneNav />
       </div>
+
+      <FloatingCue label={p.cueLabel} cue={p.cue} />
     </div>
   );
 }
@@ -221,5 +257,58 @@ export function FocusCardPreview({ t }) {
         <p className="mt-1 text-[10.5px] leading-snug text-[#5A6B80]">{t.reminder}</p>
       </div>
     </PreviewFrame>
+  );
+}
+
+// ── Personalisation-card visuals ─────────────────────────────────────────────
+// Each mirrors a real section of the athlete's Profile — My Game, When
+// Pressure Hits (Situation → First response → Performance impact) and What
+// Helps Me — using only what the athlete themselves told Arjun. No inferred
+// traits, no scoring, no interpretation.
+
+export function GameChips({ chips, fg }) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {chips.map((chip) => (
+        <span
+          key={chip}
+          className={`rounded-full border ${BORDER} bg-white px-2.5 py-1 text-[10.5px] font-semibold`}
+          style={{ color: fg }}
+        >
+          {chip}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+export function PressureFlow({ steps, fg }) {
+  return (
+    <ol className="space-y-1">
+      {steps.map((step, i) => (
+        <li key={step} className="flex items-center gap-1.5">
+          <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: fg, opacity: 1 - i * 0.28 }} />
+          <span className={`flex-1 rounded-lg border ${BORDER} bg-white px-2 py-1.5 text-[10.5px] font-semibold text-[#0F172A]`}>
+            {step}
+          </span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+export function WorksList({ items, fg }) {
+  return (
+    <ul className="space-y-1.5">
+      {items.map((item) => (
+        <li
+          key={item}
+          className={`flex items-center gap-2 rounded-lg border ${BORDER} bg-white px-2 py-1.5 text-[10.5px] font-semibold text-[#0F172A]`}
+        >
+          <Check size={12} strokeWidth={3} style={{ color: fg }} className="shrink-0" />
+          {item}
+        </li>
+      ))}
+    </ul>
   );
 }

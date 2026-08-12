@@ -137,7 +137,7 @@ test('no research percentages or performance claims', () => {
 });
 
 test('no fake social proof — no counts, ratings or testimonials', () => {
-  assert.doesNotMatch(bothBlocks, /thousands|lakh|million|\d+\s*\+?\s*(athletes|users|खिलाड़ी)|\brating\b|★|5-star|\breviews?\b|testimonial|trusted by|loved by/i);
+  assert.doesNotMatch(bothBlocks, /thousands|lakh|million|\d+\s*\+?\s*(athletes|users|खिलाड़ी)|\brating\b|★|5-star|\breviews\b|star review|रिव्यू|testimonial|trusted by|loved by/i);
 });
 
 test('no old mental games, drills or match-day-routine-builder copy', () => {
@@ -168,9 +168,13 @@ test('How Arjun helps has exactly the four intended use cases, in order', () => 
     assert.ok(!help.desc && !help.sub, 'no second supporting line per card');
   }
   // Four distinct restrained tints, not four identical blue cards.
-  const tints = [...landing.matchAll(/bg: '(#[0-9A-F]{6})'/gi)].map((m) => m[1].toLowerCase());
+  const helpTints = landing.slice(landing.indexOf('const HELP_TINTS'), landing.indexOf('];', landing.indexOf('const HELP_TINTS')));
+  const tints = [...helpTints.matchAll(/bg: '(#[0-9A-F]{6})'/gi)].map((m) => m[1].toLowerCase());
   assert.equal(tints.length, 4);
   assert.equal(new Set(tints).size, 4);
+  // Each card carries its own icon, so the row is not four identical tiles.
+  const icons = [...helpTints.matchAll(/Icon: (\w+)/g)].map((m) => m[1]);
+  assert.equal(new Set(icons).size, 4);
 });
 
 test('app preview shows current product areas only: Coach, Mental Reps, Playbook, Focus Cards', () => {
@@ -191,6 +195,60 @@ test('the hero mockup shows the real app navigation, and no invented surfaces', 
     [...nav.matchAll(/key: '(\w+)'/g)].map((m) => m[1]),
     ['home', 'train', 'coach', 'playbook', 'profile'],
   );
+});
+
+test('the hero is a layered stack of current screens — Playbook, Focus Cards, a saved cue', () => {
+  assert.equal(en.phone.behindPlaybook, 'Playbook');
+  assert.equal(en.phone.behindFocus, 'Focus Cards');
+  assert.equal(en.phone.cueLabel, 'Saved cue');
+  const hero = mockups.slice(mockups.indexOf('export function HeroPhone'), mockups.indexOf('// ── App-preview mockups'));
+  assert.equal((hero.match(/<BehindCard/g) || []).length, 2, 'two screens sit behind the phone');
+  assert.match(hero, /<FloatingCue/, 'a card overlaps the phone at every width, including mobile');
+  // The rear screens carry no analytics of any kind.
+  assert.doesNotMatch(stripComments(mockups), /progress|percent|graph|trend/i);
+});
+
+// ── 5b. Personalisation section ─────────────────────────────────────────────
+
+test('the personalisation section mirrors the real Profile sections', () => {
+  assert.equal(en.personalTitle, 'Arjun gets to know how you perform');
+  assert.deepEqual(en.personal.map((p) => p.title), ['Your game', 'When pressure hits', 'What works for you']);
+  assert.equal(hi.personal.length, 3);
+  // When Pressure Hits uses the athlete-facing stage names the Profile uses.
+  assert.deepEqual(
+    [en.personalFlow.situation, en.personalFlow.firstResponse, en.personalFlow.impact],
+    ['Situation', 'First response', 'Performance impact'],
+  );
+  assert.match(landing, /\{t\.personalTitle\}/);
+  assert.match(landing, /<GameChips chips=\{t\.personalGameChips\}/);
+  assert.match(landing, /<PressureFlow/);
+  assert.match(landing, /<WorksList items=\{t\.personalWorks\}/);
+});
+
+test('personalisation claims stay inside what the athlete told Arjun', () => {
+  const claims = en.personal.map((p) => p.line).join(' ');
+  assert.match(claims, /Understands your game/);
+  assert.match(claims, /Remembers what tends to happen/);
+  assert.match(claims, /Keeps useful strategies close/);
+  // Never the removed/overreaching framings.
+  assert.doesNotMatch(bothBlocks, /personality|व्यक्तित्व|mental state|reads you|knows you|learns everything|performance pattern/i);
+});
+
+// ── 5c. Sport-psychology principles ─────────────────────────────────────────
+
+test('the principles section states principles, never measured outcomes', () => {
+  assert.equal(en.principlesTitle, 'Built around sport psychology principles');
+  assert.deepEqual(
+    en.principles.map((p) => p.title),
+    ['Reset after setbacks', 'Focus & self-talk', 'Reflect & learn'],
+  );
+  assert.equal(hi.principles.length, 3);
+  assert.match(landing, /\{t\.principlesTitle\}/);
+  for (const p of [...en.principles, ...hi.principles]) {
+    assert.ok(p.line.length <= 60, `principle line too long: ${p.title}`);
+  }
+  // No statistic, no citation, no "proven" claim about Arjun itself.
+  assert.doesNotMatch(bothBlocks, /\d+\s*%|proven|clinically|study|studies|evidence-based|अध्ययन/i);
 });
 
 test('the value strip lists five short, supportable labels', () => {

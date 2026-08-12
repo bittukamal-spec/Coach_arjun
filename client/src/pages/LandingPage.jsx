@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ArrowRight, ChevronDown, Flag, Globe, Menu,
-  MessageCircle, NotebookPen, RotateCcw, Shield, Tag, Target, X, Zap,
+  Activity, ArrowRight, ChevronDown, Flag, Gauge, Globe, Menu, MessageCircle,
+  NotebookPen, RefreshCw, RotateCcw, Shield, Sparkles, Tag, Target, Trophy, X, Zap,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { ArjunLogo } from '../components/ArjunLogo';
 import LandingCarousel from '../components/landing/LandingCarousel';
 import {
-  CoachPreview, FocusCardPreview, HeroPhone, PlaybookPreview, RepsPreview,
+  CoachPreview, FocusCardPreview, GameChips, HeroPhone, PlaybookPreview,
+  PressureFlow, RepsPreview, WorksList,
 } from '../components/landing/LandingMockups';
 
 // Public homepage. Deliberately a fixed light surface rather than the app's
@@ -24,12 +25,28 @@ const BORDER = 'border-[#E4E9F2]';
 const BRAND = '#185FA5';
 
 // The four use cases, each with its own restrained tint so the row doesn't
-// read as four identical white SaaS cards.
+// read as four identical white SaaS cards. Same four-accent family the
+// authenticated Train cards use — blue, teal, amber, violet.
 const HELP_TINTS = [
   { bg: '#E3EEFA', fg: BRAND,     Icon: Flag },        // preparation — blue
-  { bg: '#DDF0EC', fg: '#13776F', Icon: RotateCcw },   // reset — teal
-  { bg: '#E8E4FB', fg: '#5546C9', Icon: Target },      // focus — violet
-  { bg: '#FAEBD8', fg: '#9A5410', Icon: NotebookPen }, // reflection — amber
+  { bg: '#DDF0EC', fg: '#13776F', Icon: Activity },    // reset — teal
+  { bg: '#FAEBD8', fg: '#9A5410', Icon: Target },      // focus — amber
+  { bg: '#E8E4FB', fg: '#5546C9', Icon: RotateCcw },   // reflection — violet
+];
+
+// Personalisation cards — one accent each, in the same family.
+const PERSONAL_TINTS = [
+  { bg: '#E3EEFA', fg: BRAND,     Icon: Trophy },   // your game — blue
+  { bg: '#E8E4FB', fg: '#5546C9', Icon: Gauge },    // when pressure hits — violet
+  { bg: '#DDF0EC', fg: '#13776F', Icon: Sparkles }, // what works — teal
+];
+
+// Sport-psychology principles — icon tiles only, on plain white cards, so the
+// section reads as lighter than the two tinted-card rows above it.
+const PRINCIPLE_TINTS = [
+  { bg: '#DDF0EC', fg: '#13776F', Icon: RefreshCw },   // reset after setbacks
+  { bg: '#E3EEFA', fg: BRAND,     Icon: MessageCircle }, // focus & self-talk
+  { bg: '#FAEBD8', fg: '#9A5410', Icon: NotebookPen }, // reflect & learn
 ];
 
 function LandingPage() {
@@ -287,10 +304,83 @@ function LandingPage() {
           </LandingCarousel>
         </section>
 
+        {/* ── Arjun gets to know how you perform ──────────────────────────── */}
+        {/* Mirrors the athlete's real Profile sections — My Game, When
+            Pressure Hits, What Helps Me — so the claim stays inside what the
+            athlete themselves told Arjun. No traits, no scoring. */}
+        <section className="mx-auto max-w-5xl px-5 pt-12">
+          <h2 className="text-[22px] font-black tracking-tight">{t.personalTitle}</h2>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            {t.personal.map((item, i) => {
+              const { bg, fg, Icon } = PERSONAL_TINTS[i];
+              return (
+                <div
+                  key={item.title}
+                  className={`flex flex-col rounded-3xl border ${BORDER} p-4`}
+                  style={{ background: `linear-gradient(160deg, ${bg} 0%, #FFFFFF 74%)` }}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white shadow-[0_2px_8px_rgba(15,23,42,0.06)]"
+                      aria-hidden="true"
+                    >
+                      <Icon size={18} style={{ color: fg }} />
+                    </span>
+                    <h3 className="text-[15px] font-bold leading-snug">{item.title}</h3>
+                  </div>
+                  <div className="mt-3.5" aria-hidden="true">
+                    {i === 0 && <GameChips chips={t.personalGameChips} fg={fg} />}
+                    {i === 1 && (
+                      <PressureFlow
+                        steps={[t.personalFlow.situation, t.personalFlow.firstResponse, t.personalFlow.impact]}
+                        fg={fg}
+                      />
+                    )}
+                    {i === 2 && <WorksList items={t.personalWorks} fg={fg} />}
+                  </div>
+                  <p className={`mt-3.5 text-[13px] leading-snug ${BODY}`}>{item.line}</p>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* ── Built around sport psychology principles ─────────────────────── */}
+        {/* Principles only — no percentages, no study names, no claim that any
+            research measured Arjun itself. */}
+        <section className="mx-auto max-w-5xl px-5 pt-12">
+          <h2 className="text-[22px] font-black tracking-tight">{t.principlesTitle}</h2>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            {t.principles.map((item, i) => {
+              const { bg, fg, Icon } = PRINCIPLE_TINTS[i];
+              return (
+                <div
+                  key={item.title}
+                  className={`flex items-start gap-3 rounded-2xl border ${BORDER} bg-white p-4`}
+                >
+                  <span
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl"
+                    style={{ background: bg }}
+                    aria-hidden="true"
+                  >
+                    <Icon size={18} style={{ color: fg }} />
+                  </span>
+                  <div>
+                    <h3 className="text-[14.5px] font-bold leading-snug">{item.title}</h3>
+                    <p className={`mt-1 text-[12.5px] leading-snug ${BODY}`}>{item.line}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
         {/* ── FAQ ─────────────────────────────────────────────────────────── */}
-        <section className="mx-auto max-w-3xl px-5 pt-10">
+        {/* Same 5xl gutter as every other section, with the rows themselves
+            capped narrower so long questions stay readable. */}
+        <section className="mx-auto max-w-5xl px-5 pt-12">
           <h2 className="text-[22px] font-black tracking-tight">{t.faqTitle}</h2>
-          <div className="mt-4 space-y-2">
+          <div className="mt-4 max-w-3xl space-y-2">
             {t.faq.map((item, i) => {
               const open = openFaq === i;
               return (
@@ -329,34 +419,53 @@ function LandingPage() {
 
         {/* ── Final CTA ───────────────────────────────────────────────────── */}
         <section className="mx-auto max-w-5xl px-5 pt-10">
-          <div className="relative overflow-hidden rounded-3xl bg-[#185FA5] px-6 py-8 text-white sm:flex sm:items-center sm:justify-between sm:gap-6">
+          <div
+            className="relative overflow-hidden rounded-3xl px-6 py-9 text-white sm:flex sm:items-center sm:justify-between sm:gap-6"
+            style={{ background: 'linear-gradient(135deg, #1C6FBE 0%, #185FA5 46%, #10456F 100%)' }}
+          >
+            {/* Abstract performance lines — decorative, no meaning carried. */}
             <svg
-              className="pointer-events-none absolute -right-10 -top-8 h-48 w-48 text-white/10"
-              viewBox="0 0 200 200" fill="none" aria-hidden="true"
+              className="pointer-events-none absolute inset-0 h-full w-full"
+              viewBox="0 0 400 200" fill="none" preserveAspectRatio="xMaxYMid slice" aria-hidden="true"
             >
-              <circle cx="100" cy="100" r="88" stroke="currentColor" strokeWidth="10" />
-              <circle cx="100" cy="100" r="56" stroke="currentColor" strokeWidth="10" />
+              <circle cx="345" cy="60" r="96" stroke="#FFFFFF" strokeOpacity="0.12" strokeWidth="10" />
+              <circle cx="345" cy="60" r="60" stroke="#FFFFFF" strokeOpacity="0.14" strokeWidth="10" />
+              <path d="M-20 178 C 90 178, 150 96, 250 96 S 400 34, 460 34" stroke="#FFFFFF" strokeOpacity="0.16" strokeWidth="3" />
+              <path d="M-20 196 C 100 196, 170 130, 270 130 S 400 74, 460 74" stroke="#FFFFFF" strokeOpacity="0.10" strokeWidth="3" />
             </svg>
             <div className="relative flex items-center gap-3">
-              <ArjunLogo size={40} className="hidden rounded-xl xs:block" />
-              <p className="text-[24px] font-black leading-tight">
+              <ArjunLogo size={44} className="hidden rounded-2xl xs:block" />
+              <p className="text-[24px] font-black leading-tight xs:text-[26px]">
                 {t.finalLine1}<br />{t.finalLine2}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={goCreate}
-              className="relative mt-6 inline-flex min-h-[54px] w-full items-center justify-center gap-2 rounded-2xl bg-white px-7 text-[16px] font-bold text-[#185FA5] transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#185FA5] sm:mt-0 sm:w-auto"
-            >
-              {t.ctaCreate}
-              <ArrowRight size={18} aria-hidden="true" />
-            </button>
+            <div className="relative mt-6 flex flex-col items-center gap-3 sm:mt-0 sm:shrink-0">
+              <button
+                type="button"
+                onClick={goCreate}
+                className="inline-flex min-h-[54px] w-full items-center justify-center gap-2 rounded-2xl bg-white px-7 text-[16px] font-bold text-[#185FA5] shadow-[0_8px_24px_rgba(8,42,74,0.28)] transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#185FA5] sm:w-auto"
+              >
+                {t.ctaCreate}
+                <ArrowRight size={18} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                onClick={goSignIn}
+                className="inline-flex min-h-[44px] items-center justify-center text-[14px] font-semibold text-white/85 underline underline-offset-4 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#185FA5]"
+              >
+                {t.ctaSignIn}
+              </button>
+            </div>
           </div>
         </section>
       </main>
 
       {/* ── Footer ────────────────────────────────────────────────────────── */}
       <footer className={`mx-auto mt-12 max-w-5xl border-t ${BORDER} px-5 py-8`}>
+        <div className="mb-1 flex items-center gap-2">
+          <ArjunLogo size={22} className="rounded-lg" />
+          <span className="text-[15px] font-black tracking-tight">Arjun</span>
+        </div>
         <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
           {[
             { label: t.footerPrivacy, to: '/privacy' },

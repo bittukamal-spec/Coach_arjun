@@ -63,7 +63,7 @@ describe('hero', () => {
   test('Sign in goes to /auth?tab=signin, unchanged', async () => {
     const user = userEvent.setup();
     renderHome();
-    await user.click(screen.getByRole('button', { name: /^sign in$/i }));
+    await user.click(screen.getAllByRole('button', { name: /^sign in$/i })[0]);
     expect(screen.getByText('AUTH_ROUTE:/auth?tab=signin')).toBeTruthy();
   });
 
@@ -94,7 +94,7 @@ describe('no legacy product claims', () => {
     expect(text).not.toMatch(/\bmood\b|\bsleep\b|\benergy\b/i);
     expect(text).not.toMatch(/personality/i);
     expect(text).not.toMatch(/\bscore\b|\bxp\b|streak/i);
-    expect(text).not.toMatch(/thousands|rating|★|review|trusted by/i);
+    expect(text).not.toMatch(/thousands|\brating\b|★|\breviews\b|star review|trusted by/i);
     expect(text).not.toMatch(/\d+%/);
   });
 });
@@ -232,6 +232,60 @@ describe('language', () => {
     expect(screen.getAllByRole('button', { name: /खाता बनाओ/ }).length).toBeGreaterThan(0);
     expect(screen.getByText('मैच से पहले')).toBeTruthy();
     expect(screen.getByRole('button', { name: /क्या Arjun थेरेपी है\?/ })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'जब दबाव आता है' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'सोचो और सीखो' })).toBeTruthy();
+  });
+});
+
+describe('personalisation', () => {
+  test('shows the three Profile-mirrored cards with their real stage names', () => {
+    renderHome();
+    expect(screen.getByRole('heading', { name: 'Arjun gets to know how you perform' })).toBeTruthy();
+    for (const title of ['Your game', 'When pressure hits', 'What works for you']) {
+      expect(screen.getByRole('heading', { name: title })).toBeTruthy();
+    }
+    // The When Pressure Hits flow uses the Profile's own athlete-facing labels.
+    expect(screen.getByText('Situation')).toBeTruthy();
+    expect(screen.getByText('First response')).toBeTruthy();
+    expect(screen.getByText('Performance impact')).toBeTruthy();
+    expect(screen.getByText(/Remembers what tends to happen/)).toBeTruthy();
+  });
+
+  test('claims nothing about personality or mental state', () => {
+    const { container } = renderHome();
+    expect(container.textContent).not.toMatch(/personality|mental state|performance pattern|knows you|learns everything/i);
+  });
+});
+
+describe('sport psychology principles', () => {
+  test('shows three principles and no measured-outcome claim', () => {
+    const { container } = renderHome();
+    expect(screen.getByRole('heading', { name: 'Built around sport psychology principles' })).toBeTruthy();
+    for (const title of ['Reset after setbacks', 'Focus & self-talk', 'Reflect & learn']) {
+      expect(screen.getByRole('heading', { name: title })).toBeTruthy();
+    }
+    expect(container.textContent).not.toMatch(/\d+\s*%|proven|clinically|evidence-based|et al\./i);
+  });
+});
+
+describe('hero layering', () => {
+  test('the hero stacks current screens — Playbook, Focus Cards and a saved cue', () => {
+    renderHome();
+    const visual = screen.getByRole('img', { name: /coaching conversation/i });
+    expect(within(visual).getByText('Playbook')).toBeTruthy();
+    expect(within(visual).getByText('Focus Cards')).toBeTruthy();
+    expect(within(visual).getByText('Saved cue')).toBeTruthy();
+  });
+});
+
+describe('final CTA', () => {
+  test('carries both actions and no social proof', () => {
+    const { container } = renderHome();
+    // The two lines share one <p>, split by a <br>.
+    expect(container.textContent).toMatch(/Train your mind\./);
+    expect(container.textContent).toMatch(/Elevate your game\./);
+    expect(screen.getAllByRole('button', { name: /create account/i }).length).toBeGreaterThan(1);
+    expect(container.textContent).not.toMatch(/thousands|★|loved by|athletes trust/i);
   });
 });
 

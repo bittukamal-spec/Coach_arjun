@@ -37,12 +37,14 @@ export const translations = {
         repTitle: 'Reset after a mistake',
         repMeta: '2 min',
         repCta: 'Start',
-        behindReps: 'Mental Reps',
         behindPlaybook: 'Playbook',
-        behindRepsItem1: 'Reset after a mistake',
-        behindRepsItem2: 'Settle before you start',
-        behindPlaybookItem1: 'Next ball.',
-        behindPlaybookItem2: 'One point at a time.',
+        behindPlaybookItem1: 'Lesson · Name it once, move on',
+        behindPlaybookItem2: 'Reflection · What worked today',
+        behindFocus: 'Focus Cards',
+        behindFocusItem1: 'One point at a time.',
+        behindFocusItem2: 'Play the next point.',
+        cueLabel: 'Saved cue',
+        cue: 'Next ball.',
       },
 
       // ── Value strip ───────────────────────────────────────────────────────
@@ -59,7 +61,7 @@ export const translations = {
         { title: 'Before a match', line: 'Prepare with clarity.' },
         { title: 'After a setback', line: 'Reset and bounce back.' },
         { title: 'Build focus',     line: 'Train attention.' },
-        { title: 'Reflect & reset', line: 'Learn from what happened.' },
+        { title: 'Reflect & reset', line: 'Review, learn and move forward.' },
       ],
 
       // ── App preview ───────────────────────────────────────────────────────
@@ -69,9 +71,9 @@ export const translations = {
         coachCard: {
           title: 'Coach',
           line: 'Talk it through, question by question.',
-          ask: 'What made it hard to refocus?',
-          athlete: 'I kept replaying the mistake.',
-          reply: 'Then that\'s what we\'ll work on.',
+          ask: 'What\'s on your mind?',
+          athlete: 'I keep overthinking before important moments.',
+          reply: 'Let\'s simplify. What\'s one thing in your control today?',
         },
         repsCard: {
           title: 'Mental Reps',
@@ -98,6 +100,27 @@ export const translations = {
           reminder: 'Play the next point, not the last one.',
         },
       },
+
+      // ── Personalisation — mirrors the real Profile contract ───────────────
+      // (My Game · When Pressure Hits · What Helps Me). Nothing here claims
+      // more than what the athlete themselves told Arjun.
+      personalTitle: 'Arjun gets to know how you perform',
+      personal: [
+        { title: 'Your game',          line: 'Understands your game and what you\'re working on.' },
+        { title: 'When pressure hits', line: 'Remembers what tends to happen in difficult moments.' },
+        { title: 'What works for you', line: 'Keeps useful strategies close when you need them.' },
+      ],
+      personalGameChips: ['Sport', 'Role', 'Level', 'Goal'],
+      personalFlow: { situation: 'Situation', firstResponse: 'First response', impact: 'Performance impact' },
+      personalWorks: ['Next ball.', 'Reset after a mistake'],
+
+      // ── Sport psychology principles ───────────────────────────────────────
+      principlesTitle: 'Built around sport psychology principles',
+      principles: [
+        { title: 'Reset after setbacks', line: 'Let go, reset, move on.' },
+        { title: 'Focus & self-talk',    line: 'Simple cues for the next action.' },
+        { title: 'Reflect & learn',      line: 'Review what worked and carry it forward.' },
+      ],
 
       // ── FAQ ───────────────────────────────────────────────────────────────
       faqTitle: 'Frequently asked',
@@ -1950,12 +1973,14 @@ export const translations = {
         repTitle: 'गलती के बाद रीसेट',
         repMeta: '2 मिनट',
         repCta: 'शुरू करो',
-        behindReps: 'Mental Reps',
         behindPlaybook: 'Playbook',
-        behindRepsItem1: 'गलती के बाद रीसेट',
-        behindRepsItem2: 'शुरू करने से पहले शांत हो',
-        behindPlaybookItem1: 'अगली गेंद।',
-        behindPlaybookItem2: 'एक बार में एक पॉइंट।',
+        behindPlaybookItem1: 'सीख · एक बार नाम दो, आगे बढ़ो',
+        behindPlaybookItem2: 'रिफ्लेक्शन · आज क्या काम आया',
+        behindFocus: 'Focus Cards',
+        behindFocusItem1: 'एक बार में एक पॉइंट।',
+        behindFocusItem2: 'अगला पॉइंट खेलो।',
+        cueLabel: 'सेव किया cue',
+        cue: 'अगली गेंद।',
       },
 
       // ── Value strip ───────────────────────────────────────────────────────
@@ -1972,7 +1997,7 @@ export const translations = {
         { title: 'मैच से पहले',      line: 'साफ़ दिमाग़ से तैयारी करो।' },
         { title: 'गलती के बाद',      line: 'रीसेट करो और वापस आओ।' },
         { title: 'फोकस बनाओ',        line: 'ध्यान को ट्रेन करो।' },
-        { title: 'सोचो और रीसेट करो', line: 'जो हुआ उससे सीखो।' },
+        { title: 'सोचो और रीसेट करो', line: 'देखो, सीखो और आगे बढ़ो।' },
       ],
 
       // ── App preview ───────────────────────────────────────────────────────
@@ -1982,9 +2007,9 @@ export const translations = {
         coachCard: {
           title: 'Coach',
           line: 'सवाल दर सवाल बात करो।',
-          ask: 'फोकस वापस लाना मुश्किल क्यों लगा?',
-          athlete: 'गलती बार-बार दिमाग़ में चल रही थी।',
-          reply: 'तो हम इसी पर काम करेंगे।',
+          ask: 'दिमाग़ में क्या चल रहा है?',
+          athlete: 'बड़े पलों से पहले मैं ज़्यादा सोचने लगता हूं।',
+          reply: 'चलो आसान करते हैं। आज तुम्हारे हाथ में क्या है?',
         },
         repsCard: {
           title: 'Mental Reps',
@@ -2011,6 +2036,25 @@ export const translations = {
           reminder: 'पिछला नहीं, अगला पॉइंट खेलो।',
         },
       },
+
+      // ── Personalisation ───────────────────────────────────────────────────
+      personalTitle: 'Arjun समझता है कि तुम कैसे परफॉर्म करते हो',
+      personal: [
+        { title: 'तुम्हारा खेल',                 line: 'तुम्हारा खेल और तुम किस पर काम कर रहे हो, दोनों समझता है।' },
+        { title: 'जब दबाव आता है',                line: 'मुश्किल पलों में आमतौर पर क्या होता है, यह याद रखता है।' },
+        { title: 'तुम्हारे लिए क्या काम करता है', line: 'काम आने वाली रणनीतियां ज़रूरत के वक्त पास रखता है।' },
+      ],
+      personalGameChips: ['खेल', 'रोल', 'लेवल', 'लक्ष्य'],
+      personalFlow: { situation: 'हालात', firstResponse: 'पहली प्रतिक्रिया', impact: 'खेल पर असर' },
+      personalWorks: ['अगली गेंद।', 'गलती के बाद रीसेट'],
+
+      // ── Sport psychology principles ───────────────────────────────────────
+      principlesTitle: 'स्पोर्ट्स साइकोलॉजी के सिद्धांतों पर बना',
+      principles: [
+        { title: 'सेटबैक के बाद रीसेट', line: 'छोड़ो, रीसेट करो, आगे बढ़ो।' },
+        { title: 'फोकस और सेल्फ-टॉक',   line: 'अगले एक्शन के लिए आसान cue।' },
+        { title: 'सोचो और सीखो',        line: 'जो काम आया उसे देखो और आगे ले जाओ।' },
+      ],
 
       // ── FAQ ───────────────────────────────────────────────────────────────
       faqTitle: 'अक्सर पूछे जाने वाले सवाल',
