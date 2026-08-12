@@ -45,12 +45,12 @@ describe('hero', () => {
     renderHome();
     const headings = screen.getAllByRole('heading', { level: 1 });
     expect(headings).toHaveLength(1);
-    expect(headings[0].textContent).toBe('Your AI coach for the moments that matter.');
+    expect(headings[0].textContent).toBe('Train your mind. Perform under pressure.');
   });
 
-  test('the subtitle describes the current product', () => {
+  test('the subtext names focus, pressure and confidence', () => {
     renderHome();
-    expect(screen.getByText('Mental coaching for Indian athletes.')).toBeTruthy();
+    expect(screen.getByText('Train focus, handle pressure and build confidence with Arjun.')).toBeTruthy();
   });
 
   test('opens on the headline — no eyebrow above it', () => {
@@ -58,12 +58,17 @@ describe('hero', () => {
     expect(screen.queryByText('AI Mental Coach for Athletes')).toBeNull();
   });
 
-  test('the hero CTA is Download the app, and there are no account CTAs on the page', () => {
+  test('the hero CTA is Install Arjun, and there are no account CTAs on the page', () => {
     renderHome();
-    expect(screen.getAllByRole('button', { name: /download the app/i }).length).toBeGreaterThanOrEqual(3);
+    expect(screen.getAllByRole('button', { name: /^install arjun$/i }).length).toBeGreaterThanOrEqual(3);
     expect(screen.queryByRole('button', { name: /create account/i })).toBeNull();
     // Sign in is not a page CTA — it only exists inside the menu.
     expect(screen.queryByRole('button', { name: /^sign in$/i })).toBeNull();
+  });
+
+  test('no fake app-store badges', () => {
+    const { container } = renderHome();
+    expect(container.textContent).not.toMatch(/app store|google play|get it on/i);
   });
 
   test('Sign in is still reachable from the menu and still goes to /auth?tab=signin', async () => {
@@ -74,13 +79,17 @@ describe('hero', () => {
     expect(screen.getByText('AUTH_ROUTE:/auth?tab=signin')).toBeTruthy();
   });
 
-  test('the hero product visual represents a Coach conversation ending in a Mental Rep', () => {
+  test('the hero phone shows Arjun asking questions and checking its understanding', () => {
     renderHome();
-    const visual = screen.getByRole('img', { name: /coaching conversation/i });
+    const visual = screen.getByRole('img', { name: /Coach asking/i });
     expect(within(visual).getByText('What happened today?')).toBeTruthy();
     expect(within(visual).getByText('I lost focus after a mistake.')).toBeTruthy();
-    expect(within(visual).getAllByText('Reset after a mistake').length).toBeGreaterThan(0);
-    expect(within(visual).getByText('Start')).toBeTruthy();
+    expect(within(visual).getByText('What happened in the next few moments?')).toBeTruthy();
+    expect(within(visual).getByText(/Does that fit\?/)).toBeTruthy();
+    expect(within(visual).getByText('Yes')).toBeTruthy();
+    expect(within(visual).getByText('Not quite')).toBeTruthy();
+    // The hero stops before prescribing anything.
+    expect(within(visual).queryByText(/Start Mental Rep/i)).toBeNull();
   });
 });
 
@@ -106,11 +115,24 @@ describe('no legacy product claims', () => {
   });
 });
 
-describe('value strip', () => {
-  test('shows the five short value labels', () => {
+describe('benefit tags', () => {
+  const LABELS = ['Talk it through', 'Quick Mental Reps', 'Save what works', 'Hindi + English', 'Private by design'];
+
+  test('shows the five coloured tags', () => {
     renderHome();
-    for (const label of ['Coach conversations', '2-min Mental Reps', 'Save cues', 'Hindi + English', 'Private by design']) {
-      expect(screen.getByText(label)).toBeTruthy();
+    const tags = screen.getByRole('region', { name: 'What you get' });
+    for (const label of LABELS) expect(within(tags).getByText(label)).toBeTruthy();
+    expect(within(tags).getAllByRole('listitem')).toHaveLength(5);
+  });
+
+  test('each tag carries its own accent rather than one shared pill style', () => {
+    renderHome();
+    const tags = screen.getByRole('region', { name: 'What you get' });
+    const colours = LABELS.map((label) => within(tags).getByText(label).style.color);
+    expect(new Set(colours).size).toBe(5);
+    // No supporting sentence under a tag.
+    for (const item of within(tags).getAllByRole('listitem')) {
+      expect(item.textContent.length).toBeLessThanOrEqual(20);
     }
   });
 });
@@ -119,7 +141,7 @@ describe('How Arjun helps', () => {
   test('renders the four intended use cases inside a labelled carousel', () => {
     renderHome();
     const region = screen.getByRole('region', { name: 'How Arjun helps' });
-    for (const title of ['Before a match', 'After a setback', 'Build focus', 'Reflect & reset']) {
+    for (const title of ['Before a match', 'Under pressure', 'After a setback', 'Build your mental game']) {
       expect(within(region).getByText(title)).toBeTruthy();
     }
     expect(within(region).getAllByRole('group')).toHaveLength(4);
@@ -130,9 +152,27 @@ describe('app preview', () => {
   test('shows the four current product areas', () => {
     renderHome();
     const region = screen.getByRole('region', { name: 'Inside Arjun' });
-    for (const title of ['Coach', 'Mental Reps', 'Playbook', 'Focus Cards']) {
+    for (const title of ['Coach', 'Mental Reps', 'Playbook', 'Arjun remembers your game']) {
       expect(within(region).getByRole('heading', { name: title })).toBeTruthy();
     }
+  });
+
+  test('the previews are real current screens — coaching, a rep, saved cues, the pressure profile', () => {
+    renderHome();
+    const region = screen.getByRole('region', { name: 'Inside Arjun' });
+    expect(within(region).getByText("What's been getting in the way lately?")).toBeTruthy();
+    expect(within(region).getByText('Start Mental Rep')).toBeTruthy();
+    expect(within(region).getByText('Latest lesson')).toBeTruthy();
+    expect(within(region).getAllByText('When pressure hits').length).toBeGreaterThan(0);
+    expect(within(region).getByText('First response')).toBeTruthy();
+  });
+
+  test('no preview shows a graph, score, streak or audio control', () => {
+    renderHome();
+    const region = screen.getByRole('region', { name: 'Inside Arjun' });
+    expect(region.textContent).not.toMatch(/\bscore\b|streak|\bxp\b|\bchart\b|\bgraph\b|\d+%|\blisten\b/i);
+    expect(region.querySelector('audio')).toBeNull();
+    expect(region.querySelector('svg[data-lucide="play"]')).toBeNull();
   });
 });
 
@@ -175,14 +215,14 @@ describe('FAQ', () => {
   test('rows are collapsed buttons that expand on click and collapse again', async () => {
     const user = userEvent.setup();
     renderHome();
-    const q = screen.getByRole('button', { name: /How is Arjun different\?/ });
+    const q = screen.getByRole('button', { name: /What is Arjun\?/ });
     expect(q.getAttribute('aria-expanded')).toBe('false');
-    expect(screen.queryByRole('region', { name: /How is Arjun different\?/ })).toBeNull();
+    expect(screen.queryByRole('region', { name: /What is Arjun\?/ })).toBeNull();
 
     await user.click(q);
     expect(q.getAttribute('aria-expanded')).toBe('true');
-    const panel = screen.getByRole('region', { name: /How is Arjun different\?/ });
-    expect(panel.textContent).toMatch(/built for athletes/i);
+    const panel = screen.getByRole('region', { name: /What is Arjun\?/ });
+    expect(panel.textContent).toMatch(/AI mental-performance coach/i);
 
     await user.click(q);
     expect(q.getAttribute('aria-expanded')).toBe('false');
@@ -205,7 +245,7 @@ describe('PWA install', () => {
     const user = userEvent.setup();
     renderHome();
     const header = screen.getByRole('banner');
-    const installBtn = within(header).getByRole('button', { name: /install app/i });
+    const installBtn = within(header).getByRole('button', { name: /install arjun/i });
     expect(installBtn).toBeTruthy();
     await user.click(screen.getByRole('button', { name: /open menu/i }));
     const menu = document.getElementById('landing-menu');
@@ -216,7 +256,7 @@ describe('PWA install', () => {
   test('with no beforeinstallprompt, the header action falls back to instructions', async () => {
     const user = userEvent.setup();
     renderHome();
-    await user.click(within(screen.getByRole('banner')).getByRole('button', { name: /install app/i }));
+    await user.click(within(screen.getByRole('banner')).getByRole('button', { name: /install arjun/i }));
     expect(screen.getByText('How to install')).toBeTruthy();
     await user.click(screen.getByRole('button', { name: /close/i }));
     expect(screen.queryByText('How to install')).toBeNull();
@@ -225,9 +265,9 @@ describe('PWA install', () => {
   test('once installed, no misleading install action is shown', async () => {
     const { container } = renderHome();
     await act(async () => { window.dispatchEvent(new Event('appinstalled')); });
-    expect(within(screen.getByRole('banner')).queryByRole('button', { name: /install app/i })).toBeNull();
+    expect(within(screen.getByRole('banner')).queryByRole('button', { name: /install arjun/i })).toBeNull();
     expect(container.textContent).toMatch(/App installed/);
-    expect(screen.queryByRole('button', { name: /download the app/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^install arjun$/i })).toBeNull();
     expect(screen.getAllByRole('button', { name: /open arjun/i }).length).toBeGreaterThanOrEqual(3);
   });
 
@@ -254,29 +294,30 @@ describe('language', () => {
   test('Hindi renders Hindi copy across hero, cards and FAQ', () => {
     renderHome('hi');
     expect(screen.getAllByRole('heading', { level: 1 })[0].textContent)
-      .toBe('तुम्हारा AI कोच उन पलों के लिए जो मायने रखते हैं।');
-    expect(screen.getByText('भारतीय एथलीट्स के लिए मेंटल कोचिंग।')).toBeTruthy();
+      .toBe('दिमाग़ को ट्रेन करो। दबाव में बेहतर खेलो।');
+    expect(screen.getByText('Arjun के साथ फोकस बनाओ, दबाव संभालो और आत्मविश्वास बढ़ाओ।')).toBeTruthy();
     expect(screen.getByText('मैच से पहले')).toBeTruthy();
+    expect(screen.getByText('₹2,499 / साल')).toBeTruthy();
     expect(screen.getByRole('button', { name: /क्या Arjun थेरेपी है\?/ })).toBeTruthy();
-    expect(screen.getByRole('heading', { name: 'जब दबाव आता है' })).toBeTruthy();
+    expect(screen.getAllByRole('heading', { name: 'जब दबाव आता है' }).length).toBeGreaterThan(0);
     expect(screen.getByRole('heading', { name: 'सोचो और सीखो' })).toBeTruthy();
     expect(screen.getByText('₹299 / महीना')).toBeTruthy();
-    expect(screen.getAllByRole('button', { name: /ऐप डाउनलोड करो/ }).length).toBeGreaterThanOrEqual(3);
+    expect(screen.getAllByRole('button', { name: /Arjun इंस्टॉल करो/ }).length).toBeGreaterThanOrEqual(3);
   });
 });
 
 describe('personalisation', () => {
   test('shows the three Profile-mirrored cards with their real stage names', () => {
     renderHome();
-    expect(screen.getByRole('heading', { name: 'Arjun gets to know how you perform' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Built around you' })).toBeTruthy();
     for (const title of ['Your game', 'When pressure hits', 'What works for you']) {
       expect(screen.getByRole('heading', { name: title })).toBeTruthy();
     }
     // The When Pressure Hits flow uses the Profile's own athlete-facing labels.
-    expect(screen.getByText('Situation')).toBeTruthy();
-    expect(screen.getByText('First response')).toBeTruthy();
-    expect(screen.getByText('Performance impact')).toBeTruthy();
-    expect(screen.getByText(/Remembers what tends to happen/)).toBeTruthy();
+    expect(screen.getAllByText('Situation').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('First response').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Performance impact').length).toBeGreaterThan(0);
+    expect(screen.getByText('What tends to happen in difficult moments.')).toBeTruthy();
   });
 
   test('claims nothing about personality or mental state', () => {
@@ -296,45 +337,73 @@ describe('sport psychology principles', () => {
   });
 });
 
-describe('hero layering', () => {
-  test('the hero stacks current screens — Playbook, Focus Cards and a saved cue', () => {
+describe('hero device', () => {
+  test('the hero visual is one realistic phone, not a stack of marketing cards', () => {
     renderHome();
-    const visual = screen.getByRole('img', { name: /coaching conversation/i });
-    expect(within(visual).getByText('Playbook')).toBeTruthy();
-    expect(within(visual).getByText('Focus Cards')).toBeTruthy();
-    expect(within(visual).getByText('Saved cue')).toBeTruthy();
+    const visual = screen.getByRole('img', { name: /Coach asking/i });
+    // A single device frame, and the app's real dark screen inside it.
+    const screens = visual.querySelectorAll('[style*="rgb(7, 19, 31)"]');
+    expect(screens.length).toBeGreaterThan(0);
+    expect(visual.querySelectorAll('.rounded-\\[2\\.4rem\\]')).toHaveLength(1);
   });
 });
 
 describe('final CTA', () => {
   test('carries both actions and no social proof', () => {
     const { container } = renderHome();
-    // The two lines share one <p>, split by a <br>.
-    expect(container.textContent).toMatch(/Train your mind\./);
-    expect(container.textContent).toMatch(/Elevate your game\./);
-    expect(screen.getAllByRole('button', { name: /download the app/i }).length).toBeGreaterThanOrEqual(3);
+    expect(screen.getByText('Ready to play your best?')).toBeTruthy();
+    expect(screen.getByText('Install Arjun and start training your mind.')).toBeTruthy();
+    expect(screen.getAllByRole('button', { name: /^install arjun$/i }).length).toBeGreaterThanOrEqual(3);
     expect(container.textContent).not.toMatch(/thousands|★|loved by|athletes trust/i);
   });
 });
 
 describe('pricing', () => {
-  test('states the real trial and price, and nothing else', () => {
-    const { container } = renderHome();
-    expect(screen.getByRole('heading', { name: 'Start with Arjun' })).toBeTruthy();
-    expect(screen.getByText('14 days free')).toBeTruthy();
-    expect(screen.getByText('₹299 / month')).toBeTruthy();
-    expect(screen.getByText(/Continue after your trial for ₹299\/month\./)).toBeTruthy();
-    // No tiers, annual plan, struck-through price, urgency or guarantee.
-    expect(container.textContent).not.toMatch(/annual|per year|most popular|save \d|limited time|guarantee/i);
-    const prices = container.textContent.match(/₹[\d,]+/g) || [];
-    expect([...new Set(prices)]).toEqual(['₹299']);
+  test('has its own heading above two plans', () => {
+    renderHome();
+    const heading = screen.getByRole('heading', { name: 'Choose your plan' });
+    expect(heading).toBeTruthy();
+    expect(screen.getByText('Both plans start with 14 days free.')).toBeTruthy();
+    expect(screen.getByText('Monthly')).toBeTruthy();
+    expect(screen.getByText('Yearly')).toBeTruthy();
   });
 
-  test('its CTA is the same Download action', () => {
+  test('shows the real launch prices and the correct saving', () => {
+    const { container } = renderHome();
+    expect(screen.getByText('₹299 / month')).toBeTruthy();
+    expect(screen.getByText('₹2,499 / year')).toBeTruthy();
+    expect(screen.getByText('Save ₹1,089 a year')).toBeTruthy();
+    const prices = container.textContent.match(/₹[\d,]+/g) || [];
+    expect([...new Set(prices)].sort()).toEqual(['₹1,089', '₹2,499', '₹299']);
+    expect(container.textContent).not.toMatch(/limited time|guarantee|most popular/i);
+  });
+
+  test('POPULAR appears on the yearly plan only', () => {
     renderHome();
-    const heading = screen.getByRole('heading', { name: 'Start with Arjun' });
-    const section = heading.closest('section');
-    expect(within(section).getByRole('button', { name: /download the app/i })).toBeTruthy();
+    const badges = screen.getAllByText('Popular');
+    expect(badges).toHaveLength(1);
+    const yearlyCard = screen.getByText('₹2,499 / year').closest('div');
+    expect(yearlyCard.textContent).toMatch(/Popular/);
+  });
+
+  test('both plans list the benefits, yearly adds one', () => {
+    renderHome();
+    for (const benefit of ['AI Coach conversations', 'Mental Reps', 'Playbook & saved cues']) {
+      expect(screen.getAllByText(benefit).length).toBeGreaterThanOrEqual(2);
+    }
+    expect(screen.getByText('Best value for regular training')).toBeTruthy();
+  });
+
+  test('both plan CTAs run the existing install action, not a fake checkout', async () => {
+    const user = userEvent.setup();
+    renderHome();
+    const monthly = screen.getByRole('button', { name: 'Choose monthly' });
+    const yearly = screen.getByRole('button', { name: 'Choose yearly' });
+    await user.click(monthly);
+    await user.click(yearly);
+    // No navigation to an invented checkout route happened.
+    expect(screen.queryByText(/AUTH_ROUTE/)).toBeNull();
+    expect(screen.getByRole('heading', { name: 'Choose your plan' })).toBeTruthy();
   });
 });
 

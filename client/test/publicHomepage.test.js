@@ -1,12 +1,12 @@
-// Source-text + data checks for the public homepage redesign.
+// Source-text + data checks for the public homepage.
 //
-// The homepage is the one screen a visitor sees before signing up, so these
+// The homepage is the one screen a visitor sees before installing, so these
 // guard two separate things: that it describes the CURRENT product (Coach
-// conversations, Mental Reps, Playbook, Focus Cards, bilingual, private), and
-// that it never re-acquires the removed concepts the old page advertised
-// (Daily Pulse, mood/focus/energy/sleep tracking, a personality test, game
-// scores, research percentages, install-first conversion) or anything
-// suggesting audio — Arjun has no audio coaching of any kind.
+// conversations that ask before they prescribe, Mental Reps, Playbook, the
+// When Pressure Hits profile, bilingual, private), and that it never
+// re-acquires the removed concepts the old page advertised (Daily Pulse,
+// mood/energy/sleep tracking, a personality test, game scores, research
+// percentages) or anything suggesting audio — Arjun has no audio coaching.
 //
 // Dependency-free, run by `npm run test:source`.
 
@@ -23,6 +23,7 @@ const read = (rel) => readFileSync(path.join(root, rel), 'utf8');
 const landing = read('src/pages/LandingPage.jsx');
 const carousel = read('src/components/landing/LandingCarousel.jsx');
 const mockups = read('src/components/landing/LandingMockups.jsx');
+const phoneFrame = read('src/components/landing/PhoneFrame.jsx');
 const translationsSrc = read('src/i18n/translations.js');
 const app = read('src/App.jsx');
 const viteConfig = read('vite.config.js');
@@ -49,66 +50,105 @@ const bothBlocks = `${enBlock}\n${hiBlock}`;
 // Forbidden-term checks run against code and copy, not against the comments
 // that explain WHY those terms are forbidden.
 const stripComments = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
-const homepageSources = stripComments(`${landing}\n${carousel}\n${mockups}`);
+const homepageSources = stripComments(`${landing}\n${carousel}\n${mockups}\n${phoneFrame}`);
+
+const section = (from, to) => landing.slice(landing.indexOf(from), landing.indexOf(to));
 
 // ── 1. Hero ─────────────────────────────────────────────────────────────────
 
 test('hero headline is the approved copy, with the closing phrase accented', () => {
-  assert.equal(en.headlineLead, 'Your AI coach for the moments ');
-  assert.equal(en.headlineAccent, 'that matter.');
+  assert.equal(en.headlineLead, 'Train your mind. ');
+  assert.equal(en.headlineAccent, 'Perform under pressure.');
+  assert.equal(hi.headlineAccent, 'दबाव में बेहतर खेलो।');
   assert.match(landing, /\{t\.headlineLead\}/);
-  assert.match(landing, /<span className="text-\[#185FA5\]">\{t\.headlineAccent\}<\/span>/);
+  assert.match(landing, /<span className="block text-\[#185FA5\]">\{t\.headlineAccent\}<\/span>/);
   // Responsive wrapping, never hard-coded <br> in the headline.
   const h1 = landing.slice(landing.indexOf('<h1'), landing.indexOf('</h1>'));
   assert.doesNotMatch(h1, /<br|\\n/);
+  // Visually dominant on mobile: the base size leads the page's type scale.
+  const size = Number(h1.match(/text-\[(\d+)px\]/)[1]);
+  assert.ok(size >= 38, `hero headline should dominate on mobile, got ${size}px`);
 });
 
 test('exactly one h1 on the page', () => {
   assert.equal((landing.match(/<h1[\s>]/g) || []).length, 1);
 });
 
-test('subtitle describes the current product in one short line, with no second paragraph', () => {
-  assert.equal(en.subtitle, 'Mental coaching for Indian athletes.');
-  assert.equal(hi.subtitle, 'भारतीय एथलीट्स के लिए मेंटल कोचिंग।');
+test('subtext is one short line and names what the athlete gets', () => {
+  assert.equal(en.subtitle, 'Train focus, handle pressure and build confidence with Arjun.');
   assert.match(landing, /\{t\.subtitle\}/);
-  assert.ok(en.subtitle.length < 60, 'the hero subtitle stays a single short line');
-});
-
-// ── 2. Auth routes are untouched ────────────────────────────────────────────
-
-test('the auth route contract is untouched — sign-in still goes to /auth?tab=signin', () => {
-  // The page no longer *markets* account creation (the product action is
-  // installing the app; accounts are created inside it), but the route and
-  // the menu entry that reaches it are unchanged.
-  assert.match(landing, /const goSignIn = \(\) => navigate\('\/auth\?tab=signin'\);/);
-  const routes = [...landing.matchAll(/navigate\('([^']+)'\)/g)].map((m) => m[1]);
-  const allowed = ['/auth?tab=signin', '/privacy', '/terms', '/terms#ai-child-safety', '/refund'];
-  for (const route of routes) {
-    assert.ok(allowed.includes(route), `unexpected navigation target: ${route}`);
-  }
-});
-
-test('the hero no longer shows paired Create account / Sign in CTAs', () => {
-  const hero = landing.slice(landing.indexOf('{/* ── Hero'), landing.indexOf('{/* ── Value strip'));
-  assert.doesNotMatch(hero, /ctaCreate|ctaSignIn|goSignIn/);
-  // Exactly one CTA in the hero, and it is the shared Download action.
-  assert.equal((hero.match(/<button/g) || []).length, 1);
-  assert.match(hero, /onClick=\{primaryAction\}/);
-  assert.equal(en.ctaDownload, 'Download the app');
-  assert.equal(hi.ctaDownload, 'ऐप डाउनलोड करो');
-  assert.ok(!('ctaCreate' in en) && !('ctaCreate' in hi), 'the Create account label is gone');
+  assert.ok(en.subtitle.length <= 70, 'the hero subtext stays a single short line');
+  // No second paragraph in the hero.
+  const hero = section('{/* ── Hero', '{/* ── Benefit tags');
+  assert.equal((hero.match(/\{t\.subtitle\}/g) || []).length, 1);
+  assert.doesNotMatch(hero, /\{t\.(pricingTrialNote|finalLine)\}/);
 });
 
 test('the hero opens on the headline — no eyebrow, pill or tag above it', () => {
-  const hero = landing.slice(landing.indexOf('{/* ── Hero'), landing.indexOf('</h1>'));
-  assert.doesNotMatch(hero, /rounded-full/, 'no pill sits above the headline');
-  assert.ok(!('pill' in en) && !('pill' in hi), 'the eyebrow string is gone from both languages');
+  const above = landing.slice(landing.indexOf('{/* ── Hero'), landing.indexOf('</h1>'));
+  assert.doesNotMatch(above, /rounded-full/, 'no pill sits above the headline');
+  assert.ok(!('pill' in en) && !('pill' in hi));
   assert.doesNotMatch(bothBlocks, /AI Mental Coach for Athletes/);
 });
 
-test('App.jsx still renders the landing page at / and AuthPage at /auth', () => {
-  assert.match(app, /<Route path="\/" element=\{user \? <Navigate to="\/dashboard" replace \/> : <LandingPage \/>\} \/>/);
-  assert.match(app, /<Route path="\/auth" element=\{user \? <Navigate to="\/dashboard" replace \/> : <AuthPage \/>\} \/>/);
+test('the hero CTA is Install Arjun — no Create account / Sign in conversion', () => {
+  assert.equal(en.ctaInstall, 'Install Arjun');
+  assert.equal(hi.ctaInstall, 'Arjun इंस्टॉल करो');
+  const hero = section('{/* ── Hero', '{/* ── Benefit tags');
+  assert.equal((hero.match(/<button/g) || []).length, 1, 'exactly one hero CTA');
+  assert.match(hero, /onClick=\{primaryAction\}/);
+  assert.doesNotMatch(hero, /ctaSignIn|goSignIn|ctaCreate/);
+  assert.ok(!('ctaCreate' in en) && !('ctaCreate' in hi));
+});
+
+test('no fake app-store distribution is claimed — Arjun ships as a PWA', () => {
+  assert.doesNotMatch(bothBlocks, /app ?store|google play|play store|get it on/i);
+  assert.doesNotMatch(homepageSources, /app-?store|google-?play|playstore/i);
+});
+
+// ── 2. Hero phone — the real coaching loop, no audio ───────────────────────
+
+test('the hero phone shows Arjun asking and checking, not prescribing', () => {
+  const p = en.phone;
+  assert.equal(p.q1, 'What happened today?');
+  assert.equal(p.a1, 'I lost focus after a mistake.');
+  assert.equal(p.q2, 'What happened in the next few moments?');
+  assert.equal(p.a2, 'I kept thinking about it.');
+  assert.match(p.q3, /Does that fit\?$/);
+  assert.equal(p.chipYes, 'Yes');
+  assert.equal(p.chipNo, 'Not quite');
+  // No Mental Rep is prescribed in the hero conversation.
+  const hero = mockups.slice(mockups.indexOf('export function HeroPhone'), mockups.indexOf('// ── Inside Arjun'));
+  assert.doesNotMatch(hero, /MentalRepScreen|repTitle|Start/);
+  assert.match(hero, /<PhoneFrame>/);
+  assert.match(hero, /<CoachScreen/);
+});
+
+test('the phone frame is a real device frame, not a card', () => {
+  assert.match(phoneFrame, /rounded-\[2\.4rem\]/, 'rounded device shell');
+  assert.match(phoneFrame, /bg-\[#0A0F16\]/, 'dark bezel');
+  assert.match(phoneFrame, /h-\[16px\] w-\[64px\] rounded-full bg-black/, 'dynamic-island cutout');
+  assert.match(phoneFrame, /shadow-\[0_26px_60px/, 'device shadow');
+  // Narrow phone proportions — never as wide as a marketing card.
+  const heroWidth = Number(mockups.match(/max-w-\[(\d+)px\]/)[1]);
+  assert.ok(heroWidth <= 280, `hero device should stay narrow, got ${heroWidth}px`);
+});
+
+test('device screens use the app\'s real dark theme while the page stays light', () => {
+  for (const token of ['#07131F', '#132334', '#1B3044', '#1F3448', '#F8FAFC', '#5FA8DE']) {
+    assert.ok(phoneFrame.includes(token), `missing dark-theme token ${token}`);
+  }
+  // The page itself is still the light canvas.
+  assert.match(landing, /bg-\[#FAFBFD\]/);
+  assert.doesNotMatch(stripComments(landing), /#07131F/, 'no dark section on the page itself');
+});
+
+test('the device shows the real bottom-nav order and nothing invented', () => {
+  const nav = phoneFrame.slice(phoneFrame.indexOf('const NAV = ['), phoneFrame.indexOf('];', phoneFrame.indexOf('const NAV = [')));
+  assert.deepEqual(
+    nav.replace('const NAV = [', '').split(',').map((s) => s.trim()).filter(Boolean),
+    ['Home', 'Dumbbell', 'MessageCircle', 'BookOpen', 'User'],
+  );
 });
 
 // ── 3. No audio, anywhere ───────────────────────────────────────────────────
@@ -121,17 +161,16 @@ test('no audio/voice/waveform concept appears in the homepage or its copy', () =
 
 test('no audio-suggesting control is rendered — no play button, no duration bar', () => {
   assert.doesNotMatch(homepageSources, /<audio|Play,|PlayCircle|Mic,|Volume|AudioLines|Headphones/);
-  // The only duration on the page is the length of a Mental Rep, next to Start.
-  assert.equal(en.phone.repMeta, '2 min');
-  assert.equal(en.phone.repCta, 'Start');
+  // The only duration on the page is a Mental Rep's length.
+  assert.equal(en.preview.repsCard.meta, '2 min');
   assert.doesNotMatch(homepageSources, /0:\d\d/);
 });
 
 // ── 4. Removed/legacy concepts stay removed ─────────────────────────────────
 
 test('no Daily Pulse or daily check-in framing', () => {
-  assert.doesNotMatch(bothBlocks, /daily pulse|डेली पल्स|check-?in|चेक-इन/i);
-  assert.doesNotMatch(homepageSources, /daily pulse|checkin|check-in/i);
+  assert.doesNotMatch(bothBlocks, /daily pulse|डेली पल्स|\bcheck-?ins?\b|चेक-इन/i);
+  assert.doesNotMatch(homepageSources, /daily pulse|checkin/i);
 });
 
 test('no mood / energy / sleep tracking claim', () => {
@@ -143,9 +182,9 @@ test('no personality test claim', () => {
   assert.doesNotMatch(bothBlocks, /personality|व्यक्तित्व|ocean/i);
 });
 
-test('no scores, XP, streaks, charts or analytics claims', () => {
-  assert.doesNotMatch(bothBlocks, /\bscore\b|\bxp\b|streak|analytics|\bchart\b|\bstat\b|स्कोर|स्ट्रीक/i);
-  assert.doesNotMatch(homepageSources, /\bxp\b|streak|recharts|BarChart/i);
+test('no scores, XP, streaks, charts, graphs or analytics claims', () => {
+  assert.doesNotMatch(bothBlocks, /\bscore\b|\bxp\b|streak|analytics|\bchart\b|\bgraph\b|\bstat\b|स्कोर|स्ट्रीक/i);
+  assert.doesNotMatch(homepageSources, /\bxp\b|streak|recharts|BarChart|LineChart|progress ?bar/i);
 });
 
 test('no research percentages or performance claims', () => {
@@ -153,7 +192,10 @@ test('no research percentages or performance claims', () => {
 });
 
 test('no fake social proof — no counts, ratings or testimonials', () => {
-  assert.doesNotMatch(bothBlocks, /thousands|lakh|million|\d+\s*\+?\s*(athletes|users|खिलाड़ी)|\brating\b|★|5-star|\breviews\b|star review|रिव्यू|testimonial|trusted by|loved by/i);
+  assert.doesNotMatch(
+    bothBlocks,
+    /thousands|lakh|million|\d+\s*\+?\s*(athletes|users|खिलाड़ी)|\brating\b|★|5-star|\breviews\b|star review|रिव्यू|testimonial|trusted by|loved by/i,
+  );
 });
 
 test('no old mental games, drills or match-day-routine-builder copy', () => {
@@ -163,11 +205,10 @@ test('no old mental games, drills or match-day-routine-builder copy', () => {
 test('the old landing keys are gone from both languages', () => {
   for (const block of [enBlock, hiBlock]) {
     for (const key of [
-      // `pricingTitle` is NOT in this list — the key name is reused by the
-      // new pricing section, whose content is asserted separately.
-      'tagline:', 'badge:', 'trust1:', 'step1:', 'feature1Title:', 'premium:',
-      'premiumDesc:', 'personalizeItems:', 'allFeatures:', 'researchFacts:',
-      'premiumAnnual:', 'ctaBtn:',
+      // `step1` is NOT listed — the Mental Rep preview legitimately uses it
+      // nested under repsCard; the stale key was a namespace-level one.
+      'tagline:', 'badge:', 'trust1:', 'feature1Title:', 'premiumDesc:',
+      'personalizeItems:', 'allFeatures:', 'researchFacts:', 'premiumAnnual:', 'ctaBtn:',
     ]) {
       assert.ok(!block.includes(key), `stale landing key still present: ${key}`);
     }
@@ -179,61 +220,109 @@ test('the old landing keys are gone from both languages', () => {
 test('How Arjun helps has exactly the four intended use cases, in order', () => {
   assert.deepEqual(
     en.helps.map((h) => h.title),
-    ['Before a match', 'After a setback', 'Build focus', 'Reflect & reset'],
+    ['Before a match', 'Under pressure', 'After a setback', 'Build your mental game'],
+  );
+  assert.deepEqual(
+    en.helps.map((h) => h.line),
+    ['Get mentally ready.', 'Reset and refocus.', 'Bounce back faster.', 'Practice what helps.'],
   );
   assert.equal(hi.helps.length, 4);
   for (const help of [...en.helps, ...hi.helps]) {
-    assert.ok(help.line.length > 0, 'each card carries exactly one supporting line');
+    assert.ok(help.line.length > 0 && help.line.length <= 45, 'one short supporting line per card');
     assert.ok(!help.desc && !help.sub, 'no second supporting line per card');
   }
-  // Four distinct restrained tints, not four identical blue cards.
-  const helpTints = landing.slice(landing.indexOf('const HELP_TINTS'), landing.indexOf('];', landing.indexOf('const HELP_TINTS')));
-  const tints = [...helpTints.matchAll(/bg: '(#[0-9A-F]{6})'/gi)].map((m) => m[1].toLowerCase());
+  // Four distinct tints and four distinct icons.
+  const tintBlock = landing.slice(landing.indexOf('const HELP_TINTS'), landing.indexOf('];', landing.indexOf('const HELP_TINTS')));
+  const tints = [...tintBlock.matchAll(/bg: '(#[0-9A-F]{6})'/gi)].map((m) => m[1].toLowerCase());
   assert.equal(tints.length, 4);
   assert.equal(new Set(tints).size, 4);
-  // Each card carries its own icon, so the row is not four identical tiles.
-  const icons = [...helpTints.matchAll(/Icon: (\w+)/g)].map((m) => m[1]);
-  assert.equal(new Set(icons).size, 4);
+  assert.equal(new Set([...tintBlock.matchAll(/Icon: (\w+)/g)].map((m) => m[1])).size, 4);
 });
 
-test('app preview shows current product areas only: Coach, Mental Reps, Playbook, Focus Cards', () => {
+test('How Arjun helps sits directly after the hero and its benefit tags', () => {
+  const order = ['{/* ── Hero', '{/* ── Benefit tags', '{/* ── How Arjun helps', '{/* ── Inside Arjun ']
+    .map((marker) => landing.indexOf(marker));
+  for (const i of order) assert.ok(i !== -1);
+  for (let i = 1; i < order.length; i++) assert.ok(order[i] > order[i - 1]);
+});
+
+test('the five benefit tags each carry their own accent, not one shared pill style', () => {
   assert.deepEqual(
-    [en.preview.coachCard.title, en.preview.repsCard.title, en.preview.playbookCard.title, en.preview.focusCard.title],
-    ['Coach', 'Mental Reps', 'Playbook', 'Focus Cards'],
+    [en.tagTalk, en.tagReps, en.tagSave, en.tagLang, en.tagPrivate],
+    ['Talk it through', 'Quick Mental Reps', 'Save what works', 'Hindi + English', 'Private by design'],
+  );
+  const tags = landing.slice(landing.indexOf('const benefitTags'), landing.indexOf('];', landing.indexOf('const benefitTags')));
+  const fgs = [...tags.matchAll(/fg: '(#[0-9A-F]{6})'/gi)].map((m) => m[1].toLowerCase());
+  assert.equal(fgs.length, 5);
+  assert.equal(new Set(fgs).size, 5, 'five distinct accent colours');
+  assert.equal(new Set([...tags.matchAll(/Icon: (\w+)/g)].map((m) => m[1])).size, 5);
+  // No supporting sentence under a tag.
+  for (const label of [en.tagTalk, en.tagReps, en.tagSave, en.tagLang, en.tagPrivate]) {
+    assert.ok(label.length <= 20, `tag label too long: ${label}`);
+  }
+});
+
+test('Inside Arjun shows four current product screens', () => {
+  assert.deepEqual(
+    [en.preview.coachCard.title, en.preview.repsCard.title, en.preview.playbookCard.title, en.preview.profileCard.title],
+    ['Coach', 'Mental Reps', 'Playbook', 'Arjun remembers your game'],
   );
   assert.match(landing, /<CoachPreview key="coach" t=\{previews\.coachCard\} \/>/);
   assert.match(landing, /<RepsPreview key="reps" t=\{previews\.repsCard\} \/>/);
   assert.match(landing, /<PlaybookPreview key="playbook" t=\{previews\.playbookCard\} \/>/);
-  assert.match(landing, /<FocusCardPreview key="focus" t=\{previews\.focusCard\} \/>/);
+  assert.match(landing, /<ProfilePreview key="profile" t=\{previews\.profileCard\} \/>/);
+  // Every preview is a device frame, all the same size.
+  const inside = mockups.slice(mockups.indexOf('// ── Inside Arjun'), mockups.indexOf('// ── Built-around-you'));
+  assert.equal((inside.match(/<PhoneFrame/g) || []).length, 1, 'one shared frame recipe for all four');
+  assert.equal((inside.match(/<Preview /g) || []).length, 4);
 });
 
-test('the hero mockup shows the real app navigation, and no invented surfaces', () => {
-  // Home · Train · Coach · Playbook · Profile — the real bottom-nav order.
-  const nav = mockups.slice(mockups.indexOf('const NAV = ['), mockups.indexOf('];', mockups.indexOf('const NAV = [')));
+test('the Coach preview is a real coaching exchange, not a generic AI chat', () => {
+  const c = en.preview.coachCard;
+  assert.equal(c.q1, "What's been getting in the way lately?");
+  assert.equal(c.a1, 'After one mistake I start rushing.');
+  assert.equal(c.q2, 'Is it the mistake itself, or trying to fix it too quickly?');
+  assert.equal(c.line, "Work through what's happening.");
+});
+
+test('the Mental Rep preview shows the real rep shape', () => {
+  const r = en.preview.repsCard;
+  assert.equal(r.repTitle, 'Reset after a mistake');
+  assert.equal(r.meta, '2 min');
+  assert.deepEqual([r.step1, r.step2, r.step3], ['Slow the breath', 'Name the next action', 'Use your reset cue']);
+  assert.equal(r.cta, 'Start Mental Rep');
+});
+
+test('the Playbook preview shows a lesson and a saved cue, nothing measured', () => {
+  const p = en.preview.playbookCard;
+  assert.equal(p.lessonLabel, 'Latest lesson');
+  assert.equal(p.cueLabel, 'Saved cue');
+  assert.equal(p.cue, 'Next ball.');
+  const screen = phoneFrame.slice(phoneFrame.indexOf('export function PlaybookScreen'), phoneFrame.indexOf('// ── Screen 4'));
+  assert.doesNotMatch(screen, /%|chart|graph|streak|score/i);
+});
+
+test('the fourth preview is the real When Pressure Hits profile section', () => {
+  const p = en.preview.profileCard;
+  assert.equal(p.screenTitle, 'When pressure hits');
   assert.deepEqual(
-    [...nav.matchAll(/key: '(\w+)'/g)].map((m) => m[1]),
-    ['home', 'train', 'coach', 'playbook', 'profile'],
+    [p.situationLabel, p.firstResponseLabel, p.impactLabel],
+    ['Situation', 'First response', 'Performance impact'],
   );
+  assert.match(p.resetTime, /^Reset time · /);
+  assert.equal(p.title, 'Arjun remembers your game');
 });
 
-test('the hero is a layered stack of current screens — Playbook, Focus Cards, a saved cue', () => {
-  assert.equal(en.phone.behindPlaybook, 'Playbook');
-  assert.equal(en.phone.behindFocus, 'Focus Cards');
-  assert.equal(en.phone.cueLabel, 'Saved cue');
-  const hero = mockups.slice(mockups.indexOf('export function HeroPhone'), mockups.indexOf('// ── App-preview mockups'));
-  assert.equal((hero.match(/<BehindCard/g) || []).length, 2, 'two screens sit behind the phone');
-  assert.match(hero, /<FloatingCue/, 'a card overlaps the phone at every width, including mobile');
-  // The rear screens carry no analytics of any kind.
-  assert.doesNotMatch(stripComments(mockups), /progress|percent|graph|trend/i);
-});
-
-// ── 5b. Personalisation section ─────────────────────────────────────────────
+// ── 6. Built around you ─────────────────────────────────────────────────────
 
 test('the personalisation section mirrors the real Profile sections', () => {
-  assert.equal(en.personalTitle, 'Arjun gets to know how you perform');
+  assert.equal(en.personalTitle, 'Built around you');
   assert.deepEqual(en.personal.map((p) => p.title), ['Your game', 'When pressure hits', 'What works for you']);
+  assert.deepEqual(
+    en.personal.map((p) => p.line),
+    ['Your sport, role and goals.', 'What tends to happen in difficult moments.', 'Useful cues, strategies and lessons.'],
+  );
   assert.equal(hi.personal.length, 3);
-  // When Pressure Hits uses the athlete-facing stage names the Profile uses.
   assert.deepEqual(
     [en.personalFlow.situation, en.personalFlow.firstResponse, en.personalFlow.impact],
     ['Situation', 'First response', 'Performance impact'],
@@ -245,57 +334,119 @@ test('the personalisation section mirrors the real Profile sections', () => {
 });
 
 test('personalisation claims stay inside what the athlete told Arjun', () => {
-  const claims = en.personal.map((p) => p.line).join(' ');
-  assert.match(claims, /Understands your game/);
-  assert.match(claims, /Remembers what tends to happen/);
-  assert.match(claims, /Keeps useful strategies close/);
-  // Never the removed/overreaching framings.
-  assert.doesNotMatch(bothBlocks, /personality|व्यक्तित्व|mental state|reads you|knows you|learns everything|performance pattern/i);
+  assert.doesNotMatch(bothBlocks, /personality|व्यक्तित्व|mental state|reads you|reads your mind|knows you|knows everything|learns everything|performance pattern/i);
 });
 
-// ── 5c. Sport-psychology principles ─────────────────────────────────────────
+// ── 7. Sport-psychology principles ──────────────────────────────────────────
 
 test('the principles section states principles, never measured outcomes', () => {
   assert.equal(en.principlesTitle, 'Built around sport psychology principles');
-  assert.deepEqual(
-    en.principles.map((p) => p.title),
-    ['Reset after setbacks', 'Focus & self-talk', 'Reflect & learn'],
-  );
+  assert.deepEqual(en.principles.map((p) => p.title), ['Reset after setbacks', 'Focus & self-talk', 'Reflect & learn']);
   assert.equal(hi.principles.length, 3);
-  assert.match(landing, /\{t\.principlesTitle\}/);
-  for (const p of [...en.principles, ...hi.principles]) {
-    assert.ok(p.line.length <= 60, `principle line too long: ${p.title}`);
-  }
-  // No statistic, no citation, no "proven" claim about Arjun itself.
-  assert.doesNotMatch(bothBlocks, /\d+\s*%|proven|clinically|study|studies|evidence-based|अध्ययन/i);
+  assert.doesNotMatch(bothBlocks, /\d+\s*%|proven|clinically|\bstudy\b|\bstudies\b|evidence-based/i);
 });
 
-test('the value strip lists five short, supportable labels', () => {
-  const values = [en.valueCoach, en.valueReps, en.valueCues, en.valueLang, en.valuePrivate];
-  assert.deepEqual(values, [
-    'Coach conversations', '2-min Mental Reps', 'Save cues', 'Hindi + English', 'Private by design',
+// ── 8. Pricing ──────────────────────────────────────────────────────────────
+
+test('pricing has its own heading above the cards, not inside one', () => {
+  assert.equal(en.pricingTitle, 'Choose your plan');
+  assert.equal(hi.pricingTitle, 'अपना प्लान चुनो');
+  const pricing = section('{/* ── Pricing', '{/* ── FAQ');
+  const headingIdx = pricing.indexOf('{t.pricingTitle}');
+  const firstCardIdx = pricing.indexOf('{t.planMonthly}');
+  assert.ok(headingIdx !== -1 && firstCardIdx !== -1);
+  assert.ok(headingIdx < firstCardIdx, 'the heading sits above both cards');
+  assert.match(pricing, /<h2/);
+  // Side by side on desktop, stacked on mobile.
+  assert.match(pricing, /grid gap-4 sm:grid-cols-2/);
+});
+
+test('the two plans carry the real launch prices and the correct saving', () => {
+  assert.equal(en.planMonthlyPrice, '₹299 / month');
+  assert.equal(en.planYearlyPrice, '₹2,499 / year');
+  assert.equal(en.planSave, 'Save ₹1,089 a year');
+  // ₹299 × 12 = ₹3,588; ₹3,588 − ₹2,499 = ₹1,089.
+  assert.equal(299 * 12 - 2499, 1089);
+  assert.equal(hi.planMonthlyPrice, '₹299 / महीना');
+  assert.equal(hi.planYearlyPrice, '₹2,499 / साल');
+  // No other price exists anywhere in the visible copy (values only — the
+  // arithmetic in the source comment is not shown to anyone).
+  const flat = (v) => (typeof v === 'string' ? [v] : Array.isArray(v) ? v.flatMap(flat)
+    : v && typeof v === 'object' ? Object.values(v).flatMap(flat) : []);
+  const prices = [...flat(en), ...flat(hi)].join(' ').match(/₹[\d,]+/g) || [];
+  assert.deepEqual([...new Set(prices)].sort(), ['₹1,089', '₹2,499', '₹299']);
+});
+
+test('both plans list the same benefits, yearly adds one', () => {
+  assert.deepEqual(en.planBenefits, [
+    'AI Coach conversations', 'Mental Reps', 'Playbook & saved cues', 'Hindi + English',
   ]);
-  for (const v of values) assert.ok(v.length <= 20, `value-strip label too long: ${v}`);
+  assert.equal(en.planYearlyExtra, 'Best value for regular training');
+  assert.equal(hi.planBenefits.length, 4);
+  const pricing = section('{/* ── Pricing', '{/* ── FAQ');
+  assert.match(pricing, /\{t\.planBenefits\.map/);
+  assert.match(pricing, /\[\.\.\.t\.planBenefits, t\.planYearlyExtra\]/);
 });
 
-// ── 6. FAQ ──────────────────────────────────────────────────────────────────
+test('yearly is the visually preferred plan, monthly is not broken', () => {
+  const pricing = section('{/* ── Pricing', '{/* ── FAQ');
+  // Split on the card comments so each slice includes its container classes.
+  const monthly = pricing.slice(pricing.indexOf('{/* Monthly'), pricing.indexOf('{/* Yearly'));
+  const yearly = pricing.slice(pricing.indexOf('{/* Yearly'));
+  // POPULAR badge on yearly only.
+  assert.equal((pricing.match(/\{t\.planPopular\}/g) || []).length, 1);
+  assert.match(yearly, /\{t\.planPopular\}/);
+  assert.doesNotMatch(monthly, /planPopular/);
+  // Yearly: brand border + tint + filled CTA. Monthly: neutral + outlined CTA.
+  assert.match(yearly, /border-2 border-\[#185FA5\]/);
+  assert.match(yearly, /linear-gradient/);
+  assert.match(yearly, /bg-\[#185FA5\] text-\[15\.5px\] font-bold text-white/);
+  assert.match(monthly, /border-\[1\.5px\] border-\[#185FA5\] bg-white/, 'monthly keeps a clear outlined CTA');
+  assert.doesNotMatch(monthly, /border-2 border-\[#185FA5\]/);
+});
 
-test('FAQ asks the five approved questions and answers stay short', () => {
+test('pricing invents nothing — no third tier, struck-through price or urgency', () => {
+  assert.doesNotMatch(bothBlocks, /line-through|was ₹|only ₹|limited time|offer ends|hurry|money-back|guarantee/i);
+  assert.doesNotMatch(section('{/* ── Pricing', '{/* ── FAQ'), /line-through/);
+  // Exactly two plans.
+  assert.equal((landing.match(/\{t\.planChoose\w+\}/g) || []).length, 2);
+  // The 14-day trial is the only other pricing claim, and it is real.
+  assert.match(en.pricingTrialNote, /14 days free/);
+});
+
+test('pricing CTAs use the existing entry point — no invented checkout', () => {
+  const pricing = section('{/* ── Pricing', '{/* ── FAQ');
+  assert.equal((pricing.match(/onClick=\{primaryAction\}/g) || []).length, 2);
+  assert.doesNotMatch(homepageSources, /razorpay|create-subscription|checkout|planType/i);
+});
+
+// ── 9. FAQ ──────────────────────────────────────────────────────────────────
+
+test('FAQ asks the approved questions, including the supported pricing one', () => {
   assert.deepEqual(en.faq.map((f) => f.q), [
-    'How is Arjun different?',
+    'What is Arjun?',
+    'How do Mental Reps work?',
     'Is Arjun only for professional athletes?',
     'Can I use Arjun in Hindi?',
     'Is my data private?',
+    'Can I cancel anytime?',
     'Is Arjun therapy?',
   ]);
-  assert.equal(hi.faq.length, 5);
-  for (const item of [...en.faq, ...hi.faq]) assert.ok(item.a.length <= 190, `FAQ answer too long: ${item.q}`);
+  assert.equal(hi.faq.length, 7);
+  for (const item of [...en.faq, ...hi.faq]) assert.ok(item.a.length <= 220, `FAQ answer too long: ${item.q}`);
+});
+
+test('the cancel answer matches the implemented cancel behaviour', () => {
+  // AccountPage calls POST /api/payments/cancel, which keeps access until the
+  // end of the billing period — the answer says exactly that and no more.
+  const cancel = en.faq.find((f) => /cancel/i.test(f.q)).a;
+  assert.match(cancel, /end of that billing period/i);
+  assert.doesNotMatch(cancel, /refund|instantly|immediately/i);
 });
 
 test('the therapy boundary is stated, and privacy is claimed only as implemented', () => {
-  assert.match(en.faq[4].a, /not therapy, diagnosis or emergency help/i);
-  // Deletion is a real product capability; encryption/certification claims are not.
-  assert.match(en.faq[3].a, /delete your data, or your whole account/i);
+  assert.match(en.faq[6].a, /not therapy, diagnosis or emergency help/i);
+  assert.match(en.faq[4].a, /delete your data, or your whole account/i);
   assert.doesNotMatch(bothBlocks, /encrypt|end-to-end|ISO|SOC ?2|GDPR-certified/i);
 });
 
@@ -307,10 +458,11 @@ test('FAQ rows are an accessible accordion — button, aria-expanded, labelled p
   assert.match(landing, /<h3>\s*<button/);
 });
 
-// ── 7. Carousels ────────────────────────────────────────────────────────────
+// ── 10. Carousels ───────────────────────────────────────────────────────────
 
 test('carousels are swipeable, keyboard-operable and never auto-rotate', () => {
   assert.match(carousel, /snap-x snap-mandatory/);
+  assert.match(carousel, /scroll-pl-5/, 'the first card stays aligned with its heading');
   assert.match(carousel, /overflow-x-auto/);
   assert.match(carousel, /role="region"/);
   assert.match(carousel, /aria-roledescription="carousel"/);
@@ -328,13 +480,12 @@ test('carousels are swipeable, keyboard-operable and never auto-rotate', () => {
 test('both homepage carousels are labelled and show a partial next card on mobile', () => {
   assert.match(landing, /<LandingCarousel\s+label=\{t\.helpsTitle\}/);
   assert.match(landing, /<LandingCarousel\s+label=\{t\.previewTitle\}/);
-  // Slide widths below 100% are what makes the next card peek into view.
   const widths = [...landing.matchAll(/slideClass="w-\[(\d+(?:\.\d+)?)%\]/g)].map((m) => Number(m[1]));
   assert.equal(widths.length, 2);
-  for (const w of widths) assert.ok(w < 90, 'the next card must be partly visible at mobile width');
+  for (const w of widths) assert.ok(w >= 60 && w <= 90, `slide width ${w}% should reveal the next card`);
 });
 
-// ── 8. PWA install stays supported, but secondary ───────────────────────────
+// ── 11. PWA install ─────────────────────────────────────────────────────────
 
 test('PWA install support is intact — the prompt event is still captured and used', () => {
   assert.match(landing, /window\.addEventListener\('beforeinstallprompt', onPrompt\)/);
@@ -345,25 +496,25 @@ test('PWA install support is intact — the prompt event is still captured and u
 });
 
 test('install is a visible header action, not a menu item', () => {
-  const header = landing.slice(landing.indexOf('{/* ── Header'), landing.indexOf('id="landing-menu"'));
-  assert.match(header, /onClick=\{handleInstall\}/, 'the header carries the install button itself');
-  assert.match(header, /<Download size=/, 'it reads as a download/install action');
+  const header = section('{/* ── Header', 'id="landing-menu"');
+  assert.match(header, /onClick=\{handleInstall\}/);
+  assert.match(header, /<Download size=/);
   assert.match(header, /aria-label=\{t\.installApp\}/);
-  const menu = landing.slice(landing.indexOf('id="landing-menu"'), landing.indexOf('</header>'));
-  assert.doesNotMatch(menu, /handleInstall|installApp|installShort/, 'install was removed from the hamburger');
+  const menu = section('id="landing-menu"', '</header>');
+  assert.doesNotMatch(menu, /handleInstall|installApp|installShort/);
 });
 
-test('every Download CTA runs the one existing PWA handler — no second implementation', () => {
-  // hero, pricing, final CTA and footer all call the same primaryAction.
-  assert.ok((landing.match(/onClick=\{primaryAction\}/g) || []).length >= 4);
+test('every CTA runs the one existing PWA handler — no second implementation', () => {
+  assert.ok((landing.match(/onClick=\{primaryAction\}/g) || []).length >= 5,
+    'hero, both pricing cards, final CTA and footer');
   assert.match(landing, /const primaryAction = installed \? goSignIn : handleInstall;/);
   assert.equal((landing.match(/installPrompt\.prompt\(\)/g) || []).length, 1);
 });
 
 test('an installed visitor is never shown a misleading install action', () => {
-  assert.match(landing, /const primaryLabel = installed \? t\.ctaOpen : t\.ctaDownload;/);
-  const header = landing.slice(landing.indexOf('{/* ── Header'), landing.indexOf('id="landing-menu"'));
-  assert.match(header, /installed \? \(/, 'the header swaps to the installed state');
+  assert.match(landing, /const primaryLabel = installed \? t\.ctaOpen : t\.ctaInstall;/);
+  const header = section('{/* ── Header', 'id="landing-menu"');
+  assert.match(header, /installed \? \(/);
   assert.match(header, /\{t\.installDone\}/);
   assert.equal(en.ctaOpen, 'Open Arjun');
 });
@@ -374,48 +525,41 @@ test('the no-prompt fallback instructions are still reachable', () => {
   assert.match(landing, /isIOS \? t\.installIos : isAndroid \? t\.installAndroid : t\.installDesktop/);
 });
 
-test('the final CTA and footer convert to the app, not to an account form', () => {
-  const finalCta = landing.slice(landing.indexOf('{/* ── Final CTA'), landing.indexOf('{/* ── Footer'));
+// ── 12. Final CTA + footer ──────────────────────────────────────────────────
+
+test('the final CTA converts to the app, with no account CTA or social proof', () => {
+  assert.equal(en.finalTitle, 'Ready to play your best?');
+  assert.equal(en.finalLine, 'Install Arjun and start training your mind.');
+  const finalCta = section('{/* ── Final CTA', '{/* ── Footer');
   assert.match(finalCta, /onClick=\{primaryAction\}/);
-  assert.doesNotMatch(finalCta, /ctaSignIn|ctaCreate|goSignIn/, 'no secondary Sign in in the final CTA');
+  assert.doesNotMatch(finalCta, /ctaSignIn|ctaCreate|goSignIn/);
+  assert.doesNotMatch(finalCta, /★|star|badge/i);
+});
+
+test('the footer keeps every policy link, including child safety', () => {
   const footer = landing.slice(landing.indexOf('{/* ── Footer'));
-  assert.match(footer, /onClick=\{primaryAction\}/, 'the footer product action is Download the app');
-  assert.match(footer, /\/terms#ai-child-safety/, 'Child Safety survives the footer change');
+  assert.match(footer, /onClick=\{primaryAction\}/, 'the footer product action is the install action');
+  for (const key of ['footerPrivacy', 'footerTerms', 'footerChildSafety', 'footerRefund', 'footerSupport']) {
+    assert.match(footer, new RegExp(`t\\.${key}`), `missing footer link: ${key}`);
+  }
+  assert.match(footer, /\/terms#ai-child-safety/);
 });
 
-// ── 8b. Pricing ─────────────────────────────────────────────────────────────
+// ── 13. Auth routes are untouched ───────────────────────────────────────────
 
-test('the pricing section states only the real trial and price', () => {
-  assert.equal(en.pricingTitle, 'Start with Arjun');
-  assert.equal(en.pricingTrial, '14 days free');
-  assert.equal(en.pricingPrice, '₹299 / month');
-  assert.equal(hi.pricingPrice, '₹299 / महीना');
-  assert.match(en.pricingNote, /₹299\/month/);
-  assert.match(landing, /\{t\.pricingTitle\}/);
-  assert.match(landing, /\{t\.pricingTrial\}/);
-  assert.match(landing, /\{t\.pricingPrice\}/);
+test('the auth route contract is untouched — sign-in still goes to /auth?tab=signin', () => {
+  assert.match(landing, /const goSignIn = \(\) => navigate\('\/auth\?tab=signin'\);/);
+  const routes = [...landing.matchAll(/navigate\('([^']+)'\)/g)].map((m) => m[1]);
+  const allowed = ['/auth?tab=signin', '/privacy', '/terms', '/terms#ai-child-safety', '/refund'];
+  for (const route of routes) assert.ok(allowed.includes(route), `unexpected navigation target: ${route}`);
 });
 
-test('pricing sits between the principles section and the FAQ', () => {
-  const order = [
-    landing.indexOf('{t.principlesTitle}'),
-    landing.indexOf('{t.pricingTitle}'),
-    landing.indexOf('{t.faqTitle}'),
-  ];
-  for (const i of order) assert.ok(i !== -1);
-  assert.ok(order[0] < order[1] && order[1] < order[2]);
+test('App.jsx still renders the landing page at / and AuthPage at /auth', () => {
+  assert.match(app, /<Route path="\/" element=\{user \? <Navigate to="\/dashboard" replace \/> : <LandingPage \/>\} \/>/);
+  assert.match(app, /<Route path="\/auth" element=\{user \? <Navigate to="\/dashboard" replace \/> : <AuthPage \/>\} \/>/);
 });
 
-test('pricing invents nothing — no tiers, annual plan, struck-through price or urgency', () => {
-  assert.doesNotMatch(bothBlocks, /annual|yearly|per year|\/year|साल|tier|plan[s]?\b|most popular|save \d|limited time|offer ends|guarantee|₹(?!299)\d/i);
-  // ₹299 is the only price anywhere in the copy.
-  const prices = [...bothBlocks.matchAll(/₹[\d,]+/g)].map((m) => m[0]);
-  assert.deepEqual([...new Set(prices)], ['₹299']);
-  // The payment implementation is untouched by this page.
-  assert.doesNotMatch(homepageSources, /razorpay|checkout|subscription/i);
-});
-
-// ── 9. Client-only, and scoped to this page ─────────────────────────────────
+// ── 14. Client-only, and scoped to this page ────────────────────────────────
 
 test('the homepage calls no API and needs no server or schema change', () => {
   assert.doesNotMatch(homepageSources, /apiFetch|fetch\(|\/api\//);
@@ -430,18 +574,11 @@ test('the homepage palette is hard-coded to this page — no shared theme token 
 test('the homepage imports no authenticated screen or app-shell component', () => {
   const imports = [...landing.matchAll(/from '([^']+)'/g)].map((m) => m[1]);
   for (const spec of imports) {
-    assert.ok(
-      !/pages\/|Navbar|BottomNav/.test(spec),
-      `homepage must not import an authenticated screen: ${spec}`,
-    );
+    assert.ok(!/pages\/|Navbar|BottomNav/.test(spec), `homepage must not import an authenticated screen: ${spec}`);
   }
 });
 
-test('the footer still links to the public child-safety statement', () => {
-  assert.match(landing, /\/terms#ai-child-safety/);
-});
-
-// ── 10. EN/HI parity ────────────────────────────────────────────────────────
+// ── 15. EN/HI parity ────────────────────────────────────────────────────────
 
 function shape(value) {
   if (Array.isArray(value)) return value.map(shape);
@@ -460,7 +597,7 @@ test('no Hindi landing string was left as its English source', () => {
   const walk = (e, h, keyPath = 'landing') => {
     if (typeof e === 'string') {
       // Product nouns stay in English by design (Arjun, Mental Rep, Playbook,
-      // Focus Cards, EN/HI labels); everything sentence-like must be Hindi.
+      // Coach, EN/HI labels); everything sentence-like must be Hindi.
       if (e.length > 24 && !/^[A-Za-z ]+$/.test(h)) {
         assert.ok(devanagari.test(h), `${keyPath} was not translated: ${h}`);
       }

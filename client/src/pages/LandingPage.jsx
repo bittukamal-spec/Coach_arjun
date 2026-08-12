@@ -1,17 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Activity, ArrowRight, Check, ChevronDown, Download, Flag, Gauge, Globe, Menu,
-  MessageCircle, NotebookPen, RefreshCw, RotateCcw, Shield, Sparkles, Tag, Target,
-  Trophy, X, Zap,
+  Activity, ArrowRight, Bookmark, Check, ChevronDown, Download, Flag, Gauge,
+  Globe, Lock, Menu, MessageCircle, NotebookPen, RefreshCw, RotateCcw, Sparkles,
+  Target, Trophy, X, Zap,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { ArjunLogo } from '../components/ArjunLogo';
 import LandingCarousel from '../components/landing/LandingCarousel';
 import {
-  CoachPreview, FocusCardPreview, GameChips, HeroPhone, PlaybookPreview,
-  PressureFlow, RepsPreview, WorksList,
+  CoachPreview, GameChips, HeroPhone, PlaybookPreview, PressureFlow,
+  ProfilePreview, RepsPreview, WorksList,
 } from '../components/landing/LandingMockups';
 
 // Public homepage. Deliberately a fixed light surface rather than the app's
@@ -117,14 +117,19 @@ function LandingPage() {
 
   const goSignIn = () => navigate('/auth?tab=signin');
 
-  // One product action for the whole page: install the app. Every Download
-  // CTA (hero, pricing, final, footer) runs the same PWA handler as the
-  // header button — there is no second install implementation. Once the app
-  // is installed, the same button stops claiming to install and opens Arjun
-  // instead, so an installed visitor never sees a misleading action. Account
-  // creation and sign-in happen inside the app; /auth is untouched and still
-  // reachable from the menu.
-  const primaryLabel = installed ? t.ctaOpen : t.ctaDownload;
+  // One product action for the whole page: install Arjun. Every CTA (hero,
+  // pricing, final, footer) runs the same PWA handler as the header button —
+  // there is no second install implementation. Once the app is installed the
+  // same button stops claiming to install and opens Arjun instead, so an
+  // installed visitor never sees a misleading action. Account creation and
+  // sign-in happen inside the app; /auth is untouched and still reachable
+  // from the menu.
+  //
+  // The pricing CTAs deliberately run this same action: choosing a plan needs
+  // an authenticated Razorpay subscription (POST /api/payments/create-
+  // subscription, in-app /pricing), so the homepage routes to the real entry
+  // point instead of faking a checkout. No payment contract is touched.
+  const primaryLabel = installed ? t.ctaOpen : t.ctaInstall;
   const primaryAction = installed ? goSignIn : handleInstall;
 
   const previews = t.preview;
@@ -132,15 +137,18 @@ function LandingPage() {
     <CoachPreview key="coach" t={previews.coachCard} />,
     <RepsPreview key="reps" t={previews.repsCard} />,
     <PlaybookPreview key="playbook" t={previews.playbookCard} />,
-    <FocusCardPreview key="focus" t={previews.focusCard} />,
+    <ProfilePreview key="profile" t={previews.profileCard} />,
   ];
 
-  const valueItems = [
-    { Icon: MessageCircle, label: t.valueCoach },
-    { Icon: Zap, label: t.valueReps },
-    { Icon: Tag, label: t.valueCues },
-    { Icon: Globe, label: t.valueLang },
-    { Icon: Shield, label: t.valuePrivate },
+  // One accent per tag, from the same family the app uses. Green is added
+  // only here, for the privacy tag — it reads as reassurance, not as a
+  // product area.
+  const benefitTags = [
+    { Icon: MessageCircle, label: t.tagTalk,    bg: '#E7F0FB', fg: '#185FA5' },
+    { Icon: Zap,           label: t.tagReps,    bg: '#DDF0EC', fg: '#13776F' },
+    { Icon: Bookmark,      label: t.tagSave,    bg: '#FAEBD8', fg: '#9A5410' },
+    { Icon: Globe,         label: t.tagLang,    bg: '#EAE6FC', fg: '#5546C9' },
+    { Icon: Lock,          label: t.tagPrivate, bg: '#E2F2E6', fg: '#1F7A46' },
   ];
 
   return (
@@ -247,22 +255,24 @@ function LandingPage() {
       <main>
         {/* ── Hero ────────────────────────────────────────────────────────── */}
         {/* No eyebrow/pill: header → whitespace → headline. */}
-        <section className="mx-auto max-w-5xl px-5 pb-4 pt-8 lg:grid lg:grid-cols-2 lg:items-center lg:gap-10 lg:pt-14">
+        <section className="mx-auto max-w-5xl px-5 pb-2 pt-6 lg:grid lg:grid-cols-2 lg:items-center lg:gap-10 lg:pt-12">
           <div>
             {/* No hard-coded line breaks: the headline wraps to the column,
                 balanced so the accent phrase never strands one short word. */}
-            <h1 className="text-[34px] font-black leading-[1.08] tracking-tight [text-wrap:balance] xs:text-[42px] lg:text-[50px]">
+            {/* Two logical lines: the statement, then the accented promise on
+                its own line. Each half still wraps freely inside its column. */}
+            <h1 className="text-[38px] font-black leading-[1.06] tracking-tight [text-wrap:balance] xs:text-[44px] lg:text-[52px]">
               {t.headlineLead}
-              <span className="text-[#185FA5]">{t.headlineAccent}</span>
+              <span className="block text-[#185FA5]">{t.headlineAccent}</span>
             </h1>
 
             <p className={`mt-4 text-[16px] leading-snug ${BODY}`}>{t.subtitle}</p>
 
-            <div className="mt-7">
+            <div className="mt-6">
               <button
                 type="button"
                 onClick={primaryAction}
-                className="inline-flex min-h-[54px] w-full items-center justify-center gap-2 rounded-2xl bg-[#185FA5] px-8 text-[16px] font-bold text-white shadow-[0_6px_18px_rgba(24,95,165,0.25)] transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5] focus-visible:ring-offset-2 sm:w-auto"
+                className="inline-flex min-h-[54px] w-full items-center justify-center gap-2 rounded-2xl bg-[#185FA5] px-8 text-[16.5px] font-bold text-white shadow-[0_6px_18px_rgba(24,95,165,0.25)] transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5] focus-visible:ring-offset-2 sm:w-auto"
               >
                 {primaryLabel}
                 <ArrowRight size={18} aria-hidden="true" />
@@ -270,28 +280,33 @@ function LandingPage() {
             </div>
           </div>
 
-          <div className="mt-10 lg:mt-0">
+          {/* The device sits after the copy + CTA on mobile and beside them from
+              lg up, so the fold stays copy → CTA → phone → tags → How Arjun
+              helps rather than pushing the sections down. */}
+          <div className="mt-8 lg:mt-0">
             <HeroPhone t={t} label={t.heroVisualAlt} />
           </div>
         </section>
 
-        {/* ── Value strip ─────────────────────────────────────────────────── */}
-        <section className="mx-auto max-w-5xl px-5 pt-10" aria-label={t.valueLabel}>
-          <ul className={`no-scrollbar flex overflow-x-auto rounded-2xl border ${BORDER} bg-white shadow-[0_2px_8px_rgba(15,23,42,0.05)] lg:justify-between`}>
-            {valueItems.map(({ Icon, label }, i) => (
+        {/* ── Benefit tags ────────────────────────────────────────────────── */}
+        {/* Separate coloured tags, one accent each — not five identical pills. */}
+        <section className="mx-auto max-w-5xl px-5 pt-7" aria-label={t.tagsLabel}>
+          <ul className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 sm:flex-wrap sm:overflow-visible">
+            {benefitTags.map(({ Icon, label, bg, fg }) => (
               <li
                 key={label}
-                className={`flex shrink-0 items-center gap-2 px-4 py-3.5 ${i > 0 ? `border-l ${BORDER}` : ''}`}
+                className="flex shrink-0 items-center gap-2 rounded-2xl px-3.5 py-2.5"
+                style={{ background: bg, border: `1px solid ${fg}22` }}
               >
-                <Icon size={17} className="shrink-0 text-[#185FA5]" aria-hidden="true" />
-                <span className="max-w-[11ch] text-[12.5px] font-semibold leading-tight">{label}</span>
+                <Icon size={16} style={{ color: fg }} aria-hidden="true" />
+                <span className="whitespace-nowrap text-[13px] font-bold" style={{ color: fg }}>{label}</span>
               </li>
             ))}
           </ul>
         </section>
 
         {/* ── How Arjun helps ─────────────────────────────────────────────── */}
-        <section className="mx-auto max-w-5xl px-5 pt-10">
+        <section className="mx-auto max-w-5xl px-5 pt-9">
           <h2 className="text-[22px] font-black tracking-tight">{t.helpsTitle}</h2>
           <LandingCarousel
             label={t.helpsTitle}
@@ -325,7 +340,7 @@ function LandingPage() {
           </LandingCarousel>
         </section>
 
-        {/* ── App preview ─────────────────────────────────────────────────── */}
+        {/* ── Inside Arjun ────────────────────────────────────────────────── */}
         <section className="mx-auto max-w-5xl px-5 pt-10">
           <div className="flex items-baseline justify-between gap-3">
             <h2 className="text-[22px] font-black tracking-tight">{t.previewTitle}</h2>
@@ -334,14 +349,14 @@ function LandingPage() {
           <LandingCarousel
             label={t.previewTitle}
             slideLabel={(i, n) => `${previewCards[i].props.t.title} (${i + 1}/${n})`}
-            slideClass="w-[78%] xs:w-[66%] sm:w-[48%] lg:w-[24%]"
+            slideClass="w-[85%] xs:w-[72%] sm:w-[50%] lg:w-[24%]"
             className="mt-4"
           >
             {previewCards}
           </LandingCarousel>
         </section>
 
-        {/* ── Arjun gets to know how you perform ──────────────────────────── */}
+        {/* ── Built around you ─────────────────────────────────────────────── */}
         {/* Mirrors the athlete's real Profile sections — My Game, When
             Pressure Hits, What Helps Me — so the claim stays inside what the
             athlete themselves told Arjun. No traits, no scoring. */}
@@ -418,38 +433,66 @@ function LandingPage() {
         </section>
 
         {/* ── Pricing ─────────────────────────────────────────────────────── */}
-        {/* The only two numbers the product actually has: a 14-day trial and
-            ₹299/month. No tiers, no annual plan, no struck-through price, no
-            savings claim. Nothing here touches the payment implementation. */}
+        {/* Two real plans, one heading above them — not inside a card. The only
+            saving claimed is the arithmetic one: ₹299 × 12 = ₹3,588, minus
+            ₹2,499 = ₹1,089. No third tier, no struck-through price, no
+            urgency. Both CTAs run the page's install action because choosing a
+            plan requires an authenticated Razorpay subscription inside the app;
+            no payment contract is touched here. */}
         <section className="mx-auto max-w-5xl px-5 pt-12">
-          <div
-            className="relative overflow-hidden rounded-3xl px-6 py-9 text-white sm:px-10 sm:py-11"
-            style={{ background: 'linear-gradient(140deg, #1E6FC4 0%, #2A4FC0 52%, #4B32B4 100%)' }}
-          >
-            <svg
-              className="pointer-events-none absolute inset-0 h-full w-full"
-              viewBox="0 0 400 220" fill="none" preserveAspectRatio="xMaxYMid slice" aria-hidden="true"
-            >
-              <circle cx="360" cy="40" r="110" stroke="#FFFFFF" strokeOpacity="0.10" strokeWidth="10" />
-              <path d="M-20 200 C 90 200, 160 120, 260 120 S 400 56, 470 56" stroke="#FFFFFF" strokeOpacity="0.14" strokeWidth="3" />
-            </svg>
+          <h2 className="text-[22px] font-black tracking-tight">{t.pricingTitle}</h2>
+          <p className={`mt-1.5 text-[13.5px] ${BODY}`}>{t.pricingTrialNote}</p>
 
-            <div className="relative sm:flex sm:items-end sm:justify-between sm:gap-8">
-              <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/70">{t.pricingLabel}</p>
-                <h2 className="mt-2 text-[26px] font-black leading-tight xs:text-[30px]">{t.pricingTitle}</h2>
-                <p className="mt-4 text-[34px] font-black leading-none xs:text-[38px]">{t.pricingTrial}</p>
-                <p className="mt-2 text-[17px] font-bold text-white/90">{t.pricingPrice}</p>
-                <p className="mt-3 max-w-xs text-[13px] leading-snug text-white/75">{t.pricingNote}</p>
-              </div>
-
+          <div className="mt-5 grid gap-4 sm:grid-cols-2 sm:items-start">
+            {/* Monthly — neutral container, outlined CTA */}
+            <div className={`flex flex-col rounded-3xl border ${BORDER} bg-white p-5`}>
+              <p className={`text-[12px] font-bold uppercase tracking-[0.12em] ${BODY}`}>{t.planMonthly}</p>
+              <p className="mt-2 text-[26px] font-black leading-none">{t.planMonthlyPrice}</p>
+              <ul className="mt-5 flex-1 space-y-2.5">
+                {t.planBenefits.map((benefit) => (
+                  <li key={benefit} className="flex items-start gap-2 text-[13.5px] leading-snug">
+                    <Check size={16} strokeWidth={3} className="mt-[2px] shrink-0 text-[#185FA5]" aria-hidden="true" />
+                    {benefit}
+                  </li>
+                ))}
+              </ul>
               <button
                 type="button"
                 onClick={primaryAction}
-                className="mt-7 inline-flex min-h-[54px] w-full items-center justify-center gap-2 rounded-2xl bg-white px-8 text-[16px] font-bold text-[#2A4FC0] shadow-[0_8px_24px_rgba(12,20,72,0.30)] transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#2A4FC0] sm:mt-0 sm:w-auto"
+                className="mt-6 inline-flex min-h-[52px] w-full items-center justify-center rounded-2xl border-[1.5px] border-[#185FA5] bg-white text-[15.5px] font-bold text-[#185FA5] transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5] focus-visible:ring-offset-2"
               >
-                {primaryLabel}
-                <ArrowRight size={18} aria-hidden="true" />
+                {t.planChooseMonthly}
+              </button>
+            </div>
+
+            {/* Yearly — preferred: brand border, light tint, badge, filled CTA */}
+            <div
+              className="relative flex flex-col rounded-3xl border-2 border-[#185FA5] p-5 shadow-[0_8px_28px_rgba(24,95,165,0.12)]"
+              style={{ background: 'linear-gradient(160deg, #EDF4FC 0%, #FFFFFF 72%)' }}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[12px] font-bold uppercase tracking-[0.12em] text-[#185FA5]">{t.planYearly}</p>
+                <span className="rounded-full bg-[#185FA5] px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-[0.08em] text-white">
+                  {t.planPopular}
+                </span>
+              </div>
+              <p className="mt-2 text-[28px] font-black leading-none">{t.planYearlyPrice}</p>
+              <p className="mt-1.5 text-[13px] font-bold text-[#1F7A46]">{t.planSave}</p>
+              <ul className="mt-5 flex-1 space-y-2.5">
+                {[...t.planBenefits, t.planYearlyExtra].map((benefit) => (
+                  <li key={benefit} className="flex items-start gap-2 text-[13.5px] leading-snug">
+                    <Check size={16} strokeWidth={3} className="mt-[2px] shrink-0 text-[#185FA5]" aria-hidden="true" />
+                    {benefit}
+                  </li>
+                ))}
+              </ul>
+              <button
+                type="button"
+                onClick={primaryAction}
+                className="mt-6 inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-[#185FA5] text-[15.5px] font-bold text-white shadow-[0_6px_18px_rgba(24,95,165,0.25)] transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5] focus-visible:ring-offset-2"
+              >
+                {t.planChooseYearly}
+                <ArrowRight size={17} aria-hidden="true" />
               </button>
             </div>
           </div>
@@ -514,10 +557,11 @@ function LandingPage() {
               <path d="M-20 196 C 100 196, 170 130, 270 130 S 400 74, 460 74" stroke="#FFFFFF" strokeOpacity="0.10" strokeWidth="3" />
             </svg>
             <div className="relative flex items-center gap-3">
-              <ArjunLogo size={44} className="hidden rounded-2xl xs:block" />
-              <p className="text-[24px] font-black leading-tight xs:text-[26px]">
-                {t.finalLine1}<br />{t.finalLine2}
-              </p>
+              <ArjunLogo size={44} className="hidden shrink-0 rounded-2xl xs:block" />
+              <div>
+                <p className="text-[24px] font-black leading-tight xs:text-[26px]">{t.finalTitle}</p>
+                <p className="mt-1.5 text-[14px] leading-snug text-white/80">{t.finalLine}</p>
+              </div>
             </div>
             <div className="relative mt-6 sm:mt-0 sm:shrink-0">
               <button

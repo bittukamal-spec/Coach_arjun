@@ -11,7 +11,7 @@ export const translations = {
       menuOpen: 'Open menu',
       menuClose: 'Close menu',
       langLabel: 'Language',
-      installApp: 'Install app',
+      installApp: 'Install Arjun',
       installShort: 'Install',
       installHow: 'How to install',
       installIos: 'Open this page in Safari → tap Share → "Add to Home Screen".',
@@ -21,99 +21,97 @@ export const translations = {
       close: 'Close',
 
       // ── Hero ──────────────────────────────────────────────────────────────
-      // No eyebrow/pill above the headline — the hero opens on the headline.
-      headlineLead: 'Your AI coach for the moments ',
-      headlineAccent: 'that matter.',
-      subtitle: 'Mental coaching for Indian athletes.',
-      // The public page converts to the app, not to a signup form. `ctaOpen`
-      // is what replaces it once the app is already installed, so an
-      // installed visitor is never shown a misleading install action.
-      ctaDownload: 'Download the app',
+      // No eyebrow above the headline — the hero opens on the headline itself.
+      headlineLead: 'Train your mind. ',
+      headlineAccent: 'Perform under pressure.',
+      subtitle: 'Train focus, handle pressure and build confidence with Arjun.',
+      // Arjun ships as a PWA, so the one conversion is installing it. `ctaOpen`
+      // replaces it once the app is installed, so an installed visitor is never
+      // shown a misleading install action.
+      ctaInstall: 'Install Arjun',
       ctaOpen: 'Open Arjun',
       ctaSignIn: 'Sign in',
-      // Screen-reader description of the hero device mockup.
-      heroVisualAlt: 'Arjun app preview: a coaching conversation that ends with a two-minute Mental Rep, with Mental Reps and Playbook screens behind it.',
+      heroVisualAlt: 'Arjun app preview: the Coach asking about a lost-focus moment and checking what it understood, with Yes / Not quite replies.',
       phone: {
         coach: 'Arjun',
-        ask: 'What happened today?',
-        athlete: 'I lost focus after a mistake.',
-        reply: 'Let\'s work through it.',
-        repLabel: 'Mental Rep',
-        repTitle: 'Reset after a mistake',
-        repMeta: '2 min',
-        repCta: 'Start',
-        behindPlaybook: 'Playbook',
-        behindPlaybookItem1: 'Lesson · Name it once, move on',
-        behindPlaybookItem2: 'Reflection · What worked today',
-        behindFocus: 'Focus Cards',
-        behindFocusItem1: 'One point at a time.',
-        behindFocusItem2: 'Play the next point.',
-        cueLabel: 'Saved cue',
-        cue: 'Next ball.',
+        q1: 'What happened today?',
+        a1: 'I lost focus after a mistake.',
+        q2: 'What happened in the next few moments?',
+        a2: 'I kept thinking about it.',
+        q3: 'Sounds like the mistake stayed with you. Does that fit?',
+        chipYes: 'Yes',
+        chipNo: 'Not quite',
       },
 
-      // ── Value strip ───────────────────────────────────────────────────────
-      valueLabel: 'What you get',
-      valueCoach: 'Coach conversations',
-      valueReps: '2-min Mental Reps',
-      valueCues: 'Save cues',
-      valueLang: 'Hindi + English',
-      valuePrivate: 'Private by design',
+      // ── Benefit tags ──────────────────────────────────────────────────────
+      tagsLabel: 'What you get',
+      tagTalk: 'Talk it through',
+      tagReps: 'Quick Mental Reps',
+      tagSave: 'Save what works',
+      tagLang: 'Hindi + English',
+      tagPrivate: 'Private by design',
 
       // ── How Arjun helps ───────────────────────────────────────────────────
       helpsTitle: 'How Arjun helps',
       helps: [
-        { title: 'Before a match', line: 'Prepare with clarity.' },
-        { title: 'After a setback', line: 'Reset and bounce back.' },
-        { title: 'Build focus',     line: 'Train attention.' },
-        { title: 'Reflect & reset', line: 'Review, learn and move forward.' },
+        { title: 'Before a match',          line: 'Get mentally ready.' },
+        { title: 'Under pressure',          line: 'Reset and refocus.' },
+        { title: 'After a setback',         line: 'Bounce back faster.' },
+        { title: 'Build your mental game',  line: 'Practice what helps.' },
       ],
 
-      // ── App preview ───────────────────────────────────────────────────────
+      // ── Inside Arjun ──────────────────────────────────────────────────────
       previewTitle: 'Inside Arjun',
       previewHint: 'Swipe to explore',
       preview: {
         coachCard: {
           title: 'Coach',
-          line: 'Talk it through, question by question.',
-          ask: 'What\'s on your mind?',
-          athlete: 'I keep overthinking before important moments.',
-          reply: 'Let\'s simplify. What\'s one thing in your control today?',
+          line: 'Work through what\'s happening.',
+          q1: 'What\'s been getting in the way lately?',
+          a1: 'After one mistake I start rushing.',
+          q2: 'Is it the mistake itself, or trying to fix it too quickly?',
+          a2: 'Trying to fix it quickly.',
         },
         repsCard: {
           title: 'Mental Reps',
-          line: 'One short rep you can use today.',
+          line: 'Short practice for the moment you need it.',
           repTitle: 'Reset after a mistake',
-          repStep1: 'Name what just happened',
-          repStep2: 'One breath, then your cue',
           meta: '2 min',
-          cta: 'Start',
+          step1: 'Slow the breath',
+          step2: 'Name the next action',
+          step3: 'Use your reset cue',
+          cta: 'Start Mental Rep',
         },
         playbookCard: {
           title: 'Playbook',
-          line: 'What worked, kept in one place.',
-          lessonLabel: 'Lesson',
-          lesson: 'I refocus faster when I name the mistake once and move on.',
+          line: 'Keep the cues and lessons that help.',
+          lessonLabel: 'Latest lesson',
+          lesson: 'One mistake doesn\'t have to become the next one.',
           cueLabel: 'Saved cue',
           cue: 'Next ball.',
         },
-        focusCard: {
-          title: 'Focus Cards',
-          line: 'Your cue, ready when pressure hits.',
-          focusWord: 'One point at a time.',
-          reminderLabel: 'Reminder',
-          reminder: 'Play the next point, not the last one.',
+        profileCard: {
+          title: 'Arjun remembers your game',
+          line: 'So you don\'t start from zero every time.',
+          screenTitle: 'When pressure hits',
+          situationLabel: 'Situation',
+          situation: 'After I make a mistake',
+          firstResponseLabel: 'First response',
+          firstResponse: 'I get angry with myself',
+          impactLabel: 'Performance impact',
+          impact: 'I lose focus',
+          resetTime: 'Reset time · A few minutes',
         },
       },
 
-      // ── Personalisation — mirrors the real Profile contract ───────────────
-      // (My Game · When Pressure Hits · What Helps Me). Nothing here claims
-      // more than what the athlete themselves told Arjun.
-      personalTitle: 'Arjun gets to know how you perform',
+      // ── Built around you — mirrors the real Profile sections ──────────────
+      // (My Game · When Pressure Hits · What Helps Me). Structured background
+      // the athlete gave Arjun themselves — never inferred traits.
+      personalTitle: 'Built around you',
       personal: [
-        { title: 'Your game',          line: 'Understands your game and what you\'re working on.' },
-        { title: 'When pressure hits', line: 'Remembers what tends to happen in difficult moments.' },
-        { title: 'What works for you', line: 'Keeps useful strategies close when you need them.' },
+        { title: 'Your game',          line: 'Your sport, role and goals.' },
+        { title: 'When pressure hits', line: 'What tends to happen in difficult moments.' },
+        { title: 'What works for you', line: 'Useful cues, strategies and lessons.' },
       ],
       personalGameChips: ['Sport', 'Role', 'Level', 'Goal'],
       personalFlow: { situation: 'Situation', firstResponse: 'First response', impact: 'Performance impact' },
@@ -127,19 +125,36 @@ export const translations = {
         { title: 'Reflect & learn',      line: 'Review what worked and carry it forward.' },
       ],
 
-      // ── Pricing — the only approved numbers: 14-day trial, ₹299/month ─────
-      pricingLabel: 'Pricing',
-      pricingTitle: 'Start with Arjun',
-      pricingTrial: '14 days free',
-      pricingPrice: '₹299 / month',
-      pricingNote: 'Continue after your trial for ₹299/month.',
+      // ── Pricing — launch plans. ₹299 × 12 = ₹3,588; ₹3,588 − ₹2,499 =
+      // ₹1,089, which is the only saving claimed. No other tier exists. ──────
+      pricingTitle: 'Choose your plan',
+      pricingTrialNote: 'Both plans start with 14 days free.',
+      planMonthly: 'Monthly',
+      planMonthlyPrice: '₹299 / month',
+      planYearly: 'Yearly',
+      planYearlyPrice: '₹2,499 / year',
+      planPopular: 'Popular',
+      planSave: 'Save ₹1,089 a year',
+      planBenefits: [
+        'AI Coach conversations',
+        'Mental Reps',
+        'Playbook & saved cues',
+        'Hindi + English',
+      ],
+      planYearlyExtra: 'Best value for regular training',
+      planChooseMonthly: 'Choose monthly',
+      planChooseYearly: 'Choose yearly',
 
       // ── FAQ ───────────────────────────────────────────────────────────────
       faqTitle: 'Frequently asked',
       faq: [
         {
-          q: 'How is Arjun different?',
-          a: 'Arjun is built for athletes. Coaching conversations, Mental Reps and your own performance context in one place.',
+          q: 'What is Arjun?',
+          a: 'An AI mental-performance coach for athletes. You talk through what happened, and Arjun gives you one short Mental Rep to use in training or competition.',
+        },
+        {
+          q: 'How do Mental Reps work?',
+          a: 'They are short practical exercises — around two minutes — matched to what you are working on right now.',
         },
         {
           q: 'Is Arjun only for professional athletes?',
@@ -154,14 +169,18 @@ export const translations = {
           a: 'What you share stays in your account and is used to coach you. You can delete your data, or your whole account, from Profile.',
         },
         {
+          q: 'Can I cancel anytime?',
+          a: 'Yes. Cancel from your account whenever you like — you keep Premium until the end of that billing period.',
+        },
+        {
           q: 'Is Arjun therapy?',
           a: 'No. Arjun is mental performance coaching — not therapy, diagnosis or emergency help.',
         },
       ],
 
       // ── Final CTA ─────────────────────────────────────────────────────────
-      finalLine1: 'Train your mind.',
-      finalLine2: 'Elevate your game.',
+      finalTitle: 'Ready to play your best?',
+      finalLine: 'Install Arjun and start training your mind.',
 
       // ── Footer ────────────────────────────────────────────────────────────
       footerPrivacy: 'Privacy',
@@ -172,6 +191,15 @@ export const translations = {
       footerRights: 'AI Mental Performance Coaching',
     },
     auth: {
+      // Public auth screens — same light system as the landing page. Copy only;
+      // no field, rule or endpoint changed.
+      signinHeading: 'Welcome back',
+      signinSub: 'Sign in to continue with Arjun.',
+      signupHeading: 'Start training your mind',
+      signupSub: 'Create your Arjun account.',
+      forgotPassword: 'Forgot password?',
+      haveAccount: 'Already have an account?',
+      noAccount: 'New to Arjun?',
       tabSignIn: 'Sign In',
       tabSignUp: 'Sign Up',
       nameLabel: 'Full name',
@@ -1960,7 +1988,7 @@ export const translations = {
       menuOpen: 'मेन्यू खोलो',
       menuClose: 'मेन्यू बंद करो',
       langLabel: 'भाषा',
-      installApp: 'ऐप इंस्टॉल करो',
+      installApp: 'Arjun इंस्टॉल करो',
       installShort: 'इंस्टॉल',
       installHow: 'इंस्टॉल कैसे करें',
       installIos: 'इस पेज को Safari में खोलो → Share दबाओ → "Add to Home Screen".',
@@ -1970,92 +1998,91 @@ export const translations = {
       close: 'बंद करो',
 
       // ── Hero ──────────────────────────────────────────────────────────────
-      headlineLead: 'तुम्हारा AI कोच उन पलों के लिए ',
-      headlineAccent: 'जो मायने रखते हैं।',
-      subtitle: 'भारतीय एथलीट्स के लिए मेंटल कोचिंग।',
-      ctaDownload: 'ऐप डाउनलोड करो',
+      headlineLead: 'दिमाग़ को ट्रेन करो। ',
+      headlineAccent: 'दबाव में बेहतर खेलो।',
+      subtitle: 'Arjun के साथ फोकस बनाओ, दबाव संभालो और आत्मविश्वास बढ़ाओ।',
+      ctaInstall: 'Arjun इंस्टॉल करो',
       ctaOpen: 'Arjun खोलो',
       ctaSignIn: 'साइन इन',
-      heroVisualAlt: 'Arjun ऐप की झलक: एक कोचिंग बातचीत जो दो मिनट के Mental Rep पर खत्म होती है, पीछे Mental Reps और Playbook स्क्रीन।',
+      heroVisualAlt: 'Arjun ऐप की झलक: Coach फोकस टूटने वाले पल के बारे में सवाल पूछता है और समझ की पुष्टि करता है, नीचे हां / बिल्कुल नहीं जवाब।',
       phone: {
         coach: 'Arjun',
-        ask: 'आज क्या हुआ?',
-        athlete: 'एक गलती के बाद फोकस टूट गया।',
-        reply: 'चलो, इस पर काम करते हैं।',
-        repLabel: 'Mental Rep',
-        repTitle: 'गलती के बाद रीसेट',
-        repMeta: '2 मिनट',
-        repCta: 'शुरू करो',
-        behindPlaybook: 'Playbook',
-        behindPlaybookItem1: 'सीख · एक बार नाम दो, आगे बढ़ो',
-        behindPlaybookItem2: 'रिफ्लेक्शन · आज क्या काम आया',
-        behindFocus: 'Focus Cards',
-        behindFocusItem1: 'एक बार में एक पॉइंट।',
-        behindFocusItem2: 'अगला पॉइंट खेलो।',
-        cueLabel: 'सेव किया cue',
-        cue: 'अगली गेंद।',
+        q1: 'आज क्या हुआ?',
+        a1: 'एक गलती के बाद फोकस टूट गया।',
+        q2: 'उसके अगले कुछ पलों में क्या हुआ?',
+        a2: 'मैं उसी के बारे में सोचता रहा।',
+        q3: 'लगता है वो गलती दिमाग़ में बैठ गई। सही समझा?',
+        chipYes: 'हां',
+        chipNo: 'बिल्कुल नहीं',
       },
 
-      // ── Value strip ───────────────────────────────────────────────────────
-      valueLabel: 'तुम्हें क्या मिलता है',
-      valueCoach: 'कोच से बातचीत',
-      valueReps: '2-मिनट Mental Reps',
-      valueCues: 'अपने cues सेव करो',
-      valueLang: 'हिंदी + English',
-      valuePrivate: 'प्राइवेसी शुरू से',
+      // ── Benefit tags ──────────────────────────────────────────────────────
+      tagsLabel: 'तुम्हें क्या मिलता है',
+      tagTalk: 'बात करके सुलझाओ',
+      tagReps: 'छोटे Mental Reps',
+      tagSave: 'जो काम आया, सेव करो',
+      tagLang: 'हिंदी + English',
+      tagPrivate: 'प्राइवेसी शुरू से',
 
       // ── How Arjun helps ───────────────────────────────────────────────────
       helpsTitle: 'Arjun कैसे मदद करता है',
       helps: [
-        { title: 'मैच से पहले',      line: 'साफ़ दिमाग़ से तैयारी करो।' },
-        { title: 'गलती के बाद',      line: 'रीसेट करो और वापस आओ।' },
-        { title: 'फोकस बनाओ',        line: 'ध्यान को ट्रेन करो।' },
-        { title: 'सोचो और रीसेट करो', line: 'देखो, सीखो और आगे बढ़ो।' },
+        { title: 'मैच से पहले',           line: 'दिमाग़ी तौर पर तैयार हो।' },
+        { title: 'दबाव के पल में',         line: 'रीसेट करो, फोकस लौटाओ।' },
+        { title: 'गलती के बाद',            line: 'जल्दी वापसी करो।' },
+        { title: 'मेंटल गेम बनाओ',         line: 'जो काम आता है, उसका अभ्यास करो।' },
       ],
 
-      // ── App preview ───────────────────────────────────────────────────────
+      // ── Inside Arjun ──────────────────────────────────────────────────────
       previewTitle: 'Arjun के अंदर',
       previewHint: 'स्वाइप करो',
       preview: {
         coachCard: {
           title: 'Coach',
-          line: 'सवाल दर सवाल बात करो।',
-          ask: 'दिमाग़ में क्या चल रहा है?',
-          athlete: 'बड़े पलों से पहले मैं ज़्यादा सोचने लगता हूं।',
-          reply: 'चलो आसान करते हैं। आज तुम्हारे हाथ में क्या है?',
+          line: 'जो हो रहा है, उसे बात करके सुलझाओ।',
+          q1: 'पिछले कुछ समय में क्या रुकावट बन रहा है?',
+          a1: 'एक गलती के बाद मैं जल्दबाज़ी करने लगता हूं।',
+          q2: 'दिक्कत गलती है, या उसे तुरंत सुधारने की कोशिश?',
+          a2: 'तुरंत सुधारने की कोशिश।',
         },
         repsCard: {
           title: 'Mental Reps',
-          line: 'एक छोटा rep, आज ही इस्तेमाल करो।',
+          line: 'जिस पल ज़रूरत हो, उसके लिए छोटा अभ्यास।',
           repTitle: 'गलती के बाद रीसेट',
-          repStep1: 'जो हुआ उसे एक बार नाम दो',
-          repStep2: 'एक सांस, फिर अपना cue',
           meta: '2 मिनट',
-          cta: 'शुरू करो',
+          step1: 'सांस धीमी करो',
+          step2: 'अगले एक्शन को नाम दो',
+          step3: 'अपना reset cue इस्तेमाल करो',
+          cta: 'Mental Rep शुरू करो',
         },
         playbookCard: {
           title: 'Playbook',
-          line: 'जो काम आया, एक जगह पर।',
-          lessonLabel: 'सीख',
-          lesson: 'गलती को एक बार नाम देकर आगे बढ़ूं, तो फोकस जल्दी लौटता है।',
+          line: 'जो cues और सीख काम आती हैं, वो संभालकर रखो।',
+          lessonLabel: 'ताज़ा सीख',
+          lesson: 'एक गलती को अगली गलती बनना ज़रूरी नहीं।',
           cueLabel: 'सेव किया cue',
           cue: 'अगली गेंद।',
         },
-        focusCard: {
-          title: 'Focus Cards',
-          line: 'दबाव के पल में तैयार तुम्हारा cue।',
-          focusWord: 'एक बार में एक पॉइंट।',
-          reminderLabel: 'याद रखो',
-          reminder: 'पिछला नहीं, अगला पॉइंट खेलो।',
+        profileCard: {
+          title: 'Arjun तुम्हारा खेल याद रखता है',
+          line: 'ताकि हर बार शून्य से शुरू न करना पड़े।',
+          screenTitle: 'जब दबाव आता है',
+          situationLabel: 'हालात',
+          situation: 'जब मैं गलती करता हूं',
+          firstResponseLabel: 'पहली प्रतिक्रिया',
+          firstResponse: 'मुझे खुद पर गुस्सा आता है',
+          impactLabel: 'खेल पर असर',
+          impact: 'फोकस टूट जाता है',
+          resetTime: 'रीसेट समय · कुछ मिनट',
         },
       },
 
-      // ── Personalisation ───────────────────────────────────────────────────
-      personalTitle: 'Arjun समझता है कि तुम कैसे परफॉर्म करते हो',
+      // ── Built around you ──────────────────────────────────────────────────
+      personalTitle: 'तुम्हारे हिसाब से बना',
       personal: [
-        { title: 'तुम्हारा खेल',                 line: 'तुम्हारा खेल और तुम किस पर काम कर रहे हो, दोनों समझता है।' },
-        { title: 'जब दबाव आता है',                line: 'मुश्किल पलों में आमतौर पर क्या होता है, यह याद रखता है।' },
-        { title: 'तुम्हारे लिए क्या काम करता है', line: 'काम आने वाली रणनीतियां ज़रूरत के वक्त पास रखता है।' },
+        { title: 'तुम्हारा खेल',                  line: 'तुम्हारा खेल, रोल और लक्ष्य।' },
+        { title: 'जब दबाव आता है',                 line: 'मुश्किल पलों में आमतौर पर क्या होता है।' },
+        { title: 'तुम्हारे लिए क्या काम करता है',  line: 'काम आने वाले cues, तरीके और सीख।' },
       ],
       personalGameChips: ['खेल', 'रोल', 'लेवल', 'लक्ष्य'],
       personalFlow: { situation: 'हालात', firstResponse: 'पहली प्रतिक्रिया', impact: 'खेल पर असर' },
@@ -2070,18 +2097,34 @@ export const translations = {
       ],
 
       // ── Pricing ───────────────────────────────────────────────────────────
-      pricingLabel: 'कीमत',
-      pricingTitle: 'Arjun के साथ शुरू करो',
-      pricingTrial: '14 दिन मुफ़्त',
-      pricingPrice: '₹299 / महीना',
-      pricingNote: 'ट्रायल के बाद ₹299/महीना में जारी रखो।',
+      pricingTitle: 'अपना प्लान चुनो',
+      pricingTrialNote: 'दोनों प्लान 14 दिन मुफ़्त से शुरू होते हैं।',
+      planMonthly: 'मासिक',
+      planMonthlyPrice: '₹299 / महीना',
+      planYearly: 'सालाना',
+      planYearlyPrice: '₹2,499 / साल',
+      planPopular: 'लोकप्रिय',
+      planSave: 'साल में ₹1,089 बचाओ',
+      planBenefits: [
+        'AI Coach से बातचीत',
+        'Mental Reps',
+        'Playbook और सेव किए cues',
+        'हिंदी + English',
+      ],
+      planYearlyExtra: 'नियमित ट्रेनिंग के लिए सबसे किफ़ायती',
+      planChooseMonthly: 'मासिक चुनो',
+      planChooseYearly: 'सालाना चुनो',
 
       // ── FAQ ───────────────────────────────────────────────────────────────
       faqTitle: 'अक्सर पूछे जाने वाले सवाल',
       faq: [
         {
-          q: 'Arjun अलग कैसे है?',
-          a: 'Arjun एथलीट्स के लिए बना है। कोचिंग बातचीत, Mental Reps और तुम्हारा अपना परफॉर्मेंस संदर्भ — एक ही जगह।',
+          q: 'Arjun क्या है?',
+          a: 'एथलीट्स के लिए एक AI मेंटल-परफॉर्मेंस कोच। जो हुआ उस पर बात करो, और Arjun तुम्हें एक छोटा Mental Rep देता है जिसे ट्रेनिंग या मैच में इस्तेमाल कर सको।',
+        },
+        {
+          q: 'Mental Reps कैसे काम करते हैं?',
+          a: 'ये छोटे व्यावहारिक अभ्यास हैं — लगभग दो मिनट के — जो इस वक्त तुम जिस पर काम कर रहे हो उसी से जुड़े होते हैं।',
         },
         {
           q: 'क्या Arjun सिर्फ प्रोफेशनल एथलीट्स के लिए है?',
@@ -2096,14 +2139,18 @@ export const translations = {
           a: 'जो तुम शेयर करते हो वो तुम्हारे खाते में रहता है और तुम्हारी कोचिंग के लिए इस्तेमाल होता है। Profile से तुम अपना डेटा या पूरा खाता कभी भी डिलीट कर सकते हो।',
         },
         {
+          q: 'क्या मैं कभी भी रद्द कर सकता हूं?',
+          a: 'हां। अपने खाते से जब चाहो रद्द करो — उस बिलिंग पीरियड के अंत तक Premium तुम्हारे पास रहता है।',
+        },
+        {
           q: 'क्या Arjun थेरेपी है?',
           a: 'नहीं। Arjun मेंटल परफॉर्मेंस कोचिंग है — थेरेपी, डायग्नोसिस या इमरजेंसी मदद नहीं।',
         },
       ],
 
       // ── Final CTA ─────────────────────────────────────────────────────────
-      finalLine1: 'दिमाग़ को ट्रेन करो।',
-      finalLine2: 'खेल को ऊपर ले जाओ।',
+      finalTitle: 'अपना बेहतरीन खेल दिखाने के लिए तैयार हो?',
+      finalLine: 'Arjun इंस्टॉल करो और दिमाग़ की ट्रेनिंग शुरू करो।',
 
       // ── Footer ────────────────────────────────────────────────────────────
       footerPrivacy: 'प्राइवेसी',
@@ -2114,6 +2161,13 @@ export const translations = {
       footerRights: 'AI मेंटल परफॉर्मेंस कोचिंग',
     },
     auth: {
+      signinHeading: 'वापस स्वागत है',
+      signinSub: 'Arjun जारी रखने के लिए साइन इन करो।',
+      signupHeading: 'दिमाग़ की ट्रेनिंग शुरू करो',
+      signupSub: 'अपना Arjun खाता बनाओ।',
+      forgotPassword: 'पासवर्ड भूल गए?',
+      haveAccount: 'पहले से खाता है?',
+      noAccount: 'Arjun पर नए हो?',
       tabSignIn: 'साइन इन',
       tabSignUp: 'साइन अप',
       nameLabel: 'पूरा नाम',
