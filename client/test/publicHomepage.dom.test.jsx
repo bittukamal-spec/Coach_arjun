@@ -3,7 +3,7 @@
 // language switch, and the absence of any audio affordance or legacy claim.
 
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, cleanup, within } from '@testing-library/react';
+import { render, screen, cleanup, within, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom';
 
@@ -53,17 +53,24 @@ describe('hero', () => {
     expect(screen.getByText('Mental coaching for Indian athletes.')).toBeTruthy();
   });
 
-  test('Create account goes to /auth (signup), unchanged', async () => {
-    const user = userEvent.setup();
+  test('opens on the headline — no eyebrow above it', () => {
     renderHome();
-    await user.click(screen.getAllByRole('button', { name: /create account/i })[0]);
-    expect(screen.getByText('AUTH_ROUTE:/auth')).toBeTruthy();
+    expect(screen.queryByText('AI Mental Coach for Athletes')).toBeNull();
   });
 
-  test('Sign in goes to /auth?tab=signin, unchanged', async () => {
+  test('the hero CTA is Download the app, and there are no account CTAs on the page', () => {
+    renderHome();
+    expect(screen.getAllByRole('button', { name: /download the app/i }).length).toBeGreaterThanOrEqual(3);
+    expect(screen.queryByRole('button', { name: /create account/i })).toBeNull();
+    // Sign in is not a page CTA — it only exists inside the menu.
+    expect(screen.queryByRole('button', { name: /^sign in$/i })).toBeNull();
+  });
+
+  test('Sign in is still reachable from the menu and still goes to /auth?tab=signin', async () => {
     const user = userEvent.setup();
     renderHome();
-    await user.click(screen.getAllByRole('button', { name: /^sign in$/i })[0]);
+    await user.click(screen.getByRole('button', { name: /open menu/i }));
+    await user.click(screen.getByRole('button', { name: /^sign in$/i }));
     expect(screen.getByText('AUTH_ROUTE:/auth?tab=signin')).toBeTruthy();
   });
 
@@ -194,14 +201,34 @@ describe('FAQ', () => {
 });
 
 describe('PWA install', () => {
-  test('install is not a hero CTA — it lives in the menu, behind the primary actions', async () => {
+  test('install is a visible header action, and is gone from the menu', async () => {
     const user = userEvent.setup();
     renderHome();
-    expect(screen.queryByRole('button', { name: /install/i })).toBeNull();
+    const header = screen.getByRole('banner');
+    const installBtn = within(header).getByRole('button', { name: /install app/i });
+    expect(installBtn).toBeTruthy();
     await user.click(screen.getByRole('button', { name: /open menu/i }));
-    expect(screen.getByRole('button', { name: /install app/i })).toBeTruthy();
-    // The primary conversion is still account creation.
-    expect(screen.getAllByRole('button', { name: /create account/i }).length).toBeGreaterThan(0);
+    const menu = document.getElementById('landing-menu');
+    expect(within(menu).queryByRole('button', { name: /install/i })).toBeNull();
+    expect(within(menu).getByRole('button', { name: /^sign in$/i })).toBeTruthy();
+  });
+
+  test('with no beforeinstallprompt, the header action falls back to instructions', async () => {
+    const user = userEvent.setup();
+    renderHome();
+    await user.click(within(screen.getByRole('banner')).getByRole('button', { name: /install app/i }));
+    expect(screen.getByText('How to install')).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: /close/i }));
+    expect(screen.queryByText('How to install')).toBeNull();
+  });
+
+  test('once installed, no misleading install action is shown', async () => {
+    const { container } = renderHome();
+    await act(async () => { window.dispatchEvent(new Event('appinstalled')); });
+    expect(within(screen.getByRole('banner')).queryByRole('button', { name: /install app/i })).toBeNull();
+    expect(container.textContent).toMatch(/App installed/);
+    expect(screen.queryByRole('button', { name: /download the app/i })).toBeNull();
+    expect(screen.getAllByRole('button', { name: /open arjun/i }).length).toBeGreaterThanOrEqual(3);
   });
 
   test('the menu opens and closes and is keyboard-dismissible', async () => {
@@ -229,11 +256,12 @@ describe('language', () => {
     expect(screen.getAllByRole('heading', { level: 1 })[0].textContent)
       .toBe('तुम्हारा AI कोच उन पलों के लिए जो मायने रखते हैं।');
     expect(screen.getByText('भारतीय एथलीट्स के लिए मेंटल कोचिंग।')).toBeTruthy();
-    expect(screen.getAllByRole('button', { name: /खाता बनाओ/ }).length).toBeGreaterThan(0);
     expect(screen.getByText('मैच से पहले')).toBeTruthy();
     expect(screen.getByRole('button', { name: /क्या Arjun थेरेपी है\?/ })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'जब दबाव आता है' })).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'सोचो और सीखो' })).toBeTruthy();
+    expect(screen.getByText('₹299 / महीना')).toBeTruthy();
+    expect(screen.getAllByRole('button', { name: /ऐप डाउनलोड करो/ }).length).toBeGreaterThanOrEqual(3);
   });
 });
 
@@ -284,8 +312,29 @@ describe('final CTA', () => {
     // The two lines share one <p>, split by a <br>.
     expect(container.textContent).toMatch(/Train your mind\./);
     expect(container.textContent).toMatch(/Elevate your game\./);
-    expect(screen.getAllByRole('button', { name: /create account/i }).length).toBeGreaterThan(1);
+    expect(screen.getAllByRole('button', { name: /download the app/i }).length).toBeGreaterThanOrEqual(3);
     expect(container.textContent).not.toMatch(/thousands|★|loved by|athletes trust/i);
+  });
+});
+
+describe('pricing', () => {
+  test('states the real trial and price, and nothing else', () => {
+    const { container } = renderHome();
+    expect(screen.getByRole('heading', { name: 'Start with Arjun' })).toBeTruthy();
+    expect(screen.getByText('14 days free')).toBeTruthy();
+    expect(screen.getByText('₹299 / month')).toBeTruthy();
+    expect(screen.getByText(/Continue after your trial for ₹299\/month\./)).toBeTruthy();
+    // No tiers, annual plan, struck-through price, urgency or guarantee.
+    expect(container.textContent).not.toMatch(/annual|per year|most popular|save \d|limited time|guarantee/i);
+    const prices = container.textContent.match(/₹[\d,]+/g) || [];
+    expect([...new Set(prices)]).toEqual(['₹299']);
+  });
+
+  test('its CTA is the same Download action', () => {
+    renderHome();
+    const heading = screen.getByRole('heading', { name: 'Start with Arjun' });
+    const section = heading.closest('section');
+    expect(within(section).getByRole('button', { name: /download the app/i })).toBeTruthy();
   });
 });
 

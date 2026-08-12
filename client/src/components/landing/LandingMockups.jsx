@@ -172,26 +172,46 @@ export function HeroPhone({ t, label }) {
 // ── App-preview mockups ──────────────────────────────────────────────────────
 // Taller than the "How Arjun helps" cards so each one reads as a mini screen.
 
-function PreviewFrame({ Icon, title, line, children }) {
+// `accent` gives each preview its own colour so the carousel reads as four
+// different parts of the app rather than four blue cards. Same four-accent
+// family as Train: blue, amber, violet, teal.
+function PreviewFrame({ Icon, title, line, accent, children }) {
   return (
-    <div className={`flex h-full flex-col rounded-3xl border ${BORDER} bg-white p-4 shadow-[0_4px_14px_rgba(15,23,42,0.06)]`}>
+    <div
+      className="flex h-full flex-col rounded-3xl border bg-white p-4 shadow-[0_4px_14px_rgba(15,23,42,0.06)]"
+      style={{ borderColor: `${accent.fg}26` }}
+    >
       <div className="flex items-center gap-2">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#EEF4FC]">
-          <Icon size={16} className="text-[#185FA5]" />
+        <span
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-white"
+          style={{ background: accent.fg }}
+        >
+          <Icon size={16} />
         </span>
         <h3 className="text-[15px] font-bold text-[#0F172A]">{title}</h3>
       </div>
       <p className="mt-1.5 text-[12px] leading-snug text-[#5A6B80]">{line}</p>
-      <div className="mt-3 flex-1 rounded-2xl bg-[#FAFBFD] p-3" aria-hidden="true">
+      <div
+        className="mt-3 flex-1 rounded-2xl p-3"
+        style={{ background: `linear-gradient(160deg, ${accent.bg} 0%, #FAFBFD 72%)` }}
+        aria-hidden="true"
+      >
         {children}
       </div>
     </div>
   );
 }
 
+const PREVIEW_ACCENTS = {
+  coach:    { bg: '#E3EEFA', fg: '#185FA5' },
+  reps:     { bg: '#FAEBD8', fg: '#9A5410' },
+  playbook: { bg: '#E8E4FB', fg: '#5546C9' },
+  focus:    { bg: '#DDF0EC', fg: '#13776F' },
+};
+
 export function CoachPreview({ t }) {
   return (
-    <PreviewFrame Icon={MessageCircle} title={t.title} line={t.line}>
+    <PreviewFrame Icon={MessageCircle} title={t.title} line={t.line} accent={PREVIEW_ACCENTS.coach}>
       <div className="flex flex-col gap-2">
         <ArjunBubble>{t.ask}</ArjunBubble>
         <AthleteBubble>{t.athlete}</AthleteBubble>
@@ -203,7 +223,7 @@ export function CoachPreview({ t }) {
 
 export function RepsPreview({ t }) {
   return (
-    <PreviewFrame Icon={Zap} title={t.title} line={t.line}>
+    <PreviewFrame Icon={Zap} title={t.title} line={t.line} accent={PREVIEW_ACCENTS.reps}>
       <p className="text-[12px] font-bold leading-snug text-[#0F172A]">{t.repTitle}</p>
       <ol className="mt-2 space-y-1.5">
         {[t.repStep1, t.repStep2].map((step, i) => (
@@ -229,7 +249,7 @@ export function PlaybookPreview({ t }) {
     { label: t.cueLabel, body: t.cue, tint: '#E7F4F2', fg: '#13776F' },
   ];
   return (
-    <PreviewFrame Icon={BookOpen} title={t.title} line={t.line}>
+    <PreviewFrame Icon={BookOpen} title={t.title} line={t.line} accent={PREVIEW_ACCENTS.playbook}>
       <div className="space-y-2">
         {rows.map((row) => (
           <div key={row.label} className={`rounded-xl border ${BORDER} bg-white p-2.5`}>
@@ -249,7 +269,7 @@ export function PlaybookPreview({ t }) {
 
 export function FocusCardPreview({ t }) {
   return (
-    <PreviewFrame Icon={Layers} title={t.title} line={t.line}>
+    <PreviewFrame Icon={Layers} title={t.title} line={t.line} accent={PREVIEW_ACCENTS.focus}>
       <div className={`rounded-2xl border ${BORDER} bg-white px-3 py-5 text-center`}>
         <p className="text-[14px] font-black leading-snug text-[#0F172A]">{t.focusWord}</p>
         <span className="mx-auto mt-3 block h-[2px] w-8 rounded-full bg-[#185FA5]" />

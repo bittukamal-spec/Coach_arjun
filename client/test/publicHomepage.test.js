@@ -76,18 +76,34 @@ test('subtitle describes the current product in one short line, with no second p
 
 // ── 2. Auth routes are untouched ────────────────────────────────────────────
 
-test('Create account still goes to /auth and Sign in still goes to /auth?tab=signin', () => {
-  assert.match(landing, /const goCreate = \(\) => navigate\('\/auth'\);/);
+test('the auth route contract is untouched — sign-in still goes to /auth?tab=signin', () => {
+  // The page no longer *markets* account creation (the product action is
+  // installing the app; accounts are created inside it), but the route and
+  // the menu entry that reaches it are unchanged.
   assert.match(landing, /const goSignIn = \(\) => navigate\('\/auth\?tab=signin'\);/);
-  // No other auth-ish destination was invented.
   const routes = [...landing.matchAll(/navigate\('([^']+)'\)/g)].map((m) => m[1]);
+  const allowed = ['/auth?tab=signin', '/privacy', '/terms', '/terms#ai-child-safety', '/refund'];
   for (const route of routes) {
-    assert.ok(
-      ['/auth', '/auth?tab=signin', '/privacy', '/terms', '/terms#ai-child-safety', '/refund', link(route)].includes(route),
-      `unexpected navigation target: ${route}`,
-    );
+    assert.ok(allowed.includes(route), `unexpected navigation target: ${route}`);
   }
-  function link(r) { return r; } // keeps the assertion readable for footer links
+});
+
+test('the hero no longer shows paired Create account / Sign in CTAs', () => {
+  const hero = landing.slice(landing.indexOf('{/* ── Hero'), landing.indexOf('{/* ── Value strip'));
+  assert.doesNotMatch(hero, /ctaCreate|ctaSignIn|goSignIn/);
+  // Exactly one CTA in the hero, and it is the shared Download action.
+  assert.equal((hero.match(/<button/g) || []).length, 1);
+  assert.match(hero, /onClick=\{primaryAction\}/);
+  assert.equal(en.ctaDownload, 'Download the app');
+  assert.equal(hi.ctaDownload, 'ऐप डाउनलोड करो');
+  assert.ok(!('ctaCreate' in en) && !('ctaCreate' in hi), 'the Create account label is gone');
+});
+
+test('the hero opens on the headline — no eyebrow, pill or tag above it', () => {
+  const hero = landing.slice(landing.indexOf('{/* ── Hero'), landing.indexOf('</h1>'));
+  assert.doesNotMatch(hero, /rounded-full/, 'no pill sits above the headline');
+  assert.ok(!('pill' in en) && !('pill' in hi), 'the eyebrow string is gone from both languages');
+  assert.doesNotMatch(bothBlocks, /AI Mental Coach for Athletes/);
 });
 
 test('App.jsx still renders the landing page at / and AuthPage at /auth', () => {
@@ -147,8 +163,11 @@ test('no old mental games, drills or match-day-routine-builder copy', () => {
 test('the old landing keys are gone from both languages', () => {
   for (const block of [enBlock, hiBlock]) {
     for (const key of [
-      'tagline:', 'badge:', 'trust1:', 'step1:', 'feature1Title:', 'pricingTitle:',
-      'personalizeItems:', 'allFeatures:', 'researchFacts:', 'premiumAnnual:', 'ctaBtn:',
+      // `pricingTitle` is NOT in this list — the key name is reused by the
+      // new pricing section, whose content is asserted separately.
+      'tagline:', 'badge:', 'trust1:', 'step1:', 'feature1Title:', 'premium:',
+      'premiumDesc:', 'personalizeItems:', 'allFeatures:', 'researchFacts:',
+      'premiumAnnual:', 'ctaBtn:',
     ]) {
       assert.ok(!block.includes(key), `stale landing key still present: ${key}`);
     }
@@ -325,14 +344,75 @@ test('PWA install support is intact — the prompt event is still captured and u
   assert.match(viteConfig, /short_name: 'Arjun'/);
 });
 
-test('install is a secondary action inside the menu, never the primary CTA', () => {
+test('install is a visible header action, not a menu item', () => {
+  const header = landing.slice(landing.indexOf('{/* ── Header'), landing.indexOf('id="landing-menu"'));
+  assert.match(header, /onClick=\{handleInstall\}/, 'the header carries the install button itself');
+  assert.match(header, /<Download size=/, 'it reads as a download/install action');
+  assert.match(header, /aria-label=\{t\.installApp\}/);
   const menu = landing.slice(landing.indexOf('id="landing-menu"'), landing.indexOf('</header>'));
-  assert.match(menu, /onClick=\{handleInstall\}/, 'install lives in the header menu');
-  const hero = landing.slice(landing.indexOf('{/* ── Hero'), landing.indexOf('{/* ── Value strip'));
-  assert.doesNotMatch(hero, /handleInstall|installApp/, 'the hero converts to account creation only');
+  assert.doesNotMatch(menu, /handleInstall|installApp|installShort/, 'install was removed from the hamburger');
+});
+
+test('every Download CTA runs the one existing PWA handler — no second implementation', () => {
+  // hero, pricing, final CTA and footer all call the same primaryAction.
+  assert.ok((landing.match(/onClick=\{primaryAction\}/g) || []).length >= 4);
+  assert.match(landing, /const primaryAction = installed \? goSignIn : handleInstall;/);
+  assert.equal((landing.match(/installPrompt\.prompt\(\)/g) || []).length, 1);
+});
+
+test('an installed visitor is never shown a misleading install action', () => {
+  assert.match(landing, /const primaryLabel = installed \? t\.ctaOpen : t\.ctaDownload;/);
+  const header = landing.slice(landing.indexOf('{/* ── Header'), landing.indexOf('id="landing-menu"'));
+  assert.match(header, /installed \? \(/, 'the header swaps to the installed state');
+  assert.match(header, /\{t\.installDone\}/);
+  assert.equal(en.ctaOpen, 'Open Arjun');
+});
+
+test('the no-prompt fallback instructions are still reachable', () => {
+  assert.match(landing, /setInstallHint\(true\)/);
+  assert.match(landing, /\{installHint && \(/);
+  assert.match(landing, /isIOS \? t\.installIos : isAndroid \? t\.installAndroid : t\.installDesktop/);
+});
+
+test('the final CTA and footer convert to the app, not to an account form', () => {
   const finalCta = landing.slice(landing.indexOf('{/* ── Final CTA'), landing.indexOf('{/* ── Footer'));
-  assert.doesNotMatch(finalCta, /handleInstall|installApp/);
-  assert.match(hero, /\{t\.ctaCreate\}/);
+  assert.match(finalCta, /onClick=\{primaryAction\}/);
+  assert.doesNotMatch(finalCta, /ctaSignIn|ctaCreate|goSignIn/, 'no secondary Sign in in the final CTA');
+  const footer = landing.slice(landing.indexOf('{/* ── Footer'));
+  assert.match(footer, /onClick=\{primaryAction\}/, 'the footer product action is Download the app');
+  assert.match(footer, /\/terms#ai-child-safety/, 'Child Safety survives the footer change');
+});
+
+// ── 8b. Pricing ─────────────────────────────────────────────────────────────
+
+test('the pricing section states only the real trial and price', () => {
+  assert.equal(en.pricingTitle, 'Start with Arjun');
+  assert.equal(en.pricingTrial, '14 days free');
+  assert.equal(en.pricingPrice, '₹299 / month');
+  assert.equal(hi.pricingPrice, '₹299 / महीना');
+  assert.match(en.pricingNote, /₹299\/month/);
+  assert.match(landing, /\{t\.pricingTitle\}/);
+  assert.match(landing, /\{t\.pricingTrial\}/);
+  assert.match(landing, /\{t\.pricingPrice\}/);
+});
+
+test('pricing sits between the principles section and the FAQ', () => {
+  const order = [
+    landing.indexOf('{t.principlesTitle}'),
+    landing.indexOf('{t.pricingTitle}'),
+    landing.indexOf('{t.faqTitle}'),
+  ];
+  for (const i of order) assert.ok(i !== -1);
+  assert.ok(order[0] < order[1] && order[1] < order[2]);
+});
+
+test('pricing invents nothing — no tiers, annual plan, struck-through price or urgency', () => {
+  assert.doesNotMatch(bothBlocks, /annual|yearly|per year|\/year|साल|tier|plan[s]?\b|most popular|save \d|limited time|offer ends|guarantee|₹(?!299)\d/i);
+  // ₹299 is the only price anywhere in the copy.
+  const prices = [...bothBlocks.matchAll(/₹[\d,]+/g)].map((m) => m[0]);
+  assert.deepEqual([...new Set(prices)], ['₹299']);
+  // The payment implementation is untouched by this page.
+  assert.doesNotMatch(homepageSources, /razorpay|checkout|subscription/i);
 });
 
 // ── 9. Client-only, and scoped to this page ─────────────────────────────────

@@ -12,6 +12,7 @@ export const translations = {
       menuClose: 'Close menu',
       langLabel: 'Language',
       installApp: 'Install app',
+      installShort: 'Install',
       installHow: 'How to install',
       installIos: 'Open this page in Safari → tap Share → "Add to Home Screen".',
       installAndroid: 'Tap the ⋮ menu in Chrome → "Add to Home screen".',
@@ -20,11 +21,15 @@ export const translations = {
       close: 'Close',
 
       // ── Hero ──────────────────────────────────────────────────────────────
-      pill: 'AI Mental Coach for Athletes',
+      // No eyebrow/pill above the headline — the hero opens on the headline.
       headlineLead: 'Your AI coach for the moments ',
       headlineAccent: 'that matter.',
       subtitle: 'Mental coaching for Indian athletes.',
-      ctaCreate: 'Create account',
+      // The public page converts to the app, not to a signup form. `ctaOpen`
+      // is what replaces it once the app is already installed, so an
+      // installed visitor is never shown a misleading install action.
+      ctaDownload: 'Download the app',
+      ctaOpen: 'Open Arjun',
       ctaSignIn: 'Sign in',
       // Screen-reader description of the hero device mockup.
       heroVisualAlt: 'Arjun app preview: a coaching conversation that ends with a two-minute Mental Rep, with Mental Reps and Playbook screens behind it.',
@@ -121,6 +126,13 @@ export const translations = {
         { title: 'Focus & self-talk',    line: 'Simple cues for the next action.' },
         { title: 'Reflect & learn',      line: 'Review what worked and carry it forward.' },
       ],
+
+      // ── Pricing — the only approved numbers: 14-day trial, ₹299/month ─────
+      pricingLabel: 'Pricing',
+      pricingTitle: 'Start with Arjun',
+      pricingTrial: '14 days free',
+      pricingPrice: '₹299 / month',
+      pricingNote: 'Continue after your trial for ₹299/month.',
 
       // ── FAQ ───────────────────────────────────────────────────────────────
       faqTitle: 'Frequently asked',
@@ -1949,6 +1961,7 @@ export const translations = {
       menuClose: 'मेन्यू बंद करो',
       langLabel: 'भाषा',
       installApp: 'ऐप इंस्टॉल करो',
+      installShort: 'इंस्टॉल',
       installHow: 'इंस्टॉल कैसे करें',
       installIos: 'इस पेज को Safari में खोलो → Share दबाओ → "Add to Home Screen".',
       installAndroid: 'Chrome में ⋮ मेन्यू दबाओ → "Add to Home screen".',
@@ -1957,11 +1970,11 @@ export const translations = {
       close: 'बंद करो',
 
       // ── Hero ──────────────────────────────────────────────────────────────
-      pill: 'एथलीट्स के लिए AI मेंटल कोच',
       headlineLead: 'तुम्हारा AI कोच उन पलों के लिए ',
       headlineAccent: 'जो मायने रखते हैं।',
       subtitle: 'भारतीय एथलीट्स के लिए मेंटल कोचिंग।',
-      ctaCreate: 'खाता बनाओ',
+      ctaDownload: 'ऐप डाउनलोड करो',
+      ctaOpen: 'Arjun खोलो',
       ctaSignIn: 'साइन इन',
       heroVisualAlt: 'Arjun ऐप की झलक: एक कोचिंग बातचीत जो दो मिनट के Mental Rep पर खत्म होती है, पीछे Mental Reps और Playbook स्क्रीन।',
       phone: {
@@ -2055,6 +2068,13 @@ export const translations = {
         { title: 'फोकस और सेल्फ-टॉक',   line: 'अगले एक्शन के लिए आसान cue।' },
         { title: 'सोचो और सीखो',        line: 'जो काम आया उसे देखो और आगे ले जाओ।' },
       ],
+
+      // ── Pricing ───────────────────────────────────────────────────────────
+      pricingLabel: 'कीमत',
+      pricingTitle: 'Arjun के साथ शुरू करो',
+      pricingTrial: '14 दिन मुफ़्त',
+      pricingPrice: '₹299 / महीना',
+      pricingNote: 'ट्रायल के बाद ₹299/महीना में जारी रखो।',
 
       // ── FAQ ───────────────────────────────────────────────────────────────
       faqTitle: 'अक्सर पूछे जाने वाले सवाल',
