@@ -7,7 +7,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
-import { ArjunLogo } from '../components/ArjunLogo';
+import { ArjunWordmark } from '../components/ArjunLogo';
 import BottomNav from '../components/BottomNav';
 import { useStartingProfile } from '../hooks/useStartingProfile';
 import {
@@ -228,8 +228,7 @@ export default function StartingProfilePage() {
           >
             <ChevronLeft size={22} aria-hidden="true" />
           </button>
-          <ArjunLogo size={30} />
-          <span className="text-heading font-semibold text-ink">Arjun</span>
+          <ArjunWordmark size="hero" />
         </div>
 
         <h1 className="text-title font-bold text-ink mb-3">

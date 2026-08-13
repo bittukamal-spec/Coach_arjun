@@ -32,8 +32,8 @@ test('the auth page is a light surface, not the old dark shell', () => {
 });
 
 test('it uses the homepage visual language — Arjun mark, blue CTA, soft outlines', () => {
-  assert.match(auth, /import \{ ArjunLogo \}/);
-  assert.match(auth, /<ArjunLogo size=\{32\}/);
+  assert.match(auth, /import \{ ArjunWordmark \}/);
+  assert.match(auth, /<ArjunWordmark size="hero"/);
   assert.match(auth, /bg-\[#185FA5\]/, 'Arjun-blue primary action');
   assert.match(auth, /rounded-3xl border border-\[#E4E9F2\] bg-white/, 'rounded white form card');
   assert.match(auth, /border-\[#D9E1EC\]/, 'cool-grey outlined inputs');

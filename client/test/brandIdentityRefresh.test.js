@@ -104,36 +104,80 @@ test('ArjunLogo renders the approved production brand mark and Coach avatar crop
   assert.ok(exists('public/brand/arjun/arjun-coach-avatar-256.png'), 'missing arjun-coach-avatar-256.png on disk');
 });
 
-test('the public homepage header, final CTA and footer use the ArjunLogo brand mark', () => {
-  assert.match(landing, /import \{ ArjunLogo \} from '\.\.\/components\/ArjunLogo';/);
-  assert.equal((landing.match(/<ArjunLogo /g) || []).length, 3, 'header, final CTA and footer');
+test('ArjunWordmark is a single central lockup, not one-off Tailwind sizing per page', () => {
+  // Exactly one component defines the icon+"Arjun" pairing — no competing
+  // implementation was added elsewhere.
+  assert.equal((allSourceText.match(/export function ArjunWordmark/g) || []).length, 1);
+  assert.doesNotMatch(arjunLogo, /<svg|<path/, 'the wordmark composes ArjunLogo, it does not draw its own art');
 });
 
-test('auth (sign in / create account) uses the ArjunLogo brand mark', () => {
-  assert.match(auth, /import \{ ArjunLogo \} from '\.\.\/components\/ArjunLogo';/);
-  assert.match(auth, /<ArjunLogo size=\{32\}/);
+test('the wordmark size presets are deterministic and keep a fixed icon:text:gap ratio', () => {
+  const presetsBlock = arjunLogo.slice(arjunLogo.indexOf('const LOCKUP_PRESETS'), arjunLogo.indexOf('\n};', arjunLogo.indexOf('const LOCKUP_PRESETS')));
+  for (const preset of ['hero', 'header', 'medium', 'compact']) {
+    assert.match(presetsBlock, new RegExp(`${preset}: \\{`), `missing wordmark preset: ${preset}`);
+  }
+  // Every non-responsive preset pins a fixed numeric icon size — no
+  // preset silently falls through to an undefined/default size.
+  for (const preset of ['hero', 'medium', 'compact']) {
+    const block = presetsBlock.slice(presetsBlock.indexOf(`${preset}: {`), presetsBlock.indexOf('},', presetsBlock.indexOf(`${preset}: {`)));
+    assert.match(block, /icon: \d+,/);
+  }
+  // The word "Arjun" is the lockup's only default text.
+  assert.match(arjunLogo, /wordmark = 'Arjun'/);
+  // brand vs Coach artwork selection stays exactly as deterministic as
+  // ArjunLogo's own — the wordmark just forwards `variant`, it doesn't
+  // re-decide which image to use.
+  assert.match(arjunLogo, /variant=\{variant\}/);
 });
 
-test('the password reset flow uses the ArjunLogo brand mark', () => {
-  assert.match(resetPassword, /import \{ ArjunLogo \} from '\.\.\/components\/ArjunLogo';/);
-  assert.equal((resetPassword.match(/<ArjunLogo /g) || []).length, 2);
+test('the public homepage header, final CTA and footer all carry the Arjun mark', () => {
+  assert.match(landing, /import \{ ArjunLogo, ArjunWordmark \} from '\.\.\/components\/ArjunLogo';/);
+  assert.match(landing, /<ArjunWordmark size="header" iconClassName="rounded-xl" \/>/, 'header uses the responsive canonical lockup');
+  assert.match(landing, /<ArjunWordmark size="medium" iconClassName="rounded-lg" \/>/, 'footer uses the medium lockup');
+  assert.match(landing, /<ArjunLogo size=\{44\}.*alt="Arjun"/, 'final CTA keeps its icon-only mark, untouched by the wordmark change');
 });
 
-test('the Starting Profile (onboarding) header uses the ArjunLogo brand mark', () => {
-  assert.match(startingProfile, /import \{ ArjunLogo \} from '\.\.\/components\/ArjunLogo';/);
-  assert.match(startingProfile, /<ArjunLogo size=\{30\}/);
+test('the homepage header wordmark grows in a second step, not blindly forced to one size', () => {
+  // The base (mobile) size is untouched from before this refinement — a
+  // regression at the narrowest supported width (320px) is impossible by
+  // construction, since the unprefixed classes never changed.
+  const presetsBlock = arjunLogo.slice(arjunLogo.indexOf('header: {'), arjunLogo.indexOf('},', arjunLogo.indexOf('header: {')));
+  assert.match(presetsBlock, /w-8 h-8/, 'unprefixed (mobile-first) icon size is unchanged from the original 32px');
+  assert.match(presetsBlock, /text-\[19px\]/, 'unprefixed (mobile-first) text size is unchanged from the original 19px');
+  // The stronger lockup only applies from a verified-safe breakpoint up.
+  assert.match(presetsBlock, /min-\[360px\]:w-10 min-\[360px\]:h-10/);
+  assert.match(presetsBlock, /min-\[360px\]:text-\[26px\]/);
+  assert.match(presetsBlock, /min-\[360px\]:text-\[#185FA5\]/, 'the brand-navy colour is reserved for the grown-in state');
 });
 
-test('the authenticated app header (Navbar) uses the ArjunLogo brand mark', () => {
-  assert.match(navbar, /import \{ ArjunLogo \} from '\.\/ArjunLogo';/);
-  assert.match(navbar, /<ArjunLogo size=\{26\}/);
+test('auth (sign in / create account) uses the canonical hero lockup', () => {
+  assert.match(auth, /import \{ ArjunWordmark \} from '\.\.\/components\/ArjunLogo';/);
+  assert.match(auth, /<ArjunWordmark size="hero" iconClassName="rounded-xl" \/>/);
+});
+
+test('the password reset flow uses the canonical hero lockup on both screens', () => {
+  assert.match(resetPassword, /import \{ ArjunWordmark \} from '\.\.\/components\/ArjunLogo';/);
+  assert.equal((resetPassword.match(/<ArjunWordmark size="hero" \/>/g) || []).length, 2);
+});
+
+test('the Starting Profile (onboarding) header uses the canonical hero lockup', () => {
+  assert.match(startingProfile, /import \{ ArjunWordmark \} from '\.\.\/components\/ArjunLogo';/);
+  assert.match(startingProfile, /<ArjunWordmark size="hero" \/>/);
+});
+
+test('the authenticated app header (Navbar) uses the compact lockup — it sits in a fixed h-12 bar', () => {
+  assert.match(navbar, /import \{ ArjunWordmark \} from '\.\/ArjunLogo';/);
+  assert.match(navbar, /<ArjunWordmark size="compact" \/>/);
 });
 
 // ── 9. Coach avatar ──────────────────────────────────────────────────────
 
-test('the Coach chat header uses the approved Coach avatar, not the generic brand mark', () => {
+test('the Coach chat header uses the approved Coach avatar, sized compact, not the generic brand mark', () => {
   assert.match(chatPage, /import \{ ArjunLogo \} from '\.\.\/components\/ArjunLogo';/);
-  assert.match(chatPage, /<ArjunLogo size=\{26\} variant="coach" ariaLabel="Arjun logo" \/>/);
+  assert.match(chatPage, /<ArjunLogo size=\{32\} variant="coach" ariaLabel="Arjun logo" className="shrink-0" \/>/);
+  // Its "Arjun" label stays a real <h1> (accessibility contract), just
+  // restyled to feel intentional next to the bigger avatar.
+  assert.match(chatPage, /<h1 className="text-\[21px\] font-extrabold leading-none tracking-\[-0\.02em\] text-ink">\{t\.title\}<\/h1>/);
 });
 
 // ── 10. Obsolete purple assets are gone ──────────────────────────────────

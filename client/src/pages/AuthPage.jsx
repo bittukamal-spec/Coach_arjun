@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
-import { ArjunLogo } from '../components/ArjunLogo';
+import { ArjunWordmark } from '../components/ArjunLogo';
 
 // Shared field recipe for this page: light surface, cool-grey outline, 48px
 // tall so every control clears the 44px touch target on a phone.
@@ -85,9 +85,8 @@ function AuthPage() {
 
       {/* Header */}
       <header className="mx-auto flex w-full max-w-md items-center px-5 py-5">
-        <button onClick={() => navigate('/')} className="flex items-center gap-2.5 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5] focus-visible:ring-offset-2">
-          <ArjunLogo size={32} className="rounded-xl" />
-          <span className="text-[19px] font-black tracking-tight">Arjun</span>
+        <button onClick={() => navigate('/')} className="flex items-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5] focus-visible:ring-offset-2">
+          <ArjunWordmark size="hero" iconClassName="rounded-xl" />
         </button>
       </header>
 

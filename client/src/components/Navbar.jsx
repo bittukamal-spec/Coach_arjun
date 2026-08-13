@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../hooks/useTheme';
 import { translations } from '../i18n/translations';
-import { ArjunLogo } from './ArjunLogo';
+import { ArjunWordmark } from './ArjunLogo';
 import { User } from 'lucide-react';
 
 function getInitials(name = '') {
@@ -33,10 +33,7 @@ function Navbar() {
     <nav className="fixed top-0 inset-x-0 z-50 bg-dark-900">
       <div className="max-w-5xl mx-auto px-4 h-12 flex items-center justify-between">
         {/* Logo */}
-        <div className="flex items-center gap-2">
-          <ArjunLogo size={26} />
-          <span className="font-bold text-xl leading-none" style={{ color: '#185FA5' }}>Arjun</span>
-        </div>
+        <ArjunWordmark size="compact" />
 
         {/* Avatar + dropdown */}
         {user && (

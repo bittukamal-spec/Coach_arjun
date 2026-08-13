@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
-import { ArjunLogo } from '../components/ArjunLogo';
+import { ArjunLogo, ArjunWordmark } from '../components/ArjunLogo';
 import LandingCarousel from '../components/landing/LandingCarousel';
 import {
   CoachPreview, GameChips, HeroPhone, PlaybookPreview, PressureFlow,
@@ -166,10 +166,7 @@ function LandingPage() {
           action rather than a menu item, and shares the one PWA handler with
           every other Download CTA on the page. */}
       <header className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-5 py-3">
-        <div className="flex items-center gap-2">
-          <ArjunLogo size={32} className="shrink-0 rounded-xl" />
-          <span className="text-[19px] font-black tracking-tight">Arjun</span>
-        </div>
+        <ArjunWordmark size="header" iconClassName="rounded-xl" />
 
         <div className="flex items-center gap-1.5 xs:gap-2">
           <button
@@ -640,10 +637,7 @@ function LandingPage() {
       {/* ── Footer ────────────────────────────────────────────────────────── */}
       <footer className={`mx-auto mt-16 max-w-5xl border-t ${BORDER} px-5 py-8 lg:mt-24`}>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <ArjunLogo size={22} className="rounded-lg" />
-            <span className="text-[15px] font-black tracking-tight">Arjun</span>
-          </div>
+          <ArjunWordmark size="medium" iconClassName="rounded-lg" />
           <button
             type="button"
             onClick={primaryAction}
