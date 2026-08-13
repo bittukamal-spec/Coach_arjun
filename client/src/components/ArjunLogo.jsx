@@ -1,23 +1,28 @@
-export function ArjunLogo({ size = 32, className = '' }) {
-  const r = Math.round(size * 0.188);
+// Arjun's approved production brand mark. These are fixed production
+// crops/resizes of the approved logo artwork — do not redraw, recolour,
+// trace or replace with an inline SVG. See
+// client/public/brand/arjun/README.txt for the full approved asset set.
+const BRAND_MARK = '/brand/arjun/arjun-brand-mark-384.png';
+const COACH_AVATAR = '/brand/arjun/arjun-coach-avatar-256.png';
+
+// `variant="coach"` renders the Coach avatar crop (Arjun himself, in chat);
+// the default `variant="brand"` renders the general brand mark used in
+// headers, auth and onboarding. `alt` defaults to decorative ("") because
+// every current call site already places visible "Arjun" text next to the
+// mark — pass an explicit alt when the mark is the only label present.
+// `ariaLabel` is separate from `alt`: pass it where the mark itself must
+// carry an accessible name (e.g. the Coach chat header).
+export function ArjunLogo({ size = 32, className = '', variant = 'brand', alt = '', ariaLabel }) {
+  const src = variant === 'coach' ? COACH_AVATAR : BRAND_MARK;
   return (
-    <svg
+    <img
+      src={src}
+      alt={alt}
+      aria-label={ariaLabel}
       width={size}
       height={size}
-      viewBox="0 0 512 512"
-      xmlns="http://www.w3.org/2000/svg"
       className={className}
-      aria-label="Arjun logo"
-    >
-      <rect width="512" height="512" rx={96} fill="#185FA5" />
-      <path d="M 168 92 C 430 92 430 420 168 420"
-            stroke="white" strokeWidth="28" fill="none" strokeLinecap="round" />
-      <path d="M 196 182 C 268 202 268 308 196 328"
-            stroke="white" strokeWidth="14" fill="none" strokeLinecap="round" opacity="0.5" />
-      <line x1="86" y1="256" x2="376" y2="256" stroke="white" strokeWidth="22" strokeLinecap="round" />
-      <polygon points="364,226 422,256 364,286" fill="white" />
-      <line x1="112" y1="256" x2="80" y2="220" stroke="white" strokeWidth="16" strokeLinecap="round" />
-      <line x1="112" y1="256" x2="80" y2="292" stroke="white" strokeWidth="16" strokeLinecap="round" />
-    </svg>
+      style={{ width: size, height: size, objectFit: 'contain' }}
+    />
   );
 }

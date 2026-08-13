@@ -617,7 +617,7 @@ function LandingPage() {
               <path d="M-20 196 C 100 196, 170 130, 270 130 S 400 74, 460 74" stroke="#FFFFFF" strokeOpacity="0.10" strokeWidth="3" />
             </svg>
             <div className="relative flex items-center gap-3">
-              <ArjunLogo size={44} className="hidden shrink-0 rounded-2xl xs:block" />
+              <ArjunLogo size={44} className="hidden shrink-0 rounded-2xl xs:block" alt="Arjun" />
               <div>
                 <p className="text-[24px] font-black leading-tight xs:text-[26px]">{t.finalTitle}</p>
                 <p className="mt-1.5 text-[14px] leading-snug text-white/80">{t.finalLine}</p>
