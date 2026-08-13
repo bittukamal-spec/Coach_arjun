@@ -3,6 +3,12 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
+import { ArjunLogo } from '../components/ArjunLogo';
+
+// Shared field recipe for this page: light surface, cool-grey outline, 48px
+// tall so every control clears the 44px touch target on a phone.
+const INPUT =
+  'w-full min-h-[48px] rounded-xl border border-[#D9E1EC] bg-white px-3.5 text-[15px] text-[#0F172A] placeholder-[#9AA7B8] focus:border-[#185FA5] focus:outline-none focus:ring-2 focus:ring-[#185FA5]/25 transition-colors';
 
 function AuthPage() {
   const { language, loginWithUser } = useAuth();
@@ -68,46 +74,48 @@ function AuthPage() {
     }
   }
 
+  // Visual layer only. Every field, validation rule, endpoint, guardian/minor
+  // branch and redirect above is untouched — this page now simply wears the
+  // same light system as the public homepage instead of the old dark shell,
+  // so a visitor arriving from the landing page doesn't cross a theme wall.
+  // Colours are hard-coded to this page (as on the homepage) so an OS dark
+  // preference cannot flip a public screen.
   return (
-    <div className="min-h-screen bg-dark-900 flex flex-col">
+    <div className="flex min-h-screen flex-col bg-[#FAFBFD] text-[#0F172A]">
 
       {/* Header */}
-      <header className="px-4 py-5 flex items-center gap-2.5">
-        <button onClick={() => navigate('/')} className="flex items-center gap-2.5 group">
-          <div className="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center shadow-lg shadow-brand-500/40">
-            <span className="text-white font-bold text-sm">A</span>
-          </div>
-          <span className="font-bold text-ink text-lg tracking-tight">Arjun</span>
+      <header className="mx-auto flex w-full max-w-md items-center px-5 py-5">
+        <button onClick={() => navigate('/')} className="flex items-center gap-2.5 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5] focus-visible:ring-offset-2">
+          <ArjunLogo size={32} className="rounded-xl" />
+          <span className="text-[19px] font-black tracking-tight">Arjun</span>
         </button>
       </header>
 
       {/* Form */}
-      <div className="flex-1 flex items-center justify-center px-4 py-8">
-        <div className="w-full max-w-sm">
+      <div className="flex flex-1 items-start justify-center px-5 pb-10 sm:items-center">
+        <div className="w-full max-w-md">
 
-          <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-ink mb-1">
-              {tab === 'signup' ? 'Create your account' : 'Welcome back'}
+          <div className="mb-6">
+            <h1 className="text-[28px] font-black leading-tight tracking-tight">
+              {tab === 'signup' ? t.auth.signupHeading : t.auth.signinHeading}
             </h1>
-            <p className="text-sm text-slt">
-              {tab === 'signup' ? '14 days free — no card needed' : 'Sign in to continue with Arjun'}
+            <p className="mt-1.5 text-[14.5px] text-[#5A6B80]">
+              {tab === 'signup' ? t.auth.signupSub : t.auth.signinSub}
             </p>
           </div>
 
-          {/* Glow */}
           <div className="relative">
-            <div className="absolute -inset-4 bg-brand-500/10 rounded-3xl blur-2xl pointer-events-none" />
-            <div className="relative bg-dark-800 rounded-2xl border border-dark-600 shadow-2xl p-6">
+            <div className="relative rounded-3xl border border-[#E4E9F2] bg-white p-5 shadow-[0_6px_24px_rgba(15,23,42,0.07)] sm:p-6">
 
               {/* Tabs */}
-              <div className="flex mb-5 bg-dark-700 rounded-xl p-1">
+              <div className="mb-5 flex rounded-2xl bg-[#F3F6FB] p-1">
                 {['signup', 'signin'].map(id => (
                   <button
                     key={id}
                     type="button"
                     onClick={() => { setTab(id); setError(''); }}
-                    className={`flex-1 text-sm font-semibold py-2 rounded-lg transition-all ${
-                      tab === id ? 'bg-brand-500 text-white shadow-sm' : 'text-slt hover:text-ink'
+                    className={`min-h-[44px] flex-1 rounded-xl text-[14px] font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5] ${
+                      tab === id ? 'bg-[#185FA5] text-white shadow-sm' : 'text-[#5A6B80] hover:text-[#0F172A]'
                     }`}
                   >
                     {id === 'signin' ? t.auth.tabSignIn : t.auth.tabSignUp}
@@ -118,54 +126,54 @@ function AuthPage() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 {tab === 'signup' && (
                   <div>
-                    <label className="block text-xs font-semibold text-slt mb-1.5">{t.auth.nameLabel}</label>
+                    <label className="mb-1.5 block text-[12.5px] font-bold text-[#5A6B80]">{t.auth.nameLabel}</label>
                     <input
                       type="text" value={name} onChange={e => setName(e.target.value)}
                       placeholder={t.auth.namePlaceholder} required autoComplete="name"
-                      className="input-field text-sm"
+                      className={INPUT}
                     />
                   </div>
                 )}
                 {tab === 'signup' && (
                   <div>
-                    <label className="block text-xs font-semibold text-slt mb-1.5">{t.auth.dobLabel}</label>
+                    <label className="mb-1.5 block text-[12.5px] font-bold text-[#5A6B80]">{t.auth.dobLabel}</label>
                     <input
                       type="date" value={dob} onChange={e => setDob(e.target.value)}
                       required autoComplete="bday"
                       max={new Date().toISOString().slice(0, 10)}
-                      className="input-field text-sm"
+                      className={INPUT}
                     />
                     {isUnderage
-                      ? <p className="text-xs text-red-400 mt-1.5">{t.auth.underageError}</p>
-                      : <p className="text-xs text-muted mt-1.5">{t.auth.dobHint}</p>}
+                      ? <p className="mt-1.5 text-[12.5px] font-semibold text-[#B4443C]">{t.auth.underageError}</p>
+                      : <p className="mt-1.5 text-[12.5px] text-[#7B8A9C]">{t.auth.dobHint}</p>}
                   </div>
                 )}
                 {tab === 'signup' && needsGuardian && (
                   <div>
-                    <label className="block text-xs font-semibold text-slt mb-1.5">{t.auth.guardianEmailLabel}</label>
+                    <label className="mb-1.5 block text-[12.5px] font-bold text-[#5A6B80]">{t.auth.guardianEmailLabel}</label>
                     <input
                       type="email" value={guardianEmail} onChange={e => setGuardianEmail(e.target.value)}
                       placeholder={t.auth.guardianEmailPlaceholder} required
-                      className="input-field text-sm"
+                      className={INPUT}
                     />
-                    <p className="text-xs text-muted mt-1.5">{t.auth.guardianEmailHint}</p>
+                    <p className="mt-1.5 text-[12.5px] leading-snug text-[#7B8A9C]">{t.auth.guardianEmailHint}</p>
                   </div>
                 )}
                 <div>
-                  <label className="block text-xs font-semibold text-slt mb-1.5">{t.auth.emailLabel}</label>
+                  <label className="mb-1.5 block text-[12.5px] font-bold text-[#5A6B80]">{t.auth.emailLabel}</label>
                   <input
                     type="email" value={email} onChange={e => setEmail(e.target.value)}
                     placeholder={t.auth.emailPlaceholder} required autoComplete="email"
-                    className="input-field text-sm"
+                    className={INPUT}
                   />
                 </div>
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-xs font-semibold text-slt">{t.auth.passwordLabel}</label>
+                    <label className="block text-[12.5px] font-bold text-[#5A6B80]">{t.auth.passwordLabel}</label>
                     {tab === 'signin' && (
                       <button type="button" onClick={() => navigate('/forgot-password')}
-                        className="text-xs text-brand-400 hover:text-brand-300 font-medium">
-                        Forgot password?
+                        className="text-[12.5px] font-semibold text-[#185FA5] hover:underline">
+                        {t.auth.forgotPassword}
                       </button>
                     )}
                   </div>
@@ -173,17 +181,21 @@ function AuthPage() {
                     type="password" value={password} onChange={e => setPassword(e.target.value)}
                     placeholder={t.auth.passwordPlaceholder} required
                     autoComplete={tab === 'signup' ? 'new-password' : 'current-password'}
-                    className="input-field text-sm"
+                    className={INPUT}
                   />
                 </div>
 
                 {error && (
-                  <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+                  <p className="rounded-xl border border-[#F3C7C3] bg-[#FDF3F2] px-3 py-2.5 text-[13px] font-semibold text-[#B4443C]">
                     {error}
                   </p>
                 )}
 
-                <button type="submit" disabled={busy || (tab === 'signup' && isUnderage)} className="btn-primary w-full justify-center py-3 text-sm disabled:opacity-50">
+                <button
+                  type="submit"
+                  disabled={busy || (tab === 'signup' && isUnderage)}
+                  className="inline-flex min-h-[54px] w-full items-center justify-center rounded-2xl bg-[#185FA5] text-[16px] font-bold text-white shadow-[0_6px_18px_rgba(24,95,165,0.25)] transition-transform active:scale-[0.98] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5] focus-visible:ring-offset-2"
+                >
                   {busy
                     ? (tab === 'signup' ? t.auth.signingUp : t.auth.signingIn)
                     : (tab === 'signup' ? t.auth.signUpBtn : t.auth.signInBtn)}
@@ -191,30 +203,30 @@ function AuthPage() {
               </form>
 
               {tab === 'signup' && (
-                <div className="mt-4 bg-brand-500/10 border border-brand-500/30 rounded-xl px-3.5 py-3">
-                  <p className="text-xs text-slt leading-relaxed">{t.auth.aiDisclosure}</p>
-                  <p className="text-xs text-slt leading-relaxed mt-2">{t.auth.aiDisclosureSafety}</p>
+                <div className="mt-4 rounded-2xl border border-[#D8E6F6] bg-[#F2F7FD] px-4 py-3">
+                  <p className="text-[12.5px] leading-relaxed text-[#5A6B80]">{t.auth.aiDisclosure}</p>
+                  <p className="mt-2 text-[12.5px] leading-relaxed text-[#5A6B80]">{t.auth.aiDisclosureSafety}</p>
                 </div>
               )}
 
               {tab === 'signup' && (
-                <p className="text-center text-xs text-slt mt-4">
+                <p className="mt-4 text-center text-[12px] leading-relaxed text-[#7B8A9C]">
                   By signing up you agree to our{' '}
-                  <button onClick={() => navigate('/terms')} className="underline hover:text-slt transition-colors">Terms</button>
+                  <button onClick={() => navigate('/terms')} className="underline hover:text-[#0F172A]">Terms</button>
                   {' '}and{' '}
-                  <button onClick={() => navigate('/privacy')} className="underline hover:text-slt transition-colors">Privacy Policy</button>
+                  <button onClick={() => navigate('/privacy')} className="underline hover:text-[#0F172A]">Privacy Policy</button>
                 </p>
               )}
             </div>
           </div>
 
-          <p className="text-center text-sm text-slt mt-6">
-            {tab === 'signup' ? 'Already have an account? ' : "Don't have an account? "}
+          <p className="mt-6 text-center text-[14px] text-[#5A6B80]">
+            {tab === 'signup' ? t.auth.haveAccount : t.auth.noAccount}{' '}
             <button
               onClick={() => { setTab(tab === 'signup' ? 'signin' : 'signup'); setError(''); }}
-              className="text-brand-400 font-semibold hover:text-brand-300"
+              className="min-h-[44px] font-bold text-[#185FA5] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5] focus-visible:ring-offset-2 rounded-lg"
             >
-              {tab === 'signup' ? 'Sign in' : 'Create one free'}
+              {tab === 'signup' ? t.auth.tabSignIn : t.auth.signUpBtn}
             </button>
           </p>
         </div>

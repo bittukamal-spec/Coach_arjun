@@ -7,71 +7,199 @@ import { onboardingV2En, onboardingV2Hi } from './onboardingV2.js';
 export const translations = {
   en: {
     landing: {
-      // Hero
-      tagline: 'Train Your Mind.\nOwn Your Game.',
-      subtitle: 'Your AI coach for match nerves, focus and confidence — available 24/7, personalised to your sport.',
-      badge: 'AI-Powered · Bilingual · Free Trial',
-      // Trust strip
-      trust1: '8 Sports', trust1Sub: 'Cricket to Swimming',
-      trust2: '24/7 Available', trust2Sub: 'Your coach never sleeps',
-      trust3: 'Hindi & English', trust3Sub: 'Coaching in your language',
-      // How it works
-      howTitle: 'How it works',
-      step1: 'Set up your profile', step1Desc: 'Tell Arjun your sport, level, and mental goals. Takes 2 minutes.',
-      step2: 'Check in daily', step2Desc: 'Rate your mood, focus, and confidence. Arjun learns your patterns over time.',
-      step3: 'Get coached anytime', step3Desc: 'Before a match, after a tough loss, or whenever your head\'s not right — Arjun is always there.',
-      // Features
-      feature1Title: 'Stay sharp under pressure',
-      feature1Desc: 'Build the mental routines that keep you focused when stakes are highest. Arjun identifies your triggers and helps you master them.',
-      feature2Title: 'Understand your patterns',
-      feature2Desc: 'Daily check-ins reveal what\'s affecting your performance before it costs you. Spot the trends holding you back.',
-      feature3Title: 'Watch yourself get better',
-      feature3Desc: 'Your score updates daily. Watch yourself build strength week by week.',
-      // Pricing
-      pricingTitle: 'Simple pricing',
-      free: '14-Day Free Trial',
-      freeDesc: 'Full access — no credit card needed',
-      premium: '₹299/month',
-      premiumDesc: 'Unlimited access · Cancel anytime',
-      premiumAnnual: '₹1999/year',
-      premiumAnnualDesc: 'Best value — save 44%',
-      // Bottom CTA
-      ctaTitle: 'Start training your mind today',
-      ctaDesc: 'First 14 days completely free.',
-      ctaBtn: 'Get Started Free →',
-      // Personalization section
-      personalizeTitle: 'Arjun learns you. Then coaches you.',
-      personalizeSubtitle: 'Every response is built from your sport, personality, and real-time data — not a generic template.',
-      personalizeItems: [
-        { icon: '🏏', title: 'Your Sport & Level', desc: 'Tailored to cricket, football, badminton, and 7+ more sports' },
-        { icon: '📊', title: 'Daily Check-ins', desc: 'Mood, focus, energy, sleep — Arjun reads your mental state' },
-        { icon: '🎮', title: 'Game Performance', desc: 'Your focus and reaction scores reveal mental strengths' },
-        { icon: '🧠', title: 'Your Personality', desc: 'A quick test shapes how Arjun talks to you and what advice fits' },
+      // ── Header ────────────────────────────────────────────────────────────
+      menuOpen: 'Open menu',
+      menuClose: 'Close menu',
+      langLabel: 'Language',
+      installApp: 'Install Arjun',
+      installShort: 'Install',
+      installHow: 'How to install',
+      installIos: 'Open this page in Safari → tap Share → "Add to Home Screen".',
+      installAndroid: 'Tap the ⋮ menu in Chrome → "Add to Home screen".',
+      installDesktop: 'Use the install icon in your browser address bar, or ⋮ → Install Arjun.',
+      installDone: 'App installed',
+      close: 'Close',
+
+      // ── Hero ──────────────────────────────────────────────────────────────
+      // No eyebrow above the headline — the hero opens on the headline itself.
+      headlineLead: 'Train your mind. ',
+      headlineAccent: 'Perform under pressure.',
+      subtitle: 'Train focus, handle pressure and build confidence with Arjun.',
+      // Arjun ships as a PWA, so the one conversion is installing it. `ctaOpen`
+      // replaces it once the app is installed, so an installed visitor is never
+      // shown a misleading install action.
+      ctaInstall: 'Install Arjun',
+      ctaOpen: 'Open Arjun',
+      ctaSignIn: 'Sign in',
+      heroVisualAlt: 'Arjun app preview: the Coach asking about a lost-focus moment and checking what it understood, with Yes / Not quite replies.',
+      phone: {
+        coach: 'Arjun',
+        q1: 'What happened today?',
+        a1: 'I lost focus after a mistake.',
+        q2: 'What happened in the next few moments?',
+        a2: 'I kept thinking about it.',
+        q3: 'Sounds like the mistake stayed with you. Does that fit?',
+        chipYes: 'Yes',
+        chipNo: 'Not quite',
+      },
+
+      // ── Benefit tags ──────────────────────────────────────────────────────
+      tagsLabel: 'What you get',
+      tagTalk: 'Talk it through',
+      tagReps: 'Quick Mental Reps',
+      tagSave: 'Save what works',
+      tagLang: 'Hindi + English',
+      tagPrivate: 'Private by design',
+
+      // ── How Arjun helps ───────────────────────────────────────────────────
+      helpsTitle: 'How Arjun helps',
+      helps: [
+        { title: 'Before a match',          line: 'Get mentally ready.' },
+        { title: 'Under pressure',          line: 'Reset and refocus.' },
+        { title: 'After a setback',         line: 'Bounce back faster.' },
+        { title: 'Build your mental game',  line: 'Practice what helps.' },
       ],
-      // All features
-      allFeaturesTitle: 'Everything in one app',
-      allFeaturesSubtitle: 'Built for the way Indian athletes actually train and compete.',
-      allFeatures: [
-        { icon: '📊', title: 'Daily Pulse', desc: 'Track mood, focus, energy, and sleep in 60 seconds. Arjun reads your patterns.' },
-        { icon: '💬', title: 'Talk to Arjun', desc: 'AI coaching for 6 session types — before a match, after a loss, building focus, and more.' },
-        { icon: '🎮', title: 'Mental Games', desc: '5 sport-specific mini-games: Concentration Grid, Stroop Focus, Reaction Ball, Thought Buster, Focus Filter.' },
-        { icon: '⚡', title: "Today\'s Drill", desc: 'A new 2-minute mental drill every day. Box breathing, visualization, self-talk, pressure training.' },
-        { icon: '🧘', title: 'Match-day routine', desc: 'Build your own game-day routine. Breathing → cue word → picture it. Tap it before every match.' },
-        { icon: '🔄', title: 'Learn after every match', desc: '3 questions after every game. What went well, what to change, one focus next time. Arjun reflects back.' },
+
+      // ── Inside Arjun ──────────────────────────────────────────────────────
+      previewTitle: 'Inside Arjun',
+      previewHint: 'Swipe to explore',
+      preview: {
+        coachCard: {
+          title: 'Talk it through',
+          line: 'Work through what\'s happening.',
+          q1: 'What\'s been getting in the way lately?',
+          a1: 'After one mistake I start rushing.',
+          q2: 'Is it the mistake itself, or trying to fix it too quickly?',
+          a2: 'Trying to fix it quickly.',
+        },
+        repsCard: {
+          title: 'Train the moment',
+          line: 'Short practice for the moment you need it.',
+          repTitle: 'Reset after a mistake',
+          meta: '2 min',
+          step1: 'Slow the breath',
+          step2: 'Name the next action',
+          step3: 'Use your reset cue',
+          cta: 'Start Mental Rep',
+        },
+        playbookCard: {
+          title: 'Keep what works',
+          line: 'Save cues and lessons that help you.',
+          lessonLabel: 'Latest lesson',
+          lesson: 'One mistake doesn\'t have to become the next one.',
+          cueLabel: 'Saved cue',
+          cue: 'Next ball.',
+        },
+        profileCard: {
+          title: 'Learn your patterns',
+          line: 'Arjun remembers your game.',
+          screenTitle: 'When pressure hits',
+          situationLabel: 'Situation',
+          situation: 'After I make a mistake',
+          firstResponseLabel: 'First response',
+          firstResponse: 'I get angry with myself',
+          impactLabel: 'Performance impact',
+          impact: 'I lose focus',
+          resetTime: 'Reset time · A few minutes',
+        },
+      },
+
+      // ── Built around you — mirrors the real Profile sections ──────────────
+      // (My Game · When Pressure Hits · What Helps Me). Structured background
+      // the athlete gave Arjun themselves — never inferred traits.
+      personalTitle: 'Built around you',
+      personal: [
+        { title: 'Your game',          line: 'Your sport, role and goals.' },
+        { title: 'When pressure hits', line: 'What tends to happen in difficult moments.' },
+        { title: 'What works for you', line: 'Useful cues, strategies and lessons.' },
       ],
-      // Research section
-      researchTitle: 'What the research says',
-      researchSubtitle: 'Every feature is built on what actually works for athletes.',
-      researchFacts: [
-        { stat: '18%', desc: 'Athletes who prepare before matches perform 18% better under pressure', source: 'Cotterill, Journal of Applied Sport Psychology' },
-        { stat: '31%', desc: '8 weeks of breathing helped athletes stay calmer under pressure by 31%', source: 'Jerath et al., Applied Psychophysiology' },
-        { stat: '=', desc: 'Mental imagery training improves performance as much as physical practice', source: 'Driskell et al. — 35 studies, 3,000+ athletes' },
-        { stat: '12–17%', desc: 'Self-talk cues improve skill execution accuracy by 12–17%', source: 'Hatzigeorgiadis et al., Psychological Science' },
-        { stat: '19%', desc: 'Gratitude journaling reduced athlete burnout by 19% over 8 weeks', source: 'Chen & Kee, Journal of Applied Sport Psychology' },
-        { stat: '23%', desc: 'Athletes who track mood recover 23% faster from performance setbacks', source: 'Raglin, International Journal of Sport Psychology' },
+      personalGameChips: ['Sport', 'Role', 'Level', 'Goal'],
+      personalFlow: { situation: 'Situation', firstResponse: 'First response', impact: 'Performance impact' },
+      personalWorks: ['Next ball.', 'Reset after a mistake'],
+
+      // ── Sport psychology principles ───────────────────────────────────────
+      principlesTitle: 'Built around sport psychology principles',
+      principles: [
+        { title: 'Reset after setbacks', line: 'Let go, reset, move on.' },
+        { title: 'Focus & self-talk',    line: 'Simple cues for the next action.' },
+        { title: 'Reflect & learn',      line: 'Review what worked and carry it forward.' },
       ],
+
+      // ── Pricing — launch plans. ₹299 × 12 = ₹3,588; ₹3,588 − ₹2,499 =
+      // ₹1,089, which is the only saving claimed. No other tier exists. ──────
+      pricingTitle: 'Choose your plan',
+      pricingTrialNote: 'Both plans start with 14 days free.',
+      planMonthly: 'Monthly',
+      planMonthlyPrice: '₹299 / month',
+      planYearly: 'Yearly',
+      planYearlyPrice: '₹2,499 / year',
+      planPopular: 'Popular',
+      planSave: 'Save ₹1,089 a year',
+      planBenefits: [
+        'AI Coach conversations',
+        'Mental Reps',
+        'Playbook & saved cues',
+        'Hindi + English',
+      ],
+      planYearlyExtra: 'Best value for regular training',
+      planChooseMonthly: 'Choose monthly',
+      planChooseYearly: 'Choose yearly',
+
+      // ── FAQ ───────────────────────────────────────────────────────────────
+      faqTitle: 'Frequently asked',
+      faq: [
+        {
+          q: 'What is Arjun?',
+          a: 'An AI mental-performance coach for athletes. You talk through what happened, and Arjun gives you one short Mental Rep to use in training or competition.',
+        },
+        {
+          q: 'How do Mental Reps work?',
+          a: 'They are short practical exercises — around two minutes — matched to what you are working on right now.',
+        },
+        {
+          q: 'Is Arjun only for professional athletes?',
+          a: 'No. Arjun is made for developing and competitive athletes too.',
+        },
+        {
+          q: 'Can I use Arjun in Hindi?',
+          a: 'Yes. Arjun works in Hindi and English, and you can switch any time.',
+        },
+        {
+          q: 'Is my data private?',
+          a: 'What you share stays in your account and is used to coach you. You can delete your data, or your whole account, from Profile.',
+        },
+        {
+          q: 'Can I cancel anytime?',
+          a: 'Yes. Cancel from your account whenever you like — you keep Premium until the end of that billing period.',
+        },
+        {
+          q: 'Is Arjun therapy?',
+          a: 'No. Arjun is mental performance coaching — not therapy, diagnosis or emergency help.',
+        },
+      ],
+
+      // ── Final CTA ─────────────────────────────────────────────────────────
+      finalTitle: 'Ready to play your best?',
+      finalLine: 'Install Arjun and start training your mind.',
+
+      // ── Footer ────────────────────────────────────────────────────────────
+      footerPrivacy: 'Privacy',
+      footerTerms: 'Terms',
+      footerChildSafety: 'Child Safety',
+      footerRefund: 'Refund',
+      footerSupport: 'Support',
+      footerRights: 'AI Mental Performance Coaching',
     },
     auth: {
+      // Public auth screens — same light system as the landing page. Copy only;
+      // no field, rule or endpoint changed.
+      signinHeading: 'Welcome back',
+      signinSub: 'Sign in to continue with Arjun.',
+      signupHeading: 'Start training your mind',
+      signupSub: 'Create your Arjun account.',
+      forgotPassword: 'Forgot password?',
+      haveAccount: 'Already have an account?',
+      noAccount: 'New to Arjun?',
       tabSignIn: 'Sign In',
       tabSignUp: 'Sign Up',
       nameLabel: 'Full name',
@@ -1859,62 +1987,190 @@ export const translations = {
 
   hi: {
     landing: {
-      tagline: 'दिमाग़ को ट्रेन करो।\nखेल को जीतो।',
-      subtitle: 'आपका AI कोच — मैच की घबराहट, फोकस और आत्मविश्वास के लिए, 24/7 उपलब्ध, आपके खेल के लिए।',
-      badge: 'AI-संचालित · द्विभाषी · मुफ़्त ट्रायल',
-      trust1: '8 खेल', trust1Sub: 'क्रिकेट से तैराकी तक',
-      trust2: '24/7 उपलब्ध', trust2Sub: 'कोच कभी नहीं सोता',
-      trust3: 'हिंदी & English', trust3Sub: 'आपकी भाषा में कोचिंग',
-      howTitle: 'यह कैसे काम करता है',
-      step1: 'प्रोफाइल बनाएं', step1Desc: 'अर्जुन को अपना खेल, स्तर और लक्ष्य बताएं। 2 मिनट लगते हैं।',
-      step2: 'रोज़ चेक-इन करें', step2Desc: 'मूड, फोकस और आत्मविश्वास रेट करें। अर्जुन सब याद रखता है।',
-      step3: 'जब ज़रूरत हो कोचिंग पाएं', step3Desc: 'मैच से पहले, हार के बाद, या जब भी दिमाग़ ठीक न हो।',
-      feature1Title: 'दबाव में भी तेज़ रहें',
-      feature1Desc: 'ऐसी मानसिक दिनचर्या बनाएं जो सबसे ज़रूरी पलों में भी फोकस बनाए रखे।',
-      feature2Title: 'अपने पैटर्न को समझें',
-      feature2Desc: 'रोज़ाना चेक-इन से पता चलेगा कि आपके प्रदर्शन पर क्या असर डाल रहा है।',
-      feature3Title: 'अपनी बेहतरी देखें',
-      feature3Desc: 'आपका स्कोर हर दिन अपडेट होता है। हर हफ्ते खुद को मजबूत होते देखें।',
-      pricingTitle: 'सरल कीमत',
-      free: '14 दिन का मुफ़्त ट्रायल',
-      freeDesc: 'पूरी पहुंच — क्रेडिट कार्ड की ज़रूरत नहीं',
-      premium: '₹299/माह',
-      premiumDesc: 'असीमित पहुंच · कभी भी रद्द करें',
-      premiumAnnual: '₹1999/साल',
-      premiumAnnualDesc: 'सबसे किफायती — 44% बचत',
-      ctaTitle: 'आज ही शुरू करें',
-      ctaDesc: 'पहले 14 दिन बिल्कुल मुफ़्त।',
-      ctaBtn: 'मुफ़्त शुरू करें →',
-      personalizeTitle: 'अर्जुन आपको समझता है। फिर कोचिंग देता है।',
-      personalizeSubtitle: 'हर जवाब आपके खेल, व्यक्तित्व और असली डेटा से बनता है।',
-      personalizeItems: [
-        { icon: '🏏', title: 'आपका खेल और स्तर', desc: 'क्रिकेट, फुटबॉल, बैडमिंटन और 7+ खेलों के लिए' },
-        { icon: '📊', title: 'रोज़ाना चेक-इन', desc: 'मूड, फोकस, ऊर्जा, नींद — अर्जुन आपकी स्थिति पढ़ता है' },
-        { icon: '🎮', title: 'गेम प्रदर्शन', desc: 'आपके स्कोर मानसिक ताकत और कमज़ोरी दिखाते हैं' },
-        { icon: '🧠', title: 'आपका व्यक्तित्व', desc: 'एक छोटा टेस्ट बताता है कि अर्जुन आपसे कैसे बात करे' },
+      // ── Header ────────────────────────────────────────────────────────────
+      menuOpen: 'मेन्यू खोलो',
+      menuClose: 'मेन्यू बंद करो',
+      langLabel: 'भाषा',
+      installApp: 'Arjun इंस्टॉल करो',
+      installShort: 'इंस्टॉल',
+      installHow: 'इंस्टॉल कैसे करें',
+      installIos: 'इस पेज को Safari में खोलो → Share दबाओ → "Add to Home Screen".',
+      installAndroid: 'Chrome में ⋮ मेन्यू दबाओ → "Add to Home screen".',
+      installDesktop: 'ब्राउज़र के address bar में install आइकॉन दबाओ, या ⋮ → Install Arjun.',
+      installDone: 'ऐप इंस्टॉल हो गया',
+      close: 'बंद करो',
+
+      // ── Hero ──────────────────────────────────────────────────────────────
+      headlineLead: 'दिमाग़ को ट्रेन करो। ',
+      headlineAccent: 'दबाव में बेहतर खेलो।',
+      subtitle: 'Arjun के साथ फोकस बनाओ, दबाव संभालो और आत्मविश्वास बढ़ाओ।',
+      ctaInstall: 'Arjun इंस्टॉल करो',
+      ctaOpen: 'Arjun खोलो',
+      ctaSignIn: 'साइन इन',
+      heroVisualAlt: 'Arjun ऐप की झलक: Coach फोकस टूटने वाले पल के बारे में सवाल पूछता है और समझ की पुष्टि करता है, नीचे हां / बिल्कुल नहीं जवाब।',
+      phone: {
+        coach: 'Arjun',
+        q1: 'आज क्या हुआ?',
+        a1: 'एक गलती के बाद फोकस टूट गया।',
+        q2: 'उसके अगले कुछ पलों में क्या हुआ?',
+        a2: 'मैं उसी के बारे में सोचता रहा।',
+        q3: 'लगता है वो गलती दिमाग़ में बैठ गई। सही समझा?',
+        chipYes: 'हां',
+        chipNo: 'बिल्कुल नहीं',
+      },
+
+      // ── Benefit tags ──────────────────────────────────────────────────────
+      tagsLabel: 'तुम्हें क्या मिलता है',
+      tagTalk: 'बात करके सुलझाओ',
+      tagReps: 'छोटे Mental Reps',
+      tagSave: 'जो काम आया, सेव करो',
+      tagLang: 'हिंदी + English',
+      tagPrivate: 'प्राइवेसी शुरू से',
+
+      // ── How Arjun helps ───────────────────────────────────────────────────
+      helpsTitle: 'Arjun कैसे मदद करता है',
+      helps: [
+        { title: 'मैच से पहले',           line: 'दिमाग़ी तौर पर तैयार हो।' },
+        { title: 'दबाव के पल में',         line: 'रीसेट करो, फोकस लौटाओ।' },
+        { title: 'गलती के बाद',            line: 'जल्दी वापसी करो।' },
+        { title: 'मेंटल गेम बनाओ',         line: 'जो काम आता है, उसका अभ्यास करो।' },
       ],
-      allFeaturesTitle: 'सब कुछ एक ऐप में',
-      allFeaturesSubtitle: 'भारतीय एथलीट के तरीके से बनाया गया।',
-      allFeatures: [
-        { icon: '📊', title: 'डेली पल्स', desc: '60 सेकंड में मूड, फोकस, ऊर्जा और नींद ट्रैक करें।' },
-        { icon: '💬', title: 'अर्जुन से बात करें', desc: 'मैच से पहले, हार के बाद, फोकस बनाने के लिए — 6 सेशन टाइप।' },
-        { icon: '🎮', title: 'मानसिक गेम्स', desc: '5 खेल-विशिष्ट गेम्स: एकाग्रता, रिएक्शन, फोकस और ज़्यादा।' },
-        { icon: '⚡', title: 'आज का अभ्यास', desc: 'हर दिन 2 मिनट का नया मानसिक अभ्यास।' },
-        { icon: '🧘', title: 'मैच वाले दिन की दिनचर्या', desc: 'अपनी खुद की गेम-डे दिनचर्या बनाएं।' },
-        { icon: '🔄', title: 'हर मैच के बाद सीखें', desc: '3 सवाल। क्या अच्छा रहा, क्या बदलें, अगली बार एक फोकस।' },
+
+      // ── Inside Arjun ──────────────────────────────────────────────────────
+      previewTitle: 'Arjun के अंदर',
+      previewHint: 'स्वाइप करो',
+      preview: {
+        coachCard: {
+          title: 'बात करके सुलझाओ',
+          line: 'जो हो रहा है, उसे बात करके सुलझाओ।',
+          q1: 'पिछले कुछ समय में क्या रुकावट बन रहा है?',
+          a1: 'एक गलती के बाद मैं जल्दबाज़ी करने लगता हूं।',
+          q2: 'दिक्कत गलती है, या उसे तुरंत सुधारने की कोशिश?',
+          a2: 'तुरंत सुधारने की कोशिश।',
+        },
+        repsCard: {
+          title: 'उस पल को ट्रेन करो',
+          line: 'जिस पल ज़रूरत हो, उसके लिए छोटा अभ्यास।',
+          repTitle: 'गलती के बाद रीसेट',
+          meta: '2 मिनट',
+          step1: 'सांस धीमी करो',
+          step2: 'अगले एक्शन को नाम दो',
+          step3: 'अपना reset cue इस्तेमाल करो',
+          cta: 'Mental Rep शुरू करो',
+        },
+        playbookCard: {
+          title: 'जो काम आया, वो रखो',
+          line: 'काम आने वाले cues और सीख सेव करो।',
+          lessonLabel: 'ताज़ा सीख',
+          lesson: 'एक गलती को अगली गलती बनना ज़रूरी नहीं।',
+          cueLabel: 'सेव किया cue',
+          cue: 'अगली गेंद।',
+        },
+        profileCard: {
+          title: 'अपने पैटर्न समझो',
+          line: 'Arjun तुम्हारा खेल याद रखता है।',
+          screenTitle: 'जब दबाव आता है',
+          situationLabel: 'हालात',
+          situation: 'जब मैं गलती करता हूं',
+          firstResponseLabel: 'पहली प्रतिक्रिया',
+          firstResponse: 'मुझे खुद पर गुस्सा आता है',
+          impactLabel: 'खेल पर असर',
+          impact: 'फोकस टूट जाता है',
+          resetTime: 'रीसेट समय · कुछ मिनट',
+        },
+      },
+
+      // ── Built around you ──────────────────────────────────────────────────
+      personalTitle: 'तुम्हारे हिसाब से बना',
+      personal: [
+        { title: 'तुम्हारा खेल',                  line: 'तुम्हारा खेल, रोल और लक्ष्य।' },
+        { title: 'जब दबाव आता है',                 line: 'मुश्किल पलों में आमतौर पर क्या होता है।' },
+        { title: 'तुम्हारे लिए क्या काम करता है',  line: 'काम आने वाले cues, तरीके और सीख।' },
       ],
-      researchTitle: 'रिसर्च क्या कहती है',
-      researchSubtitle: 'अर्जुन की हर सुविधा उन चीज़ों पर बनी है जो खिलाड़ियों के लिए काम करती हैं।',
-      researchFacts: [
-        { stat: '18%', desc: 'मैच से पहले तैयारी करने वाले खिलाड़ी दबाव में 18% बेहतर खेलते हैं', source: 'Cotterill, Journal of Applied Sport Psychology' },
-        { stat: '31%', desc: '8 हफ्ते की सांस की एक्सरसाइज़ से खिलाड़ी 31% ज़्यादा शांत रहे', source: 'Jerath et al., Applied Psychophysiology' },
-        { stat: '=', desc: 'मानसिक इमेजरी ट्रेनिंग शारीरिक अभ्यास जितनी असरदार है', source: 'Driskell et al. — 35 अध्ययन, 3,000+ एथलीट' },
-        { stat: '12–17%', desc: 'सेल्फ-टॉक कार्डस से स्किल एग्ज़ीक्यूशन 12-17% बेहतर हुई', source: 'Hatzigeorgiadis et al., Psychological Science' },
-        { stat: '19%', desc: '8 हफ्ते की कृतज्ञता जर्नलिंग से खिलाड़ियों का बर्नआउट 19% कम हुआ', source: 'Chen & Kee, Journal of Applied Sport Psychology' },
-        { stat: '23%', desc: 'मूड ट्रैक करने वाले खिलाड़ी असफलता से 23% तेज़ उबरते हैं', source: 'Raglin, International Journal of Sport Psychology' },
+      personalGameChips: ['खेल', 'रोल', 'लेवल', 'लक्ष्य'],
+      personalFlow: { situation: 'हालात', firstResponse: 'पहली प्रतिक्रिया', impact: 'खेल पर असर' },
+      personalWorks: ['अगली गेंद।', 'गलती के बाद रीसेट'],
+
+      // ── Sport psychology principles ───────────────────────────────────────
+      principlesTitle: 'स्पोर्ट्स साइकोलॉजी के सिद्धांतों पर बना',
+      principles: [
+        { title: 'सेटबैक के बाद रीसेट', line: 'छोड़ो, रीसेट करो, आगे बढ़ो।' },
+        { title: 'फोकस और सेल्फ-टॉक',   line: 'अगले एक्शन के लिए आसान cue।' },
+        { title: 'सोचो और सीखो',        line: 'जो काम आया उसे देखो और आगे ले जाओ।' },
       ],
+
+      // ── Pricing ───────────────────────────────────────────────────────────
+      pricingTitle: 'अपना प्लान चुनो',
+      pricingTrialNote: 'दोनों प्लान 14 दिन मुफ़्त से शुरू होते हैं।',
+      planMonthly: 'मासिक',
+      planMonthlyPrice: '₹299 / महीना',
+      planYearly: 'सालाना',
+      planYearlyPrice: '₹2,499 / साल',
+      planPopular: 'लोकप्रिय',
+      planSave: 'साल में ₹1,089 बचाओ',
+      planBenefits: [
+        'AI Coach से बातचीत',
+        'Mental Reps',
+        'Playbook और सेव किए cues',
+        'हिंदी + English',
+      ],
+      planYearlyExtra: 'नियमित ट्रेनिंग के लिए सबसे किफ़ायती',
+      planChooseMonthly: 'मासिक चुनो',
+      planChooseYearly: 'सालाना चुनो',
+
+      // ── FAQ ───────────────────────────────────────────────────────────────
+      faqTitle: 'अक्सर पूछे जाने वाले सवाल',
+      faq: [
+        {
+          q: 'Arjun क्या है?',
+          a: 'एथलीट्स के लिए एक AI मेंटल-परफॉर्मेंस कोच। जो हुआ उस पर बात करो, और Arjun तुम्हें एक छोटा Mental Rep देता है जिसे ट्रेनिंग या मैच में इस्तेमाल कर सको।',
+        },
+        {
+          q: 'Mental Reps कैसे काम करते हैं?',
+          a: 'ये छोटे व्यावहारिक अभ्यास हैं — लगभग दो मिनट के — जो इस वक्त तुम जिस पर काम कर रहे हो उसी से जुड़े होते हैं।',
+        },
+        {
+          q: 'क्या Arjun सिर्फ प्रोफेशनल एथलीट्स के लिए है?',
+          a: 'नहीं। Arjun बढ़ते हुए और कॉम्पिटिटिव एथलीट्स के लिए भी है।',
+        },
+        {
+          q: 'क्या मैं Arjun हिंदी में इस्तेमाल कर सकता हूं?',
+          a: 'हां। Arjun हिंदी और English दोनों में चलता है, और तुम कभी भी भाषा बदल सकते हो।',
+        },
+        {
+          q: 'क्या मेरा डेटा प्राइवेट है?',
+          a: 'जो तुम शेयर करते हो वो तुम्हारे खाते में रहता है और तुम्हारी कोचिंग के लिए इस्तेमाल होता है। Profile से तुम अपना डेटा या पूरा खाता कभी भी डिलीट कर सकते हो।',
+        },
+        {
+          q: 'क्या मैं कभी भी रद्द कर सकता हूं?',
+          a: 'हां। अपने खाते से जब चाहो रद्द करो — उस बिलिंग पीरियड के अंत तक Premium तुम्हारे पास रहता है।',
+        },
+        {
+          q: 'क्या Arjun थेरेपी है?',
+          a: 'नहीं। Arjun मेंटल परफॉर्मेंस कोचिंग है — थेरेपी, डायग्नोसिस या इमरजेंसी मदद नहीं।',
+        },
+      ],
+
+      // ── Final CTA ─────────────────────────────────────────────────────────
+      finalTitle: 'अपना बेहतरीन खेल दिखाने के लिए तैयार हो?',
+      finalLine: 'Arjun इंस्टॉल करो और दिमाग़ की ट्रेनिंग शुरू करो।',
+
+      // ── Footer ────────────────────────────────────────────────────────────
+      footerPrivacy: 'प्राइवेसी',
+      footerTerms: 'शर्तें',
+      footerChildSafety: 'बाल सुरक्षा',
+      footerRefund: 'रिफंड',
+      footerSupport: 'सहायता',
+      footerRights: 'AI मेंटल परफॉर्मेंस कोचिंग',
     },
     auth: {
+      signinHeading: 'वापस स्वागत है',
+      signinSub: 'Arjun जारी रखने के लिए साइन इन करो।',
+      signupHeading: 'दिमाग़ की ट्रेनिंग शुरू करो',
+      signupSub: 'अपना Arjun खाता बनाओ।',
+      forgotPassword: 'पासवर्ड भूल गए?',
+      haveAccount: 'पहले से खाता है?',
+      noAccount: 'Arjun पर नए हो?',
       tabSignIn: 'साइन इन',
       tabSignUp: 'साइन अप',
       nameLabel: 'पूरा नाम',
