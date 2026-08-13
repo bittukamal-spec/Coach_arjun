@@ -112,7 +112,7 @@ function LandingCarousel({
         // `scroll-pl-5` matters: without it scroll-snap aligns the first card
         // to the scrollport edge and eats the 20px page gutter, so the cards
         // sit flush against the screen edge instead of under the heading.
-        className="no-scrollbar flex gap-3 overflow-x-auto snap-x snap-mandatory scroll-pl-5 px-5 pb-1 -mx-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5] focus-visible:ring-offset-4 focus-visible:ring-offset-[#FAFBFD] rounded-3xl"
+        className="no-scrollbar flex gap-4 overflow-x-auto snap-x snap-mandatory scroll-pl-5 px-5 pb-1 -mx-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5] focus-visible:ring-offset-4 focus-visible:ring-offset-[#FAFBFD] rounded-3xl"
       >
         {slides.map((slide, i) => (
           <li

@@ -261,8 +261,10 @@ function LandingPage() {
 
       <main>
         {/* ── Hero ────────────────────────────────────────────────────────── */}
-        {/* No eyebrow/pill: header → whitespace → headline. */}
-        <section className="mx-auto max-w-5xl px-5 pb-2 pt-6 lg:grid lg:grid-cols-2 lg:items-center lg:gap-10 lg:pt-12">
+        {/* No eyebrow/pill: header → whitespace → headline. Gap to the next
+            section is owned entirely by that section's own top padding (the
+            pattern every section below follows), so there is no pb here. */}
+        <section className="mx-auto max-w-5xl px-5 pt-6 lg:grid lg:grid-cols-2 lg:items-center lg:gap-10 lg:pt-12">
           <div>
             {/* No hard-coded line breaks: the headline wraps to the column,
                 balanced so the accent phrase never strands one short word. */}
@@ -297,7 +299,7 @@ function LandingPage() {
 
         {/* ── Benefit tags ────────────────────────────────────────────────── */}
         {/* Separate coloured tags, one accent each — not five identical pills. */}
-        <section className="mx-auto max-w-5xl px-5 pt-8" aria-label={t.tagsLabel}>
+        <section className="mx-auto max-w-5xl px-5 pt-16 lg:pt-24" aria-label={t.tagsLabel}>
           {/* One elevated rail: circular tinted icon, label, nothing else. It
               scrolls on a phone and settles into a single white container from
               `sm` up, as in the approved direction. */}
@@ -326,20 +328,20 @@ function LandingPage() {
         </section>
 
         {/* ── How Arjun helps ─────────────────────────────────────────────── */}
-        <section className="mx-auto max-w-5xl px-5 pt-9">
+        <section className="mx-auto max-w-5xl px-5 pt-16 lg:pt-24">
           <h2 className="text-[22px] font-black tracking-tight">{t.helpsTitle}</h2>
           <LandingCarousel
             label={t.helpsTitle}
             slideLabel={(i, n) => `${t.helps[i].title} (${i + 1}/${n})`}
             slideClass="w-[68%] xs:w-[54%] sm:w-[42%] lg:w-[23.5%]"
-            className="mt-4"
+            className="mt-6 lg:mt-8"
           >
             {t.helps.map((help, i) => {
               const { bg, fg, Icon, Art } = HELP_TINTS[i];
               return (
                 <div
                   key={help.title}
-                  className="relative flex h-full min-h-[236px] flex-col overflow-hidden rounded-3xl border p-4"
+                  className="relative flex h-full min-h-[236px] flex-col overflow-hidden rounded-3xl border p-5"
                   style={{
                     background: `linear-gradient(160deg, ${bg} 0%, ${bg}88 52%, #FFFFFF 100%)`,
                     borderColor: `${fg}26`,
@@ -377,8 +379,12 @@ function LandingPage() {
 
         {/* ── Inside Arjun ────────────────────────────────────────────────── */}
         {/* A full-bleed tinted canvas breaks the heading/card/heading rhythm
-            and lets the dark product crops sit on something other than white. */}
-        <section className="mt-12 bg-[#F1F5FA] py-11">
+            and lets the dark product crops sit on something other than white.
+            The band carries its own py-11 top/bottom breathing room, so the
+            outer margins here are intentionally smaller than a plain section's
+            — combined with that internal padding they land the same visual
+            gap as every other section transition on the page. */}
+        <section className="mt-6 bg-[#F1F5FA] py-11 lg:mt-12">
           <div className="mx-auto max-w-5xl px-5">
           <div className="flex items-baseline justify-between gap-3">
             <h2 className="text-[22px] font-black tracking-tight">{t.previewTitle}</h2>
@@ -388,7 +394,7 @@ function LandingPage() {
             label={t.previewTitle}
             slideLabel={(i, n) => `${previewCards[i].props.t.title} (${i + 1}/${n})`}
             slideClass="w-[85%] xs:w-[72%] sm:w-[50%] lg:w-[24%]"
-            className="mt-4"
+            className="mt-6 lg:mt-8"
           >
             {previewCards}
           </LandingCarousel>
@@ -399,7 +405,11 @@ function LandingPage() {
         {/* Mirrors the athlete's real Profile sections — My Game, When
             Pressure Hits, What Helps Me — so the claim stays inside what the
             athlete themselves told Arjun. No traits, no scoring. */}
-        <section className="relative mx-auto max-w-5xl px-5 pt-12">
+        {/* pt is smaller than the standard major-gap here on purpose: the
+            Inside Arjun band above already ends with its own py-11 bottom
+            padding, so this top padding only needs to make up the remainder
+            of the same target gap, not the whole thing. */}
+        <section className="relative mx-auto max-w-5xl px-5 pt-8 lg:pt-12">
           {/* One athlete figure, part of the composition rather than a card —
               the same silhouette the Ritual card uses inside the app. */}
           <span
@@ -410,7 +420,7 @@ function LandingPage() {
             <AthleteMark className="h-full w-full" />
           </span>
           <h2 className="relative text-[22px] font-black tracking-tight">{t.personalTitle}</h2>
-          <div className="relative mt-4 grid gap-3 sm:grid-cols-3">
+          <div className="relative mt-6 grid gap-4 sm:grid-cols-3 lg:mt-8">
             {t.personal.map((item, i) => {
               const { bg, fg, Icon } = PERSONAL_TINTS[i];
               return (
@@ -452,9 +462,9 @@ function LandingPage() {
         {/* ── Built around sport psychology principles ─────────────────────── */}
         {/* Principles only — no percentages, no study names, no claim that any
             research measured Arjun itself. */}
-        <section className="mx-auto max-w-5xl px-5 pt-12">
+        <section className="mx-auto max-w-5xl px-5 pt-16 lg:pt-24">
           <h2 className="text-[22px] font-black tracking-tight">{t.principlesTitle}</h2>
-          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <div className="mt-6 grid gap-4 sm:grid-cols-3 lg:mt-8">
             {t.principles.map((item, i) => {
               const { bg, fg, Icon } = PRINCIPLE_TINTS[i];
               return (
@@ -487,11 +497,11 @@ function LandingPage() {
             urgency. Both CTAs run the page's install action because choosing a
             plan requires an authenticated Razorpay subscription inside the app;
             no payment contract is touched here. */}
-        <section className="mx-auto max-w-5xl px-5 pt-12">
+        <section className="mx-auto max-w-5xl px-5 pt-16 lg:pt-24">
           <h2 className="text-[22px] font-black tracking-tight">{t.pricingTitle}</h2>
           <p className={`mt-1.5 text-[13.5px] ${BODY}`}>{t.pricingTrialNote}</p>
 
-          <div className="mt-5 grid gap-4 sm:grid-cols-2 sm:items-start">
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 sm:items-start lg:mt-8">
             {/* Monthly — neutral container, outlined CTA */}
             <div className={`flex flex-col rounded-3xl border ${BORDER} bg-white p-5`}>
               <p className={`text-[12px] font-bold uppercase tracking-[0.12em] ${BODY}`}>{t.planMonthly}</p>
@@ -551,9 +561,9 @@ function LandingPage() {
         {/* ── FAQ ─────────────────────────────────────────────────────────── */}
         {/* Same 5xl gutter as every other section, with the rows themselves
             capped narrower so long questions stay readable. */}
-        <section className="mx-auto max-w-5xl px-5 pt-12">
+        <section className="mx-auto max-w-5xl px-5 pt-16 lg:pt-24">
           <h2 className="text-[22px] font-black tracking-tight">{t.faqTitle}</h2>
-          <div className="mt-4 max-w-3xl space-y-2">
+          <div className="mt-6 max-w-3xl space-y-2 lg:mt-8">
             {t.faq.map((item, i) => {
               const open = openFaq === i;
               return (
@@ -591,7 +601,7 @@ function LandingPage() {
         </section>
 
         {/* ── Final CTA ───────────────────────────────────────────────────── */}
-        <section className="mx-auto max-w-5xl px-5 pt-10">
+        <section className="mx-auto max-w-5xl px-5 pt-16 lg:pt-24">
           <div
             className="relative overflow-hidden rounded-3xl px-6 py-9 text-white sm:flex sm:items-center sm:justify-between sm:gap-6"
             style={{ background: 'linear-gradient(135deg, #1C6FBE 0%, #185FA5 46%, #10456F 100%)' }}
@@ -628,7 +638,7 @@ function LandingPage() {
       </main>
 
       {/* ── Footer ────────────────────────────────────────────────────────── */}
-      <footer className={`mx-auto mt-12 max-w-5xl border-t ${BORDER} px-5 py-8`}>
+      <footer className={`mx-auto mt-16 max-w-5xl border-t ${BORDER} px-5 py-8 lg:mt-24`}>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <ArjunLogo size={22} className="rounded-lg" />
