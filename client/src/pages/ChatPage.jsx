@@ -1047,7 +1047,7 @@ function ChatPage() {
             >
               <ChevronLeft size={20} aria-hidden="true" />
             </button>
-            <ArjunLogo size={32} variant="coach" ariaLabel="Arjun logo" className="shrink-0" />
+            <ArjunLogo size={32} ariaLabel="Arjun logo" className="shrink-0" />
             <div className="min-w-0">
               <h1 className="text-[21px] font-extrabold leading-none tracking-[-0.02em] text-ink">{t.title}</h1>
             </div>

@@ -86,7 +86,7 @@ function AuthPage() {
       {/* Header */}
       <header className="mx-auto flex w-full max-w-md items-center px-5 py-5">
         <button onClick={() => navigate('/')} className="flex items-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5] focus-visible:ring-offset-2">
-          <ArjunWordmark size="hero" iconClassName="rounded-xl" />
+          <ArjunWordmark size="hero" />
         </button>
       </header>
 

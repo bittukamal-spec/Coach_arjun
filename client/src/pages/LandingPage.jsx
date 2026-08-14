@@ -166,7 +166,7 @@ function LandingPage() {
           action rather than a menu item, and shares the one PWA handler with
           every other Download CTA on the page. */}
       <header className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-5 py-3">
-        <ArjunWordmark size="header" iconClassName="rounded-xl" />
+        <ArjunWordmark size="header" />
 
         <div className="flex items-center gap-1.5 xs:gap-2">
           <button
@@ -614,7 +614,7 @@ function LandingPage() {
               <path d="M-20 196 C 100 196, 170 130, 270 130 S 400 74, 460 74" stroke="#FFFFFF" strokeOpacity="0.10" strokeWidth="3" />
             </svg>
             <div className="relative flex items-center gap-3">
-              <ArjunLogo size={44} className="hidden shrink-0 rounded-2xl xs:block" alt="Arjun" />
+              <ArjunLogo size={44} className="hidden shrink-0 xs:block" alt="Arjun" />
               <div>
                 <p className="text-[24px] font-black leading-tight xs:text-[26px]">{t.finalTitle}</p>
                 <p className="mt-1.5 text-[14px] leading-snug text-white/80">{t.finalLine}</p>
@@ -637,7 +637,7 @@ function LandingPage() {
       {/* ── Footer ────────────────────────────────────────────────────────── */}
       <footer className={`mx-auto mt-16 max-w-5xl border-t ${BORDER} px-5 py-8 lg:mt-24`}>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <ArjunWordmark size="medium" iconClassName="rounded-lg" />
+          <ArjunWordmark size="medium" />
           <button
             type="button"
             onClick={primaryAction}
