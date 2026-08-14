@@ -229,7 +229,7 @@ test('the shared PageHeader renders its title as the page heading', () => {
 
 test('Home and Coach carry a real page heading rather than a styled paragraph', () => {
   assert.match(src('pages/Dashboard.jsx'), /<h1 className="text-2xl font-black text-ink leading-tight">/);
-  assert.match(src('pages/ChatPage.jsx'), /<h1 className="font-semibold text-sm leading-none text-ink">/);
+  assert.match(src('pages/ChatPage.jsx'), /<h1 className="text-\[21px\] font-extrabold leading-none tracking-\[-0\.02em\] text-ink">/);
 });
 
 // ── 8. Mind Journal control accessibility ──────────────────────────────────

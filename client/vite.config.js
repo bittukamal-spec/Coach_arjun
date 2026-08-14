@@ -7,7 +7,13 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'arjun-source.svg', 'apple-touch-icon-180x180.png'],
+      includeAssets: [
+        'favicon.ico',
+        'brand/arjun/favicon-16.png',
+        'brand/arjun/favicon-32.png',
+        'brand/arjun/favicon-48.png',
+        'brand/arjun/apple-touch-icon-180.png',
+      ],
       manifest: {
         name: 'Arjun — Mental Coach',
         short_name: 'Arjun',
@@ -20,10 +26,9 @@ export default defineConfig({
         start_url: '/',
         categories: ['health', 'fitness', 'sports'],
         icons: [
-          { src: 'pwa-64x64.png',            sizes: '64x64',   type: 'image/png' },
-          { src: 'pwa-192x192.png',           sizes: '192x192', type: 'image/png' },
-          { src: 'pwa-512x512.png',           sizes: '512x512', type: 'image/png' },
-          { src: 'maskable-icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          { src: 'brand/arjun/pwa-icon-192.png',          sizes: '192x192', type: 'image/png' },
+          { src: 'brand/arjun/pwa-icon-512.png',          sizes: '512x512', type: 'image/png' },
+          { src: 'brand/arjun/pwa-icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
       workbox: {
