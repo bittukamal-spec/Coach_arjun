@@ -1,16 +1,26 @@
-// Source + asset checks for the Arjun brand identity refresh.
+// Source + asset checks for the Arjun logo rollback + colour refinement.
 //
-// The approved production brand asset set (favicon, PWA/install icons, the
-// brand mark, the Coach avatar) replaces the old purple inline-SVG mark.
-// These checks guard: the new assets are wired in at every required spot,
-// the PWA/install and auth behaviour they sit inside is untouched, and no
-// reference to the retired purple assets survives anywhere in source.
+// This restores the pre-refresh Arjun symbol (bow-and-arrow / brain-arc,
+// same path/line/polygon geometry as the historic component) in place of
+// the PR that briefly replaced it with an external raster asset set and a
+// separate "Coach avatar" image. Only the colour treatment is new: one
+// consistent Arjun-blue family everywhere (in-app mark, favicon, PWA/
+// install icons, Apple touch icon) instead of the old blue-in-app /
+// purple-favicon split, and a solid light-blue accent stroke in place of
+// the old translucent one.
+//
+// These checks guard: the restored geometry is intact and unmodified, the
+// new colour treatment is applied consistently, every call site still
+// carries the mark, the favicon/PWA/Apple-touch wiring still resolves to
+// real files on disk, the raster asset set introduced by the (now
+// reverted) refresh is gone, and PWA/install + auth behaviour are
+// untouched throughout.
 //
 // Dependency-free, run by `npm run test:source`.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
@@ -22,6 +32,7 @@ const exists = (rel) => existsSync(path.join(root, rel));
 const indexHtml = read('index.html');
 const viteConfig = read('vite.config.js');
 const arjunLogo = read('src/components/ArjunLogo.jsx');
+const indexCss = read('src/index.css');
 const landing = read('src/pages/LandingPage.jsx');
 const auth = read('src/pages/AuthPage.jsx');
 const startingProfile = read('src/pages/StartingProfilePage.jsx');
@@ -29,12 +40,9 @@ const chatPage = read('src/pages/ChatPage.jsx');
 const navbar = read('src/components/Navbar.jsx');
 const resetPassword = read('src/pages/ResetPasswordPage.jsx');
 
-const ALL_JSX_GLOB_DIRS = ['src'];
-
-// Every .jsx/.js file under src, read once, for the "no stale reference"
-// sweep — cheap enough at this codebase's size and avoids maintaining a
-// hand-picked file list that silently goes stale.
-import { readdirSync, statSync } from 'node:fs';
+// Every .jsx/.js/.css/.html file under src, read once, for the "no stale
+// reference" sweep — cheap enough at this codebase's size and avoids
+// maintaining a hand-picked file list that silently goes stale.
 function collectSourceFiles(dir) {
   const out = [];
   for (const entry of readdirSync(dir)) {
@@ -45,20 +53,24 @@ function collectSourceFiles(dir) {
   }
   return out;
 }
-const allSourceText = ALL_JSX_GLOB_DIRS
-  .flatMap((d) => collectSourceFiles(path.join(root, d)))
+const allSourceText = collectSourceFiles(path.join(root, 'src'))
   .concat([path.join(root, 'index.html'), path.join(root, 'vite.config.js')])
   .map((f) => readFileSync(f, 'utf8'))
   .join('\n');
 
+// Forbidden-term checks below run against actual code, not against the
+// comments that explain what used to be true and why it changed.
+const stripComments = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+const arjunLogoCode = stripComments(arjunLogo);
+
 // ── 1. Favicon ───────────────────────────────────────────────────────────
 
-test('the browser favicon references the approved assets, not the old purple SVG', () => {
+test('the browser favicon references the recoloured mark at the same established paths', () => {
   assert.match(indexHtml, /<link rel="icon" href="\/favicon\.ico" sizes="any" \/>/);
   assert.match(indexHtml, /<link rel="icon" type="image\/png" sizes="16x16" href="\/brand\/arjun\/favicon-16\.png" \/>/);
   assert.match(indexHtml, /<link rel="icon" type="image\/png" sizes="32x32" href="\/brand\/arjun\/favicon-32\.png" \/>/);
   assert.match(indexHtml, /<link rel="icon" type="image\/png" sizes="48x48" href="\/brand\/arjun\/favicon-48\.png" \/>/);
-  assert.doesNotMatch(indexHtml, /arjun-source\.svg/, 'the old purple SVG icon reference must be gone');
+  assert.doesNotMatch(indexHtml, /arjun-source\.svg/, 'the old purple SVG icon reference must stay gone');
   for (const rel of ['public/favicon.ico', 'public/brand/arjun/favicon-16.png', 'public/brand/arjun/favicon-32.png', 'public/brand/arjun/favicon-48.png']) {
     assert.ok(exists(rel), `missing favicon asset on disk: ${rel}`);
   }
@@ -66,7 +78,7 @@ test('the browser favicon references the approved assets, not the old purple SVG
 
 // ── 2 & 3. PWA icons ─────────────────────────────────────────────────────
 
-test('the PWA manifest points at the approved 192 and 512 icons', () => {
+test('the PWA manifest points at the 192 and 512 icons, wiring unchanged by the colour refresh', () => {
   assert.match(viteConfig, /src: 'brand\/arjun\/pwa-icon-192\.png',\s*sizes: '192x192', type: 'image\/png'/);
   assert.match(viteConfig, /src: 'brand\/arjun\/pwa-icon-512\.png',\s*sizes: '512x512', type: 'image\/png'/);
   assert.ok(exists('public/brand/arjun/pwa-icon-192.png'), 'missing pwa-icon-192.png on disk');
@@ -80,7 +92,6 @@ test('the maskable icon is its own dedicated asset with purpose: maskable', () =
     viteConfig,
     /src: 'brand\/arjun\/pwa-icon-maskable-512\.png',\s*sizes: '512x512', type: 'image\/png', purpose: 'maskable'/,
   );
-  // The maskable icon must NOT reuse the plain 512 icon file.
   const maskableLine = viteConfig.split('\n').find((l) => l.includes("purpose: 'maskable'"));
   assert.ok(maskableLine.includes('pwa-icon-maskable-512.png'));
   assert.ok(exists('public/brand/arjun/pwa-icon-maskable-512.png'), 'missing pwa-icon-maskable-512.png on disk');
@@ -88,63 +99,83 @@ test('the maskable icon is its own dedicated asset with purpose: maskable', () =
 
 // ── 5. Apple touch icon ──────────────────────────────────────────────────
 
-test('the apple touch icon uses the approved 180px asset', () => {
+test('the apple touch icon uses the 180px asset at the same established path', () => {
   assert.match(indexHtml, /<link rel="apple-touch-icon" href="\/brand\/arjun\/apple-touch-icon-180\.png" \/>/);
   assert.match(viteConfig, /'brand\/arjun\/apple-touch-icon-180\.png'/);
   assert.ok(exists('public/brand/arjun/apple-touch-icon-180.png'), 'missing apple-touch-icon-180.png on disk');
 });
 
-// ── 6, 7, 8. Homepage / auth / onboarding brand mark ─────────────────────
+// ── 6. The restored symbol, unmodified ────────────────────────────────────
 
-test('ArjunLogo renders the approved production brand mark and Coach avatar crops, not inline SVG', () => {
-  assert.doesNotMatch(arjunLogo, /<svg|<path|<rect|<polygon/, 'the logo must not be an inline SVG drawing');
-  assert.match(arjunLogo, /arjun-brand-mark-384\.png/);
-  assert.match(arjunLogo, /arjun-coach-avatar-256\.png/);
-  assert.ok(exists('public/brand/arjun/arjun-brand-mark-384.png'), 'missing arjun-brand-mark-384.png on disk');
-  assert.ok(exists('public/brand/arjun/arjun-coach-avatar-256.png'), 'missing arjun-coach-avatar-256.png on disk');
+test('ArjunLogo is an inline SVG again, restoring the pre-refresh bow-and-arrow symbol', () => {
+  assert.match(arjunLogo, /<svg/);
+  // Exact geometry from the pre-refresh component (git history) — the
+  // symbol itself was not redrawn, only recoloured.
+  assert.match(arjunLogo, /viewBox="0 0 512 512"/);
+  assert.match(arjunLogo, /<rect width="512" height="512" rx="96"/);
+  assert.match(arjunLogo, /M 168 92 C 430 92 430 420 168 420/, 'bow arc path unchanged');
+  assert.match(arjunLogo, /M 196 182 C 268 202 268 308 196 328/, 'brain-fold path unchanged');
+  assert.match(arjunLogo, /x1="86" y1="256" x2="376" y2="256"/, 'arrow shaft unchanged');
+  assert.match(arjunLogo, /points="364,226 422,256 364,286"/, 'arrowhead unchanged');
+  assert.match(arjunLogo, /x1="112" y1="256" x2="80" y2="220"/, 'fletching (top) unchanged');
+  assert.match(arjunLogo, /x1="112" y1="256" x2="80" y2="292"/, 'fletching (bottom) unchanged');
 });
 
-test('ArjunWordmark is a single central lockup, not one-off Tailwind sizing per page', () => {
-  // Exactly one component defines the icon+"Arjun" pairing — no competing
-  // implementation was added elsewhere.
+test('the colour treatment is refined — one consistent blue family, no translucent muddiness, no purple', () => {
+  // Background uses the dedicated design-system token, not a hardcoded
+  // duplicate or a different blue.
+  assert.match(arjunLogo, /fill="var\(--brand-logo\)"/);
+  assert.match(indexCss, /--brand-logo:\s*#185FA5;/, 'the reserved logo-only token stays #185FA5');
+  // Primary strokes are solid white for maximum contrast.
+  assert.equal((arjunLogo.match(/stroke="#FFFFFF"/g) || []).length, 4, 'bow arc, arrow shaft, both fletching lines');
+  assert.match(arjunLogo, /fill="#FFFFFF"/, 'arrowhead');
+  // The accent line is a solid colour, not the old translucent overlay.
+  assert.match(arjunLogo, /stroke="#8ECBFF"/);
+  assert.doesNotMatch(arjunLogo, /opacity="0\.5"|opacity=\{0\.5\}/, 'no more translucent (muddy) accent stroke');
+  // No purple anywhere in the mark's actual code (comments may reference
+  // the old purple asset by way of explaining the change).
+  assert.doesNotMatch(arjunLogoCode, /#7C3AED|#8B5CF6|purple/i);
+});
+
+// ── 7. Every call site still carries the mark ─────────────────────────────
+
+test('ArjunWordmark is a single central lockup, composing ArjunLogo rather than drawing its own art', () => {
   assert.equal((allSourceText.match(/export function ArjunWordmark/g) || []).length, 1);
-  assert.doesNotMatch(arjunLogo, /<svg|<path/, 'the wordmark composes ArjunLogo, it does not draw its own art');
+  const wordmarkBlock = arjunLogo.slice(arjunLogo.indexOf('export function ArjunWordmark'));
+  assert.doesNotMatch(wordmarkBlock, /<svg|<path|<rect/, 'the wordmark composes <ArjunLogo />, it does not draw its own art');
+  assert.match(wordmarkBlock, /<ArjunLogo/);
 });
 
-test('the wordmark size presets are deterministic and keep a fixed icon:text:gap ratio', () => {
+test('the wordmark size presets are unchanged by the logo swap — same deterministic icon:text:gap ratios', () => {
   const presetsBlock = arjunLogo.slice(arjunLogo.indexOf('const LOCKUP_PRESETS'), arjunLogo.indexOf('\n};', arjunLogo.indexOf('const LOCKUP_PRESETS')));
   for (const preset of ['hero', 'header', 'medium', 'compact']) {
     assert.match(presetsBlock, new RegExp(`${preset}: \\{`), `missing wordmark preset: ${preset}`);
   }
-  // Every non-responsive preset pins a fixed numeric icon size — no
-  // preset silently falls through to an undefined/default size.
   for (const preset of ['hero', 'medium', 'compact']) {
     const block = presetsBlock.slice(presetsBlock.indexOf(`${preset}: {`), presetsBlock.indexOf('},', presetsBlock.indexOf(`${preset}: {`)));
     assert.match(block, /icon: \d+,/);
   }
-  // The word "Arjun" is the lockup's only default text.
   assert.match(arjunLogo, /wordmark = 'Arjun'/);
-  // brand vs Coach artwork selection stays exactly as deterministic as
-  // ArjunLogo's own — the wordmark just forwards `variant`, it doesn't
-  // re-decide which image to use.
-  assert.match(arjunLogo, /variant=\{variant\}/);
+  // The "coach vs brand artwork" concept is gone — there is only one mark
+  // now, so neither component still accepts/forwards a `variant` prop.
+  assert.doesNotMatch(arjunLogoCode, /\bvariant\b/);
 });
 
 test('the public homepage header, final CTA and footer all carry the Arjun mark', () => {
   assert.match(landing, /import \{ ArjunLogo, ArjunWordmark \} from '\.\.\/components\/ArjunLogo';/);
-  assert.match(landing, /<ArjunWordmark size="header" iconClassName="rounded-xl" \/>/, 'header uses the responsive canonical lockup');
-  assert.match(landing, /<ArjunWordmark size="medium" iconClassName="rounded-lg" \/>/, 'footer uses the medium lockup');
-  assert.match(landing, /<ArjunLogo size=\{44\}.*alt="Arjun"/, 'final CTA keeps its icon-only mark, untouched by the wordmark change');
+  assert.match(landing, /<ArjunWordmark size="header" \/>/, 'header uses the responsive canonical lockup');
+  assert.match(landing, /<ArjunWordmark size="medium" \/>/, 'footer uses the medium lockup');
+  assert.match(landing, /<ArjunLogo size=\{44\}.*alt="Arjun"/, 'final CTA keeps its icon-only mark');
+  // The SVG mark carries its own corner radius now — no page should still
+  // be papering over a raster mark's square bounding box with a rounded-*
+  // className on the icon.
+  assert.doesNotMatch(landing, /ArjunLogo[^/]*rounded-/s);
 });
 
-test('the homepage header wordmark grows in a second step, not blindly forced to one size', () => {
-  // The base (mobile) size is untouched from before this refinement — a
-  // regression at the narrowest supported width (320px) is impossible by
-  // construction, since the unprefixed classes never changed.
+test('the homepage header wordmark still grows in a verified-safe second step, not forced to one size', () => {
   const presetsBlock = arjunLogo.slice(arjunLogo.indexOf('header: {'), arjunLogo.indexOf('},', arjunLogo.indexOf('header: {')));
-  assert.match(presetsBlock, /w-8 h-8/, 'unprefixed (mobile-first) icon size is unchanged from the original 32px');
-  assert.match(presetsBlock, /text-\[19px\]/, 'unprefixed (mobile-first) text size is unchanged from the original 19px');
-  // The stronger lockup only applies from a verified-safe breakpoint up.
+  assert.match(presetsBlock, /w-8 h-8/, 'unprefixed (mobile-first) icon size is unchanged from before');
+  assert.match(presetsBlock, /text-\[19px\]/, 'unprefixed (mobile-first) text size is unchanged from before');
   assert.match(presetsBlock, /min-\[360px\]:w-10 min-\[360px\]:h-10/);
   assert.match(presetsBlock, /min-\[360px\]:text-\[26px\]/);
   assert.match(presetsBlock, /min-\[360px\]:text-\[#185FA5\]/, 'the brand-navy colour is reserved for the grown-in state');
@@ -152,7 +183,7 @@ test('the homepage header wordmark grows in a second step, not blindly forced to
 
 test('auth (sign in / create account) uses the canonical hero lockup', () => {
   assert.match(auth, /import \{ ArjunWordmark \} from '\.\.\/components\/ArjunLogo';/);
-  assert.match(auth, /<ArjunWordmark size="hero" iconClassName="rounded-xl" \/>/);
+  assert.match(auth, /<ArjunWordmark size="hero" \/>/);
 });
 
 test('the password reset flow uses the canonical hero lockup on both screens', () => {
@@ -170,19 +201,41 @@ test('the authenticated app header (Navbar) uses the compact lockup — it sits 
   assert.match(navbar, /<ArjunWordmark size="compact" \/>/);
 });
 
-// ── 9. Coach avatar ──────────────────────────────────────────────────────
-
-test('the Coach chat header uses the approved Coach avatar, sized compact, not the generic brand mark', () => {
+test('the Coach chat header uses the same restored mark, sized compact — no separate Coach avatar image', () => {
   assert.match(chatPage, /import \{ ArjunLogo \} from '\.\.\/components\/ArjunLogo';/);
-  assert.match(chatPage, /<ArjunLogo size=\{32\} variant="coach" ariaLabel="Arjun logo" className="shrink-0" \/>/);
-  // Its "Arjun" label stays a real <h1> (accessibility contract), just
-  // restyled to feel intentional next to the bigger avatar.
+  assert.match(chatPage, /<ArjunLogo size=\{32\} ariaLabel="Arjun logo" className="shrink-0" \/>/);
+  assert.doesNotMatch(chatPage, /variant="coach"|variant=\{.*coach/i);
+  // Its "Arjun" label stays a real <h1> (accessibility contract), styling
+  // untouched by this PR.
   assert.match(chatPage, /<h1 className="text-\[21px\] font-extrabold leading-none tracking-\[-0\.02em\] text-ink">\{t\.title\}<\/h1>/);
 });
 
-// ── 10. Obsolete purple assets are gone ──────────────────────────────────
+// ── 8. The reverted PR's raster asset set is gone ─────────────────────────
 
-test('no source file references an obsolete purple Arjun brand asset', () => {
+test('no source file references the raster brand-mark/logo-clean/Coach-avatar assets the rollback removed', () => {
+  const removed = [
+    'arjun-brand-mark-384.png',
+    'arjun-coach-avatar-256.png',
+    'arjun-logo-clean-512.png',
+    'arjun-logo-clean-1024.png',
+  ];
+  for (const needle of removed) {
+    assert.ok(!allSourceText.includes(needle), `stale reference to a removed raster asset: ${needle}`);
+  }
+});
+
+test('the removed raster asset files no longer exist on disk', () => {
+  for (const rel of [
+    'public/brand/arjun/arjun-brand-mark-384.png',
+    'public/brand/arjun/arjun-coach-avatar-256.png',
+    'public/brand/arjun/arjun-logo-clean-512.png',
+    'public/brand/arjun/arjun-logo-clean-1024.png',
+  ]) {
+    assert.ok(!exists(rel), `removed asset still present on disk: ${rel}`);
+  }
+});
+
+test('no source file references an obsolete purple Arjun brand asset (from before the original refresh either)', () => {
   const forbidden = [
     'arjun-source.svg',
     'apple-touch-icon-180x180',
@@ -194,11 +247,9 @@ test('no source file references an obsolete purple Arjun brand asset', () => {
   for (const needle of forbidden) {
     assert.ok(!allSourceText.includes(needle), `stale reference to obsolete asset: ${needle}`);
   }
-  // The old purple fill and the old hand-drawn bow/arrow path data are gone.
-  assert.doesNotMatch(allSourceText, /#7C3AED/i);
 });
 
-test('the obsolete purple asset files were deleted from public/', () => {
+test('the obsolete purple asset files stay deleted from public/', () => {
   for (const rel of [
     'public/arjun-source.svg',
     'public/apple-touch-icon-180x180.png',
@@ -211,7 +262,7 @@ test('the obsolete purple asset files were deleted from public/', () => {
   }
 });
 
-// ── 11. PWA / install behaviour unchanged ────────────────────────────────
+// ── 9. PWA / install behaviour unchanged ──────────────────────────────────
 
 test('PWA registration, install behaviour and app identity are untouched', () => {
   assert.match(viteConfig, /VitePWA\(\{/);
@@ -226,9 +277,9 @@ test('PWA registration, install behaviour and app identity are untouched', () =>
   assert.equal((iconsBlock.match(/src:/g) || []).length, 3);
 });
 
-// ── 12. Auth behaviour unchanged ─────────────────────────────────────────
+// ── 10. Auth behaviour unchanged ──────────────────────────────────────────
 
-test('auth endpoints, payload and redirect are unchanged by the brand swap', () => {
+test('auth endpoints, payload and redirect are unchanged by the logo rollback', () => {
   assert.match(auth, /const endpoint = tab === 'signup' \? '\/api\/auth\/register' : '\/api\/auth\/login';/);
   assert.match(auth, /loginWithUser\(data\.token, data\.user\);/);
   assert.match(auth, /navigate\(data\.user\.onboardingDone \? '\/dashboard' : '\/onboarding', \{ replace: true \}\);/);
