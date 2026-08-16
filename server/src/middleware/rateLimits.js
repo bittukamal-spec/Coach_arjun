@@ -37,4 +37,16 @@ const founderLoginLimiter = rateLimit({
   message: { error: 'Too many attempts. Please try again later.' },
 });
 
-module.exports = { authLimiter, aiLimiter, founderLoginLimiter };
+// Public contact form: 5 submissions per hour per IP. Unauthenticated route,
+// so this always keys off IP (via the IPv6-safe helper, same as aiLimiter's
+// fallback) — there is no req.userId to prefer.
+const contactLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 5,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  keyGenerator: (req) => ipKeyGenerator(req.ip),
+  message: { error: 'Too many messages sent. Please try again later.' },
+});
+
+module.exports = { authLimiter, aiLimiter, founderLoginLimiter, contactLimiter };

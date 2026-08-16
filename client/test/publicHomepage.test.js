@@ -613,7 +613,9 @@ test('the footer keeps every policy link, including child safety', () => {
 test('the auth route contract is untouched — sign-in still goes to /auth?tab=signin', () => {
   assert.match(landing, /const goSignIn = \(\) => navigate\('\/auth\?tab=signin'\);/);
   const routes = [...landing.matchAll(/navigate\('([^']+)'\)/g)].map((m) => m[1]);
-  const allowed = ['/auth?tab=signin', '/privacy', '/terms', '/terms#ai-child-safety', '/refund'];
+  // '/contact' was added deliberately: the footer Support link now routes to
+  // the real public Contact page instead of a hard-coded mailto address.
+  const allowed = ['/auth?tab=signin', '/privacy', '/terms', '/terms#ai-child-safety', '/refund', '/contact'];
   for (const route of routes) assert.ok(allowed.includes(route), `unexpected navigation target: ${route}`);
 });
 

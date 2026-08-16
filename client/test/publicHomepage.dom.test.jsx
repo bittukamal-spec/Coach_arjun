@@ -32,6 +32,7 @@ function renderHome(lang = 'en') {
         <Route path="/privacy" element={<p>PRIVACY</p>} />
         <Route path="/terms" element={<p>TERMS</p>} />
         <Route path="/refund" element={<p>REFUND</p>} />
+        <Route path="/contact" element={<p>CONTACT</p>} />
       </Routes>
     </MemoryRouter>,
   );
@@ -424,5 +425,14 @@ describe('legal links', () => {
     renderHome();
     await user.click(screen.getByRole('button', { name: 'Child Safety' }));
     expect(screen.getByText('TERMS')).toBeTruthy();
+  });
+
+  test('the footer Support link routes to the real Contact page, not a mailto address', async () => {
+    const user = userEvent.setup();
+    renderHome();
+    const support = screen.getByRole('button', { name: 'Support' });
+    expect(support.tagName).toBe('BUTTON');
+    await user.click(support);
+    expect(screen.getByText('CONTACT')).toBeTruthy();
   });
 });
