@@ -19,6 +19,7 @@ export const translations = {
       installDesktop: 'Use the install icon in your browser address bar, or ⋮ → Install Arjun.',
       installDone: 'App installed',
       close: 'Close',
+      menuContactSupport: 'Contact & Support',
 
       // ── Hero ──────────────────────────────────────────────────────────────
       // No eyebrow above the headline — the hero opens on the headline itself.
@@ -221,6 +222,8 @@ export const translations = {
       underageError: 'Arjun is for athletes aged 13 and above. You cannot create an account yet.',
       aiDisclosure: 'Arjun is an AI mental-performance coach, not a human coach, doctor, or therapist. It can support performance skills, but it cannot provide medical care, therapy, or emergency help.',
       aiDisclosureSafety: 'If you feel unsafe or need urgent help, contact a trusted adult or use the emergency and support contacts shown in Arjun.',
+      needHelp: 'Need help?',
+      contactSupport: 'Contact support',
     },
     consent: {
       pendingTitle: 'Waiting for parent/guardian consent',
@@ -1405,6 +1408,9 @@ export const translations = {
       themeAuto:     'Auto',
       themeLight:    'Light',
       themeDark:     'Dark',
+      // Help & Support
+      contactSupportTitle: 'Contact & Support',
+      contactSupportDesc: 'Questions, technical issues, billing, privacy or partnerships.',
     },
     privacy: {
       sectionTitle: 'Privacy & Data',
@@ -2029,6 +2035,7 @@ export const translations = {
       installDesktop: 'ब्राउज़र के address bar में install आइकॉन दबाओ, या ⋮ → Install Arjun.',
       installDone: 'ऐप इंस्टॉल हो गया',
       close: 'बंद करो',
+      menuContactSupport: 'संपर्क और सहायता',
 
       // ── Hero ──────────────────────────────────────────────────────────────
       headlineLead: 'दिमाग़ को ट्रेन करो। ',
@@ -2222,6 +2229,8 @@ export const translations = {
       underageError: 'Arjun 13 साल और उससे बड़े खिलाड़ियों के लिए है। तुम अभी खाता नहीं बना सकते।',
       aiDisclosure: 'Arjun एक AI मानसिक-प्रदर्शन कोच है — कोई इंसान कोच, डॉक्टर, या थेरेपिस्ट नहीं। यह खेल से जुड़े मानसिक कौशल में मदद कर सकता है, लेकिन मेडिकल केयर, थेरेपी, या इमरजेंसी मदद नहीं दे सकता।',
       aiDisclosureSafety: 'अगर तुम्हें असुरक्षित महसूस हो या तुरंत मदद चाहिए, तो किसी भरोसेमंद बड़े व्यक्ति से बात करो या Arjun में दिए गए इमरजेंसी और सहायता संपर्कों का इस्तेमाल करो।',
+      needHelp: 'मदद चाहिए?',
+      contactSupport: 'सहायता से संपर्क करें',
     },
     consent: {
       pendingTitle: 'माता-पिता/अभिभावक की सहमति का इंतज़ार है',
@@ -3404,6 +3413,8 @@ export const translations = {
       themeAuto:     'ऑटो',
       themeLight:    'लाइट',
       themeDark:     'डार्क',
+      contactSupportTitle: 'संपर्क और सहायता',
+      contactSupportDesc: 'सवाल, तकनीकी समस्याएं, बिलिंग, गोपनीयता या साझेदारी।',
     },
     privacy: {
       sectionTitle: 'गोपनीयता और डेटा',

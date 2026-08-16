@@ -228,6 +228,19 @@ function AuthPage() {
               {tab === 'signup' ? t.auth.tabSignIn : t.auth.signUpBtn}
             </button>
           </p>
+
+          {/* Secondary support link — same for both tabs, visually quiet so
+              it never competes with the primary sign-in/sign-up action. */}
+          <p className="mt-3 text-center text-[13px] text-[#7B8A9C]">
+            {t.auth.needHelp}{' '}
+            <button
+              type="button"
+              onClick={() => navigate('/contact')}
+              className="min-h-[44px] font-semibold text-[#5A6B80] hover:text-[#0F172A] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5] focus-visible:ring-offset-2 rounded-lg"
+            >
+              {t.auth.contactSupport}
+            </button>
+          </p>
         </div>
       </div>
     </div>
