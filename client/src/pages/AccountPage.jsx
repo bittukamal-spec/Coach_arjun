@@ -688,19 +688,19 @@ function AccountPage() {
               {language === 'hi' ? 'सहायता' : 'Help & Support'}
             </h2>
           </div>
-          <div className="card px-4 py-4">
-            <p className="text-sm text-slt mb-2">
-              {language === 'hi'
-                ? 'कोई सवाल या समस्या है? हम यहाँ हैं।'
-                : 'Have a question or billing issue? We\'re here.'}
-            </p>
-            <a
-              href="mailto:kamal.prabhanshu@outlook.com"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-brand-400 hover:text-brand-300 transition-colors"
+          <div className="card space-y-1">
+            <button
+              type="button"
+              onClick={() => navigate('/contact')}
+              className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-dark-700 transition-colors text-left"
             >
-              <Mail size={14} />
-              kamal.prabhanshu@outlook.com
-            </a>
+              <Mail size={18} className="text-slt flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-ink text-sm font-medium">{t.contactSupportTitle}</p>
+                <p className="text-xs text-slt">{t.contactSupportDesc}</p>
+              </div>
+              <ChevronRight size={18} className="text-slt flex-shrink-0" />
+            </button>
           </div>
         </section>
 

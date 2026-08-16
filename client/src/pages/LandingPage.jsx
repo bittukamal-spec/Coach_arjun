@@ -228,6 +228,9 @@ function LandingPage() {
                 <button type="button" onClick={() => navigate('/terms')} className={`flex min-h-[44px] w-full items-center rounded-xl px-3 text-left text-[14px] ${BODY} hover:bg-[#F3F6FB]`}>
                   {t.footerTerms}
                 </button>
+                <button type="button" onClick={() => navigate('/contact')} className={`flex min-h-[44px] w-full items-center rounded-xl px-3 text-left text-[14px] ${BODY} hover:bg-[#F3F6FB]`}>
+                  {t.menuContactSupport}
+                </button>
               </div>
             )}
           </div>
