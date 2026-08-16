@@ -663,12 +663,13 @@ function LandingPage() {
               {link.label}
             </button>
           ))}
-          <a
-            href="mailto:kamal.prabhanshu@outlook.com"
+          <button
+            type="button"
+            onClick={() => navigate('/contact')}
             className={`inline-flex min-h-[44px] items-center text-[13px] ${BODY} hover:text-[#0F172A]`}
           >
             {t.footerSupport}
-          </a>
+          </button>
         </div>
         <p className={`mt-2 text-[12px] ${BODY}`}>
           © {new Date().getFullYear()} Arjun · {t.footerRights}

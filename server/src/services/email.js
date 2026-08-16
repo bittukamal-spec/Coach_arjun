@@ -146,4 +146,52 @@ async function sendGuardianConsentEmail(toEmail, athleteName, consentUrl) {
   });
 }
 
-module.exports = { sendPasswordResetEmail, sendWelcomeEmail, sendDeletionEmail, sendGuardianConsentEmail };
+// Minimal HTML-escaping for values interpolated into the hand-built markup
+// below. The contact form is the one email built from untrusted visitor
+// input (name/email/message), so this keeps that text inert instead of
+// live markup — plain text in, plain text rendered.
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// Public contact form → internal notification, sent to CONTACT_TO_EMAIL.
+// Reply-To is the visitor's own (already-validated) address so the founder
+// can just hit reply; the From address stays Arjun's verified sender —
+// never spoofed to the visitor's address.
+async function sendContactEmail({ name, email, reason, reasonLabel, message }) {
+  const resend = getResend();
+  const to = process.env.CONTACT_TO_EMAIL;
+  if (!to) throw new Error('CONTACT_TO_EMAIL is not configured');
+
+  const submittedAt = new Date().toISOString();
+  await resend.emails.send({
+    from: `Arjun <${FROM}>`,
+    to,
+    replyTo: email,
+    subject: `Arjun contact — ${reasonLabel}`,
+    html: `
+      <div style="font-family: 'Poppins', sans-serif; max-width: 520px; margin: 0 auto; padding: 24px; background: #0A0A15; color: #F1F5F9;">
+        <div style="text-align: center; margin-bottom: 24px;">
+          <div style="display: inline-block; width: 40px; height: 40px; background: #185FA5; border-radius: 10px; line-height: 40px; font-weight: 800; font-size: 18px; color: white;">A</div>
+        </div>
+        <h2 style="color: #F1F5F9; margin-bottom: 16px; font-size: 20px;">New contact message</h2>
+        <p style="color: #94A3B8; margin: 4px 0; font-size: 14px;"><strong style="color: #F1F5F9;">Name:</strong> ${escapeHtml(name)}</p>
+        <p style="color: #94A3B8; margin: 4px 0; font-size: 14px;"><strong style="color: #F1F5F9;">Email:</strong> ${escapeHtml(email)}</p>
+        <p style="color: #94A3B8; margin: 4px 0; font-size: 14px;"><strong style="color: #F1F5F9;">Reason:</strong> ${escapeHtml(reasonLabel)}</p>
+        <p style="color: #94A3B8; margin: 16px 0 4px; font-size: 14px;"><strong style="color: #F1F5F9;">Message:</strong></p>
+        <p style="color: #F1F5F9; font-size: 14px; line-height: 1.6; white-space: pre-wrap;">${escapeHtml(message)}</p>
+        <p style="color: #475569; font-size: 12px; margin-top: 24px;">Submitted ${escapeHtml(submittedAt)}</p>
+      </div>
+    `,
+  });
+}
+
+module.exports = {
+  sendPasswordResetEmail, sendWelcomeEmail, sendDeletionEmail, sendGuardianConsentEmail,
+  sendContactEmail,
+};
