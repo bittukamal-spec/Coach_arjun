@@ -27,9 +27,12 @@ const SCREENED_FILES = [
   { file: 'sessions.js', note: 'derived transcript — athlete side screened; neutral date fallback on flag' },
 ];
 
-const EXEMPT_FILES = [
-  { file: 'mentalFitness.js', reason: 'Anthropic input is validated 1-5 integer scores only — no athlete-authored free text reaches the model (mood + six dims, parseInt-validated)' },
-];
+// mentalFitness.js used to be the sole EXEMPT_FILES entry (Anthropic input
+// was validated 1-5 integer scores only, no athlete-authored free text).
+// The route was removed as retired legacy code (see the legacy
+// server-endpoints cleanup PR) — it no longer exists to import Anthropic at
+// all, so the manifest has no exempt files left.
+const EXEMPT_FILES = [];
 
 // profileIntro.js used to be a SCREENED_FILES entry. PR 3 retired its AI
 // interpretation entirely (the Starting Performance Profile replaces it), so
@@ -96,16 +99,6 @@ test('profileIntro.js: a flagged name returns safety guidance, not a normal-look
   assert.match(block, /recordSafetyEvent\(/, 'expected a SafetyEvent to be recorded');
   assert.match(block, /getSafetyGuidance\(nameScreen\.category/, 'expected guidance to be shown, not the normal fallback');
   assert.doesNotMatch(block, /intro:\s*fallback/, 'must not silently return the normal fallback intro on a flagged name');
-});
-
-test('exempt file takes no athlete free text into its Anthropic prompt', () => {
-  const src = read('mentalFitness.js');
-  // The prompt is built exclusively from parseInt-validated scores.
-  assert.match(src, /parseInt\(raw\[key\], 10\)/);
-  assert.match(src, /Today's scores — Mood: \$\{scores\.mood\}/);
-  // No screening needed — but if someone later adds free text here, this
-  // documented exemption should be revisited.
-  assert.doesNotMatch(src, /screenSafety/);
 });
 
 test('deterministic layer never persists athlete text: SafetyEvent writes carry no content fields', () => {

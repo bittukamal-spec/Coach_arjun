@@ -46,7 +46,6 @@ const AI_ROUTES = [
 
   // Newly covered by this PR.
   { mount: '/api/profile-intro', path: '/', method: 'GET', note: 'retired profile intro — no longer calls Anthropic (PR 3), but stays gated' },
-  { mount: '/api/mental-fitness', path: '/', method: 'POST', note: 'legacy MFS AI coaching line (scheduled for later retirement, gated not redesigned)' },
   { mount: '/api/weekly-reports', path: '/', method: 'GET', note: 'lazy weekly report generation (sends raw athlete messages to Claude)' },
   { mount: '/api/sessions', path: '/end-stale', method: 'POST', note: 'auto-end stale sessions + AI summary' },
   { mount: '/api/sessions', path: '/:id/end', method: 'POST', note: 'end session + AI summary' },
@@ -64,8 +63,6 @@ const NON_AI_ROUTES_MUST_NOT_BE_GATED = [
   { mount: '/api/sessions', path: '/:id/messages', method: 'GET', note: 'fetch messages' },
   { mount: '/api/sessions', path: '/:id', method: 'PATCH', note: 'update session status' },
   { mount: '/api/sessions', path: '/:id', method: 'DELETE', note: 'delete session' },
-  { mount: '/api/mental-fitness', path: '/today', method: 'GET', note: "today's entry (no AI call)" },
-  { mount: '/api/mental-fitness', path: '/week', method: 'GET', note: 'last 7 entries (no AI call)' },
   { mount: '/api/debrief', path: '/', method: 'GET', note: 'read debriefs (no AI call)' },
   { mount: '/api/self-talk', path: '/save', method: 'POST', note: 'save card (no AI call)' },
   { mount: '/api/body-reset', path: '/save', method: 'POST', note: 'save session (no AI call)' },
