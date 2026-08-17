@@ -39,6 +39,10 @@ async function sendWelcomeEmail(toEmail, name) {
   const resend = getResend();
   const clientUrl = process.env.CLIENT_URL || 'https://arjun.app';
   const firstName = name ? name.trim().split(' ')[0] : 'there';
+  // Account names are user-controlled at signup and unrestricted, so the
+  // derived first name must be escaped before it lands in HTML — same
+  // reasoning as sendContactEmail's use of escapeHtml below.
+  const safeFirstName = escapeHtml(firstName);
   await resend.emails.send({
     from: `Arjun <${FROM}>`,
     to: toEmail,
@@ -47,7 +51,7 @@ async function sendWelcomeEmail(toEmail, name) {
       <div style="font-family: 'Poppins', Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; background: #FFFFFF; color: #1A1A1A;">
         <p style="font-weight: 700; font-size: 16px; color: #185FA5; margin: 0 0 24px;">Arjun</p>
 
-        <p style="font-size: 15px; line-height: 1.6; margin: 0 0 16px;">Hi ${firstName},</p>
+        <p style="font-size: 15px; line-height: 1.6; margin: 0 0 16px;">Hi ${safeFirstName},</p>
 
         <p style="font-size: 15px; line-height: 1.6; margin: 0 0 16px;">Your Arjun account is ready.</p>
 
