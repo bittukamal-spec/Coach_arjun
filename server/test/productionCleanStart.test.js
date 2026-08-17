@@ -11,6 +11,7 @@ const fs = require('node:fs');
 const script = require('../scripts/productionCleanStart');
 const {
   REQUIRED_CONFIRMATION,
+  REQUIRED_NO_BACKUP_CONFIRMATION,
   REQUIRED_ENV_FLAG,
   USER_OWNED_DELETE_ORDER,
   PRESERVED_MODELS,
@@ -19,6 +20,7 @@ const {
   safeTargetDescriptor,
   printTargetDescriptor,
   printReport,
+  printNoBackupWarningIfApplicable,
   getGuardianSummary,
   findPotentiallyBilledUsers,
   razorpayPreflight,
@@ -547,9 +549,245 @@ test('the script is not referenced by any route file under src/routes', () => {
   }
 });
 
+// ── 20. No-backup path (PATH B) guard logic ─────────────────────────────
+//
+// PATH A (--backup-confirmed) is unchanged and covered by the guard-
+// combination tests above. These tests cover the new alternative path:
+// --no-backup-accepted + --confirm-no-backup=<exact string>, and the
+// requirement that EXACTLY ONE of the two backup paths be satisfied.
+
+test('parseArgs recognizes the new no-backup flags and defaults them to falsy/null', () => {
+  const args = parseArgs([]);
+  assert.equal(args.noBackupAccepted, false);
+  assert.equal(args.confirmNoBackup, null);
+
+  const withFlags = parseArgs(['--no-backup-accepted', `--confirm-no-backup=${REQUIRED_NO_BACKUP_CONFIRMATION}`]);
+  assert.equal(withFlags.noBackupAccepted, true);
+  assert.equal(withFlags.confirmNoBackup, REQUIRED_NO_BACKUP_CONFIRMATION);
+  // Parsing the no-backup confirm flag must not be confused with --confirm=.
+  assert.equal(withFlags.confirm, null);
+});
+
+test('execute with neither backup path present refuses, with a backup-decision problem and no backupMode', () => {
+  const check = checkGuards(
+    { execute: true, confirm: REQUIRED_CONFIRMATION, backupConfirmed: false, noBackupAccepted: false, confirmNoBackup: null },
+    { [REQUIRED_ENV_FLAG]: 'true' },
+  );
+  assert.equal(check.ok, false);
+  assert.equal(check.backupMode, null);
+  assert.ok(check.problems.some((p) => p.includes('--backup-confirmed') && p.includes('--no-backup-accepted')));
+});
+
+test('--backup-confirmed alone (PATH A) still satisfies the backup guard unchanged', () => {
+  const check = checkGuards(
+    { execute: true, confirm: REQUIRED_CONFIRMATION, backupConfirmed: true },
+    { [REQUIRED_ENV_FLAG]: 'true' },
+  );
+  assert.equal(check.ok, true);
+  assert.equal(check.backupMode, 'confirmed-backup');
+});
+
+test('--no-backup-accepted alone, without --confirm-no-backup, refuses', () => {
+  const check = checkGuards(
+    { execute: true, confirm: REQUIRED_CONFIRMATION, backupConfirmed: false, noBackupAccepted: true, confirmNoBackup: null },
+    { [REQUIRED_ENV_FLAG]: 'true' },
+  );
+  assert.equal(check.ok, false);
+  assert.equal(check.backupMode, null);
+  assert.ok(check.problems.some((p) => p.includes(`--confirm-no-backup=${REQUIRED_NO_BACKUP_CONFIRMATION}`)));
+});
+
+test('--confirm-no-backup alone, without --no-backup-accepted, refuses', () => {
+  const check = checkGuards(
+    { execute: true, confirm: REQUIRED_CONFIRMATION, backupConfirmed: false, noBackupAccepted: false, confirmNoBackup: REQUIRED_NO_BACKUP_CONFIRMATION },
+    { [REQUIRED_ENV_FLAG]: 'true' },
+  );
+  assert.equal(check.ok, false);
+  assert.equal(check.backupMode, null);
+  assert.ok(check.problems.some((p) => p.includes('--no-backup-accepted')));
+});
+
+test('--no-backup-accepted with a wrong --confirm-no-backup value refuses', () => {
+  const check = checkGuards(
+    { execute: true, confirm: REQUIRED_CONFIRMATION, backupConfirmed: false, noBackupAccepted: true, confirmNoBackup: 'I_ACCEPT_SOMETHING_ELSE' },
+    { [REQUIRED_ENV_FLAG]: 'true' },
+  );
+  assert.equal(check.ok, false);
+  assert.equal(check.backupMode, null);
+  assert.ok(check.problems.some((p) => p.includes(`--confirm-no-backup=${REQUIRED_NO_BACKUP_CONFIRMATION}`) && p.includes('does not match')));
+});
+
+test('the correct --no-backup-accepted + --confirm-no-backup pair (PATH B) satisfies the backup guard', () => {
+  const check = checkGuards(
+    { execute: true, confirm: REQUIRED_CONFIRMATION, backupConfirmed: false, noBackupAccepted: true, confirmNoBackup: REQUIRED_NO_BACKUP_CONFIRMATION },
+    { [REQUIRED_ENV_FLAG]: 'true' },
+  );
+  assert.equal(check.ok, true);
+  assert.equal(check.backupMode, 'explicit-no-backup');
+  assert.deepEqual(check.problems, []);
+});
+
+test('both backup paths satisfied simultaneously (PATH A + PATH B) refuses', () => {
+  const check = checkGuards(
+    {
+      execute: true,
+      confirm: REQUIRED_CONFIRMATION,
+      backupConfirmed: true,
+      noBackupAccepted: true,
+      confirmNoBackup: REQUIRED_NO_BACKUP_CONFIRMATION,
+    },
+    { [REQUIRED_ENV_FLAG]: 'true' },
+  );
+  assert.equal(check.ok, false);
+  assert.equal(check.backupMode, null);
+  assert.ok(check.problems.some((p) => p.includes('exactly ONE backup path')));
+});
+
+test('the other three original guards (--execute, --confirm, env flag) are still required even when PATH B is fully satisfied', () => {
+  const check = checkGuards(
+    { execute: false, confirm: null, backupConfirmed: false, noBackupAccepted: true, confirmNoBackup: REQUIRED_NO_BACKUP_CONFIRMATION },
+    {},
+  );
+  assert.equal(check.ok, false);
+  // The backup decision itself is satisfied independently of the other guards.
+  assert.equal(check.backupMode, 'explicit-no-backup');
+  assert.ok(check.problems.some((p) => p.includes('--execute')));
+  assert.ok(check.problems.some((p) => p.includes('--confirm=')));
+  assert.ok(check.problems.some((p) => p.includes(REQUIRED_ENV_FLAG)));
+});
+
+test('a guard failure on the no-backup path makes zero Razorpay calls and zero DB writes', async () => {
+  const prisma = makeFakePrisma();
+  let razorpayTouched = false;
+  const razorpay = {
+    subscriptions: {
+      cancel: async () => { razorpayTouched = true; return {}; },
+      fetch: async () => { razorpayTouched = true; return {}; },
+    },
+  };
+
+  const outcome = await runExecuteFlow({
+    prisma,
+    razorpay,
+    // Incomplete PATH B: --no-backup-accepted without a matching --confirm-no-backup.
+    args: { execute: true, confirm: REQUIRED_CONFIRMATION, backupConfirmed: false, noBackupAccepted: true, confirmNoBackup: 'WRONG' },
+    env: { [REQUIRED_ENV_FLAG]: 'true' },
+  });
+
+  assert.equal(outcome.aborted, true);
+  assert.equal(outcome.reason, 'guards_failed');
+  assert.equal(outcome.backupMode, null);
+  assert.equal(razorpayTouched, false, 'guard failure must make zero Razorpay calls');
+  assert.equal(prisma._transactionCalled, false, 'guard failure must make zero DB writes');
+});
+
+test('runExecuteFlow surfaces backupMode "confirmed-backup" end-to-end on a successful PATH A run', async () => {
+  const prisma = makeFakePrisma({ billedUsers: [] });
+  const razorpay = makeFakeRazorpaySuccess();
+  const outcome = await runExecuteFlow({
+    prisma,
+    razorpay,
+    args: { execute: true, confirm: REQUIRED_CONFIRMATION, backupConfirmed: true },
+    env: { [REQUIRED_ENV_FLAG]: 'true' },
+  });
+  assert.equal(outcome.aborted, false);
+  assert.equal(outcome.backupMode, 'confirmed-backup');
+});
+
+test('runExecuteFlow surfaces backupMode "explicit-no-backup" end-to-end on a successful PATH B run', async () => {
+  const prisma = makeFakePrisma({ billedUsers: [] });
+  const razorpay = makeFakeRazorpaySuccess();
+  const outcome = await runExecuteFlow({
+    prisma,
+    razorpay,
+    args: { execute: true, confirm: REQUIRED_CONFIRMATION, noBackupAccepted: true, confirmNoBackup: REQUIRED_NO_BACKUP_CONFIRMATION },
+    env: { [REQUIRED_ENV_FLAG]: 'true' },
+  });
+  assert.equal(outcome.aborted, false);
+  assert.equal(outcome.backupMode, 'explicit-no-backup');
+  assert.ok(prisma._transactionCalled);
+});
+
+// ── 21. No-backup warning is printed before execution, only on PATH B ──
+
+test('printNoBackupWarningIfApplicable prints the required warning when PATH B is the satisfied backup mode', () => {
+  const check = checkGuards(
+    { execute: true, confirm: REQUIRED_CONFIRMATION, backupConfirmed: false, noBackupAccepted: true, confirmNoBackup: REQUIRED_NO_BACKUP_CONFIRMATION },
+    { [REQUIRED_ENV_FLAG]: 'true' },
+  );
+  const { result, logs } = captureConsole(() => printNoBackupWarningIfApplicable(check));
+  assert.equal(result, true);
+  const combined = logs.join('\n');
+  assert.match(combined, /NO BACKUP MODE ACCEPTED/);
+  assert.match(combined, /THIS WIPE IS IRREVERSIBLE/);
+});
+
+test('printNoBackupWarningIfApplicable prints nothing when PATH A (confirmed backup) is used', () => {
+  const check = checkGuards(
+    { execute: true, confirm: REQUIRED_CONFIRMATION, backupConfirmed: true },
+    { [REQUIRED_ENV_FLAG]: 'true' },
+  );
+  const { result, logs } = captureConsole(() => printNoBackupWarningIfApplicable(check));
+  assert.equal(result, false);
+  assert.equal(logs.length, 0);
+});
+
+test('printNoBackupWarningIfApplicable prints nothing when guards have not fully passed, even if a no-backup attempt was made', () => {
+  const check = checkGuards(
+    { execute: false, confirm: null, backupConfirmed: false, noBackupAccepted: true, confirmNoBackup: REQUIRED_NO_BACKUP_CONFIRMATION },
+    {},
+  );
+  const { result, logs } = captureConsole(() => printNoBackupWarningIfApplicable(check));
+  assert.equal(result, false);
+  assert.equal(logs.length, 0);
+});
+
+// ── 22. Audit summary records the correct backupMode ────────────────────
+
+test('buildAuditSummary records backupMode "confirmed-backup" for PATH A', () => {
+  const summary = buildAuditSummary({
+    mode: 'execute',
+    aborted: false,
+    before: { user: 1 },
+    after: { user: 0 },
+    deleted: { user: 1 },
+    preflight: { checked: 0, cancelled: 0, alreadyInactive: 0, failures: [] },
+    success: true,
+    backupMode: 'confirmed-backup',
+  });
+  assert.equal(summary.backupMode, 'confirmed-backup');
+});
+
+test('buildAuditSummary records backupMode "explicit-no-backup" for PATH B', () => {
+  const summary = buildAuditSummary({
+    mode: 'execute',
+    aborted: false,
+    before: { user: 1 },
+    after: { user: 0 },
+    deleted: { user: 1 },
+    preflight: { checked: 0, cancelled: 0, alreadyInactive: 0, failures: [] },
+    success: true,
+    backupMode: 'explicit-no-backup',
+  });
+  assert.equal(summary.backupMode, 'explicit-no-backup');
+});
+
+test('buildAuditSummary defaults backupMode to null when a guard failure aborted before any path was chosen', () => {
+  const summary = buildAuditSummary({
+    mode: 'execute',
+    aborted: true,
+    reason: 'guards_failed',
+    before: { user: 1 },
+    preflight: null,
+    success: false,
+  });
+  assert.equal(summary.backupMode, null);
+});
+
 // ── Extra: dedicated environment guard is a hard-to-trigger, exact match ─
 
-test('REQUIRED_CONFIRMATION and REQUIRED_ENV_FLAG match the task-specified exact strings', () => {
+test('REQUIRED_CONFIRMATION, REQUIRED_NO_BACKUP_CONFIRMATION, and REQUIRED_ENV_FLAG match the task-specified exact strings', () => {
   assert.equal(REQUIRED_CONFIRMATION, 'DELETE_ALL_ARJUN_PILOT_TEST_DATA');
+  assert.equal(REQUIRED_NO_BACKUP_CONFIRMATION, 'I_ACCEPT_ARJUN_PRODUCTION_WIPE_WITHOUT_BACKUP');
   assert.equal(REQUIRED_ENV_FLAG, 'ALLOW_PRODUCTION_CLEAN_START');
 });
