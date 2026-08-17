@@ -6,7 +6,7 @@
 //
 // Reference surface: the VISIBLE Mental Playbook page at /playbook.
 // (/progress was retired in PR #26 and now redirects to /playbook; the
-// dormant ProgressPage.jsx must stay untouched by this stage.)
+// dormant ProgressPage.jsx has since been removed as orphaned legacy code.)
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -25,7 +25,6 @@ const sectionLabel = readFileSync(path.join(root, 'src/components/ui/SectionLabe
 const barrel = readFileSync(path.join(root, 'src/components/ui/index.js'), 'utf8');
 const app = readFileSync(path.join(root, 'src/App.jsx'), 'utf8');
 const playbook = readFileSync(path.join(root, 'src/pages/PlaybookPage.jsx'), 'utf8');
-const progress = readFileSync(path.join(root, 'src/pages/ProgressPage.jsx'), 'utf8');
 
 // ── 1. Tokens exist in the Tailwind config ──────────────────────────────────
 
@@ -145,12 +144,4 @@ test('PlaybookPage content preserved: all sections present, "What I\'m learning"
   ];
   assert.ok(idx.every(i => i !== -1), 'a Playbook section heading is missing');
   assert.deepEqual(idx, [...idx].sort((a, b) => a - b), 'Playbook section order changed');
-});
-
-// ── 5. No hidden-ProgressPage visual work remains in this PR ────────────────
-
-test('ProgressPage (dormant) is untouched: no ui-primitive imports or hero usage', () => {
-  assert.doesNotMatch(progress, /components\/ui/);
-  assert.doesNotMatch(progress, /variant="hero"/);
-  assert.doesNotMatch(progress, /px-page|space-y-section|text-micro|text-display/);
 });
