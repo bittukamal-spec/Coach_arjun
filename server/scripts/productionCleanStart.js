@@ -27,6 +27,17 @@
 //     --backup-confirmed
 //     → actually deletes, ONLY if a Razorpay pre-flight confirms no live
 //       billing survives, and ONLY after all four guards above are present.
+//       (PATH A — a Railway backup/snapshot already exists.)
+//
+//   ALLOW_PRODUCTION_CLEAN_START=true node scripts/productionCleanStart.js \
+//     --execute \
+//     --confirm=DELETE_ALL_ARJUN_PILOT_TEST_DATA \
+//     --no-backup-accepted \
+//     --confirm-no-backup=I_ACCEPT_ARJUN_PRODUCTION_WIPE_WITHOUT_BACKUP
+//     → alternative to PATH A — the founder explicitly accepts running this
+//       wipe WITHOUT a backup existing. Exactly one of the two backup paths
+//       (--backup-confirmed, or this pair) must be given; neither, both, or
+//       a partial/incorrect no-backup pair all refuse to run.
 //
 // Testability note: unlike this repo's other one-off scripts (e.g.
 // scripts/cleanup-breathing-data.js), this file must be safely `require()`-
@@ -46,6 +57,8 @@ const crypto = require('crypto');
 // ── Guard constants ──────────────────────────────────────────────────────
 
 const REQUIRED_CONFIRMATION = 'DELETE_ALL_ARJUN_PILOT_TEST_DATA';
+// PATH B (no-backup) confirmation string — see checkGuards below.
+const REQUIRED_NO_BACKUP_CONFIRMATION = 'I_ACCEPT_ARJUN_PRODUCTION_WIPE_WITHOUT_BACKUP';
 const REQUIRED_ENV_FLAG = 'ALLOW_PRODUCTION_CLEAN_START';
 const TERMINAL_SUBSCRIPTION_STATUSES = ['cancelled', 'completed', 'expired'];
 // Generous but bounded — 24 users' worth of rows is small; this just
@@ -112,21 +125,33 @@ const PRESERVED_MODELS = ['processedWebhookEvent'];
 
 function parseArgs(argv) {
   const confirmArg = argv.find((a) => a.startsWith('--confirm='));
+  const confirmNoBackupArg = argv.find((a) => a.startsWith('--confirm-no-backup='));
   return {
     execute: argv.includes('--execute'),
     confirm: confirmArg ? confirmArg.slice('--confirm='.length) : null,
     backupConfirmed: argv.includes('--backup-confirmed'),
+    noBackupAccepted: argv.includes('--no-backup-accepted'),
+    confirmNoBackup: confirmNoBackupArg ? confirmNoBackupArg.slice('--confirm-no-backup='.length) : null,
   };
 }
 
 // ── Execution guards — ALL must pass, or zero writes happen ────────────
 //
-// Four independent guards, matching the task's explicit requirement:
+// Independent guards, matching the task's explicit requirement:
 //   1. --execute flag
 //   2. --confirm=<exact string>
 //   3. ALLOW_PRODUCTION_CLEAN_START=true env var
-//   4. --backup-confirmed flag (operator attests a Railway backup/snapshot
-//      already exists — this script never takes one itself)
+//   4. A backup decision — EXACTLY ONE of two paths:
+//        PATH A: --backup-confirmed (operator attests a Railway
+//                backup/snapshot already exists — this script never takes
+//                one itself)
+//        PATH B: --no-backup-accepted AND
+//                --confirm-no-backup=I_ACCEPT_ARJUN_PRODUCTION_WIPE_WITHOUT_BACKUP
+//                (founder explicitly accepts running the wipe with no
+//                backup in place — irreversible)
+//      Neither path, only one of the two PATH B flags, a wrong PATH B
+//      confirmation string, or both paths satisfied simultaneously all
+//      refuse to run.
 
 function checkGuards(args, env) {
   const problems = [];
@@ -141,10 +166,38 @@ function checkGuards(args, env) {
   if (env[REQUIRED_ENV_FLAG] !== 'true') {
     problems.push(`${REQUIRED_ENV_FLAG}=true environment variable is required`);
   }
-  if (!args.backupConfirmed) {
-    problems.push('--backup-confirmed flag is required (confirms a Railway Postgres backup/snapshot was taken BEFORE running this)');
+
+  let backupMode = null;
+  const pathA = args.backupConfirmed === true;
+  const pathB = args.noBackupAccepted === true && args.confirmNoBackup === REQUIRED_NO_BACKUP_CONFIRMATION;
+
+  if (pathA && pathB) {
+    problems.push('Provide exactly ONE backup path, not both: --backup-confirmed OR (--no-backup-accepted + --confirm-no-backup=...)');
+  } else if (pathA) {
+    backupMode = 'confirmed-backup';
+  } else if (pathB) {
+    backupMode = 'explicit-no-backup';
+  } else if (args.noBackupAccepted || args.confirmNoBackup) {
+    // A no-backup attempt was made but is incomplete or wrong — report
+    // exactly what's missing rather than the generic "pick a path" message.
+    if (!args.noBackupAccepted) {
+      problems.push('--no-backup-accepted flag is required to use the no-backup path');
+    }
+    if (args.confirmNoBackup !== REQUIRED_NO_BACKUP_CONFIRMATION) {
+      problems.push(
+        args.confirmNoBackup
+          ? `--confirm-no-backup=${REQUIRED_NO_BACKUP_CONFIRMATION} is required (the value given does not match)`
+          : `--confirm-no-backup=${REQUIRED_NO_BACKUP_CONFIRMATION} is required to use the no-backup path`
+      );
+    }
+  } else {
+    problems.push(
+      'A backup decision is required: either --backup-confirmed (a backup already exists), or ' +
+      `--no-backup-accepted --confirm-no-backup=${REQUIRED_NO_BACKUP_CONFIRMATION} (explicitly accept no backup)`
+    );
   }
-  return { ok: problems.length === 0, problems };
+
+  return { ok: problems.length === 0, problems, backupMode };
 }
 
 // ── Safe target descriptor — never the raw DATABASE_URL ─────────────────
@@ -379,11 +432,12 @@ function getScriptVersion() {
   }
 }
 
-function buildAuditSummary({ mode, aborted, reason, before, after, deleted, preflight, success }) {
+function buildAuditSummary({ mode, aborted, reason, before, after, deleted, preflight, success, backupMode }) {
   return {
     timestamp: new Date().toISOString(),
     scriptVersion: getScriptVersion(),
     mode,
+    backupMode: backupMode || null,
     aborted: !!aborted,
     reason: reason || null,
     before: before || null,
@@ -415,6 +469,24 @@ function writeAuditSummary(data) {
   return { path: filePath, summary };
 }
 
+// ── No-backup warning ─────────────────────────────────────────────────────
+//
+// Printed ONLY when the no-backup path (PATH B) is the one that will
+// actually be used for a real execution — i.e. every guard already passes
+// AND the satisfied backup path is 'explicit-no-backup'. Factored out (same
+// pattern as printTargetDescriptor/printReport) so it can be called from
+// main() BEFORE any Razorpay call or database write, and unit-tested with a
+// plain checkGuards() result — no Prisma/Razorpay client involved.
+
+function printNoBackupWarningIfApplicable(guardCheck) {
+  if (guardCheck.ok && guardCheck.backupMode === 'explicit-no-backup') {
+    console.log('\nNO BACKUP MODE ACCEPTED');
+    console.log('THIS WIPE IS IRREVERSIBLE');
+    return true;
+  }
+  return false;
+}
+
 // ── Orchestration — the full guarded execute flow ────────────────────────
 //
 // Separated from main() so it can be exercised end-to-end in tests with
@@ -426,7 +498,7 @@ async function runExecuteFlow({ prisma, razorpay, args, env }) {
 
   const guardCheck = checkGuards(args, env);
   if (!guardCheck.ok) {
-    return { aborted: true, reason: 'guards_failed', problems: guardCheck.problems, before, preflight: null };
+    return { aborted: true, reason: 'guards_failed', problems: guardCheck.problems, before, preflight: null, backupMode: guardCheck.backupMode };
   }
 
   const billedUsers = await findPotentiallyBilledUsers(prisma);
@@ -438,7 +510,7 @@ async function runExecuteFlow({ prisma, razorpay, args, env }) {
   if (preflight.failures.length > 0) {
     // No database write of any kind has happened yet — the wipe transaction
     // is only ever entered below, after this check.
-    return { aborted: true, reason: 'razorpay_preflight_failed', before, preflight };
+    return { aborted: true, reason: 'razorpay_preflight_failed', before, preflight, backupMode: guardCheck.backupMode };
   }
 
   const deleted = await performWipe(prisma);
@@ -452,6 +524,7 @@ async function runExecuteFlow({ prisma, razorpay, args, env }) {
     preflight,
     verificationOk: verification.ok,
     verificationProblems: verification.problems,
+    backupMode: guardCheck.backupMode,
   };
 }
 
@@ -480,6 +553,14 @@ async function main() {
       return;
     }
 
+    // Pre-check the guards' backup decision so the no-backup warning can be
+    // printed BEFORE any Razorpay call or database write — those only
+    // happen after runExecuteFlow (the single source of truth for the
+    // execute path) re-confirms all guards pass. This pre-check is pure
+    // (reads args/env only) and makes zero external calls of its own.
+    const guardPreview = checkGuards(args, process.env);
+    printNoBackupWarningIfApplicable(guardPreview);
+
     const Razorpay = require('razorpay');
     const razorpay = new Razorpay({
       key_id: process.env.RAZORPAY_KEY_ID,
@@ -502,7 +583,7 @@ async function main() {
       console.error('\nRazorpay pre-flight FAILED for one or more users — ABORTING THE ENTIRE WIPE.');
       console.error('No database writes have been made.');
       for (const f of outcome.preflight.failures) console.error(`  - user ${f.userId}: ${f.reason}`);
-      writeAuditSummary({ mode: 'execute', aborted: true, reason: outcome.reason, before: outcome.before, preflight: outcome.preflight, success: false });
+      writeAuditSummary({ mode: 'execute', aborted: true, reason: outcome.reason, before: outcome.before, preflight: outcome.preflight, success: false, backupMode: outcome.backupMode });
       console.error('\nNO DATA WAS MODIFIED');
       process.exitCode = 1;
       return;
@@ -524,6 +605,7 @@ async function main() {
       deleted: outcome.deleted,
       preflight: outcome.preflight,
       success: outcome.verificationOk,
+      backupMode: outcome.backupMode,
     });
 
     if (!outcome.verificationOk) {
@@ -550,6 +632,7 @@ if (require.main === module) {
 
 module.exports = {
   REQUIRED_CONFIRMATION,
+  REQUIRED_NO_BACKUP_CONFIRMATION,
   REQUIRED_ENV_FLAG,
   USER_OWNED_DELETE_ORDER,
   PRESERVED_MODELS,
@@ -563,6 +646,7 @@ module.exports = {
   getGuardianSummary,
   getSubscriptionSummary,
   printReport,
+  printNoBackupWarningIfApplicable,
   findPotentiallyBilledUsers,
   razorpayPreflight,
   performWipe,
