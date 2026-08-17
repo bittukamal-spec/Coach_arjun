@@ -4,10 +4,8 @@ const cors = require('cors');
 
 const authRoutes        = require('./routes/auth');
 const chatRoutes        = require('./routes/chat');
-const checkinRoutes     = require('./routes/checkin');
 const progressRoutes    = require('./routes/progress');
 const achievementRoutes = require('./routes/achievements');
-const drillRoutes       = require('./routes/drills');
 const ritualRoutes      = require('./routes/ritual');
 const debriefRoutes     = require('./routes/debrief');
 const gamesRoutes       = require('./routes/games');
@@ -62,10 +60,8 @@ app.options('*', cors(corsOptions)); // explicit preflight handler for every rou
 // Routes
 app.use('/api/auth',         authRoutes);
 app.use('/api/chat',         chatRoutes);
-app.use('/api/checkin',      checkinRoutes);
 app.use('/api/progress',     progressRoutes);
 app.use('/api/achievements', achievementRoutes);
-app.use('/api/drills',       drillRoutes);
 app.use('/api/ritual',       ritualRoutes);
 app.use('/api/debrief',      debriefRoutes);
 app.use('/api/games',         gamesRoutes);
@@ -74,7 +70,6 @@ app.use('/api/sessions',        sessionsRoutes);
 app.use('/api/user',            require('./routes/userData'));
 app.use('/api/streaks',         require('./routes/streaks'));
 app.use('/api/payments',        require('./routes/payments'));
-app.use('/api/mental-fitness',  require('./routes/mentalFitness'));
 app.use('/api/mind-journal',    require('./routes/mindJournal'));
 app.use('/api/onboarding',      require('./routes/onboarding'));
 app.use('/api/profile',         require('./routes/profile'));

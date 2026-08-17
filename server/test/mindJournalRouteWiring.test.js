@@ -90,26 +90,33 @@ test('unauthenticated requests to every Mind Journal route return 401', async ()
   }
 });
 
-// ── Compatibility guarantees (section I) ────────────────────────────────────
+// ── Retirement guarantees (section I) ───────────────────────────────────────
+// The legacy Mental Fitness route (server/src/routes/mentalFitness.js) was
+// removed as retired, unreachable-from-any-client legacy code (see the
+// legacy server-endpoints cleanup PR). These assertions replace the old
+// compatibility guarantee ("still mounted alongside Mind Journal") with the
+// opposite: proving the retirement actually happened and stayed retired.
+// MentalFitnessEntry itself is untouched — chat.js, progress.js, founder.js,
+// and userData.js still read it; this PR removes only the write/API surface.
 
-test('the legacy Mental Fitness route file still exists and is still mounted at /api/mental-fitness', () => {
-  assert.doesNotThrow(() => findMountedRouter('/api/mental-fitness'));
-  const legacySrc = readFileSync(path.join(__dirname, '../src/routes/mentalFitness.js'), 'utf8');
-  assert.match(legacySrc, /prisma\.mentalFitnessEntry\.create/);
-  assert.match(legacySrc, /router\.post\('\/'/);
+test('the legacy Mental Fitness route file is gone and /api/mental-fitness is no longer mounted', () => {
+  assert.throws(() => findMountedRouter('/api/mental-fitness'), /No router mounted/);
+  assert.throws(
+    () => readFileSync(path.join(__dirname, '../src/routes/mentalFitness.js'), 'utf8'),
+    /ENOENT/
+  );
 });
 
-test('server/src/index.js still registers /api/mental-fitness alongside the new /api/mind-journal', () => {
+test('server/src/index.js no longer registers /api/mental-fitness, and still registers /api/mind-journal', () => {
   const src = readFileSync(path.join(__dirname, '../src/index.js'), 'utf8');
-  assert.match(src, /app\.use\('\/api\/mental-fitness',\s*require\('\.\/routes\/mentalFitness'\)\)/);
+  assert.doesNotMatch(src, /\/api\/mental-fitness/);
+  assert.doesNotMatch(src, /require\('\.\/routes\/mentalFitness'\)/);
   assert.match(src, /app\.use\('\/api\/mind-journal',\s*require\('\.\/routes\/mindJournal'\)\)/);
 });
 
-test('the Mind Journal route file never queries/writes prisma.mentalFitnessEntry, and the legacy route file never queries/writes prisma.mindJournalEntry', () => {
+test('the Mind Journal route file never queries/writes prisma.mentalFitnessEntry', () => {
   const mindJournalSrc = readFileSync(path.join(__dirname, '../src/routes/mindJournal.js'), 'utf8');
-  const legacySrc = readFileSync(path.join(__dirname, '../src/routes/mentalFitness.js'), 'utf8');
   assert.doesNotMatch(mindJournalSrc, /\.mentalFitnessEntry\./);
-  assert.doesNotMatch(legacySrc, /\.mindJournalEntry\./);
 });
 
 test('the Mind Journal route only ever writes the approved fields — no score is converted from anything', () => {
