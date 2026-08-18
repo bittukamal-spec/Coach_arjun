@@ -38,43 +38,38 @@ async function sendPasswordResetEmail(toEmail, resetUrl) {
 async function sendWelcomeEmail(toEmail, name) {
   const resend = getResend();
   const clientUrl = process.env.CLIENT_URL || 'https://arjun.app';
+  const firstName = name ? name.trim().split(' ')[0] : 'there';
+  // Account names are user-controlled at signup and unrestricted, so the
+  // derived first name must be escaped before it lands in HTML — same
+  // reasoning as sendContactEmail's use of escapeHtml below.
+  const safeFirstName = escapeHtml(firstName);
   await resend.emails.send({
     from: `Arjun <${FROM}>`,
     to: toEmail,
-    subject: `${name}, your mental performance coach is ready`,
+    subject: 'Welcome to Arjun — your account is ready',
     html: `
-      <div style="font-family: 'Poppins', sans-serif; max-width: 520px; margin: 0 auto; padding: 32px 24px; background: #0A0A15; color: #F1F5F9;">
+      <div style="font-family: 'Poppins', Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px; background: #FFFFFF; color: #1A1A1A;">
+        <p style="font-weight: 700; font-size: 16px; color: #185FA5; margin: 0 0 24px;">Arjun</p>
 
-        <div style="text-align: center; margin-bottom: 32px;">
-          <div style="display: inline-block; width: 56px; height: 56px; background: linear-gradient(135deg, #8B5CF6, #6D28D9); border-radius: 16px; line-height: 56px; font-weight: 800; font-size: 28px; color: white; margin-bottom: 16px;">A</div>
-          <h1 style="color: #F1F5F9; font-size: 22px; margin: 0 0 6px;">Hey ${name}! 👋</h1>
-          <p style="color: #A78BFA; font-weight: 600; margin: 0; font-size: 15px;">I'm Arjun — your mental performance coach.</p>
-        </div>
+        <p style="font-size: 15px; line-height: 1.6; margin: 0 0 16px;">Hi ${safeFirstName},</p>
 
-        <p style="color: #94A3B8; line-height: 1.7; margin-bottom: 16px; font-size: 15px;">
-          I'm built specifically for Indian athletes. Whether it's pre-match nerves, a string of bad performances, family pressure, or just losing focus — I'm here to help you build a stronger mind.
+        <p style="font-size: 15px; line-height: 1.6; margin: 0 0 16px;">Your Arjun account is ready.</p>
+
+        <p style="font-size: 15px; line-height: 1.6; margin: 0 0 24px; color: #4B5563;">
+          Open Arjun whenever you want to work on focus, pressure, confidence or preparing for training and competition.
         </p>
 
-        <p style="color: #94A3B8; line-height: 1.7; margin-bottom: 28px; font-size: 15px;">
-          You have <strong style="color: #F1F5F9;">14 days of free access</strong> — no payment card needed.
-        </p>
-
-        <div style="background: #12122A; border: 1px solid #2A2A50; border-radius: 16px; padding: 20px; margin-bottom: 28px;">
-          <p style="color: #F1F5F9; font-weight: 600; margin: 0 0 14px; font-size: 14px;">Your first 3 steps:</p>
-          <p style="color: #94A3B8; margin: 8px 0; font-size: 14px;">1. ✅ Complete your athlete profile <span style="color: #64748B;">(2 min)</span></p>
-          <p style="color: #94A3B8; margin: 8px 0; font-size: 14px;">2. 📊 Do your first daily check-in</p>
-          <p style="color: #94A3B8; margin: 8px 0; font-size: 14px;">3. 💬 Tell me what's on your mind</p>
-        </div>
-
-        <div style="text-align: center; margin-bottom: 28px;">
-          <a href="${clientUrl}" style="display: inline-block; background: #7C3AED; color: white; text-decoration: none; padding: 14px 36px; border-radius: 12px; font-weight: 700; font-size: 16px;">
-            Start Training with Arjun →
+        <div style="margin-bottom: 24px;">
+          <a href="${clientUrl}" style="display: inline-block; background: #185FA5; color: #FFFFFF; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-weight: 600; font-size: 15px;">
+            Open Arjun
           </a>
         </div>
 
-        <p style="color: #475569; font-size: 12px; text-align: center; margin: 0;">
-          Arjun · AI Mental Performance Coaching for Indian Athletes
+        <p style="font-size: 13px; line-height: 1.6; color: #6B7280; margin: 0 0 24px;">
+          Tip: You can install Arjun on your phone from your browser menu and use it like an app.
         </p>
+
+        <p style="font-size: 15px; margin: 0;">— Arjun</p>
       </div>
     `,
   });
