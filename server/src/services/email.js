@@ -104,6 +104,10 @@ async function sendDeletionEmail(toEmail, firstName) {
 async function sendGuardianConsentEmail(toEmail, athleteName, consentUrl) {
   const resend = getResend();
   const firstName = athleteName ? athleteName.split(' ')[0] : 'your child';
+  // athleteName comes from the athlete's own unrestricted signup name, same
+  // as sendWelcomeEmail's firstName — escape before it lands in HTML (the
+  // subject below stays raw; it's a header string, not markup).
+  const safeFirstName = escapeHtml(firstName);
   await resend.emails.send({
     from: `Arjun <${FROM}>`,
     to: toEmail,
@@ -115,12 +119,12 @@ async function sendGuardianConsentEmail(toEmail, athleteName, consentUrl) {
         </div>
         <h2 style="color: #F1F5F9; margin-bottom: 8px; font-size: 20px;">Parent / guardian consent needed</h2>
         <p style="color: #94A3B8; margin-bottom: 16px; line-height: 1.7; font-size: 15px;">
-          <strong style="color: #F1F5F9;">${firstName}</strong> has created an account on <strong style="color: #F1F5F9;">Arjun</strong> —
+          <strong style="color: #F1F5F9;">${safeFirstName}</strong> has created an account on <strong style="color: #F1F5F9;">Arjun</strong> —
           a mental performance coaching app for young Indian athletes. Arjun helps athletes handle match nerves,
           bounce back from mistakes, and build focus. It is performance coaching, <strong style="color: #F1F5F9;">not therapy or medical advice</strong>.
         </p>
         <p style="color: #94A3B8; margin-bottom: 24px; line-height: 1.7; font-size: 15px;">
-          Because ${firstName} is under 18, we need your consent before they can use Arjun's coaching tools.
+          Because ${safeFirstName} is under 18, we need your consent before they can use Arjun's coaching tools.
           If you approve, tap the button below.
         </p>
         <div style="text-align: center; margin-bottom: 28px;">
@@ -133,7 +137,7 @@ async function sendGuardianConsentEmail(toEmail, athleteName, consentUrl) {
           You can ask for the account and all data to be deleted at any time from the app's Account page.
         </p>
         <p style="color: #475569; font-size: 12px; text-align: center; margin: 0;">
-          If you do not approve, ignore this email — ${firstName}'s coaching tools will stay locked.<br/>
+          If you do not approve, ignore this email — ${safeFirstName}'s coaching tools will stay locked.<br/>
           Arjun · AI Mental Performance Coaching for Indian Athletes · coacharjun.in
         </p>
       </div>
