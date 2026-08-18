@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { LogOut } from 'lucide-react';
 import BottomNav from './components/BottomNav';
 import PulsePanel  from './panels/PulsePanel';
+import PilotPanel  from './panels/PilotPanel';
 import PromptPanel from './panels/PromptPanel';
 import CoachPanel  from './panels/CoachPanel';
 import BuildPanel  from './panels/BuildPanel';
@@ -110,6 +111,7 @@ function LoginScreen({ onAuth, expiredNotice }) {
 
 const PANELS = {
   pulse:  PulsePanel,
+  pilot:  PilotPanel,
   prompt: PromptPanel,
   coach:  CoachPanel,
   build:  BuildPanel,
