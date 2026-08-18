@@ -3,18 +3,31 @@ import { RefreshCw } from 'lucide-react';
 import { founderFetch } from '../api';
 import StatCard from '../components/StatCard';
 
-// Founder Pilot Overview (Phase 1) — aggregate, privacy-conscious pilot
-// metrics derived entirely from data the product already records for its
-// own operation. No page-view/click tracking, no third-party analytics SDK,
-// no fake/placeholder numbers — every number here comes straight from
-// GET /api/founder/pilot-overview.
-//
-// Deliberately no Active/Returning-athlete cards yet (Phase 2, once a cheap
-// recency signal exists) — nothing here fakes or stubs those out.
+// Founder Pilot Overview — Phase 1 (funnel) + Phase 2B (engagement:
+// Active 24h/7d, Returning, last-active on Recent Athletes). Aggregate,
+// privacy-conscious pilot metrics derived entirely from data the product
+// already records for its own operation. No page-view/click tracking, no
+// third-party analytics SDK, no fake/placeholder numbers — every number
+// here comes straight from GET /api/founder/pilot-overview.
 
 function formatDate(iso) {
   if (!iso) return '—';
   return new Date(iso).toLocaleDateString('en-IN', { dateStyle: 'medium' });
+}
+
+// Concise, non-deceptive relative label for Recent Athletes. `now` is
+// injectable (defaults to the real clock) purely so this stays testable —
+// the panel itself always calls it with no second argument.
+function formatLastActive(iso, now = Date.now()) {
+  if (!iso) return 'No activity yet';
+  const diffMs = now - new Date(iso).getTime();
+  if (diffMs < 0) return 'Last active: just now';
+  const hours = Math.floor(diffMs / (60 * 60 * 1000));
+  if (hours < 1) return 'Last active: just now';
+  if (hours < 24) return `Last active: ${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return 'Last active: Yesterday';
+  return `Last active: ${days}d ago`;
 }
 
 const FUNNEL_LABELS = {
@@ -73,6 +86,7 @@ function AthleteRow({ athlete }) {
         <span className="text-sm font-semibold text-[#F1F5F9] truncate">{athlete.firstName}</span>
         <span className="text-xs text-[#64748B] shrink-0">{formatDate(athlete.signupDate)}</span>
       </div>
+      <div className="text-xs text-[#64748B]">{formatLastActive(athlete.lastActiveAt)}</div>
       <div className="flex items-center gap-1.5 flex-wrap">
         <Pill color={athlete.onboardingDone ? '#22C55E' : '#64748B'}>
           {athlete.onboardingDone ? 'Onboarded' : 'Onboarding pending'}
@@ -86,6 +100,7 @@ function AthleteRow({ athlete }) {
           </Pill>
         )}
         {athlete.outcomeReported && <Pill color="#22C55E">Outcome reported</Pill>}
+        {athlete.isReturning && <Pill color="#1769AA">Returning</Pill>}
         <Pill color={athlete.tier === 'premium' ? '#1769AA' : '#64748B'}>
           {athlete.tier === 'premium' ? 'Premium' : 'Free'}
         </Pill>
@@ -172,6 +187,19 @@ export default function PilotPanel() {
             />
             <StatCard label="Mental Rep completed" value={data.metrics.mentalRepsCompleted} />
             <StatCard label="Outcomes reported" value={data.metrics.outcomesReported} />
+          </div>
+
+          <div className="space-y-3">
+            <p className="text-sm font-semibold text-[#F1F5F9]">Engagement</p>
+            <div className="grid grid-cols-3 gap-3">
+              <StatCard label="Active 24h" value={data.metrics.activeLast24Hours} />
+              <StatCard label="Active 7d" value={data.metrics.activeLast7Days} />
+              <StatCard
+                label="Returning"
+                value={data.metrics.returningAthletes}
+                sub={`${data.metrics.returningPercentage}%`}
+              />
+            </div>
           </div>
 
           <div className="bg-[#1E293B] rounded-xl p-4 space-y-4">
