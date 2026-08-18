@@ -81,9 +81,15 @@ test('prescriptions.js claim-opener route is never wired to activityTracking —
   assert.doesNotMatch(src, /activityTracking/, 'prescriptions.js route file must not reference activityTracking at all — completion touches lastActiveAt inside completeActivePrescription.js itself');
 });
 
-test('completeActivePrescription.js touches lastActiveAt directly via tx.user.update inside its own transaction, only on a genuine (non-replay) completion', () => {
+test('completeActivePrescription.js touches lastActiveAt via the shared activityTracking service AFTER its transaction commits, never via a raw tx.user.update inside the transaction, and only on a genuine (non-replay) completion', () => {
   const src = read(path.join(servicesDir, 'coaching'), 'completeActivePrescription.js');
-  assert.match(src, /if \(claim\.count > 0\) \{\s*\n\s*await tx\.user\.update/);
+  assert.doesNotMatch(src, /tx\.user\.update/, 'the Prescription completion transaction must never write User directly — a tracking failure must not be able to roll back a successful completion');
+  const txEndIdx = src.indexOf('const result = await db.$transaction(');
+  const transactionCloseIdx = src.indexOf('\n    });\n', txEndIdx);
+  const touchIdx = src.indexOf('activityTracking.touchActivity(userId)');
+  assert.ok(transactionCloseIdx !== -1 && touchIdx > transactionCloseIdx, 'touchActivity must be called after the transaction closes, not inside it');
+  const guardIdx = src.indexOf('if (!result.alreadyCompleted)');
+  assert.ok(guardIdx !== -1 && guardIdx < touchIdx, 'the touch must be gated on a genuine (non-replay) completion, using the existing alreadyCompleted signal');
 });
 
 // ── E. Daily Mental Rep ──────────────────────────────────────────────────

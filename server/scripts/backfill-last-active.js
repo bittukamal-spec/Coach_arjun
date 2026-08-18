@@ -18,7 +18,11 @@
 // Sources included (scalar timestamps only — no message/journal/reflection
 // text is ever read or logged):
 //   - Message.createdAt WHERE role='user'
-//   - ToolReport.createdAt (one row per completed tool use)
+//   - ToolReport.createdAt WHERE toolType IN CURRENT_MEANINGFUL_TOOL_TYPES
+//     (see the allowlist below — retired toolType values like 'bounce_back',
+//     'cue_word', 'breathing', 'calm_body' are excluded even though rows
+//     for them still exist; a historical row is not proof of current
+//     meaningful activity)
 //   - MindJournalEntry.createdAt
 //   - SelfTalkCard.createdAt and .lastUsedAt
 //   - BodyResetSession.completedAt
@@ -49,6 +53,27 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 const CONFIRM = process.argv.includes('--confirm');
+
+// ToolReport.toolType is a free-text-like string field, not a Prisma enum —
+// it carries historical values no longer written by any current route,
+// e.g. 'bounce_back', 'cue_word' (retired writers, see
+// scripts/audit-stale-tool-refs.js) and 'breathing', 'calm_body' (retired,
+// superseded by 'body_reset', see scripts/cleanup-breathing-data.js). A
+// historical ToolReport row existing is not proof it represents current
+// meaningful pilot activity, so this backfill only trusts toolType values
+// a CURRENT route actually writes today. Explicit, centralized, easy to
+// review — derived directly from grepping every `toolReport.create` call
+// site (mentalRep.js, bodyReset.js, games.js's REPS_GAMES-constrained
+// gameId, chat.js's visualization wizard, selfTalk.js, debrief.js):
+const CURRENT_MEANINGFUL_TOOL_TYPES = [
+  'mental_rep',
+  'body_reset',
+  'focus_lock',
+  'reset_rally',
+  'visualization',
+  'self_talk_builder',
+  'debrief',
+];
 
 // Pure, unit-testable: given rows shaped { userId, at: Date|null }, returns
 // a Map<userId, Date> of the latest non-null `at` per user. Exported below.
@@ -84,7 +109,10 @@ async function collectCandidates(client = prisma) {
     prescriptions, onboardingSessions, skillProgress, gameSessions,
   ] = await Promise.all([
     client.message.findMany({ where: { role: 'user' }, select: { userId: true, createdAt: true } }),
-    client.toolReport.findMany({ select: { userId: true, createdAt: true } }),
+    client.toolReport.findMany({
+      where: { toolType: { in: CURRENT_MEANINGFUL_TOOL_TYPES } },
+      select: { userId: true, createdAt: true },
+    }),
     client.mindJournalEntry.findMany({ select: { userId: true, createdAt: true } }),
     client.selfTalkCard.findMany({ select: { userId: true, createdAt: true, lastUsedAt: true } }),
     client.bodyResetSession.findMany({ select: { userId: true, completedAt: true } }),
@@ -161,7 +189,7 @@ async function main() {
   console.log(`\nDone. Wrote lastActiveAt for ${written} user(s).`);
 }
 
-module.exports = { latestPerUser, mergeLatest, collectCandidates };
+module.exports = { latestPerUser, mergeLatest, collectCandidates, CURRENT_MEANINGFUL_TOOL_TYPES };
 
 if (require.main === module) {
   main()

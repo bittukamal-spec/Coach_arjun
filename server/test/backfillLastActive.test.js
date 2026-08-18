@@ -7,7 +7,9 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { latestPerUser, mergeLatest, collectCandidates } = require('../scripts/backfill-last-active');
+const { readFileSync } = require('node:fs');
+const path = require('node:path');
+const { latestPerUser, mergeLatest, collectCandidates, CURRENT_MEANINGFUL_TOOL_TYPES } = require('../scripts/backfill-last-active');
 
 const d = (s) => new Date(s);
 
@@ -47,7 +49,19 @@ test('mergeLatest keeps the overall latest across multiple source maps', () => {
 function makeStubClient(fixtures) {
   return {
     message: { findMany: async () => fixtures.messages || [] },
-    toolReport: { findMany: async () => fixtures.toolReports || [] },
+    // Mirrors real Prisma's `where: { toolType: { in: [...] } }` filtering
+    // behavior, so tests below prove the SCRIPT actually sends an
+    // allowlisted query — a stub that ignored `where` and always returned
+    // every fixture row would let a regression back to an unfiltered
+    // findMany pass silently.
+    toolReport: {
+      findMany: async (args) => {
+        const rows = fixtures.toolReports || [];
+        const allow = args?.where?.toolType?.in;
+        if (!allow) return rows;
+        return rows.filter((r) => allow.includes(r.toolType));
+      },
+    },
     mindJournalEntry: { findMany: async () => fixtures.journalEntries || [] },
     selfTalkCard: { findMany: async () => fixtures.cards || [] },
     bodyResetSession: { findMany: async () => fixtures.bodyResets || [] },
@@ -62,7 +76,7 @@ function makeStubClient(fixtures) {
 test('collectCandidates picks the single latest timestamp across every source for a user', async () => {
   const client = makeStubClient({
     messages: [{ userId: 'u1', createdAt: d('2026-01-01') }],
-    toolReports: [{ userId: 'u1', createdAt: d('2026-03-01') }], // latest
+    toolReports: [{ userId: 'u1', createdAt: d('2026-03-01'), toolType: 'body_reset' }], // latest, qualifying type
     debriefs: [{ userId: 'u1', createdAt: d('2026-02-01') }],
   });
   const candidates = await collectCandidates(client);
@@ -151,6 +165,106 @@ test('a user with no activity anywhere has no entry in the candidates map — ne
   const client = makeStubClient({ messages: [{ userId: 'u1', createdAt: d('2026-01-01') }] });
   const candidates = await collectCandidates(client);
   assert.equal(candidates.has('u2'), false);
+});
+
+// ── [Blocker 2] ToolReport allowlist ──────────────────────────────────────
+
+test('[Blocker 2] the exact current allowlist is mental_rep, body_reset, focus_lock, reset_rally, visualization, self_talk_builder, debrief — derived from current toolReport.create call sites', () => {
+  assert.deepEqual(
+    [...CURRENT_MEANINGFUL_TOOL_TYPES].sort(),
+    ['body_reset', 'debrief', 'focus_lock', 'mental_rep', 'reset_rally', 'self_talk_builder', 'visualization'].sort()
+  );
+});
+
+test('[Blocker 2] every current qualifying ToolReport toolType contributes to lastActiveAt', async () => {
+  for (const toolType of CURRENT_MEANINGFUL_TOOL_TYPES) {
+    const client = makeStubClient({
+      toolReports: [{ userId: 'u1', createdAt: d('2026-04-01'), toolType }],
+    });
+    const candidates = await collectCandidates(client);
+    assert.equal(candidates.get('u1')?.getTime(), d('2026-04-01').getTime(), `toolType "${toolType}" must contribute to lastActiveAt`);
+  }
+});
+
+test('[Blocker 2] retired toolType bounce_back is excluded', async () => {
+  const client = makeStubClient({ toolReports: [{ userId: 'u1', createdAt: d('2026-04-01'), toolType: 'bounce_back' }] });
+  const candidates = await collectCandidates(client);
+  assert.equal(candidates.has('u1'), false);
+});
+
+test('[Blocker 2] retired toolType cue_word is excluded', async () => {
+  const client = makeStubClient({ toolReports: [{ userId: 'u1', createdAt: d('2026-04-01'), toolType: 'cue_word' }] });
+  const candidates = await collectCandidates(client);
+  assert.equal(candidates.has('u1'), false);
+});
+
+test('[Blocker 2] retired toolType breathing is excluded', async () => {
+  const client = makeStubClient({ toolReports: [{ userId: 'u1', createdAt: d('2026-04-01'), toolType: 'breathing' }] });
+  const candidates = await collectCandidates(client);
+  assert.equal(candidates.has('u1'), false);
+});
+
+test('[Blocker 2] retired toolType calm_body is excluded', async () => {
+  const client = makeStubClient({ toolReports: [{ userId: 'u1', createdAt: d('2026-04-01'), toolType: 'calm_body' }] });
+  const candidates = await collectCandidates(client);
+  assert.equal(candidates.has('u1'), false);
+});
+
+test('[Blocker 2] an unknown/unrecognized toolType is excluded', async () => {
+  const client = makeStubClient({ toolReports: [{ userId: 'u1', createdAt: d('2026-04-01'), toolType: 'some_future_unlisted_tool' }] });
+  const candidates = await collectCandidates(client);
+  assert.equal(candidates.has('u1'), false);
+});
+
+test('[Blocker 2] a mix of qualifying and retired/unknown ToolReport rows for the same user only counts the qualifying ones', async () => {
+  const client = makeStubClient({
+    toolReports: [
+      { userId: 'u1', createdAt: d('2026-05-01'), toolType: 'bounce_back' }, // latest overall, but excluded
+      { userId: 'u1', createdAt: d('2026-03-01'), toolType: 'body_reset' },  // qualifying, earlier
+    ],
+  });
+  const candidates = await collectCandidates(client);
+  assert.equal(candidates.get('u1').getTime(), d('2026-03-01').getTime(), 'the excluded, more-recent bounce_back row must not win');
+});
+
+test('[Blocker 2] the backfill query actually sends an allowlist (where: { toolType: { in: [...] } }) rather than reading every ToolReport', async () => {
+  let receivedArgs = null;
+  const client = makeStubClient({});
+  const spyClient = { ...client, toolReport: { findMany: async (args) => { receivedArgs = args; return []; } } };
+  await collectCandidates(spyClient);
+  assert.ok(receivedArgs?.where?.toolType?.in, 'toolReport.findMany must be called with a where.toolType.in allowlist');
+  assert.deepEqual([...receivedArgs.where.toolType.in].sort(), [...CURRENT_MEANINGFUL_TOOL_TYPES].sort());
+});
+
+test('[Blocker 2] no free-text ToolReport data (summary, arjunResponse, details) is ever selected', async () => {
+  let receivedArgs = null;
+  const client = makeStubClient({});
+  const spyClient = { ...client, toolReport: { findMany: async (args) => { receivedArgs = args; return []; } } };
+  await collectCandidates(spyClient);
+  const selected = Object.keys(receivedArgs?.select || {});
+  assert.deepEqual(selected.sort(), ['createdAt', 'userId'].sort());
+  for (const field of ['summary', 'arjunResponse', 'details', 'skillKey']) {
+    assert.ok(!selected.includes(field), `backfill must never select ToolReport.${field}`);
+  }
+});
+
+test('[Blocker 2] the backfill script source contains an explicit, centralized allowlist constant — not an inline literal scattered at the call site', () => {
+  const src = readFileSync(path.join(__dirname, '../scripts/backfill-last-active.js'), 'utf8');
+  assert.match(src, /const CURRENT_MEANINGFUL_TOOL_TYPES = \[/, 'the allowlist must be an explicit, named, centralized constant');
+  assert.match(src, /toolType:\s*\{\s*in:\s*CURRENT_MEANINGFUL_TOOL_TYPES\s*\}/, 'the toolReport query must filter using that constant');
+});
+
+// ── [Blocker 2] dry-run / idempotent / race-safe behavior remains intact ─
+
+test('[Blocker 2] the backfill script never writes without --confirm — dry-run is the default (source-level check, since main() always needs a real PrismaClient)', () => {
+  const src = readFileSync(path.join(__dirname, '../scripts/backfill-last-active.js'), 'utf8');
+  assert.match(src, /const CONFIRM = process\.argv\.includes\(['"]--confirm['"]\)/);
+  assert.match(src, /if \(!CONFIRM\) \{[\s\S]*?return;/, 'without --confirm the script must return before any write');
+});
+
+test('[Blocker 2] the write path remains race-safe: the updateMany condition still guards on lastActiveAt: null at write time', () => {
+  const src = readFileSync(path.join(__dirname, '../scripts/backfill-last-active.js'), 'utf8');
+  assert.match(src, /prisma\.user\.updateMany\(\{\s*\n\s*where:\s*\{\s*id:\s*userId,\s*lastActiveAt:\s*null\s*\}/, 'the write must remain a conditional updateMany guarding against a race with live traffic');
 });
 
 // ── The write-decision logic, exercised the same way main() uses it ──────
