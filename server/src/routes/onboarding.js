@@ -10,6 +10,7 @@ const authenticate = require('../middleware/authenticate');
 const C = require('../onboarding/config');
 const { validateAnswers, missingRequired, QUESTION_BRANCH } = require('../onboarding/validate');
 const { completeOnboarding, USER_SELECT } = require('../onboarding/complete');
+const activityTracking = require('../services/activityTracking');
 
 const prisma = new PrismaClient();
 const VERSION = 2;
@@ -152,6 +153,8 @@ function createOnboardingRouter(client = prisma, deps = {}) {
       }
 
       const fresh = await client.onboardingSession.findUnique({ where: { id: session.id } });
+      // Pilot Tracking Phase 2A — real onboarding progress was saved.
+      await activityTracking.touchActivity(userId);
       return res.json({ session: serialize(fresh), prunedQuestionIds });
     } catch (e) {
       console.error('[onboarding] PATCH /session failed:', e?.message);
@@ -192,6 +195,8 @@ function createOnboardingRouter(client = prisma, deps = {}) {
       if (missing.length) return res.status(422).json({ error: 'INCOMPLETE', missing });
 
       const { user, session: done } = await completeOnboarding(client, session, deps);
+      // Pilot Tracking Phase 2A — onboarding completion is a real milestone.
+      await activityTracking.touchActivity(req.userId);
       return res.json({ user: parseGoals(user), session: serialize(done) });
     } catch (e) {
       if (e?.code === 'STALE_CONFLICT') {

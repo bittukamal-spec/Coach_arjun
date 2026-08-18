@@ -7,6 +7,7 @@ const { aiLimiter } = require('../middleware/rateLimits');
 const { isTrialActive } = require('./chat');
 const { markSkillProgress } = require('../services/skillProgress');
 const { screenSafetyFields, recordSafetyEvent, getSafetyGuidance } = require('../services/safety');
+const activityTracking = require('../services/activityTracking');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -123,6 +124,10 @@ router.post('/', authenticate, aiLimiter, requireGuardianConsent, async (req, re
         prisma.user.update({ where: { id: req.userId }, data: { xp: { increment: XP_LEGACY } } }),
       ]);
       const user = await prisma.user.findUnique({ where: { id: req.userId }, select: { xp: true } });
+      // Pilot Tracking Phase 2A — the debrief always saves (even the
+      // safety-flagged branch above only swaps the AI insight, never skips
+      // the save), so this always represents a real submission.
+      await activityTracking.touchActivity(req.userId);
       return res.json({ debrief, xp: user.xp, xpEarned: XP_LEGACY });
     } catch {
       return res.status(500).json({ error: 'Server error' });
@@ -271,6 +276,8 @@ router.post('/', authenticate, aiLimiter, requireGuardianConsent, async (req, re
       },
     }).catch(() => {});
     markSkillProgress(req.userId, 'reflection', 'toolCompletedAt').catch(() => {});
+    // Pilot Tracking Phase 2A — same reasoning as the legacy branch above.
+    await activityTracking.touchActivity(req.userId);
 
     return res.json({ insight, pattern, debrief, xp: updatedUser.xp, xpEarned: xpAmount, recentEntries });
   } catch {

@@ -11,6 +11,7 @@ const { PrismaClient } = require('@prisma/client');
 const authenticate = require('../middleware/authenticate');
 const { awardXP } = require('../services/gamification');
 const { markSkillProgress } = require('../services/skillProgress');
+const activityTracking = require('../services/activityTracking');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -65,6 +66,12 @@ router.post('/complete', authenticate, async (req, res) => {
     });
 
     markSkillProgress(req.userId, skillKey, 'practiceCompletedAt').catch(() => {});
+    // Pilot Tracking Phase 2A — a completed Daily Mental Rep is deliberate
+    // athlete practice. This route stays fully independent of the
+    // coaching-cycle completion funnel tracked elsewhere (see this repo's
+    // guard test asserting this file never references that other model) —
+    // both are real activity signals for lastActiveAt, but distinct funnels.
+    await activityTracking.touchActivity(req.userId);
     const { xp } = await awardXP(req.userId, 10);
 
     res.json({ success: true, xp, xpEarned: 10 });

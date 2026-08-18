@@ -95,6 +95,18 @@ model User {
   // scoring replacement rollout). Default false for existing and new users.
   mindJournalContextEnabled Boolean @default(false)
 
+  // Pilot Tracking Phase 2A — timestamp of the athlete's most recent
+  // meaningful, authenticated product write (Coach message, onboarding
+  // progress, Mental Rep, Mind Journal entry, Focus Card, Body Reset,
+  // Debrief, Ritual, skill practice, game session — see
+  // services/activityTracking.js for the exact list). Deliberately NOT a
+  // generic "last seen" — GET requests, page loads, login, settings edits,
+  // and founder/admin/payment/webhook activity never touch this. Null for
+  // an athlete with no qualifying activity yet (including pre-Phase-2A
+  // accounts before the one-time backfill runs). No default, no index —
+  // Phase 2A only reads/writes it via primary key lookups.
+  lastActiveAt DateTime?
+
   messages               Message[]
   safetyEvents           SafetyEvent[]
   checkIns               CheckIn[]

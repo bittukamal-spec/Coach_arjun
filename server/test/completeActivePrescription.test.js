@@ -13,6 +13,21 @@ const {
   PrescriptionNotFoundError,
   PrescriptionMismatchError,
 } = require('../src/services/coaching/completeActivePrescription');
+const activityTracking = require('../src/services/activityTracking');
+
+// Swaps activityTracking.touchActivity for a recording (or throwing) mock,
+// via the module-reference import completeActivePrescription.js uses —
+// same technique as activityTrackingMindJournalWiring.test.js's
+// mockTouchActivity() helper.
+function mockTouchActivity(impl) {
+  const original = activityTracking.touchActivity;
+  const calls = [];
+  activityTracking.touchActivity = async (userId, occurredAt) => {
+    calls.push({ userId, occurredAt });
+    if (impl) return impl(userId, occurredAt);
+  };
+  return { calls, restore: () => { activityTracking.touchActivity = original; } };
+}
 
 const USER = 'user-1';
 
@@ -67,6 +82,11 @@ function makeDbStub({ prescriptionRow = null, state = null } = {}) {
         };
       },
     },
+    // Deliberately NO `user` stub here. Pilot Tracking Phase 2A's
+    // lastActiveAt touch must never be written inside this transaction
+    // (see the Blocker-1 fix) — if completeActivePrescription.js ever
+    // regressed to calling tx.user.update again, this stub would throw a
+    // TypeError (tx.user is undefined) and every test below would fail.
   };
 
   return { writes, row, db: { $transaction: (fn) => fn(tx) } };
@@ -100,11 +120,19 @@ test('completion never touches ActiveCoachingSelection or CoachingCycle — the 
   await assert.doesNotReject(() => complete({ userId: USER, prescriptionId: 'presc-A', practiceKey: 'pressure_reset' }));
 });
 
-test('no new Prescription is created — only prescription.findUnique and prescription.updateMany are ever called', async () => {
+test('no new Prescription is created — the only transaction write is the prescription.updateMany completion claim; the Phase-2A lastActiveAt touch happens separately, after the transaction, via the shared activityTracking service', async () => {
   const { db, writes } = makeDbStub({ prescriptionRow: activePrescription(), state: stateFor('presc-A') });
   const complete = createCompleteActivePrescription(db);
-  await complete({ userId: USER, prescriptionId: 'presc-A', practiceKey: 'pressure_reset' });
-  assert.ok(writes.every((w) => w.op === 'prescription.updateMany'));
+  const mock = mockTouchActivity();
+  try {
+    await complete({ userId: USER, prescriptionId: 'presc-A', practiceKey: 'pressure_reset' });
+    assert.ok(writes.every((w) => w.op === 'prescription.updateMany'), 'the transaction itself must contain only the Prescription state-machine write');
+
+    assert.equal(mock.calls.length, 1);
+    assert.equal(mock.calls[0].userId, USER);
+  } finally {
+    mock.restore();
+  }
 });
 
 // ── Idempotency ──────────────────────────────────────────────────────────
@@ -112,16 +140,26 @@ test('no new Prescription is created — only prescription.findUnique and prescr
 test('a repeated completion request is idempotent: the second call returns alreadyCompleted:true with the SAME completedAt and makes no additional write', async () => {
   const { db, writes } = makeDbStub({ prescriptionRow: activePrescription(), state: stateFor('presc-A') });
   const complete = createCompleteActivePrescription(db);
+  const mock = mockTouchActivity();
+  try {
+    const first = await complete({ userId: USER, prescriptionId: 'presc-A', practiceKey: 'pressure_reset' });
+    const second = await complete({ userId: USER, prescriptionId: 'presc-A', practiceKey: 'pressure_reset' });
 
-  const first = await complete({ userId: USER, prescriptionId: 'presc-A', practiceKey: 'pressure_reset' });
-  const second = await complete({ userId: USER, prescriptionId: 'presc-A', practiceKey: 'pressure_reset' });
+    assert.equal(first.alreadyCompleted, false);
+    assert.equal(second.alreadyCompleted, true);
+    assert.equal(second.prescription.completedAt.getTime(), first.prescription.completedAt.getTime());
 
-  assert.equal(first.alreadyCompleted, false);
-  assert.equal(second.alreadyCompleted, true);
-  assert.equal(second.prescription.completedAt.getTime(), first.prescription.completedAt.getTime());
+    const updateManyWrites = writes.filter((w) => w.op === 'prescription.updateMany');
+    assert.equal(updateManyWrites.length, 1, 'the second call short-circuits on the already-COMPLETED check before ever reaching updateMany');
 
-  const updateManyWrites = writes.filter((w) => w.op === 'prescription.updateMany');
-  assert.equal(updateManyWrites.length, 1, 'the second call short-circuits on the already-COMPLETED check before ever reaching updateMany');
+    // Pilot Tracking Phase 2A — the idempotent replay must not create
+    // misleading later activity: lastActiveAt is touched exactly once, by
+    // the first (genuine) call, never by the second (already-completed) one.
+    assert.equal(mock.calls.length, 1, 'lastActiveAt must be touched exactly once, not on every idempotent replay');
+    assert.equal(mock.calls[0].userId, USER);
+  } finally {
+    mock.restore();
+  }
 });
 
 test('concurrent completion attempts preserve exactly one completedAt timestamp — one true winner, one settled read', async () => {
@@ -141,6 +179,82 @@ test('concurrent completion attempts preserve exactly one completedAt timestamp 
 
   const updateManyWrites = writes.filter((w) => w.op === 'prescription.updateMany');
   assert.equal(updateManyWrites.length, 2, 'both requests attempt the conditional update; only one actually flips the row');
+});
+
+// ── Pilot Tracking Phase 2A — activity-tracking failure isolation ────────
+
+test('[Blocker 1 / A] a genuine Prescription completion: the state-machine transaction succeeds, and touchActivity is called once, after the transaction has already committed', async () => {
+  const { db, writes } = makeDbStub({ prescriptionRow: activePrescription(), state: stateFor('presc-A') });
+  const complete = createCompleteActivePrescription(db);
+
+  let touchedAfterCommit = false;
+  const mock = mockTouchActivity(() => {
+    // By the time touchActivity is invoked, the transaction's own write
+    // must already be recorded — proving the touch happens strictly after
+    // commit, not interleaved inside the transaction callback.
+    touchedAfterCommit = writes.some((w) => w.op === 'prescription.updateMany');
+  });
+  try {
+    const result = await complete({ userId: USER, prescriptionId: 'presc-A', practiceKey: 'pressure_reset' });
+
+    assert.equal(result.completed, true);
+    assert.equal(result.alreadyCompleted, false);
+    assert.equal(result.prescription.status, 'COMPLETED');
+    assert.equal(mock.calls.length, 1);
+    assert.equal(mock.calls[0].userId, USER);
+    assert.ok(touchedAfterCommit, 'touchActivity must run after the transaction has committed its write');
+  } finally {
+    mock.restore();
+  }
+});
+
+test('[Blocker 1 / B] an activity-tracking failure never fails the athlete-facing completion, and never rolls back the state-machine write', async () => {
+  const { db, writes, row } = makeDbStub({ prescriptionRow: activePrescription(), state: stateFor('presc-A') });
+  const complete = createCompleteActivePrescription(db);
+
+  // Simulate the failure at the point a real DB failure inside
+  // touchActivity would surface to a caller that bypasses its internal
+  // try/catch (e.g. a broken mock, or a future regression in that
+  // service) — this is the strongest failure this call site could see.
+  const mock = mockTouchActivity(() => { throw new Error('simulated activity tracking DB failure'); });
+  try {
+    const result = await complete({ userId: USER, prescriptionId: 'presc-A', practiceKey: 'pressure_reset' });
+
+    // The completion itself must still succeed end-to-end.
+    assert.equal(result.completed, true);
+    assert.equal(result.alreadyCompleted, false);
+    assert.equal(result.prescription.status, 'COMPLETED');
+    assert.ok(result.prescription.completedAt instanceof Date);
+
+    // The state-machine write must not have been rolled back.
+    assert.equal(row.status, 'COMPLETED');
+    const claimWrite = writes.find((w) => w.op === 'prescription.updateMany');
+    assert.ok(claimWrite, 'the prescription.updateMany completion claim must still have happened');
+    assert.equal(mock.calls.length, 1, 'touchActivity was still attempted, even though it failed');
+  } finally {
+    mock.restore();
+  }
+});
+
+test('[Blocker 1 / C] a replay of an already-completed Prescription returns idempotent success and does NOT call touchActivity again', async () => {
+  const completedAt = new Date('2026-07-01T00:00:00Z');
+  const { db } = makeDbStub({ prescriptionRow: activePrescription({ status: 'COMPLETED', completedAt }), state: stateFor('presc-A') });
+  const complete = createCompleteActivePrescription(db);
+  const mock = mockTouchActivity();
+  try {
+    const result = await complete({ userId: USER, prescriptionId: 'presc-A', practiceKey: 'pressure_reset' });
+    assert.equal(result.alreadyCompleted, true);
+    assert.equal(result.prescription.completedAt.getTime(), completedAt.getTime());
+    assert.equal(mock.calls.length, 0, 'an already-completed replay must never touch activity');
+  } finally {
+    mock.restore();
+  }
+});
+
+test('[Blocker 1 / D] the Prescription completion transaction never writes User directly — no tx.user.update for lastActiveAt remains inside it', () => {
+  const src = readFileSync(path.join(__dirname, '../src/services/coaching/completeActivePrescription.js'), 'utf8');
+  assert.doesNotMatch(src, /tx\.user\.update/, 'lastActiveAt must never be written inside the Prescription completion transaction');
+  assert.match(src, /activityTracking\.touchActivity\(userId\)/, 'the shared activityTracking service must be used for the post-commit touch');
 });
 
 // ── Rejections ───────────────────────────────────────────────────────────

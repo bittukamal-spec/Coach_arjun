@@ -8,6 +8,7 @@ const { detectSkill } = require('../services/skillDetection');
 const { getSkill, resolveTagForSkill } = require('../config/skillRegistry');
 const { markSkillProgress, getLastRecommendedAt, getSkillProgress } = require('../services/skillProgress');
 const { screenSafetyText, recordSafetyEvent, getSafetyGuidance } = require('../services/safety');
+const activityTracking = require('../services/activityTracking');
 const {
   runBufferedToolLoop, sanitizeFinalText, buildRecoverySystem, describeResponseShape,
   loadCoachingContext, commitCoachingTransition, getRetryMessage, pickClarityFallback,
@@ -1070,6 +1071,10 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
         data: { userId: req.userId, role: 'user', content: content.trim(), sessionType: sessionType || null, chatSessionId: chatSessionId || null },
       });
       userMessageId = savedUserMessage.id;
+      // Pilot Tracking Phase 2A — a real athlete-authored message is the
+      // single Coach activity signal. Session-start markers above are
+      // app-generated, not athlete text, so they never reach here.
+      await activityTracking.touchActivity(req.userId);
     }
 
     // Fetch recent history to provide context to Claude
@@ -1597,6 +1602,9 @@ Also include a "report" field: {"report":{"moment":"<1-sentence: what moment the
         const VIZ_XP = 15;
         await prisma.user.update({ where: { id: req.userId }, data: { xp: { increment: VIZ_XP } } });
         const updated = await prisma.user.findUnique({ where: { id: req.userId }, select: { xp: true } });
+        // Pilot Tracking Phase 2A — a completed visualization wizard is
+        // deliberate athlete tool use.
+        await activityTracking.touchActivity(req.userId);
 
         // Save ToolReport (fire-and-forget)
         const vizReport = parsed.report || {};

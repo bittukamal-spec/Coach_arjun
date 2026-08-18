@@ -13,6 +13,7 @@ const authenticate = require('../middleware/authenticate');
 const requireGuardianConsent = require('../middleware/requireGuardianConsent');
 const { screenSafetyText, recordSafetyEvent, getSafetyGuidance } = require('../services/safety');
 const { validateAllowedKeys, validateMindJournalEntry } = require('../services/mindJournal/validateEntry');
+const activityTracking = require('../services/activityTracking');
 
 const prisma = new PrismaClient();
 
@@ -104,6 +105,10 @@ function createMindJournalRouter(client = prisma, consentMiddleware = requireGua
         takeForward,
       },
     });
+    // Pilot Tracking Phase 2A — the safety-flagged branch above returns
+    // before this point (no entry created), so this only ever runs for a
+    // genuinely saved entry.
+    await activityTracking.touchActivity(req.userId);
 
     res.json({ entry: serializeEntry(entry) });
   });

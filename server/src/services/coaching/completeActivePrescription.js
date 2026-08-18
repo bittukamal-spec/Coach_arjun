@@ -17,6 +17,11 @@
 
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+// Module reference (not destructured) so tests can swap
+// activityTracking.touchActivity for a mock after this file has already
+// loaded — same convention as every route file wired in Pilot Tracking
+// Phase 2A.
+const activityTracking = require('../activityTracking');
 
 class PrescriptionNotFoundError extends Error {
   constructor(message) {
@@ -46,7 +51,7 @@ function createCompleteActivePrescription(db = prisma) {
       throw new PrescriptionMismatchError('practiceKey is required');
     }
 
-    return db.$transaction(async (tx) => {
+    const result = await db.$transaction(async (tx) => {
       // 1. Existence + ownership — never distinguish "missing" from
       // "belongs to someone else" in the error thrown here.
       const prescription = await tx.prescription.findUnique({ where: { id: prescriptionId } });
@@ -87,7 +92,12 @@ function createCompleteActivePrescription(db = prisma) {
         throw new PrescriptionMismatchError(`prescription status ${prescription.status} cannot be completed`);
       }
 
-      // 7. Atomic once-only completion claim.
+      // 7. Atomic once-only completion claim. This transaction contains
+      // ONLY the authoritative Prescription state-machine writes — nothing
+      // else. Pilot Tracking Phase 2A's lastActiveAt touch happens AFTER
+      // this transaction commits (see below), never inside it: a failure
+      // isolated concern like activity tracking must never be able to roll
+      // back an otherwise-successful completion.
       const claim = await tx.prescription.updateMany({
         where: { id: prescriptionId, status: 'ACTIVE' },
         data: { status: 'COMPLETED', completedAt: new Date() },
@@ -96,6 +106,27 @@ function createCompleteActivePrescription(db = prisma) {
       const settled = await tx.prescription.findUnique({ where: { id: prescriptionId } });
       return { completed: true, alreadyCompleted: claim.count === 0, prescription: settled };
     });
+
+    // Pilot Tracking Phase 2A — only after the transaction above has
+    // genuinely committed a NEW completion (never on an idempotent replay,
+    // per the same alreadyCompleted signal the caller already receives —
+    // no separate semantic invented). touchActivity is failure-isolated
+    // (catches and swallows its own errors) and runs outside the
+    // transaction, so it can never roll back or fail the completion that
+    // already succeeded above. The extra local try/catch is defense in
+    // depth: even if touchActivity itself threw (e.g. a mocked
+    // implementation in a test, or a future change to that service), a
+    // tracking failure must never surface as a failure of this athlete-
+    // facing completion, which has already committed successfully.
+    if (!result.alreadyCompleted) {
+      try {
+        await activityTracking.touchActivity(userId);
+      } catch (err) {
+        console.error('[activity] post-completion touchActivity failed:', err?.message);
+      }
+    }
+
+    return result;
   };
 }
 

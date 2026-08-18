@@ -7,6 +7,7 @@ const { aiLimiter } = require('../middleware/rateLimits');
 const { checkFreeLimit } = require('./chat');
 const { markSkillProgress } = require('../services/skillProgress');
 const { screenSafetyFields, recordSafetyEvent } = require('../services/safety');
+const activityTracking = require('../services/activityTracking');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -189,6 +190,8 @@ router.post('/save', authenticate, async (req, res) => {
       },
     });
     markSkillProgress(userId, 'focus_self_talk', 'toolCompletedAt').catch(() => {});
+    // Pilot Tracking Phase 2A — a saved Focus Card is deliberate athlete use.
+    await activityTracking.touchActivity(userId);
 
     return res.json({ success: true, card });
   } catch (err) {
@@ -249,6 +252,8 @@ router.patch('/cards/:id', authenticate, async (req, res) => {
     }
 
     const updated = await prisma.selfTalkCard.update({ where: { id }, data });
+    // Pilot Tracking Phase 2A — a successful athlete edit to their own card.
+    await activityTracking.touchActivity(userId);
     return res.json({ success: true, card: updated });
   } catch (err) {
     console.error('self-talk patch error:', err);
@@ -292,6 +297,8 @@ router.post('/cards/:id/practice', authenticate, async (req, res) => {
       where: { id },
       data: { usedCount: { increment: 1 }, lastUsedAt: new Date() },
     });
+    // Pilot Tracking Phase 2A — the athlete actually used a Focus Card.
+    await activityTracking.touchActivity(userId);
     return res.json({ success: true, usedCount: updated.usedCount });
   } catch (err) {
     console.error('self-talk practice error:', err);
