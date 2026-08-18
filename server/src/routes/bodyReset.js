@@ -7,6 +7,7 @@ const { aiLimiter } = require('../middleware/rateLimits');
 const { checkFreeLimit } = require('./chat');
 const { markSkillProgress } = require('../services/skillProgress');
 const { screenSafetyFields, recordSafetyEvent, getSafetyGuidance } = require('../services/safety');
+const activityTracking = require('../services/activityTracking');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -129,6 +130,8 @@ router.post('/save', authenticate, async (req, res) => {
       },
     });
     markSkillProgress(userId, 'calm_body', 'toolCompletedAt').catch(() => {});
+    // Pilot Tracking Phase 2A — a completed Body Reset session.
+    await activityTracking.touchActivity(userId);
 
     return res.json({ success: true, session });
   } catch (err) {

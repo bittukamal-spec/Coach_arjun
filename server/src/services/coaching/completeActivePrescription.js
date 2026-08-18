@@ -93,6 +93,18 @@ function createCompleteActivePrescription(db = prisma) {
         data: { status: 'COMPLETED', completedAt: new Date() },
       });
 
+      // Pilot Tracking Phase 2A — only the request that actually won the
+      // completion claim (claim.count === 1) represents a new meaningful
+      // action; a concurrent loser or a later idempotent replay (handled at
+      // step 5 above, before this point is ever reached) must never advance
+      // lastActiveAt. Included inside this existing transaction rather than
+      // as a separate post-commit call — the row is already locked here,
+      // and this is the one call site where atomic inclusion is safer than
+      // a fire-and-forget touch after the fact.
+      if (claim.count > 0) {
+        await tx.user.update({ where: { id: userId }, data: { lastActiveAt: new Date() } });
+      }
+
       const settled = await tx.prescription.findUnique({ where: { id: prescriptionId } });
       return { completed: true, alreadyCompleted: claim.count === 0, prescription: settled };
     });

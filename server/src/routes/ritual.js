@@ -1,6 +1,7 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const authenticate = require('../middleware/authenticate');
+const activityTracking = require('../services/activityTracking');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -47,6 +48,8 @@ router.post('/me', authenticate, async (req, res) => {
         ritualSteps: JSON.stringify(steps.map(s => ({ type: s.type, label: s.label.trim() }))),
       },
     });
+    // Pilot Tracking Phase 2A — the athlete saved a pre-performance ritual.
+    await activityTracking.touchActivity(req.userId);
     res.json({ ok: true });
   } catch {
     res.status(500).json({ error: 'Server error' });

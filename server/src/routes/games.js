@@ -3,12 +3,18 @@ const { PrismaClient } = require('@prisma/client');
 const authenticate = require('../middleware/authenticate');
 const { awardXP } = require('../services/gamification');
 const { markSkillProgress } = require('../services/skillProgress');
+const activityTracking = require('../services/activityTracking');
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
 // POST /api/games/xp { gameType, score }
 // Awards 10 XP for completing a mind booster game and records the session for Arjun
+// Pilot Tracking Phase 2A: deliberately NOT wired to touchActivity — this is
+// the older, bookkeeping-style XP-award path (the current Mental Reps games
+// below use /session instead); excluded per the frozen tracking principle's
+// "do not restore/re-enable retired flows just to track them" and the
+// explicit instruction not to double up with bookkeeping-only XP calls.
 router.post('/xp', authenticate, async (req, res) => {
   try {
     const { gameType, score } = req.body;
@@ -87,6 +93,8 @@ router.post('/session', authenticate, async (req, res) => {
       },
     });
     markSkillProgress(req.userId, skillKey, 'practiceCompletedAt').catch(() => {});
+    // Pilot Tracking Phase 2A — a real, current Mental Reps game session.
+    await activityTracking.touchActivity(req.userId);
 
     const { xp } = await awardXP(req.userId, 15);
 

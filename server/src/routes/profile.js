@@ -8,6 +8,7 @@ const { PrismaClient } = require('@prisma/client');
 const authenticate = require('../middleware/authenticate');
 const defaultConsent = require('../middleware/requireGuardianConsent');
 const svc = require('../profile/profileService');
+const activityTracking = require('../services/activityTracking');
 
 const prisma = new PrismaClient();
 
@@ -35,6 +36,10 @@ function createProfileRouter(client = prisma, deps = {}) {
   router.post('/confirm', authenticate, async (req, res) => {
     try {
       const { profile, session, safety } = await svc.confirmProfile(client, req.userId, req.body || {}, deps);
+      // Pilot Tracking Phase 2A — the athlete confirmed/corrected their
+      // Starting Performance Profile; the confirm itself already succeeded
+      // by this point regardless of the safety-flag branch below.
+      await activityTracking.touchActivity(req.userId);
       const user = await client.user.findUnique({ where: { id: req.userId }, select: USER_SELECT });
       const wording = await svc.getOrCreateWording(client, profile, user, user.language || 'en', deps);
       const focusRow = await svc.loadCurrentFocus(client, req.userId);
@@ -63,6 +68,8 @@ function createProfileRouter(client = prisma, deps = {}) {
         // Safety-flagged custom text: nothing stored, support guidance shown.
         return res.status(200).json({ saved: false, safetyFlag: 'needs_support', guidance: result.safety.guidance });
       }
+      // Pilot Tracking Phase 2A — only the actually-saved path counts.
+      await activityTracking.touchActivity(req.userId);
 
       const { profile, session } = await svc.getOrCreateProfile(client, req.userId);
       const wording = await svc.getOrCreateWording(client, profile, user, user.language || 'en', deps);

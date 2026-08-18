@@ -67,6 +67,15 @@ function makeDbStub({ prescriptionRow = null, state = null } = {}) {
         };
       },
     },
+    // Pilot Tracking Phase 2A — completeActivePrescription.js writes
+    // lastActiveAt inside this same transaction on a genuine (non-replay)
+    // completion. Recorded like every other write below.
+    user: {
+      update: async ({ where, data }) => {
+        writes.push({ op: 'user.update', where, data });
+        return { id: where.id, ...data };
+      },
+    },
   };
 
   return { writes, row, db: { $transaction: (fn) => fn(tx) } };
@@ -100,11 +109,15 @@ test('completion never touches ActiveCoachingSelection or CoachingCycle — the 
   await assert.doesNotReject(() => complete({ userId: USER, prescriptionId: 'presc-A', practiceKey: 'pressure_reset' }));
 });
 
-test('no new Prescription is created — only prescription.findUnique and prescription.updateMany are ever called', async () => {
+test('no new Prescription is created — the only writes are the prescription.updateMany completion claim and the Phase-2A lastActiveAt touch', async () => {
   const { db, writes } = makeDbStub({ prescriptionRow: activePrescription(), state: stateFor('presc-A') });
   const complete = createCompleteActivePrescription(db);
   await complete({ userId: USER, prescriptionId: 'presc-A', practiceKey: 'pressure_reset' });
-  assert.ok(writes.every((w) => w.op === 'prescription.updateMany'));
+  assert.ok(writes.every((w) => w.op === 'prescription.updateMany' || w.op === 'user.update'));
+
+  const userWrite = writes.find((w) => w.op === 'user.update');
+  assert.equal(userWrite.where.id, USER);
+  assert.ok(userWrite.data.lastActiveAt instanceof Date);
 });
 
 // ── Idempotency ──────────────────────────────────────────────────────────
@@ -122,6 +135,12 @@ test('a repeated completion request is idempotent: the second call returns alrea
 
   const updateManyWrites = writes.filter((w) => w.op === 'prescription.updateMany');
   assert.equal(updateManyWrites.length, 1, 'the second call short-circuits on the already-COMPLETED check before ever reaching updateMany');
+
+  // Pilot Tracking Phase 2A — the idempotent replay must not create
+  // misleading later activity: lastActiveAt is touched exactly once, by
+  // the first (genuine) call, never by the second (already-completed) one.
+  const userWrites = writes.filter((w) => w.op === 'user.update');
+  assert.equal(userWrites.length, 1, 'lastActiveAt must be touched exactly once, not on every idempotent replay');
 });
 
 test('concurrent completion attempts preserve exactly one completedAt timestamp — one true winner, one settled read', async () => {

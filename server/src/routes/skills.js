@@ -2,6 +2,7 @@ const express = require('express');
 const authenticate = require('../middleware/authenticate');
 const { VALID_SKILL_KEYS } = require('../config/skillRegistry');
 const { markSkillProgress, getSkillProgress } = require('../services/skillProgress');
+const activityTracking = require('../services/activityTracking');
 
 const router = express.Router();
 
@@ -42,6 +43,8 @@ router.post('/:skillKey/learn', authenticate, async (req, res) => {
   }
   try {
     await markSkillProgress(req.userId, skillKey, 'learnCompletedAt');
+    // Pilot Tracking Phase 2A — the athlete completed a Learn step.
+    await activityTracking.touchActivity(req.userId);
     res.json({ success: true });
   } catch (err) {
     console.error('[skills] learn error:', err?.message);
@@ -61,6 +64,9 @@ router.post('/:skillKey/quick-check', authenticate, async (req, res) => {
   try {
     if (passed === true) {
       await markSkillProgress(req.userId, skillKey, 'quickCheckPassedAt');
+      // Pilot Tracking Phase 2A — only a genuine pass is persisted; a fail
+      // writes nothing, so it must not touch activity either.
+      await activityTracking.touchActivity(req.userId);
     }
     res.json({ success: true });
   } catch (err) {
