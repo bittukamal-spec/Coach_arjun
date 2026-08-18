@@ -89,13 +89,51 @@ test('PilotPanel renders a capped recent-athletes list from data.recentAthletes'
   assert.match(panel, /data\.recentAthletes\.map/);
 });
 
-// ── No Active/Returning cards yet (Phase 2) ─────────────────────────────
+// ── Engagement: Active 24h/7d, Returning (Phase 2B) ─────────────────────
 
-test('PilotPanel does not display Active/Returning-athlete cards or lastActiveAt yet', () => {
+test('PilotPanel renders the three Phase 2B engagement cards from metrics.activeLast24Hours/activeLast7Days/returningAthletes', () => {
   const panel = read('panels/PilotPanel.jsx');
-  assert.doesNotMatch(panel, /lastActiveAt/i);
-  assert.doesNotMatch(panel, /returning athlete/i);
-  assert.doesNotMatch(panel, /active (last|in the last)/i);
+  assert.match(panel, /Engagement/);
+  assert.match(panel, /Active 24h/);
+  assert.match(panel, /Active 7d/);
+  assert.match(panel, /Returning/);
+  assert.match(panel, /data\.metrics\.activeLast24Hours/);
+  assert.match(panel, /data\.metrics\.activeLast7Days/);
+  assert.match(panel, /data\.metrics\.returningAthletes/);
+  assert.match(panel, /data\.metrics\.returningPercentage/);
+});
+
+test('the Engagement cards reuse the existing StatCard component, not a new one-off card element', () => {
+  const panel = read('panels/PilotPanel.jsx');
+  const engagementBlock = panel.slice(panel.indexOf('Engagement'), panel.indexOf('Pilot funnel'));
+  const statCardUses = engagementBlock.match(/<StatCard\b/g) || [];
+  assert.equal(statCardUses.length, 3, 'expected exactly 3 StatCard uses in the Engagement block (Active 24h, Active 7d, Returning)');
+});
+
+test('PilotPanel renders a concise last-active label per recent athlete via a dedicated formatLastActive helper', () => {
+  const panel = read('panels/PilotPanel.jsx');
+  assert.match(panel, /function formatLastActive/);
+  assert.match(panel, /formatLastActive\(athlete\.lastActiveAt\)/);
+});
+
+test('formatLastActive renders "No activity yet" for a null lastActiveAt, never a raw null/undefined/NaN', () => {
+  const panel = read('panels/PilotPanel.jsx');
+  const fn = panel.slice(panel.indexOf('function formatLastActive'), panel.indexOf('\n}\n', panel.indexOf('function formatLastActive')) + 2);
+  assert.match(fn, /if \(!iso\) return 'No activity yet'/);
+});
+
+test('formatLastActive uses coarse relative buckets (hours ago / Yesterday / days ago), never a fabricated exact-minute figure', () => {
+  const panel = read('panels/PilotPanel.jsx');
+  const fn = panel.slice(panel.indexOf('function formatLastActive'), panel.indexOf('\n}\n', panel.indexOf('function formatLastActive')) + 2);
+  assert.match(fn, /Yesterday/);
+  assert.match(fn, /\$\{hours\}h ago/);
+  assert.match(fn, /\$\{days\}d ago/);
+  assert.doesNotMatch(fn, /getMinutes|getSeconds/);
+});
+
+test('AthleteRow shows an optional Returning pill driven by athlete.isReturning, alongside the existing pills', () => {
+  const panel = read('panels/PilotPanel.jsx');
+  assert.match(panel, /athlete\.isReturning && <Pill/);
 });
 
 // ── No athlete free-text content rendered ───────────────────────────────

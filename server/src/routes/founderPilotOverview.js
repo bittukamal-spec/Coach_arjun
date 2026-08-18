@@ -2,14 +2,15 @@ const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const founderAuthenticate = require('../middleware/founderAuthenticate');
 
-// Founder Pilot Overview — Phase 1 (read-only aggregate pilot metrics).
+// Founder Pilot Overview — Phase 1 (funnel) + Phase 2B (engagement).
 //
 // Deliberately derives everything from data the product already writes for
 // its own normal operation. No new model, no ProductEvent table, no
-// lastActiveAt, no page-view/click tracking, no third-party analytics.
-// Active/Returning-athlete metrics are explicitly out of scope for this
-// phase (they need a cheap recency signal that doesn't exist yet) — see
-// AUDIT.md's pilot-tracking audit for the full rationale.
+// page-view/click tracking, no third-party analytics — Phase 2B's
+// Active/Returning metrics only ever READ the same User.lastActiveAt
+// column the Pilot Tracking Phase 2A foundation already writes and
+// backfilled. This file never imports or calls that write-side service —
+// no second tracking system, no new write path, read-only end to end.
 //
 // Guarded exclusively by the new short-lived founder session token
 // (founderAuthenticate) — same as founderSafetyEvents.js. The legacy static
@@ -29,6 +30,8 @@ const RECENT_LIMIT = 20;
 // Selected once per request for the "recent athletes" list. guardianEmail
 // and guardianConsentAt are selected only to derive `guardianConsentStatus`
 // below — the raw guardianEmail value is never included in any response.
+// lastActiveAt (Phase 2B) is forwarded directly — it is already a
+// deliberately coarse, non-content timestamp, never free text.
 const RECENT_ATHLETE_SELECT = {
   id: true,
   name: true,
@@ -37,7 +40,52 @@ const RECENT_ATHLETE_SELECT = {
   tier: true,
   guardianEmail: true,
   guardianConsentAt: true,
+  lastActiveAt: true,
 };
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+// Same shift-then-slice IST-calendar-day convention already used throughout
+// this repo (games.js's istDayStart(), founder.js's todayIST for
+// MentalFitnessEntry, chat.js's todayIST) — reused here, never reinvented.
+const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+
+function istDateString(date) {
+  return new Date(date.getTime() + IST_OFFSET_MS).toISOString().slice(0, 10);
+}
+
+// An athlete is "returning" only if their latest meaningful activity
+// (User.lastActiveAt) happened on an IST calendar day strictly AFTER their
+// signup's IST calendar day. Same-day activity does not count. No activity
+// at all (lastActiveAt null) does not count. Never a raw lastActiveAt >
+// createdAt comparison — that would count later-the-same-day activity as
+// returning, which this pilot definition explicitly excludes.
+function isReturningAthlete(createdAt, lastActiveAt) {
+  if (!lastActiveAt) return false;
+  return istDateString(lastActiveAt) > istDateString(createdAt);
+}
+
+// One pass over { createdAt, lastActiveAt } rows for every athlete produces
+// the three Phase 2B engagement numbers. `now` is always passed in (never
+// read internally) so this stays deterministic and testable without the
+// real clock.
+function summarizeActivity(rows, now) {
+  const cutoff24h = now.getTime() - DAY_MS;
+  const cutoff7d = now.getTime() - 7 * DAY_MS;
+  let activeLast24Hours = 0;
+  let activeLast7Days = 0;
+  let returningAthletes = 0;
+
+  for (const u of rows) {
+    if (u.lastActiveAt) {
+      const at = u.lastActiveAt.getTime();
+      if (at >= cutoff24h) activeLast24Hours += 1;
+      if (at >= cutoff7d) activeLast7Days += 1;
+    }
+    if (isReturningAthlete(u.createdAt, u.lastActiveAt)) returningAthletes += 1;
+  }
+
+  return { activeLast24Hours, activeLast7Days, returningAthletes };
+}
 
 // Safe percentage of `total` — never divides by zero, never returns
 // NaN/Infinity. Rounded to one decimal place.
@@ -117,6 +165,7 @@ function createFounderPilotOverviewRouter(client = new PrismaClient()) {
         guardianRequired,
         guardianConsentCompleted,
         recentUsersRaw,
+        activityRows,
       ] = await Promise.all([
         client.user.count(),
         client.user.count({ where: { createdAt: { gte: todayStart } } }),
@@ -134,11 +183,17 @@ function createFounderPilotOverviewRouter(client = new PrismaClient()) {
           take: RECENT_LIMIT,
           select: RECENT_ATHLETE_SELECT,
         }),
+        // Phase 2B — every athlete's signup + last-activity timestamps only
+        // (no name, no email, no content). One pass over this feeds all
+        // three engagement numbers below; no new tracking system, just the
+        // Phase 2A column this backfill already populated.
+        client.user.findMany({ select: { createdAt: true, lastActiveAt: true } }),
       ]);
 
       const onboardingStarted = new Set(onboardingSessionRows.map((r) => r.userId)).size;
       const coachUsedAthletes = new Set(userMessageRows.map((r) => r.userId)).size;
       const rep = summarizePrescriptions(prescriptionRows);
+      const activity = summarizeActivity(activityRows, now);
 
       // Per-athlete flags for the "recent athletes" list, scoped to just
       // those ids — never a full-table scan for this part.
@@ -167,6 +222,8 @@ function createFounderPilotOverviewRouter(client = new PrismaClient()) {
         mentalRepReceived: recentRep.receivedAthletes.has(u.id),
         mentalRepCompleted: recentRep.completedAthletes.has(u.id),
         outcomeReported: recentRep.outcomeReportedAthletes.has(u.id),
+        lastActiveAt: u.lastActiveAt,
+        isReturning: isReturningAthlete(u.createdAt, u.lastActiveAt),
       }));
 
       const funnel = [
@@ -193,6 +250,10 @@ function createFounderPilotOverviewRouter(client = new PrismaClient()) {
           outcomesReported: rep.outcomesReportedTotal,
           tier: { premium: premiumAthletes, free: totalAthletes - premiumAthletes },
           guardian: { required: guardianRequired, consentCompleted: guardianConsentCompleted },
+          activeLast24Hours: activity.activeLast24Hours,
+          activeLast7Days: activity.activeLast7Days,
+          returningAthletes: activity.returningAthletes,
+          returningPercentage: pct(activity.returningAthletes, totalAthletes),
         },
         funnel,
         recentAthletes,
@@ -208,3 +269,10 @@ function createFounderPilotOverviewRouter(client = new PrismaClient()) {
 
 module.exports = createFounderPilotOverviewRouter();
 module.exports.createFounderPilotOverviewRouter = createFounderPilotOverviewRouter;
+// Pure helpers exported for direct, deterministic unit testing (same
+// convention as backfill-last-active.js's latestPerUser/mergeLatest) —
+// exact boundary/timezone behavior is proven here without needing to
+// simulate it through the HTTP+stub-client path.
+module.exports.istDateString = istDateString;
+module.exports.isReturningAthlete = isReturningAthlete;
+module.exports.summarizeActivity = summarizeActivity;

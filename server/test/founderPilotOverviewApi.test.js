@@ -96,6 +96,18 @@ function buildFixtures() {
   const todayStart = new Date(now);
   todayStart.setUTCHours(0, 0, 0, 0);
 
+  // lastActiveAt values below are chosen so activeLast24Hours/
+  // activeLast7Days/returningAthletes are TRUE regardless of what time of
+  // day (or IST-vs-UTC boundary) this suite happens to run at:
+  //  - u1's pair is anchored to the same fixed `todayStart` reference (not
+  //    to volatile "now"), only 1 hour apart — both timestamps always shift
+  //    (+5:30 IST) into the same UTC calendar day, so "same IST day, not
+  //    returning" is a deterministic property here, never a coincidence of
+  //    when the test runs.
+  //  - u2/u3's gaps between createdAt and lastActiveAt are always > 24
+  //    hours — two timestamps more than a full day apart can never fall on
+  //    the same calendar day in ANY timezone, so "different IST day,
+  //    returning" is equally guaranteed without pinning an exact clock time.
   const users = [
     {
       id: 'u1', name: 'Arjun Sharma',
@@ -103,6 +115,9 @@ function buildFixtures() {
       onboardingDone: true, tier: 'premium',
       guardianEmail: 'guardian1@example.com', guardianConsentAt: new Date(todayStart.getTime() + 30 * 60 * 1000),
       password: 'bcrypt-hash-should-never-leak', guardianConsentToken: 'super-secret-token-should-never-leak',
+      // 1 hour after signup, same fixed-anchor day — within both active
+      // windows, but NOT returning (same-day activity never counts).
+      lastActiveAt: new Date(todayStart.getTime() + 2 * 60 * 60 * 1000),
     },
     {
       id: 'u2', name: 'Priya Nair',
@@ -110,24 +125,33 @@ function buildFixtures() {
       onboardingDone: true, tier: 'free',
       guardianEmail: 'guardian2@example.com', guardianConsentAt: null, // pending
       password: 'hash2', guardianConsentToken: null,
+      // 30 hours ago: outside the 24h window, inside the 7-day window; 42
+      // hours after signup — guaranteed a later IST calendar day, returning.
+      lastActiveAt: new Date(now.getTime() - 30 * 60 * 60 * 1000),
     },
     {
       id: 'u5', name: '',
       createdAt: new Date(todayStart.getTime() - 1000), // just before today (yesterday)
       onboardingDone: false, tier: 'free', guardianEmail: null, guardianConsentAt: null,
       password: 'hash5', guardianConsentToken: null,
+      // Never active — must never contribute to active24h/active7d/returning.
+      lastActiveAt: null,
     },
     {
       id: 'u3', name: 'Rahul Verma',
       createdAt: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000), // outside 7-day window
       onboardingDone: false, tier: 'free', guardianEmail: null, guardianConsentAt: null,
       password: 'hash3', guardianConsentToken: null,
+      // 8 days ago: outside both the 24h and 7-day windows; 48 hours after
+      // signup — guaranteed a later IST calendar day, still returning.
+      lastActiveAt: new Date(now.getTime() - 8 * 24 * 60 * 60 * 1000),
     },
     {
       id: 'u4', name: 'Sana Iyer',
       createdAt: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
       onboardingDone: false, tier: 'free', guardianEmail: null, guardianConsentAt: null,
       password: 'hash4', guardianConsentToken: null,
+      lastActiveAt: null,
     },
   ];
 
@@ -313,6 +337,64 @@ test('guardian summary returns operational counts only', async () => {
   } finally { await stop(server); }
 });
 
+// ── Engagement (Phase 2B) ────────────────────────────────────────────────
+
+test('activeLast24Hours counts only users with lastActiveAt within the rolling 24h window', async () => {
+  const { server, baseUrl } = await startServer();
+  try {
+    const { body } = await getJson(baseUrl);
+    assert.equal(body.metrics.activeLast24Hours, 1); // u1 only
+  } finally { await stop(server); }
+});
+
+test('activeLast7Days counts users active within 7 days, including those already in the 24h window', async () => {
+  const { server, baseUrl } = await startServer();
+  try {
+    const { body } = await getJson(baseUrl);
+    assert.equal(body.metrics.activeLast7Days, 2); // u1, u2
+  } finally { await stop(server); }
+});
+
+test('a null lastActiveAt never contributes to activeLast24Hours or activeLast7Days', async () => {
+  const { server, baseUrl } = await startServer();
+  try {
+    const { body } = await getJson(baseUrl);
+    // 5 users total; only u1 (24h) and u2 (7d) are active at all — u4/u5
+    // (both lastActiveAt: null) and u3 (active 8 days ago) never count.
+    assert.ok(body.metrics.activeLast24Hours <= 1);
+    assert.ok(body.metrics.activeLast7Days <= 2);
+  } finally { await stop(server); }
+});
+
+test('returningAthletes requires a later IST calendar day than signup — same-day activity does not count', async () => {
+  const { server, baseUrl } = await startServer();
+  try {
+    const { body } = await getJson(baseUrl);
+    assert.equal(body.metrics.returningAthletes, 2); // u2, u3 — not u1 (same day), not u4/u5 (never active)
+  } finally { await stop(server); }
+});
+
+test('returningPercentage is returningAthletes / totalAthletes rounded like the funnel percentages', async () => {
+  const { server, baseUrl } = await startServer();
+  try {
+    const { body } = await getJson(baseUrl);
+    assert.equal(body.metrics.returningPercentage, 40); // 2 of 5
+  } finally { await stop(server); }
+});
+
+test('returningPercentage is safe (0, not NaN/Infinity) with zero athletes', async () => {
+  const empty = { users: [], onboardingSessions: [], messages: [], prescriptions: [], chatSessionCount: 0 };
+  const { server, baseUrl } = await startServer(empty);
+  try {
+    const { body } = await getJson(baseUrl);
+    assert.equal(body.metrics.returningAthletes, 0);
+    assert.equal(body.metrics.returningPercentage, 0);
+    assert.ok(Number.isFinite(body.metrics.returningPercentage));
+    assert.equal(body.metrics.activeLast24Hours, 0);
+    assert.equal(body.metrics.activeLast7Days, 0);
+  } finally { await stop(server); }
+});
+
 // ── Funnel ───────────────────────────────────────────────────────────────
 
 test('funnel returns distinct-athlete counts and percent-of-total for every stage, in order', async () => {
@@ -397,17 +479,41 @@ test('recent athletes list is capped at 20 even with a larger pilot cohort', asy
   } finally { await stop(server); }
 });
 
-test('each recent-athlete row carries exactly the allowed operational fields', async () => {
+test('each recent-athlete row carries exactly the allowed operational fields (privacy allowlist, now including Phase 2B lastActiveAt/isReturning)', async () => {
   const { server, baseUrl } = await startServer();
   try {
     const { body } = await getJson(baseUrl);
     const allowed = [
       'id', 'firstName', 'signupDate', 'onboardingDone', 'tier',
       'guardianConsentStatus', 'coachUsed', 'mentalRepReceived', 'mentalRepCompleted', 'outcomeReported',
+      'lastActiveAt', 'isReturning',
     ].sort();
     for (const athlete of body.recentAthletes) {
       assert.deepEqual(Object.keys(athlete).sort(), allowed);
     }
+  } finally { await stop(server); }
+});
+
+test('recent-athlete lastActiveAt and isReturning reflect the same Phase 2B definitions as the top-level metrics', async () => {
+  const { server, baseUrl } = await startServer();
+  try {
+    const { body } = await getJson(baseUrl);
+    const byId = Object.fromEntries(body.recentAthletes.map((a) => [a.id, a]));
+
+    assert.ok(byId.u1.lastActiveAt);
+    assert.equal(byId.u1.isReturning, false); // same IST day as signup
+
+    assert.ok(byId.u2.lastActiveAt);
+    assert.equal(byId.u2.isReturning, true); // 42h after signup — later IST day
+
+    assert.ok(byId.u3.lastActiveAt);
+    assert.equal(byId.u3.isReturning, true);
+
+    assert.equal(byId.u4.lastActiveAt, null);
+    assert.equal(byId.u4.isReturning, false);
+
+    assert.equal(byId.u5.lastActiveAt, null);
+    assert.equal(byId.u5.isReturning, false);
   } finally { await stop(server); }
 });
 
