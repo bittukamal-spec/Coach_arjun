@@ -38,7 +38,17 @@ const envOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
   .map(o => o.trim().replace(/\/$/, ''))
   .filter(Boolean);
 
-const allowedOrigins = Array.from(new Set([...PRODUCTION_ORIGINS, ...envOrigins]));
+// Founder Dashboard origin(s) — a separate env var so this internal tool's
+// origin never has to be stuffed into the athlete app's CLIENT_URL. Same
+// comma-separated parsing convention as CLIENT_URL above. Unset/empty adds
+// nothing — no origin is allowed by default, so this never widens CORS on
+// its own. Expected production value: https://coach-arjun.vercel.app
+const founderOrigins = (process.env.FOUNDER_DASHBOARD_URL || '')
+  .split(',')
+  .map(o => o.trim().replace(/\/$/, ''))
+  .filter(Boolean);
+
+const allowedOrigins = Array.from(new Set([...PRODUCTION_ORIGINS, ...envOrigins, ...founderOrigins]));
 
 // Vercel preview deployments get a generated origin per build, so they can't
 // be listed as exact strings. This regex is pinned to the Arjun project's
