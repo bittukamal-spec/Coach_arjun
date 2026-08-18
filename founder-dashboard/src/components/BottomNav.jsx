@@ -1,7 +1,8 @@
-import { Activity, MessageSquare, Users, CheckSquare, ShieldAlert } from 'lucide-react';
+import { Activity, TrendingUp, MessageSquare, Users, CheckSquare, ShieldAlert } from 'lucide-react';
 
 const TABS = [
   { id: 'pulse',  icon: Activity,      label: 'Pulse'   },
+  { id: 'pilot',  icon: TrendingUp,    label: 'Pilot'   },
   { id: 'prompt', icon: MessageSquare, label: 'Prompt'  },
   { id: 'coach',  icon: Users,         label: 'Coach'   },
   { id: 'build',  icon: CheckSquare,   label: 'Build'   },
