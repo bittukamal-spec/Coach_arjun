@@ -100,22 +100,27 @@ test('Dashboard merged "What\'s today?" container: recommendation row keeps its 
 // Homepage-priority pass: the Mind Journal CTA reuses the exact same
 // TrainGradientCard (wide layout) already approved for Train's "Match &
 // Practice Reflection" banner — icon circle, then heading, then supporting
-// copy stacked in one column, solid amber gradient background (no separate
-// border treatment) and an arrow badge in the card's own bottom-right
-// corner. That shared component's own left-aligned column layout is the
-// established, already-approved pattern for this exact card shape — see
-// TrainGradientCard's `wide` case — so it is reused verbatim rather than
-// re-deriving a centered layout here. No Illustration prop: this card's
-// approved copy is noticeably longer than Train's own Reflection desc, and
-// with the ghost illustration's narrower text column it wraps into the
-// corner arrow badge at the ≥430px breakpoint (confirmed by screenshot) —
-// so the illustration is intentionally omitted here.
-test('Dashboard "Mind Journal" card: reuses TrainGradientCard (wide, amber) with the approved heading/value copy, still opening /mind-journal', () => {
+// copy stacked in one column, and an arrow badge in the card's own
+// bottom-right corner. That shared component's own left-aligned column
+// layout is the established, already-approved pattern for this exact card
+// shape — see TrainGradientCard's `wide` case — so it is reused verbatim
+// rather than re-deriving a centered layout here. Visual-identity pass:
+// the card now uses the existing `purple` (violet) gradient variant and a
+// distinct NotebookPen icon instead of amber/RingMark, so it no longer
+// reads as a restyled copy of Train's amber Reflection card. No
+// Illustration prop: this card's approved copy is noticeably longer than
+// Train's own Reflection desc, and with the ghost illustration's narrower
+// text column it wraps into the corner arrow badge at the ≥430px
+// breakpoint (confirmed by screenshot) — so the illustration is
+// intentionally omitted here.
+test('Dashboard "Mind Journal" card: reuses TrainGradientCard (wide, violet, NotebookPen) with the approved heading/value copy, still opening /mind-journal', () => {
   const idx = dashboard.indexOf('MIND JOURNAL');
   assert.notEqual(idx, -1, 'the Mind Journal card section should still exist');
-  const card = dashboard.slice(idx, idx + 2050);
+  const card = dashboard.slice(idx, idx + 2350);
   assert.match(card, /<TrainGradientCard/, 'reuses the shared premium gradient card, not a bespoke one');
-  assert.match(card, /variant="amber"/);
+  assert.match(card, /variant="purple"/, 'uses the existing violet/purple gradient variant, not amber');
+  assert.match(card, /Icon=\{NotebookPen\}/, 'uses the existing NotebookPen Lucide icon, not BookOpen/RingMark');
+  assert.doesNotMatch(card, /variant="amber"/, 'no longer amber — distinguishable from Train\'s Reflection card');
   assert.doesNotMatch(card, /Illustration=/, 'no ghost illustration — its longer copy collides with the arrow badge at ≥430px');
   assert.match(card, /\bwide\b/, 'the wide (icon → heading → copy, one column) layout is used');
   assert.match(card, /journalTitle/);

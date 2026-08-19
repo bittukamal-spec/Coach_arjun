@@ -173,10 +173,17 @@ test('the warn and accent tokens are defined in the light block and BOTH dark bl
 });
 
 test('the amber accent is consumed as a token, never as the raw hex, on redesigned surfaces', () => {
-  for (const file of ['pages/ChatPage.jsx', 'pages/PlaybookPage.jsx', 'pages/Dashboard.jsx']) {
+  // Homepage-priority pass: Dashboard.jsx's Mind Journal card intentionally
+  // moved off the amber identity to violet (TrainGradientCard's existing
+  // `purple` variant) to stay visually distinguishable from Train's amber
+  // "Match & Practice Reflection" card, so Dashboard no longer carries any
+  // amber accent to check here. ChatPage/PlaybookPage are untouched by
+  // that change and still consume the token exactly as before.
+  for (const file of ['pages/ChatPage.jsx', 'pages/PlaybookPage.jsx']) {
     assert.doesNotMatch(src(file), /#D98B2B/i, `${file} must use var(--accent-amber)`);
     assert.match(src(file), /var\(--accent-amber\)/, `${file} must consume the accent token`);
   }
+  assert.doesNotMatch(src('pages/Dashboard.jsx'), /#D98B2B/i, 'Dashboard.jsx must never use the raw amber hex either');
 });
 
 // ── 5. The profile hook keeps its remount fix ──────────────────────────────
