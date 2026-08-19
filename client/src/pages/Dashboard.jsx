@@ -5,9 +5,10 @@ import ConsentBanner from '../components/ConsentBanner';
 import { useAuth } from '../contexts/AuthContext';
 import { apiFetch } from '../api';
 import { translations } from '../i18n/translations';
-import { ChevronRight, ChevronDown, MessageCircle, Calendar, Sparkles, CloudRain, RefreshCw, Crosshair, TrendingUp, BookOpen } from 'lucide-react';
+import { ChevronRight, ChevronDown, MessageCircle, Calendar, Sparkles, CloudRain, RefreshCw, Crosshair, TrendingUp } from 'lucide-react';
 import { SectionLabel } from '../components/ui';
 import { CardWaves, RingMark } from '../components/visuals/CardArt';
+import TrainGradientCard from '../components/train/TrainGradientCard';
 
 // Day-context picker — remembered for the rest of the day so the single
 // adaptive primary action stays stable.
@@ -149,38 +150,36 @@ export default function Dashboard() {
             </div>
 
             {/* ── 2. MIND JOURNAL — elevated to the top of Home, directly
-                 under the greeting, as a compact CTA visually aligned with
-                 the Talk to Arjun hero below it (same icon-circle /
-                 centered-copy / chevron-circle row shape, just amber-toned
-                 and bordered instead of the blue gradient hero, so the two
-                 stay clearly distinguishable). Route and destination are
-                 unchanged — still a plain <Link to="/mind-journal">; the
-                 Mind Journal screen itself is not redesigned in this stage. */}
+                 under the greeting. Reuses the exact same premium gradient
+                 card (TrainGradientCard, wide layout) already approved for
+                 Train's "Match & Practice Reflection" banner: icon circle,
+                 then heading, then supporting copy stacked in one column,
+                 amber gradient background (no separate border treatment),
+                 arrow affordance in the bottom-right corner. No
+                 Illustration prop — this card's own approved copy runs
+                 noticeably longer than Train's "Match & Practice
+                 Reflection" desc, and at the ≥430px breakpoint where
+                 TrainGradientCard reveals its ghost illustration, the
+                 narrower text column it leaves behind wraps to a 4th line
+                 that collides with the corner arrow badge (confirmed by
+                 screenshot at 430px). Skipping the illustration keeps the
+                 full-width text column at every size the copy is verified
+                 at, without touching the shared component (which Train
+                 still uses with its own, shorter copy). Only the
+                 destination changes — onClick still just navigates to the
+                 existing, unredesigned /mind-journal route. */}
             <div className="mb-7">
-              <h2 className="text-lg font-extrabold text-ink mb-3">{t.journalTitle}</h2>
-              <Link
-                to="/mind-journal"
-                aria-label={t.journalCta}
-                className="relative overflow-hidden block rounded-[26px] p-5 border-2 bg-dark-400 elevation-card active:scale-[0.99] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
-                style={{ borderColor: 'var(--accent-amber)' }}
-              >
-                <div className="relative z-10 flex items-center gap-3.5">
-                  <div className="w-14 h-14 rounded-full flex items-center justify-center shrink-0" style={{ background: 'var(--accent-amber)' }}>
-                    <BookOpen size={24} className="text-white" aria-hidden="true" />
-                  </div>
-                  <div className="flex-1 min-w-0 text-center">
-                    <p className="text-base font-black text-ink leading-tight [text-wrap:pretty]">
-                      {t.journalHeading}
-                    </p>
-                    <p className="text-caption text-slt leading-snug mt-1 [text-wrap:pretty]">
-                      {t.journalValue}
-                    </p>
-                  </div>
-                  <div className="w-11 h-11 rounded-full bg-brand-500/10 flex items-center justify-center shrink-0" aria-hidden="true">
-                    <ChevronRight size={20} className="text-brand-600" />
-                  </div>
-                </div>
-              </Link>
+              {/* Amber heading ties the section label to the card's own
+                  amber identity below it — same accent-amber token
+                  PlaybookPage already uses for its own reflection copy. */}
+              <h2 className="text-lg font-extrabold mb-3" style={{ color: 'var(--accent-amber)' }}>{t.journalTitle}</h2>
+              <TrainGradientCard
+                variant="amber"
+                title={t.journalHeading}
+                desc={t.journalValue}
+                wide
+                onClick={() => navigate('/mind-journal')}
+              />
             </div>
 
             {/* ── 3. TALK TO ARJUN — the ONE dominant action on Home.

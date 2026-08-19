@@ -97,22 +97,31 @@ test('Dashboard merged "What\'s today?" container: recommendation row keeps its 
   assert.match(card, /<select/, 'the day-context picker is the new dropdown control');
 });
 
-// Homepage-priority pass: the Mind Journal CTA is now a compact card visually
-// aligned with the Talk to Arjun hero — icon circle, centered copy, chevron
-// circle, whole card is one "open this feature" launch action — so, like
-// Talk to Arjun, its copy centers rather than reading left next to an
-// illustration.
-test('Dashboard "Mind Journal" card: compact CTA aligned with Talk to Arjun, with the approved heading/value/CTA copy, still opening /mind-journal', () => {
+// Homepage-priority pass: the Mind Journal CTA reuses the exact same
+// TrainGradientCard (wide layout) already approved for Train's "Match &
+// Practice Reflection" banner — icon circle, then heading, then supporting
+// copy stacked in one column, solid amber gradient background (no separate
+// border treatment) and an arrow badge in the card's own bottom-right
+// corner. That shared component's own left-aligned column layout is the
+// established, already-approved pattern for this exact card shape — see
+// TrainGradientCard's `wide` case — so it is reused verbatim rather than
+// re-deriving a centered layout here. No Illustration prop: this card's
+// approved copy is noticeably longer than Train's own Reflection desc, and
+// with the ghost illustration's narrower text column it wraps into the
+// corner arrow badge at the ≥430px breakpoint (confirmed by screenshot) —
+// so the illustration is intentionally omitted here.
+test('Dashboard "Mind Journal" card: reuses TrainGradientCard (wide, amber) with the approved heading/value copy, still opening /mind-journal', () => {
   const idx = dashboard.indexOf('MIND JOURNAL');
   assert.notEqual(idx, -1, 'the Mind Journal card section should still exist');
-  const card = dashboard.slice(idx, idx + 2200);
-  assert.match(card, /BookOpen/, 'the existing Mind Journal icon is present');
-  assert.match(card, /text-center/, 'the title/value block centers, matching the Talk to Arjun hero');
+  const card = dashboard.slice(idx, idx + 2050);
+  assert.match(card, /<TrainGradientCard/, 'reuses the shared premium gradient card, not a bespoke one');
+  assert.match(card, /variant="amber"/);
+  assert.doesNotMatch(card, /Illustration=/, 'no ghost illustration — its longer copy collides with the arrow badge at ≥430px');
+  assert.match(card, /\bwide\b/, 'the wide (icon → heading → copy, one column) layout is used');
   assert.match(card, /journalTitle/);
   assert.match(card, /journalHeading/);
   assert.match(card, /journalValue/);
-  assert.match(card, /journalCta/);
-  assert.match(card, /to="\/mind-journal"/);
+  assert.match(card, /onClick=\{\(\) => navigate\('\/mind-journal'\)\}/);
 });
 
 test('Mind Journal "New Reflection" hero: whole card starts a reflection, so its title/desc center', () => {

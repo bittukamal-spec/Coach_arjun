@@ -179,18 +179,19 @@ test('Dashboard still makes exactly one read-only GET /api/playbook — the API 
   assert.doesNotMatch(codeOnly, /method:\s*'(POST|PUT|PATCH|DELETE)'/, 'Home writes nothing');
 });
 
-test('Mind Journal is a compact CTA linking to /mind-journal with the approved heading/value/CTA copy, no score', () => {
-  assert.match(src, /to="\/mind-journal"/);
-  // Homepage-priority pass: the card's own heading/value/CTA live in
-  // dedicated `home` namespace keys, distinct from journalDesc/journalHint
-  // (still defined, still read by other surfaces) so the exact approved
-  // copy is asserted where it now actually renders.
-  assert.ok(src.includes('{t.journalHeading}'));
+test('Mind Journal is a gradient CTA (reusing TrainGradientCard) linking to /mind-journal with the approved heading/value copy, no score', () => {
+  assert.match(src, /onClick=\{\(\) => navigate\('\/mind-journal'\)\}/);
+  // Homepage-priority pass: the card's own heading/value live in dedicated
+  // `home` namespace keys, distinct from journalDesc/journalHint (still
+  // defined, still read by other surfaces) so the exact approved copy is
+  // asserted where it now actually renders. The affordance to open Mind
+  // Journal is the shared card's own bottom-right arrow badge, the same
+  // established pattern Train's own gradient cards already use — there is
+  // no separate CTA label to assert here.
+  assert.ok(src.includes('title={t.journalHeading}'));
   assert.ok(translations.includes('Reflect. Grow. Perform.'));
-  assert.ok(src.includes('{t.journalValue}'), 'one short value statement, tying reflection to Arjun\'s coaching');
+  assert.ok(src.includes('desc={t.journalValue}'), 'one short value statement, tying reflection to Arjun\'s coaching');
   assert.ok(translations.includes('help Arjun coach you more personally'));
-  assert.ok(src.includes('t.journalCta'), 'the CTA copy labels the affordance to open Mind Journal');
-  assert.ok(translations.includes('Open Mind Journal'));
   assert.doesNotMatch(codeOnly, /daily habit|every day|har din likho/i, 'no pressure-to-write-daily copy');
 });
 
