@@ -5,10 +5,9 @@ import ConsentBanner from '../components/ConsentBanner';
 import { useAuth } from '../contexts/AuthContext';
 import { apiFetch } from '../api';
 import { translations } from '../i18n/translations';
-import { ChevronRight, ChevronDown, MessageCircle, Calendar, Sparkles, CloudRain, RefreshCw, Crosshair, TrendingUp } from 'lucide-react';
+import { ChevronRight, ChevronDown, MessageCircle, Calendar, Sparkles, CloudRain, RefreshCw, Crosshair, TrendingUp, BookOpen } from 'lucide-react';
 import { SectionLabel } from '../components/ui';
 import { CardWaves, RingMark } from '../components/visuals/CardArt';
-import MindJournalArt from '../components/visuals/MindJournalArt';
 
 // Day-context picker — remembered for the rest of the day so the single
 // adaptive primary action stays stable.
@@ -149,7 +148,42 @@ export default function Dashboard() {
               </h1>
             </div>
 
-            {/* ── 2. TALK TO ARJUN — the ONE dominant action on Home.
+            {/* ── 2. MIND JOURNAL — elevated to the top of Home, directly
+                 under the greeting, as a compact CTA visually aligned with
+                 the Talk to Arjun hero below it (same icon-circle /
+                 centered-copy / chevron-circle row shape, just amber-toned
+                 and bordered instead of the blue gradient hero, so the two
+                 stay clearly distinguishable). Route and destination are
+                 unchanged — still a plain <Link to="/mind-journal">; the
+                 Mind Journal screen itself is not redesigned in this stage. */}
+            <div className="mb-7">
+              <h2 className="text-lg font-extrabold text-ink mb-3">{t.journalTitle}</h2>
+              <Link
+                to="/mind-journal"
+                aria-label={t.journalCta}
+                className="relative overflow-hidden block rounded-[26px] p-5 border-2 bg-dark-400 elevation-card active:scale-[0.99] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+                style={{ borderColor: 'var(--accent-amber)' }}
+              >
+                <div className="relative z-10 flex items-center gap-3.5">
+                  <div className="w-14 h-14 rounded-full flex items-center justify-center shrink-0" style={{ background: 'var(--accent-amber)' }}>
+                    <BookOpen size={24} className="text-white" aria-hidden="true" />
+                  </div>
+                  <div className="flex-1 min-w-0 text-center">
+                    <p className="text-base font-black text-ink leading-tight [text-wrap:pretty]">
+                      {t.journalHeading}
+                    </p>
+                    <p className="text-caption text-slt leading-snug mt-1 [text-wrap:pretty]">
+                      {t.journalValue}
+                    </p>
+                  </div>
+                  <div className="w-11 h-11 rounded-full bg-brand-500/10 flex items-center justify-center shrink-0" aria-hidden="true">
+                    <ChevronRight size={20} className="text-brand-600" />
+                  </div>
+                </div>
+              </Link>
+            </div>
+
+            {/* ── 3. TALK TO ARJUN — the ONE dominant action on Home.
                  A plain <Link> to the existing Coach route: opening Home
                  never creates a session, never claims the deterministic
                  follow-up opener, and never touches any chat API. All of
@@ -190,12 +224,12 @@ export default function Dashboard() {
               </Link>
             </div>
 
-            {/* ── 3. DAY-CONTEXT SELECTOR — a single dropdown row instead of a
+            {/* ── 4. DAY-CONTEXT SELECTOR — a single dropdown row instead of a
                  grid of pills, merged into the same rounded container as the
                  recommendation below it. Unchanged behaviour: picking a
                  context only swaps the recommended practice below — it
                  never navigates and never writes to any API. ───────────── */}
-            {/* ── 4. RECOMMENDED PRACTICE — the existing adaptive action,
+            {/* ── 5. RECOMMENDED PRACTICE — the existing adaptive action,
                  sharing one visual container with the day-context picker so
                  the two read as one "what's today" decision instead of two
                  separate things. Its title/description/CTA still swap with
@@ -262,7 +296,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* ── 5. CONTINUE COACHING — intentionally not rendered yet.
+            {/* ── 6. CONTINUE COACHING — intentionally not rendered yet.
                  Its eligibility ("an existing conversation") has no
                  read-only source available to Home: GET /api/sessions
                  performs the 7-day cycle rollover and fire-and-forget
@@ -271,7 +305,7 @@ export default function Dashboard() {
                  signal. Adding one would mean new API surface, which this
                  stage excludes. Deferred rather than faked. ─────────────── */}
 
-            {/* ── 6. NEED HELP RIGHT NOW — visually demoted to a smaller
+            {/* ── 7. NEED HELP RIGHT NOW — visually demoted to a smaller
                  secondary section, now headed "Pick what you need now" with
                  more vibrant per-shortcut icon accents. Every route, prefill
                  and behaviour is unchanged: real <Link> elements to
@@ -300,34 +334,6 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* ── 7. MIND JOURNAL — the final secondary card before the
-                 bottom navigation. Route and behaviour unchanged; the Mind
-                 Journal screen itself is not redesigned in this stage. An
-                 illustrated CTA replaces the old icon-row treatment: one
-                 heading, one value statement, and an explicit CTA button. ── */}
-            <div className="mb-6">
-              <Link
-                to="/mind-journal"
-                className="relative overflow-hidden block rounded-2xl border border-dark-600 bg-brand-50 p-4 active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
-              >
-                <div className="flex items-center gap-4">
-                  <MindJournalArt className="w-20 h-20 shrink-0" accentColor="var(--accent-amber)" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[11px] font-bold uppercase tracking-wider mb-1" style={{ color: 'var(--brand-primary)' }}>
-                      {t.journalTitle}
-                    </p>
-                    <p className="text-base font-black text-ink leading-tight mb-1 [text-wrap:pretty]">{t.journalHeading}</p>
-                    <p className="text-caption text-slt leading-relaxed mb-3 [text-wrap:pretty]">
-                      {t.journalValue}
-                    </p>
-                    <span className="inline-flex items-center gap-1 rounded-full border-2 border-brand-500 text-brand-600 font-bold text-[13px] px-4 py-2 whitespace-nowrap">
-                      {t.journalCta}
-                      <ChevronRight size={14} aria-hidden="true" />
-                    </span>
-                  </div>
-                </div>
-              </Link>
-            </div>
           </>
         )}
       </main>

@@ -1,8 +1,9 @@
 // Source-text checks for the Dashboard visual-hierarchy refinement:
-// approved five-section order, a segmented day-context selector that can
-// never be confused with the problem-help shortcuts, larger informative
-// Playbook and Mind Journal cards, and none of the retired scored UI
-// (XP, streaks, scores, Starter Plan, games, skill paths) returning.
+// approved section order (Mind Journal promoted to the top, directly below
+// the greeting), a segmented day-context selector that can never be
+// confused with the problem-help shortcuts, a compact Mind Journal CTA, and
+// none of the retired scored UI (XP, streaks, scores, Starter Plan, games,
+// skill paths) returning.
 // Dashboard.jsx contains JSX and cannot be imported by node:test without
 // a transform — matching the established pattern, these are source-text
 // assertions; the real click/router behavior is separately proven in
@@ -45,16 +46,19 @@ function codeBetween(startMarker, endMarker) {
   return stripComments(block);
 }
 
-// ── 1. Approved five-section order ──────────────────────────────────────────
+// ── 1. Approved section order — Mind Journal promoted to the top ───────────
+// Homepage-priority pass: Mind Journal now renders directly below the
+// greeting, ahead of Talk to Arjun, per the approved change. Every other
+// section keeps its existing relative order.
 
-test('Dashboard renders the approved Stage D order: greeting → Talk to Arjun → day context → recommended practice → need-help → Mind Journal', () => {
+test('Dashboard renders the approved order: greeting → Mind Journal → Talk to Arjun → day context → recommended practice → need-help', () => {
   const order = [
     src.indexOf('1. GREETING'),
-    src.indexOf('2. TALK TO ARJUN'),
-    src.indexOf('3. DAY-CONTEXT SELECTOR'),
-    src.indexOf('4. RECOMMENDED PRACTICE'),
-    src.indexOf('6. NEED HELP RIGHT NOW'),
-    src.indexOf('7. MIND JOURNAL'),
+    src.indexOf('2. MIND JOURNAL'),
+    src.indexOf('3. TALK TO ARJUN'),
+    src.indexOf('4. DAY-CONTEXT SELECTOR'),
+    src.indexOf('5. RECOMMENDED PRACTICE'),
+    src.indexOf('7. NEED HELP RIGHT NOW'),
   ];
   for (const idx of order) assert.ok(idx !== -1, 'every approved section must exist');
   for (let i = 1; i < order.length; i++) {
@@ -63,7 +67,7 @@ test('Dashboard renders the approved Stage D order: greeting → Talk to Arjun �
 });
 
 test('Talk to Arjun is the ONE dominant action — a plain Link to Coach that claims nothing on Home load', () => {
-  const hero = src.slice(src.indexOf('2. TALK TO ARJUN'), src.indexOf('3. DAY-CONTEXT SELECTOR'));
+  const hero = src.slice(src.indexOf('3. TALK TO ARJUN'), src.indexOf('4. DAY-CONTEXT SELECTOR'));
   assert.match(hero, /to="\/coaching"/, 'the hero opens the existing Coach route');
   assert.match(hero, /L\.dashboard\.openCoach/, 'uses the existing approved "Talk to Arjun" wording');
   // A Link cannot create a session, claim the follow-up opener, or call any
@@ -74,7 +78,7 @@ test('Talk to Arjun is the ONE dominant action — a plain Link to Coach that cl
 });
 
 test('the recommended practice is visually secondary to the hero and never completes a practice from Home', () => {
-  const block = codeBetween('4. RECOMMENDED PRACTICE', '5. CONTINUE COACHING');
+  const block = codeBetween('5. RECOMMENDED PRACTICE', '6. CONTINUE COACHING');
   assert.match(block, /navigate\(primaryAction\.to, primaryActionState\)/, 'existing recommendation routing is unchanged');
   assert.doesNotMatch(block, /complete|markDone|POST/i, 'Home never marks a practice complete');
   // The hero owns the saturated full-bleed gradient surface; the merged
@@ -88,7 +92,7 @@ test('Continue coaching is deliberately absent, not faked — no session/eligibi
   // Its eligibility has no read-only source available to Home, so the slot
   // is documented in a comment and left empty rather than driven by an
   // invented signal. The documentation is prose; the code must stay clean.
-  assert.match(src, /5\. CONTINUE COACHING/, 'the deferral is documented in place');
+  assert.match(src, /6\. CONTINUE COACHING/, 'the deferral is documented in place');
   assert.doesNotMatch(codeOnly, /\/api\/sessions|claim-opener|hasConversation|continueCoaching/);
 });
 
@@ -135,7 +139,9 @@ test('all four problem shortcuts are real Links to /coaching with unsent prefill
 });
 
 test('shortcut tiles look like actions (icon + bordered tile) while the day-context dropdown does not — the two can\'t be confused', () => {
-  const shortcutBlock = src.slice(src.indexOf('PROBLEM_SHORTCUTS.map'), src.indexOf('7. MIND JOURNAL'));
+  // Need Help is the last rendered section since Mind Journal moved to the
+  // top of Home, so the block runs to end of file.
+  const shortcutBlock = src.slice(src.indexOf('PROBLEM_SHORTCUTS.map'));
   const dropdownBlock = src.slice(src.indexOf('<select'), src.indexOf('navigate(primaryAction.to'));
   assert.match(shortcutBlock, /border border-dark-600/, 'shortcuts are outlined tiles');
   assert.match(shortcutBlock, /<Icon size=/, 'shortcuts carry a small icon');
@@ -144,7 +150,9 @@ test('shortcut tiles look like actions (icon + bordered tile) while the day-cont
 });
 
 test('the four shortcuts are visually demoted but keep accessible tap targets', () => {
-  const shortcutBlock = src.slice(src.indexOf('PROBLEM_SHORTCUTS.map'), src.indexOf('7. MIND JOURNAL'));
+  // Need Help is the last rendered section since Mind Journal moved to the
+  // top of Home, so the block runs to end of file.
+  const shortcutBlock = src.slice(src.indexOf('PROBLEM_SHORTCUTS.map'));
   assert.match(shortcutBlock, /min-h-\[48px\]/, 'still a real tap target after demotion');
 });
 
@@ -171,17 +179,17 @@ test('Dashboard still makes exactly one read-only GET /api/playbook — the API 
   assert.doesNotMatch(codeOnly, /method:\s*'(POST|PUT|PATCH|DELETE)'/, 'Home writes nothing');
 });
 
-test('Mind Journal is an illustrated CTA linking to /mind-journal with the approved heading/value/CTA copy, no score', () => {
+test('Mind Journal is a compact CTA linking to /mind-journal with the approved heading/value/CTA copy, no score', () => {
   assert.match(src, /to="\/mind-journal"/);
-  // Visual refresh: the card's own heading/value/CTA live in dedicated
-  // `home` namespace keys, distinct from journalDesc/journalHint (still
-  // defined, still read by other surfaces) so the exact approved copy is
-  // asserted where it now actually renders.
+  // Homepage-priority pass: the card's own heading/value/CTA live in
+  // dedicated `home` namespace keys, distinct from journalDesc/journalHint
+  // (still defined, still read by other surfaces) so the exact approved
+  // copy is asserted where it now actually renders.
   assert.ok(src.includes('{t.journalHeading}'));
   assert.ok(translations.includes('Reflect. Grow. Perform.'));
   assert.ok(src.includes('{t.journalValue}'), 'one short value statement, tying reflection to Arjun\'s coaching');
-  assert.ok(translations.includes('your insights help Arjun coach you better'));
-  assert.ok(src.includes('{t.journalCta}'), 'an explicit CTA button');
+  assert.ok(translations.includes('help Arjun coach you more personally'));
+  assert.ok(src.includes('t.journalCta'), 'the CTA copy labels the affordance to open Mind Journal');
   assert.ok(translations.includes('Open Mind Journal'));
   assert.doesNotMatch(codeOnly, /daily habit|every day|har din likho/i, 'no pressure-to-write-daily copy');
 });

@@ -97,14 +97,17 @@ test('Dashboard merged "What\'s today?" container: recommendation row keeps its 
   assert.match(card, /<select/, 'the day-context picker is the new dropdown control');
 });
 
-// Visual refresh: the Mind Journal CTA is now an illustrated banner (art on
-// the left, copy on the right) rather than a single centered launch row, so
-// its heading/value copy reads left-aligned next to the illustration.
-test('Dashboard "Mind Journal" card: illustrated CTA with the approved heading/value/CTA copy, still opening /mind-journal', () => {
+// Homepage-priority pass: the Mind Journal CTA is now a compact card visually
+// aligned with the Talk to Arjun hero — icon circle, centered copy, chevron
+// circle, whole card is one "open this feature" launch action — so, like
+// Talk to Arjun, its copy centers rather than reading left next to an
+// illustration.
+test('Dashboard "Mind Journal" card: compact CTA aligned with Talk to Arjun, with the approved heading/value/CTA copy, still opening /mind-journal', () => {
   const idx = dashboard.indexOf('MIND JOURNAL');
   assert.notEqual(idx, -1, 'the Mind Journal card section should still exist');
-  const card = dashboard.slice(idx, idx + 1700);
-  assert.match(card, /MindJournalArt/, 'the illustrated CTA treatment is present');
+  const card = dashboard.slice(idx, idx + 2200);
+  assert.match(card, /BookOpen/, 'the existing Mind Journal icon is present');
+  assert.match(card, /text-center/, 'the title/value block centers, matching the Talk to Arjun hero');
   assert.match(card, /journalTitle/);
   assert.match(card, /journalHeading/);
   assert.match(card, /journalValue/);
