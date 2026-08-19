@@ -55,9 +55,11 @@ test('the `playbook` translation namespace no longer carries journalTitle/journa
 
 test('Mind Journal keeps its own route and Home entry point — only the Playbook entry point was removed', () => {
   assert.match(app, /path="\/mind-journal"/, 'the /mind-journal route must still exist in App.jsx');
-  assert.match(dashboard, /to="\/mind-journal"/, 'Home must still link to Mind Journal');
-  // Home's OWN journalTitle/journalHeading/journalValue/journalCta live in
-  // the separate `home` namespace and are untouched by removing Playbook's
+  // Homepage-priority pass: Home's card now opens Mind Journal via the
+  // shared TrainGradientCard's onClick + navigate(), not a <Link to>.
+  assert.match(dashboard, /to="\/mind-journal"|navigate\('\/mind-journal'\)/, 'Home must still link to Mind Journal');
+  // Home's OWN journalTitle/journalHeading/journalValue live in the
+  // separate `home` namespace and are untouched by removing Playbook's
   // journalTitle/journalDesc from the `playbook` namespace.
   assert.match(dashboard, /journalTitle/);
   assert.match(dashboard, /journalHeading/);

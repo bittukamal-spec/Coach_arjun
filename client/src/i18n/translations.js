@@ -498,7 +498,7 @@ export const translations = {
       // own heading/value/CTA copy — distinct from journalTitle/Desc/Hint
       // above, which other surfaces (Playbook-style summaries) still read.
       journalHeading: 'Reflect. Grow. Perform.',
-      journalValue: 'Reflect daily to stay clear and grow — your insights help Arjun coach you better.',
+      journalValue: 'Reflect on training, competition and everything in between. Spot what helps your performance and help Arjun coach you more personally.',
       journalCta: 'Open Mind Journal',
       greeting: (name) => `Hi, ${name}`,
       athleteFallback: 'Athlete',
@@ -2467,7 +2467,7 @@ export const translations = {
       journalDesc: 'तुम्हारी अपनी जगह, कोई स्कोर नहीं — reflect करो और आगे ले जाने लायक बात साथ रखो।',
       journalHint: 'जब मन करे तब लिखो — यह सिर्फ तुम्हारे अपने शब्दों के लिए है।',
       journalHeading: 'Reflect करो। बढ़ो। बेहतर खेलो।',
-      journalValue: 'रोज़ reflect करो, साफ सोच बनाए रखो और आगे बढ़ो — तुम्हारी insights से अर्जुन तुम्हें बेहतर coach कर पाएगा।',
+      journalValue: 'ट्रेनिंग, competition और बीच की हर चीज़ पर reflect करो। देखो क्या तुम्हारी performance में मदद करता है और अर्जुन को तुम्हें और personally coach करने में मदद करो।',
       journalCta: 'माइंड जर्नल खोलो',
       greeting: (name) => `हाय, ${name}`,
       athleteFallback: 'एथलीट',

@@ -50,10 +50,12 @@ test('Dashboard: no Starter Plan coach note, session list, locked-session messag
   assert.doesNotMatch(dashboard, /Complete the previous session first/);
 });
 
-test('Dashboard: renders a score-free, illustrated Mind Journal card that opens /mind-journal', () => {
-  // Visual refresh: the card became an illustrated CTA — a real <Link>,
-  // still score-free, with the founder-approved heading/value/CTA copy.
-  assert.match(dashboard, /to="\/mind-journal"/);
+test('Dashboard: renders a score-free Mind Journal card that opens /mind-journal', () => {
+  // Homepage-priority pass: the card reuses the shared TrainGradientCard
+  // (onClick + navigate(), same pattern as the Recommended Practice CTA on
+  // this page), still score-free, with the founder-approved heading/value
+  // copy.
+  assert.match(dashboard, /to="\/mind-journal"|navigate\('\/mind-journal'\)/);
   assert.match(dashboard, /\{t\.journalHeading\}/);
   assert.match(dashboard, /\{t\.journalValue\}/);
   assert.doesNotMatch(dashboard, /\d+\s*\/\s*5|score:\s*\d/i, 'still no numeric score of any kind');

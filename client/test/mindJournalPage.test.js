@@ -636,7 +636,9 @@ test('App.jsx: /mental-fitness still redirects to /mind-journal, and the old sco
 });
 
 test('Dashboard.jsx: the visible check-in link still opens Mind Journal, unchanged by this PR', () => {
-  assert.match(dashboard, /to="\/mind-journal"/);
+  // Homepage-priority pass: Home's card opens Mind Journal via the shared
+  // TrainGradientCard's onClick + navigate(), not a <Link to>.
+  assert.match(dashboard, /to="\/mind-journal"|navigate\('\/mind-journal'\)/);
   assert.doesNotMatch(dashboard, /to="\/mental-fitness"/);
 });
 
