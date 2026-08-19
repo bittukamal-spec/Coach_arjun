@@ -38,7 +38,7 @@ const CARD_GRADIENTS = {
 // the accessible name, matching the flat PracticeTile it replaces.
 function TrainGradientCard({
   variant = 'blue', title, desc, onClick,
-  Illustration, wide = false, className = '',
+  Illustration, Icon, wide = false, className = '',
 }) {
   const { from, to } = CARD_GRADIENTS[variant] || CARD_GRADIENTS.blue;
   const gradient = `linear-gradient(135deg, ${from} 0%, ${to} 100%)`;
@@ -66,7 +66,11 @@ function TrainGradientCard({
 
       <div className={wide ? 'relative z-10 flex-1 min-w-0' : 'relative z-10 flex flex-col flex-1'}>
         <div className="w-11 h-11 rounded-full bg-white shadow-sm flex items-center justify-center shrink-0 mb-3">
-          <RingMark tone={from} size={20} />
+          {/* Icon (optional): every existing caller omits it and keeps the
+              original generic RingMark exactly as before. Only a caller
+              that wants a distinct per-tool identity (e.g. Home's Mind
+              Journal card) passes a Lucide icon here instead. */}
+          {Icon ? <Icon size={20} color={from} aria-hidden="true" /> : <RingMark tone={from} size={20} />}
         </div>
         {/* Mockup fidelity: the old fixed `pr-8` reserved arrow clearance
             across the FULL text column height, not just the one corner the

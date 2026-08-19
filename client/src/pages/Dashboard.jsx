@@ -5,7 +5,7 @@ import ConsentBanner from '../components/ConsentBanner';
 import { useAuth } from '../contexts/AuthContext';
 import { apiFetch } from '../api';
 import { translations } from '../i18n/translations';
-import { ChevronRight, ChevronDown, MessageCircle, Calendar, Sparkles, CloudRain, RefreshCw, Crosshair, TrendingUp } from 'lucide-react';
+import { ChevronRight, ChevronDown, MessageCircle, Calendar, Sparkles, CloudRain, RefreshCw, Crosshair, TrendingUp, NotebookPen } from 'lucide-react';
 import { SectionLabel } from '../components/ui';
 import { CardWaves, RingMark } from '../components/visuals/CardArt';
 import TrainGradientCard from '../components/train/TrainGradientCard';
@@ -154,29 +154,35 @@ export default function Dashboard() {
                  card (TrainGradientCard, wide layout) already approved for
                  Train's "Match & Practice Reflection" banner: icon circle,
                  then heading, then supporting copy stacked in one column,
-                 amber gradient background (no separate border treatment),
-                 arrow affordance in the bottom-right corner. No
-                 Illustration prop — this card's own approved copy runs
-                 noticeably longer than Train's "Match & Practice
-                 Reflection" desc, and at the ≥430px breakpoint where
-                 TrainGradientCard reveals its ghost illustration, the
-                 narrower text column it leaves behind wraps to a 4th line
-                 that collides with the corner arrow badge (confirmed by
-                 screenshot at 430px). Skipping the illustration keeps the
-                 full-width text column at every size the copy is verified
-                 at, without touching the shared component (which Train
-                 still uses with its own, shorter copy). Only the
-                 destination changes — onClick still just navigates to the
-                 existing, unredesigned /mind-journal route. */}
+                 violet gradient background (no separate border treatment),
+                 arrow affordance in the bottom-right corner. Deliberately
+                 the existing `purple` variant/gradient (not amber) and a
+                 distinct `Icon` (NotebookPen, not the shared RingMark) so
+                 this card reads as its own identity rather than a restyled
+                 copy of Train's amber Reflection card. No Illustration
+                 prop — this card's own approved copy runs noticeably
+                 longer than Train's "Match & Practice Reflection" desc,
+                 and at the ≥430px breakpoint where TrainGradientCard
+                 reveals its ghost illustration, the narrower text column
+                 it leaves behind wraps to a 4th line that collides with
+                 the corner arrow badge (confirmed by screenshot at
+                 430px). Skipping the illustration keeps the full-width
+                 text column at every size the copy is verified at,
+                 without touching the shared component (which Train still
+                 uses with its own, shorter copy). Only the destination
+                 changes — onClick still just navigates to the existing,
+                 unredesigned /mind-journal route. */}
             <div className="mb-7">
-              {/* Amber heading ties the section label to the card's own
-                  amber identity below it — same accent-amber token
-                  PlaybookPage already uses for its own reflection copy. */}
-              <h2 className="text-lg font-extrabold mb-3" style={{ color: 'var(--accent-amber)' }}>{t.journalTitle}</h2>
+              {/* Violet heading ties the section label to the card's own
+                  violet identity below it — same purple-500 token already
+                  used elsewhere on this page (the "I need focus" shortcut
+                  icon) as this app's flat violet accent. */}
+              <h2 className="text-lg font-extrabold text-purple-500 mb-3">{t.journalTitle}</h2>
               <TrainGradientCard
-                variant="amber"
+                variant="purple"
                 title={t.journalHeading}
                 desc={t.journalValue}
+                Icon={NotebookPen}
                 wide
                 onClick={() => navigate('/mind-journal')}
               />
