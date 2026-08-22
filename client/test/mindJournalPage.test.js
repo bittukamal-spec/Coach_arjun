@@ -182,7 +182,7 @@ test('translations.js: every Mind Journal athlete-visible string exists in both 
     deleteReflection: ['action', 'title', 'body', 'cancel', 'confirm', 'deleting', 'error'],
     savedScreen: ['title', 'heading', 'body', 'doneBtn', 'viewBtn', 'contextHint'],
     contextStatus: ['label', 'on', 'off', 'manage'],
-    contextScreen: ['title', 'heading', 'body', 'latestFive', 'notUsed', 'offKeepsEntries', 'doneBtn', 'loadError'],
+    contextScreen: ['title', 'heading', 'body', 'historyWindow', 'notUsed', 'offKeepsEntries', 'doneBtn', 'loadError'],
     safety: ['heading', 'okBtn'],
   };
 
@@ -591,8 +591,21 @@ test('context screen: toggling PATCHes the context route and reverts on failure'
 test('context screen: explains the restricted use, and states it is never used to score or prescribe', () => {
   assert.match(contextScreen, /\{cx\.body\}/);
   assert.match(contextScreen, /\{cx\.notUsed\}/);
-  assert.match(translations.en.mindJournal.contextLabel, /latest 5 Mind Journal entries/);
+  assert.match(contextScreen, /\{cx\.historyWindow\}/);
   assert.match(contextScreen, /\{cx\.loadError\}/, 'the setting has its own load-error state');
+  for (const lang of ['en', 'hi']) {
+    const mj = translations[lang].mindJournal;
+    // PR 2: one reflection system, one consent control. The toggle explains
+    // that the athlete's recent Mind Journal reflections personalise
+    // coaching, and the approved window is stated as 10 — not the old 5.
+    assert.match(mj.contextLabel, /Mind Journal/, `${lang} toggle names the Mind Journal`);
+    assert.match(mj.contextLabel, /reflection/i, `${lang} toggle is about reflections`);
+    assert.match(mj.contextScreen.historyWindow, /10/, `${lang} states the 10-reflection window`);
+    assert.doesNotMatch(mj.contextLabel, /\b5\b/, `${lang} must not still promise a 5-entry window`);
+    // Never re-introduces the retired product name on a consent surface.
+    assert.doesNotMatch(mj.contextScreen.body, /Debrief/i);
+  }
+  assert.match(translations.en.mindJournal.contextScreen.notUsed, /score|diagnose|practice/i);
 });
 
 // ── Routing ────────────────────────────────────────────────────────────────

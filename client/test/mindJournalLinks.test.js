@@ -63,9 +63,12 @@ test('No client route or page targets the old scored page component anymore', ()
   }
 });
 
-test('activeTools.js registry: does not need a Mental Fitness or Mind Journal entry (neither is a recommendation target), and references neither', () => {
-  // Mind Journal is an entry point athletes navigate to directly, not a
-  // recommended-tool target validated by isActiveToolRoute — so its absence
-  // from this registry is correct, not an oversight.
-  assert.doesNotMatch(activeTools, /mental-fitness|mind-journal/i);
+test('activeTools.js registry: carries the Mind Journal reflection routes and no retired Mental Fitness route', () => {
+  // PR 2 cutover: reflection recommendations resolve to the Mind Journal, so
+  // both its home and its reflection flow must validate as active tool
+  // routes. The retired scored Mental Fitness route never returns.
+  assert.match(activeTools, /'\/mind-journal'/);
+  assert.match(activeTools, /'\/mind-journal\/new'/);
+  assert.doesNotMatch(activeTools, /mental-fitness/i);
+  assert.doesNotMatch(activeTools, /'\/debrief'/);
 });

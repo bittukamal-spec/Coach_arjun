@@ -15,7 +15,7 @@ import RitualPage from './pages/RitualPage';
 import StartingProfilePage from './pages/StartingProfilePage';
 import PerformanceCheckinPage from './pages/PerformanceCheckinPage';
 import TrainPage from './pages/TrainPage';
-import DebriefPage from './pages/DebriefPage';
+import DebriefRedirect from './pages/DebriefRedirect';
 import FocusLockGame from './pages/games/FocusLockGame';
 import ResetRallyGame from './pages/games/ResetRallyGame';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
@@ -159,14 +159,11 @@ function App() {
           </ProtectedRoute>
         }
       />
-      <Route
-        path="/debrief"
-        element={
-          <ProtectedRoute requireOnboarding={true}>
-            <DebriefPage />
-          </ProtectedRoute>
-        }
-      />
+      {/* Match & Practice Reflection retired as an athlete entry point
+          (PR 2 cutover) — reflection is the Mind Journal now. Old links keep
+          working: a prescribed reflection carries its prescriptionId into
+          the reflection flow, everything else lands on the journal. */}
+      <Route path="/debrief" element={<DebriefRedirect />} />
       {/* Games hub folded into Train — redirect to keep old links/bookmarks alive */}
       <Route path="/games" element={<Navigate to="/train" replace />} />
       {/* Mental Reps games — full screen, no BottomNav */}

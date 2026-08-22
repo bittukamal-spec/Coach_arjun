@@ -1,7 +1,7 @@
 // Mental Playbook — the private reward/progress surface of the Healthy
 // Hook loop. Read-only aggregation over models that already exist
-// (ToolReport, SelfTalkCard, Debrief, and — since PR-13 — Prescription's
-// outcome fields), no AI call. Insight detection is deliberately rule-based
+// (ToolReport, SelfTalkCard, MindJournalEntry, Debrief, and — since PR-13 —
+// Prescription's outcome fields), no AI call. Insight detection is deliberately rule-based
 // and returns a KEY (plus params), not prose, so the client renders it
 // bilingually and copy stays in one place. "Progress without pressure":
 // plain counts and short athlete-visible lessons only — no scores, no
@@ -16,6 +16,11 @@ const router = express.Router();
 const prisma = new PrismaClient();
 
 const OUTCOME_HISTORY_LIMIT = 10;
+// Reflections shown in the Playbook. After the PR 2 cutover this is a merged,
+// recent-first history: new Mind Journal reflections plus the athlete's
+// historical rows from the retired reflection tool, which stay READ-ONLY —
+// nothing here migrates, rewrites, or deletes a Debrief.
+const REFLECTION_HISTORY_LIMIT = 5;
 const NEUTRAL_PRACTICE_FALLBACK = 'Mental Rep';
 
 function parseDetails(raw) {
@@ -31,12 +36,43 @@ function topEntry(counts) {
   return sorted.length ? { value: sorted[0][0], count: sorted[0][1] } : null;
 }
 
+// Maps the two reflection sources into one shape without fabricating a
+// mapping between them. A Mind Journal reflection has a context and Arjun's
+// stored takeaway; a legacy row has whatever the old tool recorded. Fields
+// the other source has no equivalent for are simply absent.
+function mergeReflectionHistory(journalReflections, legacyDebriefs) {
+  const journalItems = (journalReflections || []).map((entry) => ({
+    id: entry.id,
+    source: 'mind_journal',
+    createdAt: entry.createdAt,
+    // The fixed enum key; the client renders it bilingually. `customContext`
+    // is the athlete's own label for SOMETHING_ELSE and is shown verbatim.
+    contextType: entry.contextType ?? null,
+    customContext: entry.customContext ?? null,
+    takeaway: entry.arjunTakeaway ?? null,
+  }));
+
+  const legacyItems = (legacyDebriefs || []).map((row) => ({
+    id: row.id,
+    source: 'debrief',
+    createdAt: row.createdAt,
+    eventType: row.eventType ?? null,
+    resultType: row.resultType ?? null,
+    nextFocus: row.nextFocus ?? null,
+    arjunInsight: row.arjunInsight ?? null,
+  }));
+
+  return [...journalItems, ...legacyItems]
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .slice(0, REFLECTION_HISTORY_LIMIT);
+}
+
 router.get('/', authenticate, async (req, res) => {
   try {
     const weekAgo  = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-    const [reports, focusCards, reflections, outcomePrescriptions] = await Promise.all([
+    const [reports, focusCards, journalReflections, legacyDebriefs, outcomePrescriptions] = await Promise.all([
       prisma.toolReport.findMany({
         where: { userId: req.userId, createdAt: { gte: monthAgo } },
         orderBy: { createdAt: 'desc' },
@@ -48,10 +84,19 @@ router.get('/', authenticate, async (req, res) => {
         take: 5,
         select: { id: true, focusWord: true, resetWord: true, powerLine: true, isMatchDayCard: true, createdAt: true },
       }),
+      prisma.mindJournalEntry.findMany({
+        where: { userId: req.userId, entryType: 'REFLECTION' },
+        orderBy: { createdAt: 'desc' },
+        take: REFLECTION_HISTORY_LIMIT,
+        select: {
+          id: true, contextType: true, customContext: true,
+          arjunTakeaway: true, createdAt: true,
+        },
+      }),
       prisma.debrief.findMany({
         where: { userId: req.userId },
         orderBy: { createdAt: 'desc' },
-        take: 5,
+        take: REFLECTION_HISTORY_LIMIT,
         select: { id: true, eventType: true, resultType: true, nextFocus: true, arjunInsight: true, createdAt: true },
       }),
       // Prescription outcomes (PR-13) — "What I'm learning". Newest first,
@@ -124,6 +169,12 @@ router.get('/', authenticate, async (req, res) => {
       cycleStatus: p.cycle?.status || null,
     }));
 
+    // One merged, recent-first reflection history. Each item declares its own
+    // `source`, and carries ONLY fields that genuinely exist on that source —
+    // no field is invented for the other one, and no legacy row is rewritten
+    // to look like a Mind Journal reflection.
+    const reflections = mergeReflectionHistory(journalReflections, legacyDebriefs);
+
     res.json({
       weekRepCount,
       weekResetCount,
@@ -147,3 +198,5 @@ module.exports = router;
 // named property to the router function/object doesn't change how
 // index.js consumes it as Express middleware.
 module.exports.practiceDisplayName = practiceDisplayName;
+module.exports.mergeReflectionHistory = mergeReflectionHistory;
+module.exports.REFLECTION_HISTORY_LIMIT = REFLECTION_HISTORY_LIMIT;

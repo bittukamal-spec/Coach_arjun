@@ -33,13 +33,16 @@ function playbookNamespace(lang) {
 
 // ── 1. No Mind Journal entry point anywhere in Playbook's source ───────────
 
-test('PlaybookPage: carries no /mind-journal navigation, card, or copy reference', () => {
-  assert.doesNotMatch(playbook, /\/mind-journal/);
+test('PlaybookPage: carries no separate Mind Journal card — its only Mind Journal link is the Reflections action', () => {
+  // Mind Journal keeps ONE prominent entry point, on Home. Playbook must not
+  // grow a second Mind Journal card of its own.
   assert.doesNotMatch(playbook, /journalTitle|journalDesc/);
-  // Modernization pass 2: Pencil is now the Reflections section icon
-  // (unrelated to Mind Journal), so it is no longer a valid proxy for "the
-  // Mind Journal card is gone" — the /mind-journal and journalTitle/Desc
-  // checks above are the real guarantee.
+  // PR 2 cutover: Reflections is a Mind Journal action now, not a /debrief
+  // one — that single navigation is the only Mind Journal route here.
+  assert.doesNotMatch(playbook, /\/debrief/);
+  const journalLinks = playbook.match(/navigate\('\/mind-journal[^']*'\)/g) || [];
+  assert.equal(journalLinks.length, 1, 'exactly one Mind Journal navigation — the Reflections action');
+  assert.equal(journalLinks[0], "navigate('/mind-journal/new')");
 });
 
 // ── 2. The now-unused playbook.journalTitle/journalDesc copy is gone ───────

@@ -1,6 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
-import { Info, History, Eye, RotateCcw, ClipboardList, MessageSquare, Target, RefreshCw, Layers, Dumbbell, GraduationCap, ChevronLeft, X, MoreVertical } from 'lucide-react';
+import { Info, History, Eye, RotateCcw, ClipboardList, NotebookPen, MessageSquare, Target, RefreshCw, Layers, Dumbbell, GraduationCap, ChevronLeft, X, MoreVertical } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
@@ -97,7 +97,7 @@ function TypingIndicator() {
 
 // ─── Lucide icon lookup for APP tool cards ────────────────────────────────────
 
-const ICON_MAP = { Eye, RotateCcw, ClipboardList, MessageSquare, Target, RefreshCw, Layers, Dumbbell, GraduationCap };
+const ICON_MAP = { Eye, RotateCcw, ClipboardList, NotebookPen, MessageSquare, Target, RefreshCw, Layers, Dumbbell, GraduationCap };
 
 // ─── ArjunText: formats Arjun's plain-text responses ─────────────────────────
 

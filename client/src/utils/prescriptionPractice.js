@@ -6,7 +6,10 @@
 // athlete can be routed to directly and reach a real "I finished this"
 // action:
 //   - pressure_reset            -> /body-reset  (BodyResetPage saveSession())
-//   - post_performance_reflection -> /debrief   (DebriefPage submitDebrief())
+//   - post_performance_reflection -> /mind-journal/new  (ReflectionWizard
+//     handleSave()) — repointed in the PR 2 cutover. The practice key, the
+//     prescriptionId carried in route state, and the completion endpoint are
+//     all unchanged; only the surface the athlete lands on moved.
 //
 // Every other approved practice key intentionally has NO entry here yet —
 // not because it's unimportant, but because there is no real integration
@@ -24,7 +27,7 @@
 // point for it.
 const PRESCRIBED_PRACTICE_ROUTES = {
   pressure_reset: '/body-reset',
-  post_performance_reflection: '/debrief',
+  post_performance_reflection: '/mind-journal/new',
 };
 
 export function practiceRouteFor(practiceKey) {

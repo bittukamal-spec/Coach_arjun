@@ -50,7 +50,7 @@ const PLAN_TOOLS = {
   reflect_like_an_athlete: {
     toolId: 'reflect_like_an_athlete',
     label: 'Reflect Like an Athlete',
-    route: '/debrief',
+    route: '/mind-journal/new',
     skillKey: 'reflection',
     duration: 4,
     outputType: 'reflection',

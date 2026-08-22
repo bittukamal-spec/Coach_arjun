@@ -119,9 +119,17 @@ test('Reflections: shows the single most recent reflection — date, short conte
   assert.match(src, /const reflection = data\?\.reflections\?\.\[0\] \|\| null;/);
   const block = src.slice(src.indexOf('{pb.reflectionsHeading}'));
   assert.match(block, /\{pb\.reflectionsEmpty\}/);
-  assert.match(block, /navigate\('\/debrief'\)/);
+  // PR 2 cutover: the action opens the Mind Journal reflection.
+  assert.match(block, /navigate\('\/mind-journal\/new'\)/);
+  assert.doesNotMatch(block, /\/debrief/);
   assert.match(block, /\{pb\.reflectionsCta\}/);
-  // Athlete-written takeaway/insight still render verbatim.
+  // A new Mind Journal reflection renders its context and Arjun's takeaway.
+  assert.match(block, /reflection\.source === 'mind_journal'/);
+  assert.match(block, /reflectionContextLabel\(reflection, mj\)/);
+  assert.match(block, /reflection\.takeaway/);
+  // A historical row from the retired tool keeps rendering exactly the
+  // fields that row genuinely has — read-only, nothing rewritten.
+  assert.match(block, /reflection\.eventType/);
   assert.match(block, /reflection\.nextFocus/);
   assert.match(block, /reflection\.arjunInsight/);
   assert.match(pbEn, /reflectionsEmpty:\s*'No reflections yet'/);

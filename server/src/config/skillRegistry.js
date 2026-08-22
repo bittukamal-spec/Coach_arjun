@@ -36,7 +36,9 @@ const SKILL_REGISTRY = {
     name: 'Reflection',
     explanation: 'Turning a session into one clear, honest takeaway instead of just moving on or dwelling.',
     tools: ['after-the-match'],
-    route: '/debrief',
+    // PR 2 cutover: reflection is the Mind Journal. The old /debrief screen
+    // is retired as an athlete entry point.
+    route: '/mind-journal/new',
     whenToRecommend: 'bad training, after a performance, not improving, not knowing what went wrong, coach feedback, a poor session',
     whenNotToRecommend: 'the athlete is mid-competition or about to perform, not after it',
   },

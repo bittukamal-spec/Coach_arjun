@@ -32,7 +32,7 @@ const CARD_GRADIENTS = {
 // Premium gradient practice card (Train redesign). Two layouts:
 //  - tile (default): square-ish card for the 2-column groups (Ritual,
 //    Pressure Reset, Quick Rep, Focus Card Builder).
-//  - wide: full-width banner for Match & Practice Reflection, illustration
+//  - wide: full-width banner for a lone practice in a group, illustration
 //    sitting to the right of the copy instead of bleeding off a corner.
 // The whole card is the single interactive control — its title/desc supply
 // the accessible name, matching the flat PracticeTile it replaces.
