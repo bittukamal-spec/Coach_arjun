@@ -17,6 +17,7 @@ const activityTracking = require('../services/activityTracking');
 const { aiLimiter } = require('../middleware/rateLimits');
 const { isTrialActive } = require('./chat');
 const defaultGenerateReflectionReview = require('../services/mindJournal/generateReflectionReview');
+const { REVIEW_TIMEOUT_MS, EMPTY_REVIEW } = defaultGenerateReflectionReview;
 
 const prisma = new PrismaClient();
 
@@ -37,6 +38,29 @@ const POST_ALLOWED_KEYS = [
   'cueFeedback', 'cueWordSnapshot',
 ];
 const CONTEXT_ALLOWED_KEYS = ['enabled'];
+
+// Every athlete-written field on a reflection. Screened as one text BEFORE
+// structured validation, so a distress phrase still reaches the safety path
+// when the rest of the form is incomplete.
+const REFLECTION_TEXT_KEYS = [
+  'customContext', 'customEvent', 'customState', 'customThought', 'customResponse', 'customBody',
+];
+
+// Generous ceiling per field before screening. Every real field maxes out at
+// 80 characters, so legitimate athlete text is never truncated — this only
+// stops an oversized value from being scanned in full.
+const MAX_PRESCREEN_FIELD_LENGTH = 2000;
+
+// Pulls the athlete-written text out of a raw, not-yet-validated body.
+// Anything that is not a non-empty string is ignored, so a malformed or
+// hostile value can never reach the scanner.
+function collectReflectionText(body) {
+  return REFLECTION_TEXT_KEYS.map((key) => {
+    const value = body?.[key];
+    if (typeof value !== 'string' || !value) return null;
+    return value.length > MAX_PRESCREEN_FIELD_LENGTH ? value.slice(0, MAX_PRESCREEN_FIELD_LENGTH) : value;
+  });
+}
 
 function serializeEntry(entry) {
   return {
@@ -86,6 +110,9 @@ function createMindJournalRouter(
   consentMiddleware = requireGuardianConsent,
   generateReflectionReview = defaultGenerateReflectionReview,
   trialCheck = isTrialActive,
+  // Injectable purely so tests can exercise the deadline without waiting
+  // 25 real seconds. Production always uses the real bound.
+  reviewTimeoutMs = REVIEW_TIMEOUT_MS,
 ) {
   const router = express.Router();
 
@@ -94,6 +121,33 @@ function createMindJournalRouter(
   router.post('/', authenticate, aiLimiter, consentMiddleware, async (req, res) => {
     const keysCheck = validateAllowedKeys(req.body, POST_ALLOWED_KEYS);
     if (!keysCheck.valid) return res.status(400).json({ error: keysCheck.error });
+
+    // ── Safety before completeness (unified reflection only) ─────────────
+    // An athlete in distress may well leave the rest of the form unfinished,
+    // so their words are screened before anything is checked for
+    // completeness. Without this, an incomplete reflection carrying a crisis
+    // phrase would return an ordinary 400 and the distress would go
+    // unseen. Reads the raw body defensively — nothing here assumes the
+    // payload is well-formed, and non-string values are simply skipped.
+    //
+    // Legacy / quick-note / guided submissions are untouched: they keep
+    // screening after validation, in the block further down.
+    if (req.body?.entryType === 'REFLECTION') {
+      const earlyScreen = screenSafetyFields(...collectReflectionText(req.body));
+      if (earlyScreen.flagged) {
+        recordSafetyEvent(req.userId, 'mind_journal', earlyScreen.category, {
+          riskLevel: earlyScreen.riskLevel,
+          sourceType: 'mind_journal',
+        });
+        const flaggedUser = await client.user.findUnique({
+          where: { id: req.userId }, select: { language: true },
+        }).catch(() => null);
+        return res.json({
+          safetyFlag: 'needs_support',
+          guidance: getSafetyGuidance(earlyScreen.category, flaggedUser?.language),
+        });
+      }
+    }
 
     // Whether the athlete has an active Focus Card decides which conditional
     // question the wizard showed, and therefore which one the server must
@@ -136,16 +190,10 @@ function createMindJournalRouter(
     if (!screen.flagged && helpedOrGotInWay) screen = screenSafetyText(helpedOrGotInWay);
     if (!screen.flagged && takeForward) screen = screenSafetyText(takeForward);
 
-    // Unified reflection (PR 1) — the approved stronger contract. Every
-    // athlete-written field on a reflection, including every "Write my own",
-    // is screened TOGETHER as one text so a phrase split across two fields is
+    // A reflection was already screened above, before validation — every
+    // athlete-written field together, so a phrase split across two of them is
     // still caught. The per-field screens above are unchanged and still cover
     // the legacy / quick-note / guided shapes exactly as before.
-    if (!screen.flagged && isReflection) {
-      screen = screenSafetyFields(
-        customContext, customEvent, customState, customThought, customResponse, customBody,
-      );
-    }
 
     if (screen.flagged) {
       recordSafetyEvent(req.userId, 'mind_journal', screen.category, {
@@ -226,7 +274,16 @@ function createMindJournalRouter(
           where: { id: req.userId },
           select: { name: true, sport: true, language: true },
         }).catch(() => null);
-        const review = await generateReflectionReview({
+        // Two layers, deliberately. The generator passes this signal to the
+        // SDK so a slow call is genuinely cancelled rather than left running.
+        // The race is the belt-and-braces half: once the deadline fires the
+        // handler moves on, and `timedOut` makes sure a result that arrives
+        // afterwards can never write review data to an entry the athlete has
+        // already been shown.
+        const controller = new AbortController();
+        let timedOut = false;
+        let deadlineTimer;
+        const pending = generateReflectionReview({
           entry: {
             contextType, customContext, eventTags, customEvent, states, customState,
             thoughtTags, customThought, responseTags, customResponse,
@@ -234,8 +291,24 @@ function createMindJournalRouter(
           },
           priorEntries,
           user: reviewUser || {},
-        });
-        if (review.noticed || review.takeaway) {
+          signal: controller.signal,
+        // A late rejection must not surface as an unhandled rejection once
+        // the race has already been decided.
+        }).catch(() => ({ ...EMPTY_REVIEW }));
+
+        const review = await Promise.race([
+          pending,
+          new Promise((resolve) => {
+            deadlineTimer = setTimeout(() => {
+              timedOut = true;
+              controller.abort();
+              resolve({ ...EMPTY_REVIEW });
+            }, reviewTimeoutMs);
+          }),
+        ]);
+        clearTimeout(deadlineTimer);
+
+        if (!timedOut && (review.noticed || review.takeaway)) {
           // Scoped to the row just created for this athlete. If the update
           // fails, `saved` stays the review-less entry, so what the athlete
           // is shown always matches what is actually stored.

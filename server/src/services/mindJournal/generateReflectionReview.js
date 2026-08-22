@@ -27,6 +27,15 @@ const MAX_NOTICED_LENGTH = 600;
 const MAX_TAKEAWAY_LENGTH = 240;
 const MAX_PATTERN_LENGTH = 240;
 
+// The review is optional; the athlete's reflection is already saved by the
+// time it runs. They must never sit waiting on a slow provider, so the call
+// is bounded well below the SDK's ~10-minute default.
+//
+// maxRetries: 0 matters as much as the timeout itself — the SDK retries a
+// timed-out request twice by default, which would turn a 25s bound into 75s
+// of wall clock.
+const REVIEW_TIMEOUT_MS = 25000;
+
 // Athlete-authored text is quoted verbatim into the prompt so Arjun can work
 // from what was actually written, but it is never echoed into the recurring
 // history window (see buildReflectionHistoryWindow).
@@ -128,7 +137,7 @@ const EMPTY_REVIEW = Object.freeze({ noticed: null, takeaway: null, pattern: nul
 // a network call — the default builds the real client per request, matching
 // the convention used elsewhere in this codebase.
 function createGenerateReflectionReview(anthropicFactory = () => new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })) {
-  return async function generateReflectionReview({ entry, priorEntries = [], user = {} }) {
+  return async function generateReflectionReview({ entry, priorEntries = [], user = {}, signal = undefined }) {
     try {
       const prompt = buildReviewPrompt({
         entry,
@@ -142,6 +151,13 @@ function createGenerateReflectionReview(anthropicFactory = () => new Anthropic({
         model: process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001',
         max_tokens: 700,
         messages: [{ role: 'user', content: prompt }],
+      }, {
+        timeout: REVIEW_TIMEOUT_MS,
+        maxRetries: 0,
+        // Real cancellation: when the caller's deadline fires it aborts this
+        // signal and the underlying HTTP request is dropped, so no late
+        // response is left in flight to attach itself to anything.
+        signal,
       });
       return normalizeReviewPayload(msg.content?.[0]?.text, { priorCount: priorEntries.length });
     } catch (err) {
@@ -160,4 +176,5 @@ module.exports.buildReviewPrompt = buildReviewPrompt;
 module.exports.normalizeReviewPayload = normalizeReviewPayload;
 module.exports.describeAnswers = describeAnswers;
 module.exports.MIN_PRIOR_ENTRIES_FOR_PATTERN = MIN_PRIOR_ENTRIES_FOR_PATTERN;
+module.exports.REVIEW_TIMEOUT_MS = REVIEW_TIMEOUT_MS;
 module.exports.EMPTY_REVIEW = EMPTY_REVIEW;
