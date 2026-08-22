@@ -1,48 +1,64 @@
-// Unified reflection context for the main coaching chat (PR 2 cutover).
+// The single reflection-context pipeline for the main coaching chat.
 //
-// After the cutover there is exactly ONE reflection system — the Mind
-// Journal — so there is exactly one reflection block in Arjun's prompt.
-// This module builds it, and it is the only place reflection history is
-// allowed to reach Coach.
+// After the PR 2 cutover the Mind Journal is Arjun's only reflection system,
+// so Coach gets exactly ONE reflection block, built here: one consent gate,
+// one chronology across every source, one total cap, one prompt section.
+//
+// ── Sources ─────────────────────────────────────────────────────────────
+//   1. new unified reflections      (MindJournalEntry, entryType REFLECTION)
+//   2. older Mind Journal shapes    (MindJournalEntry, Quick Note / Guided /
+//                                    pre-typed legacy rows)
+//   3. historical reflections       (Debrief, from the retired tool)
+//
+// They are merged by actual entry date, newest first, and truncated to
+// MAX_TOTAL_ENTRIES records IN TOTAL — never a cap per source. The ten most
+// recent eligible records across the whole history are all Coach ever sees.
 //
 // ── Privacy contract ────────────────────────────────────────────────────
-// Gated by the single existing athlete control, User.mindJournalContextEnabled
-// (default false). Consent off → null: no Mind Journal reflection, and no
-// legacy Debrief either. That is a NARROWING of the previous behaviour, in
-// which the old `## Recent Post-Match Debriefs` section was injected
-// unconditionally with no athlete control at all. Nothing here broadens
-// consent: the legacy fields surfaced below are exactly the three the old
-// unconditional section already surfaced (wentWell / doDifferently /
-// nextFocus), now bounded, capped, and behind the toggle.
+// Gated by the single athlete control, User.mindJournalContextEnabled
+// (default false). Consent off → null: nothing is injected and nothing is
+// even queried, from any source.
 //
-// New Mind Journal reflections are NOT sent as raw entries. They go through
-// buildReflectionHistoryWindow's compact structured projection — tag keys
-// the app itself defined plus Arjun's own stored one-line takeaway. Every
-// "Write my own" field the athlete typed (customContext / customEvent /
-// customState / customThought / customResponse / customBody) stays out.
+// Unifying the paths changed WHICH records are eligible, never WHAT a record
+// exposes. Each source keeps the exact projection it had:
+//   - REFLECTION rows → buildReflectionHistoryWindow's compact structured
+//     projection (tag keys the app defined + Arjun's own stored takeaway).
+//     Every "Write my own" field the athlete typed stays out.
+//   - older Mind Journal rows → loadMindJournalContext's restricted mapping,
+//     unchanged (guided narratives are never selected).
+//   - Debrief rows → only wentWell / doDifferently / nextFocus, the exact
+//     three the retired unconditional prompt section already surfaced, now
+//     bounded and behind the consent gate.
 //
-// Historical Debrief rows are read-only here: this module only ever reads
-// them, never writes, migrates, or deletes.
+// Historical rows are read-only here: this module only ever reads. No
+// migration, no backfill, no write of any kind.
 
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const {
-  buildReflectionHistoryWindow,
+  mapReflectionForHistory,
   formatReflectionHistoryLine,
   HISTORY_SELECT,
-  MAX_HISTORY_ENTRIES,
 } = require('./buildReflectionHistoryWindow');
+const {
+  mapEntryForCoach,
+  formatMindJournalContextLine,
+  COACH_CONTEXT_SELECT,
+} = require('./loadMindJournalContext');
 
-// Approved window for the new reflection system.
-const MAX_REFLECTIONS = MAX_HISTORY_ENTRIES; // 10
-// Unchanged from the old unconditional injection — the legacy tail is not
-// widened by moving it behind consent.
-const MAX_LEGACY_DEBRIEFS = 2;
+// The approved window: ten reflection records in total, across all sources.
+const MAX_TOTAL_ENTRIES = 10;
+
 // Legacy Debrief text is athlete-written and unbounded in the old model.
 const MAX_LEGACY_FIELD_LENGTH = 240;
 
-// The only Debrief columns that may ever be read for Coach context — the
-// exact three the retired prompt section already used.
+// Source markers. Only these three values ever appear on a mapped item, and
+// each one selects both its projection above and its line renderer below.
+const SOURCE_REFLECTION = 'reflection';
+const SOURCE_JOURNAL = 'journal';
+const SOURCE_LEGACY_DEBRIEF = 'legacy_debrief';
+
+// The only Debrief columns that may ever be read for Coach context.
 const LEGACY_DEBRIEF_SELECT = {
   wentWell: true,
   doDifferently: true,
@@ -77,7 +93,7 @@ function mapLegacyDebrief(row) {
 }
 
 // One compact line per legacy reflection. Empty fields are omitted rather
-// than rendered as empty headings — same shape as the Mind Journal lines.
+// than rendered as empty headings — same shape as the other renderers.
 function formatLegacyReflectionLine(item) {
   const when = new Date(item.createdAt).toISOString().slice(0, 10);
   const parts = [];
@@ -88,32 +104,51 @@ function formatLegacyReflectionLine(item) {
   return body ? `- ${when}: ${body}` : `- ${when}`;
 }
 
-// Renders the single reflection block. Returns '' when there is nothing to
-// show, so the prompt never carries an empty heading.
-function buildReflectionContextSection(context) {
-  if (!context) return '';
-  const reflections = Array.isArray(context.reflections) ? context.reflections : [];
-  const legacy = Array.isArray(context.legacy) ? context.legacy : [];
-  if (!reflections.length && !legacy.length) return '';
+// Each item renders through its own source's formatter, so a record is
+// described exactly as its source allows and never normalized into a wider
+// shared shape.
+function formatReflectionLine(item) {
+  if (item.source === SOURCE_REFLECTION) return formatReflectionHistoryLine(item);
+  if (item.source === SOURCE_LEGACY_DEBRIEF) return formatLegacyReflectionLine(item);
+  return formatMindJournalContextLine(item);
+}
 
-  const blocks = [];
-  if (reflections.length) {
-    blocks.push(`Recent Mind Journal reflections (newest first):\n${reflections.map(formatReflectionHistoryLine).join('\n')}`);
-  }
-  if (legacy.length) {
-    blocks.push(`Older reflections the athlete wrote in the retired reflection tool (read-only history):\n${legacy.map(formatLegacyReflectionLine).join('\n')}`);
-  }
+// Newest first. Deterministic tie-break on source order so two records
+// sharing a timestamp always render in the same sequence.
+const SOURCE_ORDER = [SOURCE_REFLECTION, SOURCE_JOURNAL, SOURCE_LEGACY_DEBRIEF];
+function byNewestFirst(a, b) {
+  const diff = new Date(b.createdAt) - new Date(a.createdAt);
+  if (diff !== 0) return diff;
+  return SOURCE_ORDER.indexOf(a.source) - SOURCE_ORDER.indexOf(b.source);
+}
+
+// Merges the already-projected items from every source into the single
+// bounded history. Exported so the selection rule can be tested directly.
+function mergeReflectionContext(reflections = [], journalEntries = [], legacyDebriefs = []) {
+  return [
+    ...reflections.map((e) => ({ source: SOURCE_REFLECTION, ...mapReflectionForHistory(e) })),
+    ...journalEntries.map((e) => ({ source: SOURCE_JOURNAL, ...mapEntryForCoach(e) })),
+    ...legacyDebriefs.map((e) => ({ source: SOURCE_LEGACY_DEBRIEF, ...mapLegacyDebrief(e) })),
+  ]
+    .sort(byNewestFirst)
+    .slice(0, MAX_TOTAL_ENTRIES);
+}
+
+// Renders the one reflection block. Returns '' when there is nothing to
+// show, so the prompt never carries an empty heading.
+function buildReflectionContextSection(items) {
+  if (!Array.isArray(items) || !items.length) return '';
 
   return `## Recent Reflections — athlete opted in
-The athlete turned on Mind Journal context, so their recent reflections are available to you as background only.
-${blocks.join('\n\n')}
+The athlete turned on Mind Journal context, so their ${MAX_TOTAL_ENTRIES} most recent reflections are available to you as background only, newest first:
+${items.map(formatReflectionLine).join('\n')}
 How to use this:
 - Do not diagnose, label, or profile the athlete from these reflections.
-- Do not assume anything here is still true today — if it seems relevant, ask them about it.
+- Do not assume one thing here caused another, and do not assume anything here is still true today — if it seems relevant, ask them about it.
 - Do not treat a reflection as a confirmed barrier, and never confirm a barrier from reflections alone.
 - Do not automatically prescribe a Mental Rep from reflections — a prescription still needs the normal coaching flow (clarify barrier → athlete confirms → one approved Mental Rep).
 - Do not calculate or infer any score, rating, or ranking from these.
-- What the athlete says in THIS conversation always takes priority over this history.
+- Use this only where it is genuinely relevant; what the athlete says in THIS conversation always takes priority.
 - You are not required to mention their reflections.`;
 }
 
@@ -125,39 +160,49 @@ function createLoadReflectionContext(client = prisma) {
       where: { id: userId },
       select: { mindJournalContextEnabled: true },
     });
-    // Consent off → no reflection context of any kind, new or legacy.
+    // Consent off → nothing queried and nothing injected, from any source.
     if (!user?.mindJournalContextEnabled) return null;
 
-    const [entries, debriefs] = await Promise.all([
+    // Three small bounded reads, not an unbounded merge: the newest ten of
+    // any one source is the most that source can contribute to the newest
+    // ten overall, so ten from each is exactly enough to be correct.
+    const [reflections, journalEntries, legacyDebriefs] = await Promise.all([
       client.mindJournalEntry.findMany({
         where: { userId, entryType: 'REFLECTION' },
         orderBy: { createdAt: 'desc' },
-        take: MAX_REFLECTIONS,
+        take: MAX_TOTAL_ENTRIES,
         select: HISTORY_SELECT,
+      }).catch(() => []),
+      client.mindJournalEntry.findMany({
+        where: { userId, entryType: { not: 'REFLECTION' } },
+        orderBy: { createdAt: 'desc' },
+        take: MAX_TOTAL_ENTRIES,
+        select: COACH_CONTEXT_SELECT,
       }).catch(() => []),
       client.debrief.findMany({
         where: { userId },
         orderBy: { createdAt: 'desc' },
-        take: MAX_LEGACY_DEBRIEFS,
+        take: MAX_TOTAL_ENTRIES,
         select: LEGACY_DEBRIEF_SELECT,
       }).catch(() => []),
     ]);
 
-    const reflections = buildReflectionHistoryWindow(entries);
-    const legacy = (debriefs || []).slice(0, MAX_LEGACY_DEBRIEFS).map(mapLegacyDebrief);
-    if (!reflections.length && !legacy.length) return null;
-
-    return { reflections, legacy };
+    const items = mergeReflectionContext(reflections, journalEntries, legacyDebriefs);
+    return items.length ? items : null;
   };
 }
 
 module.exports = createLoadReflectionContext();
 module.exports.createLoadReflectionContext = createLoadReflectionContext;
 module.exports.buildReflectionContextSection = buildReflectionContextSection;
+module.exports.mergeReflectionContext = mergeReflectionContext;
+module.exports.formatReflectionLine = formatReflectionLine;
 module.exports.formatLegacyReflectionLine = formatLegacyReflectionLine;
 module.exports.mapLegacyDebrief = mapLegacyDebrief;
 module.exports.LEGACY_DEBRIEF_SELECT = LEGACY_DEBRIEF_SELECT;
 module.exports.FORBIDDEN_LEGACY_KEYS = FORBIDDEN_LEGACY_KEYS;
-module.exports.MAX_REFLECTIONS = MAX_REFLECTIONS;
-module.exports.MAX_LEGACY_DEBRIEFS = MAX_LEGACY_DEBRIEFS;
+module.exports.MAX_TOTAL_ENTRIES = MAX_TOTAL_ENTRIES;
 module.exports.MAX_LEGACY_FIELD_LENGTH = MAX_LEGACY_FIELD_LENGTH;
+module.exports.SOURCE_REFLECTION = SOURCE_REFLECTION;
+module.exports.SOURCE_JOURNAL = SOURCE_JOURNAL;
+module.exports.SOURCE_LEGACY_DEBRIEF = SOURCE_LEGACY_DEBRIEF;

@@ -1,35 +1,30 @@
-// Optional Arjun context load for the score-free Mind Journal (main
-// coaching chat ONLY — never Quick Chat, profile-intro, weekly reports,
-// visualization, self-talk generation, body reset, debrief, or any founder
-// view). Makes no Anthropic call itself; purely a data read.
+// Restricted Coach projection for the OLDER Mind Journal shapes — Quick
+// Note, the two-page Guided Reflection, and pre-typed legacy rows.
 //
-// Privacy-minimizing Coach contract (final pilot mapping):
-//   - consent off (User.mindJournalContextEnabled default false) → null
-//   - latest 5 owned entries, newest-first, EXCLUDING unified REFLECTION
-//     rows: since the PR 2 cutover those are the reflection system and reach
-//     Coach only through loadReflectionContext.js's compact structured
-//     window. Excluding them here is what keeps one reflection from being
-//     represented twice in the same prompt, and keeps this loader's older
-//     free-text contract (note / takeForward / customState / customContext)
-//     off reflections entirely.
+// This module no longer loads anything and no longer builds a prompt
+// section of its own. Since the PR 2 amendment there is exactly ONE
+// reflection-context pipeline (loadReflectionContext.js): one consent gate,
+// one chronology across every source, one total cap, one prompt section.
+// What lives here is the part that must not change — the field mapping that
+// decides what Coach may see of these historical shapes:
+//
 //   - QUICK_NOTE: entryType, states, customState, note, createdAt
 //   - GUIDED_REFLECTION: entryType, contextType, customContext, states,
 //     customState, takeForward, createdAt
 //   - legacy (entryType null): entryType null, states, note, createdAt
 //   - never: whatHappened, whatNoticed, helpedOrGotInWay (and never note
 //     on guided). Restricted narratives are not selected from Prisma.
+//
+// The unified pipeline reuses this projection verbatim, so consolidating the
+// paths widened nothing about these rows.
 
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
-
-const MAX_ENTRIES = 5;
 const MAX_NOTE_LENGTH = 500;
 const MAX_TAKE_FORWARD_LENGTH = 500;
 const MAX_CUSTOM_STATE_LENGTH = 30;
 const MAX_CUSTOM_CONTEXT_LENGTH = 80;
 
 // Fields the Coach contract may surface. Restricted guided narratives are
-// intentionally omitted so they never enter this loader's memory.
+// intentionally omitted so they are never even fetched for Coach.
 const COACH_CONTEXT_SELECT = {
   entryType: true,
   contextType: true,
@@ -124,55 +119,9 @@ function formatMindJournalContextLine(e) {
   return body ? `- ${when}: ${body}` : `- ${when}`;
 }
 
-function buildMindJournalContextSection(mindJournalEntries) {
-  if (!mindJournalEntries || !mindJournalEntries.length) return '';
-  const lines = mindJournalEntries.map(formatMindJournalContextLine).join('\n');
-
-  return `## Optional Mind Journal Context — athlete opted in
-The athlete opted in to share their latest Mind Journal entries as background context only.
-These are athlete-authored journal notes — optional background, not a diagnosis, not readiness, and not a substitute for the normal coaching loop:
-${lines}
-This is optional background context only, nothing more:
-- Do not calculate or infer a score from these states.
-- Do not diagnose or profile the athlete from this list.
-- Do not treat a journal state as proof of a barrier, and never confirm a barrier from journal entries alone.
-- Do not automatically prescribe a Mental Rep from journal entries — a prescription still requires the normal coaching-state flow (clarify barrier → confirm → one approved Mental Rep).
-- Do not skip focused questions, barrier confirmation, or follow-up because a journal entry exists.
-- Do not gate any feature, tool, or progress on journal entries.
-- If something here seems relevant, ask the athlete directly rather than assuming it still applies.
-- What the athlete says in THIS conversation always takes priority over this context.
-- Never say a state is objectively good or bad — "nervous" and "tired" are simply what the athlete noticed, not problems to fix by default.
-- You are not required to mention the journal.`;
-}
-
-// `prisma` is injectable (same pattern used throughout this codebase) so
-// tests can supply a fixture instead of a real database; the default
-// export below always uses the real Prisma client.
-function createLoadMindJournalContext(client = prisma) {
-  return async function loadMindJournalContext(userId) {
-    const user = await client.user.findUnique({
-      where: { id: userId },
-      select: { mindJournalContextEnabled: true },
-    });
-    if (!user?.mindJournalContextEnabled) return null;
-
-    const entries = await client.mindJournalEntry.findMany({
-      where: { userId, entryType: { not: 'REFLECTION' } },
-      orderBy: { createdAt: 'desc' },
-      take: MAX_ENTRIES,
-      select: COACH_CONTEXT_SELECT,
-    });
-    if (!entries.length) return null;
-
-    return entries.map(mapEntryForCoach);
-  };
-}
-
-module.exports = createLoadMindJournalContext();
-module.exports.createLoadMindJournalContext = createLoadMindJournalContext;
-module.exports.mapEntryForCoach = mapEntryForCoach;
-module.exports.formatMindJournalContextLine = formatMindJournalContextLine;
-module.exports.buildMindJournalContextSection = buildMindJournalContextSection;
-module.exports.COACH_CONTEXT_SELECT = COACH_CONTEXT_SELECT;
-module.exports.FORBIDDEN_COACH_KEYS = FORBIDDEN_COACH_KEYS;
-module.exports.MAX_ENTRIES = MAX_ENTRIES;
+module.exports = {
+  mapEntryForCoach,
+  formatMindJournalContextLine,
+  COACH_CONTEXT_SELECT,
+  FORBIDDEN_COACH_KEYS,
+};

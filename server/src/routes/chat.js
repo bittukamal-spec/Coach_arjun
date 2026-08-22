@@ -16,8 +16,6 @@ const {
   getSportLanguageHints, buildLanguageHintSection, describeHints,
 } = require('../services/coaching');
 const { priorityPhrase } = require('../profile/ruleEngine');
-const loadMindJournalContext = require('../services/mindJournal/loadMindJournalContext');
-const { buildMindJournalContextSection } = loadMindJournalContext;
 const loadReflectionContext = require('../services/mindJournal/loadReflectionContext');
 const { buildReflectionContextSection } = loadReflectionContext;
 const { loadConfirmedProfile } = require('../profile/loadConfirmedProfile');
@@ -207,22 +205,23 @@ The athlete already has an open Mental Rep prescription from the current coachin
 // elsewhere (onboarding, Starting Profile, Mental Rep, prescription-outcome
 // choices) are untouched — they never used this mechanism.
 
-// ── Optional Mind Journal context (score-free rollout) ───────────────────
-// Only ever populated for the main coaching chat, and only when the
-// athlete has BOTH opted in (User.mindJournalContextEnabled) AND has at
-// least one entry — loadMindJournalContext returns null otherwise, and this
-// whole section is omitted rather than shown empty. Never included in Quick
-// Chat, profile-intro, weekly reports, visualization, self-talk generation,
-// body reset, or debrief generation.
+// ── Optional reflection context (one pipeline, one section) ──────────────
+// Only ever populated for the main coaching chat, and only when the athlete
+// has BOTH opted in (User.mindJournalContextEnabled) AND has at least one
+// eligible reflection record — loadReflectionContext returns null otherwise,
+// and the section is omitted rather than shown empty. Never included in
+// Quick Chat, profile-intro, weekly reports, visualization, self-talk
+// generation, body reset, or debrief generation.
 //
-// Restricted field mapping + prompt formatting live in
-// loadMindJournalContext.js (privacy boundary at the data-loading layer).
-// buildMindJournalContextSection is imported from that module above.
+// Every source (new reflections, older Mind Journal shapes, historical
+// Debrief rows) is merged, ordered and capped at ten TOTAL inside
+// loadReflectionContext.js, which is also where each source's restricted
+// field mapping lives — the privacy boundary stays at the data layer.
 
 // ── Helper: build personalised system prompt ─────────────────────────────
 
 function buildSystemPrompt(user, checkIns = [], memories = [], sessionType = null, extra = {}) {
-  const { todayDrill = null, achievementCount = 0, recentDrills = [], gameSessions = [], ritual = null, mfsEntry = null, mfsHistory = [], mfsReport = null, toolReports = [], isQuickChat = false, skillHint = null, activePlan = null, focusCards = [], coachingContext = null, mindJournalEntries = null, reflectionContext = null, startingProfile = null, currentFocus = null } = extra;
+  const { todayDrill = null, achievementCount = 0, recentDrills = [], gameSessions = [], ritual = null, mfsEntry = null, mfsHistory = [], mfsReport = null, toolReports = [], isQuickChat = false, skillHint = null, activePlan = null, focusCards = [], coachingContext = null, reflectionContext = null, startingProfile = null, currentFocus = null } = extra;
 
   // ── The athlete's CURRENT focus (mutable) ────────────────────────────────
   // What they said they want to work on now, which may differ from the
@@ -489,12 +488,13 @@ No recent check-ins — the athlete hasn't tracked their mental state yet.`;
     : '';
 
   const coachingStateSection = buildCoachingStateSection(coachingContext);
-  const mindJournalSection = buildMindJournalContextSection(mindJournalEntries);
-  // The one reflection block — new Mind Journal reflections plus read-only
-  // legacy reflections, both behind the same Mind Journal consent toggle.
+  // The ONE reflection block. New reflections, older Mind Journal entries and
+  // historical Debrief rows all arrive here already merged, ordered and
+  // capped, behind the single Mind Journal consent toggle — so no reflection
+  // can be described twice and there is no second journal section.
   const reflectionSection = buildReflectionContextSection(reflectionContext);
 
-  const extraSections = [coachingStateSection, patternSection, mindJournalSection, reflectionSection].filter(Boolean).join('\n\n');
+  const extraSections = [coachingStateSection, patternSection, reflectionSection].filter(Boolean).join('\n\n');
 
   const actionBridgeSection = (extra.arjunMsgCount ?? 0) >= 4
     ? `\n\n## Natural Action Offer\nYou are ${extra.arjunMsgCount} responses into this session. If you feel you have addressed the athlete's main concern, naturally offer ONE specific next step they can try right now — for example a 2-minute breathing exercise, building a pre-match routine together, or a quick visualisation drill. Keep it to one casual sentence such as "Want to try a quick breathing exercise right now?" Only offer this once — if you have already suggested a next action in this session, do not repeat it.`
@@ -1179,10 +1179,9 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
     // Main coaching chat only — never threaded into Quick Chat above, and
     // never loaded for any other AI surface (profile-intro, weekly reports,
     // visualization, self-talk, body reset, debrief).
-    const mindJournalEntries = await loadMindJournalContext(req.userId);
-    // The unified reflection block (PR 2): the latest Mind Journal
-    // reflections plus the read-only legacy tail, gated by the same
-    // mindJournalContextEnabled toggle. Main coaching chat only.
+    // The one reflection context (PR 2): the ten most recent eligible
+    // reflection records across every source, gated by
+    // mindJournalContextEnabled. Main coaching chat only.
     const reflectionContext = await loadReflectionContext(req.userId);
     // PR 3: the athlete-confirmed Starting Profile (only if reviewed) — the
     // single interpretation block. Main coaching chat only.
@@ -1206,7 +1205,7 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
       console.log('[chat] language_hints', JSON.stringify(describeHints(languageHints)));
     }
 
-    const systemPrompt = buildSystemPrompt(user, recentCheckIns, memories, sessionType, { ...promptExtra, coachingContext, mindJournalEntries, reflectionContext, startingProfile, currentFocus })
+    const systemPrompt = buildSystemPrompt(user, recentCheckIns, memories, sessionType, { ...promptExtra, coachingContext, reflectionContext, startingProfile, currentFocus })
       + buildLanguageHintSection(languageHints);
     const loop = await runBufferedToolLoop({
       anthropic,
