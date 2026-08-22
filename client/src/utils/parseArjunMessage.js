@@ -28,15 +28,19 @@ const RAW_APP_TOOL_CONFIG = {
     bgColor: '#F0FAF7',
     route: '/body-reset',
   },
+  // The tag key stays 'after-the-match' — it is part of the prompt's tag
+  // registry and historical replies still contain it — but after the PR 2
+  // cutover it opens the Mind Journal reflection and reads as one, not as a
+  // separate "After the match" product.
   'after-the-match': {
-    label: 'After Match / Training',
-    sub: '3 min reflect',
-    why: 'Turns today\'s session into one clear takeaway.',
-    cta: 'Reflect now',
-    icon: 'ClipboardList',
-    iconColor: '#1E3A5F',
-    bgColor: '#EFF6FF',
-    route: '/debrief',
+    label: 'Mind Journal',
+    sub: 'Reflect on what happened',
+    why: 'Writing it down turns a session into something you can use.',
+    cta: 'Start reflection',
+    icon: 'NotebookPen',
+    iconColor: '#7C3AED',
+    bgColor: '#F5F3FF',
+    route: '/mind-journal/new',
   },
   'self-talk': {
     label: 'Focus Card Builder',

@@ -144,7 +144,7 @@ export default function ArjunContextPage() {
               <ul className="space-y-2 text-caption text-slt leading-relaxed">
                 <li className="flex gap-2">
                   <span className="text-brand-500 font-bold shrink-0" aria-hidden="true">·</span>
-                  <span>{cx.latestFive}</span>
+                  <span>{cx.historyWindow}</span>
                 </li>
                 <li className="flex gap-2">
                   <span className="text-brand-500 font-bold shrink-0" aria-hidden="true">·</span>

@@ -407,7 +407,7 @@ test('chat.js uses the shared buildMindJournalContextSection from the loader mod
   assert.doesNotMatch(src, /function buildMindJournalContextSection/);
   assert.doesNotMatch(src, /function formatMindJournalContextLine/);
   assert.match(src, /const mindJournalSection = buildMindJournalContextSection\(mindJournalEntries\);/);
-  assert.match(src, /const extraSections = \[coachingStateSection, patternSection, mindJournalSection\]\.filter\(Boolean\)\.join\('\\n\\n'\);/);
+  assert.match(src, /const extraSections = \[coachingStateSection, patternSection, mindJournalSection, reflectionSection\]\.filter\(Boolean\)\.join\('\\n\\n'\);/);
 });
 
 test('the Mind Journal section is still omitted when entries are absent', () => {

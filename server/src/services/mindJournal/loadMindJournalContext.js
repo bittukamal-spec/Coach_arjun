@@ -5,7 +5,13 @@
 //
 // Privacy-minimizing Coach contract (final pilot mapping):
 //   - consent off (User.mindJournalContextEnabled default false) → null
-//   - latest 5 owned entries, newest-first
+//   - latest 5 owned entries, newest-first, EXCLUDING unified REFLECTION
+//     rows: since the PR 2 cutover those are the reflection system and reach
+//     Coach only through loadReflectionContext.js's compact structured
+//     window. Excluding them here is what keeps one reflection from being
+//     represented twice in the same prompt, and keeps this loader's older
+//     free-text contract (note / takeForward / customState / customContext)
+//     off reflections entirely.
 //   - QUICK_NOTE: entryType, states, customState, note, createdAt
 //   - GUIDED_REFLECTION: entryType, contextType, customContext, states,
 //     customState, takeForward, createdAt
@@ -151,7 +157,7 @@ function createLoadMindJournalContext(client = prisma) {
     if (!user?.mindJournalContextEnabled) return null;
 
     const entries = await client.mindJournalEntry.findMany({
-      where: { userId },
+      where: { userId, entryType: { not: 'REFLECTION' } },
       orderBy: { createdAt: 'desc' },
       take: MAX_ENTRIES,
       select: COACH_CONTEXT_SELECT,

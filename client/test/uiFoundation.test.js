@@ -127,11 +127,14 @@ test('PlaybookPage data behavior unchanged: read-only GET /api/playbook', () => 
   assert.equal((playbook.match(/apiFetch\(/g) || []).length, 1);
 });
 
-test('PlaybookPage links unchanged: focus-deck, self-talk, mental-rep, debrief', () => {
+test('PlaybookPage links: focus-deck, self-talk, mental-rep, and the Mind Journal reflection', () => {
   assert.match(playbook, /navigate\('\/focus-deck'\)/);
   assert.match(playbook, /navigate\('\/self-talk'\)/);
   assert.match(playbook, /navigate\('\/mental-rep'\)/);
-  assert.match(playbook, /navigate\('\/debrief'\)/);
+  // PR 2 cutover: Reflections opens the Mind Journal, not the retired
+  // /debrief screen.
+  assert.match(playbook, /navigate\('\/mind-journal\/new'\)/);
+  assert.doesNotMatch(playbook, /\/debrief/);
 });
 
 test('PlaybookPage content preserved: all sections present, "What I\'m learning" moved to the top (Stage 9)', () => {

@@ -3,7 +3,7 @@ import Navbar from '../components/Navbar';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import TrainGradientCard from '../components/train/TrainGradientCard';
-import { AthleteMark, BreathMark, NotebookMark, StopwatchMark, CardsMark } from '../components/visuals/CardArt';
+import { AthleteMark, BreathMark, StopwatchMark, CardsMark } from '../components/visuals/CardArt';
 import { SectionLabel } from '../components/ui';
 
 // The FIVE real practices Arjun actually ships — nothing else. There is no
@@ -11,8 +11,14 @@ import { SectionLabel } from '../components/ui';
 // product, so neither is rendered here. Routes are the existing ones.
 //
 // Grouping is kept only where it still helps an athlete choose: when you
-// play (Ritual, Pressure Reset), after you play (Reflection), and the
-// skill-building pair (Quick Rep, Focus Card Builder). No empty categories.
+// play (Ritual, Pressure Reset) and the skill-building pair (Quick Rep,
+// Focus Card Builder). No empty categories.
+//
+// PR 2 cutover: the separate "After you play → Match & Practice Reflection"
+// entry is gone, along with its group — reflection is the Mind Journal, and
+// it already has its own prominent entry on Home. It is deliberately NOT
+// re-added here as a second reflection tile: one reflection concept, one
+// place to start it.
 //
 // `variant` selects the approved gradient (blue/teal/amber/purple — the
 // same GRADIENT_VARIANTS token family already used on tool-intro screens);
@@ -27,12 +33,6 @@ const GROUPS = [
     practices: [
       { key: 'ritual',   to: '/ritual',      variant: 'blue', Illustration: AthleteMark },
       { key: 'pressure', to: '/body-reset',  variant: 'teal', Illustration: BreathMark },
-    ],
-  },
-  {
-    labelKey: 'afterLabel',
-    practices: [
-      { key: 'reflection', to: '/debrief', variant: 'amber', Illustration: NotebookMark, wide: true },
     ],
   },
   {
@@ -61,9 +61,9 @@ export default function TrainPage() {
           <p className="text-sm text-slt mt-1">{t.subtitle}</p>
         </div>
 
-        {/* Two-column grid at every width; a lone wide practice (Reflection)
-            spans both columns as one banner card instead of leaving an
-            empty cell — the grid stays two-column throughout. */}
+        {/* Two-column grid at every width. A lone wide practice would span
+            both columns as one banner card rather than leave an empty cell;
+            every current group happens to hold a clean pair. */}
         {GROUPS.map(group => (
           <section key={group.labelKey} className="mb-7">
             <SectionLabel>{t[group.labelKey]}</SectionLabel>

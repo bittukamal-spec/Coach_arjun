@@ -127,14 +127,18 @@ test('Train: stopped client requests for removed game-status / skill-gate conten
   assert.doesNotMatch(train, /\/api\/skills\/calm_body/);
 });
 
-test('Train: retained tools still render — Ritual, Pressure Reset, Match & Practice Reflection, Quick Rep, Focus Card Builder', () => {
+test('Train: retained tools still render — Ritual, Pressure Reset, Quick Rep, Focus Card Builder', () => {
   // Stage E moved the practice names into the trainPage translation
   // namespace and the routes into one table, so the names are asserted
   // where they now live — in BOTH languages, which the previous
   // English-only source-text check never covered.
-  for (const name of ['Pressure Reset', 'Match & Practice Reflection', 'Quick Rep', 'Focus Card Builder', 'Ritual']) {
+  for (const name of ['Pressure Reset', 'Quick Rep', 'Focus Card Builder', 'Ritual']) {
     assert.ok(translations.includes(name), `${name} must still be an athlete-facing name`);
   }
+  // PR 2 cutover: the separate reflection tool is retired as an athlete
+  // entry point, so its name must not survive anywhere in athlete copy.
+  assert.ok(!translations.includes('Match & Practice Reflection'),
+    'the retired reflection tool name must be gone from athlete copy');
   assert.equal(
     (translations.match(/trainPage: \{/g) || []).length, 2,
     'trainPage namespace exists in both en and hi',
@@ -143,9 +147,10 @@ test('Train: retained tools still render — Ritual, Pressure Reset, Match & Pra
   assert.doesNotMatch(translations, /Daily Mental Rep/);
 
   // Every real practice route is still reachable from Train.
-  for (const route of ['/ritual', '/body-reset', '/debrief', '/mental-rep', '/self-talk']) {
+  for (const route of ['/ritual', '/body-reset', '/mental-rep', '/self-talk']) {
     assert.ok(train.includes(`'${route}'`), `Train must still route to ${route}`);
   }
+  assert.doesNotMatch(train, /\/debrief/, 'Train no longer exposes the retired reflection tool');
   // Visual refresh: "View history" was relocated OFF the Train page onto the
   // Pressure Reset intro screen (BodyResetPage.jsx already exposes it via
   // PracticeIntro's secondaryLabel/onSecondary — proven in
@@ -164,19 +169,22 @@ test('Train: the tap-target correction touched only styling — every route is e
   const routeMatches = train.match(/to: '([^']+)'/g) || [];
   const routes = routeMatches.map(m => m.match(/'([^']+)'/)[1]).sort();
   assert.deepEqual(routes, [
-    '/body-reset', '/debrief', '/mental-rep', '/ritual', '/self-talk',
+    '/body-reset', '/mental-rep', '/ritual', '/self-talk',
   ].sort());
   assert.doesNotMatch(train, /historyTo/, 'the per-practice history route table entry is gone, not just hidden');
 });
 
-test('Train: exactly the five real practices — no invented categories, no fabricated counts', () => {
+test('Train: exactly the four real practices — no invented categories, no fabricated counts', () => {
   const keys = (train.match(/key: '(\w+)'/g) || []);
-  assert.equal(keys.length, 5, 'exactly five practices are listed');
+  assert.equal(keys.length, 4, 'exactly four practices are listed');
   // No count/metadata language anywhere on the page.
   assert.doesNotMatch(train, /\d+\s*(practices|sessions|exercises)/i);
   assert.doesNotMatch(train, /practiceCount|count:/);
-  // No category scaffolding beyond the three real groupings.
-  assert.equal((train.match(/labelKey:/g) || []).length, 3);
+  // No category scaffolding beyond the two real groupings — the "After you
+  // play" group went with the retired reflection tool rather than being left
+  // behind empty.
+  assert.equal((train.match(/labelKey:/g) || []).length, 2);
+  assert.doesNotMatch(train, /afterLabel/, 'no empty group is left behind');
 });
 
 // Visual refresh (approved mockup): Train's tiles are now deliberately
@@ -191,7 +199,9 @@ test('Train tiles now use the approved blue/teal/amber/purple gradient system fr
     .split('\n').filter(l => !l.trim().startsWith('//')).join('\n');
 
   assert.match(stripComments(train), /TrainGradientCard/, 'the practices render through the new gradient card');
-  for (const variant of ['blue', 'teal', 'amber', 'purple']) {
+  // Amber left Train with the retired reflection tile; the remaining
+  // practices keep their own approved gradients.
+  for (const variant of ['blue', 'teal', 'purple']) {
     assert.ok(train.includes(`variant: '${variant}'`), `the ${variant} gradient must still be assigned somewhere`);
   }
   // The old flat tile stays untouched and unused rather than deleted.

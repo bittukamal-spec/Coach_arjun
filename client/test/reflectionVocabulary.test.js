@@ -159,18 +159,87 @@ test('body and cue answers are mutually exclusive in the payload', () => {
   assert.match(wizard, /if \(conditional === 'cue' && cueFeedback\)/);
 });
 
-// ── PR 1 leaves the old Debrief entirely alone ─────────────────────────────
+// ── PR 2 cutover: one reflection system ────────────────────────────────────
 
-test('the old Match & Practice Reflection is untouched and still fully routable', () => {
-  assert.match(app, /path="\/debrief"[\s\S]{0,200}<DebriefPage \/>/, '/debrief must still render DebriefPage');
-  assert.match(read('src/pages/TrainPage.jsx'), /to: '\/debrief'/, "Train's Reflection entry stays");
-  assert.match(read('src/pages/Dashboard.jsx'), /to: '\/debrief'/, "Home's recovery-day recommendation stays");
-  assert.match(read('src/pages/PlaybookPage.jsx'), /navigate\('\/debrief'\)/, "Playbook's Reflections CTA stays");
-  assert.match(read('src/utils/parseArjunMessage.js'), /route: '\/debrief'/, 'the chat tool card stays');
-  assert.match(read('src/constants/activeTools.js'), /'\/debrief'/, 'the active-tool registry stays');
-  assert.match(read('src/utils/prescriptionPractice.js'), /post_performance_reflection: '\/debrief'/,
-    'prescription routing stays');
-  // The legacy Mind Journal routes stay mounted for compatibility.
+test('/debrief no longer renders the retired screen — it is a compatibility redirect only', () => {
+  assert.match(app, /path="\/debrief" element=\{<DebriefRedirect \/>\}/,
+    '/debrief must resolve to the redirect, never to a reflection screen');
+  assert.doesNotMatch(app, /DebriefPage/, 'the retired page must not be routed at all');
+  // The redirect's two destinations, and no third.
+  const redirect = read('src/pages/DebriefRedirect.jsx');
+  assert.match(redirect, /to: '\/mind-journal\/new', state: \{ prescriptionId, practiceKey \}/);
+  assert.match(redirect, /to: '\/mind-journal', state: null/);
+  // Neither destination points back at /debrief, so no loop is possible.
+  assert.doesNotMatch(redirect, /to: '\/debrief'/);
+});
+
+test('no athlete-facing surface hard-codes /debrief any more — the compatibility route is the only reference', () => {
+  const SURFACES = [
+    'src/pages/TrainPage.jsx',
+    'src/pages/Dashboard.jsx',
+    'src/pages/PlaybookPage.jsx',
+    'src/utils/parseArjunMessage.js',
+    'src/utils/prescriptionPractice.js',
+    'src/constants/activeTools.js',
+  ];
+  for (const file of SURFACES) {
+    assert.doesNotMatch(read(file), /\/debrief/, `${file} must not route an athlete to /debrief`);
+  }
+});
+
+test('every retired reflection entry point now resolves to the Mind Journal', () => {
+  assert.match(read('src/pages/Dashboard.jsx'), /to: '\/mind-journal\/new'/,
+    "Home's recovery-day action opens the Mind Journal reflection");
+  assert.match(read('src/pages/PlaybookPage.jsx'), /navigate\('\/mind-journal\/new'\)/,
+    "Playbook's Reflections CTA opens the Mind Journal reflection");
+  assert.match(read('src/utils/parseArjunMessage.js'), /route: '\/mind-journal\/new'/,
+    'the [APP:after-the-match] chat card opens the Mind Journal reflection');
+  assert.match(read('src/utils/prescriptionPractice.js'), /post_performance_reflection: '\/mind-journal\/new'/,
+    'a prescribed reflection opens the Mind Journal reflection');
+  assert.match(read('src/constants/activeTools.js'), /'\/mind-journal\/new'/,
+    'the reflection flow validates as an active tool route');
+});
+
+test('Train exposes no separate reflection tool, and leaves no empty group behind', () => {
+  const train = read('src/pages/TrainPage.jsx');
+  assert.doesNotMatch(train, /\/debrief/);
+  assert.doesNotMatch(train, /key: 'reflection'/);
+  assert.doesNotMatch(train, /afterLabel/);
+  // Nor is a duplicate Mind Journal tile added in its place — Mind Journal
+  // keeps its single prominent Home entry.
+  assert.doesNotMatch(train, /mind-journal/);
+});
+
+test('the [APP:after-the-match] card reads as the Mind Journal, not a separate after-the-match product', () => {
+  const parse = read('src/utils/parseArjunMessage.js');
+  const start = parse.indexOf("'after-the-match': {");
+  const block = parse.slice(start, parse.indexOf('},', start));
+  assert.match(block, /label: 'Mind Journal'/);
+  assert.doesNotMatch(block, /After Match|After the match/i);
+});
+
+test('the retired reflection tool names are gone from athlete-facing copy in both languages', () => {
+  const copy = read('src/i18n/translations.js');
+  for (const name of ['Match & Practice Reflection', 'atm: {']) {
+    assert.ok(!copy.includes(name), `${name} must be gone from athlete copy`);
+  }
+});
+
+test('the legacy Mind Journal routes stay mounted for compatibility', () => {
   assert.match(app, /path="\/mind-journal\/quick"[\s\S]{0,200}<QuickNotePage \/>/);
   assert.match(app, /path="\/mind-journal\/new\/details"[\s\S]{0,220}<GuidedReflectionDetailsPage \/>/);
+  assert.match(app, /path="\/mind-journal"[\s\S]{0,200}<MindJournalPage \/>/);
+  assert.match(app, /path="\/mind-journal\/new"[\s\S]{0,200}<ReflectionWizard \/>/);
+});
+
+test('the new Mind Journal reflection carries no XP, MXP, score, streak or once-per-day restriction', () => {
+  const surfaces = [
+    read('src/pages/mindJournal/ReflectionWizard.jsx'),
+    read('src/pages/mindJournal/ReflectionSavedPage.jsx'),
+    read('src/pages/MindJournalPage.jsx'),
+  ];
+  for (const src of surfaces) {
+    assert.doesNotMatch(src, /\bxp\b|MXP|streak|todayDebrief|alreadyDone/i,
+      'no legacy reward or once-per-day mechanic may be ported into the Mind Journal');
+  }
 });

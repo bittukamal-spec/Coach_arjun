@@ -32,7 +32,10 @@ const APPROVED_PRACTICES = {
   },
   post_performance_reflection: {
     label: 'Post-performance reflection',
-    surface: '/debrief',
+    // PR 2 cutover: the reflection surface is the Mind Journal reflection
+    // flow. The practice key itself is unchanged — Coach may still prescribe
+    // it, and completion still runs through completeActivePrescription.
+    surface: '/mind-journal/new',
   },
   acclimatization_homework: {
     label: 'Acclimatization homework',

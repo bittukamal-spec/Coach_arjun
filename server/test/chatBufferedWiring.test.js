@@ -116,7 +116,11 @@ test('the helpline safety event and background memory extraction still run on th
 });
 
 test("buildSystemPrompt (Arjun's brain) is still called for both the quick-chat and main-chat paths, not bypassed", () => {
-  assert.match(handler, /const promptExtra = \{ recentDebriefs, todayDrill/);
+  assert.match(handler, /const promptExtra = \{ todayDrill/);
+  // PR 2 cutover: reflection history is no longer read into promptExtra as
+  // unconditional debriefs — it arrives through the consent-gated
+  // reflectionContext threaded into the main-chat call below.
+  assert.doesNotMatch(handler, /recentDebriefs/);
   const calls = [...handler.matchAll(/buildSystemPrompt\(user, recentCheckIns, memories, sessionType, ([^)]+)\)/g)].map((m) => m[1]);
   assert.equal(calls.length, 2, 'expected one call in the quick-chat branch and one in the main-chat branch');
   assert.ok(calls.includes('promptExtra'), 'quick chat must pass promptExtra unchanged');
@@ -125,7 +129,7 @@ test("buildSystemPrompt (Arjun's brain) is still called for both the quick-chat 
 
 test('coachingContext is loaded before buildSystemPrompt is called on the main-chat path, so it reaches the model on the first round', () => {
   const loadIdx = handler.indexOf('const coachingContext = await loadCoachingContext(req.userId);');
-  const mainPromptIdx = handler.indexOf('buildSystemPrompt(user, recentCheckIns, memories, sessionType, { ...promptExtra, coachingContext, mindJournalEntries, startingProfile, currentFocus })');
+  const mainPromptIdx = handler.indexOf('buildSystemPrompt(user, recentCheckIns, memories, sessionType, { ...promptExtra, coachingContext, mindJournalEntries, reflectionContext, startingProfile, currentFocus })');
   assert.ok(loadIdx !== -1 && mainPromptIdx !== -1);
   assert.ok(loadIdx < mainPromptIdx, 'coachingContext must be loaded before it is threaded into the system prompt');
 });

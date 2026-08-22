@@ -40,12 +40,16 @@ const PRIMARY_ACTION = {
     to: '/body-reset',
     tone: '#2E7D6B',
   },
+  // Recovery day opens the Mind Journal reflection (PR 2 cutover) — the one
+  // reflection experience. Titled by the activity rather than the product
+  // name, so it does not read as a second Mind Journal alongside the violet
+  // card above it; the violet tone ties the two together.
   recovery: {
-    title: { en: 'Reflect Like an Athlete', hi: 'Reflect करो' },
-    desc:   { en: 'Log what worked and one thing to improve.', hi: 'जो काम किया उसे log करो।' },
-    cta:    { en: 'Start Reflection', hi: 'Reflection शुरू करो' },
-    to: '/debrief',
-    tone: '#D97F1E',
+    title: { en: 'Reflect on today', hi: 'आज पर reflect करो' },
+    desc:   { en: 'Reflect on what happened and take one thing forward.', hi: 'जो हुआ उस पर reflect करो और एक चीज़ आगे ले जाओ।' },
+    cta:    { en: 'Start reflection', hi: 'Reflection शुरू करो' },
+    to: '/mind-journal/new',
+    tone: '#7C3AED',
   },
 };
 
@@ -152,7 +156,7 @@ export default function Dashboard() {
             {/* ── 2. MIND JOURNAL — elevated to the top of Home, directly
                  under the greeting. Reuses the exact same premium gradient
                  card (TrainGradientCard, wide layout) already approved for
-                 Train's "Match & Practice Reflection" banner: icon circle,
+                 Train's own banner cards: icon circle,
                  then heading, then supporting copy stacked in one column,
                  violet gradient background (no separate border treatment),
                  arrow affordance in the bottom-right corner. Deliberately
@@ -161,7 +165,7 @@ export default function Dashboard() {
                  this card reads as its own identity rather than a restyled
                  copy of Train's amber Reflection card. No Illustration
                  prop — this card's own approved copy runs noticeably
-                 longer than Train's "Match & Practice Reflection" desc,
+                 longer than Train's own card descriptions,
                  and at the ≥430px breakpoint where TrainGradientCard
                  reveals its ghost illustration, the narrower text column
                  it leaves behind wraps to a 4th line that collides with

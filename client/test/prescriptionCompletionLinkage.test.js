@@ -1,5 +1,7 @@
 // Source-text checks for PR-12's exact prescription completion linkage on
-// the client. ChatPage.jsx/BodyResetPage.jsx/DebriefPage.jsx contain JSX and
+// the client. After the PR 2 cutover the reflection half of that linkage
+// lives in the Mind Journal reflection wizard, not the retired Debrief page.
+// ChatPage.jsx/BodyResetPage.jsx/ReflectionWizard.jsx contain JSX and
 // cannot be imported directly by node:test without a transform, so — same
 // pattern as prescriptionFollowUpWiring.test.js — these are source-text
 // assertions.
@@ -15,7 +17,7 @@ const root = path.join(__dirname, '..');
 
 const chatPageSrc = readFileSync(path.join(root, 'src/pages/ChatPage.jsx'), 'utf8');
 const bodyResetSrc = readFileSync(path.join(root, 'src/pages/BodyResetPage.jsx'), 'utf8');
-const debriefSrc = readFileSync(path.join(root, 'src/pages/DebriefPage.jsx'), 'utf8');
+const wizardSrc = readFileSync(path.join(root, 'src/pages/mindJournal/ReflectionWizard.jsx'), 'utf8');
 const practiceMapSrc = readFileSync(path.join(root, 'src/utils/prescriptionPractice.js'), 'utf8');
 
 function fnBody(src, name) {
@@ -25,11 +27,21 @@ function fnBody(src, name) {
   return src.slice(start, end);
 }
 
+// The wizard declares its linkage as a useCallback arrow rather than a
+// function declaration; body extraction is otherwise identical.
+function callbackBody(src, name) {
+  const start = src.indexOf(`const ${name} = useCallback(`);
+  assert.ok(start !== -1, `expected a useCallback named ${name}`);
+  const end = src.indexOf('\n  }, [', start);
+  assert.ok(end !== -1, `expected ${name} to close`);
+  return src.slice(start, end);
+}
+
 // ── 1. practiceRouteFor: documented, minimal, no invented routes ───────────
 
 test('prescriptionPractice: only pressure_reset and post_performance_reflection map to a real route', () => {
   assert.match(practiceMapSrc, /pressure_reset:\s*'\/body-reset'/);
-  assert.match(practiceMapSrc, /post_performance_reflection:\s*'\/debrief'/);
+  assert.match(practiceMapSrc, /post_performance_reflection:\s*'\/mind-journal\/new'/);
   // No other approved practice key gets an invented route.
   for (const key of ['focus_cue_building', 'attentional_routine', 'pre_performance_routine', 'mistake_reset_routine', 'guided_rehearsal', 'acclimatization_homework']) {
     assert.doesNotMatch(practiceMapSrc, new RegExp(`${key}:\\s*'/`), `${key} must not be given an invented route`);
@@ -81,8 +93,8 @@ test('ChatPage: an unsupported approved practice key (no real route) shows the c
 
 // ── 3. Completion calls the exact Prescription endpoint ────────────────────
 
-function assertCallsExactEndpoint(src, fnName) {
-  const body = fnBody(src, fnName);
+function assertCallsExactEndpoint(src, fnName, extract = fnBody) {
+  const body = extract(src, fnName);
   assert.match(body, /apiFetch\(`\/api\/prescriptions\/\$\{link\.prescriptionId\}\/complete`/);
   assert.match(body, /method: 'POST'/);
   assert.match(body, /body: JSON\.stringify\(\{ practiceKey: link\.practiceKey \}\)/);
@@ -92,8 +104,8 @@ test('BodyResetPage: completePrescriptionLink posts to the exact /api/prescripti
   assertCallsExactEndpoint(bodyResetSrc, 'completePrescriptionLink');
 });
 
-test('DebriefPage: completePrescriptionLink posts to the exact /api/prescriptions/:id/complete endpoint with prescriptionId + practiceKey', () => {
-  assertCallsExactEndpoint(debriefSrc, 'completePrescriptionLink');
+test('ReflectionWizard: completePrescriptionLink posts to the exact /api/prescriptions/:id/complete endpoint with prescriptionId + practiceKey', () => {
+  assertCallsExactEndpoint(wizardSrc, 'completePrescriptionLink', callbackBody);
 });
 
 // ── 4. Generic practice (no prescriptionId) makes no Prescription request ──
@@ -105,8 +117,8 @@ test('BodyResetPage: completePrescriptionLink returns immediately with no reques
   assert.ok(guardIdx !== -1 && guardIdx < fetchIdx, 'the no-link guard must run before any request');
 });
 
-test('DebriefPage: completePrescriptionLink returns immediately with no request when there is no prescription link', () => {
-  const body = fnBody(debriefSrc, 'completePrescriptionLink');
+test('ReflectionWizard: completePrescriptionLink returns immediately with no request when there is no prescription link — an ordinary self-started reflection completes nothing', () => {
+  const body = callbackBody(wizardSrc, 'completePrescriptionLink');
   const guardIdx = body.indexOf('if (!link) return;');
   const fetchIdx = body.indexOf('apiFetch(');
   assert.ok(guardIdx !== -1 && guardIdx < fetchIdx, 'the no-link guard must run before any request');
@@ -116,8 +128,9 @@ test('BodyResetPage: the prescription link is only set when the incoming practic
   assert.match(bodyResetSrc, /location\.state\?\.practiceKey === 'pressure_reset'/);
 });
 
-test('DebriefPage: the prescription link is only set when the incoming practiceKey matches this page\'s own practice', () => {
-  assert.match(debriefSrc, /location\.state\?\.practiceKey === 'post_performance_reflection'/);
+test('ReflectionWizard: the prescription link is only set when the incoming practiceKey matches this flow\'s own practice — a prescription for a different practice can never be completed here', () => {
+  assert.match(wizardSrc, /location\.state\?\.practiceKey === 'post_performance_reflection'/);
+  assert.match(wizardSrc, /location\.state\?\.prescriptionId && location\.state\?\.practiceKey === 'post_performance_reflection'/);
 });
 
 // ── 5. Opening/abandoning a practice never completes it ────────────────────
@@ -131,14 +144,15 @@ test('BodyResetPage: completePrescriptionLink is called only from saveSession �
   assert.match(saveSessionBody, /completePrescriptionLink\(\);/);
 });
 
-test('DebriefPage: completePrescriptionLink is called only from submitDebrief\'s success path — never on mount or on the 409 already-done branch', () => {
-  const callSites = [...debriefSrc.matchAll(/completePrescriptionLink\(\);/g)].length;
-  assert.equal(callSites, 1, 'completePrescriptionLink must be called from exactly one place: submitDebrief\'s success path');
-  const idx = debriefSrc.indexOf('completePrescriptionLink();');
-  const status409Idx = debriefSrc.indexOf("res.status === 409");
-  const resultIdx = debriefSrc.indexOf('setResult(data);');
-  assert.ok(status409Idx < idx, 'the 409 (already done today) branch must return before reaching completion linkage');
-  assert.ok(idx < resultIdx + 30 && idx > 0, 'completion linkage must sit in the success path, right alongside setResult');
+test('ReflectionWizard: completePrescriptionLink is called only from handleSave\'s success path — never on mount, and never after a failed or safety-flagged save', () => {
+  const callSites = [...wizardSrc.matchAll(/completePrescriptionLink\(\);/g)].length;
+  assert.equal(callSites, 1, 'completePrescriptionLink must be called from exactly one place: the save success path');
+  const savedIdx = wizardSrc.indexOf('const entry = await save(payload);');
+  const guardIdx = wizardSrc.indexOf('if (entry) {', savedIdx);
+  const callIdx = wizardSrc.indexOf('completePrescriptionLink();', savedIdx);
+  assert.ok(savedIdx !== -1 && guardIdx !== -1 && callIdx !== -1);
+  assert.ok(savedIdx < guardIdx && guardIdx < callIdx,
+    'completion may only run inside the branch that a real saved entry opens');
 });
 
 // ── 6. Repeated UI completion remains safe ──────────────────────────────────
@@ -147,9 +161,8 @@ test('BodyResetPage: the Save button is disabled while saving, preventing a doub
   assert.match(bodyResetSrc, /disabled=\{saving\}\s*\n\s*onClick=\{saveSession\}/);
 });
 
-test('DebriefPage: submitDebrief is guarded against re-invocation by submitCalled', () => {
-  assert.match(debriefSrc, /if \(submitting \|\| result \|\| submitCalled\.current\) return;/);
-  assert.match(debriefSrc, /submitCalled\.current = true;/);
+test('ReflectionWizard: handleSave is guarded against re-invocation while a save is already in flight', () => {
+  assert.match(wizardSrc, /if \(saving \|\| !allRequiredAnswered\) return;/);
 });
 
 // ── 7. Quick Chat and legacy [APP:...] cards are unchanged ─────────────────
