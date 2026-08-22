@@ -11,6 +11,74 @@ export const STATE_KEYS = ['calm', 'focused', 'confident', 'motivated', 'nervous
 
 export const CONTEXT_TYPE_KEYS = ['TRAINING', 'COMPETITION', 'TOUGH_MOMENT', 'RECOVERY_DAY', 'SOMETHING_ELSE'];
 
+// ── Unified reflection (PR 1) ──────────────────────────────────────────────
+// Mirrors server/src/services/mindJournal/{contextTypeVocabulary,
+// eventVocabulary,reflectionVocabulary}.js exactly. Duplicated here (rather
+// than fetched) so the wizard can render without a round trip; the server
+// stays the authority and rejects anything outside these sets.
+
+// Q1 — the nine choices, in screen order. SOMETHING_ELSE is "Write my own".
+export const REFLECTION_CONTEXT_KEYS = [
+  'TRAINING', 'COMPETITION', 'TOUGH_MOMENT', 'WENT_WELL', 'CONFIDENCE_PRESSURE',
+  'SELECTION_TRIAL', 'RECOVERY_INJURY', 'OUTSIDE_SPORT', 'SOMETHING_ELSE',
+];
+
+// Q2 — context-adaptive observable events.
+export const CONTEXT_TO_EVENTS = {
+  TRAINING: ['full_session', 'part_of_session', 'new_or_hard_drill', 'repeated_mistake', 'coach_feedback', 'first_time_back', 'trained_while_tired'],
+  COMPETITION: ['whole_match', 'start_of_play', 'end_of_play', 'key_moment', 'after_a_mistake', 'close_score', 'crowd_or_noise', 'did_not_get_to_play'],
+  TOUGH_MOMENT: ['made_a_mistake', 'things_went_wrong_fast', 'criticised_or_shouted_at', 'compared_to_someone', 'left_out_or_benched', 'body_did_not_respond', 'it_went_on_for_a_while'],
+  WENT_WELL: ['executed_a_skill', 'stayed_with_a_plan', 'came_back_after_mistake', 'helped_a_teammate', 'handled_a_big_moment', 'trained_when_i_did_not_feel_like_it', 'noticed_improvement'],
+  CONFIDENCE_PRESSURE: ['before_playing', 'during_a_big_moment', 'being_watched', 'expected_to_perform', 'after_a_run_of_bad_days', 'trying_something_new', 'talking_about_my_sport'],
+  SELECTION_TRIAL: ['trial_or_selection_day', 'waiting_for_a_decision', 'got_selected', 'not_selected', 'watched_by_selectors', 'competing_with_teammates', 'travelling_for_it'],
+  RECOVERY_INJURY: ['rest_day', 'lighter_training', 'injured_during_play', 'in_rehab', 'first_session_back', 'watching_others_train', 'waiting_on_a_medical_update'],
+  OUTSIDE_SPORT: ['school_or_studies', 'family', 'friends', 'sleep', 'health', 'travel_or_schedule', 'money_or_equipment'],
+  RECOVERY_DAY: ['rest_day', 'lighter_training', 'first_session_back', 'watching_others_train'],
+  SOMETHING_ELSE: ['before_it_happened', 'while_it_was_happening', 'after_it_happened', 'it_lasted_a_while', 'it_happened_suddenly', 'it_kept_repeating'],
+};
+
+export function eventKeysForContext(contextType) {
+  return CONTEXT_TO_EVENTS[contextType] || [];
+}
+
+// Q4 / Q5 / Q6
+export const THOUGHT_KEYS = [
+  'knew_what_to_do', 'focused_on_what_i_needed', 'worried_about_result', 'worried_about_mistake',
+  'stuck_on_a_mistake', 'what_others_would_think', 'not_sure_what_to_do',
+  'thinking_about_something_else', 'dont_remember',
+];
+export const RESPONSE_KEYS = [
+  'stayed_focused', 'reset_and_moved_on', 'kept_going_normally', 'went_too_fast', 'played_it_safe',
+  'pushed_harder', 'kept_replaying_it', 'lost_focus', 'changed_what_i_was_doing',
+  'talked_to_someone', 'dont_remember',
+];
+export const BODY_KEYS = [
+  'relaxed', 'tense', 'heart_racing', 'shaky', 'heavy', 'tired', 'lots_of_energy',
+  'nothing_unusual', 'not_sure',
+];
+export const CUE_FEEDBACK_KEYS = ['helped', 'forgot', 'no_help'];
+
+// One shared cap for every multi-select question in the reflection.
+export const MAX_TAG_SELECTIONS = 2;
+export const MAX_CUSTOM_EVENT_LENGTH = 80;
+export const MAX_CUSTOM_THOUGHT_LENGTH = 80;
+export const MAX_CUSTOM_RESPONSE_LENGTH = 80;
+export const MAX_CUSTOM_BODY_LENGTH = 80;
+
+// Q6 resolver — mirrors resolveConditionalQuestion.js exactly.
+const CUE_RELEVANT_CONTEXTS = ['COMPETITION', 'TOUGH_MOMENT', 'CONFIDENCE_PRESSURE', 'SELECTION_TRIAL'];
+const BODY_RELEVANT_CONTEXTS = ['CONFIDENCE_PRESSURE', 'TOUGH_MOMENT', 'COMPETITION', 'SELECTION_TRIAL', 'RECOVERY_INJURY'];
+const BODY_RELEVANT_STATES = ['nervous', 'frustrated', 'tired'];
+
+export function resolveConditionalQuestion(answers = {}, options = {}) {
+  const contextType = answers.contextType || null;
+  const states = Array.isArray(answers.states) ? answers.states : [];
+  if (options.hasActiveFocusCard === true && CUE_RELEVANT_CONTEXTS.includes(contextType)) return 'cue';
+  if (BODY_RELEVANT_CONTEXTS.includes(contextType)) return 'body';
+  if (states.some(s => BODY_RELEVANT_STATES.includes(s))) return 'body';
+  return null;
+}
+
 export const MAX_NOTE_LENGTH = 500;
 export const MAX_WHAT_HAPPENED_LENGTH = 1000;
 export const MAX_WHAT_NOTICED_LENGTH = 1000;

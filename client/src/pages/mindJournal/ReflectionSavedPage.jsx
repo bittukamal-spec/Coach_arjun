@@ -26,7 +26,14 @@ export default function ReflectionSavedPage() {
   const entry = location.state?.entry;
   if (!entry) return <Navigate to="/mind-journal" replace />;
 
-  const contextLabel = contextLabelForEntry(entry, mj);
+  const r = mj.reflection;
+  const isReflection = entry.entryType === 'REFLECTION';
+  const hasReview = !!(entry.arjunNoticed || entry.arjunTakeaway);
+  const contextLabel = isReflection
+    ? (entry.contextType === 'SOMETHING_ELSE' && entry.customContext
+      ? entry.customContext
+      : r.q1.options[entry.contextType] || null)
+    : contextLabelForEntry(entry, mj);
   const stateTags = stateTagsForEntry(entry, mj);
   const preview = guidedPreview(entry) || entry.note;
   const showPreview = preview && preview !== entry.takeForward;
@@ -50,9 +57,43 @@ export default function ReflectionSavedPage() {
           >
             <CheckCircle2 size={32} strokeWidth={1.75} />
           </span>
-          <h2 className="text-title font-bold text-ink mb-2">{saved.heading}</h2>
-          <p className="text-body text-slt leading-relaxed max-w-sm">{saved.body}</p>
+          <h2 className="text-title font-bold text-ink mb-2">{isReflection ? r.review.heading : saved.heading}</h2>
+          <p className="text-body text-slt leading-relaxed max-w-sm">{isReflection ? r.review.body : saved.body}</p>
         </div>
+
+        {/* ── Arjun's Review ────────────────────────────────────────────
+            Shown only for a unified reflection, and only when Arjun
+            actually produced something. Nothing here is measured or
+            compared — the calm Mind Journal identity is unchanged. A
+            missing review says so plainly, not with an empty card. */}
+        {isReflection && hasReview && (
+          <Card className="p-4 mb-4 elevation-card text-left" data-testid="mj-arjun-review">
+            {entry.arjunNoticed && (
+              <>
+                <p className="text-micro font-bold text-brand-500 uppercase tracking-wide mb-1.5">{r.review.noticedLabel}</p>
+                <p className="text-body text-ink leading-relaxed">{entry.arjunNoticed}</p>
+              </>
+            )}
+            {entry.arjunPattern && (
+              <div className="mt-4 pt-3 border-t border-dark-600" data-testid="mj-arjun-pattern">
+                <p className="text-micro font-bold text-slt uppercase tracking-wide mb-1.5">{r.review.patternLabel}</p>
+                <p className="text-body text-ink leading-relaxed">{entry.arjunPattern}</p>
+              </div>
+            )}
+            {entry.arjunTakeaway && (
+              <div className="mt-4 pt-3 border-t border-dark-600" data-testid="mj-arjun-takeaway">
+                <p className="text-micro font-bold text-slt uppercase tracking-wide mb-1.5">{r.review.takeawayLabel}</p>
+                <p className="text-body text-ink leading-relaxed">{entry.arjunTakeaway}</p>
+              </div>
+            )}
+          </Card>
+        )}
+
+        {isReflection && !hasReview && (
+          <Card className="p-4 mb-4 elevation-row text-left" data-testid="mj-review-unavailable">
+            <p className="text-caption text-slt leading-relaxed">{r.review.unavailable}</p>
+          </Card>
+        )}
 
         <Card className="p-4 mb-6 elevation-card text-left" data-testid="mj-saved-summary">
           <div className="flex items-center justify-between gap-2 mb-3">

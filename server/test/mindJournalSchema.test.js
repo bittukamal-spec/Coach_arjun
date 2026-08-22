@@ -105,20 +105,42 @@ test('MentalFitnessEntry model is unchanged and still present (legacy scored dat
 
 // ── PR 1: guided-reflection additive fields ─────────────────────────────────
 
-test('MindJournalEntryType enum exists with exactly QUICK_NOTE and GUIDED_REFLECTION', () => {
+// Unified Mind Journal (PR 1) added REFLECTION additively. The original two
+// values are asserted separately below so a future rename or removal fails
+// loudly — additive growth is allowed, losing a historical value is not.
+test('MindJournalEntryType enum exists with exactly QUICK_NOTE, GUIDED_REFLECTION and REFLECTION', () => {
   const { enums } = Prisma.dmmf.datamodel;
   const enumType = enums.find((e) => e.name === 'MindJournalEntryType');
   assert.ok(enumType, 'MindJournalEntryType enum not found');
-  assert.deepEqual(enumType.values.map((v) => v.name).sort(), ['GUIDED_REFLECTION', 'QUICK_NOTE']);
+  assert.deepEqual(enumType.values.map((v) => v.name).sort(), ['GUIDED_REFLECTION', 'QUICK_NOTE', 'REFLECTION']);
 });
 
-test('MindJournalContextType enum exists with exactly the five approved values', () => {
+test('MindJournalEntryType: the pre-existing values survive unrenamed', () => {
+  const { enums } = Prisma.dmmf.datamodel;
+  const names = enums.find((e) => e.name === 'MindJournalEntryType').values.map((v) => v.name);
+  for (const original of ['QUICK_NOTE', 'GUIDED_REFLECTION']) {
+    assert.ok(names.includes(original), `${original} must never be removed or renamed — historical rows carry it`);
+  }
+});
+
+test('MindJournalContextType exists with the five original values plus the five added for the unified reflection', () => {
   const { enums } = Prisma.dmmf.datamodel;
   const enumType = enums.find((e) => e.name === 'MindJournalContextType');
   assert.ok(enumType, 'MindJournalContextType enum not found');
   assert.deepEqual(enumType.values.map((v) => v.name).sort(), [
-    'COMPETITION', 'RECOVERY_DAY', 'SOMETHING_ELSE', 'TOUGH_MOMENT', 'TRAINING',
+    'COMPETITION', 'CONFIDENCE_PRESSURE', 'OUTSIDE_SPORT', 'RECOVERY_DAY', 'RECOVERY_INJURY',
+    'SELECTION_TRIAL', 'SOMETHING_ELSE', 'TOUGH_MOMENT', 'TRAINING', 'WENT_WELL',
   ]);
+});
+
+test('MindJournalContextType: the five original values survive unrenamed', () => {
+  const { enums } = Prisma.dmmf.datamodel;
+  const names = enums.find((e) => e.name === 'MindJournalContextType').values.map((v) => v.name);
+  // RECOVERY_DAY in particular is superseded by RECOVERY_INJURY for new
+  // reflections but must stay for the guided rows already written with it.
+  for (const original of ['TRAINING', 'COMPETITION', 'TOUGH_MOMENT', 'RECOVERY_DAY', 'SOMETHING_ELSE']) {
+    assert.ok(names.includes(original), `${original} must never be removed or renamed — historical rows carry it`);
+  }
 });
 
 test('MindJournalEntry: entryType and contextType are nullable enum fields', () => {

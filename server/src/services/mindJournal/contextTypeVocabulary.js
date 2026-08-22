@@ -9,6 +9,27 @@ const CONTEXT_TYPE_KEYS = [
   'TOUGH_MOMENT',
   'RECOVERY_DAY',
   'SOMETHING_ELSE',
+  // Unified reflection (PR 1) — additive. RECOVERY_DAY above is retained
+  // unchanged for historical guided rows and is not offered at Q1 any more.
+  'WENT_WELL',
+  'CONFIDENCE_PRESSURE',
+  'SELECTION_TRIAL',
+  'RECOVERY_INJURY',
+  'OUTSIDE_SPORT',
 ];
 
-module.exports = { CONTEXT_TYPE_KEYS };
+// The nine Q1 choices the unified reflection actually offers, in screen
+// order. SOMETHING_ELSE is the "Write my own" choice and stays last.
+const REFLECTION_CONTEXT_KEYS = [
+  'TRAINING',
+  'COMPETITION',
+  'TOUGH_MOMENT',
+  'WENT_WELL',
+  'CONFIDENCE_PRESSURE',
+  'SELECTION_TRIAL',
+  'RECOVERY_INJURY',
+  'OUTSIDE_SPORT',
+  'SOMETHING_ELSE',
+];
+
+module.exports = { CONTEXT_TYPE_KEYS, REFLECTION_CONTEXT_KEYS };

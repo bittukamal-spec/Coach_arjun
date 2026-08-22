@@ -19,7 +19,9 @@
 // contextType or for quick-note / legacy shapes.
 
 const { STATE_KEYS, STATE_LABELS } = require('./stateVocabulary');
-const { CONTEXT_TYPE_KEYS } = require('./contextTypeVocabulary');
+const { CONTEXT_TYPE_KEYS, REFLECTION_CONTEXT_KEYS } = require('./contextTypeVocabulary');
+const { eventKeysForContext } = require('./eventVocabulary');
+const { THOUGHT_KEYS, RESPONSE_KEYS, BODY_KEYS, CUE_FEEDBACK_KEYS } = require('./reflectionVocabulary');
 
 const MAX_NOTE_LENGTH = 500;
 const MAX_WHAT_HAPPENED_LENGTH = 1000;
@@ -28,8 +30,16 @@ const MAX_HELPED_OR_GOT_IN_WAY_LENGTH = 1000;
 const MAX_TAKE_FORWARD_LENGTH = 500;
 const MAX_CUSTOM_STATE_LENGTH = 30;
 const MAX_CUSTOM_CONTEXT_LENGTH = 80;
+// Unified reflection (PR 1) — one short athlete-written label per question.
+const MAX_CUSTOM_EVENT_LENGTH = 80;
+const MAX_CUSTOM_THOUGHT_LENGTH = 80;
+const MAX_CUSTOM_RESPONSE_LENGTH = 80;
+const MAX_CUSTOM_BODY_LENGTH = 80;
+const MAX_CUE_WORD_SNAPSHOT_LENGTH = 60;
+// Every multi-select question in the unified reflection shares one cap.
+const MAX_TAG_SELECTIONS = 2;
 
-const ENTRY_TYPES = ['QUICK_NOTE', 'GUIDED_REFLECTION'];
+const ENTRY_TYPES = ['QUICK_NOTE', 'GUIDED_REFLECTION', 'REFLECTION'];
 
 // eslint-disable-next-line no-control-regex
 const CONTROL_CHAR_RE = /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/;
@@ -160,6 +170,163 @@ function validateAllowedKeys(body, allowedKeys) {
   return { valid: true };
 }
 
+// ── Unified reflection (PR 1) helpers ─────────────────────────────────────
+
+// One multi-select answer list: 0-2 values, no duplicates, every value from
+// the question's own allowed vocabulary. Omitted normalizes to [].
+function validateTagList(value, allowedKeys, fieldName) {
+  const arr = value === undefined || value === null ? [] : value;
+  if (!Array.isArray(arr)) return { valid: false, error: `${fieldName} must be an array` };
+  if (arr.length > MAX_TAG_SELECTIONS) {
+    return { valid: false, error: `${fieldName} must include at most ${MAX_TAG_SELECTIONS} values` };
+  }
+  if (!arr.every((v) => typeof v === 'string')) {
+    return { valid: false, error: `${fieldName} must be strings` };
+  }
+  if (new Set(arr).size !== arr.length) {
+    return { valid: false, error: `${fieldName} must not contain duplicates` };
+  }
+  if (!arr.every((v) => allowedKeys.includes(v))) {
+    return { valid: false, error: `${fieldName} must come from the allowed list` };
+  }
+  return { valid: true, value: arr };
+}
+
+// A tag list plus its optional "Write my own" label share ONE budget of 2,
+// exactly like states + customState already do.
+function validateTagGroup(tags, custom, allowedKeys, fieldName, maxCustomLength) {
+  const tagsCheck = validateTagList(tags, allowedKeys, fieldName);
+  if (!tagsCheck.valid) return tagsCheck;
+  const customCheck = validateBoundedText(custom, maxCustomLength, `custom${fieldName[0].toUpperCase()}${fieldName.slice(1, -4)}`);
+  if (!customCheck.valid) return customCheck;
+  if (tagsCheck.value.length + (customCheck.value ? 1 : 0) > MAX_TAG_SELECTIONS) {
+    return { valid: false, error: `${fieldName} and its custom value together must total at most ${MAX_TAG_SELECTIONS}` };
+  }
+  return { valid: true, value: { tags: tagsCheck.value, custom: customCheck.value } };
+}
+
+function validateCueFeedback(value) {
+  if (value === undefined || value === null) return { valid: true, value: null };
+  if (!CUE_FEEDBACK_KEYS.includes(value)) {
+    return { valid: false, error: 'cueFeedback must be one of the approved values' };
+  }
+  return { valid: true, value };
+}
+
+// The redesigned reflection shape. contextType is the one required answer
+// (Q1); every other question is optional to answer, but a reflection made of
+// nothing but a context would be an empty record — so at least one answer
+// beyond the context is required, matching the existing guided rule.
+function validateReflectionEntry(body) {
+  const contextTypeCheck = validateContextType(body.contextType, { required: true });
+  if (!contextTypeCheck.valid) return contextTypeCheck;
+  const contextType = contextTypeCheck.value;
+  if (!REFLECTION_CONTEXT_KEYS.includes(contextType)) {
+    return { valid: false, error: 'contextType is not offered by the reflection flow' };
+  }
+
+  const customContextCheck = validateCustomContext(body.customContext);
+  if (!customContextCheck.valid) return customContextCheck;
+  if (customContextCheck.value !== null && contextType !== 'SOMETHING_ELSE') {
+    return { valid: false, error: 'customContext is only used when contextType is SOMETHING_ELSE' };
+  }
+
+  // Q2 — event tags are validated against THIS context's own vocabulary.
+  const eventGroup = validateTagGroup(
+    body.eventTags, body.customEvent, eventKeysForContext(contextType), 'eventTags', MAX_CUSTOM_EVENT_LENGTH,
+  );
+  if (!eventGroup.valid) return eventGroup;
+
+  // Q3 — reuses the existing state vocabulary and its 2-value budget.
+  const statesCheck = validateStates(body.states, { min: 0, max: 2 });
+  if (!statesCheck.valid) return statesCheck;
+  const customStateCheck = validateCustomState(body.customState);
+  if (!customStateCheck.valid) return customStateCheck;
+  if (totalStateCount(statesCheck.value, customStateCheck.value) > 2) {
+    return { valid: false, error: 'states and customState together must total at most 2' };
+  }
+  if (customMatchesSelectedBuiltIn(customStateCheck.value, statesCheck.value)) {
+    return { valid: false, error: 'customState must not repeat a selected built-in state' };
+  }
+
+  const thoughtGroup = validateTagGroup(
+    body.thoughtTags, body.customThought, THOUGHT_KEYS, 'thoughtTags', MAX_CUSTOM_THOUGHT_LENGTH,
+  );
+  if (!thoughtGroup.valid) return thoughtGroup;
+
+  const responseGroup = validateTagGroup(
+    body.responseTags, body.customResponse, RESPONSE_KEYS, 'responseTags', MAX_CUSTOM_RESPONSE_LENGTH,
+  );
+  if (!responseGroup.valid) return responseGroup;
+
+  const bodyGroup = validateTagGroup(
+    body.bodyTags, body.customBody, BODY_KEYS, 'bodyTags', MAX_CUSTOM_BODY_LENGTH,
+  );
+  if (!bodyGroup.valid) return bodyGroup;
+
+  const cueFeedbackCheck = validateCueFeedback(body.cueFeedback);
+  if (!cueFeedbackCheck.valid) return cueFeedbackCheck;
+  const cueWordSnapshotCheck = validateBoundedText(body.cueWordSnapshot, MAX_CUE_WORD_SNAPSHOT_LENGTH, 'cueWordSnapshot');
+  if (!cueWordSnapshotCheck.valid) return cueWordSnapshotCheck;
+
+  // Q6 is ONE question or none — body and cue can never both be answered.
+  const hasBody = bodyGroup.value.tags.length > 0 || bodyGroup.value.custom !== null;
+  if (hasBody && cueFeedbackCheck.value !== null) {
+    return { valid: false, error: 'a reflection answers at most one of the body or cue question' };
+  }
+  if (cueWordSnapshotCheck.value !== null && cueFeedbackCheck.value === null) {
+    return { valid: false, error: 'cueWordSnapshot is only stored alongside cueFeedback' };
+  }
+
+  // The narrative + note fields belong to the earlier shapes only.
+  for (const [fieldName, value] of [
+    ['note', body.note],
+    ['whatHappened', body.whatHappened],
+    ['whatNoticed', body.whatNoticed],
+    ['helpedOrGotInWay', body.helpedOrGotInWay],
+    ['takeForward', body.takeForward],
+  ]) {
+    if (!isAbsentOrNull(value)) {
+      return { valid: false, error: `${fieldName} is not used for a reflection` };
+    }
+  }
+
+  const answered = eventGroup.value.tags.length > 0 || eventGroup.value.custom !== null
+    || statesCheck.value.length > 0 || customStateCheck.value !== null
+    || thoughtGroup.value.tags.length > 0 || thoughtGroup.value.custom !== null
+    || responseGroup.value.tags.length > 0 || responseGroup.value.custom !== null
+    || hasBody || cueFeedbackCheck.value !== null;
+  if (!answered) {
+    return { valid: false, error: 'a reflection needs at least one answer besides the context' };
+  }
+
+  return {
+    valid: true,
+    value: {
+      entryType: 'REFLECTION',
+      contextType,
+      customContext: customContextCheck.value,
+      eventTags: eventGroup.value.tags,
+      customEvent: eventGroup.value.custom,
+      states: statesCheck.value,
+      customState: customStateCheck.value,
+      thoughtTags: thoughtGroup.value.tags,
+      customThought: thoughtGroup.value.custom,
+      responseTags: responseGroup.value.tags,
+      customResponse: responseGroup.value.custom,
+      bodyTags: bodyGroup.value.tags,
+      customBody: bodyGroup.value.custom,
+      cueFeedback: cueFeedbackCheck.value,
+      cueWordSnapshot: cueWordSnapshotCheck.value,
+      note: null,
+      whatHappened: null,
+      whatNoticed: null,
+      helpedOrGotInWay: null,
+      takeForward: null,
+    },
+  };
+}
+
 // Full request-shape + field validation for POST /api/mind-journal. Caller
 // must run validateAllowedKeys first (unrelated top-level keys are rejected
 // there, before this ever runs). Returns { valid: true, value: {...all
@@ -179,6 +346,10 @@ function validateMindJournalEntry(body) {
   const entryTypeCheck = validateEntryType(body.entryType);
   if (!entryTypeCheck.valid) return entryTypeCheck;
   const entryType = entryTypeCheck.value;
+
+  if (entryType === 'REFLECTION') {
+    return validateReflectionEntry(body);
+  }
 
   if (entryType === 'GUIDED_REFLECTION') {
     const contextTypeCheck = validateContextType(body.contextType, { required: true });
@@ -294,6 +465,10 @@ function validateMindJournalEntry(body) {
 
 module.exports = {
   validateStates,
+  validateTagList,
+  validateTagGroup,
+  validateCueFeedback,
+  validateReflectionEntry,
   validateNote,
   validateWhatHappened,
   validateWhatNoticed,
@@ -313,4 +488,10 @@ module.exports = {
   MAX_TAKE_FORWARD_LENGTH,
   MAX_CUSTOM_STATE_LENGTH,
   MAX_CUSTOM_CONTEXT_LENGTH,
+  MAX_CUSTOM_EVENT_LENGTH,
+  MAX_CUSTOM_THOUGHT_LENGTH,
+  MAX_CUSTOM_RESPONSE_LENGTH,
+  MAX_CUSTOM_BODY_LENGTH,
+  MAX_CUE_WORD_SNAPSHOT_LENGTH,
+  MAX_TAG_SELECTIONS,
 };

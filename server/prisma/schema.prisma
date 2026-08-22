@@ -314,20 +314,56 @@ model MindJournalEntry {
   // Not yet included in Coach context (loadMindJournalContext).
   customContext     String?
 
+  // ── Unified Mind Journal reflection (PR 1) ────────────────────────────
+  // All additive and nullable / empty-list by default. Rows written by the
+  // earlier shapes (legacy null entryType, QUICK_NOTE, GUIDED_REFLECTION)
+  // keep every value they already have and simply carry empty lists here.
+  // Written only by entryType REFLECTION.
+  eventTags         String[]   // Q2 — observable events, max 2
+  customEvent       String?    // Q2 "Write my own"
+  thoughtTags       String[]   // Q4 — what was going through their mind, max 2
+  customThought     String?    // Q4 "Write my own"
+  responseTags      String[]   // Q5 — what they did, max 2
+  customResponse    String?    // Q5 "Write my own"
+  bodyTags          String[]   // Q6 body variant, max 2
+  customBody        String?    // Q6 body "Write my own"
+  cueFeedback       String?    // Q6 cue variant — "helped" | "forgot" | "no_help"
+  cueWordSnapshot   String?    // the Focus Card word the cue question asked about
+
+  // Arjun's Review — generated server-side after a successful save, never
+  // by the athlete. Null when the review was skipped (trial) or failed;
+  // the reflection itself is always kept regardless.
+  arjunNoticed      String?
+  arjunTakeaway     String?
+  arjunPattern      String?    // null unless there was enough prior evidence
+  reviewGeneratedAt DateTime?
+
   @@index([userId, createdAt])
 }
 
 enum MindJournalEntryType {
   QUICK_NOTE
   GUIDED_REFLECTION
+  // Unified Mind Journal reflection (PR 1). Deliberately its OWN value
+  // rather than overloading GUIDED_REFLECTION, so historical guided rows
+  // stay distinguishable in history, detail rendering and Coach context.
+  REFLECTION
 }
 
 enum MindJournalContextType {
   TRAINING
   COMPETITION
   TOUGH_MOMENT
+  // RECOVERY_DAY is superseded by RECOVERY_INJURY for new reflections but is
+  // NEVER removed — historical guided rows still carry it.
   RECOVERY_DAY
   SOMETHING_ELSE
+  // ── Additive contexts for the unified reflection (PR 1) ───────────────
+  WENT_WELL
+  CONFIDENCE_PRESSURE
+  SELECTION_TRIAL
+  RECOVERY_INJURY
+  OUTSIDE_SPORT
 }
 
 model ToolReport {
