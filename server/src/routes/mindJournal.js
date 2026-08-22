@@ -95,7 +95,21 @@ function createMindJournalRouter(
     const keysCheck = validateAllowedKeys(req.body, POST_ALLOWED_KEYS);
     if (!keysCheck.valid) return res.status(400).json({ error: keysCheck.error });
 
-    const shapeCheck = validateMindJournalEntry(req.body);
+    // Whether the athlete has an active Focus Card decides which conditional
+    // question the wizard showed, and therefore which one the server must
+    // insist was answered. Read here, before validation, so the requirement
+    // cannot be bypassed by calling the API directly. Only reflections need
+    // it; every other shape validates exactly as before.
+    let hasActiveFocusCard = false;
+    if (req.body?.entryType === 'REFLECTION') {
+      const card = await client.selfTalkCard?.findFirst({
+        where: { userId: req.userId, isActive: true, isArchived: false },
+        select: { id: true },
+      }).catch(() => null);
+      hasActiveFocusCard = !!card;
+    }
+
+    const shapeCheck = validateMindJournalEntry(req.body, { hasActiveFocusCard });
     if (!shapeCheck.valid) return res.status(400).json({ error: shapeCheck.error });
     const {
       entryType, contextType, states, customState, customContext, note,
@@ -142,39 +156,23 @@ function createMindJournalRouter(
       return res.json({ safetyFlag: 'needs_support', guidance: getSafetyGuidance(screen.category, user?.language) });
     }
 
-    // ── Arjun's Review (unified reflection only) ─────────────────────────
-    // Generated BEFORE the create so the reflection and its review land in
-    // one write. Flagged submissions returned above, so nothing screened
-    // unsafe ever reaches the model. A failure here resolves to nulls — the
-    // reflection is still saved, the review slot is simply empty.
-    let review = { noticed: null, takeaway: null, pattern: null };
-    let reviewGeneratedAt = null;
-    if (isReflection) {
-      const priorEntries = await client.mindJournalEntry.findMany({
+    // ── Persist first ────────────────────────────────────────────────────
+    // The reflection is durable the moment it has passed validation and the
+    // safety screen. Arjun's Review is generated AFTER this write and
+    // attached in a follow-up update, so an Anthropic timeout, error, or a
+    // process restart mid-call can never cost the athlete a reflection they
+    // already submitted. A missing review is the intended degradation:
+    // review fields null, reviewGeneratedAt null, everything else normal.
+    //
+    // Prior reflections are read before the create so the entry being saved
+    // can never become evidence for its own pattern.
+    const priorEntries = isReflection
+      ? await client.mindJournalEntry.findMany({
         where: { userId: req.userId, entryType: 'REFLECTION' },
         orderBy: { createdAt: 'desc' },
         take: MAX_PRIOR_REFLECTIONS,
-      }).catch(() => []);
-
-      // Trial gate covers the AI review only — never the reflection itself,
-      // matching the existing post-performance-reflection precedent.
-      if (await trialCheck(req.userId)) {
-        const reviewUser = await client.user.findUnique({
-          where: { id: req.userId },
-          select: { name: true, sport: true, language: true },
-        }).catch(() => null);
-        review = await generateReflectionReview({
-          entry: {
-            contextType, customContext, eventTags, customEvent, states, customState,
-            thoughtTags, customThought, responseTags, customResponse,
-            bodyTags, customBody, cueFeedback, cueWordSnapshot,
-          },
-          priorEntries,
-          user: reviewUser || {},
-        });
-        if (review.noticed || review.takeaway) reviewGeneratedAt = new Date();
-      }
-    }
+      }).catch(() => [])
+      : [];
 
     const entry = await client.mindJournalEntry.create({
       data: {
@@ -199,10 +197,10 @@ function createMindJournalRouter(
         customBody: customBody ?? null,
         cueFeedback: cueFeedback ?? null,
         cueWordSnapshot: cueWordSnapshot ?? null,
-        arjunNoticed: review.noticed,
-        arjunTakeaway: review.takeaway,
-        arjunPattern: review.pattern,
-        reviewGeneratedAt,
+        arjunNoticed: null,
+        arjunTakeaway: null,
+        arjunPattern: null,
+        reviewGeneratedAt: null,
       },
     });
     // Pilot Tracking Phase 2A — the safety-flagged branch above returns
@@ -210,7 +208,57 @@ function createMindJournalRouter(
     // genuinely saved entry.
     await activityTracking.touchActivity(req.userId);
 
-    res.json({ entry: serializeEntry(entry) });
+    // ── Arjun's Review — best effort, never load-bearing ─────────────────
+    // Flagged submissions returned above, so nothing screened unsafe ever
+    // reaches the model. Trial gates the review only, never the reflection.
+    // Any failure here — the model, the parse, or the follow-up write —
+    // leaves the already-saved reflection exactly as it is.
+    let saved = entry;
+    // The whole review step is wrapped: generateReflectionReview handles its
+    // own failures internally, but the athlete's reflection is already saved
+    // by this point and must still be returned even if anything in here
+    // throws unexpectedly. Without this, a surprise throw would leave the
+    // request hanging with no response, and the athlete could retry a
+    // reflection that is already stored.
+    try {
+      if (isReflection && await trialCheck(req.userId)) {
+        const reviewUser = await client.user.findUnique({
+          where: { id: req.userId },
+          select: { name: true, sport: true, language: true },
+        }).catch(() => null);
+        const review = await generateReflectionReview({
+          entry: {
+            contextType, customContext, eventTags, customEvent, states, customState,
+            thoughtTags, customThought, responseTags, customResponse,
+            bodyTags, customBody, cueFeedback, cueWordSnapshot,
+          },
+          priorEntries,
+          user: reviewUser || {},
+        });
+        if (review.noticed || review.takeaway) {
+          // Scoped to the row just created for this athlete. If the update
+          // fails, `saved` stays the review-less entry, so what the athlete
+          // is shown always matches what is actually stored.
+          const updated = await client.mindJournalEntry.update({
+            where: { id: entry.id },
+            data: {
+              arjunNoticed: review.noticed,
+              arjunTakeaway: review.takeaway,
+              arjunPattern: review.pattern,
+              reviewGeneratedAt: new Date(),
+            },
+          }).catch((err) => {
+            console.error('[mindJournal] review attach failed:', err?.message);
+            return null;
+          });
+          if (updated) saved = updated;
+        }
+      }
+    } catch (err) {
+      console.error('[mindJournal] review step failed:', err?.message);
+    }
+
+    res.json({ entry: serializeEntry(saved) });
   });
 
   router.get('/', authenticate, consentMiddleware, async (req, res) => {

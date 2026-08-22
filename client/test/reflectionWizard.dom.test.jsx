@@ -54,11 +54,39 @@ const postedBody = () => {
 const clickName = async (name) => userEvent.click(await screen.findByRole('button', { name }));
 const clickRadio = async (name) => userEvent.click(await screen.findByRole('radio', { name }));
 const next = () => clickName('Next');
+const save = () => clickName('Save reflection');
 
-// Q1 → Q2. Q1 auto-advances on its own after a short delay.
+// Answer whichever question is on screen with its first available option,
+// then advance. Chips-only throughout — this helper never types, which is
+// itself the point: no reflection should ever require typing.
+async function answerAndAdvance() {
+  const radios = screen.queryAllByRole('radio');
+  if (radios.length) {
+    await userEvent.click(radios[0]);
+  } else {
+    // Every selectable chip carries aria-pressed; skip "Write my own",
+    // which would open a text field instead of counting as an answer.
+    const chips = Array.from(document.querySelectorAll('button[aria-pressed]'))
+      .filter((b) => !/Write my own/.test(b.textContent));
+    await userEvent.click(chips[0]);
+  }
+  const btn = screen.queryByRole('button', { name: 'Next' }) || screen.getByRole('button', { name: 'Save reflection' });
+  await userEvent.click(btn);
+}
+
+// Q1 → Q2. Q1 is single-choice and auto-advances on its own.
 async function pickContext(label) {
   await clickRadio(label);
   await screen.findByRole('heading', { level: 2, name: /What happened|What went well|When did this come up|What was going on/ });
+}
+
+// Walk from the current step to the end, answering everything.
+async function completeFrom(steps = 6) {
+  for (let i = 0; i < steps; i++) {
+    if (screen.queryByTestId('pathname')?.textContent !== '/mind-journal/new') break;
+    if (!screen.queryByRole('button', { name: 'Next' }) && !screen.queryByRole('button', { name: 'Save reflection' })) break;
+    await answerAndAdvance();
+  }
 }
 
 beforeEach(() => { apiFetch.mockReset(); mockApi(); });
@@ -83,17 +111,65 @@ describe('one question per screen', () => {
     await pickContext('Training');
     expect(screen.getByTestId('mj-step-progress').textContent).toMatch(/Step 2 of 5/);
 
-    await next();
+    await clickName('A full session'); await next();
     expect(await screen.findByRole('heading', { level: 2, name: 'How did you feel when this was happening?' })).toBeTruthy();
     expect(screen.getByTestId('mj-step-progress').textContent).toMatch(/Step 3 of 5/);
 
-    await next();
+    await clickName('Calm'); await next();
     expect(await screen.findByRole('heading', { level: 2, name: 'What was going through your mind when this happened?' })).toBeTruthy();
 
-    await next();
+    await clickName('I knew what I wanted to do'); await next();
     expect(await screen.findByRole('heading', { level: 2, name: 'What did you do when this happened?' })).toBeTruthy();
     expect(screen.getByTestId('mj-step-progress').textContent).toMatch(/Step 5 of 5/);
     expect(screen.getByRole('button', { name: 'Save reflection' })).toBeTruthy();
+  });
+
+  test('there is no Skip — every structured question must be answered', async () => {
+    renderWizard();
+    await pickContext('Training');
+    expect(screen.queryByRole('button', { name: /skip/i })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Next' }).disabled).toBe(true);
+    await clickName('A full session');
+    expect(screen.getByRole('button', { name: 'Next' }).disabled).toBe(false);
+  });
+
+  for (const [heading, chip] of [
+    ['What happened in training?', 'A full session'],
+    ['How did you feel when this was happening?', 'Calm'],
+    ['What was going through your mind when this happened?', 'I knew what I wanted to do'],
+    ['What did you do when this happened?', 'I stayed focused'],
+  ]) {
+    test(`"${heading}" cannot be left empty`, async () => {
+      renderWizard();
+      await pickContext('Training');
+      while (document.querySelector('h2').textContent !== heading) await answerAndAdvance();
+
+      const btn = screen.queryByRole('button', { name: 'Next' }) || screen.getByRole('button', { name: 'Save reflection' });
+      expect(btn.disabled).toBe(true);
+      await userEvent.click(btn);
+      expect(document.querySelector('h2').textContent).toBe(heading);
+
+      await clickName(chip);
+      expect((screen.queryByRole('button', { name: 'Next' }) || screen.getByRole('button', { name: 'Save reflection' })).disabled).toBe(false);
+    });
+  }
+
+  test('Q3 offers "Not sure" so a required question always has an honest answer', async () => {
+    renderWizard();
+    await pickContext('Training');
+    await clickName('A full session'); await next();
+    await clickName('Not sure');
+    expect(screen.getByRole('button', { name: 'Not sure' }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: 'Next' }).disabled).toBe(false);
+  });
+
+  test('an opened "Write my own" left blank does not count as an answer', async () => {
+    renderWizard();
+    await pickContext('Training');
+    await clickName('Write my own');
+    expect(screen.getByRole('button', { name: 'Next' }).disabled).toBe(true);
+    await userEvent.type(screen.getByLabelText('Write it in your own words'), 'net session');
+    expect(screen.getByRole('button', { name: 'Next' }).disabled).toBe(false);
   });
 
   test('only Q1 auto-advances; a multi-select tap never commits the question', async () => {
@@ -165,7 +241,9 @@ describe('conditional Q6', () => {
   test('a calm training reflection finishes after Q5 — no sixth question', async () => {
     renderWizard();
     await pickContext('Training');
-    await next(); await clickName('Calm'); await next(); await next();
+    await clickName('A full session'); await next();
+    await clickName('Calm'); await next();
+    await clickName('I knew what I wanted to do'); await next();
     expect(screen.getByTestId('mj-step-progress').textContent).toMatch(/Step 5 of 5/);
     expect(screen.getByRole('button', { name: 'Save reflection' })).toBeTruthy();
   });
@@ -173,18 +251,30 @@ describe('conditional Q6', () => {
   test('reporting nerves in training adds the body question', async () => {
     renderWizard();
     await pickContext('Training');
-    await next();
+    await clickName('A full session'); await next();
     await clickName('Nervous');
     expect(screen.getByTestId('mj-step-progress').textContent).toMatch(/Step 3 of 6/);
-    await next(); await next(); await next();
+    await next();
+    await clickName('I knew what I wanted to do'); await next();
+    await clickName('I stayed focused'); await next();
     expect(await screen.findByRole('heading', { level: 2, name: 'What did you notice in your body?' })).toBeTruthy();
+  });
+
+  test('a shown Q6 is required too', async () => {
+    renderWizard();
+    await pickContext('Match / competition');
+    await completeFrom(4);
+    expect(await screen.findByRole('heading', { level: 2, name: 'What did you notice in your body?' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Save reflection' }).disabled).toBe(true);
+    await clickName('Tense');
+    expect(screen.getByRole('button', { name: 'Save reflection' }).disabled).toBe(false);
   });
 
   test('with no Focus Card, a competition reflection gets the body question, never the cue one', async () => {
     mockApi({ focusWord: null });
     renderWizard();
     await pickContext('Match / competition');
-    await next(); await next(); await next(); await next();
+    await completeFrom(4);
     expect(await screen.findByRole('heading', { level: 2, name: 'What did you notice in your body?' })).toBeTruthy();
     expect(screen.queryByRole('heading', { name: 'Did your focus word help?' })).toBeNull();
   });
@@ -193,7 +283,7 @@ describe('conditional Q6', () => {
     mockApi({ focusWord: 'Breathe' });
     renderWizard();
     await pickContext('Match / competition');
-    await next(); await clickName('Nervous'); await next(); await next(); await next();
+    await completeFrom(4);
     expect(await screen.findByRole('heading', { level: 2, name: 'Did your focus word help?' })).toBeTruthy();
     expect(screen.queryByRole('heading', { name: 'What did you notice in your body?' })).toBeNull();
     expect(within(screen.getByTestId('mj-cue-word')).getByText('Breathe')).toBeTruthy();
@@ -203,7 +293,9 @@ describe('conditional Q6', () => {
     mockApi({ focusWord: 'Breathe' });
     renderWizard();
     await pickContext('Something that went well');
-    await next(); await clickName('Confident'); await next(); await next();
+    await clickName('I pulled off a skill'); await next();
+    await clickName('Confident'); await next();
+    await clickName('I knew what I wanted to do'); await next();
     expect(screen.getByTestId('mj-step-progress').textContent).toMatch(/Step 5 of 5/);
     expect(screen.queryByRole('heading', { name: 'Did your focus word help?' })).toBeNull();
   });
@@ -223,7 +315,7 @@ describe('save', () => {
     await clickName('I went faster than I meant to');
     await next();
     await clickRadio('Yes, it helped');
-    await clickName('Save reflection');
+    await save();
 
     expect(postedBody()).toEqual({
       entryType: 'REFLECTION',
@@ -248,42 +340,44 @@ describe('save', () => {
 
     await userEvent.type(screen.getByLabelText('What is it about?'), 'a long travel day');
     await clickName('Next');
-    await clickName('It happened suddenly');
-    await next(); await next(); await next();
-    await clickName('Save reflection');
+    await completeFrom(4);
 
     const body = postedBody();
     expect(body.contextType).toBe('SOMETHING_ELSE');
     expect(body.customContext).toBe('a long travel day');
   });
 
-  test('a reflection with no answers beyond the context cannot be saved', async () => {
+  test('an incomplete reflection can never reach the API', async () => {
     renderWizard();
     await pickContext('Training');
-    await next(); await next(); await next();
-    await clickName('Save reflection');
-    expect(screen.getByText('Answer at least one question before saving.')).toBeTruthy();
+    await clickName('A full session'); await next();
+    await clickName('Calm'); await next();
+    await clickName('I knew what I wanted to do'); await next();
+    // On the last question with nothing selected — Save stays disabled.
+    expect(screen.getByRole('button', { name: 'Save reflection' }).disabled).toBe(true);
+    await save();
     expect(apiFetch.mock.calls.filter(([p, i]) => p === '/api/mind-journal' && i?.method === 'POST')).toHaveLength(0);
   });
 
   test('typing is never required — a chips-only reflection saves', async () => {
     renderWizard();
     await pickContext('Training');
-    await clickName('A full session');
-    await next(); await next(); await next();
-    await clickName('Save reflection');
+    await completeFrom(4);
     const body = postedBody();
     expect(body.eventTags).toEqual(['full_session']);
-    expect(body.customEvent).toBeUndefined();
+    expect(body.states).toEqual(['calm']);
+    expect(body.thoughtTags).toEqual(['knew_what_to_do']);
+    expect(body.responseTags).toEqual(['stayed_focused']);
+    for (const f of ['customEvent', 'customState', 'customThought', 'customResponse']) {
+      expect(body[f]).toBeUndefined();
+    }
   });
 
   test('a safety-flagged submission shows guidance and never claims a save', async () => {
     mockApi({ saveResponse: { safetyFlag: 'needs_support', guidance: 'Please talk to someone you trust.' } });
     renderWizard();
     await pickContext('Training');
-    await clickName('A full session');
-    await next(); await next(); await next();
-    await clickName('Save reflection');
+    await completeFrom(4);
     expect(await screen.findByText('Please talk to someone you trust.')).toBeTruthy();
     expect((await screen.findByTestId('pathname')).textContent).toBe('/mind-journal/new');
     expect(screen.queryByTestId('saved')).toBeNull();
@@ -299,9 +393,8 @@ describe('nothing here asks the athlete to diagnose or fix themselves', () => {
     await pickContext('Match / competition');
     for (let i = 0; i < 5; i++) {
       seen.push(document.body.textContent);
-      const btn = screen.queryByRole('button', { name: 'Next' }) || screen.queryByRole('button', { name: 'Save reflection' });
-      if (!btn) break;
-      await userEvent.click(btn);
+      if (!screen.queryByRole('button', { name: 'Next' }) && !screen.queryByRole('button', { name: 'Save reflection' })) break;
+      await answerAndAdvance();
     }
     for (const text of seen) expect(text).not.toMatch(banned);
   });

@@ -41,6 +41,11 @@ export function eventKeysForContext(contextType) {
   return CONTEXT_TO_EVENTS[contextType] || [];
 }
 
+// Q3 — the eight shared states plus a reflection-only "not sure", so a
+// required question always has an honest answer. Quick Note and the guided
+// reflection keep STATE_KEYS (the original eight) exactly as they were.
+export const REFLECTION_STATE_KEYS = [...STATE_KEYS, 'not_sure'];
+
 // Q4 / Q5 / Q6
 export const THOUGHT_KEYS = [
   'knew_what_to_do', 'focused_on_what_i_needed', 'worried_about_result', 'worried_about_mistake',

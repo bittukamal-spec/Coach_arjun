@@ -6,6 +6,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const { CONTEXT_TYPE_KEYS, REFLECTION_CONTEXT_KEYS } = require('../src/services/mindJournal/contextTypeVocabulary');
+const { STATE_KEYS, REFLECTION_STATE_KEYS } = require('../src/services/mindJournal/stateVocabulary');
 const { CONTEXT_TO_EVENTS, eventKeysForContext } = require('../src/services/mindJournal/eventVocabulary');
 const { THOUGHT_KEYS, RESPONSE_KEYS, BODY_KEYS, CUE_FEEDBACK_KEYS } = require('../src/services/mindJournal/reflectionVocabulary');
 const { resolveConditionalQuestion } = require('../src/services/mindJournal/resolveConditionalQuestion');
@@ -19,7 +20,18 @@ const {
 } = require('../src/services/mindJournal/generateReflectionReview');
 const { validateMindJournalEntry } = require('../src/services/mindJournal/validateEntry');
 
-const base = (over = {}) => ({ entryType: 'REFLECTION', contextType: 'TRAINING', eventTags: ['full_session'], ...over });
+// A complete reflection. Every structured question is required now, so the
+// baseline answers all of them; each test overrides only what it is probing.
+// TRAINING + calm means the resolver shows no Q6, so these stay focused.
+const base = (over = {}) => ({
+  entryType: 'REFLECTION',
+  contextType: 'TRAINING',
+  eventTags: ['full_session'],
+  states: ['calm'],
+  thoughtTags: ['knew_what_to_do'],
+  responseTags: ['stayed_focused'],
+  ...over,
+});
 
 // ── Vocabulary ─────────────────────────────────────────────────────────────
 
@@ -74,35 +86,41 @@ const GROUPS = [
 
 for (const [tagField, customField, values] of GROUPS) {
   test(`${tagField}: two values are accepted, three are rejected`, () => {
-    assert.equal(validateMindJournalEntry(base({ eventTags: [], [tagField]: values.slice(0, 2) })).valid, true);
-    const three = validateMindJournalEntry(base({ eventTags: [], [tagField]: values }));
+    assert.equal(validateMindJournalEntry(base({ [tagField]: values.slice(0, 2) })).valid, true);
+    const three = validateMindJournalEntry(base({ [tagField]: values }));
     assert.equal(three.valid, false);
     assert.match(three.error, /at most 2/);
   });
 
   test(`${tagField}: two values plus a "Write my own" exceeds the shared budget of 2`, () => {
-    const over = validateMindJournalEntry(base({ eventTags: [], [tagField]: values.slice(0, 2), [customField]: 'mine' }));
+    const over = validateMindJournalEntry(base({ [tagField]: values.slice(0, 2), [customField]: 'mine' }));
     assert.equal(over.valid, false);
     assert.match(over.error, /together must total at most 2/);
-    assert.equal(validateMindJournalEntry(base({ eventTags: [], [tagField]: values.slice(0, 1), [customField]: 'mine' })).valid, true);
+    assert.equal(validateMindJournalEntry(base({ [tagField]: values.slice(0, 1), [customField]: 'mine' })).valid, true);
   });
 
   test(`${tagField}: duplicate and off-vocabulary values are rejected`, () => {
-    assert.equal(validateMindJournalEntry(base({ eventTags: [], [tagField]: [values[0], values[0]] })).valid, false);
-    assert.equal(validateMindJournalEntry(base({ eventTags: [], [tagField]: ['totally_made_up'] })).valid, false);
+    assert.equal(validateMindJournalEntry(base({ [tagField]: [values[0], values[0]] })).valid, false);
+    assert.equal(validateMindJournalEntry(base({ [tagField]: ['totally_made_up'] })).valid, false);
   });
 }
 
 test('states keeps its existing 2-value budget inside a reflection', () => {
-  assert.equal(validateMindJournalEntry(base({ states: ['calm', 'tired'] })).valid, true);
-  assert.equal(validateMindJournalEntry(base({ states: ['calm', 'tired', 'nervous'] })).valid, false);
-  assert.equal(validateMindJournalEntry(base({ states: ['calm', 'tired'], customState: 'buzzing' })).valid, false);
+  // "tired" is one of the states that makes the body question relevant, so
+  // these carry a Q6 answer — the budget, not the resolver, is under test.
+  const twoStates = (over) => base({ states: ['calm', 'tired'], bodyTags: ['nothing_unusual'], ...over });
+  assert.equal(validateMindJournalEntry(twoStates()).valid, true);
+  assert.equal(validateMindJournalEntry(twoStates({ states: ['calm', 'tired', 'nervous'] })).valid, false);
+  assert.equal(validateMindJournalEntry(twoStates({ customState: 'buzzing' })).valid, false);
 });
 
 // ── Context-adaptive Q2 validation ─────────────────────────────────────────
 
 test('an event tag valid for one context is rejected under another', () => {
-  assert.equal(validateMindJournalEntry(base({ contextType: 'COMPETITION', eventTags: ['key_moment'] })).valid, true);
+  // Competition shows the body question, so a complete one answers it.
+  assert.equal(validateMindJournalEntry(base({
+    contextType: 'COMPETITION', eventTags: ['key_moment'], bodyTags: ['nothing_unusual'],
+  })).valid, true);
   const wrong = validateMindJournalEntry(base({ contextType: 'TRAINING', eventTags: ['key_moment'] }));
   assert.equal(wrong.valid, false);
   assert.match(wrong.error, /allowed list/);
@@ -110,8 +128,12 @@ test('an event tag valid for one context is rejected under another', () => {
 
 test('every context accepts a "Write my own" event', () => {
   for (const key of REFLECTION_CONTEXT_KEYS) {
-    const body = { entryType: 'REFLECTION', contextType: key, eventTags: [], customEvent: 'something specific' };
+    const body = base({ contextType: key, eventTags: [], customEvent: 'something specific' });
     if (key === 'SOMETHING_ELSE') body.customContext = 'a travel day';
+    // Contexts whose resolver shows a Q6 need it answered.
+    if (resolveConditionalQuestion({ contextType: key, states: body.states }, {}) === 'body') {
+      body.bodyTags = ['nothing_unusual'];
+    }
     assert.equal(validateMindJournalEntry(body).valid, true, `${key} must accept a custom event`);
   }
 });
@@ -128,15 +150,79 @@ test('custom answers are bounded and whitespace-only normalizes to null', () => 
 
 test('customContext is only accepted when the athlete chose "Write my own" at Q1', () => {
   assert.equal(validateMindJournalEntry(base({ customContext: 'a travel day' })).valid, false);
-  assert.equal(validateMindJournalEntry({
-    entryType: 'REFLECTION', contextType: 'SOMETHING_ELSE', customContext: 'a travel day', eventTags: ['it_happened_suddenly'],
-  }).valid, true);
+  assert.equal(validateMindJournalEntry(base({
+    contextType: 'SOMETHING_ELSE', customContext: 'a travel day', eventTags: ['it_happened_suddenly'],
+  })).valid, true);
 });
 
-test('a reflection needs at least one answer beyond the context', () => {
+// ── Every structured question is required ─────────────────────────────────
+
+test('a reflection with only a context is rejected', () => {
   const empty = validateMindJournalEntry({ entryType: 'REFLECTION', contextType: 'TRAINING' });
   assert.equal(empty.valid, false);
-  assert.match(empty.error, /at least one answer/);
+});
+
+for (const [field, label] of [
+  ['eventTags', 'Q2'], ['states', 'Q3'], ['thoughtTags', 'Q4'], ['responseTags', 'Q5'],
+]) {
+  test(`${label} (${field}) cannot be empty`, () => {
+    const r = validateMindJournalEntry(base({ [field]: [] }));
+    assert.equal(r.valid, false, `${field} must be required`);
+    assert.match(r.error, /at least one answer/);
+  });
+
+  test(`${label} (${field}) is satisfied by a "Write my own" answer alone — typing is never forced elsewhere`, () => {
+    const customField = { eventTags: 'customEvent', states: 'customState', thoughtTags: 'customThought', responseTags: 'customResponse' }[field];
+    assert.equal(validateMindJournalEntry(base({ [field]: [], [customField]: 'in my own words' })).valid, true);
+  });
+}
+
+test('Q3 accepts "Not sure" as a real answer', () => {
+  assert.equal(validateMindJournalEntry(base({ states: ['not_sure'] })).valid, true);
+});
+
+test('"Not sure" stays out of the legacy quick-note and guided state vocabulary', () => {
+  assert.ok(!STATE_KEYS.includes('not_sure'));
+  assert.deepEqual(REFLECTION_STATE_KEYS, [...STATE_KEYS, 'not_sure']);
+  assert.equal(validateMindJournalEntry({ entryType: 'QUICK_NOTE', states: ['not_sure'] }).valid, false);
+  assert.equal(validateMindJournalEntry({
+    entryType: 'GUIDED_REFLECTION', contextType: 'TRAINING', states: ['not_sure'], takeForward: 'x',
+  }).valid, false);
+});
+
+test('no custom text is required unless "Write my own" was selected', () => {
+  // A complete chips-only reflection is valid with no custom field at all.
+  const r = validateMindJournalEntry(base());
+  assert.equal(r.valid, true);
+  for (const f of ['customEvent', 'customState', 'customThought', 'customResponse', 'customBody']) {
+    assert.equal(r.value[f], null, `${f} must stay null when nothing was typed`);
+  }
+});
+
+// ── Q6 is required only when the resolver would have shown it ─────────────
+
+test('a reflection whose resolver shows Q6 must answer it', () => {
+  const noQ6 = validateMindJournalEntry(base({ contextType: 'COMPETITION', eventTags: ['key_moment'] }));
+  assert.equal(noQ6.valid, false, 'competition shows the body question, so it is required');
+  assert.match(noQ6.error, /final question/);
+
+  assert.equal(validateMindJournalEntry(base({
+    contextType: 'COMPETITION', eventTags: ['key_moment'], bodyTags: ['tense'],
+  })).valid, true);
+  assert.equal(validateMindJournalEntry(base({
+    contextType: 'COMPETITION', eventTags: ['key_moment'], cueFeedback: 'helped',
+  })).valid, true, 'either variant satisfies it — the resolver can flip mid-reflection');
+});
+
+test('an active Focus Card makes Q6 required in a context that would otherwise skip it', () => {
+  const body = base({ contextType: 'TOUGH_MOMENT', eventTags: ['made_a_mistake'] });
+  assert.equal(validateMindJournalEntry(body, { hasActiveFocusCard: true }).valid, false);
+  assert.equal(validateMindJournalEntry({ ...body, cueFeedback: 'forgot' }, { hasActiveFocusCard: true }).valid, true);
+});
+
+test('a reflection whose resolver shows no Q6 does not demand one', () => {
+  assert.equal(validateMindJournalEntry(base()).valid, true);
+  assert.equal(resolveConditionalQuestion({ contextType: 'TRAINING', states: ['calm'] }, {}), null);
 });
 
 test('the legacy narrative and note fields are rejected on a reflection', () => {

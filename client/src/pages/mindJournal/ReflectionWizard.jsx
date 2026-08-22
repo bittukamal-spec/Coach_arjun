@@ -10,9 +10,10 @@ import { apiFetch } from '../../api';
 import { PageHeader, Button, SaveStatus } from '../../components/ui';
 import {
   REFLECTION_CONTEXT_KEYS, eventKeysForContext, THOUGHT_KEYS, RESPONSE_KEYS,
+  REFLECTION_STATE_KEYS,
   BODY_KEYS, CUE_FEEDBACK_KEYS, MAX_TAG_SELECTIONS, MAX_CUSTOM_EVENT_LENGTH,
   MAX_CUSTOM_THOUGHT_LENGTH, MAX_CUSTOM_RESPONSE_LENGTH, MAX_CUSTOM_BODY_LENGTH,
-  MAX_CUSTOM_CONTEXT_LENGTH, STATE_KEYS, MAX_STATE_SELECTIONS,
+  MAX_CUSTOM_CONTEXT_LENGTH, MAX_STATE_SELECTIONS,
   resolveConditionalQuestion, textOrUndefined, toggleStateKey,
 } from './constants';
 import { ChoiceChips, SafetyGuidanceCard, StepProgress, STATE_ICONS, useMindJournalSave, useMindJournalBack } from './shared';
@@ -114,17 +115,30 @@ export default function ReflectionWizard() {
     setStepIndex(i => i - 1);   // answers are untouched — Back never costs one
   }
 
-  const answered =
-    event.tags.length || event.custom.trim()
-    || state.tags.length || state.custom.trim()
-    || thought.tags.length || thought.custom.trim()
-    || response.tags.length || response.custom.trim()
-    || body.tags.length || body.custom.trim()
-    || cueFeedback;
+  // A question is answered by a chip OR by its own "Write my own" text —
+  // the athlete is never required to type, but an opened "Write my own" that
+  // was left blank does not count as an answer.
+  const groupAnswered = (g) => g.tags.length > 0 || g.custom.trim().length > 0;
+
+  // Every structured question is required. Q6 is required only when the
+  // resolver actually put it on screen.
+  const stepComplete = {
+    context: !!contextType && (contextType !== 'SOMETHING_ELSE' || customContext.trim().length > 0),
+    event: groupAnswered(event),
+    state: groupAnswered(state),
+    thought: groupAnswered(thought),
+    response: groupAnswered(response),
+    body: groupAnswered(body),
+    cue: !!cueFeedback,
+  };
+  const canContinue = stepComplete[step] === true;
+  // Every question in this reflection's own step list must be answered
+  // before it can be saved — Q6 counts only when the resolver showed it.
+  const allRequiredAnswered = steps.every(name => stepComplete[name] === true);
 
   // ── Save ─────────────────────────────────────────────────────────────────
   const handleSave = useCallback(async () => {
-    if (saving || !contextType || !answered) return;
+    if (saving || !allRequiredAnswered) return;
     const payload = {
       entryType: 'REFLECTION',
       contextType,
@@ -150,11 +164,12 @@ export default function ReflectionWizard() {
     }
     const entry = await save(payload);
     if (entry) navigate(`/mind-journal/saved/${entry.id}`, { state: { entry }, replace: true });
-  }, [saving, contextType, answered, event, state, thought, response, body, cueFeedback,
-      conditional, customContext, focusWord, save, navigate]);
+  }, [saving, allRequiredAnswered, event, state, thought, response, body, cueFeedback,
+      contextType, conditional, customContext, focusWord, save, navigate]);
 
   // ── Screens ──────────────────────────────────────────────────────────────
   function continueFrom() {
+    if (!canContinue) return;
     if (isLast) { handleSave(); return; }
     setStepIndex(i => i + 1);
   }
@@ -258,6 +273,7 @@ export default function ReflectionWizard() {
           )}
 
           <Button onClick={continueFromContext} disabled={!contextType} className="w-full mt-6">{r.next}</Button>
+          <p className="text-caption text-slt mt-3 text-center">{r.everyQuestion}</p>
         </>
       );
     }
@@ -269,7 +285,7 @@ export default function ReflectionWizard() {
           hint={r.q2.hint}
           onNext={continueFrom}
           nextLabel={isLast ? r.save : r.next}
-          skipLabel={r.skip}
+          canContinue={canContinue}
           saving={saving}
         >
           <ChoiceChips
@@ -284,10 +300,10 @@ export default function ReflectionWizard() {
 
     if (step === 'state') {
       return (
-        <QuestionScreen title={r.q3.title} hint={r.q3.hint} onNext={continueFrom} nextLabel={isLast ? r.save : r.next} skipLabel={r.skip} saving={saving}>
+        <QuestionScreen title={r.q3.title} hint={r.q3.hint} onNext={continueFrom} nextLabel={isLast ? r.save : r.next} saving={saving} canContinue={canContinue}>
           <ChoiceChips
             {...groupProps(state, setState, MAX_STATE_SELECTIONS)}
-            options={STATE_KEYS.map(key => ({ key, label: mj.states[key], Icon: STATE_ICONS[key] }))}
+            options={REFLECTION_STATE_KEYS.map(key => ({ key, label: mj.states[key], Icon: STATE_ICONS[key] }))}
             onToggle={(key) => setState(g => ({ ...g, tags: toggleStateKey(g.tags, key, { customOpen: g.customOpen }) }))}
             customFieldLabel={mj.customStateLabel}
             testId="mj-state-chips"
@@ -298,7 +314,7 @@ export default function ReflectionWizard() {
 
     if (step === 'thought') {
       return (
-        <QuestionScreen title={r.q4.title} hint={r.q4.hint} onNext={continueFrom} nextLabel={isLast ? r.save : r.next} skipLabel={r.skip} saving={saving}>
+        <QuestionScreen title={r.q4.title} hint={r.q4.hint} onNext={continueFrom} nextLabel={isLast ? r.save : r.next} saving={saving} canContinue={canContinue}>
           <ChoiceChips
             {...groupProps(thought, setThought)}
             options={opts(THOUGHT_KEYS, r.q4.options, MessageSquare)}
@@ -311,7 +327,7 @@ export default function ReflectionWizard() {
 
     if (step === 'response') {
       return (
-        <QuestionScreen title={r.q5.title} hint={r.q5.hint} onNext={continueFrom} nextLabel={isLast ? r.save : r.next} skipLabel={r.skip} saving={saving}>
+        <QuestionScreen title={r.q5.title} hint={r.q5.hint} onNext={continueFrom} nextLabel={isLast ? r.save : r.next} saving={saving} canContinue={canContinue}>
           <ChoiceChips
             {...groupProps(response, setResponse)}
             options={opts(RESPONSE_KEYS, r.q5.options, Activity)}
@@ -324,7 +340,7 @@ export default function ReflectionWizard() {
 
     if (step === 'body') {
       return (
-        <QuestionScreen title={r.q6body.title} hint={r.q6body.hint} onNext={continueFrom} nextLabel={r.save} skipLabel={r.skip} saving={saving}>
+        <QuestionScreen title={r.q6body.title} hint={r.q6body.hint} onNext={continueFrom} nextLabel={r.save} saving={saving} canContinue={canContinue}>
           <ChoiceChips
             {...groupProps(body, setBody)}
             options={opts(BODY_KEYS, r.q6body.options, Activity)}
@@ -337,7 +353,7 @@ export default function ReflectionWizard() {
 
     // Cue — a single choice about a Focus Card the athlete actually has.
     return (
-      <QuestionScreen title={r.q6cue.title} hint={r.q6cue.hint} onNext={handleSave} nextLabel={r.save} skipLabel={r.skip} saving={saving}>
+      <QuestionScreen title={r.q6cue.title} hint={r.q6cue.hint} onNext={handleSave} nextLabel={r.save} saving={saving} canContinue={canContinue}>
         <div className="flex items-center gap-3 mb-5 p-3.5 rounded-2xl border border-dark-600 bg-dark-800" data-testid="mj-cue-word">
           <span className="w-11 h-11 rounded-2xl bg-brand-50 text-brand-500 flex items-center justify-center shrink-0" aria-hidden="true">
             <KeyRound size={20} />
@@ -388,9 +404,6 @@ export default function ReflectionWizard() {
             />
             {renderStep()}
 
-            {isLast && !answered && (
-              <p className="text-caption text-slt mt-3">{r.needAnswer}</p>
-            )}
             <div className="mt-3 empty:mt-0">
               <SaveStatus
                 state={saving ? 'saving' : saveError ? 'error' : 'idle'}
@@ -408,21 +421,17 @@ export default function ReflectionWizard() {
 
 // One multi-select question: heading, hint, the chips, then an explicit
 // Next/Save. Never auto-advances — a tap here selects, it does not commit.
-function QuestionScreen({ title, hint, children, onNext, nextLabel, skipLabel, saving }) {
+function QuestionScreen({ title, hint, children, onNext, nextLabel, saving, canContinue }) {
   return (
     <>
       <h2 className="text-title font-bold text-ink mb-1">{title}</h2>
       <p className="text-caption text-slt mb-4">{hint}</p>
       {children}
-      <Button onClick={onNext} disabled={saving} className="w-full mt-6">{nextLabel}</Button>
-      <button
-        type="button"
-        onClick={onNext}
-        disabled={saving}
-        className="w-full min-h-[44px] mt-2 text-caption font-semibold text-slt rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 active:opacity-70"
-      >
-        {skipLabel}
-      </button>
+      {/* Every structured question is required, so this stays disabled until
+          one is answered. There is no Skip: the questions carry the whole
+          reflection, and typing is never what unlocks them — a chip is
+          always enough. */}
+      <Button onClick={onNext} disabled={saving || !canContinue} className="w-full mt-6">{nextLabel}</Button>
     </>
   );
 }

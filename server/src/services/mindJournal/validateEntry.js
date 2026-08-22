@@ -18,10 +18,11 @@
 // have SOMETHING_ELSE with null customContext). Rejected for any other
 // contextType or for quick-note / legacy shapes.
 
-const { STATE_KEYS, STATE_LABELS } = require('./stateVocabulary');
+const { STATE_KEYS, STATE_LABELS, REFLECTION_STATE_KEYS } = require('./stateVocabulary');
 const { CONTEXT_TYPE_KEYS, REFLECTION_CONTEXT_KEYS } = require('./contextTypeVocabulary');
 const { eventKeysForContext } = require('./eventVocabulary');
 const { THOUGHT_KEYS, RESPONSE_KEYS, BODY_KEYS, CUE_FEEDBACK_KEYS } = require('./reflectionVocabulary');
+const { resolveConditionalQuestion } = require('./resolveConditionalQuestion');
 
 const MAX_NOTE_LENGTH = 500;
 const MAX_WHAT_HAPPENED_LENGTH = 1000;
@@ -47,7 +48,7 @@ const CONTROL_CHAR_RE = /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/;
 // states: the fixed-vocabulary array alone. Total-state budget (including
 // optional customState) is enforced by the caller after both are validated.
 // Omitted `states` under min:0 normalizes to [].
-function validateStates(states, { min = 1, max = 2 } = {}) {
+function validateStates(states, { min = 1, max = 2, allowed = STATE_KEYS } = {}) {
   const arr = states === undefined && min === 0 ? [] : states;
   if (!Array.isArray(arr)) {
     return { valid: false, error: `states must be an array of ${min}-${max} value${max === 1 ? '' : 's'}` };
@@ -61,7 +62,7 @@ function validateStates(states, { min = 1, max = 2 } = {}) {
   if (new Set(arr).size !== arr.length) {
     return { valid: false, error: 'states must not contain duplicates' };
   }
-  if (!arr.every((s) => STATE_KEYS.includes(s))) {
+  if (!arr.every((s) => allowed.includes(s))) {
     return { valid: false, error: 'states must come from the allowed list' };
   }
   return { valid: true, value: arr };
@@ -205,6 +206,12 @@ function validateTagGroup(tags, custom, allowedKeys, fieldName, maxCustomLength)
   return { valid: true, value: { tags: tagsCheck.value, custom: customCheck.value } };
 }
 
+// A required multi-select question is answered by a chip OR by its own
+// "Write my own" text — never by requiring the athlete to type.
+function answeredGroup(group) {
+  return group.tags.length > 0 || group.custom !== null;
+}
+
 function validateCueFeedback(value) {
   if (value === undefined || value === null) return { valid: true, value: null };
   if (!CUE_FEEDBACK_KEYS.includes(value)) {
@@ -217,7 +224,7 @@ function validateCueFeedback(value) {
 // (Q1); every other question is optional to answer, but a reflection made of
 // nothing but a context would be an empty record — so at least one answer
 // beyond the context is required, matching the existing guided rule.
-function validateReflectionEntry(body) {
+function validateReflectionEntry(body, { hasActiveFocusCard = false } = {}) {
   const contextTypeCheck = validateContextType(body.contextType, { required: true });
   if (!contextTypeCheck.valid) return contextTypeCheck;
   const contextType = contextTypeCheck.value;
@@ -236,9 +243,13 @@ function validateReflectionEntry(body) {
     body.eventTags, body.customEvent, eventKeysForContext(contextType), 'eventTags', MAX_CUSTOM_EVENT_LENGTH,
   );
   if (!eventGroup.valid) return eventGroup;
+  if (!answeredGroup(eventGroup.value)) {
+    return { valid: false, error: 'eventTags must include at least one answer' };
+  }
 
-  // Q3 — reuses the existing state vocabulary and its 2-value budget.
-  const statesCheck = validateStates(body.states, { min: 0, max: 2 });
+  // Q3 — the same eight states plus a reflection-only "not sure", so a
+  // required question always has an honest answer available.
+  const statesCheck = validateStates(body.states, { min: 0, max: 2, allowed: REFLECTION_STATE_KEYS });
   if (!statesCheck.valid) return statesCheck;
   const customStateCheck = validateCustomState(body.customState);
   if (!customStateCheck.valid) return customStateCheck;
@@ -248,16 +259,25 @@ function validateReflectionEntry(body) {
   if (customMatchesSelectedBuiltIn(customStateCheck.value, statesCheck.value)) {
     return { valid: false, error: 'customState must not repeat a selected built-in state' };
   }
+  if (statesCheck.value.length === 0 && customStateCheck.value === null) {
+    return { valid: false, error: 'states must include at least one answer' };
+  }
 
   const thoughtGroup = validateTagGroup(
     body.thoughtTags, body.customThought, THOUGHT_KEYS, 'thoughtTags', MAX_CUSTOM_THOUGHT_LENGTH,
   );
   if (!thoughtGroup.valid) return thoughtGroup;
+  if (!answeredGroup(thoughtGroup.value)) {
+    return { valid: false, error: 'thoughtTags must include at least one answer' };
+  }
 
   const responseGroup = validateTagGroup(
     body.responseTags, body.customResponse, RESPONSE_KEYS, 'responseTags', MAX_CUSTOM_RESPONSE_LENGTH,
   );
   if (!responseGroup.valid) return responseGroup;
+  if (!answeredGroup(responseGroup.value)) {
+    return { valid: false, error: 'responseTags must include at least one answer' };
+  }
 
   const bodyGroup = validateTagGroup(
     body.bodyTags, body.customBody, BODY_KEYS, 'bodyTags', MAX_CUSTOM_BODY_LENGTH,
@@ -291,13 +311,15 @@ function validateReflectionEntry(body) {
     }
   }
 
-  const answered = eventGroup.value.tags.length > 0 || eventGroup.value.custom !== null
-    || statesCheck.value.length > 0 || customStateCheck.value !== null
-    || thoughtGroup.value.tags.length > 0 || thoughtGroup.value.custom !== null
-    || responseGroup.value.tags.length > 0 || responseGroup.value.custom !== null
-    || hasBody || cueFeedbackCheck.value !== null;
-  if (!answered) {
-    return { valid: false, error: 'a reflection needs at least one answer besides the context' };
+  // Q6 is conditional: required only when the resolver would actually have
+  // shown it. Either variant satisfies it — the resolver's own preference
+  // can flip mid-reflection if the athlete saves a Focus Card in another
+  // tab, and a completed reflection must never be rejected over that race.
+  if (resolveConditionalQuestion(
+    { contextType, states: statesCheck.value },
+    { hasActiveFocusCard },
+  ) !== null && !hasBody && cueFeedbackCheck.value === null) {
+    return { valid: false, error: 'this reflection needs an answer to its final question' };
   }
 
   return {
@@ -342,13 +364,13 @@ function validateReflectionEntry(body) {
 //     but at least one state (built-in or custom) OR one non-empty narrative
 //     field is required (contextType alone would create an empty-feeling
 //     record). customContext is optional and only allowed with SOMETHING_ELSE.
-function validateMindJournalEntry(body) {
+function validateMindJournalEntry(body, options = {}) {
   const entryTypeCheck = validateEntryType(body.entryType);
   if (!entryTypeCheck.valid) return entryTypeCheck;
   const entryType = entryTypeCheck.value;
 
   if (entryType === 'REFLECTION') {
-    return validateReflectionEntry(body);
+    return validateReflectionEntry(body, options);
   }
 
   if (entryType === 'GUIDED_REFLECTION') {
@@ -469,6 +491,7 @@ module.exports = {
   validateTagGroup,
   validateCueFeedback,
   validateReflectionEntry,
+  answeredGroup,
   validateNote,
   validateWhatHappened,
   validateWhatNoticed,
