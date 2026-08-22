@@ -3,7 +3,7 @@ import InfoStatCard from './InfoStatCard';
 import ChecklistCard from './ChecklistCard';
 
 // Shared premium intro block for tool entry screens (Pressure Reset,
-// Focus Card Builder, Match & Practice Reflection, ...). Renders the hero
+// Focus Card Builder, Pressure Reset, ...). Renders the hero
 // (gradient icon + tag pill), headline, optional stat row and checklist,
 // then any page-specific sections as children. It deliberately does NOT
 // render the page header/back button or own the CTA footer — each tool

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Dumbbell, Trophy, CloudLightning, Sparkles, Gauge, ClipboardCheck,
@@ -65,6 +65,34 @@ export default function ReflectionWizard() {
   const [stepIndex, setStepIndex] = useState(0);
   const [focusWord, setFocusWord] = useState(null);
   const { saving, saveError, safety, dismissSafety, save } = useMindJournalSave();
+
+  // Carries the exact prescriptionId + practiceKey when this reflection was
+  // launched from a prescribed post_performance_reflection card — the same
+  // ephemeral route-state mechanism BodyResetPage already uses, and the same
+  // completion endpoint. Read once, on mount: a self-started reflection has
+  // no such state and therefore never completes anything. The practiceKey
+  // must match this flow's own practice, so a prescription for a different
+  // practice can never be completed from here either.
+  const prescriptionLinkRef = useRef(
+    location.state?.prescriptionId && location.state?.practiceKey === 'post_performance_reflection'
+      ? { prescriptionId: location.state.prescriptionId, practiceKey: location.state.practiceKey }
+      : null
+  );
+
+  // Fire-and-forget exact prescription completion. Never awaited: a failed or
+  // slow linkage request must never delay the athlete seeing their saved
+  // reflection. Server-side completeActivePrescription is the single
+  // completion mechanism and is already idempotent, so a replay settles on
+  // the same completedAt instead of completing twice.
+  const completePrescriptionLink = useCallback(() => {
+    const link = prescriptionLinkRef.current;
+    if (!link) return;
+    apiFetch(`/api/prescriptions/${link.prescriptionId}/complete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ practiceKey: link.practiceKey }),
+    }).catch(() => {});
+  }, [token]);
 
   // The athlete's active Focus Card word, read once. It only ever decides
   // whether the cue question can be asked at all — a missing card simply
@@ -163,9 +191,14 @@ export default function ReflectionWizard() {
       if (focusWord) payload.cueWordSnapshot = focusWord;
     }
     const entry = await save(payload);
-    if (entry) navigate(`/mind-journal/saved/${entry.id}`, { state: { entry }, replace: true });
+    // Only a genuinely saved reflection completes a prescription — a
+    // safety-flagged or failed save resolves to null and completes nothing.
+    if (entry) {
+      completePrescriptionLink();
+      navigate(`/mind-journal/saved/${entry.id}`, { state: { entry }, replace: true });
+    }
   }, [saving, allRequiredAnswered, event, state, thought, response, body, cueFeedback,
-      contextType, conditional, customContext, focusWord, save, navigate]);
+      contextType, conditional, customContext, focusWord, save, navigate, completePrescriptionLink]);
 
   // ── Screens ──────────────────────────────────────────────────────────────
   function continueFrom() {

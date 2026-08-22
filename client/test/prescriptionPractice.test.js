@@ -23,7 +23,9 @@ const UNSUPPORTED_APPROVED_KEYS = [
 
 test('supported practice keys resolve to their real route', () => {
   assert.equal(practiceRouteFor('pressure_reset'), '/body-reset');
-  assert.equal(practiceRouteFor('post_performance_reflection'), '/debrief');
+  // PR 2 cutover: the reflection practice resolves to the Mind Journal
+  // reflection flow, which is where its completion now happens.
+  assert.equal(practiceRouteFor('post_performance_reflection'), '/mind-journal/new');
 });
 
 test('every other approved practice key resolves to null — no invented route, no silent generic fallback', () => {

@@ -343,7 +343,10 @@ describe('TrainPage — Ritual entry, real router integration', () => {
     const user = userEvent.setup();
 
     expect(screen.getByText('Pressure Reset')).toBeTruthy();
-    expect(screen.getByText('Match & Practice Reflection')).toBeTruthy();
+    // PR 2 cutover: the separate reflection tool is gone from Train — and is
+    // not replaced by a duplicate Mind Journal tile.
+    expect(screen.queryByText('Match & Practice Reflection')).toBeNull();
+    expect(screen.queryByText(/Mind Journal/i)).toBeNull();
     expect(screen.getByText('Quick Rep')).toBeTruthy();
     expect(screen.queryByText('Daily Mental Rep')).toBeNull();
     expect(screen.getByText('Focus Card Builder')).toBeTruthy();
@@ -355,11 +358,10 @@ describe('TrainPage — Ritual entry, real router integration', () => {
     expect(await screen.findByTestId('route-probe')).toHaveProperty('textContent', 'body-reset:/body-reset');
   });
 
-  test('every one of the five practice tiles opens its existing route', async () => {
+  test('every one of the four remaining practice tiles opens its existing route', async () => {
     const cases = [
       [/Ritual/, 'ritual:/ritual'],
       [/Pressure Reset/, 'body-reset:/body-reset'],
-      [/Match & Practice Reflection/, 'debrief:/debrief'],
       [/Quick Rep/, 'mental-rep:/mental-rep'],
       [/Focus Card Builder/, 'self-talk:/self-talk'],
     ];

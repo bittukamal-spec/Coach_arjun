@@ -16,14 +16,29 @@ import { Card, PageHeader } from '../components/ui';
 // (Focus Deck for Focus Cards); sections with no dedicated list page (Saved
 // Cues, Reflections) keep their existing single action instead of a "view
 // all" link, since inventing a new destination is out of scope for a
-// visual/copy pass. Mind Journal has no entry point here at all — it lives
-// on Home only. No data, API call, route or action changed for any section.
+// visual/copy pass.
+//
+// PR 2 cutover: Reflections is now sourced from the merged reflection
+// history the server returns — new Mind Journal reflections plus the
+// athlete's read-only history from the retired reflection tool — and its
+// action opens the Mind Journal reflection. Each item is rendered from the
+// fields its own source genuinely has; nothing is mapped across sources.
 
 // Per-section colour identity. `icon` is a text-safe token (already
 // individually confirmed >=4.5:1 on every card surface this page uses);
 // `wash`/`border` are decorative-only low-alpha tints, fixed RGB in both
 // themes (matching the existing convention for decorative accents
 // elsewhere in this app, e.g. the Focus Card word colours below).
+// Label for a Mind Journal reflection's context. The athlete's own words win
+// when they wrote them; otherwise the fixed enum is translated. Both the
+// current reflection vocabulary and the older guided values are covered, and
+// an unknown value simply renders nothing rather than a raw enum key.
+function reflectionContextLabel(item, mj) {
+  if (item.contextType === 'SOMETHING_ELSE' && item.customContext) return item.customContext;
+  if (!item.contextType) return null;
+  return mj.reflection?.q1?.options?.[item.contextType] || mj.contextTypes?.[item.contextType] || null;
+}
+
 const TONE = {
   blue: {
     icon: 'var(--brand-primary)',
@@ -86,6 +101,7 @@ export default function PlaybookPage() {
   const navigate = useNavigate();
   const hi = language === 'hi';
   const pb = (translations[language] || translations.en).playbook;
+  const mj = (translations[language] || translations.en).mindJournal;
 
   const [data, setData] = useState(null);
 
@@ -241,21 +257,38 @@ export default function PlaybookPage() {
           {reflection ? (
             <div className="flex items-start gap-2 mb-3">
               <div className="flex-1 min-w-0">
-                {reflection.eventType && <p className="text-caption text-muted mb-1">{reflection.eventType}</p>}
-                {reflection.nextFocus && (
-                  <p className="text-body text-ink font-medium mb-1 break-words">
-                    <span className="font-bold" style={{ color: 'var(--accent-amber)' }}>{pb.reflectionsNext}</span>
-                    {reflection.nextFocus}
-                  </p>
+                {/* A Mind Journal reflection shows its context and Arjun's
+                    stored takeaway. A row from the retired tool shows what
+                    that tool actually recorded — nothing is invented to make
+                    the two look alike. */}
+                {reflection.source === 'mind_journal' ? (
+                  <>
+                    {reflectionContextLabel(reflection, mj) && (
+                      <p className="text-caption text-muted mb-1">{reflectionContextLabel(reflection, mj)}</p>
+                    )}
+                    {reflection.takeaway && (
+                      <p className="text-body text-ink font-medium mb-1 break-words">{reflection.takeaway}</p>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {reflection.eventType && <p className="text-caption text-muted mb-1">{reflection.eventType}</p>}
+                    {reflection.nextFocus && (
+                      <p className="text-body text-ink font-medium mb-1 break-words">
+                        <span className="font-bold" style={{ color: 'var(--accent-amber)' }}>{pb.reflectionsNext}</span>
+                        {reflection.nextFocus}
+                      </p>
+                    )}
+                    {reflection.arjunInsight && <p className="text-caption text-slt leading-relaxed break-words">{reflection.arjunInsight}</p>}
+                  </>
                 )}
-                {reflection.arjunInsight && <p className="text-caption text-slt leading-relaxed break-words">{reflection.arjunInsight}</p>}
               </div>
               <DecorativeChevron />
             </div>
           ) : (
             <p className="text-body font-bold text-ink mb-3">{pb.reflectionsEmpty}</p>
           )}
-          <button onClick={() => navigate('/debrief')} className="min-h-[44px] inline-flex items-center rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 gap-1 text-caption font-semibold text-brand-400 active:opacity-70">
+          <button onClick={() => navigate('/mind-journal/new')} className="min-h-[44px] inline-flex items-center rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 gap-1 text-caption font-semibold text-brand-400 active:opacity-70">
             {pb.reflectionsCta} <ChevronRight size={12} aria-hidden="true" />
           </button>
         </Card>

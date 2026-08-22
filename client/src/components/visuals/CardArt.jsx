@@ -68,7 +68,9 @@ export function BreathMark({ className = '' }) {
   );
 }
 
-// Faint open-notebook + pen silhouette — Match & Practice Reflection card.
+// Faint open-notebook + pen silhouette. Kept in the shared card-art set
+// (nothing renders it since the reflection tile left Train) rather than
+// deleted, so a future reflection surface can reuse it.
 export function NotebookMark({ className = '' }) {
   return (
     <svg viewBox="0 0 160 140" className={className} aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="4">
