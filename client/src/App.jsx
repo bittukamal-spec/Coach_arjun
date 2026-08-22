@@ -26,6 +26,7 @@ import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import MindJournalPage from './pages/MindJournalPage';
 import QuickNotePage from './pages/mindJournal/QuickNotePage';
 import GuidedReflectionPage from './pages/mindJournal/GuidedReflectionPage';
+import ReflectionWizard from './pages/mindJournal/ReflectionWizard';
 import GuidedReflectionDetailsPage from './pages/mindJournal/GuidedReflectionDetailsPage';
 import ReflectionSavedPage from './pages/mindJournal/ReflectionSavedPage';
 import ReflectionDetailPage from './pages/mindJournal/ReflectionDetailPage';
@@ -207,11 +208,15 @@ function App() {
           </ProtectedRoute>
         }
       />
+      {/* Unified reflection (PR 1). The previous two-page guided flow is
+          still routed at /mind-journal/new/details for any in-flight deep
+          link; it redirects to this wizard when opened without step-1 state.
+          PR 2 removes it. */}
       <Route
         path="/mind-journal/new"
         element={
           <ProtectedRoute requireOnboarding={true}>
-            <GuidedReflectionPage />
+            <ReflectionWizard />
           </ProtectedRoute>
         }
       />

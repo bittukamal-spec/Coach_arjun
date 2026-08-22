@@ -11,19 +11,56 @@ const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const authenticate = require('../middleware/authenticate');
 const requireGuardianConsent = require('../middleware/requireGuardianConsent');
-const { screenSafetyText, recordSafetyEvent, getSafetyGuidance } = require('../services/safety');
+const { screenSafetyText, screenSafetyFields, recordSafetyEvent, getSafetyGuidance } = require('../services/safety');
 const { validateAllowedKeys, validateMindJournalEntry } = require('../services/mindJournal/validateEntry');
 const activityTracking = require('../services/activityTracking');
+const { aiLimiter } = require('../middleware/rateLimits');
+const { isTrialActive } = require('./chat');
+const defaultGenerateReflectionReview = require('../services/mindJournal/generateReflectionReview');
+const { REVIEW_TIMEOUT_MS, EMPTY_REVIEW } = defaultGenerateReflectionReview;
 
 const prisma = new PrismaClient();
 
 const MAX_ENTRIES = 20;
+// Prior reflections loaded purely to decide whether Arjun is even allowed to
+// claim a pattern, and to give him something to compare against.
+const MAX_PRIOR_REFLECTIONS = 10;
 const POST_ALLOWED_KEYS = [
   'states', 'note', 'entryType', 'contextType',
   'whatHappened', 'whatNoticed', 'helpedOrGotInWay', 'takeForward',
   'customState', 'customContext',
+  // Unified reflection (PR 1). Arjun's review fields are deliberately absent:
+  // they are generated server-side and can never be supplied by a client.
+  'eventTags', 'customEvent',
+  'thoughtTags', 'customThought',
+  'responseTags', 'customResponse',
+  'bodyTags', 'customBody',
+  'cueFeedback', 'cueWordSnapshot',
 ];
 const CONTEXT_ALLOWED_KEYS = ['enabled'];
+
+// Every athlete-written field on a reflection. Screened as one text BEFORE
+// structured validation, so a distress phrase still reaches the safety path
+// when the rest of the form is incomplete.
+const REFLECTION_TEXT_KEYS = [
+  'customContext', 'customEvent', 'customState', 'customThought', 'customResponse', 'customBody',
+];
+
+// Generous ceiling per field before screening. Every real field maxes out at
+// 80 characters, so legitimate athlete text is never truncated — this only
+// stops an oversized value from being scanned in full.
+const MAX_PRESCREEN_FIELD_LENGTH = 2000;
+
+// Pulls the athlete-written text out of a raw, not-yet-validated body.
+// Anything that is not a non-empty string is ignored, so a malformed or
+// hostile value can never reach the scanner.
+function collectReflectionText(body) {
+  return REFLECTION_TEXT_KEYS.map((key) => {
+    const value = body?.[key];
+    if (typeof value !== 'string' || !value) return null;
+    return value.length > MAX_PRESCREEN_FIELD_LENGTH ? value.slice(0, MAX_PRESCREEN_FIELD_LENGTH) : value;
+  });
+}
 
 function serializeEntry(entry) {
   return {
@@ -43,6 +80,23 @@ function serializeEntry(entry) {
     customState: entry.customState ?? null,
     // Athlete-authored context label when contextType is SOMETHING_ELSE.
     customContext: entry.customContext ?? null,
+    // ── Unified reflection (PR 1) ──────────────────────────────────────
+    // Every earlier shape returns empty lists / nulls here, so a client
+    // rendering a legacy row never has to special-case a missing field.
+    eventTags: entry.eventTags ?? [],
+    customEvent: entry.customEvent ?? null,
+    thoughtTags: entry.thoughtTags ?? [],
+    customThought: entry.customThought ?? null,
+    responseTags: entry.responseTags ?? [],
+    customResponse: entry.customResponse ?? null,
+    bodyTags: entry.bodyTags ?? [],
+    customBody: entry.customBody ?? null,
+    cueFeedback: entry.cueFeedback ?? null,
+    cueWordSnapshot: entry.cueWordSnapshot ?? null,
+    arjunNoticed: entry.arjunNoticed ?? null,
+    arjunTakeaway: entry.arjunTakeaway ?? null,
+    arjunPattern: entry.arjunPattern ?? null,
+    reviewGeneratedAt: entry.reviewGeneratedAt ?? null,
   };
 }
 
@@ -51,19 +105,74 @@ function serializeEntry(entry) {
 // exercise the route with a fixture instead of a real database and a real
 // guardian-consent Prisma lookup; the default export below always uses the
 // real Prisma client and the real requireGuardianConsent middleware.
-function createMindJournalRouter(client = prisma, consentMiddleware = requireGuardianConsent) {
+function createMindJournalRouter(
+  client = prisma,
+  consentMiddleware = requireGuardianConsent,
+  generateReflectionReview = defaultGenerateReflectionReview,
+  trialCheck = isTrialActive,
+  // Injectable purely so tests can exercise the deadline without waiting
+  // 25 real seconds. Production always uses the real bound.
+  reviewTimeoutMs = REVIEW_TIMEOUT_MS,
+) {
   const router = express.Router();
 
-  router.post('/', authenticate, consentMiddleware, async (req, res) => {
+  // aiLimiter: POST can now trigger one Anthropic call (Arjun's Review), so
+  // it carries the same per-athlete limiter every other AI surface uses.
+  router.post('/', authenticate, aiLimiter, consentMiddleware, async (req, res) => {
     const keysCheck = validateAllowedKeys(req.body, POST_ALLOWED_KEYS);
     if (!keysCheck.valid) return res.status(400).json({ error: keysCheck.error });
 
-    const shapeCheck = validateMindJournalEntry(req.body);
+    // ── Safety before completeness (unified reflection only) ─────────────
+    // An athlete in distress may well leave the rest of the form unfinished,
+    // so their words are screened before anything is checked for
+    // completeness. Without this, an incomplete reflection carrying a crisis
+    // phrase would return an ordinary 400 and the distress would go
+    // unseen. Reads the raw body defensively — nothing here assumes the
+    // payload is well-formed, and non-string values are simply skipped.
+    //
+    // Legacy / quick-note / guided submissions are untouched: they keep
+    // screening after validation, in the block further down.
+    if (req.body?.entryType === 'REFLECTION') {
+      const earlyScreen = screenSafetyFields(...collectReflectionText(req.body));
+      if (earlyScreen.flagged) {
+        recordSafetyEvent(req.userId, 'mind_journal', earlyScreen.category, {
+          riskLevel: earlyScreen.riskLevel,
+          sourceType: 'mind_journal',
+        });
+        const flaggedUser = await client.user.findUnique({
+          where: { id: req.userId }, select: { language: true },
+        }).catch(() => null);
+        return res.json({
+          safetyFlag: 'needs_support',
+          guidance: getSafetyGuidance(earlyScreen.category, flaggedUser?.language),
+        });
+      }
+    }
+
+    // Whether the athlete has an active Focus Card decides which conditional
+    // question the wizard showed, and therefore which one the server must
+    // insist was answered. Read here, before validation, so the requirement
+    // cannot be bypassed by calling the API directly. Only reflections need
+    // it; every other shape validates exactly as before.
+    let hasActiveFocusCard = false;
+    if (req.body?.entryType === 'REFLECTION') {
+      const card = await client.selfTalkCard?.findFirst({
+        where: { userId: req.userId, isActive: true, isArchived: false },
+        select: { id: true },
+      }).catch(() => null);
+      hasActiveFocusCard = !!card;
+    }
+
+    const shapeCheck = validateMindJournalEntry(req.body, { hasActiveFocusCard });
     if (!shapeCheck.valid) return res.status(400).json({ error: shapeCheck.error });
     const {
       entryType, contextType, states, customState, customContext, note,
       whatHappened, whatNoticed, helpedOrGotInWay, takeForward,
+      eventTags, customEvent, thoughtTags, customThought,
+      responseTags, customResponse, bodyTags, customBody,
+      cueFeedback, cueWordSnapshot,
     } = shapeCheck.value;
+    const isReflection = entryType === 'REFLECTION';
 
     // Deterministic pre-LLM safety screen across every athlete-authored text
     // field, in a fixed order, stopping at the FIRST flagged field. On a
@@ -81,6 +190,11 @@ function createMindJournalRouter(client = prisma, consentMiddleware = requireGua
     if (!screen.flagged && helpedOrGotInWay) screen = screenSafetyText(helpedOrGotInWay);
     if (!screen.flagged && takeForward) screen = screenSafetyText(takeForward);
 
+    // A reflection was already screened above, before validation — every
+    // athlete-written field together, so a phrase split across two of them is
+    // still caught. The per-field screens above are unchanged and still cover
+    // the legacy / quick-note / guided shapes exactly as before.
+
     if (screen.flagged) {
       recordSafetyEvent(req.userId, 'mind_journal', screen.category, {
         riskLevel: screen.riskLevel,
@@ -89,6 +203,24 @@ function createMindJournalRouter(client = prisma, consentMiddleware = requireGua
       const user = await client.user.findUnique({ where: { id: req.userId }, select: { language: true } }).catch(() => null);
       return res.json({ safetyFlag: 'needs_support', guidance: getSafetyGuidance(screen.category, user?.language) });
     }
+
+    // ── Persist first ────────────────────────────────────────────────────
+    // The reflection is durable the moment it has passed validation and the
+    // safety screen. Arjun's Review is generated AFTER this write and
+    // attached in a follow-up update, so an Anthropic timeout, error, or a
+    // process restart mid-call can never cost the athlete a reflection they
+    // already submitted. A missing review is the intended degradation:
+    // review fields null, reviewGeneratedAt null, everything else normal.
+    //
+    // Prior reflections are read before the create so the entry being saved
+    // can never become evidence for its own pattern.
+    const priorEntries = isReflection
+      ? await client.mindJournalEntry.findMany({
+        where: { userId: req.userId, entryType: 'REFLECTION' },
+        orderBy: { createdAt: 'desc' },
+        take: MAX_PRIOR_REFLECTIONS,
+      }).catch(() => [])
+      : [];
 
     const entry = await client.mindJournalEntry.create({
       data: {
@@ -103,6 +235,20 @@ function createMindJournalRouter(client = prisma, consentMiddleware = requireGua
         whatNoticed,
         helpedOrGotInWay,
         takeForward,
+        eventTags: eventTags || [],
+        customEvent: customEvent ?? null,
+        thoughtTags: thoughtTags || [],
+        customThought: customThought ?? null,
+        responseTags: responseTags || [],
+        customResponse: customResponse ?? null,
+        bodyTags: bodyTags || [],
+        customBody: customBody ?? null,
+        cueFeedback: cueFeedback ?? null,
+        cueWordSnapshot: cueWordSnapshot ?? null,
+        arjunNoticed: null,
+        arjunTakeaway: null,
+        arjunPattern: null,
+        reviewGeneratedAt: null,
       },
     });
     // Pilot Tracking Phase 2A — the safety-flagged branch above returns
@@ -110,7 +256,82 @@ function createMindJournalRouter(client = prisma, consentMiddleware = requireGua
     // genuinely saved entry.
     await activityTracking.touchActivity(req.userId);
 
-    res.json({ entry: serializeEntry(entry) });
+    // ── Arjun's Review — best effort, never load-bearing ─────────────────
+    // Flagged submissions returned above, so nothing screened unsafe ever
+    // reaches the model. Trial gates the review only, never the reflection.
+    // Any failure here — the model, the parse, or the follow-up write —
+    // leaves the already-saved reflection exactly as it is.
+    let saved = entry;
+    // The whole review step is wrapped: generateReflectionReview handles its
+    // own failures internally, but the athlete's reflection is already saved
+    // by this point and must still be returned even if anything in here
+    // throws unexpectedly. Without this, a surprise throw would leave the
+    // request hanging with no response, and the athlete could retry a
+    // reflection that is already stored.
+    try {
+      if (isReflection && await trialCheck(req.userId)) {
+        const reviewUser = await client.user.findUnique({
+          where: { id: req.userId },
+          select: { name: true, sport: true, language: true },
+        }).catch(() => null);
+        // Two layers, deliberately. The generator passes this signal to the
+        // SDK so a slow call is genuinely cancelled rather than left running.
+        // The race is the belt-and-braces half: once the deadline fires the
+        // handler moves on, and `timedOut` makes sure a result that arrives
+        // afterwards can never write review data to an entry the athlete has
+        // already been shown.
+        const controller = new AbortController();
+        let timedOut = false;
+        let deadlineTimer;
+        const pending = generateReflectionReview({
+          entry: {
+            contextType, customContext, eventTags, customEvent, states, customState,
+            thoughtTags, customThought, responseTags, customResponse,
+            bodyTags, customBody, cueFeedback, cueWordSnapshot,
+          },
+          priorEntries,
+          user: reviewUser || {},
+          signal: controller.signal,
+        // A late rejection must not surface as an unhandled rejection once
+        // the race has already been decided.
+        }).catch(() => ({ ...EMPTY_REVIEW }));
+
+        const review = await Promise.race([
+          pending,
+          new Promise((resolve) => {
+            deadlineTimer = setTimeout(() => {
+              timedOut = true;
+              controller.abort();
+              resolve({ ...EMPTY_REVIEW });
+            }, reviewTimeoutMs);
+          }),
+        ]);
+        clearTimeout(deadlineTimer);
+
+        if (!timedOut && (review.noticed || review.takeaway)) {
+          // Scoped to the row just created for this athlete. If the update
+          // fails, `saved` stays the review-less entry, so what the athlete
+          // is shown always matches what is actually stored.
+          const updated = await client.mindJournalEntry.update({
+            where: { id: entry.id },
+            data: {
+              arjunNoticed: review.noticed,
+              arjunTakeaway: review.takeaway,
+              arjunPattern: review.pattern,
+              reviewGeneratedAt: new Date(),
+            },
+          }).catch((err) => {
+            console.error('[mindJournal] review attach failed:', err?.message);
+            return null;
+          });
+          if (updated) saved = updated;
+        }
+      }
+    } catch (err) {
+      console.error('[mindJournal] review step failed:', err?.message);
+    }
+
+    res.json({ entry: serializeEntry(saved) });
   });
 
   router.get('/', authenticate, consentMiddleware, async (req, res) => {
@@ -124,8 +345,20 @@ function createMindJournalRouter(client = prisma, consentMiddleware = requireGua
       take: MAX_ENTRIES,
     });
 
+    // The athlete's current Focus Card word, used ONLY to decide whether the
+    // reflection's conditional question can ask about a cue they actually
+    // have. Sourced from the newer SelfTalkCard system — deliberately never
+    // the legacy User.cueWord, which can disagree with it. Absent entirely
+    // when there is no active card.
+    const focusCard = await client.selfTalkCard?.findFirst({
+      where: { userId: req.userId, isActive: true, isArchived: false },
+      orderBy: [{ isMatchDayCard: 'desc' }, { createdAt: 'desc' }],
+      select: { focusWord: true },
+    }).catch(() => null);
+
     res.json({
       contextEnabled: !!user?.mindJournalContextEnabled,
+      focusWord: focusCard?.focusWord || null,
       entries: entries.map(serializeEntry),
     });
   });

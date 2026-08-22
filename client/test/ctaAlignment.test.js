@@ -137,11 +137,17 @@ test('Mind Journal "New Reflection" hero: whole card starts a reflection, so its
   assert.match(hero, /flex-1 text-center|text-center flex-1|min-w-0 flex-1 text-center/);
 });
 
-test('Mind Journal "Quick Note" card: whole card starts a note, so its title/desc center', () => {
-  const idx = mindJournal.indexOf('mj-quick-note');
-  assert.notEqual(idx, -1);
-  const card = mindJournal.slice(idx, idx + 900);
-  assert.match(card, /flex-1 min-w-0 text-center/);
+// Unified reflection (PR 1): the separate Quick Note card was retired from
+// the Mind Journal home, so there is no longer a second launch card there to
+// assert centering on. The hero below it is now the single way in, and its
+// own centering is asserted in mindJournalPage.test.js. QuickNotePage itself
+// is untouched and still routed for compatibility until PR 2.
+// The hero's own centering is asserted by the "New Reflection hero" test
+// below, which is unchanged — this one only pins the removal.
+test('Mind Journal home: the retired Quick Note card is gone, leaving one way in', () => {
+  assert.equal(mindJournal.indexOf('mj-quick-note'), -1, 'the second launch card was retired');
+  assert.notEqual(mindJournal.indexOf('data-testid="mj-hero-new"'), -1,
+    'the single New reflection hero must still exist');
 });
 
 // Modernization pass: the Mind Journal entry point was removed from

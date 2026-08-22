@@ -27,7 +27,6 @@ import {
   MAX_CUSTOM_STATE_LENGTH,
   MAX_STATE_SELECTIONS,
   cameFromMindJournal,
-  stateSlotCount,
 } from './constants';
 
 // Shared pieces for the two Mind Journal creation screens. Quick Note and
@@ -39,7 +38,7 @@ import {
 
 // ── Icons ──────────────────────────────────────────────────────────────────
 
-const STATE_ICONS = {
+export const STATE_ICONS = {
   calm: Wind,
   focused: Crosshair,
   confident: Sparkles,
@@ -106,65 +105,67 @@ export function StepProgress({ label, step, total = 2 }) {
 
 // ── State selection ────────────────────────────────────────────────────────
 
-export function StateChips({
+// Generic selection grid shared by every Mind Journal question. StateChips
+// below is now a thin wrapper over it, so Quick Note and the existing guided
+// screens keep their exact previous behaviour while the unified reflection
+// reuses the same icon/check card, the same "Write my own" affordance, the
+// same bounded custom input with a live counter, and the same at-max
+// announcement for every one of its questions.
+export function ChoiceChips({
+  options,              // [{ key, label, Icon }]
   selected,
   onToggle,
+  max = MAX_STATE_SELECTIONS,
   customOpen = false,
   onCustomToggle,
-  customState = '',
+  customValue = '',
   onCustomChange,
+  customChipLabel,
+  customFieldLabel,
+  maxCustomLength = MAX_CUSTOM_STATE_LENGTH,
   customError = null,
+  atMaxLabel,
   compact = false,
+  testId = 'mj-choice-chips',
 }) {
-  const { language } = useAuth();
-  const mj = translations[language].mindJournal;
   const customFieldId = useId();
   const customErrorId = useId();
   const maxHintId = useId();
   const [announceMax, setAnnounceMax] = useState(false);
 
-  const occupied = stateSlotCount(selected, customOpen);
-  const atMax = occupied >= MAX_STATE_SELECTIONS;
+  const occupied = selected.length + (customOpen ? 1 : 0);
+  const atMax = occupied >= max;
   const showCustom = typeof onCustomToggle === 'function';
 
-  function refuseExtra() {
-    setAnnounceMax(true);
-  }
-
-  function handleBuiltIn(key) {
+  function handleOption(key) {
     const isSelected = selected.includes(key);
-    if (!isSelected && atMax) {
-      refuseExtra();
-      return;
-    }
+    if (!isSelected && atMax) { setAnnounceMax(true); return; }
     setAnnounceMax(false);
     onToggle(key);
   }
 
   function handleCustomToggle() {
-    if (customOpen) {
-      setAnnounceMax(false);
-      onCustomToggle(false);
-      return;
-    }
-    if (atMax) {
-      refuseExtra();
-      return;
-    }
+    if (customOpen) { setAnnounceMax(false); onCustomToggle(false); return; }
+    if (atMax) { setAnnounceMax(true); return; }
     setAnnounceMax(false);
     onCustomToggle(true);
   }
 
+  const chipClass = (isSelected, blocked) => `relative flex items-center gap-2.5 min-h-[48px] px-3 py-2.5 rounded-2xl border text-left transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
+    isSelected
+      ? 'border-brand-500 bg-brand-50 text-brand-500 elevation-row'
+      : blocked
+        ? 'border-dark-600 bg-dark-800 text-slt opacity-60'
+        : 'border-dark-600 bg-dark-800 text-ink'
+  }`;
+
   return (
     <div>
-      <div
-        className={compact ? 'grid grid-cols-2 gap-2' : 'grid grid-cols-2 gap-2.5'}
-        data-testid="mj-state-chips"
-      >
-        {STATE_KEYS.map(key => {
+      <div className={compact ? 'grid grid-cols-2 gap-2' : 'grid grid-cols-2 gap-2.5'} data-testid={testId}>
+        {options.map(({ key, label, Icon }) => {
           const isSelected = selected.includes(key);
           const blocked = !isSelected && atMax;
-          const Icon = STATE_ICONS[key] || Wind;
+          const OptionIcon = Icon || Sparkles;
           return (
             <button
               key={key}
@@ -172,29 +173,18 @@ export function StateChips({
               aria-pressed={isSelected}
               aria-disabled={blocked || undefined}
               aria-describedby={blocked ? maxHintId : undefined}
-              onClick={() => handleBuiltIn(key)}
-              className={`relative flex items-center gap-2.5 min-h-[48px] px-3 py-2.5 rounded-2xl border text-left transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
-                isSelected
-                  ? 'border-brand-500 bg-brand-50 text-brand-500 elevation-row'
-                  : blocked
-                    ? 'border-dark-600 bg-dark-800 text-slt opacity-60'
-                    : 'border-dark-600 bg-dark-800 text-ink'
-              }`}
+              onClick={() => handleOption(key)}
+              className={chipClass(isSelected, blocked)}
             >
               <span
-                className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
-                  isSelected ? 'bg-brand-500 text-white' : 'bg-dark-700 text-slt'
-                }`}
+                className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${isSelected ? 'bg-brand-500 text-white' : 'bg-dark-700 text-slt'}`}
                 aria-hidden="true"
               >
-                <Icon size={16} />
+                <OptionIcon size={16} />
               </span>
-              <span className="text-body font-semibold leading-snug flex-1 break-words">{mj.states[key]}</span>
+              <span className="text-body font-semibold leading-snug flex-1 break-words">{label}</span>
               {isSelected && (
-                <span
-                  className="absolute top-2 right-2 w-5 h-5 rounded-full bg-brand-500 text-white flex items-center justify-center"
-                  aria-hidden="true"
-                >
+                <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-brand-500 text-white flex items-center justify-center" aria-hidden="true">
                   <Check size={12} strokeWidth={3} />
                 </span>
               )}
@@ -213,28 +203,17 @@ export function StateChips({
               aria-describedby={blocked ? maxHintId : undefined}
               data-testid="mj-something-else"
               onClick={handleCustomToggle}
-              className={`relative flex items-center gap-2.5 min-h-[48px] px-3 py-2.5 rounded-2xl border text-left transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
-                customOpen
-                  ? 'border-brand-500 bg-brand-50 text-brand-500 elevation-row'
-                  : blocked
-                    ? 'border-dark-600 bg-dark-800 text-slt opacity-60'
-                    : 'border-dark-600 bg-dark-800 text-ink'
-              }`}
+              className={chipClass(customOpen, blocked)}
             >
               <span
-                className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
-                  customOpen ? 'bg-brand-500 text-white' : 'bg-dark-700 text-slt'
-                }`}
+                className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${customOpen ? 'bg-brand-500 text-white' : 'bg-dark-700 text-slt'}`}
                 aria-hidden="true"
               >
                 <PenLine size={16} />
               </span>
-              <span className="text-body font-semibold leading-snug flex-1 break-words">{mj.somethingElse}</span>
+              <span className="text-body font-semibold leading-snug flex-1 break-words">{customChipLabel}</span>
               {customOpen && (
-                <span
-                  className="absolute top-2 right-2 w-5 h-5 rounded-full bg-brand-500 text-white flex items-center justify-center"
-                  aria-hidden="true"
-                >
+                <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-brand-500 text-white flex items-center justify-center" aria-hidden="true">
                   <Check size={12} strokeWidth={3} />
                 </span>
               )}
@@ -243,21 +222,17 @@ export function StateChips({
         })()}
       </div>
 
-      <p id={maxHintId} className="sr-only" aria-live="polite">
-        {announceMax ? mj.maxStatesReached : ''}
-      </p>
+      <p id={maxHintId} className="sr-only" aria-live="polite">{announceMax ? atMaxLabel : ''}</p>
 
       {showCustom && customOpen && (
         <div className="mt-3" data-testid="mj-custom-state-field">
-          <label htmlFor={customFieldId} className="block text-body font-bold text-ink mb-2">
-            {mj.customStateLabel}
-          </label>
+          <label htmlFor={customFieldId} className="block text-body font-bold text-ink mb-2">{customFieldLabel}</label>
           <input
             id={customFieldId}
             type="text"
-            value={customState}
-            onChange={e => onCustomChange(e.target.value.slice(0, MAX_CUSTOM_STATE_LENGTH))}
-            maxLength={MAX_CUSTOM_STATE_LENGTH}
+            value={customValue}
+            onChange={e => onCustomChange(e.target.value.slice(0, maxCustomLength))}
+            maxLength={maxCustomLength}
             aria-invalid={customError ? true : undefined}
             aria-describedby={customError ? customErrorId : undefined}
             className="input-field w-full min-h-[48px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
@@ -265,19 +240,48 @@ export function StateChips({
           />
           <div className="flex items-start justify-between gap-3 mt-1.5">
             {customError ? (
-              <p id={customErrorId} role="alert" className="text-caption text-amber-400 leading-snug">
-                {customError}
-              </p>
-            ) : (
-              <span />
-            )}
+              <p id={customErrorId} role="alert" className="text-caption text-amber-400 leading-snug">{customError}</p>
+            ) : <span />}
             <p className="text-caption text-slt text-right tabular-nums shrink-0">
-              {customState.length}/{MAX_CUSTOM_STATE_LENGTH}
+              {customValue.length}/{maxCustomLength}
             </p>
           </div>
         </div>
       )}
     </div>
+  );
+}
+
+export function StateChips({
+  selected,
+  onToggle,
+  customOpen = false,
+  onCustomToggle,
+  customState = '',
+  onCustomChange,
+  customError = null,
+  compact = false,
+}) {
+  const { language } = useAuth();
+  const mj = translations[language].mindJournal;
+  return (
+    <ChoiceChips
+      options={STATE_KEYS.map(key => ({ key, label: mj.states[key], Icon: STATE_ICONS[key] || Wind }))}
+      selected={selected}
+      onToggle={onToggle}
+      max={MAX_STATE_SELECTIONS}
+      customOpen={customOpen}
+      onCustomToggle={onCustomToggle}
+      customValue={customState}
+      onCustomChange={onCustomChange}
+      customChipLabel={mj.somethingElse}
+      customFieldLabel={mj.customStateLabel}
+      maxCustomLength={MAX_CUSTOM_STATE_LENGTH}
+      customError={customError}
+      atMaxLabel={mj.maxStatesReached}
+      compact={compact}
+      testId="mj-state-chips"
+    />
   );
 }
 
@@ -338,7 +342,7 @@ export function ContextTypeCards({ value, onChange }) {
 }
 
 export function contextIconFor(entryType, contextType) {
-  if (entryType === 'GUIDED_REFLECTION') {
+  if (entryType === 'GUIDED_REFLECTION' || entryType === 'REFLECTION') {
     return CONTEXT_ICONS[contextType] || Brain;
   }
   return Sparkles;

@@ -178,16 +178,24 @@ describe('Quick note', () => {
 });
 
 describe('Quick note back navigation', () => {
-  test('Journal → Quick Note → header back uses history and does not push another Journal entry', async () => {
+  // Home no longer links to Quick Note, so the origin-marked journey is now
+  // exercised through the reflection-detail link, which still carries it.
+  // The contract under test — history back, no duplicate Journal entry — is
+  // unchanged, and still covers every screen using useMindJournalBack.
+  test('Journal → Reflection details → header back uses history and does not push another Journal entry', async () => {
+    apiFetch.mockImplementation(async (p) => {
+      if (p === '/api/mind-journal/e1') return json({ entry: { id: 'e1', entryType: 'QUICK_NOTE', states: ['calm'], note: 'ok', createdAt: new Date().toISOString() } });
+      return json({ entries: [{ id: 'e1', entryType: 'QUICK_NOTE', states: ['calm'], note: 'ok', createdAt: new Date().toISOString() }], contextEnabled: false });
+    });
     renderFlow(['/prior', '/mind-journal']);
-    await userEvent.click(await screen.findByTestId('mj-quick-note'));
-    expect((await screen.findByTestId('pathname')).textContent).toBe('/mind-journal/quick');
+    await userEvent.click(await screen.findByTestId('mj-reflection-card'));
+    expect((await screen.findByTestId('pathname')).textContent).toBe('/mind-journal/e1');
     expect(JSON.parse(screen.getByTestId('location-state').textContent).from).toBe('mindJournal');
 
     await userEvent.click(screen.getByRole('button', { name: 'Back' }));
     expect((await screen.findByTestId('pathname')).textContent).toBe('/mind-journal');
 
-    // Another back from Journal continues to the page before Journal — not Quick Note.
+    // Another back from Journal continues to the page before Journal — not the detail screen.
     await userEvent.click(screen.getByRole('button', { name: 'Back' }));
     expect((await screen.findByTestId('pathname')).textContent).toBe('/prior');
   });
@@ -456,7 +464,9 @@ describe('Mind Journal home', () => {
     createdAt: '2026-08-03T10:00:00.000Z',
   };
 
-  test('leads with the approved description and both ways in', async () => {
+  // Unified reflection (PR 1): one way in. The separate Quick Note card was
+  // retired from home; its route stays mounted for compatibility until PR 2.
+  test('leads with the approved description and exactly one way in', async () => {
     renderFlow();
     expect(await screen.findByRole('heading', { level: 2, name: 'Notice the moment. Carry something useful forward.' })).toBeTruthy();
     expect(screen.getByText('A personal, score-free space for quick notes and guided reflections.')).toBeTruthy();
@@ -464,7 +474,8 @@ describe('Mind Journal home', () => {
     expect(hero.getAttribute('href')).toBe('/mind-journal/new');
     expect(hero.getAttribute('aria-label')).toBe('New reflection');
     expect(screen.getByRole('link', { name: 'New reflection' })).toBe(hero);
-    expect(screen.getByTestId('mj-quick-note').getAttribute('href')).toBe('/mind-journal/quick');
+    expect(screen.queryByTestId('mj-quick-note')).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Quick note' })).toBeNull();
     expect(screen.getByTestId('mj-context-row')).toBeTruthy();
     expect(screen.getByTestId('mj-recent-section')).toBeTruthy();
     expect(screen.queryByTestId('bottom-nav')).toBeNull();

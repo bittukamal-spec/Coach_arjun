@@ -155,10 +155,31 @@ export default function ReflectionDetailPage() {
     );
   }
 
+  const r = mj.reflection;
+  const isReflection = entry.entryType === 'REFLECTION';
   const isGuided = entry.entryType === 'GUIDED_REFLECTION';
-  const typeLabel = isGuided ? mj.guided.title : mj.quickNote.tag;
+  const typeLabel = isReflection ? r.title : isGuided ? mj.guided.title : mj.quickNote.tag;
   const dateLabel = formatDetailDateTime(entry.createdAt, language);
-  const contextLabel = isGuided ? contextLabelForEntry(entry, mj) : null;
+  const contextLabel = isReflection
+    ? (entry.contextType === 'SOMETHING_ELSE' && entry.customContext
+      ? entry.customContext
+      : r.q1.options[entry.contextType] || null)
+    : isGuided ? contextLabelForEntry(entry, mj) : null;
+
+  // Structured answers render as their translated labels; a "Write my own"
+  // value is the athlete's text and is shown verbatim, never re-worded.
+  const answerChips = (tags, labels, custom) => [
+    ...(Array.isArray(tags) ? tags.map(k => labels[k] || k) : []),
+    ...(custom ? [custom] : []),
+  ];
+  const REFLECTION_SECTIONS = isReflection ? [
+    [r.q2.title[entry.contextType] || r.q2.title.SOMETHING_ELSE, answerChips(entry.eventTags, r.q2.options, entry.customEvent), 'mj-detail-event'],
+    [r.q3.title, answerChips(entry.states, mj.states, entry.customState), 'mj-detail-states'],
+    [r.q4.title, answerChips(entry.thoughtTags, r.q4.options, entry.customThought), 'mj-detail-thoughts'],
+    [r.q5.title, answerChips(entry.responseTags, r.q5.options, entry.customResponse), 'mj-detail-responses'],
+    [r.q6body.title, answerChips(entry.bodyTags, r.q6body.options, entry.customBody), 'mj-detail-body'],
+    [r.q6cue.title, entry.cueFeedback ? [r.q6cue.options[entry.cueFeedback]] : [], 'mj-detail-cue'],
+  ].filter(([, values]) => values.length > 0) : [];
   const stateTags = stateTagsForEntry(entry, mj);
   const note = typeof entry.note === 'string' && entry.note.trim() ? entry.note : null;
   const whatHappened = entry.whatHappened || null;
@@ -182,7 +203,40 @@ export default function ReflectionDetailPage() {
           </DetailSection>
         ) : null}
 
-        {stateTags.length > 0 ? (
+        {isReflection && REFLECTION_SECTIONS.map(([heading, values, testId]) => (
+          <DetailSection key={testId} heading={heading} testId={testId}>
+            <div className="flex flex-wrap gap-1.5">
+              {values.map((label, idx) => (
+                <span
+                  key={`${label}-${idx}`}
+                  className="inline-flex items-center px-2.5 py-1 rounded-full text-caption font-semibold bg-dark-700 text-ink border border-dark-600 max-w-full break-words"
+                >
+                  {label}
+                </span>
+              ))}
+            </div>
+          </DetailSection>
+        ))}
+
+        {isReflection && (entry.arjunNoticed || entry.arjunTakeaway || entry.arjunPattern) ? (
+          <DetailSection heading={r.review.noticedLabel} testId="mj-detail-review">
+            {entry.arjunNoticed ? <VerbatimText>{entry.arjunNoticed}</VerbatimText> : null}
+            {entry.arjunPattern ? (
+              <div className="mt-3 pt-3 border-t border-dark-600">
+                <p className="text-micro font-bold text-slt uppercase tracking-wide mb-1.5">{r.review.patternLabel}</p>
+                <VerbatimText>{entry.arjunPattern}</VerbatimText>
+              </div>
+            ) : null}
+            {entry.arjunTakeaway ? (
+              <div className="mt-3 pt-3 border-t border-dark-600">
+                <p className="text-micro font-bold text-slt uppercase tracking-wide mb-1.5">{r.review.takeawayLabel}</p>
+                <VerbatimText>{entry.arjunTakeaway}</VerbatimText>
+              </div>
+            ) : null}
+          </DetailSection>
+        ) : null}
+
+        {!isReflection && stateTags.length > 0 ? (
           <DetailSection heading={d.statesHeading} testId="mj-detail-states">
             <div className="flex flex-wrap gap-1.5">
               {stateTags.map((label, idx) => (

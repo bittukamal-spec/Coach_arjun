@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { ArrowRight, BookOpen, NotebookPen, Shield } from 'lucide-react';
+import { ArrowRight, BookOpen, Shield } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
@@ -28,16 +28,28 @@ import { contextIconFor } from './mindJournal/shared';
 // Each row is an accessible link to Reflection Details. No overflow menu
 // and no inline edit/delete — delete lives on the detail screen only.
 function EntryRow({ entry, mj, dateLabel }) {
+  const r = mj.reflection;
+  const isReflection = entry.entryType === 'REFLECTION';
   const isGuided = entry.entryType === 'GUIDED_REFLECTION';
   const stateTags = stateTagsForEntry(entry, mj);
-  const preview = isGuided ? guidedPreview(entry) : entry.note;
+  // A reflection previews Arjun's takeaway when he wrote one, falling back to
+  // the athlete's own event answer. Legacy shapes are untouched.
+  const preview = isReflection
+    ? (entry.arjunTakeaway
+      || entry.customEvent
+      || (entry.eventTags?.length ? r.q2.options[entry.eventTags[0]] : null))
+    : isGuided ? guidedPreview(entry) : entry.note;
   // takeForward gets its own row, and it is also last in the preview
   // precedence — so when it is the only thing written, show it once as the
   // labelled row rather than twice.
   const showPreview = preview && preview !== entry.takeForward;
   const ContextIcon = contextIconFor(entry.entryType, entry.contextType);
-  const contextLabel = isGuided ? contextLabelForEntry(entry, mj) : null;
-  const typeLabel = isGuided
+  const contextLabel = isReflection
+    ? (entry.contextType === 'SOMETHING_ELSE' && entry.customContext
+      ? entry.customContext
+      : r.q1.options[entry.contextType] || null)
+    : isGuided ? contextLabelForEntry(entry, mj) : null;
+  const typeLabel = isReflection || isGuided
     ? (contextLabel || mj.contextTypes.SOMETHING_ELSE)
     : mj.quickNote.tag;
   const ariaLabel = [typeLabel, dateLabel, ...(stateTags || [])].filter(Boolean).join(', ');
@@ -83,7 +95,7 @@ function EntryRow({ entry, mj, dateLabel }) {
             <p className="text-caption text-slt mt-2.5 leading-relaxed break-words">{preview}</p>
           )}
 
-          {isGuided && entry.takeForward && (
+          {!isReflection && isGuided && entry.takeForward && (
             <div className="mt-3 pt-3 border-t border-dark-600">
               <p className="text-caption text-slt leading-relaxed break-words">
                 <span className="font-bold text-ink">{mj.takeForwardLabel}: </span>
@@ -200,29 +212,6 @@ export default function MindJournalPage() {
               <p className="text-caption text-white/85 mt-1.5 leading-relaxed">{mj.newReflection.cardDesc}</p>
             </div>
           </div>
-        </Card>
-
-        <Card
-          as={Link}
-          to="/mind-journal/quick"
-          state={mindJournalOriginState()}
-          aria-label={mj.quickNote.action}
-          data-testid="mj-quick-note"
-          className="flex items-center gap-3.5 p-4 mb-5 elevation-card active:scale-[0.99] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
-        >
-          <span
-            className="w-11 h-11 rounded-2xl bg-brand-50 text-brand-500 flex items-center justify-center shrink-0"
-            aria-hidden="true"
-          >
-            <NotebookPen size={20} />
-          </span>
-          <span className="flex-1 min-w-0 text-center">
-            <span className="block text-body font-bold text-ink">{mj.quickNote.action}</span>
-            <span className="block text-caption text-slt mt-0.5 leading-snug">{mj.quickNote.cardDesc}</span>
-          </span>
-          <span className="w-11 flex items-center justify-center shrink-0" aria-hidden="true">
-            <ArrowRight size={16} className="text-slt" />
-          </span>
         </Card>
 
         {/* ── Arjun context status — the control itself lives on its own

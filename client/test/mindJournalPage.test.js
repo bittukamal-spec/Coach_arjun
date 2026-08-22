@@ -283,10 +283,12 @@ test('home: leads with the approved two-level intro and offers both ways in', ()
   assert.match(home, /\{mj\.introHeadline\}/);
   assert.match(home, /\{mj\.subtitle\}/);
   assert.match(home, /data-testid="mj-intro"/);
-  assert.match(home, /to="\/mind-journal\/new"/, 'the prominent New reflection card must open the guided flow');
+  assert.match(home, /to="\/mind-journal\/new"/, 'the prominent New reflection card must open the reflection flow');
   assert.match(home, /\{mj\.newReflection\.cardTitle\}/);
-  assert.match(home, /to="\/mind-journal\/quick"/, 'the secondary Quick note action must open the quick-note screen');
-  assert.match(home, /\{mj\.quickNote\.action\}/);
+  // Unified reflection (PR 1): the separate Quick Note entry point was
+  // retired from home — one way in, not two. Its route stays alive for
+  // compatibility (see the route test below) until PR 2 handles it.
+  assert.doesNotMatch(home, /to="\/mind-journal\/quick"/, 'home no longer offers a second, separate way in');
 });
 
 test('home: shows a compact Arjun-context status row linking to the context screen', () => {
@@ -358,9 +360,14 @@ test('quick note: Something else opens a labelled custom field bounded at 30 cha
   assert.match(quick, /<StateChips/);
   assert.match(quick, /onCustomToggle=/);
   assert.match(quick, /customState=\{customState\}/);
-  assert.match(shared, /\{mj\.somethingElse\}/);
-  assert.match(shared, /\{mj\.customStateLabel\}/);
-  assert.match(shared, /maxLength=\{MAX_CUSTOM_STATE_LENGTH\}/);
+  // PR 1 generalised the selection grid into ChoiceChips; StateChips is now
+  // a thin wrapper that must still supply the same labels and the same
+  // 30-character bound, so Quick Note's behaviour is unchanged.
+  assert.match(shared, /export function ChoiceChips/);
+  assert.match(shared, /customChipLabel=\{mj\.somethingElse\}/);
+  assert.match(shared, /customFieldLabel=\{mj\.customStateLabel\}/);
+  assert.match(shared, /maxCustomLength=\{MAX_CUSTOM_STATE_LENGTH\}/);
+  assert.match(shared, /maxLength=\{maxCustomLength\}/, 'the input is still hard-bounded');
   assert.equal(MAX_CUSTOM_STATE_LENGTH, 30);
 });
 
@@ -520,8 +527,10 @@ test('language never changes what is submitted — payloads carry internal keys 
 // ── Screen 5: reflection saved ─────────────────────────────────────────────
 
 test('saved screen: quiet confirmation, showing Take forward when there is one', () => {
-  assert.match(savedScreen, /\{saved\.heading\}/);
-  assert.match(savedScreen, /\{saved\.body\}/);
+  // Shape-aware since PR 1: a unified reflection shows the review heading,
+  // every earlier shape still shows the original quiet confirmation.
+  assert.match(savedScreen, /saved\.heading/);
+  assert.match(savedScreen, /saved\.body/);
   assert.match(savedScreen, /entry\.takeForward &&/);
   assert.match(savedScreen, /\{mj\.takeForwardLabel\}/);
   assert.match(savedScreen, /\{saved\.doneBtn\}/);
@@ -592,7 +601,9 @@ test('App.jsx: all seven Mind Journal routes exist and are onboarding-protected'
   const ROUTES = [
     ['/mind-journal', 'MindJournalPage'],
     ['/mind-journal/quick', 'QuickNotePage'],
-    ['/mind-journal/new', 'GuidedReflectionPage'],
+    // PR 1 replaced the two-page guided flow at this path with the single
+    // unified wizard. /new/details stays routed for compatibility until PR 2.
+    ['/mind-journal/new', 'ReflectionWizard'],
     ['/mind-journal/new/details', 'GuidedReflectionDetailsPage'],
     ['/mind-journal/context', 'ArjunContextPage'],
     ['/mind-journal/saved/:id', 'ReflectionSavedPage'],
@@ -644,10 +655,10 @@ test('Dashboard.jsx: the visible check-in link still opens Mind Journal, unchang
 
 // ── Visual structure (polish pass) ─────────────────────────────────────────
 
-test('home: hero, quick-note, context row and recent reflection sections are present', () => {
+test('home: hero, context row and recent reflection sections are present', () => {
   assert.match(home, /data-testid="mj-hero-new"/);
   assert.match(home, /variant="hero"/);
-  assert.match(home, /data-testid="mj-quick-note"/);
+  assert.doesNotMatch(home, /data-testid="mj-quick-note"/, 'the separate Quick Note card was retired from home');
   assert.match(home, /data-testid="mj-context-row"/);
   assert.match(home, /data-testid="mj-recent-section"/);
   assert.match(home, /data-testid="mj-reflection-card"/);
