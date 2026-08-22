@@ -1,20 +1,21 @@
-import { Bookmark, Check, Gauge, MessageCircle, Zap } from 'lucide-react';
+import { Check, Gauge, MessageCircle, Zap } from 'lucide-react';
 import { CoachScreen, DARK, PhoneFrame } from './PhoneFrame';
 
 // Product visuals for the public homepage.
 //
-// The app UI is used as HERO GRAPHIC, not as four identical screenshots in
-// four identical boxes. The hero is a real device; inside the "Inside Arjun"
+// The app UI is used as HERO GRAPHIC, not as identical screenshots in
+// identical boxes. The hero is a real device; inside the "Inside Arjun"
 // carousel each story gets its own composition — a cropped device, an
-// enlarged Mental Rep card, offset Playbook cards, a blown-up pressure flow —
-// so the section reads editorial rather than like a product-shot grid.
+// enlarged Mental Rep card, a blown-up pressure flow — so the section reads
+// editorial rather than like a product-shot grid.
 //
-// Everything shown exists today: a Coach conversation, a Mental Rep, the
-// Playbook and the When Pressure Hits section of the Profile, all in the
-// app's REAL dark tokens (see PhoneFrame.jsx). There is no audio in the
-// product, so no waveform, play control, duration bar, microphone or speaker
-// appears anywhere — and no scores, streaks, XP or progress graphs, because
-// an athlete never sees those either.
+// Everything shown exists today: a Coach conversation, a Mental Rep and the
+// When Pressure Hits section of the Profile, all in the app's REAL dark
+// tokens (see PhoneFrame.jsx). The Playbook story was removed along with the
+// Playbook page — the homepage never advertises a surface the app does not
+// have. There is no audio in the product, so no waveform, play control,
+// duration bar, microphone or speaker appears anywhere — and no scores,
+// streaks, XP or progress graphs, because an athlete never sees those either.
 //
 // Each mockup is decorative: the surrounding copy carries the meaning, so
 // callers wrap them in a role="img" container with a text alternative.
@@ -178,34 +179,7 @@ export function RepsPreview({ t }) {
   );
 }
 
-// 3 — Playbook: the two saved items, enlarged and offset from each other, the
-// lower one overhanging the card edge.
-export function PlaybookPreview({ t }) {
-  return (
-    <Story title={t.title} line={t.line} tint={TINTS.amber} Icon={Bookmark} artClass="h-[232px]">
-      <div
-        className="absolute left-4 top-1 w-[84%] rotate-[-2deg] rounded-2xl p-3.5 shadow-[0_16px_34px_-16px_rgba(9,20,35,0.5)]"
-        style={{ background: DARK.card, border: `1px solid ${DARK.line}` }}
-      >
-        <span className="text-[9.5px] font-bold uppercase tracking-[0.12em]" style={{ color: DARK.accent }}>
-          {t.lessonLabel}
-        </span>
-        <p className="mt-1.5 text-[13px] leading-snug" style={{ color: DARK.ink }}>{t.lesson}</p>
-      </div>
-      <div
-        className="absolute -right-4 bottom-2 w-[74%] rotate-[3deg] rounded-2xl p-3.5 shadow-[0_18px_38px_-14px_rgba(9,20,35,0.55)]"
-        style={{ background: DARK.bg, border: `1px solid ${DARK.line}` }}
-      >
-        <span className="flex items-center gap-1.5 text-[9.5px] font-bold uppercase tracking-[0.12em]" style={{ color: '#22D3C5' }}>
-          <Bookmark size={11} /> {t.cueLabel}
-        </span>
-        <p className="mt-1.5 text-[19px] font-black leading-none" style={{ color: DARK.ink }}>{t.cue}</p>
-      </div>
-    </Story>
-  );
-}
-
-// 4 — When Pressure Hits: the Profile's own three-step structure, blown up
+// 3 — When Pressure Hits: the Profile's own three-step structure, blown up
 // into a flow with connectors. No scoring, no graph — the athlete's own words.
 export function ProfilePreview({ t }) {
   const rows = [

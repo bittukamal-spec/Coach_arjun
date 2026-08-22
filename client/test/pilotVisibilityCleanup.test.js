@@ -52,22 +52,32 @@ test('Dashboard: no Starter Plan coach note, session list, locked-session messag
 
 test('Dashboard: renders a score-free Mind Journal card that opens /mind-journal', () => {
   // Homepage-priority pass: the card reuses the shared TrainGradientCard
-  // (onClick + navigate(), same pattern as the Recommended Practice CTA on
-  // this page), still score-free, with the founder-approved heading/value
-  // copy.
+  // (onClick + navigate()), still score-free, with the founder-approved
+  // heading/value copy.
   assert.match(dashboard, /to="\/mind-journal"|navigate\('\/mind-journal'\)/);
   assert.match(dashboard, /\{t\.journalHeading\}/);
   assert.match(dashboard, /\{t\.journalValue\}/);
   assert.doesNotMatch(dashboard, /\d+\s*\/\s*5|score:\s*\d/i, 'still no numeric score of any kind');
 });
 
-test('Dashboard: stopped requests that only supported hidden sections (Starter Plan, MFS today, progress stat pills)', () => {
-  assert.doesNotMatch(dashboard, /\/api\/plan\/current/);
-  assert.doesNotMatch(dashboard, /\/api\/mental-fitness\/today/);
-  assert.doesNotMatch(dashboard, /\/api\/progress\/summary/);
-  assert.doesNotMatch(dashboard, /\/api\/streaks\/freeze/);
-  // The Playbook summary fetch is still needed (cue card, insight, Playbook entry).
-  assert.match(dashboard, /\/api\/playbook/);
+test('Dashboard: stopped requests that only supported hidden sections (Starter Plan, MFS today, progress stat pills, the Playbook summary)', () => {
+  // Comments explaining WHICH request was dropped must not satisfy the check.
+  const code = dashboard
+    .replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
+  for (const endpoint of [
+    /\/api\/plan\/current/,
+    /\/api\/mental-fitness\/today/,
+    /\/api\/progress\/summary/,
+    /\/api\/streaks\/freeze/,
+    // The last one: its response was never read, and the Playbook page it
+    // once fed is gone. Home now makes no request at all.
+    /\/api\/playbook/,
+  ]) {
+    assert.doesNotMatch(code, endpoint);
+  }
+  assert.doesNotMatch(code, /apiFetch/);
 });
 
 test('Dashboard: no visible games or skill-path entry points', () => {

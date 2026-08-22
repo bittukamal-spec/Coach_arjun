@@ -1045,13 +1045,14 @@ test('the Profile item is the active one while on /starting-profile', async () =
   expect(current.textContent).toContain('Profile');
 });
 
-test('the navigation keeps its five destinations, and Settings is not one of them', async () => {
+test('the navigation keeps its four destinations, and Settings is not one of them', async () => {
   renderPage();
   await screen.findByRole('heading', { level: 1, name: 'Your Performance Profile' });
   const hrefs = within(navBar()).getAllByRole('link').map((a) => a.getAttribute('href'));
-  expect(hrefs).toEqual(['/dashboard', '/train', '/coaching', '/playbook', '/starting-profile']);
+  expect(hrefs).toEqual(['/dashboard', '/train', '/coaching', '/starting-profile']);
   // Account/Settings stays in the avatar menu, never promoted into the bar.
   expect(hrefs).not.toContain('/account');
+  expect(hrefs).not.toContain('/playbook');
 });
 
 test('consent-pending keeps the navigation but drops the coaching action from the DOM', async () => {

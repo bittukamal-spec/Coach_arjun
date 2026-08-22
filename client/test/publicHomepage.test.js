@@ -2,7 +2,7 @@
 //
 // The homepage is the one screen a visitor sees before installing, so these
 // guard two separate things: that it describes the CURRENT product (Coach
-// conversations that ask before they prescribe, Mental Reps, Playbook, the
+// conversations that ask before they prescribe, Mental Reps, the
 // When Pressure Hits profile, bilingual, private), and that it never
 // re-acquires the removed concepts the old page advertised (Daily Pulse,
 // mood/energy/sleep tracking, a personality test, game scores, research
@@ -167,12 +167,15 @@ test('device screens use the app\'s real dark theme while the page stays light',
   assert.doesNotMatch(stripComments(landing), /#07131F/, 'no dark section on the page itself');
 });
 
-test('the device shows the real bottom-nav order and nothing invented', () => {
+test('the device shows the real four-item bottom nav and nothing invented', () => {
   const nav = phoneFrame.slice(phoneFrame.indexOf('const NAV = ['), phoneFrame.indexOf('];', phoneFrame.indexOf('const NAV = [')));
   assert.deepEqual(
     nav.replace('const NAV = [', '').split(',').map((s) => s.trim()).filter(Boolean),
-    ['Home', 'Dumbbell', 'MessageCircle', 'BookOpen', 'User'],
+    ['Home', 'Dumbbell', 'MessageCircle', 'User'],
   );
+  // The mockup nav must stay in step with the real one — no retired Playbook
+  // tab advertised to a visitor.
+  assert.doesNotMatch(nav, /BookOpen/);
 });
 
 // ── 3. No audio, anywhere ───────────────────────────────────────────────────
@@ -309,34 +312,43 @@ test('the five benefit tags each carry their own accent, not one shared pill sty
   }
 });
 
-test('Inside Arjun shows four current product stories', () => {
+// The Playbook story was removed along with the Playbook page: the homepage
+// must not keep advertising a surface the app no longer has. Nothing was
+// invented to take its slot, so the section is three stories now.
+test('Inside Arjun shows three current product stories', () => {
   assert.deepEqual(
-    [en.preview.coachCard.title, en.preview.repsCard.title, en.preview.playbookCard.title, en.preview.profileCard.title],
-    ['Talk it through', 'Train the moment', 'Keep what works', 'Learn your patterns'],
+    [en.preview.coachCard.title, en.preview.repsCard.title, en.preview.profileCard.title],
+    ['Talk it through', 'Train the moment', 'Learn your patterns'],
   );
   assert.match(landing, /<CoachPreview key="coach" t=\{previews\.coachCard\} \/>/);
   assert.match(landing, /<RepsPreview key="reps" t=\{previews\.repsCard\} \/>/);
-  assert.match(landing, /<PlaybookPreview key="playbook" t=\{previews\.playbookCard\} \/>/);
   assert.match(landing, /<ProfilePreview key="profile" t=\{previews\.profileCard\} \/>/);
   const inside = mockups.slice(mockups.indexOf('// ── Inside Arjun'), mockups.indexOf('// ── Built-around-you'));
-  assert.equal((inside.match(/<Story /g) || []).length, 4, 'four stories');
-  // NOT four identical device frames: only the Coach story uses a device, and
-  // it is cropped by its card; the other three enlarge the UI itself.
-  assert.equal((inside.match(/<PhoneFrame/g) || []).length, 1, 'one device, not four');
+  assert.equal((inside.match(/<Story /g) || []).length, 3, 'three stories');
+  // NOT three identical device frames: only the Coach story uses a device, and
+  // it is cropped by its card; the others enlarge the UI itself.
+  assert.equal((inside.match(/<PhoneFrame/g) || []).length, 1, 'one device, not three');
   assert.match(inside, /<PhoneFrame>/, 'the Coach device sits inside the card art area');
   assert.match(inside, /-right-4 top-0 w-\[88%\] rotate-/, 'the Mental Rep card is enlarged and offset');
   // Copy on top, product UI cropped by the card's bottom edge.
   const story = inside.slice(inside.indexOf('function Story('), inside.indexOf('const TINTS'));
   assert.ok(story.indexOf('{title}') < story.indexOf('{children}'), 'copy sits above the art');
   assert.match(story, /overflow-hidden rounded-3xl border/, 'the card crops its art');
-  assert.match(inside, /rotate-\[3deg\]/, 'the Playbook cards are offset from each other');
-  // Four different art heights — the compositions are not one block repeated.
+  // Different art heights — the compositions are not one block repeated.
   const heights = [...inside.matchAll(/artClass="h-\[(\d+)px\]"/g)].map((m) => Number(m[1]));
-  assert.equal(heights.length, 4);
-  assert.ok(new Set(heights).size >= 3, `story art heights should vary, got ${heights.join(', ')}`);
+  assert.equal(heights.length, 3);
+  assert.equal(new Set(heights).size, 3, `story art heights should vary, got ${heights.join(', ')}`);
   // Each story carries its own accent.
   const tints = [...inside.matchAll(/tint=\{TINTS\.(\w+)\}/g)].map((m) => m[1]);
-  assert.deepEqual(tints, ['blue', 'teal', 'amber', 'violet']);
+  assert.deepEqual(tints, ['blue', 'teal', 'violet']);
+  // The three remaining slides fill the desktop row rather than leaving the
+  // fourth slot's gap behind.
+  assert.match(landing, /slideClass="w-\[85%\] xs:w-\[72%\] sm:w-\[50%\] lg:w-\[32%\]"/);
+});
+
+test('no Playbook mockup, preview or marketing claim survives on the homepage', () => {
+  assert.doesNotMatch(homepageSources, /Playbook(Preview|Screen|Card)|playbookCard/);
+  assert.doesNotMatch(stripComments(bothBlocks), /Playbook|प्लेबुक/);
 });
 
 test('the Coach preview is a real coaching exchange, not a generic AI chat', () => {
@@ -355,16 +367,7 @@ test('the Mental Rep preview shows the real rep shape', () => {
   assert.equal(r.cta, 'Start Mental Rep');
 });
 
-test('the Playbook preview shows a lesson and a saved cue, nothing measured', () => {
-  const p = en.preview.playbookCard;
-  assert.equal(p.lessonLabel, 'Latest lesson');
-  assert.equal(p.cueLabel, 'Saved cue');
-  assert.equal(p.cue, 'Next ball.');
-  const screen = phoneFrame.slice(phoneFrame.indexOf('export function PlaybookScreen'), phoneFrame.indexOf('// ── Screen 4'));
-  assert.doesNotMatch(screen, /%|chart|graph|streak|score/i);
-});
-
-test('the fourth preview is the real When Pressure Hits profile section', () => {
+test('the last preview is the real When Pressure Hits profile section', () => {
   const p = en.preview.profileCard;
   assert.equal(p.screenTitle, 'When pressure hits');
   assert.deepEqual(
@@ -440,12 +443,14 @@ test('the two plans carry the real launch prices and the correct saving', () => 
   assert.deepEqual([...new Set(prices)].sort(), ['₹1,089', '₹2,499', '₹299']);
 });
 
+// The "Playbook & saved cues" bullet went with the Playbook page and was
+// deliberately not replaced by another claim.
 test('both plans list the same benefits, yearly adds one', () => {
   assert.deepEqual(en.planBenefits, [
-    'AI Coach conversations', 'Mental Reps', 'Playbook & saved cues', 'Hindi + English',
+    'AI Coach conversations', 'Mental Reps', 'Hindi + English',
   ]);
   assert.equal(en.planYearlyExtra, 'Best value for regular training');
-  assert.equal(hi.planBenefits.length, 4);
+  assert.equal(hi.planBenefits.length, 3);
   const pricing = section('{/* ── Pricing', '{/* ── FAQ');
   assert.match(pricing, /\{t\.planBenefits\.map/);
   assert.match(pricing, /\[\.\.\.t\.planBenefits, t\.planYearlyExtra\]/);
@@ -661,8 +666,8 @@ test('no Hindi landing string was left as its English source', () => {
   const devanagari = /[ऀ-ॿ]/;
   const walk = (e, h, keyPath = 'landing') => {
     if (typeof e === 'string') {
-      // Product nouns stay in English by design (Arjun, Mental Rep, Playbook,
-      // Coach, EN/HI labels); everything sentence-like must be Hindi.
+      // Product nouns stay in English by design (Arjun, Mental Rep, Coach,
+      // EN/HI labels); everything sentence-like must be Hindi.
       if (e.length > 24 && !/^[A-Za-z ]+$/.test(h)) {
         assert.ok(devanagari.test(h), `${keyPath} was not translated: ${h}`);
       }

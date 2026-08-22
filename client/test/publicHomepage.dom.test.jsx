@@ -152,22 +152,28 @@ describe('How Arjun helps', () => {
 });
 
 describe('app preview', () => {
-  test('shows the four current product areas', () => {
+  // The Playbook story ("Keep what works") went with the Playbook page, and
+  // nothing was invented to take its slot.
+  test('shows the three current product areas', () => {
     renderHome();
     const region = screen.getByRole('region', { name: 'Inside Arjun' });
-    for (const title of ['Talk it through', 'Train the moment', 'Keep what works', 'Learn your patterns']) {
+    for (const title of ['Talk it through', 'Train the moment', 'Learn your patterns']) {
       expect(within(region).getByRole('heading', { name: title })).toBeTruthy();
     }
+    expect(within(region).getAllByRole('group')).toHaveLength(3);
+    expect(within(region).queryByRole('heading', { name: 'Keep what works' })).toBeNull();
   });
 
-  test('the previews are real current screens — coaching, a rep, saved cues, the pressure profile', () => {
+  test('the previews are real current screens — coaching, a rep, the pressure profile', () => {
     renderHome();
     const region = screen.getByRole('region', { name: 'Inside Arjun' });
     expect(within(region).getByText("What's been getting in the way lately?")).toBeTruthy();
     expect(within(region).getByText('Start Mental Rep')).toBeTruthy();
-    expect(within(region).getByText('Latest lesson')).toBeTruthy();
     expect(within(region).getAllByText('When pressure hits').length).toBeGreaterThan(0);
     expect(within(region).getByText('First response')).toBeTruthy();
+    // No retired Playbook mockup content survives.
+    expect(within(region).queryByText('Latest lesson')).toBeNull();
+    expect(within(region).queryByText('Saved cue')).toBeNull();
   });
 
   test('no preview shows a graph, score, streak or audio control', () => {
@@ -400,10 +406,12 @@ describe('pricing', () => {
 
   test('both plans list the benefits, yearly adds one', () => {
     renderHome();
-    for (const benefit of ['AI Coach conversations', 'Mental Reps', 'Playbook & saved cues']) {
+    for (const benefit of ['AI Coach conversations', 'Mental Reps', 'Hindi + English']) {
       expect(screen.getAllByText(benefit).length).toBeGreaterThanOrEqual(2);
     }
     expect(screen.getByText('Best value for regular training')).toBeTruthy();
+    // The retired Playbook bullet is not replaced by another claim.
+    expect(screen.queryByText(/Playbook/)).toBeNull();
   });
 
   test('both plan CTAs run the existing install action, not a fake checkout', async () => {

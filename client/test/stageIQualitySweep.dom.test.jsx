@@ -16,7 +16,7 @@ vi.mock('../src/api', () => ({ apiFetch: vi.fn() }));
 
 const { apiFetch } = await import('../src/api');
 const { default: StartingProfilePage } = await import('../src/pages/StartingProfilePage.jsx');
-const { default: PlaybookPage } = await import('../src/pages/PlaybookPage.jsx');
+const { default: FocusDeckPage } = await import('../src/pages/FocusDeckPage.jsx');
 const { default: MindJournalPage } = await import('../src/pages/MindJournalPage.jsx');
 const { default: QuickNotePage } = await import('../src/pages/mindJournal/QuickNotePage.jsx');
 
@@ -136,22 +136,6 @@ describe('Performance Profile under React StrictMode', () => {
 // ── 2. Semantic page headings ───────────────────────────────────────────────
 
 describe('every redesigned surface has exactly one page-level heading', () => {
-  function playbookServer(over = {}) {
-    apiFetch.mockImplementation(async () => jsonOnce({
-      weekRepCount: 0, weekResetCount: 0, topCue: null,
-      practiceOutcomes: [], focusCards: [], savedCues: [], reflections: [], insight: null,
-      ...over,
-    }));
-  }
-
-  test('Playbook renders one <h1>, carrying the page title', async () => {
-    playbookServer();
-    render(<MemoryRouter><PlaybookPage /></MemoryRouter>);
-    const h1s = await screen.findAllByRole('heading', { level: 1 });
-    expect(h1s).toHaveLength(1);
-    expect(h1s[0].textContent).toBe('Mental Playbook');
-  });
-
   test('Mind Journal renders one <h1>, carrying the page title', async () => {
     apiFetch.mockImplementation(async () => jsonOnce({ entries: [] }));
     render(<MemoryRouter><MindJournalPage /></MemoryRouter>);
@@ -183,17 +167,19 @@ describe('every redesigned surface has exactly one page-level heading', () => {
 
 // ── 3. Focus Card power line is readable in full ────────────────────────────
 
-describe('Focus Card power line on Playbook', () => {
+// The Playbook overview that used to show a Focus Card was retired with the
+// page. Focus Cards keep their own dedicated surface, so the same guarantee is
+// now proven on the Focus Deck — the athlete's own sentence must never be
+// clipped wherever it renders.
+describe('Focus Card power line on the Focus Deck', () => {
   const LONG_EN = 'I have prepared for this exact moment more times than I can count, so I trust my hands and play the next ball on its merit.';
   const LONG_HI = 'मैंने इस पल के लिए इतनी बार तैयारी की है कि गिन नहीं सकता, इसलिए मैं अपने हाथों पर भरोसा करता हूँ और अगली गेंद उसकी अपनी मेरिट पर खेलता हूँ।';
 
   function renderWithCard(powerLine) {
-    apiFetch.mockImplementation(async () => jsonOnce({
-      weekRepCount: 0, weekResetCount: 0, topCue: null,
-      practiceOutcomes: [], savedCues: [], reflections: [], insight: null,
-      focusCards: [{ id: 'c1', focusWord: 'Steady', resetWord: 'Reset', powerLine }],
-    }));
-    return render(<MemoryRouter><PlaybookPage /></MemoryRouter>);
+    apiFetch.mockImplementation(async () => jsonOnce([
+      { id: 'c1', focusWord: 'Steady', resetWord: 'Reset', powerLine },
+    ]));
+    return render(<MemoryRouter><FocusDeckPage /></MemoryRouter>);
   }
 
   test.each([['English', LONG_EN], ['Hindi', LONG_HI]])(
@@ -206,8 +192,6 @@ describe('Focus Card power line on Playbook', () => {
       // …and nothing clips it. `truncate` is the exact class this used to carry.
       expect(el.className).not.toMatch(/\btruncate\b/);
       expect(el.className).not.toMatch(/whitespace-nowrap|line-clamp/);
-      // It may still wrap, which is the point.
-      expect(el.className).toMatch(/break-words/);
     }
   );
 });

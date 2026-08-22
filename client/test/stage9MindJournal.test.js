@@ -1,8 +1,12 @@
-// Source-text checks for Stage 9 (Playbook and Mind Journal consistency).
-// PlaybookPage.jsx and MindJournalPage.jsx contain JSX and cannot be
-// imported directly by node:test without a transform — matching the
-// established pattern elsewhere in this suite, these are source-text
-// assertions.
+// Source-text checks for Stage 9 (Mind Journal consistency). MindJournalPage
+// .jsx contains JSX and cannot be imported directly by node:test without a
+// transform — matching the established pattern elsewhere in this suite, these
+// are source-text assertions.
+//
+// The Playbook half of this file went with the Playbook page: it was retired
+// as an athlete-facing destination, so its section order and its (already
+// removed) Mind Journal entry point have nothing left to assert. Every Mind
+// Journal guarantee below is unchanged.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -13,36 +17,14 @@ import path from 'node:path';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, '..');
 
-const playbook = readFileSync(path.join(root, 'src/pages/PlaybookPage.jsx'), 'utf8');
 const mindJournal = readFileSync(path.join(root, 'src/pages/MindJournalPage.jsx'), 'utf8');
 const contextScreen = readFileSync(path.join(root, 'src/pages/mindJournal/ArjunContextPage.jsx'), 'utf8');
 
-// ── "What I'm learning" is first ────────────────────────────────────────────
-
-test('PlaybookPage: "What I\'m learning" is the first section, before the weekly summary', () => {
-  const learningIdx = playbook.indexOf('{pb.learningHeading}');
-  // Stage F moved the weekly summary off the signature gradient onto the
-  // approved flat elevated surface, so it is located by its own heading
-  // rather than by variant="hero". The ordering guarantee is unchanged.
-  const weekIdx = playbook.indexOf('{pb.thisWeek}');
-  assert.ok(learningIdx !== -1 && weekIdx !== -1);
-  assert.ok(learningIdx < weekIdx, '"What I\'m learning" must render before the weekly-summary card');
-});
-
-// ── Mind Journal entry point removed from Playbook (modernization pass) ────
-// Playbook used to close with a quiet card linking into Mind Journal; that
-// entry point has been removed entirely — Mind Journal is reachable from
-// Home only now. See mindJournalRemovedFromPlaybook.test.js for the focused
-// removal guarantee; MindJournalPage itself and its own privacy/no-score
-// copy (asserted below via `translations`) are untouched.
-
 // ── No scores, diagnosis, profiling, or auto-prescription copy ─────────────
 
-test('PlaybookPage and MindJournalPage: no score, diagnosis, profiling, or auto-prescription language', () => {
-  for (const [name, src] of [['PlaybookPage', playbook], ['MindJournalPage', mindJournal]]) {
-    const codeOnly = src.split('\n').filter(l => !l.trim().startsWith('//')).join('\n');
-    assert.doesNotMatch(codeOnly, /diagnos|profil|auto-prescri|automatic prescri/i, `${name} must not introduce diagnosis/profiling/auto-prescription copy`);
-  }
+test('MindJournalPage: no score, diagnosis, profiling, or auto-prescription language', () => {
+  const codeOnly = mindJournal.split('\n').filter(l => !l.trim().startsWith('//')).join('\n');
+  assert.doesNotMatch(codeOnly, /diagnos|profil|auto-prescri|automatic prescri/i, 'MindJournalPage must not introduce diagnosis/profiling/auto-prescription copy');
 });
 
 // ── Alignment with the Stage 3 foundation (headers, empty states, tokens) ──

@@ -158,9 +158,9 @@ test('no second contact route was created', () => {
 
 // ── Bottom nav is untouched — Contact was NOT added there ───────────────────
 
-test('the authenticated bottom navigation still has exactly Home, Train, Coach, Playbook, Profile', () => {
+test('the authenticated bottom navigation still has exactly Home, Train, Coach, Profile', () => {
   const items = [...bottomNav.matchAll(/labelKey: '(\w+)'/g)].map((m) => m[1]);
-  assert.deepEqual(items, ['home', 'train', 'coach', 'playbook', 'profile']);
+  assert.deepEqual(items, ['home', 'train', 'coach', 'profile']);
   assert.doesNotMatch(bottomNav, /contact/i);
 });
 

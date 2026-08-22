@@ -1,18 +1,17 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Dumbbell, MessageCircle, BookOpen, User } from 'lucide-react';
+import { Home, Dumbbell, MessageCircle, User } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 
-// Order is fixed: Home · Train · Coach · Playbook · Profile.
+// Order is fixed: Home · Train · Coach · Profile.
 // Profile points at the athlete's Performance Profile (`/starting-profile`),
 // not Account/Settings — Account stays reachable from the Navbar avatar menu
 // and its route is unchanged.
 const NAV_ITEMS = [
-  { icon: Home,          labelKey: 'home',     path: '/dashboard'        },
-  { icon: Dumbbell,      labelKey: 'train',    path: '/train'            },
-  { icon: MessageCircle, labelKey: 'coach',    path: '/coaching'         },
-  { icon: BookOpen,      labelKey: 'playbook', path: '/playbook'         },
-  { icon: User,          labelKey: 'profile',  path: '/starting-profile' },
+  { icon: Home,          labelKey: 'home',    path: '/dashboard'        },
+  { icon: Dumbbell,      labelKey: 'train',   path: '/train'            },
+  { icon: MessageCircle, labelKey: 'coach',   path: '/coaching'         },
+  { icon: User,          labelKey: 'profile', path: '/starting-profile' },
 ];
 
 function BottomNav() {

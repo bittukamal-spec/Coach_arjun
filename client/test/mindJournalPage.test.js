@@ -3,7 +3,7 @@
 //
 // The screens are JSX and cannot be imported by node:test without a
 // transform, so they are checked as source text — the established pattern in
-// this suite (vizSafety.test.js, playbookOutcomes.test.js). translations.js
+// this suite (vizSafety.test.js, uiFoundation.test.js). translations.js
 // and the Mind Journal constants module are plain ESM and are imported and
 // exercised directly.
 

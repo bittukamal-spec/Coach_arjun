@@ -1,4 +1,4 @@
-import { BookOpen, Bookmark, Dumbbell, Home, MessageCircle, User, Zap } from 'lucide-react';
+import { Dumbbell, Home, MessageCircle, User, Zap } from 'lucide-react';
 
 // Realistic phone frames for the public homepage, with the app's REAL dark
 // theme inside them. The site itself stays white; only what sits inside a
@@ -112,7 +112,10 @@ function AthleteTurn({ children }) {
   );
 }
 
-const NAV = [Home, Dumbbell, MessageCircle, BookOpen, User];
+// The app's real bottom nav, in its real order: Home · Train · Coach ·
+// Profile. It must stay in step with BottomNav.jsx — a mockup showing a tab
+// the app does not have is the homepage advertising a surface that is gone.
+const NAV = [Home, Dumbbell, MessageCircle, User];
 
 function PhoneNav({ active = 2 }) {
   return (
@@ -214,31 +217,7 @@ export function MentalRepScreen({ t }) {
   );
 }
 
-// ── Screen 3: Playbook ──────────────────────────────────────────────────────
-export function PlaybookScreen({ t }) {
-  return (
-    <>
-      <ScreenHeader title={t.title} />
-      <div className="flex-1 space-y-[0.6em] px-[1em] py-[0.9em]">
-        <div className="rounded-[0.8em] p-[0.7em]" style={{ background: DARK.card, border: `1px solid ${DARK.line}` }}>
-          <span className="text-[0.8em] font-bold uppercase tracking-[0.1em]" style={{ color: DARK.accent }}>
-            {t.lessonLabel}
-          </span>
-          <p className="mt-[0.5em] text-[1em] leading-snug" style={{ color: DARK.ink }}>{t.lesson}</p>
-        </div>
-        <div className="rounded-[0.8em] p-[0.7em]" style={{ background: DARK.card, border: `1px solid ${DARK.line}` }}>
-          <span className="flex items-center gap-[0.4em] text-[0.8em] font-bold uppercase tracking-[0.1em]" style={{ color: '#22D3C5' }}>
-            <Bookmark className="h-[1em] w-[1em]" /> {t.cueLabel}
-          </span>
-          <p className="mt-[0.5em] text-[1.1em] font-bold leading-snug" style={{ color: DARK.ink }}>{t.cue}</p>
-        </div>
-      </div>
-      <PhoneNav active={3} />
-    </>
-  );
-}
-
-// ── Screen 4: When Pressure Hits (Profile) ──────────────────────────────────
+// ── Screen 3: When Pressure Hits (Profile) ──────────────────────────────────
 // The real Profile contract: Situation → First response → Performance impact,
 // plus reset time. Athlete-provided answers only — no scoring, no graph.
 export function PressureScreen({ t }) {
@@ -264,7 +243,7 @@ export function PressureScreen({ t }) {
           {t.resetTime}
         </p>
       </div>
-      <PhoneNav active={4} />
+      <PhoneNav active={3} />
     </>
   );
 }

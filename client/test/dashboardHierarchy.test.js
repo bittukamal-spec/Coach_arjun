@@ -1,9 +1,8 @@
-// Source-text checks for the Dashboard visual-hierarchy refinement:
-// approved section order (Mind Journal promoted to the top, directly below
-// the greeting), a segmented day-context selector that can never be
-// confused with the problem-help shortcuts, a compact Mind Journal CTA, and
-// none of the retired scored UI (XP, streaks, scores, Starter Plan, games,
-// skill paths) returning.
+// Source-text checks for the Dashboard visual hierarchy. Home is deliberately
+// four sections — greeting → Mind Journal → Talk to Arjun → Pick what you need
+// now — with no day-context selector, no recommended-practice card and no API
+// call of its own, and none of the retired scored UI (XP, streaks, scores,
+// Starter Plan, games, skill paths) returning.
 // Dashboard.jsx contains JSX and cannot be imported by node:test without
 // a transform — matching the established pattern, these are source-text
 // assertions; the real click/router behavior is separately proven in
@@ -35,39 +34,38 @@ function stripComments(s) {
 
 const codeOnly = stripComments(src);
 
-// Code between two section markers. The markers themselves live inside the
-// sections' own comments, so the partial opening comment is dropped first.
-function codeBetween(startMarker, endMarker) {
-  const start = src.indexOf(startMarker);
-  const end = endMarker ? src.indexOf(endMarker) : src.length;
-  let block = src.slice(start, end);
-  const close = block.indexOf('*/}');
-  if (close !== -1) block = block.slice(close + 3);
-  return stripComments(block);
+// The `home` namespace for one language, so a removed key can be proven gone
+// from that language rather than merely absent from the whole file.
+function homeNamespace(lang) {
+  const langIdx = translations.indexOf(`\n  ${lang}: {`);
+  assert.ok(langIdx !== -1, `missing ${lang} translations`);
+  const start = translations.indexOf('home: {', langIdx);
+  assert.ok(start !== -1, `missing home namespace in ${lang}`);
+  return translations.slice(start, translations.indexOf('\n    },', start));
 }
 
-// ── 1. Approved section order — Mind Journal promoted to the top ───────────
-// Homepage-priority pass: Mind Journal now renders directly below the
-// greeting, ahead of Talk to Arjun, per the approved change. Every other
-// section keeps its existing relative order.
+// ── 1. Approved section order — exactly four sections ─────────────────────
+// Mind Journal renders directly below the greeting, ahead of Talk to Arjun.
+// "Pick what you need now" closes the page. Nothing sits between the Coach
+// hero and the shortcuts any more.
 
-test('Dashboard renders the approved order: greeting → Mind Journal → Talk to Arjun → day context → recommended practice → need-help', () => {
+test('Dashboard renders exactly the approved order: greeting → Mind Journal → Talk to Arjun → Pick what you need now', () => {
   const order = [
     src.indexOf('1. GREETING'),
     src.indexOf('2. MIND JOURNAL'),
     src.indexOf('3. TALK TO ARJUN'),
-    src.indexOf('4. DAY-CONTEXT SELECTOR'),
-    src.indexOf('5. RECOMMENDED PRACTICE'),
-    src.indexOf('7. NEED HELP RIGHT NOW'),
+    src.indexOf('4. PICK WHAT YOU NEED NOW'),
   ];
   for (const idx of order) assert.ok(idx !== -1, 'every approved section must exist');
   for (let i = 1; i < order.length; i++) {
     assert.ok(order[i] > order[i - 1], `section ${i + 1} must render after section ${i}`);
   }
+  // No fifth section slipped in to fill the space the recommender left.
+  assert.equal(src.indexOf('5. '), -1, 'Home is deliberately four sections');
 });
 
 test('Talk to Arjun is the ONE dominant action — a plain Link to Coach that claims nothing on Home load', () => {
-  const hero = src.slice(src.indexOf('3. TALK TO ARJUN'), src.indexOf('4. DAY-CONTEXT SELECTOR'));
+  const hero = src.slice(src.indexOf('3. TALK TO ARJUN'), src.indexOf('CONTINUE COACHING'));
   assert.match(hero, /to="\/coaching"/, 'the hero opens the existing Coach route');
   assert.match(hero, /L\.dashboard\.openCoach/, 'uses the existing approved "Talk to Arjun" wording');
   // A Link cannot create a session, claim the follow-up opener, or call any
@@ -77,59 +75,46 @@ test('Talk to Arjun is the ONE dominant action — a plain Link to Coach that cl
   assert.equal((src.match(/elevation-hero/g) || []).length, 1);
 });
 
-test('the recommended practice is visually secondary to the hero and never completes a practice from Home', () => {
-  const block = codeBetween('5. RECOMMENDED PRACTICE', '6. CONTINUE COACHING');
-  assert.match(block, /navigate\(primaryAction\.to, primaryActionState\)/, 'existing recommendation routing is unchanged');
-  assert.doesNotMatch(block, /complete|markDone|POST/i, 'Home never marks a practice complete');
-  // The hero owns the saturated full-bleed gradient surface; the merged
-  // What's today container stays a flat neutral card (a small icon-tile may
-  // still use the brand-primary token as an accent, same as elsewhere on
-  // the app — it just never becomes a second hero-style gradient card).
-  assert.doesNotMatch(block, /elevation-hero|card-hero|linear-gradient/);
-});
-
 test('Continue coaching is deliberately absent, not faked — no session/eligibility guess on Home', () => {
   // Its eligibility has no read-only source available to Home, so the slot
   // is documented in a comment and left empty rather than driven by an
   // invented signal. The documentation is prose; the code must stay clean.
-  assert.match(src, /6\. CONTINUE COACHING/, 'the deferral is documented in place');
+  assert.match(src, /CONTINUE COACHING/, 'the deferral is documented in place');
   assert.doesNotMatch(codeOnly, /\/api\/sessions|claim-opener|hasConversation|continueCoaching/);
 });
 
-test('exactly ONE adaptive primary action card — training/match/recovery/just-a-rep swap it, never stack another', () => {
-  assert.match(src, /const primaryAction = PRIMARY_ACTION\[dayContext\] \|\| PRIMARY_ACTION\.default;/);
-  for (const ctx of ['training', 'match', 'recovery', 'just_rep']) {
-    assert.ok(src.includes(`'${ctx}'`), `day context ${ctx} must still exist`);
+// ── 2. "What's today?" and its recommended practice are gone ──────────────
+// The day-context selector and the single adaptive practice card it fed were
+// removed from Home. The selector was client-local state, so nothing was
+// migrated; nothing replaced the recommendation, and no hidden or dead
+// version of it survives.
+
+test('the "What\'s today?" day-context selector is gone — no control, no state, no localStorage', () => {
+  assert.doesNotMatch(src, /<select/, 'no day-context dropdown');
+  assert.doesNotMatch(src, /DAY_CONTEXTS|dayContext|pickContext/, 'no day-context data or state');
+  assert.doesNotMatch(src, /arjun_day_context/, 'the client-local remembered pick is gone');
+  assert.doesNotMatch(src, /localStorage/, 'Home reads and writes no localStorage at all');
+});
+
+test('the recommended-practice card tied to the selector is gone, and no other recommender took its place', () => {
+  assert.doesNotMatch(src, /PRIMARY_ACTION|primaryAction|primaryActionState/);
+  assert.doesNotMatch(codeOnly, /recommend/i, 'no recommendation copy or hint remains');
+  // Home's only remaining destinations are Mind Journal and Coach; it must
+  // not have quietly become a tool launcher instead.
+  assert.doesNotMatch(codeOnly, /\/mental-rep|\/body-reset|\/mind-journal\/new/);
+});
+
+test('the removed day-context and recommendation copy is gone from both languages', () => {
+  for (const key of ['contextLabel', 'contextPlaceholder', 'recommendHint', 'recommendedLabel']) {
+    assert.doesNotMatch(homeNamespace('en'), new RegExp(`${key}:`), `en.home.${key} must be gone`);
+    assert.doesNotMatch(homeNamespace('hi'), new RegExp(`${key}:`), `hi.home.${key} must be gone`);
   }
-  // Only the default Mental Rep action carries dayContext route state.
-  assert.match(src, /primaryAction\.to === '\/mental-rep' && dayContext/);
 });
 
-// ── 2. "What's today?" is a real <select> dropdown, merged with the
-// recommendation into one container (visual refresh) ───────────────────────
-
-test('day-context control is a real <select> dropdown covering all four day contexts, with a visible focus ring', () => {
-  const block = src.slice(src.indexOf('<select'), src.indexOf('navigate(primaryAction.to'));
-  assert.match(block, /<select/, 'the pill grid was replaced by a real dropdown');
-  assert.match(block, /aria-label=\{t\.contextLabel\}/);
-  assert.match(block, /focus-visible:ring-2/);
-  assert.match(block, /value=\{dayContext \|\| ''\}/, 'controlled by the same dayContext state as before');
-  assert.match(block, /DAY_CONTEXTS\.map/, 'every day context still becomes an option');
-  assert.doesNotMatch(block, /aria-pressed|role="group"/, 'the old pill/group markup is gone');
-});
-
-test('day-context dropdown only updates context on change — it is never a link and never calls navigate itself', () => {
-  // Slice ends where the separate primary CTA button (which legitimately
-  // navigates) begins.
-  const block = src.slice(src.indexOf('<select'), src.indexOf('navigate(primaryAction.to'));
-  assert.match(block, /onChange=\{e => pickContext\(e\.target\.value \|\| null\)\}/);
-  assert.doesNotMatch(block, /<Link|navigate\(/);
-});
-
-// ── 3. Need-help shortcuts stay separate, with a different treatment ────────
+// ── 3. Need-help shortcuts keep their own treatment ────────────────────────
 
 test('all four problem shortcuts are real Links to /coaching with unsent prefill state, in their own section', () => {
-  const block = src.slice(src.indexOf('PROBLEM_SHORTCUTS.map'), src.indexOf('4. MENTAL PLAYBOOK'));
+  const block = src.slice(src.indexOf('PROBLEM_SHORTCUTS.map'));
   assert.match(block, /to="\/coaching"/);
   assert.match(block, /state=\{\{ prefillMsg: q\.prefill\[hi \? 'hi' : 'en'\] \}\}/);
   assert.doesNotMatch(block, /sendMessage|autoSend|method: 'POST'/, 'shortcuts must never auto-send');
@@ -138,15 +123,12 @@ test('all four problem shortcuts are real Links to /coaching with unsent prefill
   }
 });
 
-test('shortcut tiles look like actions (icon + bordered tile) while the day-context dropdown does not — the two can\'t be confused', () => {
-  // Need Help is the last rendered section since Mind Journal moved to the
-  // top of Home, so the block runs to end of file.
+test('shortcut tiles still read as actions — icon plus bordered tile', () => {
+  // "Pick what you need now" is the last rendered section, so the block runs
+  // to end of file.
   const shortcutBlock = src.slice(src.indexOf('PROBLEM_SHORTCUTS.map'));
-  const dropdownBlock = src.slice(src.indexOf('<select'), src.indexOf('navigate(primaryAction.to'));
   assert.match(shortcutBlock, /border border-dark-600/, 'shortcuts are outlined tiles');
   assert.match(shortcutBlock, /<Icon size=/, 'shortcuts carry a small icon');
-  assert.doesNotMatch(dropdownBlock, /<Icon size=/, 'the dropdown carries no lucide shortcut icon');
-  assert.doesNotMatch(dropdownBlock, /className=\{?"?chip/, 'the dropdown never uses the generic .chip class the shortcuts use');
 });
 
 test('the four shortcuts are visually demoted but keep accessible tap targets', () => {
@@ -163,19 +145,21 @@ test('shortcut prefill messages are unchanged', () => {
   assert.ok(src.includes(`"I'm feeling low on confidence."`));
 });
 
-// ── 4/5. Playbook card removed; Mind Journal preserved ────────────────────
+// ── 4. Playbook gone from Home entirely; Mind Journal preserved ───────────
 
-test('the duplicate Home Playbook / "Your library" card is GONE — Playbook lives in the bottom nav only', () => {
-  assert.doesNotMatch(src, /to="\/playbook"/, 'no Home link to /playbook');
+test('Home carries no Playbook link or card at all', () => {
+  assert.doesNotMatch(codeOnly, /playbook/i, 'no Home link, card or fetch mentioning Playbook');
   assert.doesNotMatch(src, /Your library|तुम्हारी लाइब्रेरी/);
-  assert.doesNotMatch(src, /Mental Playbook/);
   assert.doesNotMatch(src, /Your cues, cards, reflections, and lessons/);
 });
 
-test('Dashboard still makes exactly one read-only GET /api/playbook — the API contract is unchanged', () => {
-  const apiCalls = codeOnly.match(/apiFetch\(/g) || [];
-  assert.equal(apiCalls.length, 1, 'Dashboard must make exactly one API call');
-  assert.match(src, /apiFetch\('\/api\/playbook'/);
+test('Home no longer fetches /api/playbook — it makes no API call of its own', () => {
+  // The fetch existed only to gate a loading skeleton; its response was
+  // never read. Removing it means Home renders immediately. The server
+  // endpoint is untouched.
+  assert.doesNotMatch(codeOnly, /apiFetch/, 'Dashboard must make no API call');
+  assert.doesNotMatch(codeOnly, /\/api\/playbook/);
+  assert.doesNotMatch(codeOnly, /useEffect|setLoaded|animate-pulse/, 'no loading gate or skeleton left behind');
   assert.doesNotMatch(codeOnly, /method:\s*'(POST|PUT|PATCH|DELETE)'/, 'Home writes nothing');
 });
 

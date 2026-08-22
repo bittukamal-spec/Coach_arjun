@@ -174,10 +174,11 @@ test('/debrief no longer renders the retired screen — it is a compatibility re
 });
 
 test('no athlete-facing surface hard-codes /debrief any more — the compatibility route is the only reference', () => {
+  // The Playbook page was retired as an athlete-facing destination, so it is
+  // no longer one of the surfaces that could route anyone to /debrief.
   const SURFACES = [
     'src/pages/TrainPage.jsx',
     'src/pages/Dashboard.jsx',
-    'src/pages/PlaybookPage.jsx',
     'src/utils/parseArjunMessage.js',
     'src/utils/prescriptionPractice.js',
     'src/constants/activeTools.js',
@@ -188,10 +189,11 @@ test('no athlete-facing surface hard-codes /debrief any more — the compatibili
 });
 
 test('every retired reflection entry point now resolves to the Mind Journal', () => {
-  assert.match(read('src/pages/Dashboard.jsx'), /to: '\/mind-journal\/new'/,
-    "Home's recovery-day action opens the Mind Journal reflection");
-  assert.match(read('src/pages/PlaybookPage.jsx'), /navigate\('\/mind-journal\/new'\)/,
-    "Playbook's Reflections CTA opens the Mind Journal reflection");
+  // Home's own entry point is the Mind Journal card. The recovery-day
+  // recommendation that used to deep-link into the reflection flow went with
+  // the "What's today?" selector; the flow itself is reached from the journal.
+  assert.match(read('src/pages/Dashboard.jsx'), /navigate\('\/mind-journal'\)/,
+    "Home's Mind Journal card opens the Mind Journal");
   assert.match(read('src/utils/parseArjunMessage.js'), /route: '\/mind-journal\/new'/,
     'the [APP:after-the-match] chat card opens the Mind Journal reflection');
   assert.match(read('src/utils/prescriptionPractice.js'), /post_performance_reflection: '\/mind-journal\/new'/,

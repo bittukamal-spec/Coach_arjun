@@ -10,7 +10,7 @@ import { translations } from '../i18n/translations';
 import { ArjunLogo, ArjunWordmark } from '../components/ArjunLogo';
 import LandingCarousel from '../components/landing/LandingCarousel';
 import {
-  CoachPreview, GameChips, HeroPhone, PlaybookPreview, PressureFlow,
+  CoachPreview, GameChips, HeroPhone, PressureFlow,
   ProfilePreview, RepsPreview, WorksList,
 } from '../components/landing/LandingMockups';
 import {
@@ -139,11 +139,13 @@ function LandingPage() {
   const primaryLabel = installed ? t.ctaOpen : t.ctaInstall;
   const primaryAction = installed ? goSignIn : handleInstall;
 
+  // Three stories, not four: the Playbook card was removed with the Playbook
+  // page rather than left advertising a surface the app no longer has. Nothing
+  // takes its slot — the carousel renders whatever it is given.
   const previews = t.preview;
   const previewCards = [
     <CoachPreview key="coach" t={previews.coachCard} />,
     <RepsPreview key="reps" t={previews.repsCard} />,
-    <PlaybookPreview key="playbook" t={previews.playbookCard} />,
     <ProfilePreview key="profile" t={previews.profileCard} />,
   ];
 
@@ -393,7 +395,7 @@ function LandingPage() {
           <LandingCarousel
             label={t.previewTitle}
             slideLabel={(i, n) => `${previewCards[i].props.t.title} (${i + 1}/${n})`}
-            slideClass="w-[85%] xs:w-[72%] sm:w-[50%] lg:w-[24%]"
+            slideClass="w-[85%] xs:w-[72%] sm:w-[50%] lg:w-[32%]"
             className="mt-6 lg:mt-8"
           >
             {previewCards}

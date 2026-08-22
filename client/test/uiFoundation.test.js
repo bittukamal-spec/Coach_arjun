@@ -1,12 +1,15 @@
-// Source-text checks for Stage 3 (Minimal UI foundation). PlaybookPage.jsx and
-// the ui primitives contain JSX and cannot be imported directly by node:test
-// without a transform — matching the established pattern in this suite
+// Source-text checks for Stage 3 (Minimal UI foundation). The ui primitives
+// contain JSX and cannot be imported directly by node:test without a
+// transform — matching the established pattern in this suite
 // (pilotVisibilityCleanup.test.js, chatPageSource.test.js), these are
 // source-text assertions.
 //
-// Reference surface: the VISIBLE Mental Playbook page at /playbook.
-// (/progress was retired in PR #26 and now redirects to /playbook; the
-// dormant ProgressPage.jsx has since been removed as orphaned legacy code.)
+// The Mental Playbook page used to be this file's reference surface for
+// "a real page consumes the foundation". It was retired as an athlete-facing
+// destination, so those assertions went with it; MindJournalPage's use of the
+// same PageHeader/Card/SectionLabel/px-page foundation is asserted in
+// stage9MindJournal.test.js. Both retired routes (/playbook and the older
+// /progress) now redirect to Home — asserted below.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -24,7 +27,6 @@ const pageHeader = readFileSync(path.join(root, 'src/components/ui/PageHeader.js
 const sectionLabel = readFileSync(path.join(root, 'src/components/ui/SectionLabel.jsx'), 'utf8');
 const barrel = readFileSync(path.join(root, 'src/components/ui/index.js'), 'utf8');
 const app = readFileSync(path.join(root, 'src/App.jsx'), 'utf8');
-const playbook = readFileSync(path.join(root, 'src/pages/PlaybookPage.jsx'), 'utf8');
 
 // ── 1. Tokens exist in the Tailwind config ──────────────────────────────────
 
@@ -80,71 +82,21 @@ test('barrel exports exactly the shared primitives', () => {
   assert.equal((barrel.match(/export/g) || []).length, expected.length);
 });
 
-// ── 3. /progress stays retired and redirects to /playbook ──────────────────
+// ── 3. Retired library/progress routes redirect to Home ────────────────────
 
-test('App: /progress still redirects to /playbook', () => {
-  assert.match(app, /path="\/progress" element=\{<Navigate to="\/playbook" replace \/>\}/);
+test('App: /playbook and /progress both redirect to /dashboard, replacing history', () => {
+  assert.match(app, /path="\/playbook" element=\{<Navigate to="\/dashboard" replace \/>\}/);
+  assert.match(app, /path="\/progress" element=\{<Navigate to="\/dashboard" replace \/>\}/);
 });
 
-// ── 4. The visible Playbook page consumes the foundation ────────────────────
-
-test('PlaybookPage imports the ui primitives', () => {
-  // Refinement PR: Playbook grew its own icon SectionHeading; the shared
-  // Card + PageHeader primitives are still the foundation.
-  assert.match(playbook, /import \{ Card, PageHeader \} from '\.\.\/components\/ui'/);
+test('App: no PlaybookPage component is mounted anywhere', () => {
+  assert.doesNotMatch(app, /PlaybookPage/);
 });
 
-test('PlaybookPage uses PageHeader with the original navigate(-1) back behavior', () => {
-  assert.match(playbook, /<PageHeader onBack=\{\(\) => navigate\(-1\)\}/);
-});
+// ── 4. The shared gradient recipes stay global ─────────────────────────────
 
-test('PlaybookPage carries NO gradient — Stage F moved the weekly summary onto the approved flat surface', () => {
-  assert.equal((playbook.match(/variant="hero"/g) || []).length, 0);
-  assert.doesNotMatch(playbook, /card-hero|btn-gradient|icon-tile-gradient|linear-gradient/);
-  // The weekly summary still exists, now on the approved elevated surface.
-  assert.match(playbook, /\{pb\.thisWeek\}/);
-  assert.match(playbook, /var\(--surface-elevated\)/);
-});
-
-test('the shared gradient recipes still exist globally — Stage F removed them from Playbook only', () => {
+test('the shared gradient recipes still exist globally', () => {
   const css = readFileSync(path.join(root, 'src/index.css'), 'utf8');
   assert.match(css, /\.card-hero/);
   assert.match(css, /\.btn-gradient/);
-});
-
-test('PlaybookPage ordinary cards are flat Card primitives — no legacy card-surface class', () => {
-  assert.doesNotMatch(playbook, /card-surface/);
-});
-
-test('PlaybookPage uses its icon SectionHeading and semantic spacing, not legacy label/gutter classes', () => {
-  assert.match(playbook, /<SectionHeading/);
-  assert.doesNotMatch(playbook, /SectionHeader\b/);
-  assert.match(playbook, /px-page/);
-});
-
-test('PlaybookPage data behavior unchanged: read-only GET /api/playbook', () => {
-  assert.match(playbook, /apiFetch\('\/api\/playbook'/);
-  assert.equal((playbook.match(/apiFetch\(/g) || []).length, 1);
-});
-
-test('PlaybookPage links: focus-deck, self-talk, mental-rep, and the Mind Journal reflection', () => {
-  assert.match(playbook, /navigate\('\/focus-deck'\)/);
-  assert.match(playbook, /navigate\('\/self-talk'\)/);
-  assert.match(playbook, /navigate\('\/mental-rep'\)/);
-  // PR 2 cutover: Reflections opens the Mind Journal, not the retired
-  // /debrief screen.
-  assert.match(playbook, /navigate\('\/mind-journal\/new'\)/);
-  assert.doesNotMatch(playbook, /\/debrief/);
-});
-
-test('PlaybookPage content preserved: all sections present, "What I\'m learning" moved to the top (Stage 9)', () => {
-  const idx = [
-    playbook.indexOf('{pb.learningHeading}'),
-    playbook.indexOf('{pb.thisWeek}'),
-    playbook.indexOf('{pb.focusCardsHeading}'),
-    playbook.indexOf('{pb.cuesHeading}'),
-    playbook.indexOf('{pb.reflectionsHeading}'),
-  ];
-  assert.ok(idx.every(i => i !== -1), 'a Playbook section heading is missing');
-  assert.deepEqual(idx, [...idx].sort((a, b) => a - b), 'Playbook section order changed');
 });
