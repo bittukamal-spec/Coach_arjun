@@ -43,6 +43,8 @@ const step2 = src('pages/mindJournal/GuidedReflectionDetailsPage.jsx');
 const savedScreen = src('pages/mindJournal/ReflectionSavedPage.jsx');
 const detailScreen = src('pages/mindJournal/ReflectionDetailPage.jsx');
 const contextScreen = src('pages/mindJournal/ArjunContextPage.jsx');
+const aiAccess = src('components/mindJournal/AiAccessPopover.jsx');
+const indexCss = src('index.css');
 const shared = src('pages/mindJournal/shared.jsx');
 const app = src('App.jsx');
 const dashboard = src('pages/Dashboard.jsx');
@@ -279,22 +281,46 @@ test('no Mind Journal screen introduces scoring, ranking, streak or reward langu
 
 // ── Screen 1: home ─────────────────────────────────────────────────────────
 
-test('home: leads with the approved two-level intro and offers both ways in', () => {
-  assert.match(home, /\{mj\.introHeadline\}/);
-  assert.match(home, /\{mj\.subtitle\}/);
-  assert.match(home, /data-testid="mj-intro"/);
-  assert.match(home, /to="\/mind-journal\/new"/, 'the prominent New reflection card must open the reflection flow');
-  assert.match(home, /\{mj\.newReflection\.cardTitle\}/);
+// The redesign replaces the two-level intro paragraph with the violet hero,
+// which now carries the heading, one supporting line, the effort micro-line
+// and the single CTA. The destination and its origin state are unchanged.
+test('home: leads with the frozen hero copy and one way in', () => {
+  assert.match(home, /\{mj\.hero\.heading\}/);
+  assert.match(home, /\{mj\.hero\.sub\}/);
+  assert.match(home, /\{mj\.hero\.effort\}/);
+  assert.match(home, /\{mj\.hero\.cta\}/);
+  assert.match(home, /to="\/mind-journal\/new"/, 'the hero must open the reflection flow');
+  assert.match(home, /state=\{mindJournalOriginState\(\)\}/, 'the origin state is unchanged');
   // Unified reflection (PR 1): the separate Quick Note entry point was
   // retired from home — one way in, not two. Its route stays alive for
-  // compatibility (see the route test below) until PR 2 handles it.
+  // compatibility (see the route test below).
   assert.doesNotMatch(home, /to="\/mind-journal\/quick"/, 'home no longer offers a second, separate way in');
+  // The retired intro paragraph must not linger alongside the hero.
+  assert.doesNotMatch(home, /\{mj\.introHeadline\}|\{mj\.subtitle\}/);
+  assert.doesNotMatch(home, /data-testid="mj-intro"/);
 });
 
-test('home: shows a compact Arjun-context status row linking to the context screen', () => {
-  assert.match(home, /\{mj\.contextStatus\.label\}/);
-  assert.match(home, /contextEnabled \? mj\.contextStatus\.on : mj\.contextStatus\.off/);
-  assert.match(home, /to="\/mind-journal\/context"/);
+test('translations: the hero states the effort as time and taps, never a question count', () => {
+  assert.equal(translations.en.mindJournal.hero.heading, 'Reflect. Learn. Perform.');
+  assert.equal(translations.en.mindJournal.hero.effort, 'About 2–3 minutes · Mostly taps');
+  assert.equal(translations.en.mindJournal.hero.cta, 'Start a reflection');
+  for (const lang of ['en', 'hi']) {
+    const effort = translations[lang].mindJournal.hero.effort;
+    assert.doesNotMatch(effort, /\b6\b|question|सवाल|प्रश्न/i, `${lang} must not promise a question count`);
+    assert.doesNotMatch(effort, /About 3 minutes/i, `${lang} must not use the superseded effort line`);
+  }
+});
+
+// The consent control is the header icon plus its popover — the one place
+// this surface exposes it. The old status row and its "Change" link are gone,
+// so the same setting is never offered twice on one page.
+test('home: the coaching-access control is an icon-only header button, with no duplicate status row', () => {
+  assert.match(home, /<AiAccessPopover/, 'the header hosts the icon + popover control');
+  assert.match(home, /contextEnabled=\{contextEnabled\}/);
+  assert.match(home, /onContextEnabledChange=\{setContextEnabled\}/);
+  assert.doesNotMatch(home, /data-testid="mj-context-row"/, 'the redundant status row is gone');
+  assert.doesNotMatch(home, /\{mj\.contextStatus\.label\}|mj\.contextStatus\.manage/, 'no second status/manage affordance');
+  assert.doesNotMatch(home, /to="\/mind-journal\/context"/, 'home no longer navigates away for this setting');
 });
 
 test('home: renders loading, error, empty and populated states for recent reflections', () => {
@@ -306,20 +332,51 @@ test('home: renders loading, error, empty and populated states for recent reflec
   assert.match(home, /\{mj\.emptyState\}/);
 });
 
-test('home: guided reflections show a context label (customContext preferred), state tags, a preview and a distinct Take forward row', () => {
+// The redesigned card is built for scanning: context tag, date, a short
+// title, up to two chips, then a takeaway preview when one is stored.
+test('home: a reflection card carries a context tag, date, title, capped chips and a chevron', () => {
+  const row = home.slice(home.indexOf('function EntryRow'), home.indexOf('export default function'));
+  assert.match(row, /data-testid="mj-context-tag"/, 'the context tag renders');
+  assert.match(row, /\{dateLabel\}/);
+  assert.match(row, /data-testid="mj-card-title"/);
+  assert.match(row, /stateTagsForEntry\(entry, mj\)\.slice\(0, 2\)/, 'at most two chips per card');
+  assert.match(row, /<ChevronRight/, 'a clear tap affordance');
+});
+
+test('home: every context category renders through the one shared tag treatment, never a per-category style', () => {
+  const row = home.slice(home.indexOf('function EntryRow'), home.indexOf('export default function'));
+  // A single class for the tag — no colour map keyed by context, so Training,
+  // a match, confidence/pressure and the rest cannot diverge visually.
+  assert.match(row, /className="journal-tag"/);
+  assert.doesNotMatch(row, /TRAINING:\s*['"`]?(bg-|text-|#)/, 'no per-category colour map');
+  assert.doesNotMatch(row, /contextIconFor/, 'the retired per-context icon is gone');
+  const tagCount = (row.match(/className="journal-tag"/g) || []).length;
+  assert.equal(tagCount, 1, 'exactly one tag treatment exists in the card');
+  // And the tag recipe itself is defined once, with no category branching.
+  const tagRule = indexCss.slice(indexCss.indexOf('.journal-tag {'), indexCss.indexOf('}', indexCss.indexOf('.journal-tag {')));
+  assert.match(tagRule, /var\(--journal-surface\)/);
+  assert.match(tagRule, /var\(--journal-accent\)/);
+});
+
+test('home: guided reflections keep their context label and preview precedence', () => {
   const row = home.slice(home.indexOf('function EntryRow'), home.indexOf('export default function'));
   assert.match(row, /entry\.entryType === 'GUIDED_REFLECTION'/);
   assert.match(row, /contextLabelForEntry\(entry, mj\)/, 'prefer customContext; otherwise translate the enum');
   assert.match(row, /stateTagsForEntry\(entry, mj\)/, 'built-in tags translate; customState is shown verbatim');
-  assert.match(row, /guidedPreview\(entry\)/, 'the preview must use the agreed field precedence');
-  assert.match(row, /isGuided && entry\.takeForward/, 'Take forward gets its own row when present');
-  assert.match(row, /\{mj\.takeForwardLabel\}/);
+  assert.match(row, /guidedPreview\(entry\)/, 'the title must use the agreed field precedence');
+});
+
+test('home: a takeaway preview only ever renders a stored takeaway, never a fabricated one', () => {
+  const row = home.slice(home.indexOf('function EntryRow'), home.indexOf('export default function'));
+  assert.match(row, /isReflection && entry\.arjunTakeaway \? entry\.arjunTakeaway : null/,
+    'the preview is the stored value or nothing at all');
+  assert.match(row, /takeaway \?/, 'the block is conditional on a real value');
 });
 
 test('home: quick notes and legacy rows render as a quick note, with no empty guided sections', () => {
   const row = home.slice(home.indexOf('function EntryRow'), home.indexOf('export default function'));
   // Legacy rows have entryType null, so they take the same branch as an
-  // explicit QUICK_NOTE — states, the note, and nothing guided.
+  // explicit QUICK_NOTE — its note, and nothing guided.
   assert.match(row, /isGuided \? guidedPreview\(entry\) : entry\.note/);
   assert.match(row, /: mj\.quickNote\.tag/, 'a non-guided row is labelled as a quick note');
   // The guided sections are inside `isGuided` guards, so they cannot render
@@ -668,32 +725,110 @@ test('Dashboard.jsx: the visible check-in link still opens Mind Journal, unchang
 
 // ── Visual structure (polish pass) ─────────────────────────────────────────
 
-test('home: hero, context row and recent reflection sections are present', () => {
+test('home: hero and recent reflection sections are present, with nothing between them', () => {
   assert.match(home, /data-testid="mj-hero-new"/);
   assert.match(home, /variant="hero"/);
   assert.doesNotMatch(home, /data-testid="mj-quick-note"/, 'the separate Quick Note card was retired from home');
-  assert.match(home, /data-testid="mj-context-row"/);
   assert.match(home, /data-testid="mj-recent-section"/);
   assert.match(home, /data-testid="mj-reflection-card"/);
   assert.match(home, /elevation-card|elevation-hero|elevation-row/);
   assert.doesNotMatch(home, /BottomNav/);
+  // Recent reflections follow the hero directly — the consent row that used
+  // to compete with them is gone.
+  const heroIdx = home.indexOf('data-testid="mj-hero-new"');
+  const recentIdx = home.indexOf('data-testid="mj-recent-section"');
+  assert.ok(heroIdx < recentIdx, 'the hero comes before the list');
+  assert.doesNotMatch(home.slice(heroIdx, recentIdx), /data-testid="mj-context/, 'nothing consent-related sits between them');
 });
 
-test('home: New reflection hero is one accessible action with a stacked-then-horizontal layout', () => {
+test('home: the hero uses the journal violet identity and is one accessible action', () => {
   const heroStart = home.indexOf('data-testid="mj-hero-new"');
   assert.ok(heroStart !== -1);
-  const hero = home.slice(heroStart, heroStart + 2200);
-  assert.match(hero, /aria-label=\{mj\.newReflection\.cardTitle\}/, 'one coherent accessible name');
-  assert.match(hero, /flex flex-col gap-3\.5 sm:flex-row/, 'narrow screens stack; wider may go horizontal');
-  assert.match(hero, /flex items-center justify-between sm:contents/, 'icon and arrow share a top row on narrow screens');
-  assert.match(hero, /\{mj\.newReflection\.cardDesc\}/);
-  // Must not keep the old three-column single-row squeeze.
-  assert.doesNotMatch(
-    hero,
-    /flex items-center gap-4">\s*<span[\s\S]*BookOpen[\s\S]*flex-1 min-w-0[\s\S]*ArrowRight/,
-    'must not place icon, copy and arrow in one cramped horizontal row'
-  );
+  const hero = home.slice(heroStart, home.indexOf('</Card>', heroStart));
+  assert.match(hero, /aria-label=\{mj\.hero\.heading\}/, 'one coherent accessible name');
+  // The gradient comes from the journal tokens, not a hard-coded colour.
+  assert.match(hero, /'--grad-from': 'var\(--journal-hero-from\)'/);
+  assert.match(hero, /'--grad-to': 'var\(--journal-hero-to\)'/);
+  assert.doesNotMatch(hero, /#[0-9A-Fa-f]{6}/, 'no hard-coded hex where a token exists');
   assert.doesNotMatch(hero, /<button|<Link/, 'no nested interactive controls inside the hero card');
+});
+
+// ── The header AI-access control + popover ────────────────────────────────
+
+test('AI access: the trigger is icon-only, with an accessible name and no visible text label', () => {
+  assert.match(aiAccess, /<Sparkles size=/, 'uses the existing icon library, no bespoke SVG');
+  assert.match(aiAccess, /aria-label=\{ai\.trigger\}/, 'icon-only controls need an accessible name');
+  assert.match(aiAccess, /data-testid="mj-ai-access-trigger"/);
+  // No text node beside the icon inside the trigger button.
+  const trigger = aiAccess.slice(aiAccess.indexOf('data-testid="mj-ai-access-trigger"'), aiAccess.indexOf('</button>'));
+  assert.doesNotMatch(trigger, /\{ai\.heading\}|\{mj\.contextStatus|Coach|AI Coach|Context|Access/,
+    'the header control must not carry a visible label or status badge');
+  // Its ON/OFF difference is announced, not colour-only.
+  assert.match(aiAccess, /aria-pressed=\{contextEnabled\}/);
+});
+
+test('AI access: the popover has dialog semantics, a close control and ESC/outside dismissal', () => {
+  assert.match(aiAccess, /role="dialog"/);
+  assert.match(aiAccess, /aria-labelledby=\{headingId\}/);
+  assert.match(aiAccess, /aria-describedby=\{bodyId\}/);
+  assert.match(aiAccess, /aria-expanded=\{open\}/);
+  assert.match(aiAccess, /aria-haspopup="dialog"/);
+  assert.match(aiAccess, /data-testid="mj-ai-access-close"/);
+  assert.match(aiAccess, /aria-label=\{ai\.close\}/);
+  assert.match(aiAccess, /e\.key === 'Escape'/, 'ESC dismisses');
+  assert.match(aiAccess, /data-testid="mj-ai-access-scrim"/, 'clicking outside dismisses');
+  assert.match(aiAccess, /triggerRef\.current\?\.focus\(\)/, 'focus returns to the header icon');
+  assert.match(aiAccess, /panelRef\.current\?\.focus\(\)/, 'focus moves into the popover on open');
+  // Anchored, not a route change and not a full-screen sheet.
+  assert.match(aiAccess, /absolute right-0 top-full/);
+  assert.doesNotMatch(aiAccess, /useNavigate|navigate\(/, 'the popover never navigates away from Mind Journal');
+});
+
+test('AI access: the toggle uses the existing consent contract and never claims an unconfirmed state', () => {
+  assert.match(aiAccess, /'\/api\/mind-journal\/context'/, 'the existing endpoint, not a new one');
+  assert.match(aiAccess, /method: 'PATCH'/);
+  assert.match(aiAccess, /JSON\.stringify\(\{ enabled: next \}\)/, 'the existing request shape');
+  assert.match(aiAccess, /typeof data\?\.contextEnabled !== 'boolean'/, 'the existing response contract');
+  assert.match(aiAccess, /onContextEnabledChange\(data\.contextEnabled\)/, 'only the server value reaches the switch');
+  assert.match(aiAccess, /if \(saving\) return;/, 'no double submit');
+  assert.match(aiAccess, /disabled=\{saving\}/);
+  assert.match(aiAccess, /\{mj\.contextError\}/, 'the existing error message is preserved');
+  // No second setting and no local persistence of the preference.
+  assert.doesNotMatch(aiAccess, /localStorage/);
+  assert.doesNotMatch(aiAccess, /useState\(false\);?\s*\/\/ *contextEnabled/);
+});
+
+// The popover is a component rather than a screen, so it is held to the same
+// substance as the SCREENS list without the page-shaped assertions: its copy
+// all arrives through the translation namespace it is handed, it introduces no
+// reward/scoring language, and it colours itself from tokens rather than hex.
+test('AI access: the component stays token-driven, score-free and single-language-free', () => {
+  const code = codeOnly(aiAccess);
+  assert.doesNotMatch(code, /chart|rating|streak|percentage|reward|confetti|xpEarned|score|diagnos|profil/i);
+  assert.doesNotMatch(code, /[ऀ-ॿ]/, 'no hardcoded Hindi — copy comes from translations');
+  assert.doesNotMatch(code, /#[0-9A-Fa-f]{6}/, 'no hardcoded colour where a token exists');
+  assert.match(code, /var\(--journal-accent\)/, 'the journal identity comes from the token');
+  assert.match(code, /var\(--surface-card\)/, 'the panel sits on the themed card surface');
+  assert.doesNotMatch(code, /bg-white\b|bg-\[#/, 'no theme-breaking hardcoded surface');
+});
+
+test('AI access: the popover renders the frozen copy through translations, in both languages', () => {
+  for (const key of ['trigger', 'heading', 'body', 'toggleLabel', 'privacy', 'close']) {
+    assert.match(aiAccess, new RegExp(`ai\\.${key}`), `the popover must render ai.${key}`);
+    for (const lang of ['en', 'hi']) {
+      const value = translations[lang].mindJournal.aiAccess[key];
+      assert.equal(typeof value, 'string', `translations.${lang}.mindJournal.aiAccess.${key}`);
+      assert.ok(value.length > 0);
+    }
+  }
+  assert.equal(translations.en.mindJournal.aiAccess.heading, 'Use reflections to personalise coaching');
+  assert.equal(
+    translations.en.mindJournal.aiAccess.body,
+    'Arjun can use your 10 most recent reflections to give more relevant coaching. You can turn this off anytime.'
+  );
+  assert.equal(translations.en.mindJournal.aiAccess.toggleLabel, 'Share recent reflections');
+  // No hard-coded English anywhere in the component.
+  assert.doesNotMatch(aiAccess, />[A-Z][a-z]+ [a-z]+[^<{]*</, 'copy must come from translations, not literals');
 });
 
 test('guided step 2: exposes four distinct prompt sections with live counters', () => {

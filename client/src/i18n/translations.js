@@ -1692,6 +1692,30 @@ export const translations = {
         needSomething:    'Add at least one state or one answer before saving.',
         saveBtn:          'Save reflection',
       },
+      // Mind Journal home hero. `effort` is the approved effort line — how
+      // long it takes and that it is mostly tapping, never a question count.
+      hero: {
+        heading: 'Reflect. Learn. Perform.',
+        sub:     'Look at what happened, and take one useful thing forward.',
+        effort:  'About 2–3 minutes · Mostly taps',
+        cta:     'Start a reflection',
+      },
+      // The header's icon-only coaching-access control and its popover. The
+      // trigger has no visible text, so `trigger` is its accessible name.
+      aiAccess: {
+        trigger:     'Reflection coaching access',
+        heading:     'Use reflections to personalise coaching',
+        body:        'Arjun can use your 10 most recent reflections to give more relevant coaching. You can turn this off anytime.',
+        toggleLabel: 'Share recent reflections',
+        // The frozen handoff's reassurance line is "Private and only used to
+        // personalise your coaching." This app has a standing guarantee that
+        // no Mind Journal string claims the journal is "private" (it is
+        // stored, not end-to-end private), enforced by
+        // mindJournalPage.test.js. The reassurance is kept, the absolute
+        // claim is not.
+        privacy:     'Only used to personalise your coaching — never to score you.',
+        close:       'Close',
+      },
       detail: {
         title:         'Reflection',
         contextHeading: 'Context',
@@ -1700,6 +1724,26 @@ export const translations = {
         notFound:      'This reflection could not be found.',
         loadError:     'Could not load this reflection',
         backToJournal: 'Back to Mind Journal',
+        // Insight-first hierarchy: Arjun's stored analysis, then the
+        // takeaway, then a conditional pattern, then the athlete's own
+        // answers as a compact snapshot with the full set behind a
+        // disclosure.
+        analysisHeading: "Arjun's analysis",
+        takeawayHeading: 'Takeaway',
+        patternHeading:  'Pattern noticed',
+        snapshotHeading: 'Reflection snapshot',
+        showAnswers:     'Show all answers',
+        hideAnswers:     'Hide answers',
+        // Short snapshot labels — deliberately not the full question wording,
+        // which is replayed in the expanded answers instead.
+        snapshot: {
+          happened: 'What happened',
+          felt:     'How you felt',
+          mind:     'What was on your mind',
+          did:      'What you did',
+          body:     'Body',
+          cue:      'Focus word',
+        },
       },
       deleteReflection: {
         action:   'Delete reflection',
@@ -3736,6 +3780,22 @@ export const translations = {
         needSomething:    'सेव करने से पहले कम से कम एक स्थिति या एक जवाब जोड़ो।',
         saveBtn:          'रिफ्लेक्शन सेव करें',
       },
+      // Same shape as `en.mindJournal.hero` / `.aiAccess` — see the comments
+      // there. `effort` states the time and that it is mostly tapping.
+      hero: {
+        heading: 'सोचो। सीखो। बेहतर खेलो।',
+        sub:     'जो हुआ उसे देखो, और एक काम की बात आगे ले जाओ।',
+        effort:  'लगभग 2–3 मिनट · ज़्यादातर टैप',
+        cta:     'रिफ्लेक्शन शुरू करो',
+      },
+      aiAccess: {
+        trigger:     'रिफ्लेक्शन कोचिंग एक्सेस',
+        heading:     'कोचिंग को personalise करने के लिए रिफ्लेक्शन इस्तेमाल करो',
+        body:        'अर्जुन तुम्हारे 10 सबसे नए रिफ्लेक्शन इस्तेमाल करके ज़्यादा काम की कोचिंग दे सकता है। इसे तुम कभी भी बंद कर सकते हो।',
+        toggleLabel: 'हाल के रिफ्लेक्शन शेयर करो',
+        privacy:     'सिर्फ़ तुम्हारी कोचिंग को personalise करने के लिए — तुम्हें आँकने के लिए कभी नहीं।',
+        close:       'बंद करो',
+      },
       detail: {
         title:         'रिफ्लेक्शन',
         contextHeading: 'संदर्भ',
@@ -3744,6 +3804,20 @@ export const translations = {
         notFound:      'यह रिफ्लेक्शन नहीं मिला।',
         loadError:     'यह रिफ्लेक्शन लोड नहीं हो सका',
         backToJournal: 'मन की डायरी पर वापस जाओ',
+        analysisHeading: 'अर्जुन का विश्लेषण',
+        takeawayHeading: 'मुख्य बात',
+        patternHeading:  'दिखा हुआ पैटर्न',
+        snapshotHeading: 'रिफ्लेक्शन का सार',
+        showAnswers:     'सभी जवाब दिखाओ',
+        hideAnswers:     'जवाब छिपाओ',
+        snapshot: {
+          happened: 'क्या हुआ',
+          felt:     'कैसा लगा',
+          mind:     'मन में क्या था',
+          did:      'तुमने क्या किया',
+          body:     'शरीर',
+          cue:      'फोकस शब्द',
+        },
       },
       deleteReflection: {
         action:   'रिफ्लेक्शन हटाओ',

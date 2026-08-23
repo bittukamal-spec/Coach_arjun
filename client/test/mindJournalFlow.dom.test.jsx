@@ -464,46 +464,69 @@ describe('Mind Journal home', () => {
     createdAt: '2026-08-03T10:00:00.000Z',
   };
 
-  // Unified reflection (PR 1): one way in. The separate Quick Note card was
-  // retired from home; its route stays mounted for compatibility until PR 2.
-  test('leads with the approved description and exactly one way in', async () => {
+  // The redesigned home leads with the violet hero. One way in: the separate
+  // Quick Note card was retired; its route stays mounted for compatibility.
+  test('leads with the frozen hero copy and exactly one way in', async () => {
     renderFlow();
-    expect(await screen.findByRole('heading', { level: 2, name: 'Notice the moment. Carry something useful forward.' })).toBeTruthy();
-    expect(screen.getByText('A personal, score-free space for quick notes and guided reflections.')).toBeTruthy();
-    const hero = screen.getByTestId('mj-hero-new');
+    const hero = await screen.findByTestId('mj-hero-new');
+    expect(within(hero).getByText('Reflect. Learn. Perform.')).toBeTruthy();
+    expect(within(hero).getByText('About 2–3 minutes · Mostly taps')).toBeTruthy();
+    expect(within(hero).getByText('Start a reflection')).toBeTruthy();
     expect(hero.getAttribute('href')).toBe('/mind-journal/new');
-    expect(hero.getAttribute('aria-label')).toBe('New reflection');
-    expect(screen.getByRole('link', { name: 'New reflection' })).toBe(hero);
+    expect(hero.getAttribute('aria-label')).toBe('Reflect. Learn. Perform.');
+    // The superseded effort line and intro paragraph are gone.
+    expect(screen.queryByText('About 3 minutes · 6 questions')).toBeNull();
+    expect(screen.queryByText('Notice the moment. Carry something useful forward.')).toBeNull();
+    expect(screen.queryByTestId('mj-intro')).toBeNull();
     expect(screen.queryByTestId('mj-quick-note')).toBeNull();
     expect(screen.queryByRole('link', { name: 'Quick note' })).toBeNull();
-    expect(screen.getByTestId('mj-context-row')).toBeTruthy();
     expect(screen.getByTestId('mj-recent-section')).toBeTruthy();
     expect(screen.queryByTestId('bottom-nav')).toBeNull();
   });
 
-  test('reports the Arjun-context setting and links to its control', async () => {
-    apiFetch.mockImplementation(async () => json({ entries: [], contextEnabled: true }));
+  test('no score, streak, XP or chart appears anywhere on home', async () => {
+    apiFetch.mockImplementation(async () => json({ entries: [QUICK, GUIDED], contextEnabled: false }));
     renderFlow();
-    expect(await screen.findByText('On')).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Change' }).getAttribute('href')).toBe('/mind-journal/context');
+    await screen.findByTestId('mj-hero-new');
+    expect(document.body.textContent).not.toMatch(/\bscore\b|streak|\bXP\b|chart/i);
   });
 
-  test('defaults the context status to Off', async () => {
+  // The consent control is the header icon only — the old status row and its
+  // "Change" link are gone, so the setting is never offered twice here.
+  test('the coaching-access control is a single icon-only header button', async () => {
     renderFlow();
-    expect(await screen.findByText('Off')).toBeTruthy();
+    const trigger = await screen.findByTestId('mj-ai-access-trigger');
+    expect(trigger.tagName).toBe('BUTTON');
+    expect(trigger.getAttribute('aria-label')).toBe('Reflection coaching access');
+    // Icon only: no visible text inside the control.
+    expect(trigger.textContent.trim()).toBe('');
+    expect(screen.queryByTestId('mj-context-row')).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Change' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Arjun context and privacy' })).toBeNull();
+    // Exactly one control for this setting on the page.
+    expect(screen.getAllByLabelText('Reflection coaching access')).toHaveLength(1);
+    expect(screen.queryByRole('checkbox')).toBeNull();
+  });
+
+  test('the trigger reflects OFF and ON without relying on colour alone', async () => {
+    renderFlow();
+    expect((await screen.findByTestId('mj-ai-access-trigger')).getAttribute('aria-pressed')).toBe('false');
+
+    cleanup();
+    apiFetch.mockImplementation(async () => json({ entries: [], contextEnabled: true }));
+    renderFlow();
+    expect((await screen.findByTestId('mj-ai-access-trigger')).getAttribute('aria-pressed')).toBe('true');
   });
 
   test('renders guided, quick and legacy entries by their own rules', async () => {
     apiFetch.mockImplementation(async () => json({ entries: [QUICK, GUIDED, LEGACY, LONG_CUSTOM], contextEnabled: false }));
     renderFlow();
 
-    // Guided: translated context label, state tag, preview, take-forward row.
-    const guided = (await screen.findByText('lost the first set')).closest('div');
+    // Guided: translated context tag, state chips, the athlete's own title.
+    const guided = (await screen.findByText('lost the first set')).closest('[data-testid="mj-reflection-card"]');
     expect(within(guided).getByText('Competition')).toBeTruthy();
     expect(within(guided).getByText('Nervous')).toBeTruthy();
     expect(within(guided).getByText('match tension')).toBeTruthy();
-    expect(within(guided).getByText('Take forward:')).toBeTruthy();
-    expect(within(guided).getByText('breathe first')).toBeTruthy();
 
     // Quick note and legacy both read as a quick note, with their note text
     // and no guided scaffolding.
@@ -515,6 +538,42 @@ describe('Mind Journal home', () => {
     expect(longPill.className).toMatch(/break-words/);
     expect(screen.queryByText('What happened?')).toBeNull();
     expect(screen.queryByText('What did you notice in yourself?')).toBeNull();
+  });
+
+  test('every context category uses the one shared tag treatment', async () => {
+    const contexts = [
+      { ...GUIDED, id: 'c-tr', contextType: 'TRAINING', whatHappened: 'drill work' },
+      { ...GUIDED, id: 'c-co', contextType: 'COMPETITION', whatHappened: 'match day' },
+      { ...GUIDED, id: 'c-tm', contextType: 'TOUGH_MOMENT', whatHappened: 'hard patch' },
+      { ...GUIDED, id: 'c-rd', contextType: 'RECOVERY_DAY', whatHappened: 'rest' },
+    ];
+    apiFetch.mockImplementation(async () => json({ entries: contexts, contextEnabled: false }));
+    renderFlow();
+    await screen.findByText('drill work');
+
+    const tags = screen.getAllByTestId('mj-context-tag');
+    expect(tags).toHaveLength(4);
+    // Identical class list for every category — no colour encodes meaning.
+    const classes = new Set(tags.map((t) => t.className));
+    expect(classes.size).toBe(1);
+    expect([...classes][0]).toContain('journal-tag');
+    // The label is what distinguishes them.
+    expect(tags.map((t) => t.textContent)).toEqual(['Training', 'Competition', 'A tough moment', 'Recovery day']);
+  });
+
+  test('a takeaway previews only when one is stored, never fabricated', async () => {
+    const withTakeaway = {
+      ...QUICK, id: 'r-t', entryType: 'REFLECTION', contextType: 'TRAINING',
+      eventTags: ['repeated_mistake'], note: null, arjunTakeaway: 'Name the next action first.',
+    };
+    const withoutTakeaway = {
+      ...QUICK, id: 'r-n', entryType: 'REFLECTION', contextType: 'TRAINING',
+      eventTags: ['repeated_mistake'], note: null, arjunTakeaway: null,
+    };
+    apiFetch.mockImplementation(async () => json({ entries: [withTakeaway, withoutTakeaway], contextEnabled: false }));
+    renderFlow();
+    await screen.findByText('Name the next action first.');
+    expect(screen.getAllByTestId('mj-card-takeaway')).toHaveLength(1);
   });
 
   test('recent rows link to Reflection Details with accessible names', async () => {
@@ -560,9 +619,149 @@ describe('Mind Journal home', () => {
   });
 });
 
-// ── Arjun context control ──────────────────────────────────────────────────
+// ── AI-access popover on Mind Journal home ─────────────────────────────────
+// The popover replaces the home surface's separate context interaction. It is
+// anchored, not a route change, and it writes through the SAME consent
+// endpoint the dedicated screen uses.
+
+describe('Mind Journal AI-access popover', () => {
+  const openPopover = async () => {
+    await userEvent.click(await screen.findByTestId('mj-ai-access-trigger'));
+    return screen.findByTestId('mj-ai-access-popover');
+  };
+
+  test('closed by default; opening shows the frozen copy without leaving Mind Journal', async () => {
+    renderFlow();
+    await screen.findByTestId('mj-ai-access-trigger');
+    expect(screen.queryByTestId('mj-ai-access-popover')).toBeNull();
+
+    const panel = await openPopover();
+    expect(within(panel).getByText('Use reflections to personalise coaching')).toBeTruthy();
+    expect(within(panel).getByText('Arjun can use your 10 most recent reflections to give more relevant coaching. You can turn this off anytime.')).toBeTruthy();
+    expect(within(panel).getByText('Share recent reflections')).toBeTruthy();
+    expect(within(panel).getByText('Only used to personalise your coaching — never to score you.')).toBeTruthy();
+    // Still on Mind Journal — an anchored popover, not navigation.
+    expect(screen.getByTestId('pathname').textContent).toBe('/mind-journal');
+    expect(screen.getByTestId('mj-recent-section')).toBeTruthy();
+  });
+
+  test('dialog semantics, and the trigger reports its expanded state', async () => {
+    renderFlow();
+    const trigger = await screen.findByTestId('mj-ai-access-trigger');
+    expect(trigger.getAttribute('aria-expanded')).toBe('false');
+    expect(trigger.getAttribute('aria-haspopup')).toBe('dialog');
+
+    const panel = await openPopover();
+    expect(trigger.getAttribute('aria-expanded')).toBe('true');
+    expect(panel.getAttribute('role')).toBe('dialog');
+    expect(panel.getAttribute('aria-labelledby')).toBeTruthy();
+    expect(panel.getAttribute('aria-describedby')).toBeTruthy();
+    expect(trigger.getAttribute('aria-controls')).toBe(panel.getAttribute('id'));
+  });
+
+  test('closes on the close button, on click outside and on Escape — returning focus to the icon', async () => {
+    renderFlow();
+    const trigger = await screen.findByTestId('mj-ai-access-trigger');
+
+    await openPopover();
+    await userEvent.click(screen.getByTestId('mj-ai-access-close'));
+    expect(screen.queryByTestId('mj-ai-access-popover')).toBeNull();
+    expect(document.activeElement).toBe(trigger);
+
+    await openPopover();
+    await userEvent.click(screen.getByTestId('mj-ai-access-scrim'));
+    expect(screen.queryByTestId('mj-ai-access-popover')).toBeNull();
+    expect(document.activeElement).toBe(trigger);
+
+    await openPopover();
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByTestId('mj-ai-access-popover')).toBeNull();
+    expect(document.activeElement).toBe(trigger);
+  });
+
+  test('the toggle PATCHes the existing consent endpoint and adopts the confirmed value', async () => {
+    apiFetch.mockImplementation(async (p, init) => {
+      if (p === '/api/mind-journal/context' && init?.method === 'PATCH') return json({ contextEnabled: true });
+      return json({ entries: [], contextEnabled: false });
+    });
+    renderFlow();
+    await openPopover();
+
+    const box = screen.getByTestId('mj-ai-access-toggle');
+    expect(box.checked).toBe(false);
+    await userEvent.click(box);
+
+    const patch = apiFetch.mock.calls.find(([p, i]) => p === '/api/mind-journal/context' && i?.method === 'PATCH');
+    expect(patch).toBeTruthy();
+    expect(JSON.parse(patch[1].body)).toEqual({ enabled: true });
+    expect(screen.getByTestId('mj-ai-access-toggle').checked).toBe(true);
+    // No second endpoint was invented for this control.
+    const paths = apiFetch.mock.calls.map(([p]) => p);
+    expect(paths.every((p) => p === '/api/mind-journal' || p === '/api/mind-journal/context')).toBe(true);
+  });
+
+  test('a refused write leaves the switch where it was and says so', async () => {
+    apiFetch.mockImplementation(async (p, init) => {
+      if (p === '/api/mind-journal/context' && init?.method === 'PATCH') return json({ error: 'nope' }, 500);
+      return json({ entries: [], contextEnabled: false });
+    });
+    renderFlow();
+    await openPopover();
+
+    await userEvent.click(screen.getByTestId('mj-ai-access-toggle'));
+    expect(await screen.findByTestId('mj-ai-access-error')).toBeTruthy();
+    expect(screen.getByText('Could not save — please try again')).toBeTruthy();
+    // Never claimed a state the server did not accept.
+    expect(screen.getByTestId('mj-ai-access-toggle').checked).toBe(false);
+    expect(screen.getByTestId('mj-ai-access-trigger').getAttribute('aria-pressed')).toBe('false');
+  });
+
+  test('the confirmed value survives closing and reopening the popover', async () => {
+    apiFetch.mockImplementation(async (p, init) => {
+      if (p === '/api/mind-journal/context' && init?.method === 'PATCH') return json({ contextEnabled: true });
+      return json({ entries: [], contextEnabled: false });
+    });
+    renderFlow();
+    await openPopover();
+    await userEvent.click(screen.getByTestId('mj-ai-access-toggle'));
+    await userEvent.click(screen.getByTestId('mj-ai-access-close'));
+
+    expect(screen.getByTestId('mj-ai-access-trigger').getAttribute('aria-pressed')).toBe('true');
+    await openPopover();
+    expect(screen.getByTestId('mj-ai-access-toggle').checked).toBe(true);
+    expect(screen.getByText('On')).toBeTruthy();
+  });
+
+  test('one write per interaction — a second tap while saving cannot start another', async () => {
+    let patches = 0;
+    apiFetch.mockImplementation(async (p, init) => {
+      if (p === '/api/mind-journal/context' && init?.method === 'PATCH') {
+        patches += 1;
+        return json({ contextEnabled: true });
+      }
+      return json({ entries: [], contextEnabled: false });
+    });
+    renderFlow();
+    await openPopover();
+    const box = screen.getByTestId('mj-ai-access-toggle');
+    await userEvent.click(box);
+    await userEvent.click(box);
+    // Two deliberate taps = on, then off: never two writes for one tap.
+    expect(patches).toBe(2);
+  });
+});
+
+// ── Arjun context screen ───────────────────────────────────────────────────
+// The dedicated screen is untouched and still routed, so old deep links and
+// bookmarks keep working alongside the new popover.
 
 describe('Arjun context screen', () => {
+  test('the deep link still resolves to the dedicated screen', async () => {
+    renderFlow('/mind-journal/context');
+    expect((await screen.findByTestId('pathname')).textContent).toBe('/mind-journal/context');
+    expect(await screen.findByRole('checkbox')).toBeTruthy();
+  });
+
   test('PATCHes the setting on, and reverts with an error when the server refuses', async () => {
     apiFetch.mockImplementation(async (p, init) => {
       if (p === '/api/mind-journal/context' && init?.method === 'PATCH') return json({ error: 'nope' }, 500);
@@ -619,6 +818,30 @@ describe('Reflection details', () => {
     createdAt: '2026-08-01T10:00:00.000Z',
   };
 
+  // A full new-format reflection, with everything Arjun stored for it.
+  const REFLECTION = {
+    id: 'rf1',
+    entryType: 'REFLECTION',
+    contextType: 'TRAINING',
+    customContext: null,
+    states: ['frustrated'],
+    customState: null,
+    eventTags: ['repeated_mistake'],
+    customEvent: null,
+    thoughtTags: ['stuck_on_a_mistake'],
+    customThought: null,
+    responseTags: ['kept_replaying_it'],
+    customResponse: null,
+    bodyTags: ['tense'],
+    customBody: null,
+    cueFeedback: null,
+    note: null,
+    arjunNoticed: 'You stayed with the mistake instead of the next ball.',
+    arjunTakeaway: 'Name your next action out loud before you restart.',
+    arjunPattern: 'This is the second time training mistakes stuck with you.',
+    createdAt: '2026-08-22T14:58:00.000Z',
+  };
+
   test('home recent row opens the detail page for that id', async () => {
     apiFetch.mockImplementation(async (p) => {
       if (p === '/api/mind-journal/d1') return json({ entry: DETAIL });
@@ -628,10 +851,127 @@ describe('Reflection details', () => {
     await userEvent.click(await screen.findByText('lost the opener'));
     expect((await screen.findByTestId('pathname')).textContent).toBe('/mind-journal/d1');
     expect(await screen.findByRole('heading', { level: 1, name: 'Reflection' })).toBeTruthy();
-    expect(screen.getByTestId('mj-detail-context').textContent).toContain('selection trial');
+    // The context is the summary tag now, not a separate card.
+    expect(screen.getByTestId('mj-context-tag').textContent).toContain('selection trial');
     expect(screen.getByText('match tension')).toBeTruthy();
     expect(screen.getByText('lost the opener')).toBeTruthy();
     expect(screen.getByText('breathe first')).toBeTruthy();
+  });
+
+  test('detail is insight-first: analysis and takeaway come before any raw answers', async () => {
+    apiFetch.mockImplementation(async (p) => {
+      if (p === '/api/mind-journal/rf1') return json({ entry: REFLECTION });
+      return json({ entries: [], contextEnabled: false });
+    });
+    renderFlow('/mind-journal/rf1');
+
+    const summary = await screen.findByTestId('mj-detail-summary');
+    const analysis = screen.getByTestId('mj-detail-analysis');
+    const takeaway = screen.getByTestId('mj-detail-takeaway');
+    const pattern = screen.getByTestId('mj-detail-pattern');
+    const snapshot = screen.getByTestId('mj-detail-snapshot');
+    const answersToggle = screen.getByTestId('mj-answers-toggle');
+    const del = screen.getByTestId('mj-delete-trigger');
+
+    const order = [summary, analysis, takeaway, pattern, snapshot, answersToggle, del];
+    for (let i = 1; i < order.length; i++) {
+      expect(order[i - 1].compareDocumentPosition(order[i]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    }
+
+    // Stored strings, rendered verbatim.
+    expect(within(analysis).getByText('You stayed with the mistake instead of the next ball.')).toBeTruthy();
+    expect(within(takeaway).getByText('Name your next action out loud before you restart.')).toBeTruthy();
+    expect(within(pattern).getByText('This is the second time training mistakes stuck with you.')).toBeTruthy();
+    // Summary: one violet tag, the athlete's own title, the date and chips.
+    expect(within(summary).getByTestId('mj-context-tag').textContent).toBe('Training');
+    expect(within(summary).getByTestId('mj-detail-title').textContent).toBe('The same mistake again');
+    expect(within(summary).getByTestId('mj-detail-date')).toBeTruthy();
+    expect(within(summary).getByText('Frustrated')).toBeTruthy();
+  });
+
+  test('the snapshot replaces the five question cards with compact labelled rows', async () => {
+    apiFetch.mockImplementation(async (p) => {
+      if (p === '/api/mind-journal/rf1') return json({ entry: REFLECTION });
+      return json({ entries: [], contextEnabled: false });
+    });
+    renderFlow('/mind-journal/rf1');
+
+    const snapshot = await screen.findByTestId('mj-detail-snapshot');
+    expect(within(snapshot).getByText('Reflection snapshot')).toBeTruthy();
+    for (const [label, value] of [
+      ['What happened', 'The same mistake again'],
+      ['How you felt', 'Frustrated'],
+      ['What was on your mind', 'I kept thinking about a mistake'],
+      ['What you did', 'I kept replaying it in my head'],
+      ['Body', 'Tense'],
+    ]) {
+      expect(within(snapshot).getByText(label)).toBeTruthy();
+      expect(within(snapshot).getByText(value)).toBeTruthy();
+    }
+    // The full questionnaire wording is NOT replayed in the snapshot.
+    expect(within(snapshot).queryByText('What was going through your mind when this happened?')).toBeNull();
+    // A skipped question is absent, never a placeholder.
+    expect(within(snapshot).queryByText('Focus word')).toBeNull();
+    expect(snapshot.textContent).not.toMatch(/null|undefined/);
+  });
+
+  test('all answers are collapsed by default and expand in place', async () => {
+    apiFetch.mockImplementation(async (p) => {
+      if (p === '/api/mind-journal/rf1') return json({ entry: REFLECTION });
+      return json({ entries: [], contextEnabled: false });
+    });
+    renderFlow('/mind-journal/rf1');
+
+    const toggle = await screen.findByTestId('mj-answers-toggle');
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(toggle.textContent).toContain('Show all answers');
+    expect(screen.queryByTestId('mj-answers-panel')).toBeNull();
+    expect(screen.queryByText('What was going through your mind when this happened?')).toBeNull();
+
+    await userEvent.click(toggle);
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    expect(toggle.textContent).toContain('Hide answers');
+    const panel = screen.getByTestId('mj-answers-panel');
+    expect(toggle.getAttribute('aria-controls')).toBe(panel.getAttribute('id'));
+    // The real questions, with their stored answers.
+    expect(within(panel).getByText('What are you reflecting on?')).toBeTruthy();
+    expect(within(panel).getByText('What happened in training?')).toBeTruthy();
+    expect(within(panel).getByText('What was going through your mind when this happened?')).toBeTruthy();
+    // Still the same page, not a new route.
+    expect(screen.getByTestId('pathname').textContent).toBe('/mind-journal/rf1');
+
+    await userEvent.click(toggle);
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByTestId('mj-answers-panel')).toBeNull();
+  });
+
+  test('a review-failed reflection omits the analysis, takeaway and pattern gracefully', async () => {
+    const noReview = { ...REFLECTION, id: 'rf2', arjunNoticed: null, arjunTakeaway: null, arjunPattern: null };
+    apiFetch.mockImplementation(async (p) => {
+      if (p === '/api/mind-journal/rf2') return json({ entry: noReview });
+      return json({ entries: [], contextEnabled: false });
+    });
+    renderFlow('/mind-journal/rf2');
+
+    await screen.findByTestId('mj-detail-summary');
+    expect(screen.queryByTestId('mj-detail-analysis')).toBeNull();
+    expect(screen.queryByTestId('mj-detail-takeaway')).toBeNull();
+    expect(screen.queryByTestId('mj-detail-pattern')).toBeNull();
+    // The athlete's own record still renders, and delete still works.
+    expect(screen.getByTestId('mj-detail-snapshot')).toBeTruthy();
+    expect(screen.getByTestId('mj-delete-trigger')).toBeTruthy();
+  });
+
+  test('a reflection with no stored pattern omits that section entirely', async () => {
+    const noPattern = { ...REFLECTION, id: 'rf3', arjunPattern: null };
+    apiFetch.mockImplementation(async (p) => {
+      if (p === '/api/mind-journal/rf3') return json({ entry: noPattern });
+      return json({ entries: [], contextEnabled: false });
+    });
+    renderFlow('/mind-journal/rf3');
+    await screen.findByTestId('mj-detail-takeaway');
+    expect(screen.queryByTestId('mj-detail-pattern')).toBeNull();
+    expect(screen.queryByText('Pattern noticed')).toBeNull();
   });
 
   test('Quick Note details render type, states, and note without empty guided sections', async () => {
@@ -654,11 +994,20 @@ describe('Reflection details', () => {
       return json({ entries: [], contextEnabled: false });
     });
     renderFlow('/mind-journal/qn-d');
-    expect(await screen.findByText('Quick note')).toBeTruthy();
-    expect(screen.getByText('Calm')).toBeTruthy();
-    expect(screen.getByText('wired')).toBeTruthy();
+    // A legacy row degrades to its own simpler shape: the tag, its states and
+    // its note — never forced into the new structured fields, and never
+    // showing the same chips twice.
+    expect((await screen.findByTestId('mj-context-tag')).textContent).toBe('Quick note');
+    const summary = screen.getByTestId('mj-detail-summary');
+    expect(within(summary).getByText('Calm')).toBeTruthy();
+    expect(within(summary).getByText('wired')).toBeTruthy();
+    expect(screen.getAllByText('Calm')).toHaveLength(1);
     expect(screen.getByText('steady today')).toBeTruthy();
     expect(screen.queryByText('What happened?')).toBeNull();
+    expect(screen.queryByTestId('mj-detail-analysis')).toBeNull();
+    expect(screen.queryByTestId('mj-detail-snapshot')).toBeNull();
+    expect(screen.queryByTestId('mj-answers-toggle')).toBeNull();
+    expect(screen.getByTestId('mj-delete-trigger')).toBeTruthy();
   });
 
   test('404 recovery offers a replace link back to the journal', async () => {

@@ -121,12 +121,23 @@ test('Dashboard "Mind Journal" card: reuses TrainGradientCard (wide, violet, Not
   assert.match(card, /onClick=\{\(\) => navigate\('\/mind-journal'\)\}/);
 });
 
-test('Mind Journal "New Reflection" hero: whole card starts a reflection, so its title/desc center', () => {
+// The redesigned Mind Journal hero reads left-to-right: heading, one
+// supporting line, the effort micro-line, then its own CTA control. It is no
+// longer an icon/copy/arrow bookend row with centered copy, so the centering
+// guarantee moved onto the CTA itself — the shared recipe centers its own
+// label, and the whole card remains one action.
+test('Mind Journal hero: heading, supporting line, effort line and a single left-aligned CTA', () => {
   const idx = mindJournal.indexOf('mj-hero-new');
   assert.notEqual(idx, -1);
-  const hero = mindJournal.slice(idx, idx + 1700);
-  assert.match(hero, /newReflection\.cardTitle\}[\s\S]{0,20}<\/p>/, 'title still renders');
-  assert.match(hero, /flex-1 text-center|text-center flex-1|min-w-0 flex-1 text-center/);
+  const hero = mindJournal.slice(idx, mindJournal.indexOf('</Card>', idx));
+  assert.match(hero, /\{mj\.hero\.heading\}/, 'heading renders');
+  assert.match(hero, /\{mj\.hero\.sub\}/, 'one supporting line renders');
+  assert.match(hero, /\{mj\.hero\.effort\}/, 'the effort micro-line renders');
+  assert.match(hero, /\{mj\.hero\.cta\}/, 'the CTA label renders');
+  // The CTA is a styled span inside the one card action, not a nested
+  // control that would break the single accessible action.
+  assert.match(hero, /inline-flex items-center gap-2[^"]*min-h-\[44px\]/);
+  assert.doesNotMatch(hero, /<button|<Link/, 'no nested interactive controls inside the hero card');
 });
 
 // Unified reflection (PR 1): the separate Quick Note card was retired from
