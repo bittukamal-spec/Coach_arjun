@@ -24,7 +24,6 @@ const mentalRep = read('src/pages/MentalRepPage.jsx');
 const accountPage = read('src/pages/AccountPage.jsx');
 const dashboard = read('src/pages/Dashboard.jsx');
 const mindJournal = read('src/pages/MindJournalPage.jsx');
-const playbook = read('src/pages/PlaybookPage.jsx');
 
 // ── 1. Shared button primitives stay centered ───────────────────────────────
 
@@ -80,21 +79,14 @@ test('Dashboard "Talk to Arjun" hero: the whole card launches Coach, so its copy
   assert.match(hero, /to="\/coaching"/, 'still the same route');
 });
 
-// Visual refresh: "What's today?" and "Recommended practice" are now one
-// merged container (dropdown row + recommendation row). The recommendation
-// row reads left-aligned (icon, title/desc) like a settings/choice row
-// rather than a single-action launch card, so it intentionally does NOT
-// center — matching the approved mockup. Mockup-fidelity pass: the CTA
-// button moved from beside that row (where its own intrinsic width
-// squeezed the title/desc into a narrow column) to a full-width row below
-// it — same button, same routing, just stacked instead of side-by-side.
-test('Dashboard merged "What\'s today?" container: recommendation row keeps its existing CTA button and routing, laid out left-to-right', () => {
-  const idx = dashboard.indexOf('RECOMMENDED PRACTICE');
-  assert.notEqual(idx, -1, 'the recommended-practice section should still exist');
-  const card = dashboard.slice(idx, idx + 3600);
-  assert.match(card, /btn-primary/, 'the CTA button keeps the approved primary recipe');
-  assert.match(card, /navigate\(primaryAction\.to, primaryActionState\)/, 'routing is unchanged');
-  assert.match(card, /<select/, 'the day-context picker is the new dropdown control');
+// The merged "What's today?" container (day-context dropdown + recommended
+// practice) was removed from Home along with the Playbook page — Home no
+// longer asks the athlete to classify their day, and nothing replaced the
+// recommendation, so there is no such container left to align.
+test('Dashboard: no day-context dropdown or recommended-practice CTA remains to align', () => {
+  assert.equal(dashboard.indexOf('RECOMMENDED PRACTICE'), -1);
+  assert.doesNotMatch(dashboard, /<select/);
+  assert.doesNotMatch(dashboard, /primaryAction/);
 });
 
 // Homepage-priority pass: the Mind Journal CTA reuses the exact same
@@ -150,22 +142,10 @@ test('Mind Journal home: the retired Quick Note card is gone, leaving one way in
     'the single New reflection hero must still exist');
 });
 
-// Modernization pass: the Mind Journal entry point was removed from
-// Playbook entirely (Mind Journal now lives on Home only), so there is no
-// more Playbook "Mind Journal" card to assert centering on here.
-test('Playbook no longer carries a Mind Journal entry point (moved to Home only)', () => {
-  assert.doesNotMatch(playbook, /navigate\('\/mind-journal'\)/);
-  assert.doesNotMatch(playbook, /journalTitle|journalDesc/);
-});
-
-// ── 2c. Saved/summary content inside Playbook stays left — not a CTA card ───
-
-test('Playbook saved Focus Cards stay left-aligned (saved content, not a CTA card)', () => {
-  const idx = playbook.indexOf('{pb.focusCardsHeading}');
-  assert.notEqual(idx, -1);
-  const section = playbook.slice(idx, idx + 900);
-  assert.match(section, /text-left/);
-});
+// The Playbook page was retired as an athlete-facing destination, so its own
+// alignment guarantees (its Mind Journal entry point, its saved Focus Card
+// summaries) went with it. Focus Cards keep their own dedicated surface at
+// /focus-deck, which this file never covered.
 
 // ── 3. Choice/context pickers are NOT CTA cards — they keep reading left ────
 

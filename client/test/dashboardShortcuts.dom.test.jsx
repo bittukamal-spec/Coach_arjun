@@ -28,10 +28,10 @@ vi.mock('../src/contexts/AuthContext', () => ({
   }),
 }));
 
+// Home no longer calls any API of its own — it used to fetch /api/playbook
+// purely to gate a loading skeleton — so the module is mocked only to prove
+// that nothing on this page reaches for it.
 vi.mock('../src/api', () => ({
-  // Never resolves during the test — Dashboard's loading branch isn't
-  // what we're testing, and an unresolved promise keeps the mocked
-  // fetch from ever settling into a state we'd have to account for.
   apiFetch: vi.fn(() => new Promise(() => {})),
 }));
 
@@ -69,36 +69,75 @@ function TestApp({ initialEntries = ['/dashboard'] }) {
   );
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   localStorage.clear();
   sendMock = vi.fn();
+  const { apiFetch } = await import('../src/api');
+  apiFetch.mockClear();
 });
 
 afterEach(() => {
   cleanup();
 });
 
-async function mockPlaybook() {
-  const { apiFetch } = await import('../src/api');
-  apiFetch.mockImplementation(() => Promise.resolve({ ok: true, json: async () => ({}) }));
-}
-
 describe('Dashboard problem shortcuts — real router integration', () => {
-  test('shortcuts render as real links in their own "Pick what you need now" section, structurally separate from the day-context dropdown', async () => {
-    await mockPlaybook();
+  test('shortcuts render as real links in their own "Pick what you need now" section', async () => {
     render(<TestApp />);
 
     const heading = await screen.findByText('Pick what you need now');
     const nervousLink = await screen.findByRole('link', { name: "I'm nervous" });
-    // The day-context control is now a real <select> dropdown, not a chip.
-    const contextSelect = await screen.findByRole('combobox', { name: "What's today?" });
-    expect(within(contextSelect).getByRole('option', { name: 'Training today' })).toBeTruthy();
 
     expect(nervousLink.tagName).toBe('A');
     expect(nervousLink.getAttribute('href')).toBe('/coaching');
     expect(heading.compareDocumentPosition(nervousLink) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(nervousLink.closest('main')).toBe(contextSelect.closest('main'));
-    expect(nervousLink.parentElement).not.toBe(contextSelect.parentElement);
+    expect(nervousLink.closest('main')).toBe(heading.closest('main'));
+  });
+
+  test('Home renders its four sections with no API call and no loading skeleton', async () => {
+    const { apiFetch } = await import('../src/api');
+    render(<TestApp />);
+
+    // Present immediately — nothing is gated behind a fetch any more.
+    expect(screen.getByRole('heading', { level: 1, name: 'Hi, Test' })).toBeTruthy();
+    expect(screen.getByText('Mind Journal')).toBeTruthy();
+    expect(screen.getByText('Talk to Arjun')).toBeTruthy();
+    expect(screen.getByText('Pick what you need now')).toBeTruthy();
+    expect(apiFetch).not.toHaveBeenCalled();
+  });
+
+  test('the "What\'s today?" selector and its recommended practice are gone from Home', async () => {
+    render(<TestApp />);
+    await screen.findByText('Pick what you need now');
+
+    expect(screen.queryByRole('combobox')).toBeNull();
+    expect(screen.queryByText("What's today?")).toBeNull();
+    expect(screen.queryByText('Choose your day')).toBeNull();
+    expect(screen.queryByText(/Today's Mental Rep/)).toBeNull();
+    expect(screen.queryByText('Pressure Reset')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Start Rep' })).toBeNull();
+  });
+
+  test('Home never writes the retired day-context key to localStorage', async () => {
+    render(<TestApp />);
+    await screen.findByText('Pick what you need now');
+    expect(localStorage.getItem('arjun_day_context')).toBeNull();
+    const keys = Object.keys(localStorage);
+    expect(keys.filter((k) => /day_context|context/i.test(k))).toEqual([]);
+  });
+
+  test('a stale arjun_day_context value left over from the old selector changes nothing', async () => {
+    localStorage.setItem('arjun_day_context', JSON.stringify({
+      date: new Date().toISOString().slice(0, 10),
+      context: 'match',
+    }));
+    render(<TestApp />);
+
+    await screen.findByText('Pick what you need now');
+    // No recommendation is derived from it, and it is neither read into a
+    // control nor rewritten.
+    expect(screen.queryByText('Pressure Reset')).toBeNull();
+    expect(screen.queryByRole('combobox')).toBeNull();
+    expect(JSON.parse(localStorage.getItem('arjun_day_context')).context).toBe('match');
   });
 
   const CASES = [
@@ -110,12 +149,11 @@ describe('Dashboard problem shortcuts — real router integration', () => {
 
   for (const { label, prefillContains } of CASES) {
     test(`clicking "${label}" performs a REAL route transition: /dashboard → /coaching with the correct prefill`, async () => {
-      await mockPlaybook();
       render(<TestApp />);
       const user = userEvent.setup();
 
       // 1. Render starts at /dashboard.
-      expect((await screen.findAllByText(/Today's Mental Rep/)).length).toBeGreaterThan(0);
+      expect(await screen.findByText('Pick what you need now')).toBeTruthy();
       expect(screen.queryByTestId('pathname')).toBeNull();
 
       const link = await screen.findByRole('link', { name: label });
@@ -125,7 +163,7 @@ describe('Dashboard problem shortcuts — real router integration', () => {
       expect((await screen.findByTestId('pathname')).textContent).toBe('/coaching');
       // Dashboard itself is gone — this is a real navigation, not a local
       // re-render (the earlier reported bug: "Dashboard content changes").
-      expect(screen.queryAllByText(/Today's Mental Rep/).length).toBe(0);
+      expect(screen.queryByText('Pick what you need now')).toBeNull();
       expect(screen.queryByText('Need help right now?')).toBeNull();
 
       // 3. location.state.prefillMsg contains the correct shortcut-specific message.
@@ -133,64 +171,12 @@ describe('Dashboard problem shortcuts — real router integration', () => {
       expect(composer.value.length).toBeGreaterThan(0);
       expect(composer.value.toLowerCase()).toContain(prefillContains);
 
-      // 4. dayContext does not change.
-      expect(localStorage.getItem('arjun_day_context')).toBeNull();
-
-      // 6. No message-send function is called.
+      // 4. No message-send function is called.
       expect(sendMock).not.toHaveBeenCalled();
     });
   }
 
-  test('5. no context-recommendation-card change happens on Dashboard before/because of the shortcut click — the click leaves the page entirely', async () => {
-    // Pre-existing context, so the recommended-tool card is already on
-    // screen — the exact scenario the production bug was reported in.
-    localStorage.setItem('arjun_day_context', JSON.stringify({
-      date: new Date().toISOString().slice(0, 10),
-      context: 'match',
-    }));
-    await mockPlaybook();
-    render(<TestApp />);
-    const user = userEvent.setup();
-
-    expect(await screen.findByText('Pressure Reset')).toBeTruthy();
-
-    await user.click(await screen.findByRole('link', { name: "I'm nervous" }));
-
-    // Real navigation happened — Dashboard (and its recommended-tool
-    // card) is unmounted, not merely re-rendered with different content.
-    expect((await screen.findByTestId('pathname')).textContent).toBe('/coaching');
-    expect(screen.queryByText('Pressure Reset')).toBeNull();
-    // The pre-existing context selection itself is untouched in storage.
-    expect(JSON.parse(localStorage.getItem('arjun_day_context')).context).toBe('match');
-  });
-
-  test('7. the day-context dropdown remains a real <select> on /dashboard and only updates dayContext, never navigating', async () => {
-    await mockPlaybook();
-    render(<TestApp />);
-    const user = userEvent.setup();
-
-    // Stage 4: exactly one primary action card — before any pick, it shows
-    // the default Mental Rep action.
-    expect((await screen.findAllByText(/Today's Mental Rep/)).length).toBeGreaterThan(0);
-
-    const contextSelect = await screen.findByRole('combobox', { name: "What's today?" });
-    expect(contextSelect.tagName).toBe('SELECT');
-    expect(contextSelect.getAttribute('href')).toBeNull();
-
-    await user.selectOptions(contextSelect, 'Match today');
-
-    // Still on /dashboard — no route probe mounted.
-    expect(screen.queryByTestId('pathname')).toBeNull();
-    expect(localStorage.getItem('arjun_day_context')).toContain('match');
-    // The single primary action card swaps in place — it now reads
-    // "Pressure Reset" and the default "Today's Mental Rep" title is gone,
-    // never a second card stacked alongside it.
-    expect(await screen.findByText('Pressure Reset')).toBeTruthy();
-    expect(screen.queryAllByText(/Today's Mental Rep/).length).toBe(0);
-  });
-
   test('no problem shortcut ever targets a game, Pressure Reset, or a skill path', async () => {
-    await mockPlaybook();
     render(<TestApp />);
 
     for (const { label } of CASES) {

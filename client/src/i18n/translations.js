@@ -83,14 +83,6 @@ export const translations = {
           step3: 'Use your reset cue',
           cta: 'Start Mental Rep',
         },
-        playbookCard: {
-          title: 'Keep what works',
-          line: 'Save cues and lessons that help you.',
-          lessonLabel: 'Latest lesson',
-          lesson: 'One mistake doesn\'t have to become the next one.',
-          cueLabel: 'Saved cue',
-          cue: 'Next ball.',
-        },
         profileCard: {
           title: 'Learn your patterns',
           line: 'Arjun remembers your game.',
@@ -136,10 +128,11 @@ export const translations = {
       planYearlyPrice: '₹2,499 / year',
       planPopular: 'Popular',
       planSave: 'Save ₹1,089 a year',
+      // The Playbook bullet was removed with the Playbook page and is
+      // deliberately not replaced by another claim.
       planBenefits: [
         'AI Coach conversations',
         'Mental Reps',
-        'Playbook & saved cues',
         'Hindi + English',
       ],
       planYearlyExtra: 'Best value for regular training',
@@ -472,7 +465,6 @@ export const translations = {
       dashboard: 'Dashboard',
       coaching: 'Coaching',
       progress: 'Progress',
-      playbook: 'Playbook',
       signOut: 'Sign Out',
       home: 'Home',
       checkin: 'Check-in',
@@ -486,29 +478,24 @@ export const translations = {
       settings: 'Settings',
     },
     // ── Home (Stage D) ───────────────────────────────────────────────────
-    // Structural labels for the redesigned Home hierarchy. Athlete-facing
-    // strings that already existed (day-context options, shortcut labels
-    // and prefills, recommended-practice copy) are unchanged and still
-    // live with their own data structures in Dashboard.jsx.
+    // Structural labels for Home's four sections: greeting · Mind Journal ·
+    // Talk to Arjun · Pick what you need now. The shortcut labels and their
+    // prefills are unchanged and still live with their own data structure in
+    // Dashboard.jsx. The "What's today?" day-context selector and the
+    // recommended-practice card it fed were removed with their copy — Home
+    // does not ask the athlete to classify their day any more.
     home: {
       journalTitle: 'Mind Journal',
       journalDesc: 'A personal, score-free place to reflect and carry something useful forward.',
       journalHint: "Write whenever you feel like it — it's just a space for your own words.",
       // Visual-refresh (approved mockup): the illustrated Mind Journal CTA's
-      // own heading/value/CTA copy — distinct from journalTitle/Desc/Hint
-      // above, which other surfaces (Playbook-style summaries) still read.
+      // own heading/value/CTA copy — distinct from journalTitle/Desc/Hint.
       journalHeading: 'Reflect. Grow. Perform.',
       journalValue: 'Reflect on training, competition and everything in between. Spot what helps your performance and help Arjun coach you more personally.',
       journalCta: 'Open Mind Journal',
       greeting: (name) => `Hi, ${name}`,
       athleteFallback: 'Athlete',
       heroSub: 'Talk through whatever is on your mind.',
-      contextLabel: "What's today?",
-      // Visual-refresh: the day-context dropdown's own placeholder option,
-      // and the helper line under the merged What's today container.
-      contextPlaceholder: 'Choose your day',
-      recommendHint: 'Recommendations adapt to what you choose.',
-      recommendedLabel: 'Recommended practice',
       helpLabel: 'Pick what you need now',
     },
     // ── Train (Stage E) ──────────────────────────────────────────────────
@@ -982,7 +969,7 @@ export const translations = {
       freezeConfirm:    (n) => `Restore your streak? You have ${n} restore${n === 1 ? '' : 's'} left.`,
       freezeEmpty:      'You earn a restore for every 7 days of showing up.',
       missedWithFreeze: 'Progress comes from returning, not perfection. Start a rep whenever you\'re ready — or restore your streak if you want.',
-      missedNoFreeze:   'Progress comes from returning, not perfection. Start a mental rep whenever you\'re ready — your Playbook is still building.',
+      missedNoFreeze:   'Progress comes from returning, not perfection. Start a mental rep whenever you\'re ready — your mental game is still building.',
       badge3:           "You\'re building the habit.",
       badge7:           "One week of showing up. That\'s discipline.",
       badge14:          'Two weeks. Your mind is getting stronger every day.',
@@ -1630,27 +1617,6 @@ export const translations = {
         body: 'Low days happen to every athlete. If things feel heavy beyond sport, talking to someone helps — these lines are free and confidential.',
       },
     },
-    playbook: {
-      title:              'Mental Playbook',
-      learningHeading:    'Latest Lesson',
-      learningEmptyTitle: 'No lesson yet',
-      learningEmpty:      'Practice a Mental Rep and tell Arjun how it went — your takeaway will appear here.',
-      thisWeek:           'This week',
-      weekRepsLabel:      (n) => n === 1 ? 'Mental Rep' : 'Mental Reps',
-      emptyLearning:      'Keep going — your Playbook builds as you practice.',
-      weekResets:         (n) => `Pressure Reset practiced ${n} time${n === 1 ? '' : 's'}`,
-      focusCardsHeading:  'Focus Cards',
-      focusCardsEmpty:    'No Focus Cards yet',
-      focusCardsViewAll:  'View all Focus Cards →',
-      focusCardsBuild:    'Build your first Focus Card',
-      cuesHeading:        'Saved cues',
-      cuesEmpty:          'No saved cues yet',
-      cuesCta:            "Do today's Mental Rep →",
-      reflectionsHeading: 'Reflections',
-      reflectionsNext:    'Next focus: ',
-      reflectionsEmpty:   'No reflections yet',
-      reflectionsCta:     'Start a reflection',
-    },
     mindJournal: {
       title: 'Mind Journal',
       introHeadline: 'Notice the moment. Carry something useful forward.',
@@ -2172,14 +2138,6 @@ export const translations = {
           step3: 'अपना reset cue इस्तेमाल करो',
           cta: 'Mental Rep शुरू करो',
         },
-        playbookCard: {
-          title: 'जो काम आया, वो रखो',
-          line: 'काम आने वाले cues और सीख सेव करो।',
-          lessonLabel: 'ताज़ा सीख',
-          lesson: 'एक गलती को अगली गलती बनना ज़रूरी नहीं।',
-          cueLabel: 'सेव किया cue',
-          cue: 'अगली गेंद।',
-        },
         profileCard: {
           title: 'अपने पैटर्न समझो',
           line: 'Arjun तुम्हारा खेल याद रखता है।',
@@ -2222,10 +2180,10 @@ export const translations = {
       planYearlyPrice: '₹2,499 / साल',
       planPopular: 'लोकप्रिय',
       planSave: 'साल में ₹1,089 बचाओ',
+      // The removed Playbook bullet is not replaced by another claim.
       planBenefits: [
         'AI Coach से बातचीत',
         'Mental Reps',
-        'Playbook और सेव किए cues',
         'हिंदी + English',
       ],
       planYearlyExtra: 'नियमित ट्रेनिंग के लिए सबसे किफ़ायती',
@@ -2521,7 +2479,6 @@ export const translations = {
       dashboard: 'डैशबोर्ड',
       coaching: 'कोचिंग',
       progress: 'प्रगति',
-      playbook: 'प्लेबुक',
       signOut: 'साइन आउट',
       home: 'होम',
       checkin: 'चेक-इन',
@@ -2535,10 +2492,9 @@ export const translations = {
       settings: 'सेटिंग्स',
     },
     // ── Home (Stage D) ───────────────────────────────────────────────────
-    // Structural labels for the redesigned Home hierarchy. Athlete-facing
-    // strings that already existed (day-context options, shortcut labels
-    // and prefills, recommended-practice copy) are unchanged and still
-    // live with their own data structures in Dashboard.jsx.
+    // Structural labels for Home's four sections: greeting · Mind Journal ·
+    // Talk to Arjun · Pick what you need now. Same shape as `en.home` — the
+    // day-context and recommended-practice strings were removed from both.
     home: {
       journalTitle: 'माइंड जर्नल',
       journalDesc: 'तुम्हारी अपनी जगह, कोई स्कोर नहीं — reflect करो और आगे ले जाने लायक बात साथ रखो।',
@@ -2549,10 +2505,6 @@ export const translations = {
       greeting: (name) => `हाय, ${name}`,
       athleteFallback: 'एथलीट',
       heroSub: 'मन में जो है, उस पर बात करो।',
-      contextLabel: 'आज क्या है?',
-      contextPlaceholder: 'अपना दिन चुनो',
-      recommendHint: 'तुम्हारी पसंद के हिसाब से सुझाव बदलते हैं।',
-      recommendedLabel: 'सुझाई गई practice',
       helpLabel: 'अभी क्या चाहिए, चुनो',
     },
     // ── Train (Stage E) ──────────────────────────────────────────────────
@@ -3070,7 +3022,7 @@ export const translations = {
       freezeConfirm:    (n) => `स्ट्रीक restore करें? आपके पास ${n} restore बचे हैं।`,
       freezeEmpty:      'हर 7 दिन आने पर आपको एक restore मिलता है।',
       missedWithFreeze: 'तरक्की वापस लौटने से आती है, perfection से नहीं। जब तैयार हों, एक रेप शुरू करें — चाहें तो स्ट्रीक restore भी कर सकते हैं।',
-      missedNoFreeze:   'तरक्की वापस लौटने से आती है, perfection से नहीं। जब तैयार हों, एक मेंटल रेप शुरू करें — आपका Playbook बन रहा है।',
+      missedNoFreeze:   'तरक्की वापस लौटने से आती है, perfection से नहीं। जब तैयार हों, एक मेंटल रेप शुरू करें — आपका मेंटल गेम बन रहा है।',
       badge3:           'आप आदत बना रहे हैं।',
       badge7:           'एक हफ्ता लगातार। यही अनुशासन है।',
       badge14:          'दो हफ्ते। आपका दिमाग हर दिन मजबूत हो रहा है।',
@@ -3710,27 +3662,6 @@ export const translations = {
         title: 'मुश्किल दौर? यह इंसानी है।',
         body: 'हर खिलाड़ी के बुरे दिन आते हैं। अगर खेल से बाहर भी सब भारी लग रहा है, तो किसी से बात करना मदद करता है — ये लाइनें मुफ़्त और गोपनीय हैं।',
       },
-    },
-    playbook: {
-      title:              'Mental Playbook',
-      learningHeading:    'ताज़ा सीख',
-      learningEmptyTitle: 'अभी कोई सीख नहीं',
-      learningEmpty:      'एक Mental Rep करो और Arjun को बताओ कैसा रहा — तुम्हारी सीख यहाँ दिखेगी।',
-      thisWeek:           'इस हफ्ते',
-      weekRepsLabel:      () => 'मेंटल रेप',
-      emptyLearning:      'करते रहो — practice के साथ तुम्हारा Playbook भरता जाएगा।',
-      weekResets:         (n) => `Pressure Reset ${n} बार practice किया`,
-      focusCardsHeading:  'Focus Cards',
-      focusCardsEmpty:    'अभी कोई Focus Card नहीं',
-      focusCardsViewAll:  'सारे Focus Cards देखो →',
-      focusCardsBuild:    'पहला Focus Card बनाओ',
-      cuesHeading:        'Saved cues',
-      cuesEmpty:          'अभी कोई saved cue नहीं',
-      cuesCta:            'आज का Mental Rep करो →',
-      reflectionsHeading: 'Reflections',
-      reflectionsNext:    'अगला फोकस: ',
-      reflectionsEmpty:   'अभी कोई reflection नहीं',
-      reflectionsCta:     'नया reflection शुरू करो',
     },
     mindJournal: {
       title: 'मन की डायरी',

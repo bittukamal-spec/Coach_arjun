@@ -350,7 +350,9 @@ export default function MentalRepPage() {
       <GradientIconTile icon={Target} variant="blue" size={26} className="mb-5" />
       <p className="text-xs font-bold text-slt uppercase tracking-widest mb-2">{hi ? 'तुम्हारा cue' : 'Your cue'}</p>
       <p className="text-3xl font-black text-ink mb-8">"{cue}"</p>
-      <p className="text-sm text-slt mb-6 max-w-xs">{hi ? 'इसे अपने Playbook में save करें?' : 'Save this to your Playbook?'}</p>
+      {/* Copy only: the cue is still saved by exactly the same call, but the
+          Playbook page it used to name no longer exists. */}
+      <p className="text-sm text-slt mb-6 max-w-xs">{hi ? 'इस cue को save करें?' : 'Save this cue?'}</p>
       <button
         onClick={() => finishRep(true)}
         disabled={saving}

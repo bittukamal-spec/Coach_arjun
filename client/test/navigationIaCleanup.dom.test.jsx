@@ -1,15 +1,15 @@
-// Real ROUTER integration tests for PR-2 (Navigation and Information
-// Architecture Cleanup): BottomNav's Progress → Playbook swap, the
-// /progress → /playbook redirect, responsive visibility, and the new
-// Ritual entry on Train. Mounts real react-router-dom <MemoryRouter> +
-// <Routes> (no mocked useNavigate/Link) so navigation assertions reflect
-// what actually happens in the browser, matching the pattern established
-// in dashboardShortcuts.dom.test.jsx.
+// Real ROUTER integration tests for navigation and information architecture:
+// BottomNav's four destinations, the /playbook and /progress compatibility
+// redirects, responsive visibility, and the Ritual entry on Train. Mounts
+// real react-router-dom <MemoryRouter> + <Routes> (no mocked
+// useNavigate/Link) so navigation assertions reflect what actually happens in
+// the browser, matching the pattern established in
+// dashboardShortcuts.dom.test.jsx.
 
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
+import { MemoryRouter, Routes, Route, useLocation, useNavigate, Navigate } from 'react-router-dom';
 
 const authState = { language: 'en' };
 vi.mock('../src/contexts/AuthContext', () => ({
@@ -22,7 +22,15 @@ const { default: TrainPage } = await import('../src/pages/TrainPage.jsx');
 
 function RouteProbe({ label }) {
   const location = useLocation();
-  return <p data-testid="route-probe">{label}:{location.pathname}</p>;
+  const navigate = useNavigate();
+  return (
+    <>
+      <p data-testid="route-probe">{label}:{location.pathname}</p>
+      {/* Real history back, so a redirect that left an entry behind would
+          show up as a bounce rather than as a silent pass. */}
+      <button type="button" onClick={() => navigate(-1)}>go back</button>
+    </>
+  );
 }
 
 function BottomNavApp({ initialEntries = ['/dashboard'] }) {
@@ -32,10 +40,11 @@ function BottomNavApp({ initialEntries = ['/dashboard'] }) {
         <Route path="/dashboard" element={<><RouteProbe label="page" /><BottomNav /></>} />
         <Route path="/train" element={<><RouteProbe label="page" /><BottomNav /></>} />
         <Route path="/coaching" element={<><RouteProbe label="page" /><BottomNav /></>} />
-        <Route path="/playbook" element={<><RouteProbe label="page" /><BottomNav /></>} />
         <Route path="/account" element={<><RouteProbe label="page" /><BottomNav /></>} />
         <Route path="/starting-profile" element={<><RouteProbe label="page" /><BottomNav /></>} />
-        <Route path="/progress" element={<Navigate to="/playbook" replace />} />
+        {/* Mirrors App.jsx: both retired surfaces resolve to Home. */}
+        <Route path="/playbook" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/progress" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </MemoryRouter>
   );
@@ -67,50 +76,88 @@ afterEach(() => {
   cleanup();
 });
 
-describe('BottomNav — Progress → Playbook, real router integration', () => {
-  test('renders exactly Home, Train, Coach, Playbook, Profile — no Progress tab', async () => {
+describe('BottomNav — four destinations, real router integration', () => {
+  test('renders exactly Home, Train, Coach, Profile — no Playbook or Progress tab', async () => {
     render(<BottomNavApp initialEntries={['/dashboard']} />);
     const nav = screen.getByRole('navigation');
     const links = within(nav).getAllByRole('link');
     const labels = links.map((l) => l.textContent);
 
-    expect(labels).toEqual(['Home', 'Train', 'Coach', 'Playbook', 'Profile']);
+    expect(labels).toEqual(['Home', 'Train', 'Coach', 'Profile']);
+    expect(within(nav).queryByText('Playbook')).toBeNull();
     expect(within(nav).queryByText('Progress')).toBeNull();
+    expect(nav.innerHTML).not.toMatch(/\/playbook/);
   });
 
-  test('Coach remains in the centre position', async () => {
+  test('Coach keeps its position, and the four items each take an equal share of the bar', async () => {
     render(<BottomNavApp initialEntries={['/dashboard']} />);
     const nav = screen.getByRole('navigation');
     const links = within(nav).getAllByRole('link');
     expect(links[2].textContent).toBe('Coach');
+    // Equal distribution comes from flex-1 per item, so dropping the fifth
+    // item cannot leave a gap or an off-centre row at any width.
+    for (const link of links) expect(link.className).toMatch(/(^|\s)flex-1(\s|$)/);
+    expect(nav.querySelector('div').className).toMatch(/(^|\s)flex(\s|$)/);
   });
 
-  test('the Playbook tab links to /playbook and clicking it performs a real navigation', async () => {
-    render(<BottomNavApp initialEntries={['/dashboard']} />);
-    const user = userEvent.setup();
-
-    const playbookLink = screen.getByRole('link', { name: /Playbook/i });
-    expect(playbookLink.getAttribute('href')).toBe('/playbook');
-
-    await user.click(playbookLink);
-
-    expect(await screen.findByTestId('route-probe')).toHaveProperty('textContent', 'page:/playbook');
+  test('every remaining tab links to its own destination and clicking it performs a real navigation', async () => {
+    const cases = [
+      [/Home/i, '/dashboard'],
+      [/Train/i, '/train'],
+      [/Coach/i, '/coaching'],
+      [/Profile/i, '/starting-profile'],
+    ];
+    for (const [name, href] of cases) {
+      const { unmount } = render(<BottomNavApp initialEntries={['/dashboard']} />);
+      const user = userEvent.setup();
+      const link = screen.getByRole('link', { name });
+      expect(link.getAttribute('href')).toBe(href);
+      await user.click(link);
+      // Coach hides the bar, so only assert the landing route.
+      expect(await screen.findByTestId('route-probe')).toHaveProperty('textContent', `page:${href}`);
+      unmount();
+    }
   });
 
-  test('the Playbook tab gets aria-current="page" and the active visual state only when on /playbook', async () => {
-    const { unmount } = render(<BottomNavApp initialEntries={['/playbook']} />);
-    const activeLink = screen.getByRole('link', { name: /Playbook/i });
-    expect(activeLink.getAttribute('aria-current')).toBe('page');
-    unmount();
-
-    render(<BottomNavApp initialEntries={['/dashboard']} />);
-    const inactiveLink = screen.getByRole('link', { name: /Playbook/i });
-    expect(inactiveLink.getAttribute('aria-current')).toBeNull();
+  test('aria-current="page" marks exactly the tab whose route is open', async () => {
+    for (const [route, activeName] of [
+      ['/dashboard', /Home/i],
+      ['/train', /Train/i],
+      ['/starting-profile', /Profile/i],
+    ]) {
+      const { unmount } = render(<BottomNavApp initialEntries={[route]} />);
+      const nav = screen.getByRole('navigation');
+      const current = within(nav).getAllByRole('link').filter((l) => l.getAttribute('aria-current') === 'page');
+      expect(current).toHaveLength(1);
+      expect(within(nav).getByRole('link', { name: activeName }).getAttribute('aria-current')).toBe('page');
+      unmount();
+    }
   });
 
-  test('direct navigation to /progress redirects to /playbook using replace (no history entry left behind)', async () => {
+  test('direct navigation to /playbook redirects to Home using replace (no history entry left behind)', async () => {
+    render(<BottomNavApp initialEntries={['/playbook']} />);
+    expect(await screen.findByTestId('route-probe')).toHaveProperty('textContent', 'page:/dashboard');
+  });
+
+  test('direct navigation to /progress redirects to Home using replace (no history entry left behind)', async () => {
     render(<BottomNavApp initialEntries={['/progress']} />);
-    expect(await screen.findByTestId('route-probe')).toHaveProperty('textContent', 'page:/playbook');
+    expect(await screen.findByTestId('route-probe')).toHaveProperty('textContent', 'page:/dashboard');
+  });
+
+  test('neither redirect loops: Back from Home leaves the retired route behind entirely', async () => {
+    for (const retired of ['/playbook', '/progress']) {
+      // Two real history entries — an earlier page, then the retired link.
+      const { unmount } = render(<BottomNavApp initialEntries={['/train', retired]} />);
+      const user = userEvent.setup();
+      expect(await screen.findByTestId('route-probe')).toHaveProperty('textContent', 'page:/dashboard');
+
+      // `replace` means the retired entry was overwritten by Home, so going
+      // back lands on the page before it rather than bouncing through the
+      // redirect again.
+      await user.click(screen.getByRole('button', { name: 'go back' }));
+      expect(screen.getByTestId('route-probe').textContent).toBe('page:/train');
+      unmount();
+    }
   });
 
   test('BottomNav is hidden only inside the active Coach conversation, not elsewhere', async () => {
@@ -129,23 +176,19 @@ describe('BottomNav — Progress → Playbook, real router integration', () => {
     expect(classes.some((c) => /(^|:)hidden$/.test(c))).toBe(false);
   });
 
-  test('English Playbook label renders', async () => {
-    render(<BottomNavApp initialEntries={['/dashboard']} />);
-    expect(screen.getByText('Playbook')).toBeTruthy();
-  });
-
-  test('Hindi Playbook label renders (all five tabs translated)', async () => {
+  test('Hindi: all four tabs are translated', async () => {
     authState.language = 'hi';
     render(<BottomNavApp initialEntries={['/dashboard']} />);
     const nav = screen.getByRole('navigation');
     const labels = within(nav).getAllByRole('link').map((l) => l.textContent);
-    expect(labels).toEqual(['होम', 'ट्रेन', 'कोच', 'प्लेबुक', 'प्रोफाइल']);
+    expect(labels).toEqual(['होम', 'ट्रेन', 'कोच', 'प्रोफाइल']);
+    expect(within(nav).queryByText('प्लेबुक')).toBeNull();
   });
 });
 
 // ─── Stage B: app shell ──────────────────────────────────────────────────────
-// The fifth destination moves from Account/Settings to the athlete's
-// Performance Profile, and the bar adopts the approved near-black surface.
+// The last destination is the athlete's Performance Profile, not
+// Account/Settings, and the bar keeps the approved near-black surface.
 
 describe('BottomNav — Stage B shell', () => {
   test('the Profile tab points at /starting-profile, not /account', async () => {
@@ -175,12 +218,12 @@ describe('BottomNav — Stage B shell', () => {
     expect(screen.getByRole('link', { name: /Profile/i }).getAttribute('aria-current')).toBeNull();
   });
 
-  test('ONLY the fifth destination changed — the first four are untouched', async () => {
+  test('the four destinations are exactly Home, Train, Coach and the Performance Profile', async () => {
     render(<BottomNavApp initialEntries={['/dashboard']} />);
     const hrefs = within(screen.getByRole('navigation'))
       .getAllByRole('link')
       .map((l) => l.getAttribute('href'));
-    expect(hrefs).toEqual(['/dashboard', '/train', '/coaching', '/playbook', '/starting-profile']);
+    expect(hrefs).toEqual(['/dashboard', '/train', '/coaching', '/starting-profile']);
   });
 
   test('the bar uses the near-black nav surface and a safe-area inset, not a theme-specific page colour', async () => {
@@ -195,10 +238,10 @@ describe('BottomNav — Stage B shell', () => {
   });
 
   test('active and inactive items use the on-dark token family, never the light-theme brand blue', async () => {
-    render(<BottomNavApp initialEntries={['/playbook']} />);
+    render(<BottomNavApp initialEntries={['/train']} />);
     const nav = screen.getByRole('navigation');
 
-    const active = within(nav).getByRole('link', { name: /Playbook/i });
+    const active = within(nav).getByRole('link', { name: /Train/i });
     expect(active.querySelector('span').style.color).toContain('--nav-fg-active');
 
     const inactive = within(nav).getByRole('link', { name: /Home/i });
@@ -211,7 +254,7 @@ describe('BottomNav — Stage B shell', () => {
   test('every destination keeps a >=48px tap target and a 10px label', async () => {
     render(<BottomNavApp initialEntries={['/dashboard']} />);
     const links = within(screen.getByRole('navigation')).getAllByRole('link');
-    expect(links).toHaveLength(5);
+    expect(links).toHaveLength(4);
     for (const link of links) {
       expect(link.className).toMatch(/min-h-\[48px\]/);
       expect(link.querySelector('span').className).toMatch(/text-\[10px\]/);
@@ -315,12 +358,12 @@ describe('Profile (bottom nav) vs. Settings (avatar menu) — distinct destinati
   test('no other navigation destination changed by this correction', async () => {
     render(<ShellApp initialEntries={['/dashboard']} />);
     // Navbar (avatar menu) also has role="navigation" — the bottom bar is
-    // the one with five links, so disambiguate by that shape.
+    // the one with four links, so disambiguate by that shape.
     const bottomBar = screen.getAllByRole('navigation').find(
-      (nav) => within(nav).queryAllByRole('link').length === 5
+      (nav) => within(nav).queryAllByRole('link').length === 4
     );
     const hrefs = within(bottomBar).getAllByRole('link').map((l) => l.getAttribute('href'));
-    expect(hrefs).toEqual(['/dashboard', '/train', '/coaching', '/playbook', '/starting-profile']);
+    expect(hrefs).toEqual(['/dashboard', '/train', '/coaching', '/starting-profile']);
   });
 });
 

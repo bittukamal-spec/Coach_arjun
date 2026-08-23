@@ -81,7 +81,6 @@ function inlineCopyLiterals(source) {
 test('the redesigned pilot surfaces carry no inline bilingual copy', () => {
   const surfaces = {
     'pages/Dashboard.jsx': 'Home',
-    'pages/PlaybookPage.jsx': 'Playbook',
     'pages/ChatPage.jsx': 'Coach',
     'pages/OnboardingPage.jsx': 'Onboarding',
     'pages/StartingProfilePage.jsx': 'Performance Profile',
@@ -99,7 +98,7 @@ test('the redesigned pilot surfaces carry no inline bilingual copy', () => {
 });
 
 test('language-conditional copy on those surfaces is never a multi-line ternary either', () => {
-  for (const file of ['pages/Dashboard.jsx', 'pages/PlaybookPage.jsx', 'components/Navbar.jsx']) {
+  for (const file of ['pages/Dashboard.jsx', 'components/Navbar.jsx']) {
     const s = src(file);
     assert.doesNotMatch(s, /\{hi\s*\n\s*\?/, `${file} must not carry a multi-line bilingual ternary`);
     // `language === 'hi' ? …` may still pick a CSS class, but never copy.
@@ -119,7 +118,7 @@ function namespaceBlock(lang, name) {
 const keysOf = (block) => [...block.matchAll(/^\s{6}([a-zA-Z]+):/gm)].map((m) => m[1]).sort();
 
 test('every pilot-surface namespace has identical keys in English and Hindi', () => {
-  for (const ns of ['home', 'playbook', 'chat', 'nav', 'mindJournal', 'startingProfile', 'trainPage', 'onboarding']) {
+  for (const ns of ['home', 'chat', 'nav', 'mindJournal', 'startingProfile', 'trainPage', 'onboarding']) {
     assert.deepEqual(
       keysOf(namespaceBlock('en', ns)),
       keysOf(namespaceBlock('hi', ns)),
@@ -129,14 +128,13 @@ test('every pilot-surface namespace has identical keys in English and Hindi', ()
 });
 
 test('the Hindi side of each pilot namespace is actually written in Hindi', () => {
-  for (const ns of ['home', 'playbook', 'mindJournal']) {
+  for (const ns of ['home', 'mindJournal']) {
     assert.match(namespaceBlock('hi', ns), /[ऀ-ॿ]/, `${ns} must carry Devanagari copy`);
   }
 });
 
 test('the keys Stage I introduced exist in both languages', () => {
   const added = {
-    playbook: ['title', 'learningHeading', 'thisWeek', 'focusCardsHeading', 'cuesHeading', 'reflectionsHeading'],
     home: ['journalTitle', 'journalDesc', 'journalHint'],
     nav: ['language', 'theme', 'themeAuto', 'themeLight', 'themeDark'],
     chat: ['retryBtn'],
@@ -177,9 +175,9 @@ test('the amber accent is consumed as a token, never as the raw hex, on redesign
   // moved off the amber identity to violet (TrainGradientCard's existing
   // `purple` variant) to stay visually distinguishable from Train's amber
   // "Match & Practice Reflection" card, so Dashboard no longer carries any
-  // amber accent to check here. ChatPage/PlaybookPage are untouched by
-  // that change and still consume the token exactly as before.
-  for (const file of ['pages/ChatPage.jsx', 'pages/PlaybookPage.jsx']) {
+  // amber accent to check here. ChatPage is untouched by that change and
+  // still consumes the token exactly as before.
+  for (const file of ['pages/ChatPage.jsx']) {
     assert.doesNotMatch(src(file), /#D98B2B/i, `${file} must use var(--accent-amber)`);
     assert.match(src(file), /var\(--accent-amber\)/, `${file} must consume the accent token`);
   }
@@ -260,12 +258,20 @@ test('the Mind Journal context checkbox is themed and focus-visible', () => {
 
 // ── 9. The power line is no longer truncated ───────────────────────────────
 
+// The Playbook overview that used to render a Focus Card's power line was
+// retired; Focus Cards keep their own dedicated surfaces, so the guarantee is
+// asserted where the athlete's line actually renders now.
 test('the Focus Card power line wraps instead of truncating', () => {
-  const playbook = src('pages/PlaybookPage.jsx');
-  const idx = playbook.indexOf('focusCard.powerLine');
-  const line = playbook.slice(playbook.lastIndexOf('<p', idx), idx + 40);
-  assert.doesNotMatch(line, /\btruncate\b/, 'the athlete-authored power line must not be cut off');
-  assert.match(line, /break-words/);
+  for (const file of ['pages/FocusDeckPage.jsx', 'pages/SelfTalkPage.jsx']) {
+    const page = src(file);
+    let idx = page.indexOf('card.powerLine');
+    assert.notEqual(idx, -1, `${file} must render the athlete's power line`);
+    while (idx !== -1) {
+      const line = page.slice(page.lastIndexOf('<p', idx), idx + 40);
+      assert.doesNotMatch(line, /\btruncate\b/, `${file}: the athlete-authored power line must not be cut off`);
+      idx = page.indexOf('card.powerLine', idx + 1);
+    }
+  }
 });
 
 // ── 10. Change Focus keyboard/action accessibility ─────────────────────────

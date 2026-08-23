@@ -218,6 +218,29 @@ The athlete already has an open Mental Rep prescription from the current coachin
 // loadReflectionContext.js, which is also where each source's restricted
 // field mapping lives — the privacy boundary stays at the data layer.
 
+// ── Helper: retired-terminology sanitiser for recent-tool context ────────
+// ToolReport summaries are read verbatim into "Recent Mental Tool Activity"
+// below, so a stored row is athlete-visible coaching context, not just data.
+// Mental Rep used to append "(cue saved to Playbook)" when the athlete saved
+// their cue; the Playbook page is retired, so Arjun must not be told about a
+// destination that no longer exists. New rows are written as "(cue saved)"
+// (mentalRep.js); historical rows are presented that way here.
+//
+// Deliberately ONE exact retired phrase, not a general text-rewriting layer:
+// the stored row is never modified, nothing is migrated, and any other
+// summary — including every other tool's — passes through untouched.
+const RETIRED_TOOL_SUMMARY_PHRASES = [
+  [/\(cue saved to Playbook\)/g, '(cue saved)'],
+];
+
+function sanitizeToolSummary(summary) {
+  if (typeof summary !== 'string') return summary;
+  return RETIRED_TOOL_SUMMARY_PHRASES.reduce(
+    (text, [pattern, replacement]) => text.replace(pattern, replacement),
+    summary,
+  );
+}
+
 // ── Helper: build personalised system prompt ─────────────────────────────
 
 function buildSystemPrompt(user, checkIns = [], memories = [], sessionType = null, extra = {}) {
@@ -536,7 +559,7 @@ No recent check-ins — the athlete hasn't tracked their mental state yet.`;
       const when = daysAgo === 0 ? 'today' : `${daysAgo}d ago`;
       const skillName = t.skillKey ? getSkill(t.skillKey)?.name : null;
       const skillNote = skillName ? ` [practising: ${skillName}]` : '';
-      return `- ${t.toolType.replace(/_/g, ' ')}${skillNote} (${when}): ${t.summary}${t.arjunResponse ? ` → Arjun said: "${t.arjunResponse}"` : ''}`;
+      return `- ${t.toolType.replace(/_/g, ' ')}${skillNote} (${when}): ${sanitizeToolSummary(t.summary)}${t.arjunResponse ? ` → Arjun said: "${t.arjunResponse}"` : ''}`;
     }).join('\n');
     toolSection = `\n\n## Recent Mental Tool Activity\n${toolLines}\nIMPORTANT: If the athlete's message clearly relates to one of these tool sessions, reference it specifically — connect it to their ongoing practice of that skill (e.g. "You built a cue for focus. Use it for one set in training, not the whole session."), not just a generic acknowledgement. Do NOT ask basic questions whose answers are already here.`;
   }

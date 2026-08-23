@@ -39,7 +39,6 @@ import FocusDeckPage from './pages/FocusDeckPage';
 import BodyResetPage from './pages/BodyResetPage';
 import ResetHistoryPage from './pages/ResetHistoryPage';
 import MentalRepPage from './pages/MentalRepPage';
-import PlaybookPage from './pages/PlaybookPage';
 import WeeklyReviewsPage from './pages/WeeklyReviewsPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import BottomNav from './components/BottomNav';
@@ -130,11 +129,19 @@ function App() {
         }
       />
       <Route path="/checkin" element={<Navigate to="/mental-fitness" replace />} />
-      {/* Progress is no longer a primary athlete-facing destination — the
-          Mental Playbook replaces it in navigation. ProgressPage.jsx and
-          its backend endpoints are untouched; only this route entry
-          changed, so direct links/bookmarks still land somewhere useful. */}
-      <Route path="/progress" element={<Navigate to="/playbook" replace />} />
+      {/* Retired athlete-facing library/progress surfaces. The Mental Playbook
+          page is gone — Home, Train, Coach and Profile are the four
+          destinations now — and Progress was already only a redirect into it.
+          Both land on Home so old links and bookmarks never 404. `replace`
+          keeps them out of the history stack, so Back from Home goes wherever
+          the athlete actually came from instead of bouncing through the
+          redirect again.
+
+          Nothing on the server changed: GET /api/playbook, prescription
+          outcomes, saved cues, Focus Cards, ToolReports, Mind Journal entries
+          and legacy Debrief rows are all untouched. */}
+      <Route path="/playbook" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/progress" element={<Navigate to="/dashboard" replace />} />
       <Route
         path="/account"
         element={
@@ -335,17 +342,6 @@ function App() {
         element={
           <ProtectedRoute requireOnboarding={true}>
             <WeeklyReviewsPage />
-            <BottomNav />
-          </ProtectedRoute>
-        }
-      />
-
-      {/* Mental Playbook — private library, with BottomNav */}
-      <Route
-        path="/playbook"
-        element={
-          <ProtectedRoute requireOnboarding={true}>
-            <PlaybookPage />
             <BottomNav />
           </ProtectedRoute>
         }

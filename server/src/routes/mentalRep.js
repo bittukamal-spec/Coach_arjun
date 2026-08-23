@@ -53,7 +53,12 @@ router.post('/complete', authenticate, async (req, res) => {
         userId: req.userId,
         toolType: 'mental_rep',
         skillKey,
-        summary: `Daily Mental Rep (${context}): felt ${state}, preparing for "${momentLabel}" → cue "${cue.trim()}"${saveCue ? ' (cue saved to Playbook)' : ''}`,
+        // The saved-cue note names the act, not a destination: the Mental
+        // Playbook page it used to name is retired, and this summary is read
+        // verbatim into Arjun's recent-tool context. Historical rows still
+        // carry the old wording and are sanitised where that context is
+        // formatted (chat.js) rather than rewritten in the database.
+        summary: `Daily Mental Rep (${context}): felt ${state}, preparing for "${momentLabel}" → cue "${cue.trim()}"${saveCue ? ' (cue saved)' : ''}`,
         details: JSON.stringify({
           context,
           state,
