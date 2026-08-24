@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { Trash2 } from 'lucide-react';
+import { ChevronDown, Trash2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { translations } from '../../i18n/translations';
 import { apiFetch } from '../../api';
@@ -10,7 +10,14 @@ import { useMindJournalBack } from './shared';
 
 // ─── Reflection details — read-only view of one owned Mind Journal entry.
 // Opens from Recent reflections. No editing in this pilot. Delete reuses the
-// existing ownership-scoped DELETE /api/mind-journal/:id after confirmation. ─
+// existing ownership-scoped DELETE /api/mind-journal/:id after confirmation.
+//
+// The hierarchy is insight-first: a compact summary, then Arjun's stored
+// analysis and takeaway, then the athlete's own answers as a short snapshot,
+// with the full questionnaire collapsed behind a disclosure. Nothing on this
+// screen is generated, regenerated, re-worded or inferred here — every string
+// is either a stored value or a translated label. A legacy row simply has
+// fewer of these parts and renders the ones it has. ────────────────────────
 
 function formatDetailDateTime(iso, language) {
   if (!iso) return null;
@@ -24,20 +31,33 @@ function formatDetailDateTime(iso, language) {
   });
 }
 
-function DetailSection({ heading, children, testId }) {
-  return (
-    <Card className="p-4 mb-3 elevation-card text-left" data-testid={testId}>
-      {heading ? (
-        <h2 className="text-micro font-bold text-slt uppercase tracking-wide mb-2">{heading}</h2>
-      ) : null}
-      {children}
-    </Card>
-  );
-}
-
 function VerbatimText({ children }) {
   return (
     <p className="text-body text-ink leading-relaxed break-words whitespace-pre-wrap">{children}</p>
+  );
+}
+
+// Small uppercase section heading, shared by every block below so the screen
+// reads as one hierarchy rather than a stack of unrelated cards.
+function BlockHeading({ children, tone = 'muted', id }) {
+  return (
+    <h2
+      id={id}
+      className="text-micro font-bold uppercase tracking-wide mb-2"
+      style={{ color: tone === 'journal' ? 'var(--journal-accent)' : 'var(--text-secondary)' }}
+    >
+      {children}
+    </h2>
+  );
+}
+
+// A neutral card for anything that is the athlete's own record.
+function DetailSection({ heading, children, testId }) {
+  return (
+    <Card className="p-4 mb-3 elevation-card text-left" data-testid={testId}>
+      {heading ? <BlockHeading>{heading}</BlockHeading> : null}
+      {children}
+    </Card>
   );
 }
 
@@ -52,6 +72,7 @@ export default function ReflectionDetailPage() {
 
   const titleId = useId();
   const bodyId = useId();
+  const answersId = useId();
   const cancelRef = useRef(null);
 
   const [entry, setEntry] = useState(null); // null loading, false not found/error, object ok
@@ -59,6 +80,8 @@ export default function ReflectionDetailPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState(null);
+  // The full questionnaire is secondary to the insight, so it starts closed.
+  const [answersOpen, setAnswersOpen] = useState(false);
 
   const loadEntry = useCallback(() => {
     setEntry(null);
@@ -158,13 +181,17 @@ export default function ReflectionDetailPage() {
   const r = mj.reflection;
   const isReflection = entry.entryType === 'REFLECTION';
   const isGuided = entry.entryType === 'GUIDED_REFLECTION';
-  const typeLabel = isReflection ? r.title : isGuided ? mj.guided.title : mj.quickNote.tag;
   const dateLabel = formatDetailDateTime(entry.createdAt, language);
+
+  // Context tag — one violet treatment for every category (see .journal-tag).
   const contextLabel = isReflection
     ? (entry.contextType === 'SOMETHING_ELSE' && entry.customContext
       ? entry.customContext
       : r.q1.options[entry.contextType] || null)
     : isGuided ? contextLabelForEntry(entry, mj) : null;
+  const tagLabel = isReflection || isGuided
+    ? (contextLabel || mj.contextTypes.SOMETHING_ELSE)
+    : mj.quickNote.tag;
 
   // Structured answers render as their translated labels; a "Write my own"
   // value is the athlete's text and is shown verbatim, never re-worded.
@@ -172,17 +199,54 @@ export default function ReflectionDetailPage() {
     ...(Array.isArray(tags) ? tags.map(k => labels[k] || k) : []),
     ...(custom ? [custom] : []),
   ];
-  const REFLECTION_SECTIONS = isReflection ? [
-    [r.q2.title[entry.contextType] || r.q2.title.SOMETHING_ELSE, answerChips(entry.eventTags, r.q2.options, entry.customEvent), 'mj-detail-event'],
-    [r.q3.title, answerChips(entry.states, mj.states, entry.customState), 'mj-detail-states'],
-    [r.q4.title, answerChips(entry.thoughtTags, r.q4.options, entry.customThought), 'mj-detail-thoughts'],
-    [r.q5.title, answerChips(entry.responseTags, r.q5.options, entry.customResponse), 'mj-detail-responses'],
-    [r.q6body.title, answerChips(entry.bodyTags, r.q6body.options, entry.customBody), 'mj-detail-body'],
-    [r.q6cue.title, entry.cueFeedback ? [r.q6cue.options[entry.cueFeedback]] : [], 'mj-detail-cue'],
-  ].filter(([, values]) => values.length > 0) : [];
-  const stateTags = stateTagsForEntry(entry, mj);
+  const joinAnswers = (values) => (values.length ? values.join(' · ') : null);
+
+  const eventAnswers = isReflection ? answerChips(entry.eventTags, r.q2.options, entry.customEvent) : [];
+  const stateAnswers = isReflection ? answerChips(entry.states, mj.states, entry.customState) : [];
+  const thoughtAnswers = isReflection ? answerChips(entry.thoughtTags, r.q4.options, entry.customThought) : [];
+  const responseAnswers = isReflection ? answerChips(entry.responseTags, r.q5.options, entry.customResponse) : [];
+  const bodyAnswers = isReflection ? answerChips(entry.bodyTags, r.q6body.options, entry.customBody) : [];
+  const cueAnswers = isReflection && entry.cueFeedback ? [r.q6cue.options[entry.cueFeedback]] : [];
+
+  // The summary title is the athlete's own account of what happened.
+  const summaryTitle = isReflection
+    ? (entry.customEvent || (entry.eventTags?.length ? r.q2.options[entry.eventTags[0]] : null))
+    : isGuided ? (entry.whatHappened || null) : null;
+  // A reflection's full state list lives in the snapshot below, so the summary
+  // only previews the first two. A quick note or legacy row has no snapshot —
+  // its states ARE its content — so it shows them all here and drops the
+  // separate states card, rather than repeating the same chips twice.
+  const allStateTags = stateTagsForEntry(entry, mj);
+  const summaryChips = isReflection ? allStateTags.slice(0, 2) : allStateTags;
+
+  // Reflection Snapshot — one compact block instead of five large question
+  // cards. A row only exists when the entry actually has that answer, so a
+  // skipped question is absent rather than shown as an empty placeholder.
+  const SNAPSHOT_ROWS = isReflection ? [
+    [d.snapshot.happened, joinAnswers(eventAnswers)],
+    [d.snapshot.felt, joinAnswers(stateAnswers)],
+    [d.snapshot.mind, joinAnswers(thoughtAnswers)],
+    [d.snapshot.did, joinAnswers(responseAnswers)],
+    [d.snapshot.body, joinAnswers(bodyAnswers)],
+    [d.snapshot.cue, joinAnswers(cueAnswers)],
+  ].filter(([, value]) => !!value) : [];
+
+  // The collapsed disclosure replays the real questions with their stored
+  // answers — the same set, nothing added and nothing dropped.
+  const FULL_ANSWERS = isReflection ? [
+    [r.q1.title, contextLabel, 'mj-answer-context'],
+    [r.q2.title[entry.contextType] || r.q2.title.SOMETHING_ELSE, joinAnswers(eventAnswers), 'mj-answer-event'],
+    [r.q3.title, joinAnswers(stateAnswers), 'mj-answer-states'],
+    [r.q4.title, joinAnswers(thoughtAnswers), 'mj-answer-thoughts'],
+    [r.q5.title, joinAnswers(responseAnswers), 'mj-answer-responses'],
+    [r.q6body.title, joinAnswers(bodyAnswers), 'mj-answer-body'],
+    [r.q6cue.title, joinAnswers(cueAnswers), 'mj-answer-cue'],
+  ].filter(([, value]) => !!value) : [];
+
   const note = typeof entry.note === 'string' && entry.note.trim() ? entry.note : null;
-  const whatHappened = entry.whatHappened || null;
+  // A guided entry's "what happened" answer is promoted into the summary title
+  // above, so its own card below would be the same text twice.
+  const whatHappened = entry.whatHappened && entry.whatHappened !== summaryTitle ? entry.whatHappened : null;
   const whatNoticed = entry.whatNoticed || null;
   const helpedOrGotInWay = entry.helpedOrGotInWay || null;
   const takeForward = entry.takeForward || null;
@@ -192,21 +256,23 @@ export default function ReflectionDetailPage() {
       <PageHeader onBack={handleBack} title={d.title} />
 
       <div className="px-page pt-5 max-w-lg mx-auto" data-testid="mj-detail">
-        <p className="text-micro font-bold text-slt uppercase tracking-wide mb-1">{typeLabel}</p>
-        {dateLabel ? (
-          <p className="text-caption text-slt mb-5" data-testid="mj-detail-date">{dateLabel}</p>
-        ) : null}
 
-        {contextLabel ? (
-          <DetailSection heading={d.contextHeading} testId="mj-detail-context">
-            <VerbatimText>{contextLabel}</VerbatimText>
-          </DetailSection>
-        ) : null}
-
-        {isReflection && REFLECTION_SECTIONS.map(([heading, values, testId]) => (
-          <DetailSection key={testId} heading={heading} testId={testId}>
-            <div className="flex flex-wrap gap-1.5">
-              {values.map((label, idx) => (
+        {/* ── 1. Compact summary ──────────────────────────────────────────
+            Tag, the athlete's own title, when it happened, and up to two
+            chips. No large question cards above the analysis. */}
+        <div className="mb-5" data-testid="mj-detail-summary">
+          <span className="journal-tag" data-testid="mj-context-tag">{tagLabel}</span>
+          {summaryTitle ? (
+            <h2 className="text-title font-bold text-ink leading-snug mt-2.5 break-words" data-testid="mj-detail-title">
+              {summaryTitle}
+            </h2>
+          ) : null}
+          {dateLabel ? (
+            <p className="text-caption text-slt mt-1.5" data-testid="mj-detail-date">{dateLabel}</p>
+          ) : null}
+          {summaryChips.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5 mt-2.5">
+              {summaryChips.map((label, idx) => (
                 <span
                   key={`${label}-${idx}`}
                   className="inline-flex items-center px-2.5 py-1 rounded-full text-caption font-semibold bg-dark-700 text-ink border border-dark-600 max-w-full break-words"
@@ -215,42 +281,96 @@ export default function ReflectionDetailPage() {
                 </span>
               ))}
             </div>
-          </DetailSection>
-        ))}
+          ) : null}
+        </div>
 
-        {isReflection && (entry.arjunNoticed || entry.arjunTakeaway || entry.arjunPattern) ? (
-          <DetailSection heading={r.review.noticedLabel} testId="mj-detail-review">
-            {entry.arjunNoticed ? <VerbatimText>{entry.arjunNoticed}</VerbatimText> : null}
-            {entry.arjunPattern ? (
-              <div className="mt-3 pt-3 border-t border-dark-600">
-                <p className="text-micro font-bold text-slt uppercase tracking-wide mb-1.5">{r.review.patternLabel}</p>
-                <VerbatimText>{entry.arjunPattern}</VerbatimText>
-              </div>
-            ) : null}
-            {entry.arjunTakeaway ? (
-              <div className="mt-3 pt-3 border-t border-dark-600">
-                <p className="text-micro font-bold text-slt uppercase tracking-wide mb-1.5">{r.review.takeawayLabel}</p>
-                <VerbatimText>{entry.arjunTakeaway}</VerbatimText>
-              </div>
-            ) : null}
-          </DetailSection>
+        {/* ── 2. Arjun's Analysis ─────────────────────────────────────────
+            The stored arjunNoticed text, rendered verbatim. Prominent, but
+            deliberately a normal elevated surface so the Takeaway below it
+            stays the strongest thing on the screen. Omitted entirely when a
+            legacy or review-failed entry has none. */}
+        {isReflection && entry.arjunNoticed ? (
+          <div className="journal-panel elevation-card mb-3 text-left" data-testid="mj-detail-analysis">
+            <BlockHeading tone="journal">{d.analysisHeading}</BlockHeading>
+            <VerbatimText>{entry.arjunNoticed}</VerbatimText>
+          </div>
         ) : null}
 
-        {!isReflection && stateTags.length > 0 ? (
-          <DetailSection heading={d.statesHeading} testId="mj-detail-states">
-            <div className="flex flex-wrap gap-1.5">
-              {stateTags.map((label, idx) => (
-                <span
-                  key={`${label}-${idx}`}
-                  className="inline-flex items-center px-2.5 py-1 rounded-full text-caption font-semibold bg-dark-700 text-ink border border-dark-600 max-w-full break-words"
-                >
-                  {label}
-                </span>
+        {/* ── 3. Takeaway — the strongest violet emphasis on this screen.
+            One stored line, no raw answers inside it. */}
+        {isReflection && entry.arjunTakeaway ? (
+          <div className="journal-panel-strong elevation-card mb-3 text-left" data-testid="mj-detail-takeaway">
+            <BlockHeading tone="journal">{d.takeawayHeading}</BlockHeading>
+            <VerbatimText>{entry.arjunTakeaway}</VerbatimText>
+          </div>
+        ) : null}
+
+        {/* ── 4. Pattern noticed — conditional and quieter than the
+            Takeaway. Only ever the stored text; never derived here, and no
+            counts or metrics are added. */}
+        {isReflection && entry.arjunPattern ? (
+          <Card className="p-4 mb-3 elevation-row text-left" data-testid="mj-detail-pattern">
+            <BlockHeading>{d.patternHeading}</BlockHeading>
+            <p className="text-caption text-slt leading-relaxed break-words whitespace-pre-wrap">
+              {entry.arjunPattern}
+            </p>
+          </Card>
+        ) : null}
+
+        {/* ── 5. Reflection Snapshot — one compact block with short labels,
+            replacing the five large question cards. */}
+        {SNAPSHOT_ROWS.length > 0 ? (
+          <Card className="p-4 mb-3 elevation-card text-left" data-testid="mj-detail-snapshot">
+            <BlockHeading>{d.snapshotHeading}</BlockHeading>
+            <dl className="space-y-2.5">
+              {SNAPSHOT_ROWS.map(([label, value]) => (
+                <div key={label} className="flex items-start gap-3">
+                  <dt className="text-caption text-slt shrink-0 w-[7.5rem] leading-snug">{label}</dt>
+                  <dd className="text-caption font-semibold text-ink flex-1 min-w-0 leading-snug break-words">{value}</dd>
+                </div>
               ))}
-            </div>
-          </DetailSection>
+            </dl>
+          </Card>
         ) : null}
 
+        {/* ── 6. Show all answers — collapsed by default, visually
+            secondary, and never a separate route. */}
+        {FULL_ANSWERS.length > 0 ? (
+          <div className="mb-3">
+            <button
+              type="button"
+              onClick={() => setAnswersOpen(o => !o)}
+              aria-expanded={answersOpen}
+              aria-controls={answersId}
+              data-testid="mj-answers-toggle"
+              className="w-full flex items-center justify-between gap-2 min-h-[44px] px-3.5 rounded-2xl border border-dark-600 bg-dark-800 text-caption font-semibold text-slt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+            >
+              {answersOpen ? d.hideAnswers : d.showAnswers}
+              <ChevronDown
+                size={16}
+                aria-hidden="true"
+                className={`shrink-0 transition-transform ${answersOpen ? 'rotate-180' : ''}`}
+              />
+            </button>
+
+            {answersOpen ? (
+              <div id={answersId} className="mt-2 space-y-2" data-testid="mj-answers-panel">
+                {FULL_ANSWERS.map(([question, value, testId]) => (
+                  <Card key={testId} className="p-3.5 text-left" data-testid={testId}>
+                    <p className="text-micro font-semibold text-slt leading-snug mb-1 break-words">{question}</p>
+                    <p className="text-caption text-ink leading-relaxed break-words whitespace-pre-wrap">{value}</p>
+                  </Card>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        {/* ── Legacy entries — quick notes, older guided reflections and
+            pre-guided rows keep their own simpler treatment. They never had
+            an analysis, a takeaway or the structured answer set, so nothing
+            is forced into fields they do not have. Their states already sit
+            in the summary above, so only their written content follows. */}
         {!isGuided && note ? (
           <DetailSection heading={d.noteHeading} testId="mj-detail-note">
             <VerbatimText>{note}</VerbatimText>
@@ -278,6 +398,8 @@ export default function ReflectionDetailPage() {
           </DetailSection>
         ) : null}
 
+        {/* ── 7. Delete — unchanged behaviour, unchanged confirmation,
+            unchanged API and unchanged navigation after delete. */}
         {deleteError ? (
           <p role="alert" className="text-caption text-amber-400 leading-snug mb-3" data-testid="mj-delete-error">
             {deleteError}

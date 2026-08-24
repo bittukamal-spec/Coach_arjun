@@ -104,6 +104,21 @@
   --accent-teal:        #13776F;
   --surface-warn:       #FFF7ED;              /* warning notice body */
   --border-warn:        #FED7AA;              /* warning notice hairline */
+
+  /* ── Mind Journal (journal/*) ────────────────────────────────────────────
+     The journal's own violet identity, scoped to Mind Journal surfaces only —
+     these five tokens are the whole addition, and no existing token changes.
+     Same reasoning as --accent-amber/--accent-teal above: the raw --purple
+     (#8B5CF6) measures only ~3.9:1 as TEXT on a light card, so the light
+     theme uses a darker violet of the same hue (7.0:1 on card, 6.4:1 on the
+     journal tint) and the dark theme uses a lighter one (7.4:1 on card).
+     --journal-hero-* is a gradient behind white text, so it is deliberately
+     identical in both themes, exactly like .card-hero's other instances. */
+  --journal-accent:     #6D28D9;              /* tag/heading/icon violet — text-safe */
+  --journal-surface:    #F5F3FF;              /* subtle violet tint behind tags and the takeaway */
+  --journal-border:     #DDD6FE;              /* violet hairline */
+  --journal-hero-from:  #7C3AED;
+  --journal-hero-to:    #4C1D95;
 }
 
 /* OS prefers dark — applies when arjun_theme = 'system' (no data-theme attr) */
@@ -150,6 +165,11 @@
     --accent-teal:       #22D3C5; /* raw --teal already clears AA (7.2:1+) on every dark surface */
     --surface-warn:      var(--card-muted); /* #1B3044 */
     --border-warn:       #4A3A17;
+    /* Mind Journal — lighter violet for text on dark, and a violet-tinted
+       surface/hairline that still reads as part of the dark card family. */
+    --journal-accent:    #C4B5FD;
+    --journal-surface:   #221C3A;
+    --journal-border:    #3B3168;
   }
 }
 
@@ -196,6 +216,10 @@
   --accent-teal:       #22D3C5; /* raw --teal already clears AA (7.2:1+) on every dark surface */
   --surface-warn:      var(--card-muted); /* #1B3044 */
   --border-warn:       #4A3A17;
+  /* Mind Journal — see the media-query block above. */
+  --journal-accent:    #C4B5FD;
+  --journal-surface:   #221C3A;
+  --journal-border:    #3B3168;
 }
 
 @layer utilities {
@@ -431,5 +455,35 @@
   /* Info-stat mini tile — duration / best-for / goal row on tool intros */
   .info-stat {
     @apply flex-1 rounded-2xl border border-dark-600 bg-dark-800 px-3 py-2.5 text-center;
+  }
+
+  /* ── Mind Journal recipes ────────────────────────────────────────────────
+     Built on the journal/* tokens, so both themes come from the same rules
+     and neither surface needs a theme-specific layout. */
+
+  /* Reflection context tag — ONE treatment for every context. Training, a
+     match, confidence/pressure, a tough moment, recovery and the rest all
+     render identically: the label carries the meaning, colour never encodes
+     which context it is. Deliberately a single class rather than a
+     per-category map, so a future category cannot invent its own colour. */
+  .journal-tag {
+    @apply inline-flex items-center max-w-full text-[10.5px] font-bold uppercase px-2 py-1 rounded-md break-words;
+    letter-spacing: 0.06em;
+    background: var(--journal-surface);
+    border: 1px solid var(--journal-border);
+    color: var(--journal-accent);
+  }
+
+  /* Journal card that carries the violet identity without becoming a hero:
+     used by Arjun's Analysis and, with the -strong variant, the Takeaway. */
+  .journal-panel {
+    @apply rounded-2xl border p-4;
+    background: var(--surface-card);
+    border-color: var(--journal-border);
+  }
+  .journal-panel-strong {
+    @apply rounded-2xl border p-4;
+    background: var(--journal-surface);
+    border-color: var(--journal-accent);
   }
 }

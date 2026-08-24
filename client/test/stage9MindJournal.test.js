@@ -19,6 +19,7 @@ const root = path.join(__dirname, '..');
 
 const mindJournal = readFileSync(path.join(root, 'src/pages/MindJournalPage.jsx'), 'utf8');
 const contextScreen = readFileSync(path.join(root, 'src/pages/mindJournal/ArjunContextPage.jsx'), 'utf8');
+const aiAccess = readFileSync(path.join(root, 'src/components/mindJournal/AiAccessPopover.jsx'), 'utf8');
 
 // ── No scores, diagnosis, profiling, or auto-prescription copy ─────────────
 
@@ -47,28 +48,44 @@ test('MindJournalPage: uses semantic spacing/type tokens (px-page, text-body/cap
 
 // ── Preserve Mind Journal privacy / opt-in and non-translation of athlete text ──
 
-// The opt-in moved off the landing screen onto its own Arjun-context screen
-// (PR 2A), so the guarantee is asserted where the control now lives. The
-// landing screen only reports the value and must not be able to change it.
+// The opt-in defaults to off and only ever changes by an explicit action.
+// Two surfaces now offer it — the dedicated /mind-journal/context screen
+// (still routed for old deep links) and the Mind Journal header's popover —
+// and both read the same server value and write the same endpoint. The
+// guarantee is asserted on each.
 test('Arjun context screen: opt-in still defaults to false and is only changed by explicit user action', () => {
   assert.match(contextScreen, /const \[contextEnabled, setContextEnabled\] = useState\(false\);/);
   assert.match(contextScreen, /onChange=\{handleContextToggle\}/);
 });
 
-test('MindJournalPage: reports the context setting but carries no control that could change it', () => {
+test('AI-access popover: the same opt-in defaults to off and is only changed by explicit user action', () => {
+  // The value is owned by the page's existing GET, which starts false, and
+  // the popover changes it only from an onChange the athlete triggered.
   assert.match(mindJournal, /const \[contextEnabled, setContextEnabled\] = useState\(false\);/);
-  assert.doesNotMatch(mindJournal, /type="checkbox"/, 'the landing screen must not host the opt-in control');
-  assert.doesNotMatch(mindJournal, /method: 'PATCH'/, 'the landing screen must never write the context setting');
+  assert.match(aiAccess, /onChange=\{handleToggle\}/);
+  assert.match(aiAccess, /checked=\{contextEnabled\}/);
+});
+
+test('MindJournalPage: hosts no toggle of its own — the popover owns the single write path', () => {
+  assert.doesNotMatch(mindJournal, /type="checkbox"/, 'the landing screen must not host a second opt-in control');
+  assert.doesNotMatch(mindJournal, /method: 'PATCH'/, 'the landing screen must never write the context setting itself');
+  // Exactly one write path across the Mind Journal home surface.
+  assert.equal((aiAccess.match(/method: 'PATCH'/g) || []).length, 1);
 });
 
 test('MindJournalPage: athlete-authored note/entry text is rendered verbatim, never passed through translation', () => {
-  // Quick notes and legacy rows preview through `preview`, guided
-  // reflections add the labelled take-forward line — both render the raw
-  // stored string, never a lookup keyed by it.
-  assert.match(mindJournal, /\{showPreview &&[\s\S]*?\{preview\}/);
-  assert.match(mindJournal, /\{entry\.takeForward\}/);
+  // A card's title is the athlete's own words when they wrote any (a custom
+  // event, a guided answer, a quick note) and Arjun's stored takeaway
+  // previews below it. Both render the raw stored string, never a lookup
+  // keyed by it.
+  assert.match(mindJournal, /\{title\}/);
+  assert.match(mindJournal, /entry\.customEvent/);
+  assert.match(mindJournal, /isGuided \? guidedPreview\(entry\) : entry\.note/);
+  assert.match(mindJournal, /\{takeaway\}/);
+  const cardBody = mindJournal.slice(mindJournal.indexOf('const title ='), mindJournal.indexOf('export default function'));
   assert.doesNotMatch(
-    mindJournal.slice(mindJournal.indexOf('{showPreview'), mindJournal.indexOf('{entry.takeForward}')),
-    /translations\[|mj\.(states|contextTypes)\[preview\]/
+    cardBody,
+    /translations\[|mj\.(states|contextTypes)\[(title|takeaway|preview)\]/,
+    'athlete text is never used as a translation key'
   );
 });
