@@ -95,6 +95,8 @@ app.use('/api/founder',         require('./routes/founder'));
 app.use('/api/founder/auth',            require('./routes/founderAuth'));
 app.use('/api/founder/safety-events',   require('./routes/founderSafetyEvents'));
 app.use('/api/founder/pilot-overview',  require('./routes/founderPilotOverview'));
+app.use('/api/founder/pilot-communications', require('./routes/founderPilotCommunications'));
+app.use('/api/pilot-communications',    require('./routes/pilotCommunications'));
 app.use('/api/safety',          require('./routes/safety'));
 app.use('/api/contact',         require('./routes/contact'));
 

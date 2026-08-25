@@ -132,6 +132,8 @@ model User {
   onboardingSessions       OnboardingSession[]
   startingProfiles         StartingPerformanceProfile[]
   currentCoachingFocus     CurrentCoachingFocus?
+  pilotCommunicationTargets   PilotCommunicationTarget[]
+  pilotCommunicationResponses PilotCommunicationResponse[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -989,4 +991,128 @@ model CurrentCoachingFocus {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ── Pilot Communications v1 ─────────────────────────────────────────────────
+// Founder → pilot-athlete announcements and one-question structured surveys.
+// Product/operational communication only — deliberately never fed into Coach
+// context, Mind Journal, Arjun Review, ToolReport, Mental Rep, skill
+// progression, XP, streaks, or safety interpretation (enforced on the read
+// side in routes/pilotCommunications.js and founderPilotCommunications.js).
+//
+// "Pilot athlete" reuses the ONE existing, unqualified definition this
+// codebase already has: every row in User (see routes/founderPilotOverview.js
+// and routes/founder.js, both of which treat the full User table as the
+// pilot population — there is no separate isPilot flag or pilot-membership
+// model anywhere in this schema). No second concept of "pilot athlete" is
+// introduced here.
+enum PilotCommunicationType {
+  ANNOUNCEMENT
+  SURVEY
+}
+
+// Structured shapes only — v1 never stores free text from an athlete.
+enum SurveyResponseType {
+  YES_SOMEWHAT_NO
+  RATING_1_5
+  CUSTOM_SINGLE_CHOICE
+}
+
+model PilotCommunication {
+  id   String                 @id @default(cuid())
+  type PilotCommunicationType
+
+  title String // founder-authored, plain text, max 100 chars (server-enforced)
+  body  String // founder-authored, plain text, max 500 chars (server-enforced)
+
+  // Optional CTA — an approved INTERNAL route only, checked at create-time
+  // against a small server allowlist (founderPilotCommunications.js's
+  // CTA_ROUTE_ALLOWLIST, sourced from client/src/App.jsx's live routes).
+  // Never an arbitrary external URL — there is no column here that could
+  // hold one.
+  ctaRoute String?
+  ctaLabel String? // max ~30 chars (server-enforced)
+
+  // Audience choice captured at create time. "ALL" is re-resolved into
+  // PilotCommunicationTarget rows at PUBLISH time (see that model's own
+  // comment) so the snapshot reflects pilot membership as of publish, not
+  // as of the draft. "SELECTED" targets are created immediately at create
+  // time, since an explicit founder-picked athlete list has no such
+  // staleness concern either way.
+  audienceMode String // "ALL" | "SELECTED"
+
+  // SURVEY only. A JSON string array — same convention already used for
+  // User.goals / User.ritualSteps — only meaningful when
+  // responseType === CUSTOM_SINGLE_CHOICE (2–5 short options,
+  // server-enforced on write).
+  responseType    SurveyResponseType?
+  responseOptions String              @default("[]")
+
+  isActive    Boolean   @default(false)
+  publishedAt DateTime?
+
+  targets   PilotCommunicationTarget[]
+  responses PilotCommunicationResponse[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive, publishedAt])
+}
+
+// Explicit per-athlete targeting, one row per (communication, athlete) —
+// never a loose JSON array of user ids. For "all pilot athletes" this is
+// resolved and snapshotted ONCE at publish time (current User list at that
+// moment), so a later-joining athlete never inherits an old communication
+// and the founder's target/seen/response counts stay accurate against who
+// was actually targeted. Publishing never re-resolves an already-published
+// communication, so pilot-membership changes after publish never silently
+// re-target it.
+model PilotCommunicationTarget {
+  id              String             @id @default(cuid())
+  communicationId String
+  communication   PilotCommunication @relation(fields: [communicationId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt       DateTime           @default(now())
+
+  @@unique([communicationId, userId])
+  @@index([userId])
+}
+
+// One row per (communication, athlete) — seen / defer / dismiss / response
+// state. Created lazily on the athlete's first interaction (no row yet means
+// "not seen"). Deliberately has no free-text field anywhere on this model —
+// see the safety note above the enum block: survey answers are always one
+// of the three structured shapes, never athlete-authored text.
+model PilotCommunicationResponse {
+  id              String             @id @default(cuid())
+  communicationId String
+  communication   PilotCommunication @relation(fields: [communicationId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  seenAt DateTime? // set once, first time the popup was actually presented; never overwritten
+
+  // Survey "Not now": 0 = never deferred, 1 = deferred once (still
+  // eligible on a later visit), 2+ = the second "Not now" — dismissedAt is
+  // also set at that point (permanent).
+  deferCount Int @default(0)
+
+  // Announcement: any dismiss. Survey: the second "Not now". Either way,
+  // once set the communication is permanently ineligible for this athlete.
+  dismissedAt DateTime?
+
+  // Structured response only — "yes" | "somewhat" | "no", "1".."5", or one
+  // of the communication's own responseOptions, depending on the
+  // communication's responseType. Never free text. Answers are not
+  // editable in v1: once respondedAt is set, this value does not change.
+  responseValue String?
+  respondedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([communicationId, userId])
+  @@index([userId])
 }

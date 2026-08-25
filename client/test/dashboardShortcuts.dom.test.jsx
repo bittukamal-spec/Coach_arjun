@@ -28,15 +28,20 @@ vi.mock('../src/contexts/AuthContext', () => ({
   }),
 }));
 
-// Home no longer calls any API of its own — it used to fetch /api/playbook
-// purely to gate a loading skeleton — so the module is mocked only to prove
-// that nothing on this page reaches for it.
+// Home itself still calls no API of its own — it used to fetch
+// /api/playbook purely to gate a loading skeleton, and that is still gone.
+// The mock's never-resolving promise now also backs the ONE legitimate
+// fetch Home fires indirectly, via the mounted PilotCommunicationPopup
+// (Pilot Communications v1) — see the "no loading skeleton" test below for
+// the updated, precise assertion.
 vi.mock('../src/api', () => ({
   apiFetch: vi.fn(() => new Promise(() => {})),
 }));
 
 // Real component, mounted for real.
 const { default: Dashboard } = await import('../src/pages/Dashboard.jsx');
+const { __resetPilotCommunicationLoadStateForTests } =
+  await import('../src/components/pilotCommunications/PilotCommunicationPopup.jsx');
 
 // A minimal stand-in for the real /coaching destination. It mirrors the
 // exact contract ChatPage's prefillMsgRef mechanism promises: the
@@ -74,6 +79,7 @@ beforeEach(async () => {
   sendMock = vi.fn();
   const { apiFetch } = await import('../src/api');
   apiFetch.mockClear();
+  __resetPilotCommunicationLoadStateForTests();
 });
 
 afterEach(() => {
@@ -93,7 +99,7 @@ describe('Dashboard problem shortcuts — real router integration', () => {
     expect(nervousLink.closest('main')).toBe(heading.closest('main'));
   });
 
-  test('Home renders its four sections with no API call and no loading skeleton', async () => {
+  test('Home renders its four sections immediately, with no loading skeleton', async () => {
     const { apiFetch } = await import('../src/api');
     render(<TestApp />);
 
@@ -102,7 +108,13 @@ describe('Dashboard problem shortcuts — real router integration', () => {
     expect(screen.getByText('Mind Journal')).toBeTruthy();
     expect(screen.getByText('Talk to Arjun')).toBeTruthy();
     expect(screen.getByText('Pick what you need now')).toBeTruthy();
-    expect(apiFetch).not.toHaveBeenCalled();
+
+    // Home itself still fetches nothing — the ONE call made here is the
+    // mounted PilotCommunicationPopup (Pilot Communications v1) checking
+    // for a pending founder communication, not Home gating its own render
+    // behind a request the way the old /api/playbook call once did.
+    expect(apiFetch).toHaveBeenCalledTimes(1);
+    expect(apiFetch.mock.calls[0][0]).toBe('/api/pilot-communications/next');
   });
 
   test('the "What\'s today?" selector and its recommended practice are gone from Home', async () => {

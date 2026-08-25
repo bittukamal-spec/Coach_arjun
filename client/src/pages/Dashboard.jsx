@@ -6,6 +6,7 @@ import { translations } from '../i18n/translations';
 import { ChevronRight, MessageCircle, CloudRain, RefreshCw, Crosshair, TrendingUp, NotebookPen } from 'lucide-react';
 import { CardWaves } from '../components/visuals/CardArt';
 import TrainGradientCard from '../components/train/TrainGradientCard';
+import PilotCommunicationPopup from '../components/pilotCommunications/PilotCommunicationPopup';
 
 // Problem shortcuts — all four enter Coach with a visible, unsent prefill
 // instead of jumping straight to a tool. Stable internal starter values,
@@ -46,6 +47,11 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-dark-900">
       <Navbar />
+
+      {/* Pilot Communications v1 — at most one popup per app load, fetched
+          and gated entirely by the component itself. Renders nothing when
+          there is no eligible communication. */}
+      <PilotCommunicationPopup />
 
       <main className="max-w-lg mx-auto px-4 pt-14 pb-24 animate-fade-in">
         {/* ── Guardian consent pending (under-18 accounts) ──────────────── */}
