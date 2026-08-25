@@ -2123,6 +2123,19 @@ export const translations = {
       no:       'No',
       ratingAria: (n) => `Rating ${n} of 5`,
     },
+
+    // App Update Prompt (PWA) — the fixed "Arjun has an update" copy shown
+    // when a genuinely newer service worker is waiting. Separate namespace
+    // from pilotCommunications on purpose: this is a client/PWA-infra
+    // concern, not a product-communication one.
+    appUpdate: {
+      title:       'Arjun has an update',
+      body:        'Refresh to get the latest version.',
+      refreshNow:  'Refresh now',
+      later:       'Later',
+      refreshing:  'Refreshing…',
+      closeAria:   'Later',
+    },
   },
 
   hi: {
@@ -4205,6 +4218,15 @@ export const translations = {
       somewhat: 'थोड़ा बहुत',
       no:       'नहीं',
       ratingAria: (n) => `Rating ${n}, 5 में से`,
+    },
+
+    appUpdate: {
+      title:       'Arjun का update आया है',
+      body:        'सबसे नया version पाने के लिए Refresh करो।',
+      refreshNow:  'अभी Refresh करो',
+      later:       'बाद में',
+      refreshing:  'Refresh हो रहा है…',
+      closeAria:   'बाद में',
     },
   },
 };

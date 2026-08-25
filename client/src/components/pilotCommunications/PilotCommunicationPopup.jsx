@@ -36,6 +36,7 @@ import { X } from 'lucide-react';
 import { apiFetch } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
 import { translations } from '../../i18n/translations';
+import { useIsUpdateDetected } from '../../hooks/useOverlayPriority';
 
 let hasResolvedThisLoad = false;
 
@@ -64,6 +65,17 @@ export default function PilotCommunicationPopup() {
 
   const panelRef = useRef(null);
   const headingRef = useRef(null);
+
+  // Overlay precedence: the App Update Prompt outranks Pilot Communication
+  // (see hooks/useOverlayPriority.js — a domain-neutral shared LATCH, not
+  // a dependency on the update system itself). Nothing else about this
+  // component's state machine changes: fetching/seen-marking still runs
+  // exactly as before; only the render is suppressed below. Deliberately
+  // does NOT reappear after the athlete taps Later on the update prompt —
+  // once a genuine update has been detected, this stays suppressed for
+  // the rest of the current app load; only a fresh app load (a new JS
+  // module instance, which resets the latch) lets it show again.
+  const updateDetected = useIsUpdateDetected();
 
   useEffect(() => {
     if (hasResolvedThisLoad || !token) return;
@@ -110,6 +122,7 @@ export default function PilotCommunicationPopup() {
   }, [communication]);
 
   if (!communication) return null;
+  if (updateDetected) return null;
 
   const isSurvey = communication.type === 'SURVEY';
 

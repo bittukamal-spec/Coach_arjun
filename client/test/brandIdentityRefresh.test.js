@@ -266,7 +266,11 @@ test('the obsolete purple asset files stay deleted from public/', () => {
 
 test('PWA registration, install behaviour and app identity are untouched', () => {
   assert.match(viteConfig, /VitePWA\(\{/);
-  assert.match(viteConfig, /registerType: 'autoUpdate'/);
+  // registerType intentionally flipped 'autoUpdate' -> 'prompt' by the
+  // dedicated App Update Prompt PR (see appUpdatePromptSource.test.js,
+  // which pins this exact value going forward) — every other PWA/app-
+  // identity field below is still asserted unchanged.
+  assert.match(viteConfig, /registerType: 'prompt'/);
   assert.match(viteConfig, /short_name: 'Arjun'/);
   assert.match(viteConfig, /display: 'standalone'/);
   assert.match(viteConfig, /scope: '\/'/);
