@@ -107,6 +107,85 @@ describe('PilotCommunicationPopup — athlete surface', () => {
     await waitFor(() => expect(apiFetch).toHaveBeenCalledWith('/api/pilot-communications/c1/seen', expect.objectContaining({ method: 'POST' })));
   });
 
+  // ── Positioning: centered modal, never a bottom sheet ──────────────────
+  //
+  // BottomNav is `fixed bottom-0 … z-50` and mounts as a sibling on Home,
+  // so a bottom-anchored sheet at the same z-index had its lower edge
+  // (often the Submit/CTA button) painted over on real phones — every
+  // phone width in this app's target range only ever hits the mobile
+  // branch. These assertions pin the fix at the class level (jsdom does no
+  // real layout, so this is the correct — and only reliable — way to prove
+  // it from a DOM test): centered unconditionally, never bottom-anchored,
+  // and stacked strictly above BottomNav's z-50.
+
+  test('the dialog wrapper centers on every viewport — no bottom-anchored branch', async () => {
+    apiFetch.mockImplementation(async (path) => {
+      if (path === '/api/pilot-communications/next') return jsonResponse({ communication: announcement });
+      return jsonResponse({ ok: true });
+    });
+    render(<TestApp />);
+    const dialog = await screen.findByRole('dialog');
+
+    const wrapper = dialog.parentElement;
+    expect(wrapper.className).toMatch(/\bitems-center\b/);
+    expect(wrapper.className).not.toMatch(/items-end/);
+    expect(wrapper.className).not.toMatch(/sm:items-center/);
+  });
+
+  test('the dialog wrapper paints above BottomNav (z-50) — never underneath app chrome', async () => {
+    apiFetch.mockImplementation(async (path) => {
+      if (path === '/api/pilot-communications/next') return jsonResponse({ communication: announcement });
+      return jsonResponse({ ok: true });
+    });
+    render(<TestApp />);
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog.parentElement.className).toMatch(/z-\[60\]/);
+  });
+
+  test('the dialog panel is never rounded only at the top (no bottom-sheet corner treatment)', async () => {
+    apiFetch.mockImplementation(async (path) => {
+      if (path === '/api/pilot-communications/next') return jsonResponse({ communication: announcement });
+      return jsonResponse({ ok: true });
+    });
+    render(<TestApp />);
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog.className).not.toMatch(/rounded-t-/);
+    expect(dialog.className).toMatch(/rounded-3xl/);
+  });
+
+  test('the dialog panel is capped to a narrow mobile width (~320-360px), not a full-bleed sheet', async () => {
+    apiFetch.mockImplementation(async (path) => {
+      if (path === '/api/pilot-communications/next') return jsonResponse({ communication: announcement });
+      return jsonResponse({ ok: true });
+    });
+    render(<TestApp />);
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog.className).toMatch(/max-w-\[340px\]/);
+  });
+
+  test('the dialog panel is the only element that scrolls when content is long (bounded height + own overflow)', async () => {
+    apiFetch.mockImplementation(async (path) => {
+      if (path === '/api/pilot-communications/next') return jsonResponse({ communication: announcement });
+      return jsonResponse({ ok: true });
+    });
+    render(<TestApp />);
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog.className).toMatch(/max-h-\[85vh\]/);
+    expect(dialog.className).toMatch(/overflow-y-auto/);
+  });
+
+  test('the same centered, non-bottom-sheet wrapper is used for the survey variant too', async () => {
+    apiFetch.mockImplementation(async (path) => {
+      if (path === '/api/pilot-communications/next') return jsonResponse({ communication: yesSomewhatNoSurvey });
+      return jsonResponse({ ok: true });
+    });
+    render(<TestApp />);
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog.parentElement.className).toMatch(/\bitems-center\b/);
+    expect(dialog.parentElement.className).not.toMatch(/items-end/);
+    expect(dialog.className).not.toMatch(/rounded-t-/);
+  });
+
   test('an announcement popup carries no free-text input anywhere', async () => {
     apiFetch.mockImplementation(async (path) => {
       if (path === '/api/pilot-communications/next') return jsonResponse({ communication: announcement });
