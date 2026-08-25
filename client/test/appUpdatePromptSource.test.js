@@ -71,8 +71,20 @@ test('the shared overlay-priority module\'s CODE is domain-neutral — it never 
   assert.doesNotMatch(overlayPriorityCode, /serviceWorker|useRegisterSW|virtual:pwa-register/i);
 });
 
-test('PilotCommunicationPopup reads the shared overlay flag but its CODE does not import AppUpdatePrompt or PWA/service-worker code', () => {
-  assert.match(pilotPopup, /useIsUpdatePromptActive/);
+test('the overlay latch is one-way — markUpdateDetected takes no parameter to unset it', () => {
+  assert.match(overlayPriorityCode, /export function markUpdateDetected\(\)\s*\{/);
+});
+
+test('AppUpdatePrompt never re-arms/unsets the shared latch — Later, close, or unmount never call it with false or reset it', () => {
+  assert.doesNotMatch(appUpdatePromptCode, /markUpdateDetected\(\s*false\s*\)/);
+  // The old live-mirror pattern this replaced always synced on every
+  // needRefresh change and reset on unmount — neither exists any more.
+  assert.doesNotMatch(appUpdatePromptCode, /setUpdatePromptActive/);
+  assert.match(appUpdatePromptCode, /if \(needRefresh\) markUpdateDetected\(\);?/);
+});
+
+test('PilotCommunicationPopup reads the shared overlay latch but its CODE does not import AppUpdatePrompt or PWA/service-worker code', () => {
+  assert.match(pilotPopup, /useIsUpdateDetected/);
   assert.doesNotMatch(pilotPopupCode, /AppUpdatePrompt/);
   assert.doesNotMatch(pilotPopupCode, /virtual:pwa-register|useRegisterSW|serviceWorker/i);
 });

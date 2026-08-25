@@ -18,14 +18,17 @@
 // doing so would risk exactly the double-reload/loop this pattern avoids.
 //
 // Priority over Pilot Communication is enforced by hooks/useOverlayPriority.js
-// — a tiny domain-neutral shared flag. This file never imports anything
+// — a tiny domain-neutral shared LATCH, not a live mirror of this
+// component's own visibility: once needRefresh is ever true, Pilot
+// Communication stays suppressed for the rest of this app load, even
+// after the athlete taps Later here. This file never imports anything
 // from components/pilotCommunications/*, and never touches its API/state.
 
 import { useEffect, useRef, useState } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
-import { setUpdatePromptActive } from '../hooks/useOverlayPriority';
+import { markUpdateDetected } from '../hooks/useOverlayPriority';
 
 const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), textarea, select, [tabindex]:not([tabindex="-1"])';
 // Don't re-check on every rapid app-switch/tab-focus flap — once a minute
@@ -73,13 +76,15 @@ export default function AppUpdatePrompt() {
     return () => document.removeEventListener('visibilitychange', onVisibilityChange);
   }, []);
 
-  // The one line that talks to the outside world: keep the shared
-  // overlay-priority flag (hooks/useOverlayPriority.js) in sync with our
-  // own visibility, so PilotCommunicationPopup defers to us automatically.
+  // The one line that talks to the outside world: latch the shared
+  // overlay-priority flag (hooks/useOverlayPriority.js) the first time a
+  // genuine update is detected. Deliberately one-directional — this is
+  // never called with `false`, and Later (below) never undoes it, so
+  // Pilot Communication stays suppressed for the rest of this app load
+  // even once this prompt itself has closed.
   useEffect(() => {
-    setUpdatePromptActive(needRefresh);
+    if (needRefresh) markUpdateDetected();
   }, [needRefresh]);
-  useEffect(() => () => setUpdatePromptActive(false), []); // clear on unmount, defensively
 
   useEffect(() => {
     if (!needRefresh) return undefined;
