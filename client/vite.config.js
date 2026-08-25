@@ -6,7 +6,12 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // 'prompt' (not 'autoUpdate'): a new service worker installs and
+      // stays WAITING instead of silently skip-waiting + clients-claiming
+      // itself in. AppUpdatePrompt.jsx (useRegisterSW) is what turns that
+      // waiting worker into a visible "Arjun has an update" prompt and
+      // activates it only on the athlete's own Refresh now tap.
+      registerType: 'prompt',
       includeAssets: [
         'favicon.ico',
         'brand/arjun/favicon-16.png',
