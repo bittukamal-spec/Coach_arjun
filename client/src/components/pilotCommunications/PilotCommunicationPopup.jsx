@@ -1,10 +1,21 @@
 // Pilot Communications v1 — the ONE popup Home may show per app load.
 //
-// Not a page, not a notification inbox: a single Arjun-native bottom-sheet
-// dialog (same accessible-dialog pattern as ChangeFocusDialog/ModalDialog —
-// role="dialog", focus moved in on open, Tab trapped inside, Escape closes,
-// focus returned to the trigger's owner on close) that fetches at most ONE
-// eligible communication and renders it inline on Home.
+// Not a page, not a notification inbox: a single Arjun-native CENTERED
+// modal dialog (same accessible-dialog semantics as ChangeFocusDialog/
+// ModalDialog — role="dialog", focus moved in on open, Tab trapped inside,
+// Escape closes, focus returned to the trigger's owner on close) that
+// fetches at most ONE eligible communication and renders it inline on
+// Home.
+//
+// Deliberately centered, not bottom-anchored: BottomNav (components/
+// BottomNav.jsx) is `fixed bottom-0 … z-50` and mounts as Dashboard's
+// sibling, so a bottom sheet at the same z-index had its lower edge
+// (frequently the Submit/CTA button) painted over by the nav bar on real
+// phones — those only ever hit the mobile `items-end` branch, never the
+// `sm:items-center` one. Centering removes the geometric overlap entirely,
+// and the wrapper's own z-[60] (one above every other z-50 fixed element
+// in this app, BottomNav included) is the belt-and-braces guarantee that
+// this dialog always paints above app chrome even if that ever changes.
 //
 // Every close path before a positive action (X, Escape, backdrop click) is
 // treated as the one negative action this feature actually models for that
@@ -204,7 +215,12 @@ export default function PilotCommunicationPopup() {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+    // Centered on every viewport (no `items-end`/bottom-sheet branch) with
+    // comfortable side margins from the wrapper's own padding — never
+    // anchored to the bottom edge, so it can never sit under BottomNav.
+    // z-[60] is deliberately above z-50, the highest z-index anything else
+    // in this app (including BottomNav and Navbar) uses.
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
       <div
         className="absolute inset-0 bg-black/50"
         onClick={handleClose}
@@ -217,7 +233,11 @@ export default function PilotCommunicationPopup() {
         aria-modal="true"
         aria-labelledby="pilot-comm-heading"
         data-testid="pilot-comm-popup"
-        className="relative w-full max-w-sm max-h-[88vh] overflow-y-auto bg-dark-400 border border-dark-600 rounded-t-3xl sm:rounded-3xl px-5 pt-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))]"
+        // max-w-[340px] keeps it in the ~320–360px mobile range at every
+        // target width (360/390/430); max-h + overflow-y-auto means only
+        // this content area ever scrolls on unusually long content — the
+        // dialog itself never grows past a comfortable viewport fraction.
+        className="relative w-full max-w-[340px] max-h-[85vh] overflow-y-auto bg-dark-400 border border-dark-600 rounded-3xl p-5"
       >
         <div className="flex items-start justify-between gap-3 mb-2">
           <h2
