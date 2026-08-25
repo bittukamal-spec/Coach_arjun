@@ -1,4 +1,4 @@
-import { Activity, TrendingUp, MessageSquare, Users, CheckSquare, ShieldAlert } from 'lucide-react';
+import { Activity, TrendingUp, MessageSquare, Users, CheckSquare, ShieldAlert, Send } from 'lucide-react';
 
 const TABS = [
   { id: 'pulse',  icon: Activity,      label: 'Pulse'   },
@@ -7,6 +7,7 @@ const TABS = [
   { id: 'coach',  icon: Users,         label: 'Coach'   },
   { id: 'build',  icon: CheckSquare,   label: 'Build'   },
   { id: 'safety', icon: ShieldAlert,   label: 'Safety'  },
+  { id: 'comms',  icon: Send,          label: 'Comms'   },
 ];
 
 export default function BottomNav({ active, onChange }) {

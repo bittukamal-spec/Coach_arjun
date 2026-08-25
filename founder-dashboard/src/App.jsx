@@ -7,6 +7,7 @@ import PromptPanel from './panels/PromptPanel';
 import CoachPanel  from './panels/CoachPanel';
 import BuildPanel  from './panels/BuildPanel';
 import SafetyPanel from './panels/SafetyPanel';
+import CommunicationsPanel from './panels/CommunicationsPanel';
 import {
   founderLogin,
   founderValidateSession,
@@ -116,6 +117,7 @@ const PANELS = {
   coach:  CoachPanel,
   build:  BuildPanel,
   safety: SafetyPanel,
+  comms:  CommunicationsPanel,
 };
 
 function Dashboard({ onLogout }) {

@@ -2106,6 +2106,23 @@ export const translations = {
         arjunNoteLabel: "Arjun\'s note",
       },
     },
+
+    // Pilot Communications v1 — founder announcements + one-question
+    // surveys, shown as a small popup on Home. Only the fixed UI strings
+    // below are translated; a founder's own title/body/CTA-label/survey-
+    // option text is displayed exactly as entered, in every language.
+    pilotCommunications: {
+      close:       'Close',
+      notNow:      'Not now',
+      submit:      'Submit',
+      done:        'Done',
+      thanks:      'Thanks — this helps us improve Arjun.',
+      submitError: 'Could not save your answer. Try again.',
+      yes:      'Yes',
+      somewhat: 'Somewhat',
+      no:       'No',
+      ratingAria: (n) => `Rating ${n} of 5`,
+    },
   },
 
   hi: {
@@ -4175,6 +4192,19 @@ export const translations = {
         deleteBtn:      'हटाओ',
         arjunNoteLabel: 'अर्जुन का note',
       },
+    },
+
+    pilotCommunications: {
+      close:       'बंद करो',
+      notNow:      'अभी नहीं',
+      submit:      'Submit करो',
+      done:        'हो गया',
+      thanks:      'धन्यवाद — इससे Arjun को बेहतर बनाने में मदद मिलती है।',
+      submitError: 'Answer save नहीं हुआ। फिर कोशिश करो।',
+      yes:      'हां',
+      somewhat: 'थोड़ा बहुत',
+      no:       'नहीं',
+      ratingAria: (n) => `Rating ${n}, 5 में से`,
     },
   },
 };
