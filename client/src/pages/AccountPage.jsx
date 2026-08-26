@@ -4,8 +4,9 @@ import Navbar from '../components/Navbar';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
-import { LogOut, Trash2, ChevronRight, Shield, User, Zap, Award, Camera, Star, MessageCircle, Mail, Sparkles, Sun, MessageSquare, FileX, RefreshCw, Tag, BarChart2, Layers } from 'lucide-react';
+import { LogOut, Trash2, ChevronRight, Shield, User, Zap, Award, Camera, Star, MessageCircle, Mail, Sparkles, Sun, MessageSquare, FileX, RefreshCw, Tag, BarChart2, Layers, Bell, BellOff } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
+import { usePushNotifications, DEFAULT_REMINDER_TIME } from '../hooks/usePushNotifications';
 import { ACHIEVEMENTS, ALL_ACHIEVEMENT_KEYS } from '../data/achievements';
 
 const EXPERIENCE_LEVELS = ['beginner', 'amateur', 'competitive', 'professional'];
@@ -37,6 +38,12 @@ function AccountPage() {
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
   const fileInputRef = useRef(null);
+  const tpush = t.pushNotifications;
+  const push = usePushNotifications();
+  const [reminderTimeInput, setReminderTimeInput] = useState(DEFAULT_REMINDER_TIME);
+  useEffect(() => {
+    if (push.preference?.reminderTime) setReminderTimeInput(push.preference.reminderTime);
+  }, [push.preference?.reminderTime]);
 
   const isPremium = user?.tier === 'premium';
   const trialDaysRemaining = getTrialDaysRemaining(user);
@@ -408,6 +415,88 @@ function AccountPage() {
                 ))}
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* Push Notifications v1 */}
+        <section className="mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Bell size={16} className="text-brand-400" />
+            <h2 className="text-sm font-semibold text-slt uppercase tracking-wide">{tpush.title}</h2>
+          </div>
+          <div className="card p-5">
+            {push.status === 'loading' ? null : push.status === 'unsupported' ? (
+              <p className="text-sm text-slt">{tpush.unsupported}</p>
+            ) : push.status === 'ios-unsupported' ? (
+              <p className="text-sm text-slt">{tpush.iosUnsupported}</p>
+            ) : push.status === 'consent-required' ? (
+              <div>
+                <p className="text-sm font-medium text-ink mb-1">{tpush.consentRequiredTitle}</p>
+                <p className="text-xs text-slt">{tpush.consentRequiredBody}</p>
+              </div>
+            ) : push.status === 'denied' ? (
+              <div>
+                <p className="text-sm font-medium text-ink mb-1">{tpush.deniedTitle}</p>
+                <p className="text-xs text-slt">{tpush.deniedBody}</p>
+              </div>
+            ) : push.status === 'enabled' ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-win-400" />
+                  <p className="text-sm font-semibold text-ink">{tpush.onLabel}</p>
+                </div>
+                <div>
+                  <label htmlFor="push-reminder-time" className="text-xs text-slt font-medium block mb-1">
+                    {tpush.reminderTimeLabel}
+                  </label>
+                  <input
+                    id="push-reminder-time"
+                    type="time"
+                    value={reminderTimeInput}
+                    onChange={e => setReminderTimeInput(e.target.value)}
+                    onBlur={() => { if (reminderTimeInput !== push.preference?.reminderTime) push.updateReminderTime(reminderTimeInput); }}
+                    disabled={push.busy}
+                    className="input-field w-40"
+                  />
+                  <p className="text-[11px] text-slt mt-1">
+                    {tpush.timezoneNote(Intl.DateTimeFormat().resolvedOptions().timeZone)}
+                  </p>
+                </div>
+                <button
+                  onClick={push.disable}
+                  disabled={push.busy}
+                  className="w-full py-2.5 rounded-xl border border-dark-500 bg-dark-700 hover:bg-dark-600 text-slt text-xs font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  <BellOff size={14} />
+                  {push.busy ? tpush.turningOff : tpush.turnOffBtn}
+                </button>
+              </div>
+            ) : (
+              <div>
+                <p className="text-sm font-semibold text-ink mb-1">{tpush.promptTitle}</p>
+                <p className="text-xs text-slt mb-4">{tpush.promptBody}</p>
+                <div className="mb-4">
+                  <label htmlFor="push-reminder-time-new" className="text-xs text-slt font-medium block mb-1">
+                    {tpush.reminderTimeLabel}
+                  </label>
+                  <input
+                    id="push-reminder-time-new"
+                    type="time"
+                    value={reminderTimeInput}
+                    onChange={e => setReminderTimeInput(e.target.value)}
+                    className="input-field w-40"
+                  />
+                </div>
+                <button
+                  onClick={() => push.enable(reminderTimeInput)}
+                  disabled={push.busy}
+                  className="btn-primary w-full justify-center disabled:opacity-50"
+                >
+                  {push.busy ? tpush.enabling : tpush.enableBtn}
+                </button>
+              </div>
+            )}
+            {push.error && <p className="text-red-400 text-xs mt-3">{tpush.error}</p>}
           </div>
         </section>
 

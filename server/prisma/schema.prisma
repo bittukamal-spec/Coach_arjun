@@ -134,6 +134,8 @@ model User {
   currentCoachingFocus     CurrentCoachingFocus?
   pilotCommunicationTargets   PilotCommunicationTarget[]
   pilotCommunicationResponses PilotCommunicationResponse[]
+  pushNotificationPreference  PushNotificationPreference?
+  pushSubscriptions           PushSubscription[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1114,5 +1116,74 @@ model PilotCommunicationResponse {
   updatedAt DateTime @updatedAt
 
   @@unique([communicationId, userId])
+  @@index([userId])
+}
+
+// ── Push Notifications v1 ─────────────────────────────────────────────────
+// Optional, athlete-controlled Web Push reminders. One routine performance
+// reminder per athlete per local calendar day, at most — see
+// services/pushScheduler.js for the send-decision logic these two models
+// exist to support. Deliberately separate from PilotCommunication in every
+// respect (own models, own routes, own scheduler) — no cross-reference.
+
+// One row per athlete — the daily send decision (§ lastSentLocalDate) is
+// athlete-level, not per-device, so it belongs here rather than on
+// PushSubscription (an athlete may have several).
+model PushNotificationPreference {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  enabled Boolean @default(false)
+
+  // "HH:MM", 24-hour, local to `timezone` below — server-validated on
+  // write. Null until the athlete has ever chosen a time.
+  reminderTime String?
+  // IANA timezone (e.g. "Asia/Kolkata"), captured client-side via
+  // Intl.DateTimeFormat().resolvedOptions().timeZone at enable/update
+  // time — never inferred from IP, language, or country. Server-validated
+  // against the runtime's own supported-zone list on write.
+  timezone     String?
+
+  // "YYYY-MM-DD" in the athlete's own `timezone` — the one thing that
+  // makes "at most one reminder per athlete per local day" durable across
+  // restarts and overlapping scheduler sweeps. Set only after at least one
+  // subscription actually accepts the push that day (see pushScheduler.js)
+  // — a day where every send fails transiently leaves this unset, so a
+  // later sweep the same day may still retry.
+  lastSentLocalDate String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// One row per subscribed browser/device. A single athlete may have several
+// (phone + desktop, or a re-installed PWA) — all are sent to on a due day.
+// Never hard-deleted automatically; a terminal push-service error (404/410)
+// sets disabledAt instead, preserving the audit trail and never racing a
+// legitimate re-subscribe.
+model PushSubscription {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // The push service URL itself — inherently unique per device+browser+
+  // install (issued by the browser's push service, e.g. fcm.googleapis.com/...).
+  // Globally unique, not scoped to userId: two users can never legitimately
+  // share one endpoint, and re-subscribing the same browser updates this
+  // same row rather than creating a duplicate.
+  endpoint String @unique
+  p256dh   String
+  auth     String
+
+  // Set on a terminal (404/410) push-service response, or when the athlete
+  // disables notifications from that specific browser (logout, or the
+  // "Turn off notifications" action's current-device disable). A disabled
+  // subscription is never sent to and never deleted automatically.
+  disabledAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([userId])
 }

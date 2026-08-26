@@ -24,7 +24,8 @@
     "express-rate-limit": "^8.5.2",
     "jsonwebtoken": "^9.0.2",
     "razorpay": "^2.9.6",
-    "resend": "^4.8.0"
+    "resend": "^4.8.0",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "nodemon": "^3.0.2",

@@ -91,7 +91,30 @@ export function AuthProvider({ children }) {
     setAvatarUrl(url);
   }
 
-  function logout() {
+  async function logout() {
+    // Push Notifications v1 — best-effort, current device only: disable
+    // this browser's own PushSubscription server-side WHILE the token is
+    // still valid, so a different athlete logging in on the same device
+    // next never inherits this athlete's reminders. Never blocks or delays
+    // sign-out — unsupported browser, no active subscription, or a network
+    // failure here are all silently swallowed; only this device is
+    // touched, and browser notification permission itself is left alone.
+    try {
+      if (token && 'serviceWorker' in navigator && 'PushManager' in window) {
+        const reg = await navigator.serviceWorker.getRegistration();
+        const sub = await reg?.pushManager.getSubscription();
+        if (sub?.endpoint) {
+          await apiFetch('/api/push-notifications/unsubscribe', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ endpoint: sub.endpoint }),
+          }).catch(() => {});
+        }
+      }
+    } catch {
+      // best-effort only
+    }
+
     localStorage.removeItem('mg_token');
     localStorage.removeItem('mg_user');
     setToken(null);
