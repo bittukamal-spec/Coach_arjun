@@ -97,6 +97,7 @@ app.use('/api/founder/safety-events',   require('./routes/founderSafetyEvents'))
 app.use('/api/founder/pilot-overview',  require('./routes/founderPilotOverview'));
 app.use('/api/founder/pilot-communications', require('./routes/founderPilotCommunications'));
 app.use('/api/pilot-communications',    require('./routes/pilotCommunications'));
+app.use('/api/push-notifications',      require('./routes/pushNotifications'));
 app.use('/api/safety',          require('./routes/safety'));
 app.use('/api/contact',         require('./routes/contact'));
 
@@ -112,6 +113,11 @@ if (require.main === module) {
   app.listen(PORT, () => {
     console.log(`\n🧠 Arjun server running → http://localhost:${PORT}\n`);
   });
+
+  // Push Notifications v1 — the one shared scheduler sweep, wired once
+  // here so it runs exactly once per server process (not on every test
+  // import of `app`). See services/pushScheduler.js for the sweep itself.
+  require('./services/pushScheduler').startPushScheduler();
 }
 
 module.exports = app;

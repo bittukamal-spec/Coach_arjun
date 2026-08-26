@@ -19,6 +19,8 @@ const pilotPopup = read('src/components/pilotCommunications/PilotCommunicationPo
 const app = read('src/App.jsx');
 const translations = read('src/i18n/translations.js');
 const vercelJson = read('vercel.json');
+const swSource = read('src/sw.js');
+const usePushNotifications = read('src/hooks/usePushNotifications.js');
 
 // Strips JSX `{/* … */}` blocks, JS `/* … */` blocks and `//` lines, so a
 // boundary assertion about actual CODE coupling can never be satisfied —
@@ -35,6 +37,7 @@ function stripComments(s) {
 const appUpdatePromptCode = stripComments(appUpdatePrompt);
 const overlayPriorityCode = stripComments(overlayPriority);
 const pilotPopupCode = stripComments(pilotPopup);
+const swCode = stripComments(swSource);
 
 // ── 1. registerType is 'prompt', not 'autoUpdate' ───────────────────────────
 
@@ -46,13 +49,92 @@ test('vite.config.js: no accidental "autoUpdate" registerType remains', () => {
   assert.doesNotMatch(viteConfig, /registerType:\s*'autoUpdate'/);
 });
 
-test('vite.config.js: PWA caching configuration is otherwise preserved (manifest, precache, runtimeCaching)', () => {
-  assert.match(viteConfig, /globPatterns:\s*\[.*js,css,html,ico,png,svg,woff2.*\]/s);
-  assert.match(viteConfig, /runtimeCaching:/);
-  assert.match(viteConfig, /google-fonts-cache/);
+test('vite.config.js: manifest/icons configuration is preserved', () => {
   assert.match(viteConfig, /manifest:\s*\{/);
   assert.match(viteConfig, /name:\s*'Arjun/);
   assert.match(viteConfig, /icons:\s*\[/);
+});
+
+// ── 1b. injectManifest migration (Push Notifications v1) ───────────────────
+// Push Notifications needs a `push` + `notificationclick` handler inside
+// the service worker — generateSW has no seam for custom code, so this
+// moved to injectManifest with a developer-owned src/sw.js. Everything
+// generateSW used to auto-generate (precache, cleanup, SPA navigation
+// fallback, the google-fonts runtime-caching rule) must still exist,
+// verbatim in behavior, just written explicitly in src/sw.js instead of
+// config. See src/sw.js's own header comment for the full migration proof.
+
+test('vite.config.js: strategy is injectManifest, pointed at src/sw.js — not generateSW', () => {
+  assert.match(viteConfig, /strategies:\s*'injectManifest'/);
+  assert.match(viteConfig, /srcDir:\s*'src'/);
+  assert.match(viteConfig, /filename:\s*'sw\.js'/);
+  assert.doesNotMatch(viteConfig, /strategies:\s*'generateSW'/);
+});
+
+test('vite.config.js: the old generateSW-only `workbox` runtimeCaching block is gone (injectManifest ignores it) — replaced by an explicit rule in src/sw.js', () => {
+  assert.doesNotMatch(viteConfig, /\bworkbox:\s*\{/);
+  assert.doesNotMatch(viteConfig, /runtimeCaching:/);
+});
+
+test('src/sw.js: precaches via the injected manifest and cleans up outdated caches', () => {
+  assert.match(swSource, /precacheAndRoute\(self\.__WB_MANIFEST\)/);
+  assert.match(swSource, /cleanupOutdatedCaches\(\)/);
+});
+
+test('src/sw.js: SPA navigation fallback is preserved', () => {
+  assert.match(swSource, /NavigationRoute\(createHandlerBoundToURL\(['"]index\.html['"]\)\)/);
+});
+
+test('src/sw.js: the google-fonts CacheFirst runtime-caching rule is preserved with the same cache name and policy', () => {
+  assert.match(swSource, /google-fonts-cache/);
+  assert.match(swSource, /CacheFirst/);
+  assert.match(swSource, /ExpirationPlugin/);
+  assert.match(swSource, /CacheableResponsePlugin/);
+});
+
+test('src/sw.js: replicates the SKIP_WAITING message listener (the one thing injectManifest can\'t auto-generate) and never calls clientsClaim', () => {
+  assert.match(swSource, /type === ['"]SKIP_WAITING['"]/);
+  assert.match(swSource, /self\.skipWaiting\(\)/);
+  assert.doesNotMatch(swCode, /clientsClaim/);
+});
+
+test('no manual/duplicate service-worker registration exists outside the plugin\'s own registration path', () => {
+  // AppUpdatePrompt's useRegisterSW() (virtual:pwa-register/react) is the
+  // ONE registration path in this app — a hand-rolled
+  // navigator.serviceWorker.register() call anywhere else would register
+  // a second, competing service worker.
+  assert.match(appUpdatePrompt, /useRegisterSW/);
+  assert.doesNotMatch(appUpdatePrompt, /navigator\.serviceWorker\.register/);
+  assert.doesNotMatch(usePushNotifications, /navigator\.serviceWorker\.register\(/);
+});
+
+// ── 1c. Push Notifications v1 handlers inside the service worker ──────────
+
+test('src/sw.js: has a defensive push handler — malformed/missing payloads never crash it', () => {
+  assert.match(swSource, /addEventListener\(['"]push['"]/);
+  assert.match(swSource, /event\.data\s*\?\s*event\.data\.json\(\)/);
+  assert.match(swSource, /catch/);
+  assert.match(swSource, /showNotification/);
+});
+
+test('src/sw.js: has a notificationclick handler that closes the notification and focuses/navigates an existing window', () => {
+  assert.match(swSource, /addEventListener\(['"]notificationclick['"]/);
+  assert.match(swSource, /event\.notification\.close\(\)/);
+  assert.match(swSource, /clients\.matchAll/);
+  assert.match(swSource, /clients\.openWindow/);
+});
+
+test('src/sw.js: notification destinations are restricted to a small internal allowlist with a safe fallback — never an arbitrary external URL', () => {
+  assert.match(swSource, /ALLOWED_NOTIFICATION_ROUTES/);
+  assert.match(swSource, /\/mental-rep/);
+  assert.match(swSource, /DEFAULT_NOTIFICATION_ROUTE/);
+  assert.match(swSource, /\/dashboard/);
+  // Never navigates to a payload-supplied absolute/external URL.
+  assert.doesNotMatch(swSource, /client\.navigate\(\s*(payload|event\.notification\.data)\.url\s*\)/);
+});
+
+test('src/sw.js\'s push feature stays inside its own domain — it never imports/reuses the Pilot Communications CTA allowlist', () => {
+  assert.doesNotMatch(swCode, /pilotCommunications|PilotCommunication|CTA_ROUTE_ALLOWLIST/i);
 });
 
 // ── 2. Domain boundary: AppUpdatePrompt never touches Pilot Communication ──

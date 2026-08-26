@@ -25,7 +25,7 @@ function PrivacyPage() {
       <main className="max-w-3xl mx-auto px-4 sm:px-6 py-10 pb-20">
         <div className="mb-10">
           <h1 className="text-4xl font-extrabold text-ink mb-3">Privacy Policy</h1>
-          <p className="text-slt text-sm">Last updated: 19 June 2026</p>
+          <p className="text-slt text-sm">Last updated: 26 August 2026</p>
         </div>
 
         <div className="bg-dark-800 border border-brand-500/30 rounded-2xl px-5 py-4 mb-10">
@@ -98,11 +98,18 @@ function PrivacyPage() {
           <p>We do not use cookies. We use your browser's <strong className="text-ink">localStorage</strong> to store your login token and language preference. This data stays on your device and is not sent to any third party.</p>
         </Section>
 
-        <Section title="10. Changes to this policy">
+        <Section title="10. Push notifications">
+          <p>Push notifications are <strong className="text-ink">optional</strong> and off by default. We only ever ask your browser for notification permission after you tap "Enable notifications" in Account settings — never automatically.</p>
+          <p>When enabled, Arjun sends one short, performance-focused reminder per day (for example, a nudge to take a couple of minutes for a mental rep) — never more than one per day. Notification text never contains your journal entries, coaching conversations, reflections, or any inferred mental or emotional state — it is always generic, non-personal reminder copy.</p>
+          <p>To deliver notifications, we store a technical push subscription identifier for your device (provided by your browser), along with your chosen reminder time and timezone. This is used only to schedule and deliver your own reminders, never shared with third parties beyond the standard push delivery service your browser uses (e.g. your browser vendor's push service), and never used for advertising.</p>
+          <p>You can turn notifications off at any time from Account settings, or by changing notification permissions in your browser or device settings. Athletes under 18 need parent or guardian consent (the same consent already required to use Arjun's coaching tools) before notifications can be enabled.</p>
+        </Section>
+
+        <Section title="11. Changes to this policy">
           <p>If we make significant changes to this policy, we will notify you by email or by showing a notice in the app. Continued use of Arjun after changes means you accept the updated policy.</p>
         </Section>
 
-        <Section title="11. Contact and grievances">
+        <Section title="12. Contact and grievances">
           <p>Data Controller / Grievance Officer:<br />
           <strong className="text-ink">Prabhanshu Kamal</strong><br />
           Email: <a href="mailto:kamal.prabhanshu@outlook.com" className="text-brand-400 hover:text-brand-700 underline underline-offset-2">kamal.prabhanshu@outlook.com</a><br />
