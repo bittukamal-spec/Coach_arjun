@@ -4,9 +4,9 @@ import Navbar from '../components/Navbar';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
-import { LogOut, Trash2, ChevronRight, Shield, User, Zap, Award, Camera, Star, MessageCircle, Mail, Sparkles, Sun, MessageSquare, FileX, RefreshCw, Tag, BarChart2, Layers, Bell, BellOff } from 'lucide-react';
+import { LogOut, Trash2, ChevronRight, Shield, User, Zap, Award, Camera, Star, MessageCircle, Mail, Sparkles, Sun, MessageSquare, FileX, RefreshCw, Tag, BarChart2, Layers, Bell } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
-import { usePushNotifications, DEFAULT_REMINDER_TIME } from '../hooks/usePushNotifications';
+import { usePushNotifications } from '../hooks/usePushNotifications';
 import { ACHIEVEMENTS, ALL_ACHIEVEMENT_KEYS } from '../data/achievements';
 
 const EXPERIENCE_LEVELS = ['beginner', 'amateur', 'competitive', 'professional'];
@@ -40,10 +40,11 @@ function AccountPage() {
   const fileInputRef = useRef(null);
   const tpush = t.pushNotifications;
   const push = usePushNotifications();
-  const [reminderTimeInput, setReminderTimeInput] = useState(DEFAULT_REMINDER_TIME);
-  useEffect(() => {
-    if (push.preference?.reminderTime) setReminderTimeInput(push.preference.reminderTime);
-  }, [push.preference?.reminderTime]);
+  function handleTogglePush() {
+    if (push.busy) return;
+    if (push.status === 'enabled') push.disable();
+    else push.enable();
+  }
 
   const isPremium = user?.tier === 'premium';
   const trialDaysRemaining = getTrialDaysRemaining(user);
@@ -439,61 +440,45 @@ function AccountPage() {
                 <p className="text-sm font-medium text-ink mb-1">{tpush.deniedTitle}</p>
                 <p className="text-xs text-slt">{tpush.deniedBody}</p>
               </div>
-            ) : push.status === 'enabled' ? (
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-win-400" />
-                  <p className="text-sm font-semibold text-ink">{tpush.onLabel}</p>
-                </div>
-                <div>
-                  <label htmlFor="push-reminder-time" className="text-xs text-slt font-medium block mb-1">
-                    {tpush.reminderTimeLabel}
-                  </label>
-                  <input
-                    id="push-reminder-time"
-                    type="time"
-                    value={reminderTimeInput}
-                    onChange={e => setReminderTimeInput(e.target.value)}
-                    onBlur={() => { if (reminderTimeInput !== push.preference?.reminderTime) push.updateReminderTime(reminderTimeInput); }}
-                    disabled={push.busy}
-                    className="input-field w-40"
-                  />
-                  <p className="text-[11px] text-slt mt-1">
-                    {tpush.timezoneNote(Intl.DateTimeFormat().resolvedOptions().timeZone)}
-                  </p>
-                </div>
-                <button
-                  onClick={push.disable}
-                  disabled={push.busy}
-                  className="w-full py-2.5 rounded-xl border border-dark-500 bg-dark-700 hover:bg-dark-600 text-slt text-xs font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  <BellOff size={14} />
-                  {push.busy ? tpush.turningOff : tpush.turnOffBtn}
-                </button>
-              </div>
             ) : (
+              // 'default' or 'enabled' — a single always-visible toggle row.
+              // No reminder-time picker (v1 uses one fixed, system-defined
+              // local time — see usePushNotifications.js) and no separate
+              // Enable/Disable button: the switch itself IS the action.
               <div>
-                <p className="text-sm font-semibold text-ink mb-1">{tpush.promptTitle}</p>
-                <p className="text-xs text-slt mb-4">{tpush.promptBody}</p>
-                <div className="mb-4">
-                  <label htmlFor="push-reminder-time-new" className="text-xs text-slt font-medium block mb-1">
-                    {tpush.reminderTimeLabel}
-                  </label>
-                  <input
-                    id="push-reminder-time-new"
-                    type="time"
-                    value={reminderTimeInput}
-                    onChange={e => setReminderTimeInput(e.target.value)}
-                    className="input-field w-40"
-                  />
-                </div>
-                <button
-                  onClick={() => push.enable(reminderTimeInput)}
-                  disabled={push.busy}
-                  className="btn-primary w-full justify-center disabled:opacity-50"
-                >
-                  {push.busy ? tpush.enabling : tpush.enableBtn}
-                </button>
+                <label className="flex items-center justify-between gap-3 cursor-pointer min-h-[44px]">
+                  <span className="flex-1 min-w-0 pr-2">
+                    <span className="block text-sm font-semibold text-ink">{tpush.promptTitle}</span>
+                    <span className="block text-xs text-slt mt-0.5">{tpush.promptBody}</span>
+                  </span>
+                  <span className="relative inline-flex items-center shrink-0">
+                    <input
+                      type="checkbox"
+                      role="switch"
+                      checked={push.status === 'enabled'}
+                      disabled={push.busy}
+                      onChange={handleTogglePush}
+                      aria-label={tpush.promptTitle}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed z-10"
+                    />
+                    <span
+                      className={`w-11 h-6 rounded-full transition-colors pointer-events-none ${push.busy ? 'opacity-60' : ''} ${
+                        push.status === 'enabled' ? 'bg-brand-500' : 'bg-dark-600'
+                      }`}
+                      aria-hidden="true"
+                    />
+                    <span
+                      className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-dark-400 border border-dark-600 shadow-sm transition-transform pointer-events-none ${
+                        push.status === 'enabled' ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                      aria-hidden="true"
+                    />
+                  </span>
+                </label>
+                {/* State in words as well as switch position, so it's never carried by color alone. */}
+                <p className="text-[11px] font-semibold text-slt mt-1.5">
+                  {push.status === 'enabled' ? tpush.onLabel : tpush.offLabel}
+                </p>
               </div>
             )}
             {push.error && <p className="text-red-400 text-xs mt-3">{tpush.error}</p>}

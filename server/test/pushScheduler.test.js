@@ -58,7 +58,7 @@ delete require.cache[pushSendPath];
 delete require.cache[pushSchedulerPath];
 require(pushSendPath).__resetConfigForTests();
 
-const { processOnePreference, runSweepOnce, createPushScheduler } = require(pushSchedulerPath);
+const { processOnePreference, runSweepOnce, createPushScheduler, SYSTEM_REMINDER_TIME } = require(pushSchedulerPath);
 
 test.beforeEach(() => {
   sendBehavior = {};
@@ -140,6 +140,10 @@ function makeFakeClient({ preferences = [], subscriptions = [], usersById = {} }
 
 // ── processOnePreference: due / not-due / already-sent ──────────────────
 
+test('the v1 fixed system reminder time is 18:00', () => {
+  assert.equal(SYSTEM_REMINDER_TIME, '18:00');
+});
+
 test('a due athlete within the window is sent, and lastSentLocalDate is set', async () => {
   const seedPref = makePreference({ userId: 'u1', reminderTime: '18:00', timezone: 'UTC' });
   const seedSub = makeSubscription({ userId: 'u1' });
@@ -176,25 +180,56 @@ test('already sent today is skipped — one reminder per athlete per local day',
   assert.equal(sendCalls.length, 0);
 });
 
-test('correct IANA timezone handling: Asia/Kolkata reminder due across the UTC calendar-day boundary', async () => {
-  // 23:45 UTC on the 25th is 05:15 IST on the 26th — reminderTime 05:15
-  // Asia/Kolkata must be evaluated against the ATHLETE'S local date/time,
-  // not the raw UTC instant's.
-  const seedPref = makePreference({ userId: 'u4', reminderTime: '05:15', timezone: 'Asia/Kolkata' });
+test('correct IANA timezone handling: the fixed 18:00 reminder is evaluated against the ATHLETE\'S local date, not the raw UTC instant\'s', async () => {
+  // America/Phoenix is UTC-7 with no DST (fixed offset — no seasonal
+  // ambiguity in a test). At UTC 2026-08-26T01:05:00Z the Phoenix local
+  // clock reads 2026-08-25 18:05 — inside the fixed due window, but on
+  // the PREVIOUS calendar day relative to UTC.
+  const seedPref = makePreference({ userId: 'u4', reminderTime: SYSTEM_REMINDER_TIME, timezone: 'America/Phoenix' });
   const seedSub = makeSubscription({ userId: 'u4' });
   const client = makeFakeClient({ preferences: [seedPref], subscriptions: [seedSub] });
 
-  const result = await processOnePreference(client, { ...seedPref }, new Date('2026-08-25T23:45:00Z'));
+  const result = await processOnePreference(client, { ...seedPref }, new Date('2026-08-26T01:05:00Z'));
   assert.equal(result.status, 'sent');
-  assert.equal(client.__getPref(seedPref.id).lastSentLocalDate, '2026-08-26'); // athlete's local date, not the UTC date
+  assert.equal(client.__getPref(seedPref.id).lastSentLocalDate, '2026-08-25'); // athlete's local date, not the UTC date
 });
 
-test('an invalid stored timezone/reminderTime never crashes — reported and skipped', async () => {
-  const seedPref = makePreference({ userId: 'u5', reminderTime: 'garbage', timezone: 'Foo/Bar' });
+test('an invalid stored timezone never crashes — reported and skipped', async () => {
+  const seedPref = makePreference({ userId: 'u5', timezone: 'Foo/Bar' });
   const client = makeFakeClient({ preferences: [seedPref], subscriptions: [] });
   const result = await processOnePreference(client, { ...seedPref }, new Date('2026-08-26T18:00:00Z'));
   assert.equal(result.status, 'invalid_preference');
   assert.equal(sendCalls.length, 0);
+});
+
+// ── v1 simplification: fixed system reminder time, not the stored column ──
+
+test('a legacy/custom stored reminderTime is ignored — every athlete is scheduled at the fixed system time', async () => {
+  // An athlete who chose 07:30 under the old picker UI (or any other
+  // value) must still be scheduled at the fixed v1 time, with no DB
+  // backfill — the stored value is simply never read for this decision.
+  const seedPref = makePreference({ userId: 'u4b', reminderTime: '07:30', timezone: 'UTC' });
+  const seedSub = makeSubscription({ userId: 'u4b' });
+  const client = makeFakeClient({ preferences: [seedPref], subscriptions: [seedSub] });
+
+  // Not due at the athlete's OLD chosen time (07:30) — proves it's ignored.
+  const atOldTime = await processOnePreference(client, { ...seedPref }, new Date('2026-08-26T07:35:00Z'));
+  assert.equal(atOldTime.status, 'not_due');
+  assert.equal(sendCalls.length, 0);
+
+  // Due at the fixed system time (18:00) instead.
+  const atSystemTime = await processOnePreference(client, { ...client.__getPref(seedPref.id) }, new Date('2026-08-26T18:03:00Z'));
+  assert.equal(atSystemTime.status, 'sent');
+  assert.equal(sendCalls.length, 1);
+});
+
+test('a stored reminderTime that is not even a valid HH:MM string no longer matters — only the timezone is validated', async () => {
+  const seedPref = makePreference({ userId: 'u4c', reminderTime: 'not-a-time-at-all', timezone: 'UTC' });
+  const seedSub = makeSubscription({ userId: 'u4c' });
+  const client = makeFakeClient({ preferences: [seedPref], subscriptions: [seedSub] });
+
+  const result = await processOnePreference(client, { ...seedPref }, new Date('2026-08-26T18:03:00Z'));
+  assert.equal(result.status, 'sent'); // garbage reminderTime does not block scheduling
 });
 
 // ── Overlapping claim / race protection ──────────────────────────────────
