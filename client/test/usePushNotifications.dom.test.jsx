@@ -17,7 +17,7 @@ vi.mock('../src/contexts/AuthContext', () => ({
 vi.mock('../src/api', () => ({ apiFetch: vi.fn() }));
 
 const { apiFetch } = await import('../src/api');
-const { usePushNotifications } = await import('../src/hooks/usePushNotifications.js');
+const { usePushNotifications, DEFAULT_REMINDER_TIME } = await import('../src/hooks/usePushNotifications.js');
 
 function adultUser(overrides = {}) {
   return { id: 'u1', dateOfBirth: null, guardianConsentAt: null, ...overrides };
@@ -39,9 +39,14 @@ function Harness() {
       <div data-testid="busy">{push.busy ? 'busy' : 'idle'}</div>
       <div data-testid="error">{push.error}</div>
       <div data-testid="reminderTime">{push.preference?.reminderTime ?? ''}</div>
-      <button onClick={() => push.enable('19:30')}>enable</button>
-      <button onClick={() => push.updateReminderTime('20:00')}>update</button>
-      <button onClick={() => push.disable()}>disable</button>
+      <input
+        type="checkbox"
+        role="switch"
+        aria-label="Push notifications"
+        checked={push.status === 'enabled'}
+        disabled={push.busy}
+        onChange={() => (push.status === 'enabled' ? push.disable() : push.enable())}
+      />
     </div>
   );
 }
@@ -171,8 +176,8 @@ describe('usePushNotifications — capability / status derivation', () => {
   });
 });
 
-describe('usePushNotifications — enable flow', () => {
-  test('enable(): requests permission only on explicit call, subscribes, and POSTs to /subscribe with IANA timezone', async () => {
+describe('usePushNotifications — enable flow (toggle OFF -> ON)', () => {
+  test('enable(): requests permission only on explicit toggle, subscribes, and POSTs the fixed reminder time + IANA timezone to /subscribe', async () => {
     const sub = fakeSubscription();
     const registration = fakeRegistration({ existingSubscription: null, newSubscription: sub });
     defineServiceWorkerSupport({ registration });
@@ -185,26 +190,30 @@ describe('usePushNotifications — enable flow', () => {
       if (path === '/api/push-notifications/subscribe') {
         const body = JSON.parse(init.body);
         expect(body.subscription).toEqual({ endpoint: sub.endpoint, keys: { p256dh: 'p256dh-value', auth: 'auth-value' } });
-        expect(body.reminderTime).toBe('19:30');
+        // The athlete never supplies a time — it's always the fixed system default.
+        expect(body.reminderTime).toBe(DEFAULT_REMINDER_TIME);
         expect(typeof body.timezone).toBe('string');
         expect(body.timezone.length).toBeGreaterThan(0);
-        return jsonResponse({ preference: { enabled: true, reminderTime: '19:30', timezone: body.timezone } });
+        return jsonResponse({ preference: { enabled: true, reminderTime: body.reminderTime, timezone: body.timezone } });
       }
       return jsonResponse({});
     });
 
-    // Permission requested only AFTER this explicit call — never on mount.
+    // Permission requested only AFTER this explicit toggle — never on mount.
     expect(global.Notification.requestPermission).not.toHaveBeenCalled();
 
     render(<Harness />);
     await waitFor(() => expect(screen.getByTestId('status').textContent).toBe('default'));
+    const toggle = screen.getByRole('switch');
+    expect(toggle.checked).toBe(false);
 
-    await userEvent.click(screen.getByText('enable'));
+    await userEvent.click(toggle);
 
     expect(global.Notification.requestPermission).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(registration.pushManager.subscribe).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(screen.getByTestId('status').textContent).toBe('enabled'));
-    expect(screen.getByTestId('reminderTime').textContent).toBe('19:30');
+    expect(screen.getByTestId('reminderTime').textContent).toBe(DEFAULT_REMINDER_TIME);
+    expect(screen.getByRole('switch').checked).toBe(true);
   });
 
   test('enable(): a denied permission never subscribes and never calls /subscribe', async () => {
@@ -214,14 +223,14 @@ describe('usePushNotifications — enable flow', () => {
 
     render(<Harness />);
     await waitFor(() => expect(screen.getByTestId('status').textContent).toBe('default'));
-    await userEvent.click(screen.getByText('enable'));
+    await userEvent.click(screen.getByRole('switch'));
 
     await waitFor(() => expect(screen.getByTestId('status').textContent).toBe('denied'));
     expect(registration.pushManager.subscribe).not.toHaveBeenCalled();
     expect(apiFetch).not.toHaveBeenCalledWith('/api/push-notifications/subscribe', expect.anything());
   });
 
-  test('enable(): a rejected /subscribe call surfaces an error state without crashing', async () => {
+  test('enable(): a rejected /subscribe call surfaces an error state without crashing, and the toggle stays off', async () => {
     const sub = fakeSubscription();
     const registration = fakeRegistration({ newSubscription: sub });
     defineServiceWorkerSupport({ registration });
@@ -234,37 +243,15 @@ describe('usePushNotifications — enable flow', () => {
 
     render(<Harness />);
     await waitFor(() => expect(screen.getByTestId('status').textContent).toBe('default'));
-    await userEvent.click(screen.getByText('enable'));
+    await userEvent.click(screen.getByRole('switch'));
 
     await waitFor(() => expect(screen.getByTestId('error').textContent).not.toBe(''));
     expect(screen.getByTestId('status').textContent).toBe('default'); // never flips to enabled on failure
+    expect(screen.getByRole('switch').checked).toBe(false);
   });
 });
 
-describe('usePushNotifications — reminder time update', () => {
-  test('updateReminderTime(): PATCHes preferences and reflects the new time', async () => {
-    apiFetch.mockImplementation((path, init) => {
-      if (path === '/api/push-notifications/preferences' && (!init || init.method === undefined)) {
-        return jsonResponse({ preference: { enabled: true, reminderTime: '18:00', timezone: 'Asia/Kolkata' } });
-      }
-      if (path === '/api/push-notifications/preferences' && init.method === 'PATCH') {
-        const body = JSON.parse(init.body);
-        expect(body.reminderTime).toBe('20:00');
-        return jsonResponse({ preference: { enabled: true, reminderTime: '20:00', timezone: body.timezone } });
-      }
-      return jsonResponse({});
-    });
-    defineServiceWorkerSupport({ registration: fakeRegistration() });
-    defineNotification('granted');
-
-    render(<Harness />);
-    await waitFor(() => expect(screen.getByTestId('reminderTime').textContent).toBe('18:00'));
-    await userEvent.click(screen.getByText('update'));
-    await waitFor(() => expect(screen.getByTestId('reminderTime').textContent).toBe('20:00'));
-  });
-});
-
-describe('usePushNotifications — disable flow', () => {
+describe('usePushNotifications — disable flow (toggle ON -> OFF)', () => {
   test('disable(): PATCHes enabled:false, unsubscribes THIS device, and never touches other devices', async () => {
     const sub = fakeSubscription('https://push.example/this-device');
     const registration = fakeRegistration({ existingSubscription: sub });
@@ -291,11 +278,14 @@ describe('usePushNotifications — disable flow', () => {
 
     render(<Harness />);
     await waitFor(() => expect(screen.getByTestId('status').textContent).toBe('enabled'));
-    await userEvent.click(screen.getByText('disable'));
+    const toggle = screen.getByRole('switch');
+    expect(toggle.checked).toBe(true);
+    await userEvent.click(toggle);
 
     await waitFor(() => expect(patchedEnabled).toBe(false));
     await waitFor(() => expect(unsubscribedEndpoint).toBe('https://push.example/this-device'));
     await waitFor(() => expect(sub.unsubscribe).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.getByRole('switch').checked).toBe(false));
     // Browser notification permission itself is never touched by disable.
   });
 });

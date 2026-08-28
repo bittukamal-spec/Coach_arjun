@@ -14,27 +14,38 @@
 const { PrismaClient } = require('@prisma/client');
 const {
   isValidTimeZone,
-  isValidReminderTime,
   getLocalDateString,
   getLocalTimeString,
   minutesSinceMidnight,
 } = require('./pushTimezone');
 const { buildReminderPayload, sendPushToSubscription } = require('./pushSend');
 
-// A reminder set for e.g. 18:00 is considered due for the ten minutes
-// starting at 18:00 local time — "around 18:00–18:10", never promised to
-// the exact minute. Matches the sweep interval 1:1 so consecutive sweeps
-// never leave a gap an athlete's due window could fall entirely inside
-// and be missed.
+// A reminder is considered due for the ten minutes starting at
+// SYSTEM_REMINDER_TIME local time — "around 18:00–18:10", never promised
+// to the exact minute. Matches the sweep interval 1:1 so consecutive
+// sweeps never leave a gap an athlete's due window could fall entirely
+// inside and be missed.
 const DUE_WINDOW_MINUTES = 10;
 const SWEEP_INTERVAL_MS = 10 * 60 * 1000;
+
+// v1 simplification: the athlete no longer picks a reminder time — every
+// enabled athlete gets one system-defined local reminder window. This is
+// read here, NOT from `pref.reminderTime` — that column still exists on
+// the row (written as this same value by the subscribe route, and left
+// alone for any athlete who set a different time under the old picker
+// UI) purely so a future v2 can reintroduce per-athlete scheduling
+// without a schema change. No DB backfill was needed or done: an athlete
+// who previously chose, say, 07:30 is simply scheduled at 18:00 from now
+// on, the moment this deploys — their stored `reminderTime` value is
+// inert, never read for the due-window calculation below.
+const SYSTEM_REMINDER_TIME = '18:00';
 
 // Processes exactly one athlete's preference row for "now". Never throws —
 // every path returns a structured status string so this is fully
 // deterministic and testable without mocking time.sleep or catching
 // exceptions in test code.
 async function processOnePreference(client, pref, nowDate) {
-  if (!isValidTimeZone(pref.timezone) || !isValidReminderTime(pref.reminderTime)) {
+  if (!isValidTimeZone(pref.timezone)) {
     return { userId: pref.userId, status: 'invalid_preference' };
   }
 
@@ -44,7 +55,7 @@ async function processOnePreference(client, pref, nowDate) {
   }
 
   const nowMinutes = minutesSinceMidnight(getLocalTimeString(nowDate, pref.timezone));
-  const dueStart = minutesSinceMidnight(pref.reminderTime);
+  const dueStart = minutesSinceMidnight(SYSTEM_REMINDER_TIME);
   const dueEnd = dueStart + DUE_WINDOW_MINUTES;
   if (nowMinutes < dueStart || nowMinutes >= dueEnd) {
     return { userId: pref.userId, status: 'not_due' };
@@ -173,6 +184,7 @@ function startPushScheduler(options = {}) {
 module.exports = {
   DUE_WINDOW_MINUTES,
   SWEEP_INTERVAL_MS,
+  SYSTEM_REMINDER_TIME,
   processOnePreference,
   runSweepOnce,
   createPushScheduler,

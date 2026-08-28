@@ -43,10 +43,9 @@ test('every required pushNotifications string is present in both languages', () 
   const required = [
     'title', 'unsupported', 'iosUnsupported',
     'consentRequiredTitle', 'consentRequiredBody',
-    'promptTitle', 'promptBody', 'enableBtn', 'enabling',
+    'promptTitle', 'promptBody',
     'deniedTitle', 'deniedBody',
-    'onLabel', 'reminderTimeLabel', 'timezoneNote',
-    'turnOffBtn', 'turningOff', 'savedTime', 'error',
+    'onLabel', 'offLabel', 'error',
   ];
   for (const lang of ['en', 'hi']) {
     const block = namespaceBlock(lang, 'pushNotifications');
@@ -58,6 +57,18 @@ test('every required pushNotifications string is present in both languages', () 
 
 test('the Hindi side of pushNotifications is actually written in Hindi', () => {
   assert.match(namespaceBlock('hi', 'pushNotifications'), /[ऀ-ॿ]/);
+});
+
+// ── v1 simplification: retired keys are actually gone, not just unused ────
+
+test('retired reminder-time-picker / big-button strings are removed, not left dangling', () => {
+  const retired = ['enableBtn', 'enabling', 'reminderTimeLabel', 'timezoneNote', 'turnOffBtn', 'turningOff', 'savedTime'];
+  for (const lang of ['en', 'hi']) {
+    const block = namespaceBlock(lang, 'pushNotifications');
+    for (const key of retired) {
+      assert.doesNotMatch(block, new RegExp(`^\\s{8}${key}:`, 'm'), `${lang}.account.pushNotifications.${key} should have been removed`);
+    }
+  }
 });
 
 // ── Forbidden-language boundary (no guilt/streak/shame framing anywhere in the copy) ──
@@ -93,9 +104,21 @@ test('AccountPage renders all required Notifications states', () => {
   }
 });
 
-test('AccountPage never requests browser notification permission itself — only the hook, only from an explicit tap', () => {
+test('AccountPage never requests browser notification permission itself — only the hook, only from an explicit toggle interaction', () => {
   assert.doesNotMatch(accountPage, /Notification\.requestPermission/);
-  assert.match(accountPage, /onClick=\{\(\) => push\.enable\(/);
+  assert.match(accountPage, /handleTogglePush/);
+  assert.match(accountPage, /if \(push\.status === 'enabled'\) push\.disable\(\);/);
+  assert.match(accountPage, /else push\.enable\(\);/);
+  assert.match(accountPage, /onChange=\{handleTogglePush\}/);
+});
+
+test('AccountPage renders a single accessible switch for Notifications — no separate Enable/Disable button, no reminder-time input', () => {
+  assert.match(accountPage, /role="switch"/);
+  assert.match(accountPage, /type="checkbox"/);
+  assert.doesNotMatch(accountPage, /type="time"/);
+  for (const retired of ['tpush.enableBtn', 'tpush.enabling', 'tpush.turnOffBtn', 'tpush.turningOff', 'tpush.reminderTimeLabel', 'tpush.timezoneNote', 'tpush.savedTime']) {
+    assert.doesNotMatch(accountPage, new RegExp(retired.replace('.', '\\.')));
+  }
 });
 
 // ── Privacy page disclosure ─────────────────────────────────────────────

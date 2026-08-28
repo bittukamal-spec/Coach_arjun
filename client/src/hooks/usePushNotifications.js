@@ -2,11 +2,19 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiFetch } from '../api';
 
-// Push Notifications v1 — capability detection, subscribe/disable flow, and
-// preference state for the Account settings "Notifications" section. Never
+// Push Notifications v1 — capability detection and the ON/OFF subscribe/
+// disable flow for the Account settings "Notifications" toggle. Never
 // requests browser permission on its own; `enable()` only ever runs from an
 // athlete's explicit tap (see AccountPage.jsx).
-
+//
+// The athlete does not choose a reminder time — v1 uses one fixed,
+// system-defined local reminder window (see DEFAULT_REMINDER_TIME) for
+// every athlete, computed against their own IANA timezone (captured here,
+// automatically, only at enable time — never asked of the athlete). The
+// server/schema still have a per-row `reminderTime` column (kept, unused
+// by any UI) purely so this can become configurable again later without a
+// schema change — see routes/pushNotifications.js and
+// services/pushScheduler.js for the read side of that.
 export const DEFAULT_REMINDER_TIME = '18:00';
 
 // Standard VAPID-key conversion (browser applicationServerKey wants a
@@ -85,8 +93,9 @@ export function usePushNotifications() {
 
   // Steps 3-10 of the subscribe flow (support + guardian-consent checks
   // are steps 1-2, already covered by `status` above — enable() is only
-  // ever called from a UI state where status is 'default').
-  const enable = useCallback(async (reminderTime = DEFAULT_REMINDER_TIME) => {
+  // ever called from a UI state where status is 'default'). Always uses
+  // the one fixed system reminder time — the athlete never supplies one.
+  const enable = useCallback(async () => {
     if (!supported || guardianBlocked || busy) return;
     setError('');
     setBusy(true);
@@ -109,11 +118,13 @@ export function usePushNotifications() {
         });
       }
 
+      // IANA timezone is captured here automatically — the athlete is
+      // never asked to configure it. This is the only place it's read.
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       const res = await apiFetch('/api/push-notifications/subscribe', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subscription: sub.toJSON(), reminderTime, timezone }),
+        body: JSON.stringify({ subscription: sub.toJSON(), reminderTime: DEFAULT_REMINDER_TIME, timezone }),
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
@@ -127,27 +138,6 @@ export function usePushNotifications() {
       setBusy(false);
     }
   }, [supported, guardianBlocked, busy, token]);
-
-  const updateReminderTime = useCallback(async (reminderTime) => {
-    if (!token || busy) return;
-    setError('');
-    setBusy(true);
-    try {
-      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      const res = await apiFetch('/api/push-notifications/preferences', {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reminderTime, timezone }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok) setPreference(data.preference);
-      else setError(data.error || 'error');
-    } catch {
-      setError('error');
-    } finally {
-      setBusy(false);
-    }
-  }, [token, busy]);
 
   // "Turn off notifications": disables the preference globally AND
   // disables + unsubscribes THIS browser's own device — see
@@ -190,5 +180,5 @@ export function usePushNotifications() {
     }
   }, [token, busy, supported]);
 
-  return { status, preference, busy, error, enable, updateReminderTime, disable };
+  return { status, preference, busy, error, enable, disable };
 }

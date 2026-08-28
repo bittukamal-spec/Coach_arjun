@@ -99,9 +99,9 @@ function PrivacyPage() {
         </Section>
 
         <Section title="10. Push notifications">
-          <p>Push notifications are <strong className="text-ink">optional</strong> and off by default. We only ever ask your browser for notification permission after you tap "Enable notifications" in Account settings — never automatically.</p>
-          <p>When enabled, Arjun sends one short, performance-focused reminder per day (for example, a nudge to take a couple of minutes for a mental rep) — never more than one per day. Notification text never contains your journal entries, coaching conversations, reflections, or any inferred mental or emotional state — it is always generic, non-personal reminder copy.</p>
-          <p>To deliver notifications, we store a technical push subscription identifier for your device (provided by your browser), along with your chosen reminder time and timezone. This is used only to schedule and deliver your own reminders, never shared with third parties beyond the standard push delivery service your browser uses (e.g. your browser vendor's push service), and never used for advertising.</p>
+          <p>Push notifications are <strong className="text-ink">optional</strong> and off by default. We only ever ask your browser for notification permission after you turn the Push notifications toggle on in Account settings — never automatically.</p>
+          <p>When enabled, Arjun sends one short, performance-focused reminder per day, around a fixed time we set (for example, a nudge to take a couple of minutes for a mental rep) — never more than one per day. Notification text never contains your journal entries, coaching conversations, reflections, or any inferred mental or emotional state — it is always generic, non-personal reminder copy.</p>
+          <p>To deliver notifications, we store a technical push subscription identifier for your device (provided by your browser), along with your local timezone. This is used only to schedule and deliver your own reminders, never shared with third parties beyond the standard push delivery service your browser uses (e.g. your browser vendor's push service), and never used for advertising.</p>
           <p>You can turn notifications off at any time from Account settings, or by changing notification permissions in your browser or device settings. Athletes under 18 need parent or guardian consent (the same consent already required to use Arjun's coaching tools) before notifications can be enabled.</p>
         </Section>
 
