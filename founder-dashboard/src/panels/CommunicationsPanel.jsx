@@ -491,6 +491,98 @@ function CreateView({ onCancel, onCreated }) {
   );
 }
 
+// ── Send test notification ──────────────────────────────────────────────
+// Push Notifications v1 — operational testing utility only. Sends ONE
+// immediate push to ONE founder-selected pilot athlete's active device(s),
+// using the exact same approved curated copy (server/src/services/
+// pushSend.js) and '/dashboard' destination the real 18:00 scheduler
+// uses — no custom free-text content, no athlete/journal/Coach data, no
+// broadcast. Never touches lastSentLocalDate, so it never consumes or
+// interferes with that athlete's normal daily scheduled reminder, and it
+// is entirely separate from Pilot Communications (no communication row is
+// ever created by this action).
+
+const TEST_RESULT_LABELS = {
+  sent: 'Sent',
+  no_subscription: 'No active notification subscription',
+  failed: 'Delivery failed',
+};
+const TEST_RESULT_COLORS = {
+  sent: '#22C55E',
+  no_subscription: '#64748B',
+  failed: '#EF4444',
+};
+
+function TestPushSender() {
+  const [athletes, setAthletes] = useState(null);
+  const [selectedId, setSelectedId] = useState('');
+  const [sending, setSending] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await founderFetch('/api/founder/pilot-communications/athletes');
+        if (r.ok) setAthletes((await r.json()).athletes);
+      } catch { /* athletes stays null — picker shows "Loading…" and disables Send */ }
+    })();
+  }, []);
+
+  async function send() {
+    if (!selectedId || sending) return;
+    setSending(true);
+    setError(null);
+    setResult(null);
+    try {
+      const r = await founderFetch('/api/founder/push-test', {
+        method: 'POST',
+        body: JSON.stringify({ userId: selectedId }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.error || 'Could not send test notification.');
+      setResult(data.result);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <div className="bg-[#1E293B] rounded-xl p-4 space-y-3">
+      <p className="text-sm font-semibold text-[#F1F5F9]">Send test notification</p>
+      <p className="text-xs text-[#64748B]">
+        One immediate push using the approved reminder copy. Doesn&apos;t affect the athlete&apos;s normal 18:00 reminder.
+      </p>
+      <select
+        value={selectedId}
+        onChange={(e) => { setSelectedId(e.target.value); setResult(null); setError(null); }}
+        className="w-full bg-[#0F172A] border border-[#334155] rounded-lg px-3 py-2.5 text-sm text-[#F1F5F9]"
+      >
+        <option value="">{athletes ? 'Select an athlete…' : 'Loading athletes…'}</option>
+        {athletes?.map((a) => (
+          <option key={a.id} value={a.id}>{a.firstName}{a.sport ? ` · ${a.sport}` : ''}</option>
+        ))}
+      </select>
+      <button
+        onClick={send}
+        disabled={!selectedId || sending}
+        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#1769AA] text-white text-sm font-semibold disabled:opacity-40 transition-opacity"
+      >
+        <Send size={16} />
+        {sending ? 'Sending…' : 'Send test notification'}
+      </button>
+      {error && <p className="text-red-400 text-sm">{error}</p>}
+      {result && (
+        <p className="text-sm font-semibold" style={{ color: TEST_RESULT_COLORS[result] || '#94A3B8' }}>
+          {TEST_RESULT_LABELS[result] || result}
+        </p>
+      )}
+    </div>
+  );
+}
+
 // ── Panel root ───────────────────────────────────────────────────────────
 
 export default function CommunicationsPanel() {
@@ -538,6 +630,8 @@ export default function CommunicationsPanel() {
 
   return (
     <div className="flex-1 overflow-y-auto pb-24 px-4 pt-5 space-y-4">
+      <TestPushSender />
+
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-bold text-[#F1F5F9]">Communications</h1>
         <div className="flex items-center gap-2">
