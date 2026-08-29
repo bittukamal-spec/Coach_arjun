@@ -149,6 +149,7 @@ model User {
   pilotCommunicationResponses PilotCommunicationResponse[]
   pushNotificationPreference  PushNotificationPreference?
   pushSubscriptions           PushSubscription[]
+  founderEmailDeliveries      FounderEmailDelivery[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1198,5 +1199,80 @@ model PushSubscription {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([userId])
+}
+
+// ── Founder Email Center v1 ────────────────────────────────────────────────
+// Founder-authored, founder-triggered product/beta emails to pilot
+// athletes, sent through the existing Resend integration (services/email.js)
+// — NOT a second email provider, NOT an inbox, NOT reply threading. Reuses
+// the same "no separate pilot-membership system" rule PilotCommunication
+// already documents above: "ALL" audience is the full User table, resolved
+// once at send time. Deliberately separate from PilotCommunication in every
+// respect (own models, own routes, own send path) — no cross-reference, and
+// email content is never derived from Coach/Mind Journal/safety data (see
+// routes/founderEmail.js — it only ever reads User.id/name/email).
+//
+// A "Send test to myself" action (routes/founderEmail.js) never creates
+// either row below — it's a stateless one-off send to the founder's own
+// configured test address, same convention as founderPushTest.js's test
+// send never creating a PilotCommunication row.
+model FounderEmailCampaign {
+  id String @id @default(cuid())
+
+  fromName    String  // display name only — the sender address itself stays the existing verified RESEND_FROM_EMAIL
+  subject     String
+  previewText String?
+  body        String  // founder-authored; paragraphs + "**heading**" lines + "- " bullets only — see services/founderEmail.js's renderBodyHtml() for the exact small, non-HTML markup this supports. This IS the body snapshot: campaigns are never edited after creation.
+  ctaLabel    String?
+  ctaRoute    String? // internal route only, validated against the same CTA_ROUTE_ALLOWLIST services/pilotCommunications.js already exports — never an external URL
+
+  audienceMode String // "ALL" | "SELECTED" — same convention as PilotCommunication.audienceMode
+
+  createdAt DateTime  @default(now())
+  sentAt    DateTime? // set once sending starts (there is no draft-save or scheduling step in v1 — POST /send validates, resolves the audience, and sends in one call)
+
+  deliveries FounderEmailDelivery[]
+
+  @@index([createdAt])
+}
+
+// DELIVERED/BOUNCED require the Resend webhook, which v1 does not add (see
+// routes/founderEmail.js's module comment) — those two values exist here so
+// the schema doesn't need another migration once that follow-up ships, but
+// nothing in this PR ever writes them. SENT/FAILED are the only statuses
+// v1 actually produces, decided synchronously from the Resend API response.
+enum FounderEmailDeliveryStatus {
+  SENT
+  FAILED
+  DELIVERED
+  BOUNCED
+}
+
+// One row per (campaign, athlete) — never a loose recipient list. Every
+// athlete gets their own individual Resend send (see routes/founderEmail.js)
+// rather than one call with every address in To/CC, so no athlete's email
+// is ever exposed to another.
+model FounderEmailDelivery {
+  id         String               @id @default(cuid())
+  campaignId String
+  campaign   FounderEmailCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  email           String  // snapshot of the athlete's email at send time — survives a later email change
+  resendMessageId String?
+  status          FounderEmailDeliveryStatus
+
+  sentAt      DateTime?
+  deliveredAt DateTime? // reserved — see FounderEmailDeliveryStatus doc comment; never written in v1
+  bouncedAt   DateTime? // reserved — see FounderEmailDeliveryStatus doc comment; never written in v1
+  failedAt    DateTime?
+  openedAt    DateTime? // reserved for a later webhook PR — never inferred, never written in v1
+  clickedAt   DateTime? // reserved for a later webhook PR — never inferred, never written in v1
+
+  createdAt DateTime @default(now())
+
+  @@index([campaignId])
   @@index([userId])
 }

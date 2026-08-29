@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { RefreshCw, ChevronLeft, ChevronRight, Send, Plus, X, Check } from 'lucide-react';
 import { founderFetch } from '../api';
+import EmailSection, { ToolSwitcher } from './EmailSection';
 
 // Pilot Communications v1 — founder surface. Reuses the exact visual
 // language already established by PilotPanel/SafetyPanel (StatCard-style
@@ -586,12 +587,20 @@ function TestPushSender() {
 // ── Panel root ───────────────────────────────────────────────────────────
 
 export default function CommunicationsPanel() {
+  // Email lives inside this same Comms tab (Founder Email Center v1) rather
+  // than a new bottom-nav tab — this small switcher is the only new UI
+  // outside EmailSection.jsx itself.
+  const [tool, setTool] = useState('comms'); // 'comms' | 'email'
   const [view, setView] = useState('list'); // 'list' | 'create' | 'detail'
   const [detailId, setDetailId] = useState(null);
   const [communications, setCommunications] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Hooks above always run, every render, regardless of `tool` — the
+  // Comms-vs-Email branch below is a plain early return, not a conditional
+  // hook. Fetches for the pilot-communications list still only fire while
+  // `view === 'list'`, same as before.
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -607,7 +616,11 @@ export default function CommunicationsPanel() {
     }
   }, []);
 
-  useEffect(() => { if (view === 'list') load(); }, [view, load]);
+  useEffect(() => { if (view === 'list' && tool === 'comms') load(); }, [view, tool, load]);
+
+  if (tool === 'email') {
+    return <EmailSection onSwitchTool={setTool} />;
+  }
 
   if (view === 'create') {
     return (
@@ -630,6 +643,8 @@ export default function CommunicationsPanel() {
 
   return (
     <div className="flex-1 overflow-y-auto pb-24 px-4 pt-5 space-y-4">
+      <ToolSwitcher active="comms" onSwitch={setTool} />
+
       <TestPushSender />
 
       <div className="flex items-center justify-between">
