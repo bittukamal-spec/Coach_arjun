@@ -462,12 +462,10 @@ export const translations = {
       themeAuto: 'Auto',
       themeLight: 'Light',
       themeDark: 'Dark',
-      // Home quick-settings — Notifications shortcut (status/navigation
-      // only; the actual toggle lives in Account, see AccountPage.jsx).
+      // Home quick-settings — Notifications toggle label. The on/off
+      // switch itself is the account.pushNotifications flow (shared, not
+      // duplicated) — see AccountPage.jsx / usePushNotifications.js.
       notifications: 'Notifications',
-      notificationsSub: 'Occasional reminders',
-      notificationsOn: 'On',
-      notificationsOff: 'Off',
       dashboard: 'Dashboard',
       coaching: 'Coaching',
       progress: 'Progress',
@@ -2572,9 +2570,6 @@ export const translations = {
       themeLight: 'लाइट',
       themeDark: 'डार्क',
       notifications: 'सूचनाएं',
-      notificationsSub: 'कभी-कभी रिमाइंडर',
-      notificationsOn: 'चालू',
-      notificationsOff: 'बंद',
       dashboard: 'डैशबोर्ड',
       coaching: 'कोचिंग',
       progress: 'प्रगति',

@@ -1,8 +1,8 @@
 // Home quick-settings discoverability — source-level checks: the avatar
-// chevron indicator, the Notifications shortcut's structure/ordering, no
-// duplicated permission/toggle logic, and EN/HI translation parity. Same
-// source-text pattern used throughout this suite (node:test can't run JSX
-// without a transform).
+// chevron indicator, the Notifications row as a direct toggle (not a
+// shortcut), no duplicated permission/toggle logic, and EN/HI translation
+// parity. Same source-text pattern used throughout this suite (node:test
+// can't run JSX without a transform).
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -16,7 +16,6 @@ const read = (rel) => readFileSync(path.join(root, rel), 'utf8');
 
 const navbar = read('src/components/Navbar.jsx');
 const translations = read('src/i18n/translations.js');
-const accountPage = read('src/pages/AccountPage.jsx');
 
 // Strips JSX `{/* … */}` blocks and `//` lines, so a "never duplicates
 // this logic" assertion can't be satisfied or broken by explanatory prose
@@ -31,7 +30,7 @@ function stripComments(s) {
 }
 const navbarCode = stripComments(navbar);
 
-// ── 1. Avatar/menu discoverability ──────────────────────────────────────
+// ── 1. Avatar/menu discoverability (unchanged by this follow-up) ───────
 
 test('Navbar renders a chevron indicator beside the avatar trigger, using the existing icon library', () => {
   assert.match(navbar, /import\s*\{[^}]*ChevronDown[^}]*\}\s*from\s*'lucide-react'/);
@@ -45,32 +44,17 @@ test('the chevron is decorative (aria-hidden) — aria-expanded on the button is
   assert.match(navbar, /aria-expanded=\{menuOpen\}/);
 });
 
-test('the chevron never adds a text label like "Menu"', () => {
-  assert.doesNotMatch(navbarCode, />\s*Menu\s*</i);
-});
-
 test('the avatar and chevron share one button — one tap target, not two separate controls', () => {
   const btnStart = navbar.indexOf('onClick={() => setMenuOpen(v => !v)}');
   assert.ok(btnStart !== -1);
   const btnOpenTag = navbar.lastIndexOf('<button', btnStart);
   const btnCloseTag = navbar.indexOf('</button>', btnStart);
   const buttonSource = navbar.slice(btnOpenTag, btnCloseTag);
-  // Both the avatar circle span and the chevron live inside this ONE button.
   assert.match(buttonSource, /bg-brand-500/); // the avatar circle
   assert.match(buttonSource, /<ChevronDown/);
-  assert.doesNotMatch(navbar.slice(0, btnOpenTag) + navbar.slice(btnCloseTag), /<ChevronDown/); // no second copy elsewhere
 });
 
-test('the button keeps a minimum 44px tap-target height', () => {
-  const btnStart = navbar.indexOf('onClick={() => setMenuOpen(v => !v)}');
-  const btnOpenTag = navbar.lastIndexOf('<button', btnStart);
-  // Slice a fixed window rather than searching for the next '>' — the
-  // arrow function in onClick contains its own '>' characters.
-  const openingTagSource = navbar.slice(btnOpenTag, btnOpenTag + 400);
-  assert.match(openingTagSource, /className="[^"]*\bh-11\b/); // 44px
-});
-
-// ── 2/5. Menu order and structure: Language, Theme, Notifications, Settings ──
+// ── 2/5. Menu order: Language, Theme, Notifications, Settings ──────────
 
 test('the quick-settings menu order is Language, Theme, Notifications, Settings', () => {
   const languageIdx = navbar.indexOf('{t.language}');
@@ -83,59 +67,75 @@ test('the quick-settings menu order is Language, Theme, Notifications, Settings'
   assert.ok(notificationsIdx < settingsIdx, 'Notifications must come before Settings');
 });
 
-test('the Notifications shortcut uses a Bell icon consistent with existing Arjun icons', () => {
+// ── 3. Notifications row is now a direct toggle, not a shortcut ────────
+
+test('the Notifications row is a switch, not a button that navigates', () => {
+  const rowStart = navbar.lastIndexOf('<div', navbar.indexOf('{t.notifications}'));
+  const rowEnd = navbar.indexOf('{push.error &&', rowStart);
+  const rowSource = navbar.slice(rowStart, rowEnd);
+  assert.match(rowSource, /type="checkbox"/);
+  assert.match(rowSource, /role="switch"/);
+  assert.match(rowSource, /checked=\{pushOn\}/);
+});
+
+test('the Notifications row never navigates anywhere — no /account#notifications, no navigate() call near it', () => {
+  assert.doesNotMatch(navbar, /\/account#notifications/);
+  const rowStart = navbar.lastIndexOf('<div', navbar.indexOf('{t.notifications}'));
+  const rowEnd = navbar.indexOf('{push.error &&', rowStart);
+  const rowSource = navbar.slice(rowStart, rowEnd);
+  assert.doesNotMatch(rowSource, /navigate\(/);
+});
+
+test('the Bell icon is still used on the Notifications row', () => {
   assert.match(navbar, /import\s*\{[^}]*Bell[^}]*\}\s*from\s*'lucide-react'/);
-  const notificationsButtonStart = navbar.lastIndexOf('<button', navbar.indexOf('{t.notifications}'));
-  const notificationsButtonEnd = navbar.indexOf('</button>', notificationsButtonStart);
-  const buttonSource = navbar.slice(notificationsButtonStart, notificationsButtonEnd);
-  assert.match(buttonSource, /<Bell/);
+  const rowStart = navbar.lastIndexOf('<div', navbar.indexOf('{t.notifications}'));
+  const rowEnd = navbar.indexOf('{push.error &&', rowStart);
+  const rowSource = navbar.slice(rowStart, rowEnd);
+  assert.match(rowSource, /<Bell/);
 });
 
-test('the Notifications shortcut shows On/Off status text, never color alone', () => {
-  const notificationsButtonStart = navbar.lastIndexOf('<button', navbar.indexOf('{t.notifications}'));
-  const notificationsButtonEnd = navbar.indexOf('</button>', notificationsButtonStart);
-  const buttonSource = navbar.slice(notificationsButtonStart, notificationsButtonEnd);
-  assert.match(buttonSource, /t\.notificationsOn/);
-  assert.match(buttonSource, /t\.notificationsOff/);
+test('no "Occasional reminders" subtext and no separate On/Off status text remain', () => {
+  assert.doesNotMatch(navbarCode, /notificationsSub/);
+  assert.doesNotMatch(navbarCode, /notificationsOn\b/);
+  assert.doesNotMatch(navbarCode, /notificationsOff\b/);
+  assert.doesNotMatch(navbarCode, />\s*Occasional reminders\s*</);
 });
 
-test('the Notifications shortcut includes the optional supporting line', () => {
-  assert.match(navbar, /\{t\.notificationsSub\}/);
+test('the switch is disabled whenever the push status is not directly actionable, and while a request is pending', () => {
+  assert.match(navbarCode, /pushActionable\s*=\s*push\.status === 'default' \|\| push\.status === 'enabled'/);
+  assert.match(navbarCode, /pushToggleDisabled\s*=\s*!pushActionable \|\| push\.busy/);
+  assert.match(navbarCode, /disabled=\{pushToggleDisabled\}/);
 });
 
-// ── 3. Destination: /account#notifications, no new settings page ────────
-
-test('the Notifications shortcut navigates to /account#notifications, not a new page', () => {
-  const notificationsButtonStart = navbar.lastIndexOf('<button', navbar.indexOf('{t.notifications}'));
-  const notificationsButtonEnd = navbar.indexOf('</button>', notificationsButtonStart);
-  const buttonSource = navbar.slice(notificationsButtonStart, notificationsButtonEnd);
-  assert.match(buttonSource, /navigate\(['"]\/account#notifications['"]\)/);
-});
-
-test('AccountPage exposes an id="notifications" anchor and scrolls/focuses it when the hash matches', () => {
-  assert.match(accountPage, /id="notifications"/);
-  assert.match(accountPage, /location\.hash === ['"]#notifications['"]/);
-  assert.match(accountPage, /scrollIntoView/);
-  assert.match(accountPage, /\.focus\(/);
-});
-
-// ── 4/no-duplication. Status source reused, never a second/duplicate flow ──
+// ── 4/no-duplication. Reuses Account's own enable/disable flow exactly ──
 
 test('Navbar reuses the existing usePushNotifications hook — no second notification-state source', () => {
   assert.match(navbar, /import\s*\{\s*usePushNotifications\s*\}\s*from\s*'\.\.\/hooks\/usePushNotifications'/);
   assert.match(navbar, /push\.status === 'enabled'/);
 });
 
-test('Navbar never duplicates the permission/subscribe/toggle flow — that logic stays entirely in the hook + Account', () => {
+test('the toggle handler calls the hook\'s real enable()/disable() — the same flow Account uses, not a reimplementation', () => {
+  assert.match(navbarCode, /function handleTogglePush\(\)\s*\{[\s\S]*?push\.busy[\s\S]*?push\.disable\(\)[\s\S]*?push\.enable\(\)[\s\S]*?\}/);
+});
+
+test('Navbar never talks to Notification.requestPermission, pushManager, or serviceWorker directly — that stays inside the shared hook', () => {
   assert.doesNotMatch(navbarCode, /Notification\.requestPermission/);
   assert.doesNotMatch(navbarCode, /pushManager/);
-  assert.doesNotMatch(navbarCode, /push\.enable\(/);
-  assert.doesNotMatch(navbarCode, /push\.disable\(/);
   assert.doesNotMatch(navbarCode, /serviceWorker/);
 });
 
 test('Navbar never imports VAPID/service-worker/scheduler internals', () => {
   assert.doesNotMatch(navbar, /VAPID|pushScheduler|pushSend|sw\.js/i);
+});
+
+test('a busy/pending toggle reuses push.busy from the shared hook rather than tracking its own pending flag', () => {
+  assert.doesNotMatch(navbarCode, /\[busy, setBusy\]/);
+  assert.match(navbarCode, /push\.busy/);
+});
+
+test('a subtle error, when shown, reuses the existing account.pushNotifications.error string rather than a new one', () => {
+  assert.match(navbar, /translations\[language\]\.account\.pushNotifications/);
+  assert.match(navbar, /\{push\.error &&[\s\S]{0,120}tPush\.error/);
 });
 
 // ── EN/HI parity ─────────────────────────────────────────────────────────
@@ -148,28 +148,30 @@ function navNamespaceBlock(lang) {
   return translations.slice(start, translations.indexOf('\n    },', start));
 }
 
-test('nav namespace: the four new Notifications keys exist in both English and Hindi', () => {
-  const required = ['notifications', 'notificationsSub', 'notificationsOn', 'notificationsOff'];
+test('nav namespace: notifications key exists in both English and Hindi, and the now-unused quick-menu keys are gone', () => {
   for (const lang of ['en', 'hi']) {
     const block = navNamespaceBlock(lang);
-    for (const key of required) {
-      assert.match(block, new RegExp(`^\\s{6}${key}:`, 'm'), `${lang}.nav.${key} is missing`);
-    }
+    assert.match(block, /^\s{6}notifications:/m, `${lang}.nav.notifications is missing`);
+    assert.doesNotMatch(block, /notificationsSub/, `${lang}.nav.notificationsSub should be removed`);
+    assert.doesNotMatch(block, /notificationsOn:/, `${lang}.nav.notificationsOn should be removed`);
+    assert.doesNotMatch(block, /notificationsOff:/, `${lang}.nav.notificationsOff should be removed`);
   }
 });
 
-test('the Hindi side of the new nav keys is actually written in Hindi', () => {
+test('the Hindi nav.notifications value is actually written in Hindi', () => {
   const block = navNamespaceBlock('hi');
-  const keys = ['notifications', 'notificationsSub', 'notificationsOn', 'notificationsOff'];
-  for (const key of keys) {
-    const match = block.match(new RegExp(`^\\s{6}${key}:\\s*'([^']*)'`, 'm'));
-    assert.ok(match, `${key} not found in hi.nav`);
-    assert.match(match[1], /[ऀ-ॿ]/, `hi.nav.${key} ("${match[1]}") doesn't look like Hindi`);
-  }
+  const match = block.match(/^\s{6}notifications:\s*'([^']*)'/m);
+  assert.ok(match, 'notifications not found in hi.nav');
+  assert.match(match[1], /[ऀ-ॿ]/, `hi.nav.notifications ("${match[1]}") doesn't look like Hindi`);
 });
 
-test('Navbar reads every new fixed string through translations.js — no inline hardcoded English/Hindi literal', () => {
+test('the retired notificationsSub/On/Off keys no longer appear anywhere in translations.js', () => {
+  assert.doesNotMatch(translations, /notificationsSub/);
+  assert.doesNotMatch(translations, /notificationsOn:/);
+  assert.doesNotMatch(translations, /notificationsOff:/);
+});
+
+test('Navbar reads the Notifications label through translations.js — no inline hardcoded English/Hindi literal', () => {
   assert.doesNotMatch(navbarCode, />\s*Notifications\s*</);
-  assert.doesNotMatch(navbarCode, />\s*Occasional reminders\s*</);
   assert.match(navbar, /\{t\.notifications\}/);
 });

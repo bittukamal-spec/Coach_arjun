@@ -20,13 +20,28 @@ function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
   const t = translations[language].nav;
-  // Reads the SAME server-preference-backed status Account's own toggle
-  // uses (see usePushNotifications.js) — never inferred from browser
-  // Notification permission alone, and never a second state source. This
-  // is a status/shortcut surface only: no enable/disable/permission logic
-  // lives here, that stays entirely in Account.
+  // Reused, not duplicated: the exact same hook (state, enable/disable
+  // flow, guardian-consent + unsupported handling) that Account's own
+  // Notifications switch uses — see usePushNotifications.js. This IS the
+  // real toggle now, not a shortcut to Account; Account's Notifications
+  // section stays the full settings/details surface, unchanged.
   const push = usePushNotifications();
   const pushOn = push.status === 'enabled';
+  // Only 'default' and 'enabled' are states a tap can act on — the same
+  // two states Account's own switch renders for (everything else there
+  // shows explanatory text instead of a switch). Unsupported/iOS/
+  // guardian-consent/denied/loading all disable the switch here rather
+  // than pretend a tap could turn it on.
+  const pushActionable = push.status === 'default' || push.status === 'enabled';
+  const pushToggleDisabled = !pushActionable || push.busy;
+  const tPush = translations[language].account.pushNotifications;
+  // Identical to AccountPage's own handleTogglePush — same enable()/
+  // disable() calls, same busy guard, same order of checks.
+  function handleTogglePush() {
+    if (push.busy) return;
+    if (push.status === 'enabled') push.disable();
+    else push.enable();
+  }
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -124,27 +139,45 @@ function Navbar() {
                     ))}
                   </div>
                 </div>
-                {/* Notifications shortcut — status/navigation only. Never
-                    the permission/toggle flow itself (that stays entirely
-                    in Account's own Notifications section, which this
-                    links straight to). Status text ("On"/"Off") carries
-                    the state, not color alone. */}
-                <button
-                  onClick={() => { navigate('/account#notifications'); setMenuOpen(false); }}
-                  className="w-full px-4 py-3 text-left hover:bg-dark-700 transition-colors flex items-center gap-3 border-b border-dark-700"
-                  aria-label={`${t.notifications} — ${pushOn ? t.notificationsOn : t.notificationsOff}`}
-                >
-                  <Bell size={14} className="text-slt shrink-0" />
-                  <span className="flex-1 min-w-0">
-                    <span className="flex items-center justify-between gap-2">
+                {/* Notifications — a direct toggle, not a shortcut. Tapping
+                    it calls the SAME enable()/disable() flow as Account's
+                    own switch (handleTogglePush above); no navigation, no
+                    second notification state. The switch's own checked/
+                    aria-checked state (not color alone) carries on/off. */}
+                <div className="border-b border-dark-700">
+                  <label
+                    className={`w-full px-4 py-3 flex items-center justify-between gap-3 ${pushToggleDisabled ? '' : 'cursor-pointer'}`}
+                  >
+                    <span className="flex items-center gap-3 min-w-0">
+                      <Bell size={14} className="text-slt shrink-0" />
                       <span className="text-sm font-medium text-ink">{t.notifications}</span>
-                      <span className={`text-[11px] font-semibold shrink-0 ${pushOn ? 'text-win-400' : 'text-slt'}`}>
-                        {pushOn ? t.notificationsOn : t.notificationsOff}
-                      </span>
                     </span>
-                    <span className="block text-[11px] text-slt font-normal mt-0.5">{t.notificationsSub}</span>
-                  </span>
-                </button>
+                    <span className="relative inline-flex items-center shrink-0">
+                      <input
+                        type="checkbox"
+                        role="switch"
+                        checked={pushOn}
+                        disabled={pushToggleDisabled}
+                        onChange={handleTogglePush}
+                        aria-label={t.notifications}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed z-10"
+                      />
+                      <span
+                        className={`w-9 h-5 rounded-full transition-colors pointer-events-none ${push.busy ? 'opacity-60' : ''} ${
+                          pushOn ? 'bg-brand-500' : 'bg-dark-600'
+                        }`}
+                        aria-hidden="true"
+                      />
+                      <span
+                        className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-dark-400 border border-dark-600 shadow-sm transition-transform pointer-events-none ${
+                          pushOn ? 'translate-x-4' : 'translate-x-0'
+                        }`}
+                        aria-hidden="true"
+                      />
+                    </span>
+                  </label>
+                  {push.error && <p className="px-4 pb-2 -mt-1 text-[11px] text-red-400">{tPush.error}</p>}
+                </div>
                 {/* Settings link — opens /account. Labelled "Settings", not
                     "Profile": the bottom nav's Profile tab now points at
                     /starting-profile, so the two labels must stay distinct. */}
