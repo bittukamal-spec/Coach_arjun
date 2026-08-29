@@ -14,6 +14,8 @@ const {
   renderBodyHtml,
   buildCtaUrl,
   buildEmailHtml,
+  buildLogoUrl,
+  LOGO_PATH,
   CTA_ROUTE_ALLOWLIST,
   isValidCtaRoute,
 } = require('../src/services/founderEmail');
@@ -193,4 +195,63 @@ test('includes a hidden preheader from previewText when given, nothing when omit
   assert.match(withPreview, /A short teaser/);
   const withoutPreview = buildEmailHtml({ ...validDraft(), firstName: 'A' });
   assert.doesNotMatch(withoutPreview, /display:none/);
+});
+
+// ── Visual refresh (v1.1): logo, card layout, one CTA, no other change ───
+
+test('buildLogoUrl derives an absolute URL from CLIENT_URL — never a relative path, never a hardcoded external host', () => {
+  assert.equal(buildLogoUrl(), 'https://arjun.test/brand/arjun/pwa-icon-192.png');
+  assert.equal(buildLogoUrl(), `${process.env.CLIENT_URL}${LOGO_PATH}`);
+});
+
+test('the rendered email includes the real Arjun logo image with a safe absolute src and alt fallback text', () => {
+  const html = buildEmailHtml({ ...validDraft(), firstName: 'A' });
+  assert.match(html, /<img src="https:\/\/arjun\.test\/brand\/arjun\/pwa-icon-192\.png"/);
+  assert.match(html, /alt="Arjun"/);
+  // Exactly one logo image — no decorative clutter.
+  assert.equal((html.match(/<img\b/g) || []).length, 1);
+});
+
+test('the logo URL is never an arbitrary/external asset URL — it always resolves from CLIENT_URL, same base as the CTA URL', () => {
+  const html = buildEmailHtml({ ...validDraft({ ctaRoute: '/dashboard', ctaLabel: 'Open Arjun' }), firstName: 'A' });
+  const logoMatch = html.match(/<img src="([^"]+)"/);
+  const ctaMatch = html.match(/href="([^"]+)"/);
+  assert.ok(logoMatch && ctaMatch);
+  const logoOrigin = new URL(logoMatch[1]).origin;
+  const ctaOrigin = new URL(ctaMatch[1]).origin;
+  assert.equal(logoOrigin, ctaOrigin);
+});
+
+test('the email is a centered, mobile-fluid card (table width=100% capped at max-width 600px) on a light-grey field', () => {
+  const html = buildEmailHtml({ ...validDraft(), firstName: 'A' });
+  assert.match(html, /max-width:600px/);
+  assert.match(html, /width="100%"/);
+  assert.match(html, /background:#F3F4F6/); // outer field
+  assert.match(html, /background:#FFFFFF/); // inner card
+});
+
+test('the CTA button is explicitly centered', () => {
+  const html = buildEmailHtml({ ...validDraft({ ctaRoute: '/dashboard', ctaLabel: 'Open Arjun' }), firstName: 'A' });
+  const ctaBlockMatch = html.match(/<div style="[^"]*text-align:center;">\s*<a href="https:\/\/arjun\.test\/dashboard"/);
+  assert.ok(ctaBlockMatch, 'expected the CTA link to sit inside a centered wrapper');
+});
+
+test('CTA safety is unchanged by the visual refresh: still exactly one link, still built from the allowlisted route only', () => {
+  const html = buildEmailHtml({ ...validDraft({ ctaRoute: '/dashboard', ctaLabel: 'Open Arjun' }), firstName: 'A' });
+  const links = html.match(/<a\s/g) || [];
+  assert.equal(links.length, 1);
+  assert.match(html, /href="https:\/\/arjun\.test\/dashboard"/);
+});
+
+test('the plain "Arjun" from-name text line is gone — the logo image is the one brand mark now, no duplicate branding', () => {
+  const html = buildEmailHtml({ ...validDraft({ fromName: 'Arjun' }), firstName: 'A' });
+  assert.doesNotMatch(html, /font-weight:700;\s*font-size:16px;\s*color:#185FA5;[^<]*>Arjun</);
+});
+
+test('body rendering (escaping, paragraphs/headings/bullets) is unaffected by the visual refresh', () => {
+  const html = buildEmailHtml({ ...validDraft({ body: '**Heading**\n\n- one\n- two\n\n<script>alert(1)</script>' }), firstName: 'A' });
+  assert.match(html, /Heading/);
+  assert.equal((html.match(/<li/g) || []).length, 2);
+  assert.doesNotMatch(html, /<script>/);
+  assert.match(html, /&lt;script&gt;/);
 });
