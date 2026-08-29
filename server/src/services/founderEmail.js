@@ -120,39 +120,69 @@ function renderBodyHtml(rawBody) {
 // the server constructs this itself from the existing configured base URL
 // (same CLIENT_URL fallback sendWelcomeEmail already uses), never from a
 // founder-entered full URL. `route` must already have passed
-// isValidCtaRoute() — this function does not re-check it.
+// isValidCtaRoute() — this function does not re-check it. CTA
+// security/routing itself is untouched by the v1.1 visual refresh below.
 function buildCtaUrl(route) {
   const base = process.env.CLIENT_URL || 'https://arjun.app';
   return `${base}${route}`;
 }
 
-// Assembles the full email HTML — same visual language as
-// sendWelcomeEmail's light template (white background, brand blue,
-// Poppins). `firstName` is the one piece of athlete personalization
-// allowed (see routes/founderEmail.js); null/missing falls back to "there",
-// same convention sendWelcomeEmail already uses. Never more than one CTA
-// button, and never renders one without both a route and a label.
-function buildEmailHtml({ fromName, subject, previewText, body, ctaLabel, ctaRoute, firstName }) {
+// The real Arjun brand mark, already deployed as a static client asset
+// (client/public/brand/arjun/pwa-icon-192.png — the same square PNG used
+// for the PWA icon set) — reused as-is; no new logo file was added.
+// Resolved to an absolute URL the same way buildCtaUrl() resolves a CTA
+// route, from the same existing CLIENT_URL config: email clients cannot
+// resolve a relative image path, so this can never be one.
+const LOGO_PATH = '/brand/arjun/pwa-icon-192.png';
+function buildLogoUrl() {
+  const base = process.env.CLIENT_URL || 'https://arjun.app';
+  return `${base}${LOGO_PATH}`;
+}
+
+// Assembles the full email HTML. Visual refresh (v1.1): a subtle light-grey
+// outer field with a centered white card (max-width 600px, mobile-first —
+// fluid below that via width="100%" on the table, no media query needed,
+// which also keeps this robust in clients like Gmail's Android app that
+// strip <style> blocks), the real Arjun logo at the top, and the CTA
+// button explicitly centered. Table-based layout for cross-client
+// reliability (Gmail/Outlook), not flexbox/grid. `firstName` is the one
+// piece of athlete personalization allowed (see routes/founderEmail.js);
+// null/missing falls back to "there", same convention sendWelcomeEmail
+// already uses. Never more than one CTA button, and never renders one
+// without both a route and a label — that gate, and buildCtaUrl() above,
+// are exactly what they were before this refresh.
+function buildEmailHtml({ subject, previewText, body, ctaLabel, ctaRoute, firstName }) {
   const safeFirstName = escapeHtml(firstName ? firstName.trim() : 'there');
   const bodyHtml = renderBodyHtml(body);
   const ctaUrl = ctaRoute && ctaLabel ? buildCtaUrl(ctaRoute) : null;
+  const logoUrl = buildLogoUrl();
   const preheader = previewText
     ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0;">${escapeHtml(previewText)}</div>`
     : '';
 
   return `
-    <div style="font-family:'Poppins', Arial, sans-serif; max-width:480px; margin:0 auto; padding:32px 24px; background:#FFFFFF; color:#1A1A1A;">
-      ${preheader}
-      <p style="font-weight:700; font-size:16px; color:#185FA5; margin:0 0 24px;">${escapeHtml(fromName)}</p>
-      <p style="font-size:15px; line-height:1.6; margin:0 0 16px;">Hi ${safeFirstName},</p>
-      ${bodyHtml}
-      ${ctaUrl ? `
-      <div style="margin:24px 0;">
-        <a href="${ctaUrl}" style="display:inline-block; background:#185FA5; color:#FFFFFF; text-decoration:none; padding:12px 28px; border-radius:8px; font-weight:600; font-size:15px;">
-          ${escapeHtml(ctaLabel)}
-        </a>
-      </div>` : ''}
-      <p style="font-size:15px; margin:24px 0 0;">— Arjun</p>
+    ${preheader}
+    <div style="background:#F3F4F6; padding:32px 16px; font-family:'Poppins', Arial, sans-serif;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%; margin:0 auto; border-collapse:collapse; table-layout:fixed;">
+        <tr>
+          <td style="text-align:center; padding-bottom:20px;">
+            <img src="${logoUrl}" width="44" height="44" alt="Arjun" style="display:inline-block; border:0; border-radius:10px; vertical-align:middle;" />
+          </td>
+        </tr>
+        <tr>
+          <td style="background:#FFFFFF; border-radius:16px; padding:32px 28px; color:#1A1A1A; word-break:break-word; overflow-wrap:break-word;">
+            <p style="font-size:15px; line-height:1.6; margin:0 0 20px;">Hi ${safeFirstName},</p>
+            ${bodyHtml}
+            ${ctaUrl ? `
+            <div style="margin:24px 0; text-align:center;">
+              <a href="${ctaUrl}" style="display:inline-block; background:#185FA5; color:#FFFFFF; text-decoration:none; padding:14px 32px; border-radius:8px; font-weight:600; font-size:15px;">
+                ${escapeHtml(ctaLabel)}
+              </a>
+            </div>` : ''}
+            <p style="font-size:13px; color:#6B7280; margin:28px 0 0;">— Arjun Team</p>
+          </td>
+        </tr>
+      </table>
     </div>
   `;
 }
@@ -172,5 +202,7 @@ module.exports = {
   validateEmailContent,
   renderBodyHtml,
   buildCtaUrl,
+  LOGO_PATH,
+  buildLogoUrl,
   buildEmailHtml,
 };

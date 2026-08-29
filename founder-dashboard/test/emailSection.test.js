@@ -222,7 +222,26 @@ test('a Beta Update template is offered and is never auto-sent — it only fills
 test('the Beta Update template body covers reactivation, notifications, and in-app feedback, and thanks the athlete', () => {
   assert.match(email, /notifications/i);
   assert.match(email, /in-app questions|feedback/i);
-  assert.match(email, /Thank you/);
+  assert.match(email, /Thanks for helping us build this properly/);
+});
+
+test('the Beta Update template uses the new subject and preview text', () => {
+  assert.match(email, /subject:\s*'Arjun Beta Update — help us test the new version'/);
+  assert.match(email, /previewText:\s*'Use Arjun naturally for 7 days and help us decide what we improve next\.'/);
+});
+
+test('the Beta Update template includes a "BETA UPDATE" label and the "What we need from you this week" / "What\'s changed" sections', () => {
+  assert.match(email, /\*\*BETA UPDATE\*\*/);
+  assert.match(email, /\*\*What we need from you this week\*\*/);
+  assert.match(email, /\*\*What's changed\*\*/);
+});
+
+test('the Beta Update template CTA is still exactly /dashboard, using the same allowlisted-route field as before', () => {
+  assert.match(email, /ctaRoute:\s*'\/dashboard'/);
+});
+
+test('the old "We miss you" retention copy is gone', () => {
+  assert.doesNotMatch(email, /We miss you/i);
 });
 
 // ── No Coach / Mind Journal / Pilot Communication content ────────────────

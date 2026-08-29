@@ -37,25 +37,42 @@ const CTA_ROUTES = [
 // reactivation + natural usage + structured feedback. Loading this NEVER
 // sends anything — it only fills the compose form; the founder still has
 // to review/edit and explicitly send (Send test to myself / Review & send).
+//
+// Content-only refresh (v1.1) — the visual polish (logo, card, spacing) is
+// the shared template renderer's job now (services/founderEmail.js's
+// buildEmailHtml); this draft only supplies the copy, using the same
+// "**heading**" / "- bullet" / paragraph markup the renderer has always
+// supported. "BETA UPDATE" and the headline are two adjacent heading
+// blocks (both render in the renderer's one heading style) rather than a
+// distinct eyebrow-label style — a deliberate compromise to avoid adding
+// new markup syntax to the shared renderer for one template's sake.
 const BETA_UPDATE_TEMPLATE = {
   fromName: 'Arjun',
-  subject: 'We miss you at Arjun — a quick 7-day check-in',
-  previewText: "3 small things that'd help us a lot this week.",
-  body: `**We built some new tools — and we want your take**
+  subject: 'Arjun Beta Update — help us test the new version',
+  previewText: 'Use Arjun naturally for 7 days and help us decide what we improve next.',
+  body: `**BETA UPDATE**
 
-It's been a few days since we've seen you inside Arjun, and we wanted to check in.
+**Help us test the latest Arjun**
 
-You're one of a small group of athletes helping us build Arjun before it goes wider — and how you actually use the app (or feedback on why it isn't clicking yet) is genuinely shaping what we build next.
+You're part of a small group helping us shape Arjun before we open it to more athletes.
 
-Here's what would help most over the next 7 days:
+**What we need from you this week**
 
-- Open Arjun a few times this week — before training, after a tough session, whenever
-- Turn on notifications so we can nudge you gently instead of you having to remember
-- Answer the short in-app questions when they pop up — 10 seconds, no essays needed
+- Open Arjun a few times over the next 7 days
+- Turn Notifications ON
+- Use Arjun naturally around training, competition or difficult moments
+- Answer the short in-app questions when they appear
 
-No pressure to use every feature — just real, natural use so we can see what actually helps.
+**What's changed**
 
-Thank you for being part of this. Founders don't get many people willing to try something unfinished and tell them the truth about it — you're one of them, and we notice.`,
+- Mind Journal is quicker and gives you a useful takeaway
+- Home and navigation are simpler
+- Push notifications can now give occasional reminders
+- Feedback questions can appear directly inside Arjun
+
+Don't try to test everything. We want to learn what you naturally choose to use — and what you ignore.
+
+Thanks for helping us build this properly.`,
   ctaLabel: 'Open Arjun',
   ctaRoute: '/dashboard',
 };
