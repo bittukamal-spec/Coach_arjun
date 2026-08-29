@@ -92,7 +92,7 @@ async function processOnePreference(client, pref, nowDate) {
   }
 
   const user = await client.user.findUnique({ where: { id: pref.userId }, select: { language: true } });
-  const payload = buildReminderPayload(user?.language);
+  const payload = buildReminderPayload(user?.language, localDateStr);
 
   let anySucceeded = false;
   for (const sub of subscriptions) {

@@ -157,6 +157,21 @@ test('a due athlete within the window is sent, and lastSentLocalDate is set', as
   assert.equal(sendCalls[0].endpoint, seedSub.endpoint);
 });
 
+test('the actual payload sent through the full scheduler -> pushSend pipeline routes to /dashboard, not /mental-rep', async () => {
+  const seedPref = makePreference({ userId: 'u1b', reminderTime: '18:00', timezone: 'UTC' });
+  const seedSub = makeSubscription({ userId: 'u1b' });
+  const client = makeFakeClient({ preferences: [seedPref], subscriptions: [seedSub], usersById: { u1b: { language: 'en' } } });
+
+  await processOnePreference(client, { ...seedPref }, new Date('2026-08-26T18:03:00Z'));
+
+  assert.equal(sendCalls.length, 1);
+  const payload = JSON.parse(sendCalls[0].payload);
+  assert.equal(payload.route, '/dashboard');
+  assert.notEqual(payload.route, '/mental-rep');
+  assert.ok(payload.title);
+  assert.ok(payload.body);
+});
+
 test('an athlete outside the due window is skipped and untouched', async () => {
   const seedPref = makePreference({ userId: 'u2', reminderTime: '18:00', timezone: 'UTC' });
   const seedSub = makeSubscription({ userId: 'u2' });
