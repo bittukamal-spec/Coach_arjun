@@ -121,9 +121,22 @@ test('CommunicationsPanel never renders chat/journal/prescription free-text fiel
   assert.doesNotMatch(panel, /arjunNote|arjunInsight|arjunResponse/);
 });
 
-test('CommunicationsPanel reads no raw guardian email or other unrelated private athlete field', () => {
-  assert.doesNotMatch(panel, /guardianEmail/);
-  assert.doesNotMatch(panel, /\bemail\b/i);
+// Scoped to the Pilot Communications sub-components (CommRow, DetailView,
+// CreateView, TestPushSender, Pill/StatChip — everything above the root
+// export) rather than the whole file: since Founder Email Center v1, the
+// root CommunicationsPanel component also legitimately hosts a small
+// tool switcher into EmailSection.jsx, which is named "Email" — that is
+// the new email TOOL's name, not an athlete's email field, and it lives
+// only in the root component, never in these view components. Pilot
+// Communications' own athlete rendering still never touches
+// guardianEmail or any athlete .email field, which is what this test
+// actually guards.
+test('the Pilot Communications view components read no raw guardian email or other unrelated private athlete field', () => {
+  const rootIdx = panel.indexOf('export default function CommunicationsPanel');
+  assert.ok(rootIdx !== -1, 'expected to find the root CommunicationsPanel component');
+  const viewComponents = panel.slice(0, rootIdx);
+  assert.doesNotMatch(viewComponents, /guardianEmail/);
+  assert.doesNotMatch(viewComponents, /\bemail\b/i);
 });
 
 // ── No scheduling / external links / raw browser Notification API ───────

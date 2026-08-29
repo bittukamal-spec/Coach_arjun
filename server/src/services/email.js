@@ -190,7 +190,27 @@ async function sendContactEmail({ name, email, reason, reasonLabel, message }) {
   });
 }
 
+// Founder Email Center v1 — generic send primitive, reusing the SAME
+// Resend client/FROM address every other function in this file uses (no
+// second provider integration, no second `getResend()`). Deliberately the
+// only place in this file that accepts caller-supplied HTML rather than
+// building its own template inline; services/founderEmail.js owns turning
+// founder-authored plain text into safe HTML before it ever reaches here.
+// Returns the raw Resend `{ data, error }` result (or throws on a network-
+// level failure) so the caller can record SENT vs FAILED per recipient.
+async function sendRawEmail({ to, fromName, subject, html, replyTo }) {
+  const resend = getResend();
+  const payload = {
+    from: `${fromName} <${FROM}>`,
+    to,
+    subject,
+    html,
+  };
+  if (replyTo) payload.replyTo = replyTo;
+  return resend.emails.send(payload);
+}
+
 module.exports = {
   sendPasswordResetEmail, sendWelcomeEmail, sendDeletionEmail, sendGuardianConsentEmail,
-  sendContactEmail,
+  sendContactEmail, sendRawEmail, escapeHtml,
 };
