@@ -177,17 +177,18 @@ test('a malicious first name is escaped, not injected raw', () => {
   assert.match(html, /Hi &lt;img/);
 });
 
-test('renders exactly one CTA link when both route and label are present', () => {
+test('renders exactly one CTA link when both route and label are present (the footer site link is separate — see below)', () => {
   const html = buildEmailHtml({ ...validDraft({ ctaRoute: '/dashboard', ctaLabel: 'Open Arjun' }), firstName: 'A' });
-  const links = html.match(/<a\s/g) || [];
-  assert.equal(links.length, 1);
-  assert.match(html, /href="https:\/\/arjun\.test\/dashboard"/);
+  const ctaLinks = html.match(/href="https:\/\/arjun\.test\/dashboard"/g) || [];
+  assert.equal(ctaLinks.length, 1);
   assert.match(html, />\s*Open Arjun\s*<\/a>/);
 });
 
-test('renders no CTA link at all when route/label are absent', () => {
+test('renders no CTA button link when route/label are absent — only the footer site link remains', () => {
   const html = buildEmailHtml({ ...validDraft(), firstName: 'A' });
-  assert.equal((html.match(/<a\s/g) || []).length, 0);
+  const links = html.match(/<a\s/g) || [];
+  assert.equal(links.length, 1); // the footer site link only, no CTA button
+  assert.doesNotMatch(html, /href="https:\/\/arjun\.test\/dashboard"/);
 });
 
 test('includes a hidden preheader from previewText when given, nothing when omitted', () => {
@@ -222,25 +223,50 @@ test('the logo URL is never an arbitrary/external asset URL — it always resolv
   assert.equal(logoOrigin, ctaOrigin);
 });
 
-test('the email is a centered, mobile-fluid card (table width=100% capped at max-width 600px) on a light-grey field', () => {
+// ── Layout refresh (v1.2): no card, left-aligned, full-width white body ──
+
+test('the outer floating card is gone: no grey outer field, no rounded/boxed inner card', () => {
   const html = buildEmailHtml({ ...validDraft(), firstName: 'A' });
-  assert.match(html, /max-width:600px/);
+  assert.doesNotMatch(html, /#F3F4F6/); // the old grey outer field colour
+  assert.doesNotMatch(html, /border-radius:16px/); // the old card's rounded corners
+  assert.match(html, /background:#FFFFFF/); // the email body itself is plain white
+});
+
+test('the content column is a left-aligned, mobile-fluid table (no centering margin), capped at max-width 640px', () => {
+  const html = buildEmailHtml({ ...validDraft(), firstName: 'A' });
+  assert.match(html, /max-width:640px/);
   assert.match(html, /width="100%"/);
-  assert.match(html, /background:#F3F4F6/); // outer field
-  assert.match(html, /background:#FFFFFF/); // inner card
+  assert.doesNotMatch(html, /margin:0 auto/); // no auto-centering — starts flush left
 });
 
-test('the CTA button is explicitly centered', () => {
-  const html = buildEmailHtml({ ...validDraft({ ctaRoute: '/dashboard', ctaLabel: 'Open Arjun' }), firstName: 'A' });
-  const ctaBlockMatch = html.match(/<div style="[^"]*text-align:center;">\s*<a href="https:\/\/arjun\.test\/dashboard"/);
-  assert.ok(ctaBlockMatch, 'expected the CTA link to sit inside a centered wrapper');
+test('the logo appears before the greeting/body, is left-aligned (block, no centered wrapper), and sized within 48-64px', () => {
+  const html = buildEmailHtml({ ...validDraft(), firstName: 'A' });
+  const logoIdx = html.indexOf('<img');
+  const greetingIdx = html.indexOf('Hi A,');
+  assert.ok(logoIdx !== -1 && greetingIdx !== -1 && logoIdx < greetingIdx, 'logo must render before the greeting/body');
+  assert.match(html, /<img src="[^"]+" width="(4[89]|5\d|6[0-4])" height="\1"[^>]*style="display:block;/);
+  // Not wrapped in a text-align:center container.
+  const beforeLogo = html.slice(Math.max(0, logoIdx - 80), logoIdx);
+  assert.doesNotMatch(beforeLogo, /text-align:center/);
 });
 
-test('CTA safety is unchanged by the visual refresh: still exactly one link, still built from the allowlisted route only', () => {
+test('the greeting, body paragraphs, and CTA are all explicitly left-aligned, never centered', () => {
   const html = buildEmailHtml({ ...validDraft({ ctaRoute: '/dashboard', ctaLabel: 'Open Arjun' }), firstName: 'A' });
-  const links = html.match(/<a\s/g) || [];
-  assert.equal(links.length, 1);
-  assert.match(html, /href="https:\/\/arjun\.test\/dashboard"/);
+  assert.doesNotMatch(html, /text-align:center/);
+  assert.match(html, /Hi A,<\/p>/);
+});
+
+test('the CTA button is explicitly left-aligned (not centered)', () => {
+  const html = buildEmailHtml({ ...validDraft({ ctaRoute: '/dashboard', ctaLabel: 'Open Arjun' }), firstName: 'A' });
+  const ctaBlockMatch = html.match(/<div style="[^"]*text-align:left;">\s*<a href="https:\/\/arjun\.test\/dashboard"/);
+  assert.ok(ctaBlockMatch, 'expected the CTA link to sit inside a left-aligned wrapper');
+  assert.doesNotMatch(html, /text-align:center/);
+});
+
+test('CTA safety is unchanged by the layout refresh: still exactly one CTA link, still built from the allowlisted route only', () => {
+  const html = buildEmailHtml({ ...validDraft({ ctaRoute: '/dashboard', ctaLabel: 'Open Arjun' }), firstName: 'A' });
+  const ctaLinks = html.match(/href="https:\/\/arjun\.test\/dashboard"/g) || [];
+  assert.equal(ctaLinks.length, 1);
 });
 
 test('the plain "Arjun" from-name text line is gone — the logo image is the one brand mark now, no duplicate branding', () => {
@@ -248,10 +274,66 @@ test('the plain "Arjun" from-name text line is gone — the logo image is the on
   assert.doesNotMatch(html, /font-weight:700;\s*font-size:16px;\s*color:#185FA5;[^<]*>Arjun</);
 });
 
-test('body rendering (escaping, paragraphs/headings/bullets) is unaffected by the visual refresh', () => {
+test('body rendering (escaping, paragraphs/headings/bullets) is unaffected by the layout refresh', () => {
   const html = buildEmailHtml({ ...validDraft({ body: '**Heading**\n\n- one\n- two\n\n<script>alert(1)</script>' }), firstName: 'A' });
   assert.match(html, /Heading/);
   assert.equal((html.match(/<li/g) || []).length, 2);
   assert.doesNotMatch(html, /<script>/);
   assert.match(html, /&lt;script&gt;/);
+});
+
+// ── Founder sign-off ───────────────────────────────────────────────────
+
+test('the founder sign-off contains the name, role, and tagline, in that order', () => {
+  const html = buildEmailHtml({ ...validDraft(), firstName: 'A' });
+  const nameIdx = html.indexOf('Prabhanshu');
+  const roleIdx = html.indexOf('Founder');
+  const taglineIdx = html.indexOf('Coach Arjun — Your personal mental coach');
+  assert.ok(nameIdx !== -1 && roleIdx !== -1 && taglineIdx !== -1);
+  assert.ok(nameIdx < roleIdx && roleIdx < taglineIdx);
+});
+
+test('the sign-off is understated, not styled like another CTA (no button background/border-radius near it)', () => {
+  const html = buildEmailHtml({ ...validDraft(), firstName: 'A' });
+  const signOffStart = html.indexOf('Prabhanshu');
+  const signOffEnd = html.indexOf('Coach Arjun — Your personal mental coach') + 60;
+  const signOffBlock = html.slice(signOffStart - 120, signOffEnd);
+  assert.doesNotMatch(signOffBlock, /background:#185FA5/);
+  assert.doesNotMatch(signOffBlock, /<a\s/);
+});
+
+test('the old generic "— Arjun Team" sign-off is gone', () => {
+  const html = buildEmailHtml({ ...validDraft(), firstName: 'A' });
+  assert.doesNotMatch(html, /— Arjun Team/);
+});
+
+// ── Footer ─────────────────────────────────────────────────────────────
+
+test('the footer contains the beta recipient explanation, copyright, and site link, separated by a light divider', () => {
+  const html = buildEmailHtml({ ...validDraft(), firstName: 'A' });
+  assert.match(html, /You're receiving this because you're part of the Arjun beta\./);
+  const year = new Date().getFullYear();
+  assert.match(html, new RegExp(`&copy; ${year} Coach Arjun\\. All rights reserved\\.`));
+  assert.match(html, /border-top:1px solid #E5E7EB/);
+});
+
+test('the footer\'s site link is clickable, safe, and derived from the same configured base as the CTA/logo — never a hard-coded arbitrary URL', () => {
+  const html = buildEmailHtml({ ...validDraft(), firstName: 'A' });
+  const footerLinkMatch = html.match(/<a href="(https:\/\/arjun\.test\/?)"[^>]*>([^<]+)<\/a>/);
+  assert.ok(footerLinkMatch, 'expected a clickable footer site link');
+  assert.equal(new URL(footerLinkMatch[1]).origin, process.env.CLIENT_URL);
+  assert.equal(footerLinkMatch[2], 'arjun.test'); // display text matches the href's own domain, no protocol
+});
+
+test('the footer has no physical address, no social icons, no marketing unsubscribe link', () => {
+  const html = buildEmailHtml({ ...validDraft(), firstName: 'A' });
+  assert.doesNotMatch(html, /unsubscribe/i);
+  assert.doesNotMatch(html, /twitter|instagram|facebook|linkedin/i);
+});
+
+test('the footer and CTA/logo site URLs all resolve to the same origin (single configured base)', () => {
+  const html = buildEmailHtml({ ...validDraft({ ctaRoute: '/dashboard', ctaLabel: 'Open Arjun' }), firstName: 'A' });
+  const origins = new Set();
+  for (const m of html.matchAll(/(?:src|href)="(https:\/\/[^"]+)"/g)) origins.add(new URL(m[1]).origin);
+  assert.equal(origins.size, 1);
 });
