@@ -2,9 +2,10 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../hooks/useTheme';
+import { usePushNotifications } from '../hooks/usePushNotifications';
 import { translations } from '../i18n/translations';
 import { ArjunWordmark } from './ArjunLogo';
-import { User } from 'lucide-react';
+import { User, ChevronDown, Bell } from 'lucide-react';
 
 function getInitials(name = '') {
   const parts = name.trim().split(/\s+/);
@@ -19,6 +20,13 @@ function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
   const t = translations[language].nav;
+  // Reads the SAME server-preference-backed status Account's own toggle
+  // uses (see usePushNotifications.js) — never inferred from browser
+  // Notification permission alone, and never a second state source. This
+  // is a status/shortcut surface only: no enable/disable/permission logic
+  // lives here, that stays entirely in Account.
+  const push = usePushNotifications();
+  const pushOn = push.status === 'enabled';
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -38,15 +46,18 @@ function Navbar() {
         {/* Avatar + dropdown */}
         {user && (
           <div className="relative" ref={menuRef}>
-            {/* 44px hit area around the 32px avatar circle: the mark keeps its
-                size, the target no longer sits under the minimum. Deliberately
-                NOT given an aria-label here — this menu is the Settings entry
-                point, and naming it "Profile" would collide with the approved
-                Profile-vs-Settings distinction the bottom nav owns. */}
+            {/* >=44px hit area around the 32px avatar circle: the mark keeps
+                its size, the target stays above the minimum. Width is
+                intrinsic (avatar + chevron), not fixed, so the added
+                chevron indicator stays part of the same single tap target
+                rather than shrinking the avatar's own hit area. Deliberately
+                NOT given an aria-label here — this menu is the Settings
+                entry point, and naming it "Profile" would collide with the
+                approved Profile-vs-Settings distinction the bottom nav owns. */}
             <button
               onClick={() => setMenuOpen(v => !v)}
               aria-expanded={menuOpen}
-              className="w-11 h-11 -mr-1.5 flex items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+              className="h-11 -mr-1.5 pl-1.5 pr-2.5 flex items-center justify-center gap-0.5 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
             >
               <span className="w-8 h-8 rounded-full bg-brand-500 text-white text-xs font-bold flex items-center justify-center ring-2 ring-brand-700 hover:bg-brand-600 transition-colors overflow-hidden">
                 {avatarUrl
@@ -54,6 +65,14 @@ function Navbar() {
                   : getInitials(user.name)
                 }
               </span>
+              {/* Decorative only — aria-expanded on the button above is the
+                  real accessibility signal; this just makes "this opens a
+                  menu" visually obvious next to the avatar. */}
+              <ChevronDown
+                size={14}
+                aria-hidden="true"
+                className={`text-slt shrink-0 transition-transform ${menuOpen ? 'rotate-180' : ''}`}
+              />
             </button>
 
             {menuOpen && (
@@ -105,6 +124,27 @@ function Navbar() {
                     ))}
                   </div>
                 </div>
+                {/* Notifications shortcut — status/navigation only. Never
+                    the permission/toggle flow itself (that stays entirely
+                    in Account's own Notifications section, which this
+                    links straight to). Status text ("On"/"Off") carries
+                    the state, not color alone. */}
+                <button
+                  onClick={() => { navigate('/account#notifications'); setMenuOpen(false); }}
+                  className="w-full px-4 py-3 text-left hover:bg-dark-700 transition-colors flex items-center gap-3 border-b border-dark-700"
+                  aria-label={`${t.notifications} — ${pushOn ? t.notificationsOn : t.notificationsOff}`}
+                >
+                  <Bell size={14} className="text-slt shrink-0" />
+                  <span className="flex-1 min-w-0">
+                    <span className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-medium text-ink">{t.notifications}</span>
+                      <span className={`text-[11px] font-semibold shrink-0 ${pushOn ? 'text-win-400' : 'text-slt'}`}>
+                        {pushOn ? t.notificationsOn : t.notificationsOff}
+                      </span>
+                    </span>
+                    <span className="block text-[11px] text-slt font-normal mt-0.5">{t.notificationsSub}</span>
+                  </span>
+                </button>
                 {/* Settings link — opens /account. Labelled "Settings", not
                     "Profile": the bottom nav's Profile tab now points at
                     /starting-profile, so the two labels must stay distinct. */}

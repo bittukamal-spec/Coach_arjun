@@ -109,12 +109,18 @@ describe('Dashboard problem shortcuts — real router integration', () => {
     expect(screen.getByText('Talk to Arjun')).toBeTruthy();
     expect(screen.getByText('Pick what you need now')).toBeTruthy();
 
-    // Home itself still fetches nothing — the ONE call made here is the
-    // mounted PilotCommunicationPopup (Pilot Communications v1) checking
-    // for a pending founder communication, not Home gating its own render
-    // behind a request the way the old /api/playbook call once did.
-    expect(apiFetch).toHaveBeenCalledTimes(1);
-    expect(apiFetch.mock.calls[0][0]).toBe('/api/pilot-communications/next');
+    // Home itself still fetches nothing on its own account — the two calls
+    // made here are the mounted PilotCommunicationPopup (Pilot
+    // Communications v1) checking for a pending founder communication, and
+    // Navbar's Notifications quick-settings shortcut (Home quick-settings
+    // discoverability) reading the athlete's existing push preference
+    // status — neither is Home gating its own render behind a request the
+    // way the old /api/playbook call once did.
+    const calledPaths = apiFetch.mock.calls.map((c) => c[0]);
+    expect(calledPaths.sort()).toEqual([
+      '/api/pilot-communications/next',
+      '/api/push-notifications/preferences',
+    ]);
   });
 
   test('the "What\'s today?" selector and its recommended practice are gone from Home', async () => {

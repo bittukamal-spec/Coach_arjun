@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
@@ -36,6 +36,7 @@ function AccountPage() {
   const tprivacy = translations[language].privacy;
   const hi = language === 'hi';
   const navigate = useNavigate();
+  const location = useLocation();
   const { theme, setTheme } = useTheme();
   const fileInputRef = useRef(null);
   const tpush = t.pushNotifications;
@@ -45,6 +46,20 @@ function AccountPage() {
     if (push.status === 'enabled') push.disable();
     else push.enable();
   }
+
+  // Smallest section-anchor mechanism this page has: the Home quick-
+  // settings Notifications shortcut links to /account#notifications so it
+  // lands directly on this section instead of merely opening the top of
+  // Account. No routing library/config beyond the hash React Router
+  // already gives us for free — just scroll + move focus to the section
+  // that hash names.
+  const notificationsSectionRef = useRef(null);
+  useEffect(() => {
+    if (location.hash === '#notifications' && notificationsSectionRef.current) {
+      notificationsSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      notificationsSectionRef.current.focus({ preventScroll: true });
+    }
+  }, [location.hash]);
 
   const isPremium = user?.tier === 'premium';
   const trialDaysRemaining = getTrialDaysRemaining(user);
@@ -419,8 +434,11 @@ function AccountPage() {
           </div>
         </section>
 
-        {/* Push Notifications v1 */}
-        <section className="mb-6">
+        {/* Push Notifications v1 — id="notifications" is the anchor target
+            for the Home quick-settings shortcut (Navbar.jsx). tabIndex={-1}
+            lets it receive programmatic focus on arrival without joining
+            the normal Tab order. */}
+        <section id="notifications" ref={notificationsSectionRef} tabIndex={-1} className="mb-6 outline-none">
           <div className="flex items-center gap-2 mb-3">
             <Bell size={16} className="text-brand-400" />
             <h2 className="text-sm font-semibold text-slt uppercase tracking-wide">{tpush.title}</h2>
