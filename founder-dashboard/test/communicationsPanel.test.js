@@ -126,9 +126,57 @@ test('CommunicationsPanel reads no raw guardian email or other unrelated private
   assert.doesNotMatch(panel, /\bemail\b/i);
 });
 
-// ── No push / scheduling / external links slipped in ────────────────────
+// ── No scheduling / external links / raw browser Notification API ───────
 
-test('no push-notification, scheduling, or external-link affordance exists in this panel', () => {
-  assert.doesNotMatch(panel, /Notification\.|serviceWorker|scheduledAt|scheduleFor/i);
+test('no scheduling engine or arbitrary-external-link affordance exists in this panel', () => {
+  assert.doesNotMatch(panel, /scheduledAt|scheduleFor/i);
   assert.doesNotMatch(panel, /https?:\/\//);
+  // The panel never touches the browser Notification/serviceWorker APIs
+  // directly — those are athlete-side only (client/src/hooks/
+  // usePushNotifications.js). The one push affordance here is a founder-
+  // triggered SERVER call, tested in its own section below.
+  assert.doesNotMatch(panel, /Notification\.|navigator\.serviceWorker/);
+});
+
+// ── Push Notifications v1: founder "Send test notification" utility ─────
+// Operational testing utility only — see server/src/routes/founderPushTest.js.
+// Never a broadcast: exactly one founder-selected athlete, the approved
+// curated copy library only, no free-text push content, no external URL.
+
+test('Send test notification calls the dedicated founder-only test-push endpoint via founderFetch', () => {
+  assert.match(panel, /founderFetch\(['"]\/api\/founder\/push-test['"],\s*\{/);
+  assert.match(panel, /method:\s*'POST'/);
+});
+
+test('the test-push call sends only userId — no title/body/message content of any kind', () => {
+  const match = panel.match(/founderFetch\(['"]\/api\/founder\/push-test['"],\s*\{[\s\S]{0,200}?\}\);/);
+  assert.ok(match, 'expected to find the push-test founderFetch call');
+  const call = match[0];
+  assert.match(call, /body:\s*JSON\.stringify\(\{\s*userId:\s*selectedId\s*\}\)/);
+  assert.doesNotMatch(call, /title/i); // no free-text fields riding along
+});
+
+test('no free-text input exists anywhere near the test-push affordance — athlete selection is a picker, not typed text', () => {
+  const senderStart = panel.indexOf('function TestPushSender');
+  assert.ok(senderStart !== -1, 'expected a TestPushSender component');
+  const senderEnd = panel.indexOf('\n// ── Panel root', senderStart);
+  const senderSource = panel.slice(senderStart, senderEnd === -1 ? undefined : senderEnd);
+  assert.doesNotMatch(senderSource, /<textarea/);
+  assert.doesNotMatch(senderSource, /<input/);
+  assert.match(senderSource, /<select/);
+});
+
+test('the test-push result renders only the three approved outcomes — no custom/error-detail leakage', () => {
+  assert.match(panel, /sent:\s*'Sent'/);
+  assert.match(panel, /no_subscription:\s*'No active notification subscription'/);
+  assert.match(panel, /failed:\s*'Delivery failed'/);
+});
+
+test('the test-push affordance never lets the founder pick "all athletes" — single-select only, reusing the existing athlete list endpoint', () => {
+  assert.match(panel, /founderFetch\(['"]\/api\/founder\/pilot-communications\/athletes['"]\)/);
+  const senderStart = panel.indexOf('function TestPushSender');
+  const senderEnd = panel.indexOf('\n// ── Panel root', senderStart);
+  const senderSource = panel.slice(senderStart, senderEnd === -1 ? undefined : senderEnd);
+  assert.doesNotMatch(senderSource, /audienceMode|'ALL'/);
+  assert.doesNotMatch(senderSource, /multiple/); // <select> is single-value, not a multi-select
 });
