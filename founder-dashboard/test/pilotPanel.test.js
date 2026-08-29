@@ -174,3 +174,104 @@ test('no analytics SDK or tracking cookie is introduced in the files this PR add
     assert.doesNotMatch(src, /document\.cookie/, `${f} sets a cookie directly`);
   }
 });
+
+// ── Pilot Presence Tracking ────────────────────────────────────────────────
+
+test('a compact "Live now" metric renders metrics.liveNow', () => {
+  const panel = read('panels/PilotPanel.jsx');
+  assert.match(panel, /Live now/);
+  assert.match(panel, /data\.metrics\.liveNow/);
+});
+
+test('the Live now metric is its own compact element, not folded into the StatCard grid', () => {
+  const panel = read('panels/PilotPanel.jsx');
+  const liveIdx = panel.indexOf('Live now');
+  const gridIdx = panel.indexOf("StatCard label=\"Total athletes\"");
+  assert.ok(liveIdx !== -1 && gridIdx !== -1 && liveIdx < gridIdx, 'expected the Live now metric before the Total athletes grid');
+});
+
+test('per-athlete presence is a dedicated PresenceLine, driven by athlete.isLive/athlete.lastSeenAt, rendered separately from formatLastActive', () => {
+  const panel = read('panels/PilotPanel.jsx');
+  assert.match(panel, /function PresenceLine/);
+  assert.match(panel, /athlete\.isLive/);
+  assert.match(panel, /<PresenceLine athlete=\{athlete\}\s*\/>/);
+  // Both lines exist in AthleteRow, and PresenceLine is never given the
+  // same prop/label formatLastActive uses — the two are visually distinct.
+  const rowStart = panel.indexOf('function AthleteRow');
+  const rowSource = panel.slice(rowStart, panel.indexOf('\n}\n', rowStart) + 2);
+  assert.match(rowSource, /<PresenceLine athlete=\{athlete\}\s*\/>/);
+  assert.match(rowSource, /formatLastActive\(athlete\.lastActiveAt\)/);
+});
+
+test('PresenceLine renders a green "Live" state when isLive, distinct styling from the offline "Seen" state', () => {
+  const panel = read('panels/PilotPanel.jsx');
+  const fnStart = panel.indexOf('function PresenceLine');
+  const fnSource = panel.slice(fnStart, panel.indexOf('\n}\n', fnStart) + 2);
+  assert.match(fnSource, /if \(athlete\.isLive\)/);
+  assert.match(fnSource, /Live/);
+  assert.match(fnSource, /#22C55E/); // the established green used elsewhere in this dashboard
+  assert.match(fnSource, /formatLastSeen\(athlete\.lastSeenAt\)/);
+});
+
+test('formatLastSeen never uses the word "Active" — presence and activity terminology stay distinct', () => {
+  const panel = read('panels/PilotPanel.jsx');
+  const fnStart = panel.indexOf('function formatLastSeen');
+  const fnSource = panel.slice(fnStart, panel.indexOf('\n}\n', fnStart) + 2);
+  assert.doesNotMatch(fnSource, /Active/);
+  assert.match(fnSource, /Seen/);
+});
+
+test('formatLastSeen: "Never seen" for a null lastSeenAt', () => {
+  const panel = read('panels/PilotPanel.jsx');
+  const fnStart = panel.indexOf('function formatLastSeen');
+  const fnSource = panel.slice(fnStart, panel.indexOf('\n}\n', fnStart) + 2);
+  assert.match(fnSource, /if \(!iso\) return 'Never seen'/);
+});
+
+test('formatLastSeen: minute-level granularity ("X min ago"), then hours, then "yesterday", then days — matching the product examples', () => {
+  const panel = read('panels/PilotPanel.jsx');
+  const fnStart = panel.indexOf('function formatLastSeen');
+  const fnSource = panel.slice(fnStart, panel.indexOf('\n}\n', fnStart) + 2);
+  assert.match(fnSource, /\$\{minutes\} min ago/);
+  assert.match(fnSource, /\$\{hours\}/);
+  assert.match(fnSource, /yesterday/i);
+  assert.match(fnSource, /\$\{days\}d ago/);
+});
+
+test('PilotPanel polls the pilot-overview endpoint automatically, not just once on mount', () => {
+  const panel = read('panels/PilotPanel.jsx');
+  assert.match(panel, /setInterval/);
+  assert.match(panel, /POLL_INTERVAL_MS/);
+});
+
+test('the poll interval is within the 30-60s guidance, never a sub-10s aggressive poll', () => {
+  const panel = read('panels/PilotPanel.jsx');
+  const match = panel.match(/const POLL_INTERVAL_MS = (\d+)\s*\*\s*1000/);
+  assert.ok(match, 'expected POLL_INTERVAL_MS defined in seconds*1000 form');
+  const seconds = Number(match[1]);
+  assert.ok(seconds >= 30 && seconds <= 60, `expected 30-60s, got ${seconds}s`);
+});
+
+test('polling is paused while the dashboard tab is hidden, and resumes on visibilitychange -> visible', () => {
+  const panel = read('panels/PilotPanel.jsx');
+  assert.match(panel, /document\.visibilityState === 'visible'/);
+  assert.match(panel, /clearInterval/);
+  assert.match(panel, /addEventListener\(['"]visibilitychange['"]/);
+  assert.match(panel, /removeEventListener\(['"]visibilitychange['"]/);
+});
+
+test('the manual refresh button still exists alongside auto-polling', () => {
+  const panel = read('panels/PilotPanel.jsx');
+  assert.match(panel, /onClick=\{load\}/);
+  assert.match(panel, /RefreshCw/);
+});
+
+test('lastSeenAt is never labelled as lastActiveAt anywhere in the panel', () => {
+  const panel = read('panels/PilotPanel.jsx');
+  assert.doesNotMatch(panel, /lastActiveAt.*lastSeenAt|lastSeenAt.*lastActiveAt/);
+  // Each is read into its own dedicated formatter, never cross-wired.
+  assert.match(panel, /formatLastSeen\(athlete\.lastSeenAt\)/);
+  assert.match(panel, /formatLastActive\(athlete\.lastActiveAt\)/);
+  assert.doesNotMatch(panel, /formatLastSeen\(athlete\.lastActiveAt\)/);
+  assert.doesNotMatch(panel, /formatLastActive\(athlete\.lastSeenAt\)/);
+});

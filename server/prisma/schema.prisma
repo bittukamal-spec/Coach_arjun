@@ -107,6 +107,19 @@ model User {
   // Phase 2A only reads/writes it via primary key lookups.
   lastActiveAt DateTime?
 
+  // Pilot Presence Tracking — timestamp of the athlete's most recent
+  // "Arjun is open/visible" heartbeat (see routes/activity.js's presence
+  // touch + client/src/hooks/usePresenceHeartbeat.js). Deliberately the
+  // OTHER signal from lastActiveAt above: this updates on mere app
+  // presence (load, foreground return, ~60s while visible) and carries no
+  // meaning about whether the athlete did anything. Never read by
+  // activityTracking.js; never written by touchActivity(). Null for an
+  // athlete who has never had the app open since this field shipped. No
+  // default, no index — read via primary-key lookups and one bounded
+  // full-table scan in founderPilotOverview.js, same pattern lastActiveAt
+  // already uses.
+  lastSeenAt DateTime?
+
   messages               Message[]
   safetyEvents           SafetyEvent[]
   checkIns               CheckIn[]

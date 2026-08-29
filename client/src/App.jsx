@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import { useTheme } from './hooks/useTheme';
+import { usePresenceHeartbeat } from './hooks/usePresenceHeartbeat';
 import LandingPage from './pages/LandingPage';
 import AuthPage from './pages/AuthPage';
 import PrivacyPage from './pages/PrivacyPage';
@@ -49,6 +50,11 @@ function App() {
   const { loading, language, user } = useAuth();
   const t = translations[language];
   useTheme(); // initializes data-theme on <html> from localStorage
+
+  // Mounted once here, above every route — internally a no-op (no touch,
+  // no listener, no timer) whenever there's no authenticated session; see
+  // hooks/usePresenceHeartbeat.js for the full behaviour.
+  usePresenceHeartbeat();
 
   // Mounted once here, above both the loading branch and every route below
   // — a stale client is a concern regardless of screen or auth state, not

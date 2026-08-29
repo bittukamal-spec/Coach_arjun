@@ -118,6 +118,7 @@ function buildFixtures() {
       // 1 hour after signup, same fixed-anchor day — within both active
       // windows, but NOT returning (same-day activity never counts).
       lastActiveAt: new Date(todayStart.getTime() + 2 * 60 * 60 * 1000),
+      lastSeenAt: null,
     },
     {
       id: 'u2', name: 'Priya Nair',
@@ -128,6 +129,7 @@ function buildFixtures() {
       // 30 hours ago: outside the 24h window, inside the 7-day window; 42
       // hours after signup — guaranteed a later IST calendar day, returning.
       lastActiveAt: new Date(now.getTime() - 30 * 60 * 60 * 1000),
+      lastSeenAt: null,
     },
     {
       id: 'u5', name: '',
@@ -136,6 +138,7 @@ function buildFixtures() {
       password: 'hash5', guardianConsentToken: null,
       // Never active — must never contribute to active24h/active7d/returning.
       lastActiveAt: null,
+      lastSeenAt: null,
     },
     {
       id: 'u3', name: 'Rahul Verma',
@@ -145,6 +148,7 @@ function buildFixtures() {
       // 8 days ago: outside both the 24h and 7-day windows; 48 hours after
       // signup — guaranteed a later IST calendar day, still returning.
       lastActiveAt: new Date(now.getTime() - 8 * 24 * 60 * 60 * 1000),
+      lastSeenAt: null,
     },
     {
       id: 'u4', name: 'Sana Iyer',
@@ -152,6 +156,7 @@ function buildFixtures() {
       onboardingDone: false, tier: 'free', guardianEmail: null, guardianConsentAt: null,
       password: 'hash4', guardianConsentToken: null,
       lastActiveAt: null,
+      lastSeenAt: null,
     },
   ];
 
@@ -479,14 +484,14 @@ test('recent athletes list is capped at 20 even with a larger pilot cohort', asy
   } finally { await stop(server); }
 });
 
-test('each recent-athlete row carries exactly the allowed operational fields (privacy allowlist, now including Phase 2B lastActiveAt/isReturning)', async () => {
+test('each recent-athlete row carries exactly the allowed operational fields (privacy allowlist, now including Phase 2B lastActiveAt/isReturning + Pilot Presence Tracking lastSeenAt/isLive)', async () => {
   const { server, baseUrl } = await startServer();
   try {
     const { body } = await getJson(baseUrl);
     const allowed = [
       'id', 'firstName', 'signupDate', 'onboardingDone', 'tier',
       'guardianConsentStatus', 'coachUsed', 'mentalRepReceived', 'mentalRepCompleted', 'outcomeReported',
-      'lastActiveAt', 'isReturning',
+      'lastActiveAt', 'isReturning', 'lastSeenAt', 'isLive',
     ].sort();
     for (const athlete of body.recentAthletes) {
       assert.deepEqual(Object.keys(athlete).sort(), allowed);

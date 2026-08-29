@@ -30,8 +30,11 @@ const RECENT_LIMIT = 20;
 // Selected once per request for the "recent athletes" list. guardianEmail
 // and guardianConsentAt are selected only to derive `guardianConsentStatus`
 // below — the raw guardianEmail value is never included in any response.
-// lastActiveAt (Phase 2B) is forwarded directly — it is already a
-// deliberately coarse, non-content timestamp, never free text.
+// lastActiveAt (Phase 2B) and lastSeenAt (Pilot Presence Tracking) are both
+// forwarded directly — both are already deliberately coarse, non-content
+// timestamps, never free text, and conceptually distinct (see schema.prisma
+// doc comments on each field): lastActiveAt is meaningful product activity,
+// lastSeenAt is mere app-open/foreground presence.
 const RECENT_ATHLETE_SELECT = {
   id: true,
   name: true,
@@ -41,7 +44,33 @@ const RECENT_ATHLETE_SELECT = {
   guardianEmail: true,
   guardianConsentAt: true,
   lastActiveAt: true,
+  lastSeenAt: true,
 };
+
+// Pilot Presence Tracking — an athlete is LIVE while their last presence
+// heartbeat (User.lastSeenAt, written only by services/presence.js) is
+// within this window of `now`. Strictly less-than, not less-than-or-equal:
+// an athlete last seen exactly 2:00 ago has just crossed out of the live
+// window. `now` is always passed in (never read internally) so this stays
+// deterministic and testable — same convention as isReturningAthlete below.
+const LIVE_THRESHOLD_MS = 2 * 60 * 1000;
+
+function isLive(lastSeenAt, now) {
+  if (!lastSeenAt) return false;
+  return now.getTime() - lastSeenAt.getTime() < LIVE_THRESHOLD_MS;
+}
+
+// One pass over { lastSeenAt } rows produces the pilot-wide live count.
+// Deliberately separate from summarizeActivity() below — presence and
+// activity are two different signals and must never be merged into one
+// computation, even though both happen to iterate the same row set.
+function summarizePresence(rows, now) {
+  let liveNow = 0;
+  for (const u of rows) {
+    if (isLive(u.lastSeenAt, now)) liveNow += 1;
+  }
+  return { liveNow };
+}
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 // Same shift-then-slice IST-calendar-day convention already used throughout
@@ -183,17 +212,20 @@ function createFounderPilotOverviewRouter(client = new PrismaClient()) {
           take: RECENT_LIMIT,
           select: RECENT_ATHLETE_SELECT,
         }),
-        // Phase 2B — every athlete's signup + last-activity timestamps only
-        // (no name, no email, no content). One pass over this feeds all
-        // three engagement numbers below; no new tracking system, just the
-        // Phase 2A column this backfill already populated.
-        client.user.findMany({ select: { createdAt: true, lastActiveAt: true } }),
+        // Phase 2B + Pilot Presence Tracking — every athlete's signup,
+        // last-activity, AND last-seen timestamps only (no name, no email,
+        // no content). One pass over this feeds the three engagement
+        // numbers below via summarizeActivity(), and a separate pass feeds
+        // the live count via summarizePresence() — same row set, two
+        // independent computations, never merged into one.
+        client.user.findMany({ select: { createdAt: true, lastActiveAt: true, lastSeenAt: true } }),
       ]);
 
       const onboardingStarted = new Set(onboardingSessionRows.map((r) => r.userId)).size;
       const coachUsedAthletes = new Set(userMessageRows.map((r) => r.userId)).size;
       const rep = summarizePrescriptions(prescriptionRows);
       const activity = summarizeActivity(activityRows, now);
+      const presence = summarizePresence(activityRows, now);
 
       // Per-athlete flags for the "recent athletes" list, scoped to just
       // those ids — never a full-table scan for this part.
@@ -224,6 +256,8 @@ function createFounderPilotOverviewRouter(client = new PrismaClient()) {
         outcomeReported: recentRep.outcomeReportedAthletes.has(u.id),
         lastActiveAt: u.lastActiveAt,
         isReturning: isReturningAthlete(u.createdAt, u.lastActiveAt),
+        lastSeenAt: u.lastSeenAt,
+        isLive: isLive(u.lastSeenAt, now),
       }));
 
       const funnel = [
@@ -254,6 +288,7 @@ function createFounderPilotOverviewRouter(client = new PrismaClient()) {
           activeLast7Days: activity.activeLast7Days,
           returningAthletes: activity.returningAthletes,
           returningPercentage: pct(activity.returningAthletes, totalAthletes),
+          liveNow: presence.liveNow,
         },
         funnel,
         recentAthletes,
@@ -276,3 +311,6 @@ module.exports.createFounderPilotOverviewRouter = createFounderPilotOverviewRout
 module.exports.istDateString = istDateString;
 module.exports.isReturningAthlete = isReturningAthlete;
 module.exports.summarizeActivity = summarizeActivity;
+module.exports.isLive = isLive;
+module.exports.summarizePresence = summarizePresence;
+module.exports.LIVE_THRESHOLD_MS = LIVE_THRESHOLD_MS;

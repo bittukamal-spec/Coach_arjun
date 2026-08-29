@@ -99,6 +99,7 @@ app.use('/api/founder/pilot-communications', require('./routes/founderPilotCommu
 app.use('/api/pilot-communications',    require('./routes/pilotCommunications'));
 app.use('/api/push-notifications',      require('./routes/pushNotifications'));
 app.use('/api/founder/push-test',       require('./routes/founderPushTest'));
+app.use('/api/activity',        require('./routes/activity'));
 app.use('/api/safety',          require('./routes/safety'));
 app.use('/api/contact',         require('./routes/contact'));
 

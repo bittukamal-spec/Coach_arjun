@@ -30,6 +30,31 @@ function formatLastActive(iso, now = Date.now()) {
   return `Last active: ${days}d ago`;
 }
 
+// Pilot Presence Tracking — deliberately the OTHER label from
+// formatLastActive above. "Seen" describes mere app-open/foreground
+// presence (User.lastSeenAt); it must never be confused with, or reuse the
+// wording of, meaningful product activity. `now` is injectable for tests,
+// same convention as formatLastActive.
+function formatLastSeen(iso, now = Date.now()) {
+  if (!iso) return 'Never seen';
+  const diffMs = now - new Date(iso).getTime();
+  if (diffMs < 0) return 'Seen just now';
+  const minutes = Math.floor(diffMs / (60 * 1000));
+  if (minutes < 1) return 'Seen just now';
+  if (minutes < 60) return `Seen ${minutes} min ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `Seen ${hours} ${hours === 1 ? 'hour' : 'hours'} ago`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return 'Seen yesterday';
+  return `Seen ${days}d ago`;
+}
+
+// Founder Dashboard auto-refresh — approximately every 45s (within the
+// product's 30-60s guidance) while the Pilot view is mounted AND the
+// browser tab is visible; paused (not just left running unseen) while
+// hidden. No WebSocket/SSE — this pilot stays on a plain poll.
+const POLL_INTERVAL_MS = 45 * 1000;
+
 const FUNNEL_LABELS = {
   signedUp: 'Signed up',
   completedOnboarding: 'Completed onboarding',
@@ -79,6 +104,20 @@ function Pill({ children, color }) {
   );
 }
 
+// Pilot Presence Tracking — always rendered as its own line, never merged
+// into or worded like the meaningful-activity line below it.
+function PresenceLine({ athlete }) {
+  if (athlete.isLive) {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#22C55E]">
+        <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E]" />
+        Live
+      </span>
+    );
+  }
+  return <span className="text-xs text-[#64748B]">{formatLastSeen(athlete.lastSeenAt)}</span>;
+}
+
 function AthleteRow({ athlete }) {
   return (
     <div className="bg-[#1E293B] rounded-xl px-4 py-3 space-y-2">
@@ -86,6 +125,7 @@ function AthleteRow({ athlete }) {
         <span className="text-sm font-semibold text-[#F1F5F9] truncate">{athlete.firstName}</span>
         <span className="text-xs text-[#64748B] shrink-0">{formatDate(athlete.signupDate)}</span>
       </div>
+      <PresenceLine athlete={athlete} />
       <div className="text-xs text-[#64748B]">{formatLastActive(athlete.lastActiveAt)}</div>
       <div className="flex items-center gap-1.5 flex-wrap">
         <Pill color={athlete.onboardingDone ? '#22C55E' : '#64748B'}>
@@ -136,6 +176,42 @@ export default function PilotPanel() {
 
   useEffect(() => { load(); }, [load]);
 
+  // Auto-refresh while this view is mounted AND the tab is visible; paused
+  // (interval cleared, not just ignored) while hidden, and cleaned up on
+  // unmount — mounting/unmounting PilotPanel itself already stops this
+  // when the founder switches to a different panel.
+  useEffect(() => {
+    let intervalId = null;
+    function startPolling() {
+      if (intervalId) return;
+      intervalId = setInterval(() => {
+        if (document.visibilityState === 'visible') load();
+      }, POLL_INTERVAL_MS);
+    }
+    function stopPolling() {
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+    }
+    function handleVisibilityChange() {
+      if (document.visibilityState === 'visible') {
+        load();
+        startPolling();
+      } else {
+        stopPolling();
+      }
+    }
+
+    if (document.visibilityState === 'visible') startPolling();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      stopPolling();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [load]);
+
   return (
     <div className="flex-1 overflow-y-auto pb-24 px-4 pt-5 space-y-6">
       <div className="flex items-center justify-between">
@@ -163,6 +239,16 @@ export default function PilotPanel() {
 
       {data && (
         <>
+          {/* Pilot Presence Tracking — compact "Live now" metric, top of view. */}
+          <div className="flex items-center gap-2 bg-[#1E293B] rounded-xl px-4 py-3">
+            <span className="relative flex h-2.5 w-2.5 shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#22C55E] opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#22C55E]" />
+            </span>
+            <span className="text-sm font-semibold text-[#F1F5F9]">Live now</span>
+            <span className="ml-auto text-xl font-bold text-[#22C55E]">{data.metrics.liveNow}</span>
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <StatCard label="Total athletes" value={data.metrics.totalAthletes} />
             <StatCard label="New today" value={data.metrics.signupsToday} />
