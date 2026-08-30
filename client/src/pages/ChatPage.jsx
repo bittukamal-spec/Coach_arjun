@@ -383,7 +383,7 @@ function ChatPage() {
   const [streaming, setStreaming]                 = useState(false);
   const [waitingForFirst, setWaitingForFirst]     = useState(false);
   const [error, setError]                         = useState('');
-  const [usage, setUsage]                         = useState({ isPremium: false, trialDaysRemaining: 14 });
+  const [usage, setUsage]                         = useState({ isPremium: false, trialDaysRemaining: 14, hasPilotAccess: false });
   const [activeSession, setActiveSession]         = useState(null);
   const [showSafety, setShowSafety]               = useState(false);
   const [menuOpen, setMenuOpen]                   = useState(false);
@@ -997,7 +997,10 @@ function ChatPage() {
 
   // ── Derived state ─────────────────────────────────────────────────────────
 
-  const atLimit     = !usage.isPremium && usage.trialDaysRemaining === 0;
+  // Backend is authoritative on pilot expiry (GET /api/chat/usage's
+  // hasPilotAccess) — never re-derive pilotAccessUntil math here. An active
+  // pilot grant keeps Coach open even at trialDaysRemaining === 0.
+  const atLimit     = !usage.isPremium && !usage.hasPilotAccess && usage.trialDaysRemaining === 0;
   const hasMessages = messages.length > 0;
 
   // ─────────────────────────────────────────────────────────────────────────

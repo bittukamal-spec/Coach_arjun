@@ -118,7 +118,41 @@ function PresenceLine({ athlete }) {
   return <span className="text-xs text-[#64748B]">{formatLastSeen(athlete.lastSeenAt)}</span>;
 }
 
-function AthleteRow({ athlete }) {
+// Pilot Access (beta entitlement override) — founder-only, per-athlete.
+// Grant sets a 60-day window from now; Revoke clears it immediately. Both
+// hit routes/founderPilotAccess.js, the only writer of these two columns.
+// `busy` disables both buttons while a request for THIS athlete is in
+// flight; other rows stay interactive.
+function PilotAccessRow({ athlete, busy, onGrant, onRevoke }) {
+  return (
+    <div className="flex items-center justify-between gap-2 pt-1 border-t border-[#334155]">
+      <span className="text-xs text-[#94A3B8]">
+        Pilot access:{' '}
+        {athlete.pilotAccessActive
+          ? <span className="text-[#22C55E] font-semibold">Active until {formatDate(athlete.pilotAccessUntil)}</span>
+          : <span className="text-[#64748B]">{athlete.pilotAccessUntil ? 'Expired' : 'None'}</span>}
+      </span>
+      <div className="flex items-center gap-1.5 shrink-0">
+        <button
+          onClick={() => onGrant(athlete.id)}
+          disabled={busy}
+          className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-[#1769AA] text-white active:bg-[#125685] disabled:opacity-40 transition-colors"
+        >
+          Grant 60 days
+        </button>
+        <button
+          onClick={() => onRevoke(athlete.id)}
+          disabled={busy || !athlete.pilotAccessActive}
+          className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-[#334155] text-[#F1F5F9] active:bg-[#3F4C63] disabled:opacity-40 transition-colors"
+        >
+          Revoke
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function AthleteRow({ athlete, pilotActionBusyId, onGrantPilotAccess, onRevokePilotAccess }) {
   return (
     <div className="bg-[#1E293B] rounded-xl px-4 py-3 space-y-2">
       <div className="flex items-center justify-between gap-2">
@@ -144,12 +178,19 @@ function AthleteRow({ athlete }) {
         <Pill color={athlete.tier === 'premium' ? '#1769AA' : '#64748B'}>
           {athlete.tier === 'premium' ? 'Premium' : 'Free'}
         </Pill>
+        {athlete.pilotAccessActive && <Pill color="#22C55E">Pilot access</Pill>}
         {athlete.guardianConsentStatus !== 'not_required' && (
           <Pill color={GUARDIAN_COLORS[athlete.guardianConsentStatus]}>
             Guardian: {GUARDIAN_LABELS[athlete.guardianConsentStatus]}
           </Pill>
         )}
       </div>
+      <PilotAccessRow
+        athlete={athlete}
+        busy={pilotActionBusyId === athlete.id}
+        onGrant={onGrantPilotAccess}
+        onRevoke={onRevokePilotAccess}
+      />
     </div>
   );
 }
@@ -158,6 +199,11 @@ export default function PilotPanel() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  // Pilot Access grant/revoke — tracks the one athlete id currently being
+  // acted on so only that row's buttons disable; a request failure surfaces
+  // as a transient inline error rather than silently doing nothing.
+  const [pilotActionBusyId, setPilotActionBusyId] = useState(null);
+  const [pilotActionError, setPilotActionError] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -175,6 +221,26 @@ export default function PilotPanel() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // Grant/Revoke both hit routes/founderPilotAccess.js for exactly one
+  // athlete id, then re-fetch the overview so the row reflects the real
+  // stored state rather than an optimistic local guess.
+  const runPilotAction = useCallback(async (id, action) => {
+    setPilotActionError(null);
+    setPilotActionBusyId(id);
+    try {
+      const r = await founderFetch(`/api/founder/pilot-access/${id}/${action}`, { method: 'POST' });
+      if (!r.ok) throw new Error(`${r.status}`);
+      await load();
+    } catch (e) {
+      setPilotActionError(`Failed to ${action === 'grant' ? 'grant' : 'revoke'} pilot access: ${e.message}`);
+    } finally {
+      setPilotActionBusyId(null);
+    }
+  }, [load]);
+
+  const handleGrantPilotAccess = useCallback((id) => runPilotAction(id, 'grant'), [runPilotAction]);
+  const handleRevokePilotAccess = useCallback((id) => runPilotAction(id, 'revoke'), [runPilotAction]);
 
   // Auto-refresh while this view is mounted AND the tab is visible; paused
   // (interval cleared, not just ignored) while hidden, and cleaned up on
@@ -228,6 +294,12 @@ export default function PilotPanel() {
       {error && (
         <div className="bg-red-900/30 border border-red-700 rounded-xl p-4 text-red-300 text-sm">
           Failed to load pilot overview.
+        </div>
+      )}
+
+      {pilotActionError && (
+        <div className="bg-red-900/30 border border-red-700 rounded-xl p-4 text-red-300 text-sm">
+          {pilotActionError}
         </div>
       )}
 
@@ -305,7 +377,15 @@ export default function PilotPanel() {
               </div>
             ) : (
               <div className="space-y-2">
-                {data.recentAthletes.map((a) => <AthleteRow key={a.id} athlete={a} />)}
+                {data.recentAthletes.map((a) => (
+                  <AthleteRow
+                    key={a.id}
+                    athlete={a}
+                    pilotActionBusyId={pilotActionBusyId}
+                    onGrantPilotAccess={handleGrantPilotAccess}
+                    onRevokePilotAccess={handleRevokePilotAccess}
+                  />
+                ))}
               </div>
             )}
           </div>

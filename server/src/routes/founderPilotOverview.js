@@ -45,6 +45,11 @@ const RECENT_ATHLETE_SELECT = {
   guardianConsentAt: true,
   lastActiveAt: true,
   lastSeenAt: true,
+  // Pilot beta entitlement (routes/founderPilotAccess.js is the only
+  // writer) — forwarded directly, same as lastActiveAt/lastSeenAt: a
+  // non-content timestamp, never free text.
+  pilotAccessUntil: true,
+  pilotAccessGrantedAt: true,
 };
 
 // Pilot Presence Tracking — an athlete is LIVE while their last presence
@@ -258,6 +263,13 @@ function createFounderPilotOverviewRouter(client = new PrismaClient()) {
         isReturning: isReturningAthlete(u.createdAt, u.lastActiveAt),
         lastSeenAt: u.lastSeenAt,
         isLive: isLive(u.lastSeenAt, now),
+        // Pilot beta entitlement — raw pilotAccessUntil plus a
+        // server-computed `pilotAccessActive` so the dashboard never has to
+        // redo the expiry comparison itself (same "effective signal, not
+        // raw math" convention as GET /api/chat/usage's hasPilotAccess).
+        pilotAccessUntil: u.pilotAccessUntil,
+        pilotAccessGrantedAt: u.pilotAccessGrantedAt,
+        pilotAccessActive: !!(u.pilotAccessUntil && u.pilotAccessUntil.getTime() > now.getTime()),
       }));
 
       const funnel = [

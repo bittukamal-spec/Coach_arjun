@@ -24,6 +24,20 @@ model User {
   tier         String    @default("free")
   trialStarted DateTime?  // set on registration; 14-day trial window
 
+  // Pilot beta entitlement — grants Coach/chat + the same AI-gated
+  // experiences (Debrief insight, Weekly Reports, session summaries, Mind
+  // Journal review, Self-Talk, Body Reset) an active trial or premium
+  // tier already grants, independent of tier/billing. Founder-granted only
+  // (Founder Pilot Dashboard's Pilot tab) — never set by signup, onboarding,
+  // or any athlete-facing action. Null = no pilot grant. A non-null value in
+  // the past is simply an expired grant, not a flag to be unset; nothing
+  // ever infers pilot membership from these fields other than a plain
+  // `pilotAccessUntil > now` check (server/src/routes/chat.js's
+  // checkFreeLimit/isTrialActive). Additive fields — existing rows default
+  // to null on migration, no backfill, no automatic grant.
+  pilotAccessUntil    DateTime? // null = no pilot access; must be in the future to count as active
+  pilotAccessGrantedAt DateTime? // when the current/most recent grant was made, for the founder's own reference — not read by entitlement logic
+
   // "en" = English, "hi" = Hindi
   language  String   @default("en")
 

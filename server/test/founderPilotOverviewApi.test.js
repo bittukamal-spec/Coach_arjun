@@ -119,6 +119,8 @@ function buildFixtures() {
       // windows, but NOT returning (same-day activity never counts).
       lastActiveAt: new Date(todayStart.getTime() + 2 * 60 * 60 * 1000),
       lastSeenAt: null,
+      pilotAccessUntil: null,
+      pilotAccessGrantedAt: null,
     },
     {
       id: 'u2', name: 'Priya Nair',
@@ -130,6 +132,8 @@ function buildFixtures() {
       // hours after signup — guaranteed a later IST calendar day, returning.
       lastActiveAt: new Date(now.getTime() - 30 * 60 * 60 * 1000),
       lastSeenAt: null,
+      pilotAccessUntil: null,
+      pilotAccessGrantedAt: null,
     },
     {
       id: 'u5', name: '',
@@ -139,6 +143,8 @@ function buildFixtures() {
       // Never active — must never contribute to active24h/active7d/returning.
       lastActiveAt: null,
       lastSeenAt: null,
+      pilotAccessUntil: null,
+      pilotAccessGrantedAt: null,
     },
     {
       id: 'u3', name: 'Rahul Verma',
@@ -149,6 +155,8 @@ function buildFixtures() {
       // signup — guaranteed a later IST calendar day, still returning.
       lastActiveAt: new Date(now.getTime() - 8 * 24 * 60 * 60 * 1000),
       lastSeenAt: null,
+      pilotAccessUntil: null,
+      pilotAccessGrantedAt: null,
     },
     {
       id: 'u4', name: 'Sana Iyer',
@@ -157,6 +165,8 @@ function buildFixtures() {
       password: 'hash4', guardianConsentToken: null,
       lastActiveAt: null,
       lastSeenAt: null,
+      pilotAccessUntil: null,
+      pilotAccessGrantedAt: null,
     },
   ];
 
@@ -484,7 +494,7 @@ test('recent athletes list is capped at 20 even with a larger pilot cohort', asy
   } finally { await stop(server); }
 });
 
-test('each recent-athlete row carries exactly the allowed operational fields (privacy allowlist, now including Phase 2B lastActiveAt/isReturning + Pilot Presence Tracking lastSeenAt/isLive)', async () => {
+test('each recent-athlete row carries exactly the allowed operational fields (privacy allowlist, now including Phase 2B lastActiveAt/isReturning + Pilot Presence Tracking lastSeenAt/isLive + Pilot Access grant fields)', async () => {
   const { server, baseUrl } = await startServer();
   try {
     const { body } = await getJson(baseUrl);
@@ -492,6 +502,7 @@ test('each recent-athlete row carries exactly the allowed operational fields (pr
       'id', 'firstName', 'signupDate', 'onboardingDone', 'tier',
       'guardianConsentStatus', 'coachUsed', 'mentalRepReceived', 'mentalRepCompleted', 'outcomeReported',
       'lastActiveAt', 'isReturning', 'lastSeenAt', 'isLive',
+      'pilotAccessUntil', 'pilotAccessGrantedAt', 'pilotAccessActive',
     ].sort();
     for (const athlete of body.recentAthletes) {
       assert.deepEqual(Object.keys(athlete).sort(), allowed);
