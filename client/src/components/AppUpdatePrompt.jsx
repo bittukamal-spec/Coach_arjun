@@ -76,6 +76,35 @@ export default function AppUpdatePrompt() {
     return () => document.removeEventListener('visibilitychange', onVisibilityChange);
   }, []);
 
+  // Legacy-PWA rescue — announces to whichever worker currently controls
+  // this page that current Arjun JS is running and therefore knows how to
+  // handle a waiting worker through this component (see src/sw.js's own
+  // capability-marker section for the read side). Entirely one-directional
+  // (page -> worker) and fire-and-forget: nothing is read back, and this
+  // never touches needRefresh, updateServiceWorker, or the overlay-priority
+  // latch — a client that predates this effect has no code to run it at
+  // all, which is exactly the case it exists to eventually rescue. Safe if
+  // the Service Worker API isn't available, and safe with no controller
+  // yet (e.g. the very first load before any worker has taken control).
+  // Idempotent by design: repeating the same message on every mount and
+  // every controller change is cheap, so there's no "write exactly once"
+  // state to track here.
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !navigator.serviceWorker) return undefined;
+
+    function announceUpdatePromptCapability() {
+      try {
+        navigator.serviceWorker.controller?.postMessage({ type: 'MARK_UPDATE_PROMPT_CAPABLE' });
+      } catch {
+        // best-effort only — never surfaced, never retried aggressively
+      }
+    }
+
+    announceUpdatePromptCapability();
+    navigator.serviceWorker.addEventListener('controllerchange', announceUpdatePromptCapability);
+    return () => navigator.serviceWorker.removeEventListener('controllerchange', announceUpdatePromptCapability);
+  }, []);
+
   // The one line that talks to the outside world: latch the shared
   // overlay-priority flag (hooks/useOverlayPriority.js) the first time a
   // genuine update is detected. Deliberately one-directional — this is
