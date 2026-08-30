@@ -47,12 +47,35 @@ function mockUseRegisterSW({ initial = false, registration = fakeRegistration(),
   return { setNeedRefreshSpy, registration, updateServiceWorker };
 }
 
+// Legacy-PWA rescue — a real EventTarget stand-in for
+// navigator.serviceWorker (ServiceWorkerContainer is a real EventTarget in
+// browsers), so addEventListener('controllerchange', ...) and
+// dispatchEvent() behave exactly like the real API. `controller` is a
+// plain mutable property, same shape the real API exposes.
+function defineServiceWorkerContainer(controller = null) {
+  const container = new EventTarget();
+  container.controller = controller;
+  Object.defineProperty(window.navigator, 'serviceWorker', {
+    value: container,
+    configurable: true,
+    writable: true,
+  });
+  return container;
+}
+function removeServiceWorkerContainer() {
+  Object.defineProperty(window.navigator, 'serviceWorker', { value: undefined, configurable: true, writable: true });
+}
+function fakeController() {
+  return { postMessage: vi.fn() };
+}
+
 beforeEach(() => {
   useRegisterSW.mockReset();
 });
 
 afterEach(() => {
   cleanup();
+  removeServiceWorkerContainer();
 });
 
 describe('AppUpdatePrompt', () => {
@@ -263,5 +286,80 @@ describe('AppUpdatePrompt', () => {
     render(<AppUpdatePrompt />);
     const later = screen.getByRole('button', { name: 'Later' });
     expect(later.getAttribute('aria-label')).toBe('Later');
+  });
+
+  // ── Legacy-PWA rescue: capability announcement ──────────────────────────
+
+  describe('update-prompt capability announcement', () => {
+    test('posts the capability message to the controller when one exists at mount', () => {
+      const controller = fakeController();
+      defineServiceWorkerContainer(controller);
+      mockUseRegisterSW({ initial: false });
+      render(<AppUpdatePrompt />);
+      expect(controller.postMessage).toHaveBeenCalledWith({ type: 'MARK_UPDATE_PROMPT_CAPABLE' });
+      expect(controller.postMessage).toHaveBeenCalledTimes(1);
+    });
+
+    test('posts again on controllerchange, to the NEW controller', () => {
+      const container = defineServiceWorkerContainer(null);
+      mockUseRegisterSW({ initial: false });
+      render(<AppUpdatePrompt />);
+
+      const newController = fakeController();
+      container.controller = newController;
+      container.dispatchEvent(new Event('controllerchange'));
+
+      expect(newController.postMessage).toHaveBeenCalledWith({ type: 'MARK_UPDATE_PROMPT_CAPABLE' });
+      expect(newController.postMessage).toHaveBeenCalledTimes(1);
+    });
+
+    test('safe with no controller — no error, nothing posted', () => {
+      defineServiceWorkerContainer(null);
+      mockUseRegisterSW({ initial: false });
+      expect(() => render(<AppUpdatePrompt />)).not.toThrow();
+    });
+
+    test('safe when the Service Worker API is unavailable at all', () => {
+      removeServiceWorkerContainer();
+      mockUseRegisterSW({ initial: false });
+      expect(() => render(<AppUpdatePrompt />)).not.toThrow();
+    });
+
+    test('is idempotent — repeated mounts each post their own single message, never accumulating extra sends on one controller', () => {
+      const controller = fakeController();
+      defineServiceWorkerContainer(controller);
+      mockUseRegisterSW({ initial: false });
+      const { unmount } = render(<AppUpdatePrompt />);
+      expect(controller.postMessage).toHaveBeenCalledTimes(1);
+      unmount();
+
+      mockUseRegisterSW({ initial: false });
+      render(<AppUpdatePrompt />);
+      expect(controller.postMessage).toHaveBeenCalledTimes(2); // one per mount, not accumulating within a mount
+    });
+
+    test('the controllerchange listener is cleaned up on unmount', () => {
+      const container = defineServiceWorkerContainer(null);
+      const removeSpy = vi.spyOn(container, 'removeEventListener');
+      mockUseRegisterSW({ initial: false });
+      const { unmount } = render(<AppUpdatePrompt />);
+      unmount();
+      expect(removeSpy).toHaveBeenCalledWith('controllerchange', expect.any(Function));
+    });
+
+    test('never interferes with needRefresh / Refresh Now / Later — the modal still works exactly as before with a controller present', async () => {
+      const controller = fakeController();
+      defineServiceWorkerContainer(controller);
+      const { updateServiceWorker } = mockUseRegisterSW({ initial: true });
+      render(<AppUpdatePrompt />);
+      expect(screen.getByRole('dialog')).toBeTruthy();
+
+      const user = userEvent.setup();
+      await user.click(screen.getByRole('button', { name: 'Refresh now' }));
+      expect(updateServiceWorker).toHaveBeenCalledWith(true);
+      // The capability announcement is a completely separate message —
+      // never a substitute for, or a trigger of, SKIP_WAITING.
+      expect(controller.postMessage).not.toHaveBeenCalledWith({ type: 'SKIP_WAITING' });
+    });
   });
 });

@@ -92,10 +92,29 @@ test('src/sw.js: the google-fonts CacheFirst runtime-caching rule is preserved w
   assert.match(swSource, /CacheableResponsePlugin/);
 });
 
-test('src/sw.js: replicates the SKIP_WAITING message listener (the one thing injectManifest can\'t auto-generate) and never calls clientsClaim', () => {
+test('src/sw.js: replicates the SKIP_WAITING message listener (the one thing injectManifest can\'t auto-generate)', () => {
   assert.match(swSource, /type === ['"]SKIP_WAITING['"]/);
   assert.match(swSource, /self\.skipWaiting\(\)/);
-  assert.doesNotMatch(swCode, /clientsClaim/);
+});
+
+// Legacy-PWA rescue (see legacyPwaRescue.test.js for the full, dedicated
+// coverage): src/sw.js now calls clients.claim(), but this test re-proves
+// the one invariant that must never regress — it is conditional on the
+// legacy-rescue flag, never unconditional/global, and never lives inside
+// the SKIP_WAITING message branch (which stays exactly as before: message-
+// gated, no auto-claim riding along with it).
+test('src/sw.js: clients.claim() is never unconditional — it only ever runs inside the legacy-rescue-conditional activate handler', () => {
+  assert.doesNotMatch(swCode, /^self\.clients\.claim\(\);?\s*$/m); // never a bare top-level call
+  const activateStart = swSource.indexOf("addEventListener('activate'");
+  const activateEnd = swSource.indexOf('\n});', activateStart);
+  const activateSource = swSource.slice(activateStart, activateEnd);
+  assert.match(activateSource, /if \(isLegacyRescueActivation\)/);
+  assert.match(activateSource, /self\.clients\.claim\(\)/);
+
+  const messageStart = swSource.indexOf("addEventListener('message'");
+  const messageEnd = swSource.indexOf('\n});', messageStart);
+  const messageSource = swSource.slice(messageStart, messageEnd);
+  assert.doesNotMatch(messageSource, /clients\.claim/);
 });
 
 test('no manual/duplicate service-worker registration exists outside the plugin\'s own registration path', () => {
@@ -198,10 +217,20 @@ test('AppUpdatePrompt never polls a backend endpoint for version/update info', (
   assert.doesNotMatch(appUpdatePrompt, /apiFetch/);
 });
 
-test('AppUpdatePrompt never hand-rolls a postMessage/SKIP_WAITING path — it only calls the plugin-provided updateServiceWorker', () => {
-  assert.doesNotMatch(appUpdatePrompt, /postMessage/);
+// AppUpdatePrompt now legitimately calls postMessage() once — for the
+// Legacy-PWA rescue's capability announcement (MARK_UPDATE_PROMPT_CAPABLE),
+// an entirely different, unrelated purpose from activating a worker. The
+// guarantee this test actually protects — SKIP_WAITING itself is never
+// hand-rolled, only ever sent via the plugin's own updateServiceWorker —
+// is unchanged and still checked directly below.
+test('AppUpdatePrompt never hand-rolls a SKIP_WAITING activation path — it only calls the plugin-provided updateServiceWorker', () => {
+  assert.doesNotMatch(appUpdatePrompt, /postMessage\(\s*\{\s*type:\s*['"]SKIP_WAITING['"]/);
   assert.doesNotMatch(appUpdatePrompt, /SKIP_WAITING/);
   assert.match(appUpdatePrompt, /updateServiceWorker\(true\)/);
+});
+
+test('the one postMessage AppUpdatePrompt does send is the unrelated Legacy-PWA rescue capability announcement, not a SKIP_WAITING send', () => {
+  assert.match(appUpdatePrompt, /postMessage\(\s*\{\s*type:\s*['"]MARK_UPDATE_PROMPT_CAPABLE['"]\s*\}\s*\)/);
 });
 
 test('AppUpdatePrompt never calls window.location.reload itself — the plugin\'s own one-shot controlling listener owns the reload', () => {
