@@ -64,23 +64,52 @@ const PRESSURE_LABELS = {
   unaware:         'Has not developed any coping strategy yet',
 };
 
-// ── Middleware: block free users whose 14-day trial has ended ─────────────
+// ── Entitlement: premium tier, active 14-day trial, or an active Founder
+// Pilot Dashboard grant (User.pilotAccessUntil) all count as "allowed" —
+// precedence is exactly premium → trial → pilot → blocked. This is the one
+// place that combines the three; checkFreeLimit (route-blocking) and
+// isTrialActive (AI-only gating, used by Debrief/Weekly Reports/session
+// summaries/Mind Journal review/Self-Talk/Body Reset) both select the same
+// fields and defer to it, so they can never drift out of sync on what
+// counts as entitled. Pure function — no I/O, easy to unit test directly.
+const PILOT_SELECT = { tier: true, trialStarted: true, createdAt: true, pilotAccessUntil: true };
+
+// Pilot beta override — independent of tier/billing (§ schema.prisma doc
+// comment on pilotAccessUntil). Strictly greater-than: a grant expiring at
+// exactly `now` has just lapsed. Founder-set only (routes/founderPilotAccess.js
+// is the only writer); nothing here infers pilot membership from anything
+// but this one column. Exported and reused by GET /api/chat/usage below so
+// the "is this pilot grant currently active" check exists in exactly one
+// place — the route never re-derives its own copy of this comparison.
+function hasPilotAccess(user) {
+  return !!(user?.pilotAccessUntil && new Date(user.pilotAccessUntil).getTime() > Date.now());
+}
+
+function isEntitled(user) {
+  if (user?.tier === 'premium') return true;
+
+  // Fall back to createdAt for users registered before trialStarted field existed
+  const trialStart = user?.trialStarted || user?.createdAt;
+  const daysSinceStart = trialStart
+    ? Math.floor((Date.now() - new Date(trialStart).getTime()) / (1000 * 60 * 60 * 24))
+    : 0;
+  if (daysSinceStart < TRIAL_DAYS) return true;
+
+  if (hasPilotAccess(user)) return true;
+
+  return false;
+}
+
+// ── Middleware: block free users whose 14-day trial (and any pilot grant)
+// has ended ─────────────────────────────────────────────────────────────
 
 async function checkFreeLimit(req, res, next) {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
-      select: { tier: true, trialStarted: true, createdAt: true },
+      select: PILOT_SELECT,
     });
-    if (user?.tier === 'premium') return next();
-
-    // Fall back to createdAt for users registered before trialStarted field existed
-    const trialStart = user?.trialStarted || user?.createdAt;
-    const daysSinceStart = trialStart
-      ? Math.floor((Date.now() - new Date(trialStart).getTime()) / (1000 * 60 * 60 * 24))
-      : 0;
-
-    if (daysSinceStart < TRIAL_DAYS) return next();
+    if (isEntitled(user)) return next();
 
     return res.status(429).json({
       error: 'Your 14-day free trial has ended. Upgrade to Premium for unlimited coaching.',
@@ -92,7 +121,8 @@ async function checkFreeLimit(req, res, next) {
   }
 }
 
-// ── Trial check as a boolean (same logic as checkFreeLimit) ────────────────
+// ── Trial check as a boolean (same entitlement logic as checkFreeLimit,
+// including the pilot override) ────────────────────────────────────────
 // For AI endpoints that must keep a non-AI side effect (check-in save, cached
 // reads, session-end) working: gate only the Claude call, not the whole route.
 // Fails open (returns true) so a DB hiccup never silently disables a free feature.
@@ -100,16 +130,9 @@ async function isTrialActive(userId) {
   try {
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { tier: true, trialStarted: true, createdAt: true },
+      select: PILOT_SELECT,
     });
-    if (user?.tier === 'premium') return true;
-
-    const trialStart = user?.trialStarted || user?.createdAt;
-    const daysSinceStart = trialStart
-      ? Math.floor((Date.now() - new Date(trialStart).getTime()) / (1000 * 60 * 60 * 24))
-      : 0;
-
-    return daysSinceStart < TRIAL_DAYS;
+    return isEntitled(user);
   } catch {
     return true;
   }
@@ -880,11 +903,19 @@ router.get('/usage', authenticate, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
-      select: { tier: true, trialStarted: true, createdAt: true },
+      select: PILOT_SELECT,
     });
 
+    // hasPilotAccess: an active Founder-granted pilot override, reported
+    // separately from isPremium/trialDaysRemaining so the client never has
+    // to re-derive pilot expiry itself — reuses the exact same check
+    // isEntitled() defers to, computed once, server-side. Independent of
+    // tier: still true for a cancelled/free-tier athlete as long as the
+    // grant hasn't lapsed.
+    const pilotAccess = hasPilotAccess(user);
+
     if (user?.tier === 'premium') {
-      return res.json({ isPremium: true, trialDaysRemaining: null });
+      return res.json({ isPremium: true, trialDaysRemaining: null, hasPilotAccess: pilotAccess });
     }
 
     const trialStart = user?.trialStarted || user?.createdAt;
@@ -893,7 +924,7 @@ router.get('/usage', authenticate, async (req, res) => {
       : 0;
     const trialDaysRemaining = Math.max(0, TRIAL_DAYS - daysSinceStart);
 
-    res.json({ isPremium: false, trialDaysRemaining });
+    res.json({ isPremium: false, trialDaysRemaining, hasPilotAccess: pilotAccess });
   } catch {
     res.status(500).json({ error: 'Server error' });
   }
@@ -1671,5 +1702,7 @@ Also include a "report" field: {"report":{"moment":"<1-sentence: what moment the
 module.exports = router;
 module.exports.checkFreeLimit = checkFreeLimit;
 module.exports.isTrialActive  = isTrialActive;
+module.exports.isEntitled     = isEntitled;
+module.exports.hasPilotAccess = hasPilotAccess;
 module.exports.buildSystemPrompt = buildSystemPrompt;
 module.exports.buildCoachingStateSection = buildCoachingStateSection;
