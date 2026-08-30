@@ -1,11 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { LogOut } from 'lucide-react';
 import BottomNav from './components/BottomNav';
-import PulsePanel  from './panels/PulsePanel';
 import PilotPanel  from './panels/PilotPanel';
-import PromptPanel from './panels/PromptPanel';
-import CoachPanel  from './panels/CoachPanel';
-import BuildPanel  from './panels/BuildPanel';
 import SafetyPanel from './panels/SafetyPanel';
 import CommunicationsPanel from './panels/CommunicationsPanel';
 import {
@@ -110,19 +106,24 @@ function LoginScreen({ onAuth, expiredNotice }) {
   );
 }
 
+// Operational sections only — Pilot, Safety, Comms. Pulse (dead placeholder),
+// Prompt (local dev-prompt scratchpad), Coach (unused manual-outreach CRM),
+// and Build (stale technical-debt backlog) were removed in the founder
+// dashboard declutter; see git history for their prior implementations.
 const PANELS = {
-  pulse:  PulsePanel,
   pilot:  PilotPanel,
-  prompt: PromptPanel,
-  coach:  CoachPanel,
-  build:  BuildPanel,
   safety: SafetyPanel,
   comms:  CommunicationsPanel,
 };
 
+const DEFAULT_TAB = 'pilot';
+
 function Dashboard({ onLogout }) {
-  const [active, setActive] = useState('pulse');
-  const Panel = PANELS[active];
+  const [active, setActive] = useState(DEFAULT_TAB);
+  // Falls back to Pilot for any id that isn't one of the three panels above
+  // — guards against a stale/legacy tab id (e.g. from a future bug, or
+  // memory of a since-removed tab) ever landing on a blank screen.
+  const Panel = PANELS[active] || PANELS[DEFAULT_TAB];
 
   return (
     <div className="min-h-dvh flex flex-col bg-[#0F172A]">

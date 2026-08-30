@@ -14,15 +14,13 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const srcDir = path.join(__dirname, '../src');
 const read = (f) => readFileSync(path.join(srcDir, f), 'utf8');
 
+// Pulse, Prompt, Coach, and Build panels were removed in the founder
+// dashboard declutter — dropped from this list along with them.
 const ALL_SRC_FILES = [
   'App.jsx',
   'api.js',
   'main.jsx',
-  'panels/PulsePanel.jsx',
   'panels/SafetyPanel.jsx',
-  'panels/PromptPanel.jsx',
-  'panels/CoachPanel.jsx',
-  'panels/BuildPanel.jsx',
   'components/BottomNav.jsx',
   'components/StatCard.jsx',
 ];
@@ -49,9 +47,7 @@ test('no auto-authentication when a PIN variable is missing (no "if (!PIN) retur
 });
 
 test('the founder session is never stored in localStorage', () => {
-  // Scoped to the files that manage the founder session — CoachPanel.jsx
-  // and BuildPanel.jsx legitimately use localStorage for their own
-  // unrelated local scratch data (pre-existing, out of scope here).
+  // Scoped to the files that manage the founder session.
   for (const f of ['api.js', 'App.jsx']) {
     // Comments legitimately *explain* that sessionStorage (not localStorage)
     // is used — strip them before asserting no actual localStorage API call
@@ -121,10 +117,4 @@ test('SafetyPanel never fetches raw chat messages', () => {
   const panel = read('panels/SafetyPanel.jsx');
   assert.doesNotMatch(panel, /\/api\/chat\/messages/);
   assert.doesNotMatch(panel, /ChatMessage/);
-});
-
-test('the affected legacy panel (Pulse) no longer calls founderFetch and shows a temporarily-unavailable state instead of restoring the static token', () => {
-  const pulse = read('panels/PulsePanel.jsx');
-  assert.doesNotMatch(pulse, /founderFetch/);
-  assert.match(pulse, /Temporarily unavailable/i);
 });
