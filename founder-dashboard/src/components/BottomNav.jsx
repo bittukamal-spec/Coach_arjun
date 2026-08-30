@@ -1,11 +1,9 @@
-import { Activity, TrendingUp, MessageSquare, Users, CheckSquare, ShieldAlert, Send } from 'lucide-react';
+import { TrendingUp, ShieldAlert, Send } from 'lucide-react';
 
+// Operational sections only — Pilot, Safety, Comms, in this order. Pulse,
+// Prompt, Coach, and Build were removed in the founder dashboard declutter.
 const TABS = [
-  { id: 'pulse',  icon: Activity,      label: 'Pulse'   },
   { id: 'pilot',  icon: TrendingUp,    label: 'Pilot'   },
-  { id: 'prompt', icon: MessageSquare, label: 'Prompt'  },
-  { id: 'coach',  icon: Users,         label: 'Coach'   },
-  { id: 'build',  icon: CheckSquare,   label: 'Build'   },
   { id: 'safety', icon: ShieldAlert,   label: 'Safety'  },
   { id: 'comms',  icon: Send,          label: 'Comms'   },
 ];

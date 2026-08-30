@@ -164,9 +164,9 @@ test('PilotPanel does not read a raw guardian email field, only the derived stat
 test('no analytics SDK or tracking cookie is introduced in the files this PR adds/changes', () => {
   // Scoped to the files this Phase-1 PR actually touches (PilotPanel.jsx is
   // new; App.jsx/BottomNav.jsx get the new tab wired in) — not the whole
-  // dashboard, since unrelated pre-existing files (e.g. BuildPanel.jsx's
-  // backlog list) may legitimately *mention* a considered-but-not-installed
-  // tool by name without that being a new introduction.
+  // dashboard, since an unrelated pre-existing file may legitimately
+  // *mention* a considered-but-not-installed tool by name without that
+  // being a new introduction.
   const files = ['App.jsx', 'panels/PilotPanel.jsx', 'components/BottomNav.jsx'];
   for (const f of files) {
     const src = read(f);
