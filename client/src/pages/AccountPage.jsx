@@ -4,7 +4,7 @@ import Navbar from '../components/Navbar';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
-import { LogOut, Trash2, ChevronRight, Shield, User, Zap, Award, Camera, Star, MessageCircle, Mail, Sparkles, Sun, MessageSquare, FileX, RefreshCw, Tag, BarChart2, Layers, Bell } from 'lucide-react';
+import { LogOut, Trash2, ChevronRight, Shield, User, Zap, Award, Camera, Star, MessageCircle, Mail, Sparkles, Sun, MessageSquare, FileX, RefreshCw, Tag, BarChart2, Layers, Bell, ListChecks } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { ACHIEVEMENTS, ALL_ACHIEVEMENT_KEYS } from '../data/achievements';
@@ -876,6 +876,7 @@ function AccountPage() {
                 { type: 'mental-profile',  Icon: RefreshCw,     label: tprivacy.profile.label,     sub: tprivacy.profile.sub },
                 { type: 'cue-word',        Icon: Tag,           label: tprivacy.cue.label,         sub: tprivacy.cue.sub },
                 { type: 'checkin-history', Icon: BarChart2,     label: tprivacy.checkin.label,     sub: tprivacy.checkin.sub },
+                { type: 'routines',        Icon: ListChecks,    label: tprivacy.routines.label,    sub: tprivacy.routines.sub },
               ].map(({ type, Icon, label, sub }) => (
                 <button
                   key={type}

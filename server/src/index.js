@@ -73,6 +73,7 @@ app.use('/api/chat',         chatRoutes);
 app.use('/api/progress',     progressRoutes);
 app.use('/api/achievements', achievementRoutes);
 app.use('/api/ritual',       ritualRoutes);
+app.use('/api/routines',     require('./routes/routines'));
 app.use('/api/debrief',      debriefRoutes);
 app.use('/api/games',         gamesRoutes);
 app.use('/api/profile-intro', profileIntroRoutes);

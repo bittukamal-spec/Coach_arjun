@@ -161,6 +161,8 @@ model User {
   currentCoachingFocus     CurrentCoachingFocus?
   pilotCommunicationTargets   PilotCommunicationTarget[]
   pilotCommunicationResponses PilotCommunicationResponse[]
+  routines                    Routine[]
+  ritualLegacyImport          RitualLegacyImport?
   pushNotificationPreference  PushNotificationPreference?
   pushSubscriptions           PushSubscription[]
   founderEmailDeliveries      FounderEmailDelivery[]
@@ -479,6 +481,69 @@ model SelfTalkCard {
 
   @@index([userId, isActive, createdAt])
   @@index([userId, isArchived])
+}
+
+// Ritual rebuild (PR 1) — an athlete's saved routines. Several named routines
+// per user (max 5, enforced server-side under a per-user row lock in
+// services/routines/routineStore.js). Additive: the legacy single ritual on
+// User.ritualName / User.ritualSteps is untouched and keeps serving the
+// current /ritual UI and Coach context. Once that legacy ritual is imported
+// (RitualLegacyImport below), the imported Routine is authoritative and the
+// legacy User fields are kept as its mirror.
+model Routine {
+  id       String  @id @default(cuid())
+  userId   String
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Null only for an imported legacy ritual that never had a name; every
+  // routine created through the API requires one.
+  name     String?
+  category String  // "repeated_moment" | "pressure_moment" | "session_preparation" | "own_situation"
+
+  sport          String?  // snapshot at save time
+  role           String?
+  moment         String?  // the exact moment the routine is for
+  startTrigger   String?  // what tells the athlete to start it
+  existingHabits String[] @default([])
+  purpose        String?  // what the athlete wants help with
+
+  // Ordered JSON array: [{ id, kind, instruction, cue|null, origin }]
+  // origin: "existing" | "suggested" | "custom". See validateRoutine.js.
+  steps Json
+
+  // Adaptation lineage only. An adaptation is an independent copy — its own
+  // content lives in its own row, so editing or deleting the source never
+  // changes it (SetNull just drops the reference).
+  sourceRoutineId String?
+  sourceRoutine   Routine?  @relation("RoutineAdaptation", fields: [sourceRoutineId], references: [id], onDelete: SetNull)
+  adaptations     Routine[] @relation("RoutineAdaptation")
+
+  templateKey     String?
+  templateVersion Int?
+
+  legacyImport RitualLegacyImport?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, createdAt])
+}
+
+// One row per user, ever, recording the explicit import of the legacy single
+// ritual (User.ritualName / ritualSteps). The unique userId is the
+// database-backed idempotency guard: a retried or concurrent import can never
+// create a second copy. status "linked" = routineId is the authoritative copy
+// and the legacy fields mirror it; status "deleted" = the imported routine was
+// deleted, the legacy fields were cleared in the same transaction, and import
+// reports "deleted" instead of recreating anything.
+model RitualLegacyImport {
+  id         String    @id @default(cuid())
+  userId     String    @unique
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  routineId  String?   @unique
+  routine    Routine?  @relation(fields: [routineId], references: [id], onDelete: SetNull)
+  status     String    // "linked" | "deleted"
+  importedAt DateTime  @default(now())
+  deletedAt  DateTime?
 }
 
 // Webhook idempotency — one row per processed Razorpay event (x-razorpay-event-id).
