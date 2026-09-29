@@ -196,3 +196,62 @@ test('no routine route sends anything to an AI model', () => {
     assert.doesNotMatch(src, /require\(['"]@anthropic-ai|new Anthropic\(|messages\.(create|stream)\(/, f);
   }
 });
+
+// ── Legacy screening (follow-up) ─────────────────────────────────────────
+
+test('import-legacy: a flagged legacy ritual returns guidance, one event, no activity, and no screen details', async () => {
+  const store = stubStore({ importLegacy: { status: 'needs_support', routine: null, screen: { category: 'crisis', riskLevel: 'high' } } });
+  const activity = spyActivity();
+  const events = [];
+  await withApp({ store, activity, safetyEvent: (...a) => { events.push(a); return Promise.resolve(); } }, async (call) => {
+    const res = await call('POST', '/import-legacy');
+    assert.equal(res.status, 200);
+    assert.deepEqual(Object.keys(res.body).sort(), ['guidance', 'routine', 'safetyFlag', 'status']);
+    assert.equal(res.body.status, 'needs_support');
+    assert.equal(res.body.routine, null);
+    assert.match(res.body.guidance, /iCall/);
+  });
+  assert.deepEqual(events, [['athlete-1', 'ritual', 'crisis', { riskLevel: 'high', sourceType: 'ritual_legacy_import' }]]);
+  assert.deepEqual(activity.touched, []);
+});
+
+async function withRitualApp(store, safetyEvent, fn) {
+  const { createRitualRouter } = require('../src/routes/ritual');
+  const client = { user: { findUnique: async () => ({ language: 'en' }) } };
+  const app = express();
+  app.use(express.json());
+  app.use('/api/ritual', createRitualRouter(client, store, safetyEvent));
+  const server = app.listen(0, '127.0.0.1');
+  await new Promise(r => server.once('listening', r));
+  try {
+    return await fn(async (body) => {
+      const res = await fetch(`http://127.0.0.1:${server.address().port}/api/ritual/me`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token('athlete-1')}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      return { status: res.status, body: await res.json() };
+    });
+  } finally {
+    await new Promise(r => server.close(r));
+  }
+}
+
+test('legacy POST /api/ritual/me: flagged text is screened before any write, with exactly one event', async () => {
+  const saves = [];
+  const events = [];
+  const store = { saveLegacyRitual: async (...a) => { saves.push(a); return { mirroredTo: null }; } };
+  await withRitualApp(store, (...a) => { events.push(a); return Promise.resolve(); }, async (post) => {
+    const res = await post({ ritualName: 'i want to die', steps: [{ type: 'cue', label: 'I want to kill myself' }] });
+    assert.equal(res.status, 422);
+    assert.equal(res.body.safetyFlag, 'needs_support');
+    assert.equal(res.body.error, 'needs_support');
+    assert.match(res.body.guidance, /KIRAN/);
+
+    const safe = await post({ ritualName: 'Match day', steps: [{ type: 'cue', label: 'Sharp' }] });
+    assert.deepEqual(safe, { status: 200, body: { ok: true } });
+  });
+  assert.equal(events.length, 1);
+  assert.deepEqual(events[0].slice(1), ['ritual', 'crisis', { riskLevel: 'high', sourceType: 'ritual_legacy_save' }]);
+  assert.deepEqual(saves, [['athlete-1', { ritualName: 'Match day', steps: [{ type: 'cue', label: 'Sharp' }] }]]);
+});

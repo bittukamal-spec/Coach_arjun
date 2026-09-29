@@ -406,3 +406,107 @@ test('full account deletion removes every routine and import record', { skip: SK
   assert.equal(await prisma.ritualLegacyImport.count({ where: { userId: u.id } }), 0);
   assert.equal(await prisma.user.count({ where: { id: u.id } }), 0);
 });
+
+// ── Safety screening on legacy saves and legacy import (follow-up) ───────
+
+const FLAGGED_TEXT = 'I want to kill myself';
+
+async function waitForEvents(userId, expected) {
+  // recordSafetyEvent is fire-and-forget by design; wait for the write, then
+  // allow a moment more so an unexpected extra event would also land.
+  let events = [];
+  for (let i = 0; i < 40 && events.length < expected; i++) {
+    events = await prisma.safetyEvent.findMany({ where: { userId } });
+    if (events.length < expected) await new Promise(r => setTimeout(r, 50));
+  }
+  await new Promise(r => setTimeout(r, 150));
+  return prisma.safetyEvent.findMany({ where: { userId } });
+}
+
+async function snapshot(userId) {
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { ritualName: true, ritualSteps: true, lastActiveAt: true } });
+  const routines = await prisma.routine.findMany({ where: { userId }, orderBy: { createdAt: 'asc' } });
+  const link = await prisma.ritualLegacyImport.findUnique({ where: { userId } });
+  return { user, routines: routines.map(r => ({ id: r.id, name: r.name, steps: r.steps, updatedAt: r.updatedAt.toISOString() })), link };
+}
+
+test('safe legacy saves keep the {ok:true} contract before and after import, with no safety event', { skip: SKIP }, async () => {
+  const u = await legacyUser();
+  const before = await api(u.token, 'POST', '/api/ritual/me', { ritualName: 'Pre-match', steps: [{ type: 'breathe', label: 'Slow breath' }] });
+  assert.deepEqual(before, { status: 200, body: { ok: true } });
+
+  const routine = (await api(u.token, 'POST', '/api/routines/import-legacy')).body.routine;
+  const after = await api(u.token, 'POST', '/api/ritual/me', { ritualName: 'Pre-match 2', steps: [{ type: 'cue', label: 'Say: go' }] });
+  assert.deepEqual(after, { status: 200, body: { ok: true } });
+  const linked = (await api(u.token, 'GET', `/api/routines/${routine.id}`)).body.routine;
+  assert.equal(linked.name, 'Pre-match 2');
+  assert.deepEqual(linked.steps.map(s => s.instruction), ['Say: go']);
+  assert.equal((await waitForEvents(u.id, 0)).length, 0);
+});
+
+test('a flagged legacy save before import changes nothing and returns the standard guidance once', { skip: SKIP }, async () => {
+  const u = await legacyUser();
+  const before = await snapshot(u.id);
+  const res = await api(u.token, 'POST', '/api/ritual/me', {
+    ritualName: 'Match day',
+    steps: [{ type: 'custom', label: 'Fine' }, { type: 'cue', label: FLAGGED_TEXT }, { type: 'cue', label: 'i want to die' }],
+  });
+  assert.equal(res.status, 422);
+  assert.equal(res.body.safetyFlag, 'needs_support');
+  assert.match(res.body.guidance, /KIRAN (on )?1800-599-0019/);
+  assert.deepEqual(await snapshot(u.id), before);
+
+  const events = await waitForEvents(u.id, 1);
+  assert.equal(events.length, 1, 'several flagged fields in one request → one event');
+  assert.equal(events[0].surface, 'ritual');
+  assert.equal(events[0].sourceType, 'ritual_legacy_save');
+});
+
+test('a flagged legacy save after import changes neither the legacy fields nor the linked routine', { skip: SKIP }, async () => {
+  const u = await legacyUser();
+  await api(u.token, 'POST', '/api/routines/import-legacy');
+  const before = await snapshot(u.id);
+  assert.equal(before.routines.length, 1);
+
+  const res = await api(u.token, 'POST', '/api/ritual/me', { ritualName: FLAGGED_TEXT, steps: [{ type: 'custom', label: 'Walk to the line' }] });
+  assert.equal(res.status, 422);
+  assert.deepEqual(await snapshot(u.id), before);
+  assert.equal((await waitForEvents(u.id, 1)).length, 1);
+});
+
+test('flagged text in an otherwise invalid legacy payload still reaches the safety path, not a 400', { skip: SKIP }, async () => {
+  const u = await makeUser();
+  const res = await api(u.token, 'POST', '/api/ritual/me', { ritualName: FLAGGED_TEXT, steps: [] });
+  assert.equal(res.status, 422);
+  assert.equal(res.body.safetyFlag, 'needs_support');
+  assert.equal((await waitForEvents(u.id, 1)).length, 1);
+});
+
+test('a flagged legacy ritual is not imported: legacy data preserved, no Routine, import not marked done', { skip: SKIP }, async () => {
+  const flaggedSteps = [{ type: 'custom', label: 'Tie laces' }, { type: 'cue', label: FLAGGED_TEXT }];
+  const u = await makeUser({ ritualName: 'Old ritual', ritualSteps: JSON.stringify(flaggedSteps), language: 'hi' });
+
+  const res = await api(u.token, 'POST', '/api/routines/import-legacy');
+  assert.equal(res.status, 200);
+  assert.equal(res.body.status, 'needs_support');
+  assert.equal(res.body.routine, null);
+  assert.equal(res.body.safetyFlag, 'needs_support');
+  assert.match(res.body.guidance, /^Jo tum describe/, 'guidance follows the athlete language');
+  assert.equal(res.body.screen, undefined, 'screen details are not sent to the client');
+
+  assert.equal(await prisma.routine.count({ where: { userId: u.id } }), 0);
+  assert.equal(await prisma.ritualLegacyImport.count({ where: { userId: u.id } }), 0);
+  const user = await prisma.user.findUnique({ where: { id: u.id } });
+  assert.equal(user.ritualName, 'Old ritual');
+  assert.deepEqual(JSON.parse(user.ritualSteps), flaggedSteps);
+  assert.deepEqual((await api(u.token, 'GET', '/api/routines')).body.legacy, { status: 'available', routineId: null });
+
+  const events = await waitForEvents(u.id, 1);
+  assert.equal(events.length, 1);
+  assert.equal(events[0].sourceType, 'ritual_legacy_import');
+  assert.equal(user.lastActiveAt, null);
+
+  // Once the athlete saves safe text, the ritual imports normally.
+  await api(u.token, 'POST', '/api/ritual/me', { ritualName: 'Old ritual', steps: [{ type: 'custom', label: 'Tie laces' }] });
+  assert.equal((await api(u.token, 'POST', '/api/routines/import-legacy')).status, 201);
+});

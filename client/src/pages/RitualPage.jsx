@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
 import { Trophy, Wind, MessageCircle, Target, Dumbbell, Pencil } from 'lucide-react';
+import { SafetyGuidanceCard } from './mindJournal/shared';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -33,6 +34,9 @@ function Builder({ initial, onSave, onCancel, t }) {
   );
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState('');
+  // Set when the server's safety screen flagged the save. Nothing was
+  // saved; the athlete sees the standard guidance instead of a generic error.
+  const [safety, setSafety] = useState(null);
 
   function addStep() {
     if (steps.length >= 5) return;
@@ -54,9 +58,14 @@ function Builder({ initial, onSave, onCancel, t }) {
     if (validSteps.length === 0) { setError(t.errAddStep); return; }
     setSaving(true);
     setError('');
+    setSafety(null);
     try {
       const res = await onSave({ ritualName: name.trim(), steps: validSteps });
-      if (!res.ok) setError(t.errSave);
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        if (data?.safetyFlag === 'needs_support') setSafety({ guidance: data.guidance || null });
+        else setError(t.errSave);
+      }
     } catch {
       setError(t.errSave);
     } finally {
@@ -66,6 +75,8 @@ function Builder({ initial, onSave, onCancel, t }) {
 
   return (
     <div className="animate-fade-in">
+      {safety && <SafetyGuidanceCard guidance={safety.guidance} onDismiss={() => setSafety(null)} />}
+
       {/* Ritual name */}
       <div className="mb-6">
         <label className="block text-sm font-semibold text-ink mb-2">{t.nameLabel}</label>

@@ -15,7 +15,8 @@
 // missing one). Athlete-written text is screened with the shared
 // deterministic safety service before anything is saved — the same
 // persist-nothing, structured-event, fixed-guidance behaviour as the Mind
-// Journal save.
+// Journal save. Legacy ritual text is screened the same way before import
+// (and before legacy saves in ritual.js), so no path skips the screen.
 
 const express = require('express');
 const authenticate = require('../middleware/authenticate');
@@ -48,20 +49,22 @@ function createRoutinesRouter({
     return res.status(500).json({ error: 'server_error' });
   }
 
+  // Records exactly one structured event and returns the fixed guidance body.
+  async function flaggedResponse(userId, screen, sourceType) {
+    safetyEvent(userId, 'ritual', screen.category, { riskLevel: screen.riskLevel, sourceType });
+    let language = null;
+    try {
+      language = loadLanguage ? await loadLanguage(userId) : null;
+    } catch { /* guidance falls back to English */ }
+    return { safetyFlag: 'needs_support', guidance: getSafetyGuidance(screen.category, language) };
+  }
+
   // Returns true (and has already responded) when the body carries text the
   // shared safety screen flags. Nothing is persisted on that path.
   async function handledBySafetyScreen(req, res) {
     const screen = screenSafetyFields(...collectRoutineText(req.body));
     if (!screen.flagged) return false;
-    safetyEvent(req.userId, 'ritual', screen.category, {
-      riskLevel: screen.riskLevel,
-      sourceType: 'routine_save',
-    });
-    let language = null;
-    try {
-      language = loadLanguage ? await loadLanguage(req.userId) : null;
-    } catch { /* guidance falls back to English */ }
-    res.json({ safetyFlag: 'needs_support', guidance: getSafetyGuidance(screen.category, language) });
+    res.json(await flaggedResponse(req.userId, screen, 'routine_save'));
     return true;
   }
 
@@ -93,6 +96,15 @@ function createRoutinesRouter({
   router.post('/import-legacy', authenticate, async (req, res) => {
     try {
       const result = await store.importLegacy(req.userId);
+      if (result.status === 'needs_support') {
+        // The stored legacy text failed the shared screen: nothing was
+        // imported. Same event + guidance contract as a flagged save.
+        return res.json({
+          status: 'needs_support',
+          routine: null,
+          ...(await flaggedResponse(req.userId, result.screen, 'ritual_legacy_import')),
+        });
+      }
       // Deliberately no activity touch: importing is a one-time data move
       // the client triggers, not something the athlete did — and a retry
       // must never count either.

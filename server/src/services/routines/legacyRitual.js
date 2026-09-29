@@ -71,7 +71,18 @@ function mergeLegacyIntoRoutineSteps(existingSteps, legacySteps) {
   });
 }
 
+// Athlete-written text in a legacy ritual — a raw POST /api/ritual/me body
+// or the stored fields being imported — for the shared safety screen.
+// Non-strings are skipped and each value is capped, as for routines.
+const MAX_PRESCREEN_FIELD_LENGTH = 2000;
+function collectLegacyRitualText(ritualName, steps) {
+  const cap = v => (typeof v === 'string' && v ? v.slice(0, MAX_PRESCREEN_FIELD_LENGTH) : null);
+  const labels = Array.isArray(steps) ? steps.slice(0, 20).map(s => (s && typeof s === 'object' ? cap(s.label) : null)) : [];
+  return [cap(ritualName), ...labels].filter(Boolean);
+}
+
 module.exports = {
+  collectLegacyRitualText,
   parseLegacySteps,
   legacyTypeFor,
   legacyToRoutineSteps,

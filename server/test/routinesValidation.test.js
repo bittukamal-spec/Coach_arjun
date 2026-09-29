@@ -161,3 +161,10 @@ test('legacy merge: unchanged positions keep id/kind/cue/origin; edits keep id a
   // Removing a step on the legacy side removes it here too.
   assert.equal(mergeLegacyIntoRoutineSteps(existing, [{ type: 'custom', label: 'Towel off' }]).length, 1);
 });
+
+test('legacy text collection for the safety screen: name plus every label, strings only', () => {
+  const { collectLegacyRitualText } = require('../src/services/routines/legacyRitual');
+  assert.deepEqual(collectLegacyRitualText('Name', [{ label: 'a' }, null, { label: 5 }, 'x', { label: 'b' }]), ['Name', 'a', 'b']);
+  assert.deepEqual(collectLegacyRitualText(undefined, 'not-array'), []);
+  assert.equal(collectLegacyRitualText('x'.repeat(5000), [])[0].length, 2000);
+});

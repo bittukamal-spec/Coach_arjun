@@ -29,8 +29,9 @@
 
 const { PrismaClient } = require('@prisma/client');
 const { LIMITS } = require('./validateRoutine');
+const { screenSafetyFields } = require('../safety');
 const {
-  parseLegacySteps, legacyToRoutineSteps, routineStepsToLegacy, mergeLegacyIntoRoutineSteps,
+  collectLegacyRitualText, parseLegacySteps, legacyToRoutineSteps, routineStepsToLegacy, mergeLegacyIntoRoutineSteps,
 } = require('./legacyRitual');
 
 const TX_OPTIONS = { maxWait: 5000, timeout: 10000 };
@@ -201,6 +202,16 @@ function createRoutineStore(client = new PrismaClient()) {
 
         const legacySteps = parseLegacySteps(user.ritualSteps);
         if (legacySteps.length === 0) return { status: 'nothing_to_import', routine: null };
+
+        // Legacy text predates routine screening, so it passes the same
+        // rules-only screen before it can become a Routine. Flagged: nothing
+        // is created, no import record is written (import is not marked
+        // done) and the legacy fields stay exactly as they are. The caller
+        // records the safety event and returns guidance.
+        const screen = screenSafetyFields(...collectLegacyRitualText(user.ritualName, legacySteps));
+        if (screen.flagged) {
+          return { status: 'needs_support', routine: null, screen: { category: screen.category, riskLevel: screen.riskLevel } };
+        }
 
         const count = await tx.routine.count({ where: { userId } });
         if (count >= LIMITS.MAX_ACTIVE_ROUTINES) throw new RoutineError('routine_limit_reached');
