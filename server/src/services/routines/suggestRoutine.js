@@ -71,7 +71,9 @@ function selectRule({ category, purposeKey, timeWindow }) {
   // own_situation has no known timing. Without an explicit window the rules
   // do not pretend to know the moment: conservative fallback.
   if (!window) {
-    return { window: OWN_SITUATION_FALLBACK_WINDOW, purpose, blocks: FALLBACK[OWN_SITUATION_FALLBACK_WINDOW], specific: false, reason: 'fallback_unknown_timing' };
+    // Any supplied purposeKey is deliberately ignored here, so none is
+    // reported as applied.
+    return { window: OWN_SITUATION_FALLBACK_WINDOW, purpose: null, blocks: FALLBACK[OWN_SITUATION_FALLBACK_WINDOW], specific: false, reason: 'fallback_unknown_timing' };
   }
   if (!purpose) {
     return { window, purpose: null, blocks: FALLBACK[window], specific: false, reason: 'fallback_no_purpose' };
@@ -97,8 +99,10 @@ function suggestRoutine(input) {
 
   // 2. Suggestions fill only the remaining room in the window, in rule
   //    order, skipping any whose text the athlete already has.
-  if (steps.length >= limit) {
-    if (rule.blocks.length > 0) reasons.push('habits_fill_window');
+  if (habits.length > limit) {
+    reasons.push('habits_exceed_window');
+  } else if (habits.length === limit) {
+    reasons.push('habits_fill_window');
   } else {
     for (const name of rule.blocks) {
       if (steps.length >= limit) break;

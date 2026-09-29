@@ -36,20 +36,33 @@ test('habits are never dropped for exceeding the window preference, up to the gl
     const s = suggest({ category, purposeKey: 'reset', existingHabits: habits });
     assert.deepEqual(s.steps.map(x => x.instruction), habits, category);
     assert.equal(suggested(s).length, 0, category);
-    assert.ok(s.reasons.includes('habits_fill_window'));
+    assert.ok(s.reasons.includes('habits_exceed_window'), category);
+    assert.ok(!s.reasons.includes('habits_fill_window'), category);
   }
   // A seconds-long moment prefers 2 steps; 3 habits are all still kept.
   const three = suggest({ category: 'repeated_moment', purposeKey: 'focus', existingHabits: habits.slice(0, 3) });
   assert.deepEqual(three.steps.map(x => x.instruction), habits.slice(0, 3));
+  assert.ok(three.reasons.includes('habits_exceed_window'));
+});
+
+test('habits exactly filling the window report habits_fill_window; fewer report neither', () => {
+  const two = suggest({ category: 'repeated_moment', purposeKey: 'reset', existingHabits: ['Towel off', 'Tap the line'] });
+  assert.deepEqual(two.steps.map(x => x.instruction), ['Towel off', 'Tap the line']);
+  assert.ok(two.reasons.includes('habits_fill_window'));
+  assert.ok(!two.reasons.includes('habits_exceed_window'));
+
+  const one = suggest({ category: 'repeated_moment', purposeKey: 'reset', existingHabits: ['Towel off'] });
+  assert.equal(one.steps.length, 2);
+  assert.ok(!one.reasons.some(r => r.startsWith('habits_') && r !== 'habits_kept'));
 });
 
 test('suggestions complement habits and skip exact-text duplicates of a habit', () => {
   const s = suggest({
     category: 'pressure_moment', purposeKey: 'focus',
-    existingHabits: ['  pick one target and keep your EYES on it '],
+    existingHabits: ['  choose one thing to FOCUS on for the next   action '],
   });
   assert.equal(s.steps.length, 3);
-  assert.equal(s.steps.filter(x => /target/i.test(x.instruction)).length, 1);
+  assert.equal(s.steps.filter(x => /focus on for the next/i.test(x.instruction)).length, 1);
   assert.ok(s.reasons.includes('duplicate_skipped'));
 });
 
@@ -68,6 +81,19 @@ test('breathing is not added to focus, confidence, activate or prepare routines 
   }
 });
 
+test('breathing appears in exactly seconds/settle, short/settle, short/reset and longer/settle', () => {
+  const withBreath = [];
+  for (const window of rules.TIME_WINDOWS) {
+    for (const purposeKey of rules.PURPOSE_KEYS) {
+      if (kinds(suggest({ category: 'pressure_moment', purposeKey, timeWindow: window })).includes('breathe')) {
+        withBreath.push(`${window}/${purposeKey}`);
+      }
+    }
+  }
+  assert.deepEqual(withBreath.sort(), ['longer/settle', 'seconds/settle', 'short/reset', 'short/settle']);
+  assert.ok(!kinds(suggest({ category: 'pressure_moment', purposeKey: 'reset', timeWindow: 'longer' })).includes('breathe'));
+});
+
 test('a seconds-long reset is a release action plus the next action, with no breathing', () => {
   const s = suggest({ category: 'repeated_moment', purposeKey: 'reset' });
   assert.equal(s.timeWindow, 'seconds');
@@ -81,7 +107,7 @@ test('regulation is suggested for settle, and one quick breath for a short reset
 
   const seconds = suggest({ category: 'repeated_moment', purposeKey: 'settle' });
   assert.deepEqual(kinds(seconds), ['breathe', 'prepare']);
-  assert.match(seconds.steps[0].instruction, /one slow breath/i);
+  assert.equal(seconds.steps[0].instruction, 'Take one slow breath with a longer exhale');
 
   const shortReset = suggest({ category: 'pressure_moment', purposeKey: 'reset' });
   assert.equal(kinds(shortReset).filter(k => k === 'breathe').length, 1);
@@ -102,7 +128,12 @@ test('seconds-long moments stay genuinely short: at most 2 steps, no visualisati
 test('session preparation allows a fuller sequence without inventing a physical warm-up', () => {
   const s = suggest({ category: 'session_preparation', purposeKey: 'prepare' });
   assert.equal(s.timeWindow, 'longer');
-  assert.equal(s.steps.length, 4);
+  assert.deepEqual(s.steps.map(x => x.instruction), [
+    'Choose one thing to focus on for what comes next',
+    'Choose your plan for your first action',
+    'Picture yourself carrying out your first action clearly',
+    'Say one short cue for the next action',
+  ]);
   for (const purposeKey of rules.PURPOSE_KEYS) {
     for (const category of CATEGORIES) {
       for (const timeWindow of rules.TIME_WINDOWS) {
@@ -144,6 +175,7 @@ test('own_situation without a stated time window falls back even with a purpose;
   assert.equal(unknown.matchType, 'fallback');
   assert.equal(unknown.templateKey, 'own_situation.short.fallback');
   assert.ok(unknown.reasons.includes('fallback_unknown_timing'));
+  assert.equal(unknown.purposeKey, null, 'an ignored purposeKey is not reported as applied');
   assert.ok(!kinds(unknown).includes('breathe'));
 
   const stated = suggest({ category: 'own_situation', purposeKey: 'settle', timeWindow: 'seconds' });
@@ -203,6 +235,55 @@ test('every rule list fits its window and every block is sport-neutral, short, E
     assert.ok(block.instruction.length <= LIMITS.INSTRUCTION);
     assert.match(block.instruction, /^[A-Za-z0-9 ,.'-]+$/);
     assert.doesNotMatch(block.instruction, /cricket|football|tennis|badminton|hockey|ball\b|serve|wicket|goal/i);
+    // Category-neutral: rules can be reached from any category via timeWindow.
+    assert.doesNotMatch(block.instruction, /\btoday\b|session|\bplay\b|\bmatch\b|\bgame starts|decide exactly|eyes on/i);
+  }
+});
+
+test('a longer override outside session_preparation produces no session-specific wording', () => {
+  for (const category of ['repeated_moment', 'pressure_moment', 'own_situation']) {
+    for (const purposeKey of [undefined, ...rules.PURPOSE_KEYS]) {
+      const s = suggest({ category, purposeKey, timeWindow: 'longer' });
+      assert.equal(s.timeWindow, 'longer');
+      assert.ok(s.templateKey.startsWith(`${category}.longer.`));
+      for (const step of s.steps) {
+        assert.doesNotMatch(step.instruction, /\btoday\b|session|\bplay\b/i, `${s.templateKey}: ${step.instruction}`);
+      }
+    }
+  }
+});
+
+test('visualisation is generated only for short/prepare and longer/prepare, as process imagery', () => {
+  const withImagery = [];
+  for (const window of rules.TIME_WINDOWS) {
+    for (const purposeKey of rules.PURPOSE_KEYS) {
+      const s = suggest({ category: 'pressure_moment', purposeKey, timeWindow: window });
+      const imagery = s.steps.filter(x => x.kind === 'visualize');
+      if (imagery.length) withImagery.push(`${window}/${purposeKey}`);
+      for (const step of imagery) assert.match(step.instruction, /^Picture yourself carrying out your (next|first) action clearly$/);
+    }
+  }
+  assert.deepEqual(withImagery.sort(), ['longer/prepare', 'short/prepare']);
+});
+
+test('reviewed copy: plan, focus, cue, confidence and activation wording', () => {
+  const texts = new Set(Object.values(rules.BLOCKS).map(b => b.instruction));
+  for (const expected of [
+    'Choose your plan for the next action',
+    'Choose one thing to focus on for the next action',
+    'Choose one thing to focus on for what comes next',
+    'Choose your plan for your first action',
+    'Say one short cue for the next action',
+    'Remind yourself of one thing you trust in your game',
+    'Use one energy word to switch on',
+    'Let the last action go and shift attention to the next one',
+    'Take one slow breath with a longer exhale',
+  ]) assert.ok(texts.has(expected), expected);
+  // Cue steps never rely on a stored cue.
+  for (const category of CATEGORIES) {
+    for (const purposeKey of rules.PURPOSE_KEYS) {
+      assert.ok(suggest({ category, purposeKey }).steps.every(x => x.cue === null));
+    }
   }
 });
 

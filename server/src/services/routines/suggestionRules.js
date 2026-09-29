@@ -4,13 +4,23 @@
 // Content rules this file follows (review them here, not in the logic):
 //  - Every step is something the athlete can do at that moment. No
 //    motivational slogans, explanations, journaling or long exercises.
+//  - Rules are chosen by time window + purpose, and a caller's timeWindow
+//    can override the category default, so no wording assumes a category:
+//    no "today", "session", "play" — only the last / next / first action
+//    and what comes next.
+//  - Steps set a plan or a focus for the next action; they never ask the
+//    athlete to pre-commit to an exact outcome.
 //  - Sport-neutral wording only. Sport- or role-specific content needs
 //    authoring and review first.
-//  - Breathing appears only in "settle" rules and in the short "reset"
-//    rule (one quick breath). A seconds-long reset is a release action plus
-//    the next action — no breathing.
+//  - Breathing appears only in settle rules (seconds, short, longer) and as
+//    one breath in the short reset rule. A seconds-long reset is a release
+//    action plus the plan for the next action — no breathing.
+//  - Visualisation appears only in the short and longer prepare rules, as
+//    process imagery (carrying out the action), never outcome imagery.
 //  - No physical warm-up is ever suggested. Physical steps come only from
 //    the athlete's own habits.
+//  - Step limits are maxima, not targets: rules are not padded to fill them.
+//  - Cue steps never assume a stored cue exists.
 //  - English only for now.
 //
 // Kinds are existing routine step kinds (validateRoutine.js STEP_KINDS).
@@ -42,57 +52,57 @@ const WINDOW_STEP_LIMIT = Object.freeze({
 });
 
 const BLOCKS = Object.freeze({
-  RELEASE:        { kind: 'reset',     instruction: 'Turn away from the last play and let it go' },
-  LEAVE_BEHIND:   { kind: 'reset',     instruction: 'Leave whatever happened before this session behind you' },
-  ONE_BREATH:     { kind: 'breathe',   instruction: 'Take one slow breath out' },
-  SLOW_BREATHS:   { kind: 'breathe',   instruction: 'Take three slow breaths, breathing out longer than in' },
-  NEXT_ACTION:    { kind: 'prepare',   instruction: 'Decide exactly what you will do next' },
-  FIRST_ACTION:   { kind: 'prepare',   instruction: 'Decide your first action when play starts' },
-  LOOK_TARGET:    { kind: 'prepare',   instruction: 'Pick one target and keep your eyes on it' },
-  SESSION_FOCUS:  { kind: 'prepare',   instruction: 'Choose one thing to focus on today' },
-  REHEARSE_FIRST: { kind: 'visualize', instruction: 'Picture your first action going the way you want' },
-  RECALL_SUCCESS: { kind: 'visualize', instruction: 'Recall one time you did this well' },
-  CUE:            { kind: 'cue',       instruction: 'Say your one-word cue' },
-  TRUST_CUE:      { kind: 'cue',       instruction: 'Say one short line about what you trust in your game' },
-  ENERGY_CUE:     { kind: 'cue',       instruction: 'Say one energy word to lift your intensity' },
+  RELEASE:       { kind: 'reset',     instruction: 'Let the last action go and shift attention to the next one' },
+  LEAVE_BEHIND:  { kind: 'reset',     instruction: 'Let what happened before go and shift attention to what comes next' },
+  ONE_BREATH:    { kind: 'breathe',   instruction: 'Take one slow breath with a longer exhale' },
+  SLOW_BREATHS:  { kind: 'breathe',   instruction: 'Take three slow breaths, each with a longer exhale' },
+  NEXT_PLAN:     { kind: 'prepare',   instruction: 'Choose your plan for the next action' },
+  FIRST_PLAN:    { kind: 'prepare',   instruction: 'Choose your plan for your first action' },
+  FOCUS_NEXT:    { kind: 'prepare',   instruction: 'Choose one thing to focus on for the next action' },
+  FOCUS_AHEAD:   { kind: 'prepare',   instruction: 'Choose one thing to focus on for what comes next' },
+  PICTURE_NEXT:  { kind: 'visualize', instruction: 'Picture yourself carrying out your next action clearly' },
+  PICTURE_FIRST: { kind: 'visualize', instruction: 'Picture yourself carrying out your first action clearly' },
+  CUE:           { kind: 'cue',       instruction: 'Say one short cue for the next action' },
+  TRUST:         { kind: 'cue',       instruction: 'Remind yourself of one thing you trust in your game' },
+  ENERGY:        { kind: 'cue',       instruction: 'Use one energy word to switch on' },
 });
 
 // window → purpose → ordered block names. No list is longer than that
-// window's step limit. "seconds" never uses visualisation or multi-breath
-// sequences.
+// window's step limit, and none is padded to reach it.
 const RULES = Object.freeze({
   seconds: Object.freeze({
-    reset:      ['RELEASE', 'NEXT_ACTION'],
-    settle:     ['ONE_BREATH', 'NEXT_ACTION'],
-    focus:      ['NEXT_ACTION', 'CUE'],
-    confidence: ['NEXT_ACTION', 'TRUST_CUE'],
-    activate:   ['ENERGY_CUE', 'NEXT_ACTION'],
-    prepare:    ['NEXT_ACTION', 'CUE'],
+    reset:      ['RELEASE', 'NEXT_PLAN'],
+    settle:     ['ONE_BREATH', 'NEXT_PLAN'],
+    focus:      ['NEXT_PLAN', 'CUE'],
+    confidence: ['NEXT_PLAN', 'TRUST'],
+    activate:   ['ENERGY', 'NEXT_PLAN'],
+    prepare:    ['NEXT_PLAN', 'CUE'],
   }),
   short: Object.freeze({
-    reset:      ['RELEASE', 'ONE_BREATH', 'NEXT_ACTION'],
-    settle:     ['ONE_BREATH', 'NEXT_ACTION', 'CUE'],
-    focus:      ['LOOK_TARGET', 'NEXT_ACTION', 'CUE'],
-    confidence: ['RECALL_SUCCESS', 'NEXT_ACTION', 'TRUST_CUE'],
-    activate:   ['ENERGY_CUE', 'NEXT_ACTION'],
-    prepare:    ['NEXT_ACTION', 'REHEARSE_FIRST', 'CUE'],
+    reset:      ['RELEASE', 'ONE_BREATH', 'NEXT_PLAN'],
+    settle:     ['ONE_BREATH', 'NEXT_PLAN', 'CUE'],
+    focus:      ['FOCUS_NEXT', 'NEXT_PLAN', 'CUE'],
+    confidence: ['NEXT_PLAN', 'TRUST'],
+    activate:   ['ENERGY', 'NEXT_PLAN'],
+    prepare:    ['NEXT_PLAN', 'PICTURE_NEXT', 'CUE'],
   }),
   longer: Object.freeze({
-    reset:      ['LEAVE_BEHIND', 'SESSION_FOCUS', 'CUE'],
-    settle:     ['SLOW_BREATHS', 'SESSION_FOCUS', 'REHEARSE_FIRST', 'CUE'],
-    focus:      ['SESSION_FOCUS', 'REHEARSE_FIRST', 'CUE'],
-    confidence: ['RECALL_SUCCESS', 'SESSION_FOCUS', 'TRUST_CUE'],
-    activate:   ['SESSION_FOCUS', 'REHEARSE_FIRST', 'ENERGY_CUE'],
-    prepare:    ['SESSION_FOCUS', 'REHEARSE_FIRST', 'FIRST_ACTION', 'CUE'],
+    reset:      ['LEAVE_BEHIND', 'FOCUS_AHEAD', 'CUE'],
+    settle:     ['SLOW_BREATHS', 'FOCUS_AHEAD', 'CUE'],
+    focus:      ['FOCUS_AHEAD', 'CUE'],
+    confidence: ['FOCUS_AHEAD', 'TRUST'],
+    activate:   ['FOCUS_AHEAD', 'ENERGY'],
+    prepare:    ['FOCUS_AHEAD', 'FIRST_PLAN', 'PICTURE_FIRST', 'CUE'],
   }),
 });
 
-// Conservative structure when no purpose rule applies: the next action and,
-// where there is room, a cue — nothing that assumes what the athlete needs.
+// Conservative structure when no purpose rule applies: the plan or focus
+// for what comes next and, where there is room, a cue — nothing that
+// assumes what the athlete needs.
 const FALLBACK = Object.freeze({
-  seconds: ['NEXT_ACTION'],
-  short:   ['NEXT_ACTION', 'CUE'],
-  longer:  ['SESSION_FOCUS', 'CUE'],
+  seconds: ['NEXT_PLAN'],
+  short:   ['NEXT_PLAN', 'CUE'],
+  longer:  ['FOCUS_AHEAD', 'CUE'],
 });
 
 const TEMPLATE_VERSION = 1;
