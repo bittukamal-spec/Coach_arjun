@@ -67,6 +67,17 @@ const NON_AI_ROUTES_MUST_NOT_BE_GATED = [
   { mount: '/api/self-talk', path: '/save', method: 'POST', note: 'save card (no AI call)' },
   { mount: '/api/body-reset', path: '/save', method: 'POST', note: 'save session (no AI call)' },
 
+  // Ritual rebuild PR 1 — saved routines never call Anthropic, and keep the
+  // same access policy as the legacy /api/ritual/me they grow out of.
+  { mount: '/api/ritual', path: '/me', method: 'GET', note: 'legacy ritual read (no AI call)' },
+  { mount: '/api/ritual', path: '/me', method: 'POST', note: 'legacy ritual save (no AI call)' },
+  { mount: '/api/routines', path: '/', method: 'GET', note: 'list routines (no AI call)' },
+  { mount: '/api/routines', path: '/', method: 'POST', note: 'create routine (no AI call)' },
+  { mount: '/api/routines', path: '/:id', method: 'GET', note: 'read routine (no AI call)' },
+  { mount: '/api/routines', path: '/:id', method: 'PATCH', note: 'edit routine (no AI call)' },
+  { mount: '/api/routines', path: '/:id', method: 'DELETE', note: 'delete routine (no AI call)' },
+  { mount: '/api/routines', path: '/import-legacy', method: 'POST', note: 'import legacy ritual (no AI call)' },
+
   // PR 3 — deliberate product decision, not an oversight: an under-18 athlete
   // waiting on guardian consent may still READ the starting profile Arjun
   // formed about them and say whether it fits. Only the conversation itself is

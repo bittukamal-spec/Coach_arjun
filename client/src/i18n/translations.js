@@ -1423,6 +1423,7 @@ export const translations = {
       profile: { label: 'Mental profile', sub: 'Onboarding answers and preferences' },
       cue: { label: 'Cue word', sub: 'Your personal focus cue' },
       checkin: { label: 'Check-in history', sub: 'All daily mental fitness scores' },
+      routines: { label: 'Ritual routines', sub: 'Your saved Ritual routines' },
       confirm: {
         title: 'Delete this data?',
         body: 'This cannot be undone.',
@@ -3558,6 +3559,7 @@ export const translations = {
       profile: { label: 'मानसिक प्रोफाइल', sub: 'ऑनबोर्डिंग उत्तर और प्राथमिकताएं' },
       cue: { label: 'क्यू वर्ड', sub: 'आपका व्यक्तिगत फोकस शब्द' },
       checkin: { label: 'चेक-इन इतिहास', sub: 'सभी दैनिक मानसिक फिटनेस स्कोर' },
+      routines: { label: 'रिचुअल रूटीन', sub: 'आपके सेव किए गए सभी रिचुअल रूटीन' },
       confirm: {
         title: 'यह डेटा हटाएं?',
         body: 'यह वापस नहीं होगा।',

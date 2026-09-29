@@ -55,6 +55,8 @@ All 14 User relations confirmed `onDelete: Cascade`. Additive changes only — n
 - `WeeklyReport` — userId, weekStart, content (unique per userId+weekStart)
 - `SelfTalkCard` — userId, focusWord, resetWord, powerLine, performanceReminder, arjunNote, isMatchDayCard, matchDayContext
 - `BodyResetSession` — userId, mode, feeling, context, focusWordUsed, tension/readiness before+after, arjunNote
+- `Routine` — userId, name, category, sport, role, moment, startTrigger, existingHabits[], purpose, steps (JSON `[{id,kind,instruction,cue,origin}]`), sourceRoutineId (SetNull), templateKey/Version — max 5 per user under a User-row lock (`services/routines/routineStore.js`)
+- `RitualLegacyImport` — one row per user (unique userId): legacy `User.ritualName/ritualSteps` imported once; status `linked` (routine authoritative, legacy fields = its mirror, still read by Coach) or `deleted` (legacy fields cleared, never re-imported)
 
 **INERT fields (never written — do not rely on):** `googleId`, `reminderOptIn`, `phone`, `razorpayCustomerId`, `avatar` (server-side), `subscriptionEndDate` (write-only), `oceanO–N` (no test UI exists; the one reader in bounce_back wizard doesn't even select them — AUDIT AMBER 6).
 
@@ -79,7 +81,8 @@ All require auth (JWT via `authenticate` → `req.userId`) except where marked. 
 | GET /api/progress/summary | Charts, streak, fitness score | yes | no |
 | GET /api/achievements/me | Earned badges | yes | no |
 | GET /api/drills/today · POST /complete | Daily drill (orphaned, no client) | yes | no |
-| GET/POST /api/ritual/me | Pre-match routine | yes | no |
+| GET/POST /api/ritual/me | Legacy single ritual (current /ritual UI); saves are safety-screened first (flagged → 422 + guidance, nothing written); after import, saves also update the linked Routine | yes | no |
+| GET/POST /api/routines · GET/PATCH/DELETE /:id · POST /import-legacy | Saved routines (Ritual rebuild PR 1, no UI yet, no AI) | yes | no |
 | POST/GET /api/debrief | Match review + AI insight | yes | **no (leak)** |
 | POST /api/games/xp | Record GameSession +10 XP | yes | no |
 | GET /api/profile-intro | AI profile intro (cached) | yes | **no (leak)** |

@@ -28,7 +28,7 @@ const readRoute = (f) => read(routesDir, f);
 
 const WIRED_ROUTES = [
   'chat.js', 'onboarding.js', 'profile.js', 'mentalRep.js', 'mindJournal.js',
-  'selfTalk.js', 'bodyReset.js', 'debrief.js', 'ritual.js', 'skills.js', 'games.js',
+  'selfTalk.js', 'bodyReset.js', 'debrief.js', 'ritual.js', 'routines.js', 'skills.js', 'games.js',
 ];
 
 test('every wired route imports the activityTracking module by reference (not a destructure) so it stays mockable', () => {

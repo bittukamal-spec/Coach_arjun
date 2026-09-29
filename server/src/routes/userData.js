@@ -1,11 +1,13 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const authenticate = require('../middleware/authenticate');
+const { createRoutineStore } = require('../services/routines/routineStore');
 
 const router = express.Router();
 const prisma = new PrismaClient();
+const routineStore = createRoutineStore(prisma);
 
-const ALLOWED_TYPES = ['chat-history', 'reflections', 'mental-profile', 'cue-word', 'checkin-history'];
+const ALLOWED_TYPES = ['chat-history', 'reflections', 'mental-profile', 'cue-word', 'checkin-history', 'routines'];
 
 // DELETE /api/user/data/:type
 router.delete('/data/:type', authenticate, async (req, res) => {
@@ -58,6 +60,13 @@ router.delete('/data/:type', authenticate, async (req, res) => {
       case 'checkin-history':
         await prisma.mentalFitnessEntry.deleteMany({ where: { userId } });
         await prisma.checkIn.deleteMany({ where: { userId } });
+        break;
+
+      case 'routines':
+        // Every saved routine plus the legacy single ritual (the fields the
+        // current /ritual UI and Coach context read), with the import marker
+        // set so nothing is recreated. One transaction — see routineStore.
+        await routineStore.deleteAllForUser(userId);
         break;
     }
 
