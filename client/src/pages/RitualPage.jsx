@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
@@ -261,7 +261,10 @@ function RitualPage() {
   const { token, language } = useAuth();
   const t = translations[language].ritual;
 
-  const [mode, setMode]           = useState('loading'); // loading | view | build | walk
+  // loading | view | build | walk | none. "none" = no legacy ritual: the
+  // classic page is only for athletes who already have one (Routine Builder
+  // PR 3); everyone else builds routines from the /ritual hub.
+  const [mode, setMode]           = useState('loading');
   const [ritualName, setRitualName] = useState('');
   const [steps, setSteps]         = useState([]);
   const [savedMsg, setSavedMsg]   = useState(false);
@@ -275,10 +278,10 @@ function RitualPage() {
           setSteps(data.steps);
           setMode('view');
         } else {
-          setMode('build');
+          setMode('none');
         }
       })
-      .catch(() => setMode('build'));
+      .catch(() => setMode('none'));
   }, [token]);
 
   async function handleSave({ ritualName: name, steps: newSteps }) {
@@ -296,6 +299,8 @@ function RitualPage() {
     }
     return res;
   }
+
+  if (mode === 'none') return <Navigate to="/ritual" replace />;
 
   // ── Loading ────────────────────────────────────────────────────────────────
 
@@ -338,7 +343,7 @@ function RitualPage() {
                 {t.back}
               </button>
             ) : (
-              <Link to="/train" className="text-sm text-slt hover:text-ink">{t.backDash}</Link>
+              <Link to="/ritual" className="text-sm text-slt hover:text-ink">{t.backRoutines}</Link>
             )}
             <p className="font-semibold text-ink">{t.title}</p>
             <div className="w-20" />
@@ -365,7 +370,7 @@ function RitualPage() {
     <div className="min-h-screen bg-dark-900 pb-20">
       <header className="bg-dark-900 border-b border-dark-600 px-page py-4 sticky top-0 z-10">
         <div className="max-w-lg mx-auto flex items-center justify-between">
-          <Link to="/train" className="text-sm text-slt hover:text-ink">{t.backDash}</Link>
+          <Link to="/ritual" className="text-sm text-slt hover:text-ink">{t.backRoutines}</Link>
           <p className="font-semibold text-ink">{t.title}</p>
           <button onClick={() => setMode('build')} className="text-sm text-brand-400 hover:text-brand-300 font-medium">
             {t.editRitual}

@@ -13,6 +13,9 @@ import OnboardingPage from './pages/OnboardingPage';
 import ChatPage from './pages/ChatPage';
 import AccountPage from './pages/AccountPage';
 import RitualPage from './pages/RitualPage';
+import RoutinesHubPage from './pages/routines/RoutinesHubPage';
+import RoutineBuilderPage from './pages/routines/RoutineBuilderPage';
+import RoutineViewPage from './pages/routines/RoutineViewPage';
 import StartingProfilePage from './pages/StartingProfilePage';
 import PerformanceCheckinPage from './pages/PerformanceCheckinPage';
 import TrainPage from './pages/TrainPage';
@@ -175,11 +178,43 @@ function App() {
       <Route path="/before-you-play" element={<Navigate to="/train" replace />} />
       {/* Standalone Breathing tool folded into Pressure Reset (Body Reset) — redirect to keep old links/bookmarks alive */}
       <Route path="/breathing" element={<Navigate to="/body-reset" replace />} />
+      {/* Routine Builder (PR 3). /ritual is the saved-routines hub and the
+          only place to build a routine. The classic single-ritual page stays
+          at /ritual/classic for athletes who already have a legacy ritual
+          (it redirects everyone else back to the hub); legacy storage,
+          import and Coach context are unchanged. */}
       <Route
         path="/ritual"
         element={
           <ProtectedRoute requireOnboarding={true}>
+            <RoutinesHubPage />
+            <BottomNav />
+          </ProtectedRoute>
+        }
+      />
+      {/* Full-screen flow — no BottomNav. */}
+      <Route
+        path="/ritual/new"
+        element={
+          <ProtectedRoute requireOnboarding={true}>
+            <RoutineBuilderPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/ritual/classic"
+        element={
+          <ProtectedRoute requireOnboarding={true}>
             <RitualPage />
+            <BottomNav />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/ritual/:id"
+        element={
+          <ProtectedRoute requireOnboarding={true}>
+            <RoutineViewPage />
             <BottomNav />
           </ProtectedRoute>
         }

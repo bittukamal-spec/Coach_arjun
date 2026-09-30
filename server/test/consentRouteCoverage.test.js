@@ -77,6 +77,7 @@ const NON_AI_ROUTES_MUST_NOT_BE_GATED = [
   { mount: '/api/routines', path: '/:id', method: 'PATCH', note: 'edit routine (no AI call)' },
   { mount: '/api/routines', path: '/:id', method: 'DELETE', note: 'delete routine (no AI call)' },
   { mount: '/api/routines', path: '/import-legacy', method: 'POST', note: 'import legacy ritual (no AI call)' },
+  { mount: '/api/routines', path: '/suggest', method: 'POST', note: 'deterministic routine suggestion (no AI call)' },
 
   // PR 3 — deliberate product decision, not an oversight: an under-18 athlete
   // waiting on guardian consent may still READ the starting profile Arjun

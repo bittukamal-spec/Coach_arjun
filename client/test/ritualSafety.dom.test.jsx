@@ -21,7 +21,9 @@ const GUIDANCE = "What you're describing is bigger than sport. Please talk to a 
 
 function mockApi(saveResponse) {
   apiFetch.mockImplementation(async (path, init = {}) => {
-    if (path === '/api/ritual/me' && !init.method) return json({ ritualName: null, steps: [] });
+    // The classic page is only reachable with an existing legacy ritual
+    // (Routine Builder PR 3 redirects everyone else to the /ritual hub).
+    if (path === '/api/ritual/me' && !init.method) return json({ ritualName: 'Match', steps: [{ type: 'breathe', label: 'Slow' }] });
     if (path === '/api/ritual/me' && init.method === 'POST') return saveResponse;
     throw new Error(`unexpected ${init.method || 'GET'} ${path}`);
   });
@@ -29,8 +31,9 @@ function mockApi(saveResponse) {
 
 async function fillAndSave(user) {
   const t = translations.en.ritual;
-  await user.type(await screen.findByPlaceholderText(t.namePlaceholder), 'Match day');
-  await user.type(screen.getByPlaceholderText(t.stepPlaceholders.breathe), 'Some step text');
+  await user.click(await screen.findByRole('button', { name: t.editRitual }));
+  await user.type(await screen.findByDisplayValue('Match'), ' day');
+  await user.type(screen.getByDisplayValue('Slow'), ' breath');
   await user.click(screen.getByRole('button', { name: t.save }));
 }
 

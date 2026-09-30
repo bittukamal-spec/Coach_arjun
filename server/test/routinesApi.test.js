@@ -255,3 +255,45 @@ test('legacy POST /api/ritual/me: flagged text is screened before any write, wit
   assert.deepEqual(events[0].slice(1), ['ritual', 'crisis', { riskLevel: 'high', sourceType: 'ritual_legacy_save' }]);
   assert.deepEqual(saves, [['athlete-1', { ritualName: 'Match day', steps: [{ type: 'cue', label: 'Sharp' }] }]]);
 });
+
+// ── POST /suggest (Routine Builder PR 3) ─────────────────────────────────
+
+test('suggest: requires authentication and never touches the store, activity or safety events', async () => {
+  const store = stubStore();
+  const activity = spyActivity();
+  const events = [];
+  await withApp({ store, activity, safetyEvent: (...a) => { events.push(a); return Promise.resolve(); } }, async (call) => {
+    assert.equal((await call('POST', '/suggest', { category: 'repeated_moment' }, null)).status, 401);
+    const res = await call('POST', '/suggest', {
+      category: 'pressure_moment', purposeKey: 'settle', timeWindow: 'seconds', existingHabits: ['Towel off'],
+    });
+    assert.equal(res.status, 200);
+    const { suggestRoutine } = require('../src/services/routines/suggestRoutine');
+    const expected = suggestRoutine({ category: 'pressure_moment', purposeKey: 'settle', timeWindow: 'seconds', existingHabits: ['Towel off'] });
+    assert.deepEqual(res.body, { suggestion: expected.suggestion });
+    // Even flagged-looking habit text is only echoed, never stored or screened here.
+    assert.equal((await call('POST', '/suggest', { category: 'repeated_moment', existingHabits: ['i want to die'] })).status, 200);
+  });
+  assert.deepEqual(store.calls, []);
+  assert.deepEqual(activity.touched, []);
+  assert.deepEqual(events, []);
+});
+
+test('suggest: validates structured input and rejects free text or unknown fields', async () => {
+  await withApp({ store: stubStore(), activity: spyActivity() }, async (call) => {
+    const cases = [
+      [{ category: 'match_day' }, 'invalid_category'],
+      [{ category: 'pressure_moment', purposeKey: 'calm' }, 'invalid_purpose_key'],
+      [{ category: 'pressure_moment', timeWindow: 'minutes' }, 'invalid_time_window'],
+      [{ category: 'pressure_moment', existingHabits: 'x' }, 'invalid_existing_habits'],
+      [{ category: 'pressure_moment', moment: 'Last over' }, 'unexpected_field'],
+      [{ category: 'pressure_moment', purpose: 'Calm down' }, 'unexpected_field'],
+      [[], 'invalid_body'],
+    ];
+    for (const [body, error] of cases) {
+      const res = await call('POST', '/suggest', body);
+      assert.deepEqual(res, { status: 400, body: { error } }, JSON.stringify(body));
+    }
+    assert.equal((await call('POST', '/suggest', { category: 'x', existingHabits: ['y'.repeat(17000)] })).status, 413);
+  });
+});

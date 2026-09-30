@@ -7,6 +7,8 @@
 //   PATCH  /api/routines/:id           edit an owned routine
 //   DELETE /api/routines/:id           delete an owned routine
 //   POST   /api/routines/import-legacy explicit, repeat-safe legacy import
+//   POST   /api/routines/suggest       deterministic starting-routine suggestion
+//                                      (read-only: no write, no AI, no network)
 //
 // Access policy matches the legacy /api/ritual/me it grows out of:
 // `authenticate` only — no guardian-consent gate and no trial/paywall gate,
@@ -26,6 +28,12 @@ const {
   bodyTooLarge, collectRoutineText, isValidRoutineId, validateCreateRoutine, validatePatchRoutine,
 } = require('../services/routines/validateRoutine');
 const { createRoutineStore, RoutineError } = require('../services/routines/routineStore');
+const { suggestRoutine } = require('../services/routines/suggestRoutine');
+
+// The only inputs the suggestion engine reads. Free-text fields (moment,
+// purpose) are deliberately not accepted: the rules never infer anything from
+// them, and nothing here is stored.
+const SUGGEST_KEYS = ['category', 'purposeKey', 'timeWindow', 'existingHabits'];
 
 const ERROR_STATUS = {
   not_found: 404,
@@ -112,6 +120,20 @@ function createRoutinesRouter({
     } catch (err) {
       return sendError(res, err, 'import');
     }
+  });
+
+  // Pure and read-only: validates the structured inputs and returns the
+  // deterministic PR 2 suggestion. It never creates a routine, never writes
+  // (no activity, no safety event), and never calls a model. Athlete text is
+  // screened when a routine is actually saved (POST /).
+  router.post('/suggest', authenticate, (req, res) => {
+    if (!checkSize(req, res)) return;
+    const body = req.body;
+    if (!body || typeof body !== 'object' || Array.isArray(body)) return res.status(400).json({ error: 'invalid_body' });
+    if (Object.keys(body).some(k => !SUGGEST_KEYS.includes(k))) return res.status(400).json({ error: 'unexpected_field' });
+    const result = suggestRoutine(body);
+    if (!result.valid) return res.status(400).json({ error: result.error });
+    return res.json({ suggestion: result.suggestion });
   });
 
   router.get('/:id', authenticate, async (req, res) => {
