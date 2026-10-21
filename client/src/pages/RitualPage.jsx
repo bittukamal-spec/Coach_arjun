@@ -1,7 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useId } from 'react';
-import {
-  Trophy, Wind, MessageCircle, Target, Dumbbell, Pencil, RotateCcw, ArrowRight, ChevronRight, Plus,
-} from 'lucide-react';
+import { Trophy, ChevronRight, Plus } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
@@ -21,16 +19,19 @@ import { SafetyGuidanceCard } from './mindJournal/shared';
 // Saves can be safety-flagged: the server then answers 200 with
 // { safetyFlag: 'needs_support', guidance } and writes nothing. The page
 // shows the standard guidance card and keeps the athlete's text in place.
-// No AI, no suggestions here — suggestions arrive in a later PR. ───────────
+// No AI, no suggestions here — suggestions arrive in a later PR.
+//
+// The builder is deliberately plain (MVP spec §4.7: no complex routine
+// builder): a name, when it's for, and up to 5 one-line steps. Steps typed
+// here are saved as kind "custom" with no cue; a step that already has a
+// kind or cue (imported, or from a later suggestion) keeps them on save. ───
 
 const CATEGORIES = ['session_preparation', 'repeated_moment', 'pressure_moment', 'own_situation'];
-const STEP_KINDS = ['breathe', 'cue', 'visualize', 'physical', 'reset', 'prepare', 'custom'];
 const MAX_STEPS = 5;
 const DEFAULT_LIMIT = 5;
 // Limits mirror server/src/services/routines/validateRoutine.js.
 const NAME_MAX = 60;
 const INSTRUCTION_MAX = 120;
-const CUE_MAX = 60;
 
 // One import attempt per browser session: a legacy ritual the safety screen
 // flags stays un-imported, and retrying on every visit would re-record the
@@ -44,21 +45,6 @@ function markImportTried() {
   try { sessionStorage.setItem(IMPORT_TRIED_KEY, '1'); } catch { /* best effort */ }
 }
 
-const STEP_ICON_MAP = {
-  breathe: Wind,
-  cue: MessageCircle,
-  visualize: Target,
-  physical: Dumbbell,
-  reset: RotateCcw,
-  prepare: ArrowRight,
-  custom: Pencil,
-};
-
-function StepIcon({ kind, size = 20 }) {
-  const Icon = STEP_ICON_MAP[kind] || Pencil;
-  return <Icon size={size} className="text-slt" aria-hidden="true" />;
-}
-
 const inputClass =
   'w-full bg-dark-700 border border-dark-500 text-ink rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent placeholder-slt';
 
@@ -67,20 +53,21 @@ const nextLocalKey = () => `local-${++localKeySeq}`;
 
 // Builder rows carry the saved step plus the wording it was loaded with, so
 // an edited suggested/existing step can be re-marked as the athlete's own.
+// kind and cue are not editable here; they pass through unchanged.
 function toEditableStep(step) {
   return {
     key: step.id || nextLocalKey(),
     id: step.id || null,
-    kind: STEP_KINDS.includes(step.kind) ? step.kind : 'custom',
+    kind: step.kind || 'custom',
     instruction: step.instruction || '',
-    cue: step.cue || '',
+    cue: step.cue || null,
     origin: step.origin || 'custom',
     loadedInstruction: step.instruction || '',
   };
 }
 
-function blankStep(kind = 'custom') {
-  return toEditableStep({ kind, instruction: '', cue: '', origin: 'custom' });
+function blankStep() {
+  return toEditableStep({ kind: 'custom', instruction: '', cue: null, origin: 'custom' });
 }
 
 function toRequestStep(s) {
@@ -90,7 +77,7 @@ function toRequestStep(s) {
     ...(s.id ? { id: s.id } : {}),
     kind: s.kind,
     instruction,
-    cue: s.cue.trim() || null,
+    cue: s.cue,
     origin,
   };
 }
@@ -105,7 +92,7 @@ function Builder({ initial, onSubmit, onCancel, t }) {
   const [name, setName] = useState(initial?.name || '');
   const [category, setCategory] = useState(initial?.category || null);
   const [steps, setSteps] = useState(() => (
-    initial?.steps?.length ? initial.steps.map(toEditableStep) : [blankStep('breathe')]
+    initial?.steps?.length ? initial.steps.map(toEditableStep) : [blankStep()]
   ));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -123,8 +110,8 @@ function Builder({ initial, onSubmit, onCancel, t }) {
     setSteps(prev => prev.filter(s => s.key !== key));
   }
 
-  function updateStep(key, field, value) {
-    setSteps(prev => prev.map(s => (s.key === key ? { ...s, [field]: value } : s)));
+  function updateStep(key, instruction) {
+    setSteps(prev => prev.map(s => (s.key === key ? { ...s, instruction } : s)));
   }
 
   async function handleSave() {
@@ -209,40 +196,13 @@ function Builder({ initial, onSubmit, onCancel, t }) {
                 )}
               </div>
 
-              <div className="flex gap-2 flex-wrap mb-3" role="group" aria-label={t.stepTypeLabel}>
-                {STEP_KINDS.map(kind => (
-                  <button
-                    key={kind}
-                    type="button"
-                    aria-pressed={step.kind === kind}
-                    onClick={() => updateStep(step.key, 'kind', kind)}
-                    className={`flex items-center gap-1 text-caption px-2.5 py-2 rounded-xl border transition-all ${
-                      step.kind === kind
-                        ? 'bg-brand-500/20 border-brand-500/60 text-brand-500'
-                        : 'bg-dark-800 border-dark-600 text-slt hover:text-ink'
-                    }`}
-                  >
-                    <StepIcon kind={kind} size={14} />
-                    <span>{t.stepTypes[kind]}</span>
-                  </button>
-                ))}
-              </div>
-
               <input
                 aria-label={`${t.stepN(i + 1)}: ${t.stepTextLabel}`}
                 value={step.instruction}
-                onChange={e => updateStep(step.key, 'instruction', e.target.value)}
-                placeholder={t.stepPlaceholders[step.kind]}
+                onChange={e => updateStep(step.key, e.target.value)}
+                placeholder={t.stepExamples[i] || t.stepExamples[t.stepExamples.length - 1]}
                 maxLength={INSTRUCTION_MAX}
                 className="w-full bg-dark-800 border border-dark-600 text-ink rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent placeholder-slt"
-              />
-              <input
-                aria-label={`${t.stepN(i + 1)}: ${t.cueLabel}`}
-                value={step.cue}
-                onChange={e => updateStep(step.key, 'cue', e.target.value)}
-                placeholder={`${t.cueLabel} · ${t.cuePlaceholder}`}
-                maxLength={CUE_MAX}
-                className="mt-2 w-full bg-dark-800 border border-dark-600 text-ink rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent placeholder-slt"
               />
             </li>
           ))}
@@ -313,8 +273,8 @@ function Walkthrough({ steps, t, onFinish }) {
           {t.walkthroughOf(stepIdx + 1, steps.length)}
         </p>
 
-        <div className="w-24 h-24 rounded-full bg-brand-500/15 border-2 border-brand-500/40 flex items-center justify-center mb-6">
-          <StepIcon kind={step.kind} size={36} />
+        <div className="w-24 h-24 rounded-full bg-brand-500/15 border-2 border-brand-500/40 flex items-center justify-center mb-6" aria-hidden="true">
+          <span className="text-title font-bold text-brand-500">{stepIdx + 1}</span>
         </div>
 
         <h2 className="text-title font-bold text-ink mb-3 leading-tight max-w-xs">{step.instruction}</h2>
@@ -586,13 +546,9 @@ function RitualPage() {
                 <div className="w-8 h-8 rounded-full bg-dark-700 border border-dark-500 flex items-center justify-center shrink-0">
                   <span className="text-xs font-bold text-slt">{i + 1}</span>
                 </div>
-                <StepIcon kind={step.kind} size={22} />
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-ink leading-tight">{step.instruction}</p>
-                  <p className="text-xs text-slt mt-0.5">
-                    {t.stepTypes[step.kind] || t.stepTypes.custom}
-                    {step.cue ? ` · “${step.cue}”` : ''}
-                  </p>
+                  {step.cue && <p className="text-xs text-slt mt-0.5">“{step.cue}”</p>}
                 </div>
               </li>
             ))}

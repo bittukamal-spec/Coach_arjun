@@ -136,7 +136,7 @@ describe('RitualPage — routines', () => {
     expect(sent).toEqual({
       name: 'Match day',
       category: 'pressure_moment',
-      steps: [{ kind: 'breathe', instruction: 'Some step text', cue: null, origin: 'custom' }],
+      steps: [{ kind: 'custom', instruction: 'Some step text', cue: null, origin: 'custom' }],
     });
     expect(await screen.findByRole('heading', { name: 'Match day' })).toBeTruthy();
     expect(screen.getByText(t.saved)).toBeTruthy();
@@ -190,7 +190,17 @@ describe('RitualPage — routines', () => {
     expect(screen.queryByText(translations.en.mindJournal.safety.heading)).toBeNull();
   });
 
-  test('editing PATCHes with step ids kept, and an edited suggested step becomes custom', async () => {
+  test('the builder is plain: one text box per step, no step-type buttons or cue box', async () => {
+    mockApi({ 'GET /api/routines': json(listBody()) });
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: new RegExp(t.newRoutine) }));
+    expect(screen.getByLabelText(`${t.stepN(1)}: ${t.stepTextLabel}`)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Breathe|Cue word|Picture it/ })).toBeNull();
+    expect(screen.getAllByRole('textbox')).toHaveLength(2); // name + step 1
+  });
+
+  test('editing PATCHes with step ids, kinds and cues kept, and an edited suggested step becomes custom', async () => {
     let sent;
     mockApi({
       'GET /api/routines': json(listBody([routine()])),
@@ -284,7 +294,8 @@ test('English and Hindi ritual copy have the same keys', () => {
   const en = translations.en.ritual;
   const hi = translations.hi.ritual;
   expect(keys(hi)).toEqual(keys(en));
-  for (const k of ['categories', 'categoryHints', 'stepTypes', 'stepPlaceholders']) {
+  for (const k of ['categories', 'categoryHints']) {
     expect(keys(hi[k])).toEqual(keys(en[k]));
   }
+  expect(hi.stepExamples).toHaveLength(en.stepExamples.length);
 });
