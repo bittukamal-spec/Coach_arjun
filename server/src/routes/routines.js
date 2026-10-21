@@ -1,5 +1,5 @@
-// Ritual rebuild (PR 1) — saved routines API. Storage/API foundation only:
-// no UI uses it yet, and nothing here calls Anthropic.
+// Ritual rebuild — saved routines API (PR 1), used by the /ritual UI since
+// PR 3. Nothing here calls Anthropic.
 //
 //   GET    /api/routines               list + legacy-ritual import state (read-only)
 //   GET    /api/routines/:id           one owned routine (read-only)
@@ -7,6 +7,8 @@
 //   PATCH  /api/routines/:id           edit an owned routine
 //   DELETE /api/routines/:id           delete an owned routine
 //   POST   /api/routines/import-legacy explicit, repeat-safe legacy import
+//   POST   /api/routines/suggest       starting steps from the PR 2 rules
+//                                      (Ritual PR 4) — computes, never saves
 //
 // Access policy matches the legacy /api/ritual/me it grows out of:
 // `authenticate` only — no guardian-consent gate and no trial/paywall gate,
@@ -26,6 +28,7 @@ const {
   bodyTooLarge, collectRoutineText, isValidRoutineId, validateCreateRoutine, validatePatchRoutine,
 } = require('../services/routines/validateRoutine');
 const { createRoutineStore, RoutineError } = require('../services/routines/routineStore');
+const { suggestRoutine } = require('../services/routines/suggestRoutine');
 
 const ERROR_STATUS = {
   not_found: 404,
@@ -112,6 +115,24 @@ function createRoutinesRouter({
     } catch (err) {
       return sendError(res, err, 'import');
     }
+  });
+
+  // Deterministic starting steps for the builder. Pure computation: nothing
+  // is saved, nothing is sent to an AI model, and no activity is recorded.
+  // The athlete's own steps come back verbatim as existingHabits; they are
+  // safety-screened by the normal create/update path when the routine is
+  // actually saved. Declared before /:id.
+  router.post('/suggest', authenticate, (req, res) => {
+    if (!checkSize(req, res)) return;
+    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    const result = suggestRoutine({
+      category: body.category,
+      purposeKey: body.purposeKey,
+      existingHabits: body.existingHabits,
+      language: body.language,
+    });
+    if (!result.valid) return res.status(400).json({ error: result.error });
+    return res.json({ suggestion: result.suggestion });
   });
 
   router.get('/:id', authenticate, async (req, res) => {

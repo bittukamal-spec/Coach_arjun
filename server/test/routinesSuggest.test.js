@@ -287,6 +287,31 @@ test('reviewed copy: plan, focus, cue, confidence and activation wording', () =>
   }
 });
 
+test('every block has Hindi wording that follows the same content rules', () => {
+  assert.deepEqual(Object.keys(rules.BLOCK_TEXT_HI).sort(), Object.keys(rules.BLOCKS).sort());
+  for (const [name, text] of Object.entries(rules.BLOCK_TEXT_HI)) {
+    assert.ok(text.length <= LIMITS.INSTRUCTION, name);
+    assert.match(text, /[ऀ-ॿ]/, name);
+    // No session/match/today wording in Hindi either.
+    assert.doesNotMatch(text, /मैच|सेशन|आज|क्रिकेट|गेंद/, name);
+  }
+});
+
+test('language "hi" changes only the wording: same kinds, origins and template', () => {
+  for (const category of CATEGORIES) {
+    for (const purposeKey of [undefined, ...rules.PURPOSE_KEYS]) {
+      const en = suggest({ category, purposeKey });
+      const hi = suggest({ category, purposeKey, language: 'hi' });
+      assert.equal(hi.templateKey, en.templateKey);
+      assert.deepEqual(hi.steps.map(s => [s.kind, s.origin]), en.steps.map(s => [s.kind, s.origin]));
+      assert.ok(suggested(hi).every(s => /[ऀ-ॿ]/.test(s.instruction)));
+    }
+  }
+  // Duplicate check uses the localized wording.
+  const hi = suggest({ category: 'repeated_moment', purposeKey: 'reset', language: 'hi', existingHabits: [rules.BLOCK_TEXT_HI.RELEASE] });
+  assert.ok(hi.reasons.includes('duplicate_skipped'));
+});
+
 test('invalid input is rejected rather than guessed', () => {
   const cases = [
     [null, 'invalid_input'],
@@ -297,6 +322,7 @@ test('invalid input is rejected rather than guessed', () => {
     [{ category: 'pressure_moment', existingHabits: [{ text: 'x', kind: 'breathe' }] }, 'invalid_existing_habits'],
     [{ category: 'pressure_moment', existingHabits: Array(LIMITS.MAX_HABITS + 1).fill('x') }, 'invalid_existing_habits'],
     [{ category: 'pressure_moment', existingHabits: ['h'.repeat(LIMITS.HABIT + 1)] }, 'existing_habit_too_long'],
+    [{ category: 'pressure_moment', language: 'fr' }, 'invalid_language'],
   ];
   for (const [input, error] of cases) assert.deepEqual(suggestRoutine(input), { valid: false, error });
 });

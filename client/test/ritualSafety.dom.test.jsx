@@ -146,6 +146,88 @@ describe('RitualPage — routines', () => {
     expect(screen.getByText(t.saved)).toBeTruthy();
   });
 
+  test('Suggest asks what it should help with, then fills steps after the athlete\'s own', async () => {
+    let sentSuggest;
+    let sentSave;
+    mockApi({
+      'GET /api/routines': json(listBody()),
+      'POST /api/routines/suggest': (init) => {
+        sentSuggest = JSON.parse(init.body);
+        return json({ suggestion: {
+          templateKey: 'pressure_moment.short.settle', templateVersion: 1,
+          steps: [
+            { kind: 'custom', instruction: 'Towel off', cue: null, origin: 'existing' },
+            { kind: 'breathe', instruction: 'Take one slow breath with a longer exhale', cue: null, origin: 'suggested' },
+            { kind: 'prepare', instruction: 'Choose your plan for the next action', cue: null, origin: 'suggested' },
+          ],
+        } });
+      },
+      'POST /api/routines': (init) => {
+        sentSave = JSON.parse(init.body);
+        return json({ routine: routine({ id: 'r9', name: sentSave.name, category: sentSave.category, steps: sentSave.steps.map((x, i) => ({ id: `s${i}`, ...x })) }) }, 201);
+      },
+    });
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: new RegExp(t.newRoutine) }));
+    await user.type(screen.getByLabelText(t.nameLabel), 'Big moment');
+    await user.click(screen.getByRole('radio', { name: new RegExp(t.categories.pressure_moment) }));
+    await user.type(screen.getByLabelText(`${t.stepN(1)}: ${t.stepTextLabel}`), 'Towel off');
+
+    await user.click(screen.getByRole('button', { name: t.suggestBtn }));
+    expect(screen.getByText(t.suggestQuestion)).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: t.purposes.settle }));
+
+    expect(sentSuggest).toEqual({ category: 'pressure_moment', purposeKey: 'settle', existingHabits: ['Towel off'], language: 'en' });
+    expect(screen.getByDisplayValue('Take one slow breath with a longer exhale')).toBeTruthy();
+    expect(screen.getByDisplayValue('Choose your plan for the next action')).toBeTruthy();
+    expect(screen.getByText(t.suggestedNote)).toBeTruthy();
+
+    await user.click(screen.getByRole('button', { name: t.save }));
+    expect(sentSave.templateKey).toBe('pressure_moment.short.settle');
+    expect(sentSave.templateVersion).toBe(1);
+    expect(sentSave.steps.map(x => x.origin)).toEqual(['custom', 'suggested', 'suggested']);
+  });
+
+  test('Suggest needs a category first, and "own situation" skips the purpose question', async () => {
+    let sentSuggest;
+    mockApi({
+      'GET /api/routines': json(listBody()),
+      'POST /api/routines/suggest': (init) => {
+        sentSuggest = JSON.parse(init.body);
+        return json({ suggestion: { templateKey: 'own_situation.short.fallback', templateVersion: 1,
+          steps: [{ kind: 'prepare', instruction: 'Choose your plan for the next action', cue: null, origin: 'suggested' }] } });
+      },
+    });
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: new RegExp(t.newRoutine) }));
+    await user.click(screen.getByRole('button', { name: t.suggestBtn }));
+    expect(screen.getByText(t.errCategoryFirst)).toBeTruthy();
+
+    await user.click(screen.getByRole('radio', { name: new RegExp(t.categories.own_situation) }));
+    await user.click(screen.getByRole('button', { name: t.suggestBtn }));
+    expect(screen.queryByText(t.suggestQuestion)).toBeNull();
+    expect(sentSuggest.purposeKey).toBeUndefined();
+    expect(await screen.findByDisplayValue('Choose your plan for the next action')).toBeTruthy();
+  });
+
+  test('a failed suggestion shows an error and keeps the athlete\'s steps', async () => {
+    mockApi({
+      'GET /api/routines': json(listBody()),
+      'POST /api/routines/suggest': json({ error: 'server_error' }, 500),
+    });
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: new RegExp(t.newRoutine) }));
+    await user.click(screen.getByRole('radio', { name: new RegExp(t.categories.pressure_moment) }));
+    await user.type(screen.getByLabelText(`${t.stepN(1)}: ${t.stepTextLabel}`), 'Towel off');
+    await user.click(screen.getByRole('button', { name: t.suggestBtn }));
+    await user.click(screen.getByRole('button', { name: t.purposes.focus }));
+    expect(await screen.findByText(t.errSuggest)).toBeTruthy();
+    expect(screen.getByDisplayValue('Towel off')).toBeTruthy();
+  });
+
   test('the builder asks for a category before saving', async () => {
     mockApi({ 'GET /api/routines': json(listBody()) });
     const user = userEvent.setup();
@@ -320,7 +402,7 @@ test('English and Hindi ritual copy have the same keys', () => {
   const en = translations.en.ritual;
   const hi = translations.hi.ritual;
   expect(keys(hi)).toEqual(keys(en));
-  for (const k of ['categories', 'categoryHints', 'useWhen']) {
+  for (const k of ['categories', 'categoryHints', 'useWhen', 'purposes']) {
     expect(keys(hi[k])).toEqual(keys(en[k]));
   }
   expect(hi.stepExamples).toHaveLength(en.stepExamples.length);
