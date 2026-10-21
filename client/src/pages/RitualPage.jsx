@@ -152,8 +152,11 @@ function Builder({ initial, onSubmit, onSuggest, onCancel, t }) {
       setTemplate({ templateKey: suggestion.templateKey, templateVersion: suggestion.templateVersion });
       setAskPurpose(false);
       setSuggestNote(true);
-    } catch {
-      setError(t.errSuggest);
+    } catch (err) {
+      // An older backend without /suggest: the page hides the button
+      // (onSuggest becomes null), so there is nothing to apologise for.
+      if (err?.code === 'unavailable') setAskPurpose(false);
+      else setError(t.errSuggest);
     } finally {
       setSuggesting(false);
     }
@@ -238,7 +241,7 @@ function Builder({ initial, onSubmit, onSuggest, onCancel, t }) {
           <p className="text-xs text-slt">{t.maxSteps}</p>
         </div>
 
-        {askPurpose ? (
+        {!onSuggest ? null : askPurpose ? (
           <div className="rounded-2xl border border-brand-500/40 bg-brand-500/10 p-4 mb-3">
             <p id={`${ids}-purpose`} className="text-sm font-semibold text-ink mb-3">{t.suggestQuestion}</p>
             <div className="flex flex-wrap gap-2" role="group" aria-labelledby={`${ids}-purpose`}>
@@ -550,6 +553,10 @@ function RitualPage() {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
   const savedTimer = useRef(null);
+  // Whether the backend serves /api/routines/suggest: null = not checked
+  // yet. The frontend can deploy ahead of the backend (e.g. during a hosting
+  // outage), so the builder only shows "Suggest" once a probe confirms it.
+  const [suggestAvailable, setSuggestAvailable] = useState(null);
 
   const authHeaders = useCallback(
     (json = false) => ({
@@ -587,6 +594,18 @@ function RitualPage() {
   }, [fetchList, authHeaders]);
 
   useEffect(() => { load(); }, [load]);
+
+  // One probe per page visit, when the builder first opens. An empty body is
+  // rejected by a current backend (400 invalid_category) and is a 404 on one
+  // that predates /suggest. Nothing is computed or saved either way.
+  useEffect(() => {
+    if (view.name !== 'build' || suggestAvailable !== null) return undefined;
+    let cancelled = false;
+    apiFetch('/api/routines/suggest', { method: 'POST', headers: authHeaders(true), body: '{}' })
+      .then(res => { if (!cancelled) setSuggestAvailable(res.status !== 404); })
+      .catch(() => { if (!cancelled) setSuggestAvailable(false); });
+    return () => { cancelled = true; };
+  }, [view.name, suggestAvailable, authHeaders]);
   useEffect(() => () => clearTimeout(savedTimer.current), []);
 
   const current = view.id ? routines.find(r => r.id === view.id) || null : null;
@@ -620,13 +639,18 @@ function RitualPage() {
     return {};
   }
 
-  // Rule-based starting steps (no AI, nothing saved). Throws on failure.
+  // Rule-based starting steps (no AI, nothing saved). Throws on failure;
+  // a 404 means the backend predates /suggest, so the button is hidden.
   async function suggestSteps(body) {
     const res = await apiFetch('/api/routines/suggest', {
       method: 'POST',
       headers: authHeaders(true),
       body: JSON.stringify({ ...body, language }),
     });
+    if (res.status === 404) {
+      setSuggestAvailable(false);
+      throw Object.assign(new Error('suggest_unavailable'), { code: 'unavailable' });
+    }
     const data = await res.json().catch(() => null);
     if (!res.ok || !data?.suggestion) throw new Error('suggest_failed');
     return data.suggestion;
@@ -695,7 +719,7 @@ function RitualPage() {
             key={view.id || 'new'}
             initial={editing}
             onSubmit={submitRoutine}
-            onSuggest={suggestSteps}
+            onSuggest={suggestAvailable ? suggestSteps : null}
             onCancel={back}
             t={t}
           />
