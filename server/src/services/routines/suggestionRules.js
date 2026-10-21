@@ -21,7 +21,9 @@
 //    the athlete's own habits.
 //  - Step limits are maxima, not targets: rules are not padded to fill them.
 //  - Cue steps never assume a stored cue exists.
-//  - English only for now.
+//  - English is the source wording (BLOCKS). BLOCK_TEXT_HI carries the
+//    Hindi wording of the same blocks (Ritual PR 4); it follows every rule
+//    above and must keep one entry per block.
 //
 // Kinds are existing routine step kinds (validateRoutine.js STEP_KINDS).
 
@@ -66,6 +68,25 @@ const BLOCKS = Object.freeze({
   TRUST:         { kind: 'cue',       instruction: 'Remind yourself of one thing you trust in your game' },
   ENERGY:        { kind: 'cue',       instruction: 'Use one energy word to switch on' },
 });
+
+// Hindi wording per block, same meaning and rules as the English source.
+const BLOCK_TEXT_HI = Object.freeze({
+  RELEASE:       'पिछले एक्शन को जाने दो और ध्यान अगले पर ले जाओ',
+  LEAVE_BEHIND:  'जो पहले हुआ उसे जाने दो और ध्यान आगे आने वाले पर लगाओ',
+  ONE_BREATH:    'एक धीमी साँस लो और उसे धीरे-धीरे लंबा छोड़ो',
+  SLOW_BREATHS:  'तीन धीमी साँसें लो, हर बार धीरे-धीरे लंबा छोड़ो',
+  NEXT_PLAN:     'अगले एक्शन के लिए अपना प्लान चुनो',
+  FIRST_PLAN:    'अपने पहले एक्शन के लिए अपना प्लान चुनो',
+  FOCUS_NEXT:    'अगले एक्शन के लिए एक चीज़ चुनो जिस पर ध्यान दोगे',
+  FOCUS_AHEAD:   'आगे जो आने वाला है, उसके लिए एक चीज़ चुनो जिस पर ध्यान दोगे',
+  PICTURE_NEXT:  'खुद को अपना अगला एक्शन साफ़-साफ़ करते हुए देखो',
+  PICTURE_FIRST: 'खुद को अपना पहला एक्शन साफ़-साफ़ करते हुए देखो',
+  CUE:           'अगले एक्शन के लिए एक छोटा क्यू वर्ड बोलो',
+  TRUST:         'अपने खेल की एक बात याद करो जिस पर तुम्हें भरोसा है',
+  ENERGY:        'खुद को चालू करने के लिए एक एनर्जी वर्ड बोलो',
+});
+
+const SUGGESTION_LANGUAGES = Object.freeze(['en', 'hi']);
 
 // window → purpose → ordered block names. No list is longer than that
 // window's step limit, and none is padded to reach it.
@@ -123,6 +144,8 @@ module.exports = {
   OWN_SITUATION_FALLBACK_WINDOW,
   WINDOW_STEP_LIMIT,
   BLOCKS,
+  BLOCK_TEXT_HI,
+  SUGGESTION_LANGUAGES,
   RULES,
   FALLBACK,
   TEMPLATE_VERSION,

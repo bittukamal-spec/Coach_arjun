@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useId } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  ChevronRight, Plus, Lightbulb, MessageCircle, Flag, Repeat, Zap, Compass, ArrowRight,
+  ChevronRight, Plus, Lightbulb, MessageCircle, Flag, Repeat, Zap, Compass, ArrowRight, Sparkles,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
@@ -27,7 +27,10 @@ import { CardWaves, AthleteMark } from '../components/visuals/CardArt';
 // Saves can be safety-flagged: the server then answers 200 with
 // { safetyFlag: 'needs_support', guidance } and writes nothing. The page
 // shows the standard guidance card and keeps the athlete's text in place.
-// No AI, no suggestions here — suggestions arrive in a later PR.
+// No AI. "Suggest steps for me" (PR 4) asks POST /api/routines/suggest,
+// which runs the deterministic PR 2 rules: one optional question (what the
+// routine should help with), the athlete's own typed steps kept first and
+// verbatim, suggested steps filling the rest. The athlete edits from there.
 //
 // The builder is deliberately plain (MVP spec §4.7: no complex routine
 // builder): a name, when it's for, and up to 5 one-line steps. Steps typed
@@ -40,6 +43,9 @@ const DEFAULT_LIMIT = 5;
 // Limits mirror server/src/services/routines/validateRoutine.js.
 const NAME_MAX = 60;
 const INSTRUCTION_MAX = 120;
+// Purposes the suggestion rules understand (suggestionRules.PURPOSE_KEYS),
+// plus "not sure", which gets the conservative fallback.
+const PURPOSES = ['settle', 'reset', 'focus', 'confidence', 'activate', 'prepare', 'not_sure'];
 
 // One import attempt per browser session: a legacy ritual the safety screen
 // flags stays un-imported, and retrying on every visit would re-record the
@@ -80,7 +86,9 @@ function blankStep() {
 
 function toRequestStep(s) {
   const instruction = s.instruction.trim();
-  const origin = s.id && instruction === s.loadedInstruction.trim() ? s.origin : 'custom';
+  // Untouched steps keep their origin (existing / suggested); edited ones
+  // become the athlete's own.
+  const origin = instruction === s.loadedInstruction.trim() ? s.origin : 'custom';
   return {
     ...(s.id ? { id: s.id } : {}),
     kind: s.kind,
@@ -96,7 +104,7 @@ function routineTitle(routine, t) {
 
 // ── Builder (create + edit) ───────────────────────────────────────────────────
 
-function Builder({ initial, onSubmit, onCancel, t }) {
+function Builder({ initial, onSubmit, onSuggest, onCancel, t }) {
   const [name, setName] = useState(initial?.name || '');
   const [category, setCategory] = useState(initial?.category || null);
   const [steps, setSteps] = useState(() => (
@@ -107,7 +115,49 @@ function Builder({ initial, onSubmit, onCancel, t }) {
   // Set when the server's safety screen flagged the save. Nothing was
   // saved; the athlete sees the standard guidance instead of a generic error.
   const [safety, setSafety] = useState(null);
+  // Suggestion state: the purpose question is open, a request is in flight,
+  // and the template of the last applied suggestion (saved with the routine).
+  const [askPurpose, setAskPurpose] = useState(false);
+  const [suggesting, setSuggesting] = useState(false);
+  const [suggestNote, setSuggestNote] = useState(false);
+  const [template, setTemplate] = useState(null);
   const ids = useId();
+
+  function startSuggest() {
+    setError('');
+    if (!category) { setError(t.errCategoryFirst); return; }
+    // "My own situation" has no known timing, so the rules ignore purpose
+    // there — asking would be a question with no effect.
+    if (category === 'own_situation') applySuggestion(null);
+    else setAskPurpose(true);
+  }
+
+  async function applySuggestion(purposeKey) {
+    if (suggesting) return;
+    setSuggesting(true);
+    setError('');
+    // The athlete's own steps (typed, or kept from an earlier save) go in as
+    // habits and come back first, verbatim. Earlier untouched suggestions
+    // are replaced rather than kept as habits.
+    const own = steps.filter(s => s.instruction.trim() && !(s.origin === 'suggested' && s.instruction === s.loadedInstruction));
+    try {
+      const suggestion = await onSuggest({
+        category,
+        purposeKey: purposeKey || undefined,
+        existingHabits: own.map(s => s.instruction.trim()).slice(0, MAX_STEPS),
+      });
+      setSteps(suggestion.steps.map((step, i) => (
+        step.origin === 'existing' && own[i] ? own[i] : toEditableStep(step)
+      )));
+      setTemplate({ templateKey: suggestion.templateKey, templateVersion: suggestion.templateVersion });
+      setAskPurpose(false);
+      setSuggestNote(true);
+    } catch {
+      setError(t.errSuggest);
+    } finally {
+      setSuggesting(false);
+    }
+  }
 
   function addStep() {
     if (steps.length >= MAX_STEPS) return;
@@ -132,7 +182,7 @@ function Builder({ initial, onSubmit, onCancel, t }) {
     setError('');
     setSafety(null);
     try {
-      const outcome = await onSubmit({ name: name.trim(), category, steps: filled.map(toRequestStep) });
+      const outcome = await onSubmit({ name: name.trim(), category, steps: filled.map(toRequestStep), ...(template || {}) });
       if (outcome.safety) setSafety({ guidance: outcome.safety.guidance || null });
       else if (outcome.error) setError(outcome.error);
     } catch {
@@ -187,6 +237,46 @@ function Builder({ initial, onSubmit, onCancel, t }) {
           <p className="text-body font-semibold text-ink">{t.steps}</p>
           <p className="text-xs text-slt">{t.maxSteps}</p>
         </div>
+
+        {askPurpose ? (
+          <div className="rounded-2xl border border-brand-500/40 bg-brand-500/10 p-4 mb-3">
+            <p id={`${ids}-purpose`} className="text-sm font-semibold text-ink mb-3">{t.suggestQuestion}</p>
+            <div className="flex flex-wrap gap-2" role="group" aria-labelledby={`${ids}-purpose`}>
+              {PURPOSES.map(p => (
+                <button
+                  key={p}
+                  type="button"
+                  disabled={suggesting}
+                  onClick={() => applySuggestion(p === 'not_sure' ? null : p)}
+                  className="min-h-[40px] px-3.5 rounded-full border border-dark-500 bg-dark-800 text-sm font-medium text-ink hover:border-brand-500 disabled:opacity-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                >
+                  {t.purposes[p]}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => setAskPurpose(false)}
+              className="mt-3 text-caption text-slt hover:text-ink py-1"
+            >
+              {t.cancel}
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={startSuggest}
+            disabled={suggesting}
+            className="w-full mb-3 min-h-[48px] flex items-center justify-center gap-2 rounded-2xl border border-brand-500/50 bg-brand-500/10 text-brand-500 text-sm font-semibold hover:bg-brand-500/20 disabled:opacity-50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+          >
+            <Sparkles size={16} aria-hidden="true" />
+            {suggesting ? t.suggesting : t.suggestBtn}
+          </button>
+        )}
+
+        {suggestNote && (
+          <p role="status" className="text-caption text-slt mb-3">{t.suggestedNote}</p>
+        )}
 
         <ol className="flex flex-col gap-3">
           {steps.map((step, i) => (
@@ -530,6 +620,18 @@ function RitualPage() {
     return {};
   }
 
+  // Rule-based starting steps (no AI, nothing saved). Throws on failure.
+  async function suggestSteps(body) {
+    const res = await apiFetch('/api/routines/suggest', {
+      method: 'POST',
+      headers: authHeaders(true),
+      body: JSON.stringify({ ...body, language }),
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data?.suggestion) throw new Error('suggest_failed');
+    return data.suggestion;
+  }
+
   async function handleDelete() {
     if (deleting || !current) return;
     setDeleting(true);
@@ -593,6 +695,7 @@ function RitualPage() {
             key={view.id || 'new'}
             initial={editing}
             onSubmit={submitRoutine}
+            onSuggest={suggestSteps}
             onCancel={back}
             t={t}
           />

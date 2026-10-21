@@ -15,6 +15,8 @@
 // plus two optional, non-persisted hints the caller picks from fixed lists:
 //   purposeKey      one of suggestionRules.PURPOSE_KEYS, or 'not_sure'
 //   timeWindow      one of suggestionRules.TIME_WINDOWS
+//   language        optional 'en' (default) or 'hi' — the wording of the
+//                   suggested steps only; rules and templateKey are the same
 //
 // Output (steps are the shape validateCreateRoutine accepts; the server
 // assigns step ids on save, so none are generated here):
@@ -25,7 +27,7 @@
 const { CATEGORIES, LIMITS } = require('./validateRoutine');
 const {
   PURPOSE_KEYS, NO_PURPOSE_KEYS, TIME_WINDOWS, DEFAULT_TIME_WINDOW, OWN_SITUATION_FALLBACK_WINDOW,
-  WINDOW_STEP_LIMIT, BLOCKS, RULES, FALLBACK, TEMPLATE_VERSION,
+  WINDOW_STEP_LIMIT, BLOCKS, BLOCK_TEXT_HI, SUGGESTION_LANGUAGES, RULES, FALLBACK, TEMPLATE_VERSION,
 } = require('./suggestionRules');
 
 function isPlainObject(v) {
@@ -43,6 +45,9 @@ function validateInput(input) {
   }
   if (timeWindow !== undefined && timeWindow !== null && !TIME_WINDOWS.includes(timeWindow)) {
     return 'invalid_time_window';
+  }
+  if (input.language !== undefined && input.language !== null && !SUGGESTION_LANGUAGES.includes(input.language)) {
+    return 'invalid_language';
   }
   if (existingHabits !== undefined && existingHabits !== null) {
     if (!Array.isArray(existingHabits) || existingHabits.length > LIMITS.MAX_HABITS) return 'invalid_existing_habits';
@@ -86,6 +91,7 @@ function suggestRoutine(input) {
   if (error) return { valid: false, error };
 
   const habits = Array.isArray(input.existingHabits) ? input.existingHabits : [];
+  const textOf = name => (input.language === 'hi' ? BLOCK_TEXT_HI[name] : BLOCKS[name].instruction);
   const rule = selectRule(input);
   const limit = WINDOW_STEP_LIMIT[rule.window];
   const reasons = [];
@@ -107,11 +113,12 @@ function suggestRoutine(input) {
     for (const name of rule.blocks) {
       if (steps.length >= limit) break;
       const block = BLOCKS[name];
-      if (habits.some(h => sameText(h, block.instruction))) {
+      const instruction = textOf(name);
+      if (habits.some(h => sameText(h, instruction))) {
         if (!reasons.includes('duplicate_skipped')) reasons.push('duplicate_skipped');
         continue;
       }
-      steps.push({ kind: block.kind, instruction: block.instruction, cue: null, origin: 'suggested' });
+      steps.push({ kind: block.kind, instruction, cue: null, origin: 'suggested' });
     }
   }
 

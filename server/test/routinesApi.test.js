@@ -255,3 +255,40 @@ test('legacy POST /api/ritual/me: flagged text is screened before any write, wit
   assert.deepEqual(events[0].slice(1), ['ritual', 'crisis', { riskLevel: 'high', sourceType: 'ritual_legacy_save' }]);
   assert.deepEqual(saves, [['athlete-1', { ritualName: 'Match day', steps: [{ type: 'cue', label: 'Sharp' }] }]]);
 });
+
+// ── POST /suggest (Ritual PR 4) ─────────────────────────────────────────
+
+test('POST /suggest returns the rule-based suggestion and never touches the store or activity', async () => {
+  const store = stubStore();
+  const activity = spyActivity();
+  const safety = [];
+  await withApp({ store, activity, safetyEvent: (...a) => safety.push(a) }, async (call) => {
+    const res = await call('POST', '/suggest', { category: 'repeated_moment', purposeKey: 'reset', existingHabits: ['Towel off'] });
+    assert.equal(res.status, 200);
+    assert.equal(res.body.suggestion.templateKey, 'repeated_moment.seconds.reset');
+    assert.deepEqual(res.body.suggestion.steps.map(s => s.origin), ['existing', 'suggested']);
+    assert.equal(res.body.suggestion.steps[0].instruction, 'Towel off');
+  });
+  assert.equal(store.calls.length, 0);
+  assert.equal(activity.touched.length, 0);
+  assert.equal(safety.length, 0);
+});
+
+test('POST /suggest answers in Hindi when asked, with the same template', async () => {
+  await withApp({ store: stubStore(), activity: spyActivity() }, async (call) => {
+    const en = await call('POST', '/suggest', { category: 'pressure_moment', purposeKey: 'settle' });
+    const hi = await call('POST', '/suggest', { category: 'pressure_moment', purposeKey: 'settle', language: 'hi' });
+    assert.equal(hi.status, 200);
+    assert.equal(hi.body.suggestion.templateKey, en.body.suggestion.templateKey);
+    assert.deepEqual(hi.body.suggestion.steps.map(s => s.kind), en.body.suggestion.steps.map(s => s.kind));
+    assert.ok(hi.body.suggestion.steps.every(s => /[ऀ-ॿ]/.test(s.instruction)));
+  });
+});
+
+test('POST /suggest rejects bad input with a stable error, and requires auth', async () => {
+  await withApp({ store: stubStore(), activity: spyActivity() }, async (call) => {
+    assert.deepEqual(await call('POST', '/suggest', { category: 'nope' }), { status: 400, body: { error: 'invalid_category' } });
+    assert.deepEqual(await call('POST', '/suggest', { category: 'pressure_moment', language: 'fr' }), { status: 400, body: { error: 'invalid_language' } });
+    assert.equal((await call('POST', '/suggest', { category: 'pressure_moment' }, null)).status, 401);
+  });
+});
