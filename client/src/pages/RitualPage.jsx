@@ -1,71 +1,145 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect, useCallback, useRef, useId } from 'react';
+import {
+  Trophy, Wind, MessageCircle, Target, Dumbbell, Pencil, RotateCcw, ArrowRight, ChevronRight, Plus,
+} from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
-import { Trophy, Wind, MessageCircle, Target, Dumbbell, Pencil } from 'lucide-react';
+import { Button, Card, PageHeader, SectionLabel } from '../components/ui';
 import { SafetyGuidanceCard } from './mindJournal/shared';
 
-// ── Constants ─────────────────────────────────────────────────────────────────
+// ─── Ritual rebuild (PR 3) — the athlete's saved routines. /ritual now reads
+// and writes /api/routines (up to 5 routines) instead of the legacy single
+// ritual on /api/ritual/me. Screens: list → detail → builder / walkthrough,
+// all on this one route, like the page it replaces.
+//
+// The legacy single ritual is imported once, automatically, the first time
+// this page sees one (POST /api/routines/import-legacy is repeat-safe). From
+// then on the server keeps the legacy fields as a mirror of that routine, so
+// Coach and any cached old client keep seeing it.
+//
+// Saves can be safety-flagged: the server then answers 200 with
+// { safetyFlag: 'needs_support', guidance } and writes nothing. The page
+// shows the standard guidance card and keeps the athlete's text in place.
+// No AI, no suggestions here — suggestions arrive in a later PR. ───────────
 
-const STEP_TYPES = ['breathe', 'cue', 'visualize', 'physical', 'custom'];
+const CATEGORIES = ['session_preparation', 'repeated_moment', 'pressure_moment', 'own_situation'];
+const STEP_KINDS = ['breathe', 'cue', 'visualize', 'physical', 'reset', 'prepare', 'custom'];
+const MAX_STEPS = 5;
+const DEFAULT_LIMIT = 5;
+// Limits mirror server/src/services/routines/validateRoutine.js.
+const NAME_MAX = 60;
+const INSTRUCTION_MAX = 120;
+const CUE_MAX = 60;
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// One import attempt per browser session: a legacy ritual the safety screen
+// flags stays un-imported, and retrying on every visit would re-record the
+// same safety event each time.
+const IMPORT_TRIED_KEY = 'arjun_ritual_import_tried';
 
-const STEP_ICON_MAP = {
-  breathe:   Wind,
-  cue:       MessageCircle,
-  visualize: Target,
-  physical:  Dumbbell,
-  custom:    Pencil,
-};
-
-function StepIcon({ type, size = 20 }) {
-  const Icon = STEP_ICON_MAP[type] || Pencil;
-  return <Icon size={size} className="text-slt" />;
+function importAlreadyTried() {
+  try { return sessionStorage.getItem(IMPORT_TRIED_KEY) === '1'; } catch { return false; }
+}
+function markImportTried() {
+  try { sessionStorage.setItem(IMPORT_TRIED_KEY, '1'); } catch { /* best effort */ }
 }
 
-// ── Builder sub-component ─────────────────────────────────────────────────────
+const STEP_ICON_MAP = {
+  breathe: Wind,
+  cue: MessageCircle,
+  visualize: Target,
+  physical: Dumbbell,
+  reset: RotateCcw,
+  prepare: ArrowRight,
+  custom: Pencil,
+};
 
-function Builder({ initial, onSave, onCancel, t }) {
-  const [name, setName]   = useState(initial.name || '');
-  const [steps, setSteps] = useState(
-    initial.steps.length > 0 ? initial.steps : [{ type: 'breathe', label: '' }]
-  );
+function StepIcon({ kind, size = 20 }) {
+  const Icon = STEP_ICON_MAP[kind] || Pencil;
+  return <Icon size={size} className="text-slt" aria-hidden="true" />;
+}
+
+const inputClass =
+  'w-full bg-dark-700 border border-dark-500 text-ink rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent placeholder-slt';
+
+let localKeySeq = 0;
+const nextLocalKey = () => `local-${++localKeySeq}`;
+
+// Builder rows carry the saved step plus the wording it was loaded with, so
+// an edited suggested/existing step can be re-marked as the athlete's own.
+function toEditableStep(step) {
+  return {
+    key: step.id || nextLocalKey(),
+    id: step.id || null,
+    kind: STEP_KINDS.includes(step.kind) ? step.kind : 'custom',
+    instruction: step.instruction || '',
+    cue: step.cue || '',
+    origin: step.origin || 'custom',
+    loadedInstruction: step.instruction || '',
+  };
+}
+
+function blankStep(kind = 'custom') {
+  return toEditableStep({ kind, instruction: '', cue: '', origin: 'custom' });
+}
+
+function toRequestStep(s) {
+  const instruction = s.instruction.trim();
+  const origin = s.id && instruction === s.loadedInstruction.trim() ? s.origin : 'custom';
+  return {
+    ...(s.id ? { id: s.id } : {}),
+    kind: s.kind,
+    instruction,
+    cue: s.cue.trim() || null,
+    origin,
+  };
+}
+
+function routineTitle(routine, t) {
+  return routine?.name || t.untitled;
+}
+
+// ── Builder (create + edit) ───────────────────────────────────────────────────
+
+function Builder({ initial, onSubmit, onCancel, t }) {
+  const [name, setName] = useState(initial?.name || '');
+  const [category, setCategory] = useState(initial?.category || null);
+  const [steps, setSteps] = useState(() => (
+    initial?.steps?.length ? initial.steps.map(toEditableStep) : [blankStep('breathe')]
+  ));
   const [saving, setSaving] = useState(false);
-  const [error, setError]   = useState('');
+  const [error, setError] = useState('');
   // Set when the server's safety screen flagged the save. Nothing was
   // saved; the athlete sees the standard guidance instead of a generic error.
   const [safety, setSafety] = useState(null);
+  const ids = useId();
 
   function addStep() {
-    if (steps.length >= 5) return;
-    setSteps(prev => [...prev, { type: 'custom', label: '' }]);
+    if (steps.length >= MAX_STEPS) return;
+    setSteps(prev => [...prev, blankStep()]);
   }
 
-  function removeStep(i) {
-    setSteps(prev => prev.filter((_, idx) => idx !== i));
+  function removeStep(key) {
+    setSteps(prev => prev.filter(s => s.key !== key));
   }
 
-  function updateStep(i, field, value) {
-    setSteps(prev => prev.map((s, idx) => idx === i ? { ...s, [field]: value } : s));
+  function updateStep(key, field, value) {
+    setSteps(prev => prev.map(s => (s.key === key ? { ...s, [field]: value } : s)));
   }
 
   async function handleSave() {
     if (saving) return;
     if (!name.trim()) { setError(t.errNameRequired); return; }
-    const validSteps = steps.filter(s => s.label.trim());
-    if (validSteps.length === 0) { setError(t.errAddStep); return; }
+    if (!category) { setError(t.errCategoryRequired); return; }
+    const filled = steps.filter(s => s.instruction.trim());
+    if (filled.length === 0) { setError(t.errAddStep); return; }
     setSaving(true);
     setError('');
     setSafety(null);
     try {
-      const res = await onSave({ ritualName: name.trim(), steps: validSteps });
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        if (data?.safetyFlag === 'needs_support') setSafety({ guidance: data.guidance || null });
-        else setError(t.errSave);
-      }
+      const outcome = await onSubmit({ name: name.trim(), category, steps: filled.map(toRequestStep) });
+      if (outcome.safety) setSafety({ guidance: outcome.safety.guidance || null });
+      else if (outcome.error) setError(outcome.error);
     } catch {
       setError(t.errSave);
     } finally {
@@ -77,36 +151,57 @@ function Builder({ initial, onSave, onCancel, t }) {
     <div className="animate-fade-in">
       {safety && <SafetyGuidanceCard guidance={safety.guidance} onDismiss={() => setSafety(null)} />}
 
-      {/* Ritual name */}
       <div className="mb-6">
-        <label className="block text-sm font-semibold text-ink mb-2">{t.nameLabel}</label>
+        <label htmlFor={`${ids}-name`} className="block text-sm font-semibold text-ink mb-2">{t.nameLabel}</label>
         <input
+          id={`${ids}-name`}
           value={name}
           onChange={e => setName(e.target.value)}
           placeholder={t.namePlaceholder}
-          maxLength={60}
-          className="w-full bg-dark-700 border border-dark-500 text-ink rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent placeholder-slt"
+          maxLength={NAME_MAX}
+          className={inputClass}
         />
       </div>
 
-      {/* Steps */}
+      <fieldset className="mb-6">
+        <legend className="block text-sm font-semibold text-ink mb-2">{t.categoryLabel}</legend>
+        <div className="flex flex-col gap-2" role="radiogroup">
+          {CATEGORIES.map(c => {
+            const selected = category === c;
+            return (
+              <button
+                key={c}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                onClick={() => setCategory(c)}
+                className={`text-left rounded-2xl border px-4 py-3 min-h-[48px] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
+                  selected ? 'bg-brand-500/15 border-brand-500/60' : 'bg-dark-800 border-dark-600 hover:border-dark-400'
+                }`}
+              >
+                <span className={`block text-sm font-semibold ${selected ? 'text-brand-500' : 'text-ink'}`}>{t.categories[c]}</span>
+                <span className="block text-caption text-slt mt-0.5">{t.categoryHints[c]}</span>
+              </button>
+            );
+          })}
+        </div>
+      </fieldset>
+
       <div className="mb-4">
         <div className="flex items-center justify-between mb-3">
           <p className="text-body font-semibold text-ink">{t.steps}</p>
           <p className="text-xs text-slt">{t.maxSteps}</p>
         </div>
 
-        <div className="flex flex-col gap-3">
+        <ol className="flex flex-col gap-3">
           {steps.map((step, i) => (
-            <div key={i} className="bg-dark-700 border border-dark-500 rounded-2xl p-4">
-              {/* Step number + remove */}
+            <li key={step.key} className="bg-dark-700 border border-dark-500 rounded-2xl p-4">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-caption font-semibold text-slt uppercase tracking-wide">
-                  {t.stepN(i + 1)}
-                </span>
+                <span className="text-caption font-semibold text-slt uppercase tracking-wide">{t.stepN(i + 1)}</span>
                 {steps.length > 1 && (
                   <button
-                    onClick={() => removeStep(i)}
+                    type="button"
+                    onClick={() => removeStep(step.key)}
                     className="text-caption text-red-400 hover:text-red-300 transition-colors py-1 px-1"
                   >
                     {t.removeStep}
@@ -114,38 +209,48 @@ function Builder({ initial, onSave, onCancel, t }) {
                 )}
               </div>
 
-              {/* Type picker */}
-              <div className="flex gap-2 flex-wrap mb-3">
-                {STEP_TYPES.map(type => (
+              <div className="flex gap-2 flex-wrap mb-3" role="group" aria-label={t.stepTypeLabel}>
+                {STEP_KINDS.map(kind => (
                   <button
-                    key={type}
-                    onClick={() => updateStep(i, 'type', type)}
+                    key={kind}
+                    type="button"
+                    aria-pressed={step.kind === kind}
+                    onClick={() => updateStep(step.key, 'kind', kind)}
                     className={`flex items-center gap-1 text-caption px-2.5 py-2 rounded-xl border transition-all ${
-                      step.type === type
-                        ? 'bg-brand-500/20 border-brand-500/60 text-brand-300'
+                      step.kind === kind
+                        ? 'bg-brand-500/20 border-brand-500/60 text-brand-500'
                         : 'bg-dark-800 border-dark-600 text-slt hover:text-ink'
                     }`}
                   >
-                    <StepIcon type={type} size={14} />
-                    <span>{t.stepTypes[type]}</span>
+                    <StepIcon kind={kind} size={14} />
+                    <span>{t.stepTypes[kind]}</span>
                   </button>
                 ))}
               </div>
 
-              {/* Label input */}
               <input
-                value={step.label}
-                onChange={e => updateStep(i, 'label', e.target.value)}
-                placeholder={t.stepPlaceholders[step.type]}
-                maxLength={120}
+                aria-label={`${t.stepN(i + 1)}: ${t.stepTextLabel}`}
+                value={step.instruction}
+                onChange={e => updateStep(step.key, 'instruction', e.target.value)}
+                placeholder={t.stepPlaceholders[step.kind]}
+                maxLength={INSTRUCTION_MAX}
                 className="w-full bg-dark-800 border border-dark-600 text-ink rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent placeholder-slt"
               />
-            </div>
+              <input
+                aria-label={`${t.stepN(i + 1)}: ${t.cueLabel}`}
+                value={step.cue}
+                onChange={e => updateStep(step.key, 'cue', e.target.value)}
+                placeholder={`${t.cueLabel} · ${t.cuePlaceholder}`}
+                maxLength={CUE_MAX}
+                className="mt-2 w-full bg-dark-800 border border-dark-600 text-ink rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent placeholder-slt"
+              />
+            </li>
           ))}
-        </div>
+        </ol>
 
-        {steps.length < 5 && (
+        {steps.length < MAX_STEPS && (
           <button
+            type="button"
             onClick={addStep}
             className="mt-3 w-full py-3 border-2 border-dashed border-dark-500 text-slt hover:text-ink hover:border-dark-400 rounded-2xl text-sm font-medium transition-all"
           >
@@ -155,67 +260,52 @@ function Builder({ initial, onSave, onCancel, t }) {
       </div>
 
       {error && (
-        <p className="text-sm text-red-400 bg-red-950/20 border border-red-900/20 rounded-xl px-4 py-2 mb-4">
-          ⚠️ {error}
+        <p role="alert" className="text-sm text-red-400 bg-red-950/20 border border-red-900/20 rounded-xl px-4 py-2 mb-4">
+          {error}
         </p>
       )}
 
       <div className="flex flex-col gap-3">
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="btn-primary justify-center"
-        >
+        <Button type="button" onClick={handleSave} disabled={saving}>
           {saving ? t.savingBtn : t.save}
+        </Button>
+        <button type="button" onClick={onCancel} className="btn-secondary justify-center">
+          {t.cancel}
         </button>
-        {onCancel && (
-          <button onClick={onCancel} className="btn-secondary justify-center">
-            {t.cancel}
-          </button>
-        )}
       </div>
     </div>
   );
 }
 
-// ── Walkthrough sub-component ─────────────────────────────────────────────────
+// ── Walkthrough ───────────────────────────────────────────────────────────────
 
 function Walkthrough({ steps, t, onFinish }) {
   const [stepIdx, setStepIdx] = useState(0);
-  const [done, setDone]       = useState(false);
+  const [done, setDone] = useState(false);
 
   const step = steps[stepIdx];
-  const progress = ((stepIdx) / steps.length) * 100;
+  const progress = (stepIdx / steps.length) * 100;
 
   function advance() {
-    if (stepIdx < steps.length - 1) {
-      setStepIdx(i => i + 1);
-    } else {
-      setDone(true);
-    }
+    if (stepIdx < steps.length - 1) setStepIdx(i => i + 1);
+    else setDone(true);
   }
 
   if (done) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center text-center px-8 animate-fade-in">
-        <div className="mb-6"><Trophy size={56} className="text-fire-500 mx-auto" /></div>
+      <div className="flex-1 flex flex-col items-center justify-center text-center px-8 py-16 animate-fade-in">
+        <div className="mb-6"><Trophy size={56} className="text-fire-500 mx-auto" aria-hidden="true" /></div>
         <h2 className="text-2xl font-bold text-ink mb-3">{t.doneTitle}</h2>
         <p className="text-slt mb-10 max-w-xs">{t.doneSub}</p>
-        <button onClick={onFinish} className="btn-primary px-10 py-3">
-          {t.backDash.replace('←', '').trim()}
-        </button>
+        <Button type="button" onClick={onFinish} className="px-10">{t.doneBack}</Button>
       </div>
     );
   }
 
   return (
     <div className="flex-1 flex flex-col animate-fade-in">
-      {/* Progress bar */}
       <div className="h-1 bg-dark-700 mb-8">
-        <div
-          className="h-full bg-brand-500 transition-all duration-500"
-          style={{ width: `${progress}%` }}
-        />
+        <div className="h-full bg-brand-500 transition-all duration-500" style={{ width: `${progress}%` }} />
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center px-8 text-center">
@@ -224,17 +314,16 @@ function Walkthrough({ steps, t, onFinish }) {
         </p>
 
         <div className="w-24 h-24 rounded-full bg-brand-500/15 border-2 border-brand-500/40 flex items-center justify-center mb-6">
-          <StepIcon type={step.type} size={36} />
+          <StepIcon kind={step.kind} size={36} />
         </div>
 
-        <h2 className="text-title font-bold text-ink mb-3 leading-tight max-w-xs">
-          {step.label}
-        </h2>
+        <h2 className="text-title font-bold text-ink mb-3 leading-tight max-w-xs">{step.instruction}</h2>
+        {step.cue && <p className="text-body font-semibold text-brand-500 mb-2">“{step.cue}”</p>}
 
-        <div className="flex gap-2 mt-2">
-          {steps.map((_, i) => (
+        <div className="flex gap-2 mt-2" aria-hidden="true">
+          {steps.map((s, i) => (
             <div
-              key={i}
+              key={s.id || i}
               className={`w-2 h-2 rounded-full transition-all ${
                 i === stepIdx ? 'bg-brand-400 scale-125' : i < stepIdx ? 'bg-brand-700' : 'bg-dark-600'
               }`}
@@ -243,13 +332,61 @@ function Walkthrough({ steps, t, onFinish }) {
         </div>
       </div>
 
-      <div className="px-4 pb-4 shrink-0">
-        <button
-          onClick={advance}
-          className="btn-primary w-full justify-center py-4 text-base"
-        >
-          {stepIdx < steps.length - 1 ? t.nextStep : t.finishRitual}
-        </button>
+      <div className="px-4 pb-4 pt-8 shrink-0 max-w-lg w-full mx-auto">
+        <Button type="button" onClick={advance} className="w-full text-base">
+          {stepIdx < steps.length - 1 ? t.nextStep : t.finish}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ── Delete confirmation ───────────────────────────────────────────────────────
+
+function DeleteConfirm({ t, deleting, error, onCancel, onConfirm }) {
+  const cancelRef = useRef(null);
+  const ids = useId();
+
+  useEffect(() => {
+    cancelRef.current?.focus();
+    const onKey = (e) => {
+      if (e.key === 'Escape' && !deleting) onCancel();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [deleting, onCancel]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm px-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-0">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={`${ids}-title`}
+        aria-describedby={`${ids}-body`}
+        className="bg-dark-800 border border-dark-500 rounded-2xl p-6 w-full max-w-md animate-slide-up text-left"
+      >
+        <h2 id={`${ids}-title`} className="font-bold text-ink mb-2 text-body">{t.deleteTitle}</h2>
+        <p id={`${ids}-body`} className="text-slt text-sm mb-6 leading-relaxed">{t.deleteBody}</p>
+        {error && <p role="alert" className="text-sm text-red-400 mb-4">{error}</p>}
+        <div className="flex gap-3">
+          <button
+            ref={cancelRef}
+            type="button"
+            onClick={onCancel}
+            disabled={deleting}
+            className="flex-1 btn-secondary min-h-[48px]"
+          >
+            {t.cancel}
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={deleting}
+            className="flex-1 inline-flex items-center justify-center gap-2 min-h-[48px] px-6 py-3 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+          >
+            {deleting ? t.deleting : t.deleteConfirm}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -261,97 +398,163 @@ function RitualPage() {
   const { token, language } = useAuth();
   const t = translations[language].ritual;
 
-  const [mode, setMode]           = useState('loading'); // loading | view | build | walk
-  const [ritualName, setRitualName] = useState('');
-  const [steps, setSteps]         = useState([]);
-  const [savedMsg, setSavedMsg]   = useState(false);
+  // view.name: loading | error | list | detail | build | walk
+  // view.id:   the routine shown (detail/walk) or edited (build; null = new)
+  const [view, setView] = useState({ name: 'loading', id: null });
+  const [routines, setRoutines] = useState([]);
+  const [limit, setLimit] = useState(DEFAULT_LIMIT);
+  // Guidance from a flagged legacy import, shown above the list.
+  const [importSafety, setImportSafety] = useState(null);
+  const [savedMsg, setSavedMsg] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+  const savedTimer = useRef(null);
 
-  useEffect(() => {
-    apiFetch('/api/ritual/me', { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (data?.steps?.length > 0) {
-          setRitualName(data.ritualName || '');
-          setSteps(data.steps);
-          setMode('view');
-        } else {
-          setMode('build');
-        }
-      })
-      .catch(() => setMode('build'));
-  }, [token]);
+  const authHeaders = useCallback(
+    (json = false) => ({
+      Authorization: `Bearer ${token}`,
+      ...(json ? { 'Content-Type': 'application/json' } : {}),
+    }),
+    [token]
+  );
 
-  async function handleSave({ ritualName: name, steps: newSteps }) {
-    const res = await apiFetch('/api/ritual/me', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ ritualName: name, steps: newSteps }),
-    });
-    if (res.ok) {
-      setRitualName(name);
-      setSteps(newSteps);
-      setMode('view');
-      setSavedMsg(true);
-      setTimeout(() => setSavedMsg(false), 3000);
+  const fetchList = useCallback(async () => {
+    const res = await apiFetch('/api/routines', { headers: authHeaders() });
+    if (!res.ok) throw new Error('load_failed');
+    return res.json();
+  }, [authHeaders]);
+
+  const load = useCallback(async () => {
+    setView({ name: 'loading', id: null });
+    try {
+      let data = await fetchList();
+      if (data?.legacy?.status === 'available' && !importAlreadyTried()) {
+        markImportTried();
+        try {
+          const res = await apiFetch('/api/routines/import-legacy', { method: 'POST', headers: authHeaders(true) });
+          const result = await res.json().catch(() => null);
+          if (result?.safetyFlag === 'needs_support') setImportSafety({ guidance: result.guidance || null });
+          else if (result?.status === 'imported') data = await fetchList();
+        } catch { /* the list still loads; import is retried next session */ }
+      }
+      setRoutines(Array.isArray(data?.routines) ? data.routines : []);
+      setLimit(Number.isInteger(data?.limit) ? data.limit : DEFAULT_LIMIT);
+      setView({ name: 'list', id: null });
+    } catch {
+      setView({ name: 'error', id: null });
     }
-    return res;
+  }, [fetchList, authHeaders]);
+
+  useEffect(() => { load(); }, [load]);
+  useEffect(() => () => clearTimeout(savedTimer.current), []);
+
+  const current = view.id ? routines.find(r => r.id === view.id) || null : null;
+  const atLimit = routines.length >= limit;
+
+  function showSaved() {
+    setSavedMsg(true);
+    clearTimeout(savedTimer.current);
+    savedTimer.current = setTimeout(() => setSavedMsg(false), 3000);
   }
 
-  // ── Loading ────────────────────────────────────────────────────────────────
-
-  if (mode === 'loading') {
-    return (
-      <div className="min-h-screen bg-dark-900 flex items-center justify-center pb-20">
-        <div className="w-8 h-8 border-4 border-brand-600 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
+  // Resolves to { safety } or { error } for the builder to show, or {} after
+  // a real save (when the page has already moved to the saved routine).
+  async function submitRoutine(body) {
+    const editing = view.id;
+    const res = await apiFetch(editing ? `/api/routines/${editing}` : '/api/routines', {
+      method: editing ? 'PATCH' : 'POST',
+      headers: authHeaders(true),
+      body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => null);
+    // A flagged save is a 200 with no routine — check before res.ok.
+    if (data?.safetyFlag === 'needs_support') return { safety: { guidance: data.guidance || null } };
+    if (!res.ok || !data?.routine) {
+      return { error: data?.error === 'routine_limit_reached' ? t.limitReached(limit) : t.errSave };
+    }
+    const saved = data.routine;
+    setRoutines(prev => (editing ? prev.map(r => (r.id === saved.id ? saved : r)) : [...prev, saved]));
+    setView({ name: 'detail', id: saved.id });
+    showSaved();
+    return {};
   }
 
-  // ── Walkthrough ────────────────────────────────────────────────────────────
-
-  if (mode === 'walk') {
-    return (
-      <div className="min-h-screen bg-dark-900 flex flex-col pb-20">
-        <header className="shrink-0 bg-dark-900 border-b border-dark-600 px-page py-4 sticky top-0 z-10">
-          <div className="max-w-lg mx-auto flex items-center justify-between">
-            <button onClick={() => setMode('view')} className="text-sm text-slt hover:text-ink">
-              {t.backDash}
-            </button>
-            <p className="font-semibold text-ink text-sm truncate max-w-[160px]">{ritualName}</p>
-            <div className="w-20" />
-          </div>
-        </header>
-        <Walkthrough steps={steps} t={t} onFinish={() => setMode('view')} />
-      </div>
-    );
+  async function handleDelete() {
+    if (deleting || !current) return;
+    setDeleting(true);
+    setDeleteError('');
+    try {
+      const res = await apiFetch(`/api/routines/${current.id}`, { method: 'DELETE', headers: authHeaders() });
+      // Already gone (404) is the outcome the athlete asked for.
+      if (!res.ok && res.status !== 404) throw new Error('delete_failed');
+      setRoutines(prev => prev.filter(r => r.id !== current.id));
+      setConfirmDelete(false);
+      setView({ name: 'list', id: null });
+    } catch {
+      setDeleteError(t.errDelete);
+    } finally {
+      setDeleting(false);
+    }
   }
 
-  // ── Builder ────────────────────────────────────────────────────────────────
+  const goList = () => setView({ name: 'list', id: null });
+  const cancelDelete = useCallback(() => { setConfirmDelete(false); setDeleteError(''); }, []);
 
-  if (mode === 'build') {
+  // ── Loading ──────────────────────────────────────────────────────────────
+
+  if (view.name === 'loading') {
     return (
       <div className="min-h-screen bg-dark-900 pb-20">
-        <header className="bg-dark-900 border-b border-dark-600 px-page py-4 sticky top-0 z-10">
-          <div className="max-w-lg mx-auto flex items-center justify-between">
-            {steps.length > 0 ? (
-              <button onClick={() => setMode('view')} className="text-body text-slt hover:text-ink py-1">
-                {t.back}
-              </button>
-            ) : (
-              <Link to="/train" className="text-sm text-slt hover:text-ink">{t.backDash}</Link>
-            )}
-            <p className="font-semibold text-ink">{t.title}</p>
-            <div className="w-20" />
-          </div>
-        </header>
-        <main className="max-w-lg mx-auto px-4 py-8">
-          <div className="text-center mb-8">
-            <p className="text-sm text-slt max-w-xs mx-auto leading-relaxed">{t.subtitle}</p>
-          </div>
+        <PageHeader backTo="/train" title={t.title} />
+        <div className="flex items-center justify-center py-24">
+          <div className="w-8 h-8 border-4 border-brand-600 border-t-transparent rounded-full animate-spin" />
+        </div>
+      </div>
+    );
+  }
+
+  // ── Load error ───────────────────────────────────────────────────────────
+
+  if (view.name === 'error') {
+    return (
+      <div className="min-h-screen bg-dark-900 pb-20">
+        <PageHeader backTo="/train" title={t.title} />
+        <main className="max-w-lg mx-auto px-page py-8">
+          <Card className="p-5">
+            <p className="text-body text-slt mb-4">{t.errLoad}</p>
+            <Button type="button" onClick={load}>{t.retry}</Button>
+          </Card>
+        </main>
+      </div>
+    );
+  }
+
+  // ── Walkthrough ──────────────────────────────────────────────────────────
+
+  if (view.name === 'walk' && current) {
+    return (
+      <div className="min-h-screen bg-dark-900 flex flex-col pb-20">
+        <PageHeader onBack={() => setView({ name: 'detail', id: current.id })} title={routineTitle(current, t)} />
+        <Walkthrough steps={current.steps} t={t} onFinish={() => setView({ name: 'detail', id: current.id })} />
+      </div>
+    );
+  }
+
+  // ── Builder ──────────────────────────────────────────────────────────────
+
+  if (view.name === 'build') {
+    const editing = view.id ? current : null;
+    const back = editing ? () => setView({ name: 'detail', id: editing.id }) : goList;
+    return (
+      <div className="min-h-screen bg-dark-900 pb-20">
+        <PageHeader onBack={back} title={editing ? t.editTitle : t.newTitle} />
+        <main className="max-w-lg mx-auto px-page py-6">
           <Builder
-            initial={{ name: ritualName, steps }}
-            onSave={handleSave}
-            onCancel={steps.length > 0 ? () => setMode('view') : null}
+            key={view.id || 'new'}
+            initial={editing}
+            onSubmit={submitRoutine}
+            onCancel={back}
             t={t}
           />
         </main>
@@ -359,61 +562,122 @@ function RitualPage() {
     );
   }
 
-  // ── View ───────────────────────────────────────────────────────────────────
+  // ── Detail ───────────────────────────────────────────────────────────────
+
+  if (view.name === 'detail' && current) {
+    return (
+      <div className="min-h-screen bg-dark-900 pb-20">
+        <PageHeader onBack={goList} title={routineTitle(current, t)} />
+        <main className="max-w-lg mx-auto px-page py-6 animate-fade-in">
+          {savedMsg && (
+            <p role="status" className="mb-4 text-center text-win-400 text-sm font-semibold animate-fade-in">
+              {t.saved}
+            </p>
+          )}
+
+          <p className="text-caption text-slt mb-5">
+            {t.categories[current.category] || t.categories.own_situation} · {t.stepsCount(current.steps.length)}
+          </p>
+
+          <SectionLabel>{t.steps}</SectionLabel>
+          <ol className="flex flex-col gap-3 mb-8">
+            {current.steps.map((step, i) => (
+              <li key={step.id || i} className="flex items-center gap-4 card-surface px-4 py-3.5">
+                <div className="w-8 h-8 rounded-full bg-dark-700 border border-dark-500 flex items-center justify-center shrink-0">
+                  <span className="text-xs font-bold text-slt">{i + 1}</span>
+                </div>
+                <StepIcon kind={step.kind} size={22} />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-ink leading-tight">{step.instruction}</p>
+                  <p className="text-xs text-slt mt-0.5">
+                    {t.stepTypes[step.kind] || t.stepTypes.custom}
+                    {step.cue ? ` · “${step.cue}”` : ''}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ol>
+
+          <div className="flex flex-col gap-3">
+            <Button type="button" onClick={() => setView({ name: 'walk', id: current.id })} className="w-full text-base">
+              {t.start}
+            </Button>
+            <Button type="button" variant="outline" onClick={() => setView({ name: 'build', id: current.id })} className="w-full">
+              {t.edit}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => { setDeleteError(''); setConfirmDelete(true); }}
+              className="w-full text-red-400 hover:text-red-300"
+            >
+              {t.delete}
+            </Button>
+          </div>
+        </main>
+
+        {confirmDelete && (
+          <DeleteConfirm
+            t={t}
+            deleting={deleting}
+            error={deleteError}
+            onCancel={cancelDelete}
+            onConfirm={handleDelete}
+          />
+        )}
+      </div>
+    );
+  }
+
+  // ── List (also the fallback when a detail/walk routine is gone) ──────────
 
   return (
     <div className="min-h-screen bg-dark-900 pb-20">
-      <header className="bg-dark-900 border-b border-dark-600 px-page py-4 sticky top-0 z-10">
-        <div className="max-w-lg mx-auto flex items-center justify-between">
-          <Link to="/train" className="text-sm text-slt hover:text-ink">{t.backDash}</Link>
-          <p className="font-semibold text-ink">{t.title}</p>
-          <button onClick={() => setMode('build')} className="text-sm text-brand-400 hover:text-brand-300 font-medium">
-            {t.editRitual}
-          </button>
-        </div>
-      </header>
-
-      <main className="max-w-lg mx-auto px-4 py-8 animate-fade-in">
-
-        {savedMsg && (
-          <div className="mb-4 text-center text-win-400 text-sm font-semibold animate-fade-in">
-            ✅ {t.saved}
-          </div>
+      <PageHeader backTo="/train" title={t.title} />
+      <main className="max-w-lg mx-auto px-page py-6 animate-fade-in">
+        {importSafety && (
+          <SafetyGuidanceCard guidance={importSafety.guidance} onDismiss={() => setImportSafety(null)} />
         )}
 
-        {/* Ritual name */}
-        <div className="text-center mb-8">
-          <div className="mb-3"><Trophy size={44} className="text-fire-500 mx-auto" /></div>
-          <h2 className="text-title font-bold text-ink">{ritualName}</h2>
-          <p className="text-caption text-slt mt-1">{t.stepsCount(steps.length)}</p>
-        </div>
+        <p className="text-body text-slt leading-relaxed mb-6">{t.subtitle}</p>
 
-        {/* Steps list */}
-        <div className="flex flex-col gap-3 mb-8">
-          {steps.map((step, i) => (
-            <div key={i} className="flex items-center gap-4 card-surface px-4 py-3.5">
-              <div className="w-8 h-8 rounded-full bg-dark-700 border border-dark-500 flex items-center justify-center shrink-0">
-                <span className="text-xs font-bold text-slt">{i + 1}</span>
-              </div>
-              <StepIcon type={step.type} size={24} />
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-ink leading-tight">{step.label}</p>
-                <p className="text-xs text-slt capitalize mt-0.5">{t.stepTypes[step.type]}</p>
-              </div>
-            </div>
-          ))}
-        </div>
+        {routines.length === 0 ? (
+          <Card className="p-5 mb-6 text-center">
+            <Trophy size={40} className="text-fire-500 mx-auto mb-3" aria-hidden="true" />
+            <h2 className="text-heading font-bold text-ink mb-1">{t.emptyTitle}</h2>
+            <p className="text-body text-slt">{t.emptySub}</p>
+          </Card>
+        ) : (
+          <ul className="flex flex-col gap-3 mb-6">
+            {routines.map(r => (
+              <li key={r.id}>
+                <Card
+                  as="button"
+                  type="button"
+                  onClick={() => setView({ name: 'detail', id: r.id })}
+                  className="w-full text-left px-4 py-4 flex items-center gap-3 min-h-[64px] hover:border-dark-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-body font-semibold text-ink truncate">{routineTitle(r, t)}</p>
+                    <p className="text-caption text-slt mt-0.5">
+                      {t.categories[r.category] || t.categories.own_situation} · {t.stepsCount(r.steps.length)}
+                    </p>
+                  </div>
+                  <ChevronRight size={18} className="text-slt shrink-0" aria-hidden="true" />
+                </Card>
+              </li>
+            ))}
+          </ul>
+        )}
 
-        {/* Use ritual CTA */}
-        <button
-          onClick={() => setMode('walk')}
-          className="btn-primary w-full justify-center py-4 text-base mb-3"
-        >
-          {t.useRitual} →
-        </button>
-        <p className="text-caption text-slt text-center">
-          {t.whenToUse}
-        </p>
+        {atLimit ? (
+          <p className="text-caption text-slt text-center">{t.limitReached(limit)}</p>
+        ) : (
+          <Button type="button" onClick={() => setView({ name: 'build', id: null })} className="w-full">
+            <Plus size={18} aria-hidden="true" />
+            {t.newRoutine}
+          </Button>
+        )}
       </main>
     </div>
   );
