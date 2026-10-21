@@ -886,6 +886,9 @@ export const translations = {
     ritual: {
       title: 'Your routines',
       subtitle: 'Short routines you can run before you play, or in the moments that matter.',
+      heroTitle: 'Get ready the same way, every time',
+      savedCount: (n, limit) => `${n} of ${limit} saved`,
+      listLabel: 'Your routines',
       emptyTitle: 'No routines yet',
       emptySub: 'Build a short routine for before you play, or for a moment that keeps coming up.',
       newRoutine: 'New routine',
@@ -932,7 +935,6 @@ export const translations = {
       retry: 'Try again',
       newTitle: 'New routine',
       editTitle: 'Edit routine',
-      start: 'Start routine',
       edit: 'Edit',
       delete: 'Delete',
       deleteTitle: 'Delete this routine?',
@@ -940,10 +942,6 @@ export const translations = {
       deleteConfirm: 'Delete',
       deleting: 'Deleting…',
       errDelete: 'Could not delete. Try again.',
-      walkthroughOf: (n, t) => `Step ${n} of ${t}`,
-      nextStep: 'Done, next step',
-      finish: 'Finish',
-      doneTitle: 'Routine complete',
       tipTitle: 'When to use it',
       useWhen: {
         session_preparation: 'Use it before you play or train.',
@@ -956,7 +954,6 @@ export const translations = {
       arjunBody: 'Share your routine with Arjun to make it sharper, fit it to your sport, or work out what to do when it is not working.',
       askArjun: 'Talk to Arjun about it',
       arjunPrefill: (name, category, steps) => `Here is my routine "${name}" (${category}):\n${steps}\nCan you help me make it better?`,
-      doneBack: 'Back to routine',
     },
     weeklyReviews: {
       title: 'Weekly Reviews',
@@ -3064,6 +3061,9 @@ export const translations = {
     ritual: {
       title: 'तुम्हारे रूटीन',
       subtitle: 'छोटे रूटीन जो तुम खेलने से पहले या ज़रूरी पलों में कर सकते हो।',
+      heroTitle: 'हर बार, एक जैसी तैयारी',
+      savedCount: (n, limit) => `${limit} में से ${n} सेव`,
+      listLabel: 'तुम्हारे रूटीन',
       emptyTitle: 'अभी कोई रूटीन नहीं',
       emptySub: 'खेलने से पहले के लिए, या बार-बार आने वाले किसी पल के लिए एक छोटा रूटीन बनाओ।',
       newRoutine: 'नया रूटीन',
@@ -3110,7 +3110,6 @@ export const translations = {
       retry: 'फिर से कोशिश करो',
       newTitle: 'नया रूटीन',
       editTitle: 'रूटीन बदलो',
-      start: 'रूटीन शुरू करो',
       edit: 'बदलो',
       delete: 'हटाओ',
       deleteTitle: 'यह रूटीन हटाना है?',
@@ -3118,10 +3117,6 @@ export const translations = {
       deleteConfirm: 'हटाओ',
       deleting: 'हट रहा है…',
       errDelete: 'हटाया नहीं जा सका। फिर से कोशिश करो।',
-      walkthroughOf: (n, t) => `चरण ${n} / ${t}`,
-      nextStep: 'हो गया, अगला चरण',
-      finish: 'खत्म करो',
-      doneTitle: 'रूटीन पूरा हुआ',
       tipTitle: 'इसे कब करें',
       useWhen: {
         session_preparation: 'इसे खेलने या ट्रेनिंग से पहले करो।',
@@ -3134,7 +3129,6 @@ export const translations = {
       arjunBody: 'अपना रूटीन अर्जुन के साथ शेयर करो — उसे और बेहतर बनाने, अपने खेल के हिसाब से ढालने, या काम न करे तो क्या करें, यह समझने के लिए।',
       askArjun: 'इसके बारे में अर्जुन से बात करो',
       arjunPrefill: (name, category, steps) => `यह मेरा रूटीन है "${name}" (${category}):\n${steps}\nक्या तुम इसे बेहतर बनाने में मेरी मदद कर सकते हो?`,
-      doneBack: 'रूटीन पर वापस',
     },
     weeklyReviews: {
       title: 'साप्ताहिक समीक्षा',

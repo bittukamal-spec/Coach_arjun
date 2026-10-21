@@ -77,11 +77,15 @@ describe('RitualPage — routines', () => {
     expect(apiFetch.mock.calls.some(([p]) => p.startsWith('/api/ritual/'))).toBe(false);
   });
 
-  test('lists saved routines with their category and step count', async () => {
+  test('lists saved routines with their category, a step preview and the saved count', async () => {
     mockApi({ 'GET /api/routines': json(listBody([routine()])) });
     renderPage();
-    expect(await screen.findByText('Before I bat')).toBeTruthy();
-    expect(screen.getByText(`${t.categories.session_preparation} · ${t.stepsCount(2)}`)).toBeTruthy();
+    const card = await screen.findByRole('button', { name: /Before I bat/ });
+    expect(within(card).getByText(t.categories.session_preparation)).toBeTruthy();
+    expect(within(card).getByText('Two slow breaths')).toBeTruthy();
+    expect(within(card).getByText('Say my word')).toBeTruthy();
+    expect(screen.getByText(t.savedCount(1, 5))).toBeTruthy();
+    expect(screen.getByText(t.heroTitle)).toBeTruthy();
   });
 
   test('an available legacy ritual is imported once and appears in the list', async () => {
@@ -225,24 +229,19 @@ describe('RitualPage — routines', () => {
     expect(await screen.findByText('Say it out loud')).toBeTruthy();
   });
 
-  test('the walkthrough steps through each instruction and its cue', async () => {
+  test('the detail screen shows the steps, when to use it and Arjun help — and no start button', async () => {
     mockApi({ 'GET /api/routines': json(listBody([routine()])) });
     const user = userEvent.setup();
     renderPage();
     await user.click(await screen.findByRole('button', { name: /Before I bat/ }));
-    await user.click(screen.getByRole('button', { name: t.start }));
 
-    expect(screen.getByText(t.walkthroughOf(1, 2))).toBeTruthy();
-    expect(screen.getByRole('heading', { name: 'Two slow breaths' })).toBeTruthy();
-    await user.click(screen.getByRole('button', { name: t.nextStep }));
-    expect(screen.getByRole('heading', { name: 'Say my word' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Before I bat' })).toBeTruthy();
+    expect(screen.getByText('Two slow breaths')).toBeTruthy();
     expect(screen.getByText('“Sharp”')).toBeTruthy();
-    await user.click(screen.getByRole('button', { name: t.finish }));
-    expect(screen.getByText(t.doneTitle)).toBeTruthy();
     expect(screen.getByText(new RegExp(t.useWhen.session_preparation))).toBeTruthy();
-    expect(screen.getByText(t.arjunTitle)).toBeTruthy();
-    await user.click(screen.getByRole('button', { name: t.doneBack }));
-    expect(screen.getByRole('button', { name: t.start })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: t.arjunTitle })).toBeTruthy();
+    expect(screen.getByRole('link', { name: t.askArjun })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /start/i })).toBeNull();
   });
 
   test('"Talk to Arjun" opens Coach with the routine pre-filled, not sent', async () => {
@@ -261,9 +260,6 @@ describe('RitualPage — routines', () => {
       </MemoryRouter>
     );
     await user.click(await screen.findByRole('button', { name: /Before I bat/ }));
-    await user.click(screen.getByRole('button', { name: t.start }));
-    await user.click(screen.getByRole('button', { name: t.nextStep }));
-    await user.click(screen.getByRole('button', { name: t.finish }));
     await user.click(screen.getByRole('link', { name: t.askArjun }));
 
     expect(screen.getByTestId('coach-probe').textContent).toBe(
@@ -314,7 +310,8 @@ describe('RitualPage — routines', () => {
     mockApi({ 'GET /api/routines': json(listBody([routine()])) });
     renderPage();
     expect(await screen.findByRole('heading', { name: translations.hi.ritual.title })).toBeTruthy();
-    expect(screen.getByText(`${translations.hi.ritual.categories.session_preparation} · ${translations.hi.ritual.stepsCount(2)}`)).toBeTruthy();
+    expect(screen.getByText(translations.hi.ritual.categories.session_preparation)).toBeTruthy();
+    expect(screen.getByText(translations.hi.ritual.savedCount(1, 5))).toBeTruthy();
   });
 });
 

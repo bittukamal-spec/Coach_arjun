@@ -1,16 +1,23 @@
 import { useState, useEffect, useCallback, useRef, useId } from 'react';
 import { Link } from 'react-router-dom';
-import { Trophy, ChevronRight, Plus, Lightbulb, MessageCircle } from 'lucide-react';
+import {
+  ChevronRight, Plus, Lightbulb, MessageCircle, Flag, Repeat, Zap, Compass, ArrowRight,
+} from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
 import { Button, Card, PageHeader, SectionLabel } from '../components/ui';
 import { SafetyGuidanceCard } from './mindJournal/shared';
+import { CardWaves, AthleteMark } from '../components/visuals/CardArt';
 
 // ─── Ritual rebuild (PR 3) — the athlete's saved routines. /ritual now reads
 // and writes /api/routines (up to 5 routines) instead of the legacy single
-// ritual on /api/ritual/me. Screens: list → detail → builder / walkthrough,
-// all on this one route, like the page it replaces.
+// ritual on /api/ritual/me. Screens: list → detail → builder, all on this
+// one route, like the page it replaces.
+//
+// There is no in-app "start" walkthrough: routines are used on the field,
+// not on the phone. The detail screen shows the steps, when to use them,
+// and a hand-off to Arjun instead.
 //
 // The legacy single ritual is imported once, automatically, the first time
 // this page sees one (POST /api/routines/import-legacy is repeat-safe). From
@@ -238,7 +245,30 @@ function Builder({ initial, onSubmit, onCancel, t }) {
   );
 }
 
-// ── Walkthrough ───────────────────────────────────────────────────────────────
+// ── Presentation ──────────────────────────────────────────────────────────────
+
+// Category identity: one icon + one accent per category, reusing the Train
+// card colour family. Colour is decoration only — the label always says it.
+const CATEGORY_STYLE = {
+  session_preparation: { Icon: Flag,    color: '#1F85D0' },
+  repeated_moment:     { Icon: Repeat,  color: '#158178' },
+  pressure_moment:     { Icon: Zap,     color: '#D97F1E' },
+  own_situation:       { Icon: Compass, color: '#6366F1' },
+};
+const HERO_GRADIENT = 'linear-gradient(135deg, #1F85D0 0%, #0C4D85 100%)';
+
+function categoryStyle(category) {
+  return CATEGORY_STYLE[category] || CATEGORY_STYLE.own_situation;
+}
+
+function CategoryTile({ category }) {
+  const { Icon, color } = categoryStyle(category);
+  return (
+    <div className="icon-tile" style={{ '--tile-fg': color, '--tile-bg': `${color}1F` }} aria-hidden="true">
+      <Icon size={20} />
+    </div>
+  );
+}
 
 // The athlete's routine as a draft Coach message. It only pre-fills the
 // Coach input (the existing prefillMsg hand-off); nothing is sent until the
@@ -249,99 +279,115 @@ function arjunDraft(routine, t) {
   return t.arjunPrefill(routineTitle(routine, t), category, steps);
 }
 
-function Walkthrough({ routine, t, onFinish }) {
-  const { steps } = routine;
-  const [stepIdx, setStepIdx] = useState(0);
-  const [done, setDone] = useState(false);
-
-  const step = steps[stepIdx];
-  const progress = (stepIdx / steps.length) * 100;
-
-  function advance() {
-    if (stepIdx < steps.length - 1) setStepIdx(i => i + 1);
-    else setDone(true);
-  }
-
-  if (done) {
-    return (
-      <div className="flex-1 flex flex-col items-center px-page py-10 animate-fade-in">
-        <div className="max-w-lg w-full mx-auto">
-          <div className="text-center mb-8">
-            <Trophy size={48} className="text-fire-500 mx-auto mb-4" aria-hidden="true" />
-            <h2 className="text-2xl font-bold text-ink">{t.doneTitle}</h2>
-          </div>
-
-          <Card className="p-4 mb-3">
-            <div className="flex items-start gap-3">
-              <Lightbulb size={20} className="text-brand-500 shrink-0 mt-0.5" aria-hidden="true" />
-              <div>
-                <p className="text-body font-semibold text-ink mb-1">{t.tipTitle}</p>
-                <p className="text-sm text-slt leading-relaxed">
-                  {t.useWhen[routine.category] || t.useWhen.own_situation} {t.practiseTip}
-                </p>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="p-4 mb-8">
-            <div className="flex items-start gap-3">
-              <MessageCircle size={20} className="text-brand-500 shrink-0 mt-0.5" aria-hidden="true" />
-              <div className="min-w-0">
-                <p className="text-body font-semibold text-ink mb-1">{t.arjunTitle}</p>
-                <p className="text-sm text-slt leading-relaxed mb-3">{t.arjunBody}</p>
-                <Link
-                  to="/coaching"
-                  state={{ prefillMsg: arjunDraft(routine, t) }}
-                  className="inline-flex items-center justify-center min-h-[44px] px-4 rounded-[14px] border border-brand-600/40 text-brand-500 text-sm font-semibold hover:bg-brand-600/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
-                >
-                  {t.askArjun}
-                </Link>
-              </div>
-            </div>
-          </Card>
-
-          <Button type="button" onClick={onFinish} className="w-full">{t.doneBack}</Button>
-        </div>
-      </div>
-    );
-  }
-
+// The list's one hero moment: what routines are for, and how many are used.
+function RoutinesHero({ count, limit, t }) {
   return (
-    <div className="flex-1 flex flex-col animate-fade-in">
-      <div className="h-1 bg-dark-700 mb-8">
-        <div className="h-full bg-brand-500 transition-all duration-500" style={{ width: `${progress}%` }} />
-      </div>
-
-      <div className="flex-1 flex flex-col items-center justify-center px-8 text-center">
-        <p className="text-xs font-semibold text-slt uppercase tracking-wide mb-6">
-          {t.walkthroughOf(stepIdx + 1, steps.length)}
-        </p>
-
-        <div className="w-24 h-24 rounded-full bg-brand-500/15 border-2 border-brand-500/40 flex items-center justify-center mb-6" aria-hidden="true">
-          <span className="text-title font-bold text-brand-500">{stepIdx + 1}</span>
-        </div>
-
-        <h2 className="text-title font-bold text-ink mb-3 leading-tight max-w-xs">{step.instruction}</h2>
-        {step.cue && <p className="text-body font-semibold text-brand-500 mb-2">“{step.cue}”</p>}
-
-        <div className="flex gap-2 mt-2" aria-hidden="true">
-          {steps.map((s, i) => (
-            <div
-              key={s.id || i}
-              className={`w-2 h-2 rounded-full transition-all ${
-                i === stepIdx ? 'bg-brand-400 scale-125' : i < stepIdx ? 'bg-brand-700' : 'bg-dark-600'
-              }`}
-            />
-          ))}
-        </div>
-      </div>
-
-      <div className="px-4 pb-4 pt-8 shrink-0 max-w-lg w-full mx-auto">
-        <Button type="button" onClick={advance} className="w-full text-base">
-          {stepIdx < steps.length - 1 ? t.nextStep : t.finish}
-        </Button>
+    <div
+      className="relative overflow-hidden rounded-3xl p-5 mb-6 elevation-card"
+      style={{ background: HERO_GRADIENT }}
+    >
+      <CardWaves className="text-white" />
+      <AthleteMark className="absolute -right-3 -bottom-3 w-28 h-28 text-white/[0.16] pointer-events-none" />
+      <div className="relative z-10 pr-16">
+        <h2 className="text-white text-lg font-black leading-tight mb-1">{t.heroTitle}</h2>
+        <p className="text-white text-[13px] leading-snug mb-3">{t.subtitle}</p>
+        <span className="inline-flex items-center rounded-full bg-white/20 px-3 py-1 text-xs font-semibold text-white">
+          {t.savedCount(count, limit)}
+        </span>
       </div>
     </div>
+  );
+}
+
+function RoutineCard({ routine, t, onOpen }) {
+  const { color } = categoryStyle(routine.category);
+  const preview = routine.steps.map(s => s.instruction);
+  return (
+    <Card
+      as="button"
+      type="button"
+      onClick={onOpen}
+      className="w-full text-left p-4 flex items-start gap-3 elevation-row hover:border-dark-400 active:scale-[0.99] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+    >
+      <CategoryTile category={routine.category} />
+      <div className="min-w-0 flex-1">
+        <p className="text-body font-bold text-ink truncate">{routineTitle(routine, t)}</p>
+        <p className="text-caption font-semibold mt-0.5" style={{ color }}>
+          {t.categories[routine.category] || t.categories.own_situation}
+        </p>
+        <p className="text-caption text-slt mt-2 flex items-center flex-wrap gap-x-1.5 gap-y-0.5">
+          {preview.map((step, i) => (
+            <span key={i} className="inline-flex items-center gap-1.5 min-w-0">
+              {i > 0 && <ArrowRight size={11} className="text-slt shrink-0" aria-hidden="true" />}
+              <span className="truncate max-w-[9rem]">{step}</span>
+            </span>
+          ))}
+        </p>
+      </div>
+      <ChevronRight size={18} className="text-slt shrink-0 mt-1" aria-hidden="true" />
+    </Card>
+  );
+}
+
+// Steps as a numbered vertical timeline.
+function StepTimeline({ steps, color }) {
+  return (
+    <ol className="mb-6">
+      {steps.map((step, i) => {
+        const last = i === steps.length - 1;
+        return (
+          <li key={step.id || i} className="relative flex gap-4 pb-4 last:pb-0">
+            {!last && <span className="absolute left-[17px] top-9 bottom-0 w-0.5 bg-dark-600" aria-hidden="true" />}
+            <span
+              className="relative z-10 w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-sm font-bold text-white"
+              style={{ background: color }}
+              aria-hidden="true"
+            >
+              {i + 1}
+            </span>
+            <div className="min-w-0 flex-1 bg-dark-800 border border-dark-600 rounded-2xl px-4 py-3">
+              <p className="text-body font-medium text-ink leading-snug">{step.instruction}</p>
+              {step.cue && <p className="text-caption text-slt mt-0.5">“{step.cue}”</p>}
+            </div>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+function UseTips({ routine, t }) {
+  return (
+    <>
+      <Card className="p-4 mb-3">
+        <div className="flex items-start gap-3">
+          <Lightbulb size={20} className="text-brand-500 shrink-0 mt-0.5" aria-hidden="true" />
+          <div>
+            <h2 className="text-body font-semibold text-ink mb-1">{t.tipTitle}</h2>
+            <p className="text-sm text-slt leading-relaxed">
+              {t.useWhen[routine.category] || t.useWhen.own_situation} {t.practiseTip}
+            </p>
+          </div>
+        </div>
+      </Card>
+
+      <Card className="p-4 mb-8">
+        <div className="flex items-start gap-3">
+          <MessageCircle size={20} className="text-brand-500 shrink-0 mt-0.5" aria-hidden="true" />
+          <div className="min-w-0">
+            <h2 className="text-body font-semibold text-ink mb-1">{t.arjunTitle}</h2>
+            <p className="text-sm text-slt leading-relaxed mb-3">{t.arjunBody}</p>
+            <Link
+              to="/coaching"
+              state={{ prefillMsg: arjunDraft(routine, t) }}
+              className="inline-flex items-center justify-center min-h-[44px] px-4 rounded-[14px] bg-brand-500 text-white text-sm font-semibold hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+            >
+              {t.askArjun}
+            </Link>
+          </div>
+        </div>
+      </Card>
+    </>
   );
 }
 
@@ -402,8 +448,8 @@ function RitualPage() {
   const { token, language } = useAuth();
   const t = translations[language].ritual;
 
-  // view.name: loading | error | list | detail | build | walk
-  // view.id:   the routine shown (detail/walk) or edited (build; null = new)
+  // view.name: loading | error | list | detail | build
+  // view.id:   the routine shown (detail) or edited (build; null = new)
   const [view, setView] = useState({ name: 'loading', id: null });
   const [routines, setRoutines] = useState([]);
   const [limit, setLimit] = useState(DEFAULT_LIMIT);
@@ -534,17 +580,6 @@ function RitualPage() {
     );
   }
 
-  // ── Walkthrough ──────────────────────────────────────────────────────────
-
-  if (view.name === 'walk' && current) {
-    return (
-      <div className="min-h-screen bg-dark-900 flex flex-col pb-20">
-        <PageHeader onBack={() => setView({ name: 'detail', id: current.id })} title={routineTitle(current, t)} />
-        <Walkthrough routine={current} t={t} onFinish={() => setView({ name: 'detail', id: current.id })} />
-      </div>
-    );
-  }
-
   // ── Builder ──────────────────────────────────────────────────────────────
 
   if (view.name === 'build') {
@@ -569,6 +604,7 @@ function RitualPage() {
   // ── Detail ───────────────────────────────────────────────────────────────
 
   if (view.name === 'detail' && current) {
+    const { color } = categoryStyle(current.category);
     return (
       <div className="min-h-screen bg-dark-900 pb-20">
         <PageHeader onBack={goList} title={routineTitle(current, t)} />
@@ -579,29 +615,22 @@ function RitualPage() {
             </p>
           )}
 
-          <p className="text-caption text-slt mb-5">
-            {t.categories[current.category] || t.categories.own_situation} · {t.stepsCount(current.steps.length)}
-          </p>
+          <div className="flex items-center gap-3 mb-6">
+            <CategoryTile category={current.category} />
+            <div>
+              <p className="text-body font-semibold" style={{ color }}>
+                {t.categories[current.category] || t.categories.own_situation}
+              </p>
+              <p className="text-caption text-slt">{t.stepsCount(current.steps.length)}</p>
+            </div>
+          </div>
 
           <SectionLabel>{t.steps}</SectionLabel>
-          <ol className="flex flex-col gap-3 mb-8">
-            {current.steps.map((step, i) => (
-              <li key={step.id || i} className="flex items-center gap-4 card-surface px-4 py-3.5">
-                <div className="w-8 h-8 rounded-full bg-dark-700 border border-dark-500 flex items-center justify-center shrink-0">
-                  <span className="text-xs font-bold text-slt">{i + 1}</span>
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-ink leading-tight">{step.instruction}</p>
-                  {step.cue && <p className="text-xs text-slt mt-0.5">“{step.cue}”</p>}
-                </div>
-              </li>
-            ))}
-          </ol>
+          <StepTimeline steps={current.steps} color={color} />
+
+          <UseTips routine={current} t={t} />
 
           <div className="flex flex-col gap-3">
-            <Button type="button" onClick={() => setView({ name: 'walk', id: current.id })} className="w-full text-base">
-              {t.start}
-            </Button>
             <Button type="button" variant="outline" onClick={() => setView({ name: 'build', id: current.id })} className="w-full">
               {t.edit}
             </Button>
@@ -629,7 +658,7 @@ function RitualPage() {
     );
   }
 
-  // ── List (also the fallback when a detail/walk routine is gone) ──────────
+  // ── List (also the fallback when a detail routine is gone) ───────────────
 
   return (
     <div className="min-h-screen bg-dark-900 pb-20">
@@ -639,44 +668,37 @@ function RitualPage() {
           <SafetyGuidanceCard guidance={importSafety.guidance} onDismiss={() => setImportSafety(null)} />
         )}
 
-        <p className="text-body text-slt leading-relaxed mb-6">{t.subtitle}</p>
+        <RoutinesHero count={routines.length} limit={limit} t={t} />
 
         {routines.length === 0 ? (
           <Card className="p-5 mb-6 text-center">
-            <Trophy size={40} className="text-fire-500 mx-auto mb-3" aria-hidden="true" />
             <h2 className="text-heading font-bold text-ink mb-1">{t.emptyTitle}</h2>
             <p className="text-body text-slt">{t.emptySub}</p>
           </Card>
         ) : (
-          <ul className="flex flex-col gap-3 mb-6">
-            {routines.map(r => (
-              <li key={r.id}>
-                <Card
-                  as="button"
-                  type="button"
-                  onClick={() => setView({ name: 'detail', id: r.id })}
-                  className="w-full text-left px-4 py-4 flex items-center gap-3 min-h-[64px] hover:border-dark-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="text-body font-semibold text-ink truncate">{routineTitle(r, t)}</p>
-                    <p className="text-caption text-slt mt-0.5">
-                      {t.categories[r.category] || t.categories.own_situation} · {t.stepsCount(r.steps.length)}
-                    </p>
-                  </div>
-                  <ChevronRight size={18} className="text-slt shrink-0" aria-hidden="true" />
-                </Card>
-              </li>
-            ))}
-          </ul>
+          <>
+            <SectionLabel>{t.listLabel}</SectionLabel>
+            <ul className="flex flex-col gap-3 mb-6">
+              {routines.map(r => (
+                <li key={r.id}>
+                  <RoutineCard routine={r} t={t} onOpen={() => setView({ name: 'detail', id: r.id })} />
+                </li>
+              ))}
+            </ul>
+          </>
         )}
 
         {atLimit ? (
           <p className="text-caption text-slt text-center">{t.limitReached(limit)}</p>
         ) : (
-          <Button type="button" onClick={() => setView({ name: 'build', id: null })} className="w-full">
+          <button
+            type="button"
+            onClick={() => setView({ name: 'build', id: null })}
+            className="w-full min-h-[64px] flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-brand-500/50 text-brand-500 font-semibold hover:bg-brand-500/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+          >
             <Plus size={18} aria-hidden="true" />
             {t.newRoutine}
-          </Button>
+          </button>
         )}
       </main>
     </div>
