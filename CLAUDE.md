@@ -82,7 +82,7 @@ All require auth (JWT via `authenticate` → `req.userId`) except where marked. 
 | GET /api/achievements/me | Earned badges | yes | no |
 | GET /api/drills/today · POST /complete | Daily drill (orphaned, no client) | yes | no |
 | GET/POST /api/ritual/me | Legacy single ritual (no current UI caller — kept for cached old clients; /ritual uses /api/routines since Ritual PR 3); saves are safety-screened first (flagged → 422 + guidance, nothing written); after import, saves also update the linked Routine | yes | no |
-| GET/POST /api/routines · GET/PATCH/DELETE /:id · POST /import-legacy | Saved routines — the /ritual UI (list, builder, walkthrough) since Ritual rebuild PR 3; legacy ritual auto-imported once per session; no AI | yes | no |
+| GET/POST /api/routines · GET/PATCH/DELETE /:id · POST /import-legacy | Saved routines — the /ritual UI (list, builder, detail with use-tips + "Talk to Arjun" prefill; no walkthrough) since Ritual rebuild PR 3; legacy ritual auto-imported once per session; no AI | yes | no |
 | POST/GET /api/debrief | Match review + AI insight | yes | **no (leak)** |
 | POST /api/games/xp | Record GameSession +10 XP | yes | no |
 | GET /api/profile-intro | AI profile intro (cached) | yes | **no (leak)** |
