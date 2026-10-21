@@ -10,7 +10,7 @@
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom';
 
 const authState = { user: { id: 'u1', onboardingDone: true }, token: 'test-token', language: 'en', updateUser: vi.fn() };
 vi.mock('../src/contexts/AuthContext', () => ({ useAuth: () => authState }));
@@ -239,8 +239,37 @@ describe('RitualPage — routines', () => {
     expect(screen.getByText('“Sharp”')).toBeTruthy();
     await user.click(screen.getByRole('button', { name: t.finish }));
     expect(screen.getByText(t.doneTitle)).toBeTruthy();
+    expect(screen.getByText(new RegExp(t.useWhen.session_preparation))).toBeTruthy();
+    expect(screen.getByText(t.arjunTitle)).toBeTruthy();
     await user.click(screen.getByRole('button', { name: t.doneBack }));
     expect(screen.getByRole('button', { name: t.start })).toBeTruthy();
+  });
+
+  test('"Talk to Arjun" opens Coach with the routine pre-filled, not sent', async () => {
+    mockApi({ 'GET /api/routines': json(listBody([routine()])) });
+    function CoachProbe() {
+      const { state } = useLocation();
+      return <pre data-testid="coach-probe">{state?.prefillMsg}</pre>;
+    }
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={['/ritual']}>
+        <Routes>
+          <Route path="/ritual" element={<RitualPage />} />
+          <Route path="/coaching" element={<CoachProbe />} />
+        </Routes>
+      </MemoryRouter>
+    );
+    await user.click(await screen.findByRole('button', { name: /Before I bat/ }));
+    await user.click(screen.getByRole('button', { name: t.start }));
+    await user.click(screen.getByRole('button', { name: t.nextStep }));
+    await user.click(screen.getByRole('button', { name: t.finish }));
+    await user.click(screen.getByRole('link', { name: t.askArjun }));
+
+    expect(screen.getByTestId('coach-probe').textContent).toBe(
+      t.arjunPrefill('Before I bat', t.categories.session_preparation, '1. Two slow breaths\n2. Say my word')
+    );
+    expect(calls('POST', '/api/chat/message')).toHaveLength(0);
   });
 
   test('deleting asks for confirmation, then removes the routine from the list', async () => {
@@ -294,7 +323,7 @@ test('English and Hindi ritual copy have the same keys', () => {
   const en = translations.en.ritual;
   const hi = translations.hi.ritual;
   expect(keys(hi)).toEqual(keys(en));
-  for (const k of ['categories', 'categoryHints']) {
+  for (const k of ['categories', 'categoryHints', 'useWhen']) {
     expect(keys(hi[k])).toEqual(keys(en[k]));
   }
   expect(hi.stepExamples).toHaveLength(en.stepExamples.length);

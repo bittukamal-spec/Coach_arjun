@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useId } from 'react';
-import { Trophy, ChevronRight, Plus } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Trophy, ChevronRight, Plus, Lightbulb, MessageCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
@@ -239,7 +240,17 @@ function Builder({ initial, onSubmit, onCancel, t }) {
 
 // ── Walkthrough ───────────────────────────────────────────────────────────────
 
-function Walkthrough({ steps, t, onFinish }) {
+// The athlete's routine as a draft Coach message. It only pre-fills the
+// Coach input (the existing prefillMsg hand-off); nothing is sent until the
+// athlete sends it, and it then goes through the normal chat safety path.
+function arjunDraft(routine, t) {
+  const steps = routine.steps.map((s, i) => `${i + 1}. ${s.instruction}`).join('\n');
+  const category = t.categories[routine.category] || t.categories.own_situation;
+  return t.arjunPrefill(routineTitle(routine, t), category, steps);
+}
+
+function Walkthrough({ routine, t, onFinish }) {
+  const { steps } = routine;
   const [stepIdx, setStepIdx] = useState(0);
   const [done, setDone] = useState(false);
 
@@ -253,11 +264,44 @@ function Walkthrough({ steps, t, onFinish }) {
 
   if (done) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center text-center px-8 py-16 animate-fade-in">
-        <div className="mb-6"><Trophy size={56} className="text-fire-500 mx-auto" aria-hidden="true" /></div>
-        <h2 className="text-2xl font-bold text-ink mb-3">{t.doneTitle}</h2>
-        <p className="text-slt mb-10 max-w-xs">{t.doneSub}</p>
-        <Button type="button" onClick={onFinish} className="px-10">{t.doneBack}</Button>
+      <div className="flex-1 flex flex-col items-center px-page py-10 animate-fade-in">
+        <div className="max-w-lg w-full mx-auto">
+          <div className="text-center mb-8">
+            <Trophy size={48} className="text-fire-500 mx-auto mb-4" aria-hidden="true" />
+            <h2 className="text-2xl font-bold text-ink">{t.doneTitle}</h2>
+          </div>
+
+          <Card className="p-4 mb-3">
+            <div className="flex items-start gap-3">
+              <Lightbulb size={20} className="text-brand-500 shrink-0 mt-0.5" aria-hidden="true" />
+              <div>
+                <p className="text-body font-semibold text-ink mb-1">{t.tipTitle}</p>
+                <p className="text-sm text-slt leading-relaxed">
+                  {t.useWhen[routine.category] || t.useWhen.own_situation} {t.practiseTip}
+                </p>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-4 mb-8">
+            <div className="flex items-start gap-3">
+              <MessageCircle size={20} className="text-brand-500 shrink-0 mt-0.5" aria-hidden="true" />
+              <div className="min-w-0">
+                <p className="text-body font-semibold text-ink mb-1">{t.arjunTitle}</p>
+                <p className="text-sm text-slt leading-relaxed mb-3">{t.arjunBody}</p>
+                <Link
+                  to="/coaching"
+                  state={{ prefillMsg: arjunDraft(routine, t) }}
+                  className="inline-flex items-center justify-center min-h-[44px] px-4 rounded-[14px] border border-brand-600/40 text-brand-500 text-sm font-semibold hover:bg-brand-600/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                >
+                  {t.askArjun}
+                </Link>
+              </div>
+            </div>
+          </Card>
+
+          <Button type="button" onClick={onFinish} className="w-full">{t.doneBack}</Button>
+        </div>
       </div>
     );
   }
@@ -496,7 +540,7 @@ function RitualPage() {
     return (
       <div className="min-h-screen bg-dark-900 flex flex-col pb-20">
         <PageHeader onBack={() => setView({ name: 'detail', id: current.id })} title={routineTitle(current, t)} />
-        <Walkthrough steps={current.steps} t={t} onFinish={() => setView({ name: 'detail', id: current.id })} />
+        <Walkthrough routine={current} t={t} onFinish={() => setView({ name: 'detail', id: current.id })} />
       </div>
     );
   }
