@@ -228,6 +228,39 @@ describe('RitualPage — routines', () => {
     expect(screen.getByDisplayValue('Towel off')).toBeTruthy();
   });
 
+  test('an older backend without /suggest (404) hides the button instead of showing an error', async () => {
+    mockApi({
+      'GET /api/routines': json(listBody()),
+      'POST /api/routines/suggest': json({ error: 'not found' }, 404),
+    });
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: new RegExp(t.newRoutine) }));
+    expect(await screen.findByLabelText(t.nameLabel)).toBeTruthy();
+    await new Promise(r => setTimeout(r, 0));
+    expect(screen.queryByRole('button', { name: t.suggestBtn })).toBeNull();
+    expect(screen.queryByText(t.errSuggest)).toBeNull();
+    expect(calls('POST', '/api/routines/suggest')).toHaveLength(1);
+  });
+
+  test('a 404 on tap (backend rolled back mid-visit) hides the button with no error', async () => {
+    let n = 0;
+    mockApi({
+      'GET /api/routines': json(listBody()),
+      'POST /api/routines/suggest': () => (++n === 1 ? json({ error: 'invalid_category' }, 400) : json({}, 404)),
+    });
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: new RegExp(t.newRoutine) }));
+    await user.click(screen.getByRole('radio', { name: new RegExp(t.categories.pressure_moment) }));
+    await user.click(await screen.findByRole('button', { name: t.suggestBtn }));
+    await user.click(screen.getByRole('button', { name: t.purposes.focus }));
+    await new Promise(r => setTimeout(r, 0));
+    expect(screen.queryByRole('button', { name: t.suggestBtn })).toBeNull();
+    expect(screen.queryByText(t.suggestQuestion)).toBeNull();
+    expect(screen.queryByText(t.errSuggest)).toBeNull();
+  });
+
   test('the builder asks for a category before saving', async () => {
     mockApi({ 'GET /api/routines': json(listBody()) });
     const user = userEvent.setup();
