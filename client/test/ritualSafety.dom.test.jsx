@@ -178,7 +178,7 @@ describe('RitualPage — routines', () => {
     expect(screen.getByText(t.suggestQuestion)).toBeTruthy();
     await user.click(screen.getByRole('button', { name: t.purposes.settle }));
 
-    expect(sentSuggest).toEqual({ category: 'pressure_moment', purposeKey: 'settle', existingHabits: ['Towel off'], language: 'en' });
+    expect(sentSuggest).toEqual({ name: 'Big moment', category: 'pressure_moment', purposeKey: 'settle', existingHabits: ['Towel off'], language: 'en' });
     expect(screen.getByDisplayValue('Take one slow breath with a longer exhale')).toBeTruthy();
     expect(screen.getByDisplayValue('Choose your plan for the next action')).toBeTruthy();
     expect(screen.getByText(t.suggestedNote)).toBeTruthy();
@@ -187,6 +187,25 @@ describe('RitualPage — routines', () => {
     expect(sentSave.templateKey).toBe('pressure_moment.short.settle');
     expect(sentSave.templateVersion).toBe(1);
     expect(sentSave.steps.map(x => x.origin)).toEqual(['custom', 'suggested', 'suggested']);
+  });
+
+  test('an Arjun-written suggestion says so', async () => {
+    mockApi({
+      'GET /api/routines': json(listBody()),
+      'POST /api/routines/suggest': json({ suggestion: {
+        matchType: 'personalized', templateKey: 'repeated_moment.seconds.reset.ai', templateVersion: 1,
+        steps: [{ kind: 'reset', instruction: 'Turn away and let that ball go', cue: null, origin: 'suggested' }],
+      } }),
+    });
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: new RegExp(t.newRoutine) }));
+    await user.click(screen.getByRole('radio', { name: new RegExp(t.categories.repeated_moment) }));
+    await user.click(await screen.findByRole('button', { name: t.suggestBtn }));
+    await user.click(screen.getByRole('button', { name: t.purposes.reset }));
+    expect(await screen.findByDisplayValue('Turn away and let that ball go')).toBeTruthy();
+    expect(screen.getByText(t.suggestedNoteAi)).toBeTruthy();
+    expect(screen.queryByText(t.suggestedNote)).toBeNull();
   });
 
   test('Suggest needs a category first, and "own situation" skips the purpose question', async () => {

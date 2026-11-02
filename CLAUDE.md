@@ -73,7 +73,7 @@ Mounted in `server/src/index.js`. All need JWT (`authenticate` → `req.userId`)
 | `/api/debrief` | POST, GET | AI; Consent, no Access (UI retired → redirect) |
 | `/api/self-talk` | POST generate, save, GET cards, PATCH/DELETE cards/:id, POST cards/:id/practice | Consent + **Access** on generate |
 | `/api/body-reset` | POST arjun-note, save, GET, DELETE :id | Pressure Reset; Consent + **Access** on arjun-note |
-| `/api/routines` | GET, POST, GET/PATCH/DELETE :id, POST import-legacy, POST suggest | Ritual UI. No AI. `suggest` = deterministic rules (EN+HI), computes only. Saves are safety-screened |
+| `/api/routines` | GET, POST, GET/PATCH/DELETE :id, POST import-legacy, POST suggest | Ritual UI. Saves are safety-screened. `suggest`: rules decide the shape; Arjun words the steps from the athlete's context (`services/routines/personalizeSuggestion.js`) when entitled + consented, else rules wording; never saves; aiLimiter |
 | `/api/ritual` | GET/POST me | Legacy single ritual, no current UI caller (cached old clients); safety-screened; mirrors the linked routine |
 | `/api/games` | POST xp, POST session, GET status | Focus Lock / Reset Rally |
 | `/api/progress` · `/api/achievements` · `/api/streaks` | GET summary · GET me · POST freeze | Legacy; Progress UI retired |

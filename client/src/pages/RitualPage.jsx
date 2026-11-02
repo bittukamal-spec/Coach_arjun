@@ -27,10 +27,11 @@ import { CardWaves, AthleteMark } from '../components/visuals/CardArt';
 // Saves can be safety-flagged: the server then answers 200 with
 // { safetyFlag: 'needs_support', guidance } and writes nothing. The page
 // shows the standard guidance card and keeps the athlete's text in place.
-// No AI. "Suggest steps for me" (PR 4) asks POST /api/routines/suggest,
-// which runs the deterministic PR 2 rules: one optional question (what the
-// routine should help with), the athlete's own typed steps kept first and
-// verbatim, suggested steps filling the rest. The athlete edits from there.
+// "Suggest steps for me" (PR 4/5) asks POST /api/routines/suggest: the
+// deterministic PR 2 rules decide the shape, and Arjun words the steps from
+// the athlete's own context when allowed (rules wording otherwise). One
+// optional question (what the routine should help with); the athlete's own
+// typed steps stay first and verbatim. The athlete edits from there.
 //
 // The builder is deliberately plain (MVP spec §4.7: no complex routine
 // builder): a name, when it's for, and up to 5 one-line steps. Steps typed
@@ -142,6 +143,8 @@ function Builder({ initial, onSubmit, onSuggest, onCancel, t }) {
     const own = steps.filter(s => s.instruction.trim() && !(s.origin === 'suggested' && s.instruction === s.loadedInstruction));
     try {
       const suggestion = await onSuggest({
+        // The name ("After each bad delivery") tells Arjun the moment.
+        name: name.trim() || undefined,
         category,
         purposeKey: purposeKey || undefined,
         existingHabits: own.map(s => s.instruction.trim()).slice(0, MAX_STEPS),
@@ -151,7 +154,7 @@ function Builder({ initial, onSubmit, onSuggest, onCancel, t }) {
       )));
       setTemplate({ templateKey: suggestion.templateKey, templateVersion: suggestion.templateVersion });
       setAskPurpose(false);
-      setSuggestNote(true);
+      setSuggestNote(suggestion.matchType === 'personalized' ? 'ai' : 'rules');
     } catch (err) {
       // An older backend without /suggest: the page hides the button
       // (onSuggest becomes null), so there is nothing to apologise for.
@@ -278,7 +281,9 @@ function Builder({ initial, onSubmit, onSuggest, onCancel, t }) {
         )}
 
         {suggestNote && (
-          <p role="status" className="text-caption text-slt mb-3">{t.suggestedNote}</p>
+          <p role="status" className="text-caption text-slt mb-3">
+            {suggestNote === 'ai' ? t.suggestedNoteAi : t.suggestedNote}
+          </p>
         )}
 
         <ol className="flex flex-col gap-3">
