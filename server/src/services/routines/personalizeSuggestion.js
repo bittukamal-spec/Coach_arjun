@@ -61,10 +61,18 @@ function clip(value, max = MAX_CONTEXT_FIELD) {
   return t.length > max ? `${t.slice(0, max)}…` : t;
 }
 
-function stripFences(text) {
-  let raw = String(text || '').trim();
-  if (raw.startsWith('```')) raw = raw.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
-  return raw;
+// The JSON object in a model reply, tolerating code fences and any prose
+// the model puts before or after it. Null when there is none.
+function extractJson(text) {
+  const raw = String(text || '');
+  const start = raw.indexOf('{');
+  const end = raw.lastIndexOf('}');
+  if (start === -1 || end <= start) return null;
+  try {
+    return JSON.parse(raw.slice(start, end + 1));
+  } catch {
+    return null;
+  }
 }
 
 const SYSTEM_PROMPT = `You are Arjun, a mental performance coach for young Indian athletes. You write the steps of a short personal routine the athlete will use in a real moment of their sport.
@@ -132,35 +140,46 @@ function buildUserPrompt({ input, window, room, ruleKinds, context, language }) 
   return lines.join('\n');
 }
 
-// Returns validated steps or null. Never throws.
-function parseSteps(text, { room, language, habits }) {
-  let parsed;
-  try {
-    parsed = JSON.parse(stripFences(text));
-  } catch {
-    return null;
-  }
-  const raw = Array.isArray(parsed?.steps) ? parsed.steps : null;
-  if (!raw || raw.length === 0) return null;
+// Validates a model reply. Returns { steps } or { reason } — the reason is a
+// fixed code for the fallback log, never model or athlete text. A single
+// unusable step (too long, wrong script, duplicate) is skipped rather than
+// discarding the whole reply. Never throws.
+function parseStepsDetailed(text, { room, language, habits }) {
+  const parsed = extractJson(text);
+  if (!parsed) return { reason: 'invalid_json' };
+  const raw = Array.isArray(parsed.steps) ? parsed.steps : null;
+  if (!raw || raw.length === 0) return { reason: 'no_steps' };
   const norm = s => s.trim().replace(/\s+/g, ' ').toLowerCase();
   const seen = new Set((habits || []).map(norm));
   const out = [];
-  for (const step of raw.slice(0, room)) {
-    if (!step || typeof step !== 'object') return null;
-    const instruction = typeof step.instruction === 'string' ? step.instruction.replace(/\s+/g, ' ').trim() : '';
-    if (instruction.length < 2 || instruction.length > LIMITS.INSTRUCTION) return null;
-    if (language === 'hi' && !/[ऀ-ॿ]/.test(instruction)) return null;
-    if (seen.has(norm(instruction))) continue;
+  let skipped = null;
+  for (const step of raw) {
+    if (out.length >= room) break;
+    const instruction = step && typeof step.instruction === 'string' ? step.instruction.replace(/\s+/g, ' ').trim() : '';
+    if (instruction.length < 2) { skipped = 'empty_step'; continue; }
+    if (instruction.length > LIMITS.INSTRUCTION) { skipped = 'step_too_long'; continue; }
+    if (language === 'hi' && !/[ऀ-ॿ]/.test(instruction)) { skipped = 'not_devanagari'; continue; }
+    if (seen.has(norm(instruction))) { skipped = 'duplicate_step'; continue; }
     seen.add(norm(instruction));
     const kind = STEP_KINDS.includes(step.kind) ? step.kind : 'custom';
     out.push({ kind, instruction, cue: null, origin: 'suggested' });
   }
-  return out.length ? out : null;
+  return out.length ? { steps: out } : { reason: skipped || 'no_steps' };
+}
+
+function parseSteps(text, opts) {
+  return parseStepsDetailed(text, opts).steps || null;
+}
+
+// One structured line per fallback, so Railway logs show WHY the rules'
+// wording was used. Codes only: no athlete or model text is ever logged.
+function logFallback(reason, extra = {}) {
+  console.log(JSON.stringify({ event: 'routine_suggest_fallback', reason, ...extra }));
 }
 
 async function defaultCallModel({ system, user }) {
   const Anthropic = require('@anthropic-ai/sdk');
-  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, timeout: MODEL_TIMEOUT_MS, maxRetries: 0 });
+  const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, timeout: MODEL_TIMEOUT_MS, maxRetries: 1 });
   const message = await anthropic.messages.create({
     model: process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001',
     max_tokens: 400,
@@ -177,24 +196,27 @@ function createPersonalizeSuggestion({ loadContext, callModel = defaultCallModel
     try {
       const habits = Array.isArray(input.existingHabits) ? input.existingHabits : [];
       const room = (WINDOW_STEP_LIMIT[rule.timeWindow] || 0) - habits.length;
-      if (room <= 0) return null;
+      if (room <= 0) { logFallback('no_room'); return null; }
 
       // Athlete-written text is screened before anything reaches the model.
-      if (screenSafetyFields(input.name || null, ...habits).flagged) return null;
+      if (screenSafetyFields(input.name || null, ...habits).flagged) { logFallback('input_flagged'); return null; }
 
       const context = loadContext ? await loadContext(userId, language) : null;
-      if (!context || !context.aiAllowed) return null;
+      if (!context) { logFallback('no_context'); return null; }
+      if (!context.aiAllowed) { logFallback('ai_not_allowed'); return null; }
 
       const ruleKinds = rule.steps.filter(s => s.origin === 'suggested').map(s => s.kind);
       const user = buildUserPrompt({ input, window: rule.timeWindow, room, ruleKinds, context, language });
       const text = await callModel({ system: SYSTEM_PROMPT, user });
-      const steps = parseSteps(text, { room, language, habits });
-      if (!steps) return null;
+      const parsed = parseStepsDetailed(text, { room, language, habits });
+      if (!parsed.steps) { logFallback(parsed.reason, { replyLength: String(text || '').length }); return null; }
+      const { steps } = parsed;
 
       // The model's own words are screened too.
-      if (screenSafetyFields(...steps.map(s => s.instruction)).flagged) return null;
+      if (screenSafetyFields(...steps.map(s => s.instruction)).flagged) { logFallback('output_flagged'); return null; }
 
       const ownSteps = rule.steps.filter(s => s.origin === 'existing');
+      console.log(JSON.stringify({ event: 'routine_suggest_personalized', steps: steps.length }));
       return {
         ...rule,
         matchType: 'personalized',
@@ -203,6 +225,7 @@ function createPersonalizeSuggestion({ loadContext, callModel = defaultCallModel
         reasons: [...rule.reasons, 'personalized'],
       };
     } catch (err) {
+      logFallback('error', { name: err?.name || null, status: err?.status || null });
       console.error('[routines] personalize failed, using rules:', err?.message);
       return null;
     }
@@ -280,6 +303,7 @@ module.exports = {
   createLoadAthleteContext,
   buildUserPrompt,
   parseSteps,
+  parseStepsDetailed,
   isUnderAgeWithoutConsent,
   SYSTEM_PROMPT,
 };

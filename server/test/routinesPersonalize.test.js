@@ -6,7 +6,7 @@ const assert = require('node:assert/strict');
 
 const { suggestRoutine } = require('../src/services/routines/suggestRoutine');
 const {
-  createPersonalizeSuggestion, buildUserPrompt, parseSteps, isUnderAgeWithoutConsent,
+  createPersonalizeSuggestion, buildUserPrompt, parseSteps, parseStepsDetailed, isUnderAgeWithoutConsent,
 } = require('../src/services/routines/personalizeSuggestion');
 
 const rule = (input) => suggestRoutine(input).suggestion;
@@ -110,13 +110,46 @@ test('model errors, bad JSON, empty, over-long or unsafe output all fall back to
   }
 });
 
+test('a reply wrapped in prose or code fences is still used', async () => {
+  for (const reply of [`Here is your routine:\n${REPLY}\nGood luck!`, '```json\n' + REPLY + '\n```']) {
+    const { personalize } = setup({ reply });
+    const out = await personalize({ userId: 'u1', input: INPUT, rule: rule(INPUT), language: 'en' });
+    assert.equal(out?.matchType, 'personalized', reply.slice(0, 20));
+  }
+});
+
+test('one unusable step is skipped instead of discarding the whole reply', () => {
+  const text = JSON.stringify({ steps: [
+    { kind: 'reset', instruction: 'x'.repeat(121) },
+    { kind: 'cue', instruction: 'Say "Next ball"' },
+  ] });
+  assert.deepEqual(parseStepsDetailed(text, { room: 2, language: 'en', habits: [] }).steps.map(s => s.instruction), ['Say "Next ball"']);
+  assert.deepEqual(parseStepsDetailed('no json here', { room: 2, language: 'en', habits: [] }), { reason: 'invalid_json' });
+  assert.deepEqual(parseStepsDetailed(JSON.stringify({ steps: [{ instruction: 'x'.repeat(121) }] }), { room: 2, language: 'en', habits: [] }), { reason: 'step_too_long' });
+});
+
+test('every fallback logs a reason code and never athlete or model text', async () => {
+  const logs = [];
+  const orig = console.log;
+  console.log = (line) => logs.push(String(line));
+  try {
+    await setup({ context: { aiAllowed: false }, reply: REPLY }).personalize({ userId: 'u1', input: INPUT, rule: rule(INPUT), language: 'en' });
+    await setup({ reply: 'secret athlete words' }).personalize({ userId: 'u1', input: INPUT, rule: rule(INPUT), language: 'en' });
+  } finally {
+    console.log = orig;
+  }
+  const events = logs.map(l => JSON.parse(l));
+  assert.deepEqual(events.map(e => e.reason), ['ai_not_allowed', 'invalid_json']);
+  assert.ok(logs.every(l => !l.includes('secret') && !l.includes('After each bad delivery')));
+});
+
 test('Hindi requests need Devanagari output; English-only replies fall back', () => {
   assert.equal(parseSteps(REPLY, { room: 2, language: 'hi', habits: [] }), null);
   const hi = JSON.stringify({ steps: [{ kind: 'reset', instruction: 'बॉलर से मुड़ो और वो बॉल जाने दो' }] });
   assert.equal(parseSteps(hi, { room: 2, language: 'hi', habits: [] }).length, 1);
 });
 
-test('parseSteps strips code fences, caps to the room, drops duplicates of habits, coerces unknown kinds', () => {
+test('parseSteps strips code fences, fills up to the room, drops duplicates of habits, coerces unknown kinds', () => {
   const text = '```json\n' + JSON.stringify({ steps: [
     { kind: 'reset', instruction: 'Towel off' },
     { kind: 'teleport', instruction: 'Pick your target' },
@@ -124,7 +157,9 @@ test('parseSteps strips code fences, caps to the room, drops duplicates of habit
     { kind: 'cue', instruction: 'Extra step' },
   ] }) + '\n```';
   const steps = parseSteps(text, { room: 3, language: 'en', habits: ['towel  off'] });
-  assert.deepEqual(steps.map(s => [s.kind, s.instruction]), [['custom', 'Pick your target'], ['cue', 'Say Sharp']]);
+  // The skipped duplicate frees its slot for the next usable step.
+  assert.deepEqual(steps.map(s => [s.kind, s.instruction]), [['custom', 'Pick your target'], ['cue', 'Say Sharp'], ['cue', 'Extra step']]);
+  assert.equal(parseSteps(text, { room: 1, language: 'en', habits: [] }).length, 1);
 });
 
 test('guardian consent: under-18 without consent is not allowed AI; adults and consented minors are', () => {
