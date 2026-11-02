@@ -292,3 +292,36 @@ test('POST /suggest rejects bad input with a stable error, and requires auth', a
     assert.equal((await call('POST', '/suggest', { category: 'pressure_moment' }, null)).status, 401);
   });
 });
+
+// ── POST /suggest with personalisation (Ritual PR 5) ────────────────────
+
+test('POST /suggest returns the personalised suggestion when personalize succeeds, with name passed through', async () => {
+  const seen = [];
+  const personalize = async (args) => {
+    seen.push(args);
+    return { ...args.rule, matchType: 'personalized', templateKey: `${args.rule.templateKey}.ai` };
+  };
+  await withApp({ store: stubStore(), activity: spyActivity(), personalize }, async (call) => {
+    const res = await call('POST', '/suggest', { category: 'pressure_moment', purposeKey: 'settle', name: 'Before my penalty', language: 'hi' }, 'athlete-9');
+    assert.equal(res.status, 200);
+    assert.equal(res.body.suggestion.matchType, 'personalized');
+  });
+  assert.equal(seen[0].userId, 'athlete-9');
+  assert.equal(seen[0].input.name, 'Before my penalty');
+  assert.equal(seen[0].language, 'hi');
+});
+
+test('POST /suggest falls back to the rules when personalize returns null or throws, and never personalises bad input', async () => {
+  for (const personalize of [async () => null, async () => { throw new Error('boom'); }]) {
+    await withApp({ store: stubStore(), activity: spyActivity(), personalize }, async (call) => {
+      const res = await call('POST', '/suggest', { category: 'pressure_moment', purposeKey: 'settle' });
+      assert.equal(res.status, 200);
+      assert.equal(res.body.suggestion.matchType, 'specific');
+    });
+  }
+  let called = false;
+  await withApp({ store: stubStore(), activity: spyActivity(), personalize: async () => { called = true; return null; } }, async (call) => {
+    assert.equal((await call('POST', '/suggest', {})).status, 400);
+  });
+  assert.equal(called, false);
+});
