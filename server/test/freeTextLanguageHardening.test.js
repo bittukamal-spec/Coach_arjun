@@ -213,7 +213,8 @@ test('the internal hint note is system-context only and carries no athlete ident
   assert.equal(buildLanguageHintSection({ highConfidence: [] }), '', 'no note when there is no hint');
 
   // Appended to the SYSTEM prompt only — never a message, never streamed.
-  assert.match(chatSrc, /\+ buildLanguageHintSection\(languageHints\);/);
+  assert.match(chatSrc, /\+ buildLanguageHintSection\(languageHints\)\s*(;|\+ buildClarificationSection\(clarification\);)/);
+  assert.doesNotMatch(chatSrc, /role: 'user', content: buildClarificationSection/);
   assert.doesNotMatch(chatSrc, /role: 'user', content: buildLanguageHintSection/);
 });
 

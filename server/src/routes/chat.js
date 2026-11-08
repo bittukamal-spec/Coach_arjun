@@ -14,6 +14,7 @@ const {
   loadCoachingContext, commitCoachingTransition, getRetryMessage, pickClarityFallback,
   CoachingStateConflictError, validateAthleteText,
   getSportLanguageHints, buildLanguageHintSection, describeHints,
+  detectClarificationRequest, buildClarificationSection,
 } = require('../services/coaching');
 const { priorityPhrase } = require('../profile/ruleEngine');
 const loadReflectionContext = require('../services/mindJournal/loadReflectionContext');
@@ -403,7 +404,7 @@ Never write [SUGGEST:...] or [APP:...] tags — reply chips no longer exist. End
   const langInstruction =
     user.language === 'hi'
       ? 'CRITICAL: Respond ONLY in Hindi (Devanagari script). Never switch to English unless the athlete writes in English first. This rule applies to ALL text you write. You may use common English sports terms Indian athletes regularly use (e.g. "focus", "confidence", "performance").'
-      : 'CRITICAL: Respond ONLY in English. Never switch to Hindi unless the athlete writes in Hindi first. This rule applies to ALL text you write. You may occasionally weave in a culturally resonant Hindi phrase (like "जय हो") where it feels truly natural, but the sentence itself must be English.';
+      : 'CRITICAL: Respond ONLY in English, or in Hinglish written in English letters when the athlete writes that way. Match the style of the athlete\'s latest message: simple English by default; if they write Hinglish (Hindi words in English letters, e.g. "kal match hai, nervous hoon"), reply in natural, warm Hinglish in English letters, the way a kind Indian coach texts a teenager. Never use Devanagari script unless the athlete writes in Devanagari. Keep Hinglish simple and everyday ("koi baat nahi", "theek hai", "chal, simple mein samjhata hoon"); never slang that sounds bossy, rude or mocking. Bad: "Bol na clearly." Good: "Koi baat nahi, simple mein batata hoon." A very short reply such as "matlab?", "kya?", "samjha nahi", "what?" or "huh" means the athlete did not understand your last message: re-explain that point more simply, in their style. Never ask what they meant by it and never tell them to be clearer. This rule applies to ALL text you write.';
 
   // ── Check-in summary ──────────────────────────────────────────────────────
   let checkInSection;
@@ -714,6 +715,7 @@ Tone: calm, direct, sport-specific, practical, older-brother energy. Not a thera
 Good lines: "One bad moment is not your level." / "Next action." / "Your body is rushing. Reset first." / "Pick one cue for the next set." / "Don't fix everything today." / "Train this, then test it in the next session."
 Never say: "Great question!", "I understand how you feel", "Of course!", "Absolutely!", "That's totally valid", "champion mindset", "never give up", "believe in yourself", "stay positive", "unlock your potential", anything resembling a mental-toughness lecture, "cricket is my specialty", "I live in cricket", or a generic AI disclaimer.
 Never clinical or therapy framing. Use the athlete's name occasionally, not every message. Hinglish is natural when it lands better than English.
+Direct never means curt: never order the athlete to explain themselves better, never mock or question their words, and stay warm when they are confused.
 
 ## Human-Like Correction
 If you realize you made a wrong assumption (wrong sport, wrong context, outdated memory), correct yourself naturally and keep going — don't get defensive, don't over-apologize.
@@ -1259,8 +1261,15 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
       console.log('[chat] language_hints', JSON.stringify(describeHints(languageHints)));
     }
 
+    // "matlab?", "samjha nahi", "what?" — the athlete did not understand the
+    // last reply. Deterministic and internal only, like the hints above:
+    // appended to the SYSTEM prompt, never streamed or persisted.
+    const clarification = detectClarificationRequest(content);
+    if (clarification) console.log('[chat] clarification_request', JSON.stringify({ kind: clarification.kind }));
+
     const systemPrompt = buildSystemPrompt(user, recentCheckIns, memories, sessionType, { ...promptExtra, coachingContext, reflectionContext, startingProfile, currentFocus })
-      + buildLanguageHintSection(languageHints);
+      + buildLanguageHintSection(languageHints)
+      + buildClarificationSection(clarification);
     const loop = await runBufferedToolLoop({
       anthropic,
       model,

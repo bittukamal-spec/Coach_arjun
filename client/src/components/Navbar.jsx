@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../hooks/useTheme';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { translations } from '../i18n/translations';
+import { HINDI_ENABLED } from '../i18n/languages';
 import { ArjunWordmark } from './ArjunLogo';
 import { User, ChevronDown, Bell } from 'lucide-react';
 
@@ -92,30 +93,32 @@ function Navbar() {
 
             {menuOpen && (
               <div className="absolute right-0 top-full mt-2 bg-dark-800 border border-dark-600 rounded-2xl shadow-card w-52 z-50 overflow-hidden animate-fade-in">
-                {/* Language toggle */}
-                <div className="px-4 py-3 border-b border-dark-700">
-                  <p className="text-[11px] text-slt font-medium mb-2">
-                    {t.language}
-                  </p>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => { if (language !== 'en') toggleLanguage(); setMenuOpen(false); }}
-                      className={`flex-1 py-1 text-xs font-semibold rounded-lg transition-colors ${
-                        language === 'en' ? 'bg-brand-500 text-white' : 'bg-dark-700 text-slt hover:text-ink'
-                      }`}
-                    >
-                      EN
-                    </button>
-                    <button
-                      onClick={() => { if (language !== 'hi') toggleLanguage(); setMenuOpen(false); }}
-                      className={`flex-1 py-1 text-xs font-semibold rounded-lg transition-colors ${
-                        language === 'hi' ? 'bg-brand-500 text-white' : 'bg-dark-700 text-slt hover:text-ink'
-                      }`}
-                    >
-                      हि
-                    </button>
+                {/* Language toggle — hidden while Hindi is switched off (i18n/languages.js) */}
+                {HINDI_ENABLED && (
+                  <div className="px-4 py-3 border-b border-dark-700">
+                    <p className="text-[11px] text-slt font-medium mb-2">
+                      {t.language}
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => { if (language !== 'en') toggleLanguage(); setMenuOpen(false); }}
+                        className={`flex-1 py-1 text-xs font-semibold rounded-lg transition-colors ${
+                          language === 'en' ? 'bg-brand-500 text-white' : 'bg-dark-700 text-slt hover:text-ink'
+                        }`}
+                      >
+                        EN
+                      </button>
+                      <button
+                        onClick={() => { if (language !== 'hi') toggleLanguage(); setMenuOpen(false); }}
+                        className={`flex-1 py-1 text-xs font-semibold rounded-lg transition-colors ${
+                          language === 'hi' ? 'bg-brand-500 text-white' : 'bg-dark-700 text-slt hover:text-ink'
+                        }`}
+                      >
+                        हि
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
                 {/* Theme toggle */}
                 <div className="px-4 py-3 border-b border-dark-700">
                   <p className="text-[11px] text-slt font-medium mb-2">

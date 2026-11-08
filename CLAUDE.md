@@ -10,6 +10,7 @@ Read at the start of every session. Verified against the code on **2026-10-21** 
 - Live URL: `coacharjun.in`. Currently in a **free pilot** (founder grants pilot access per athlete).
 - Solo non-technical founder. India market. ₹299/month after the pilot.
 - Explain things to the founder in plain language, short, with tables/lists.
+- **Language (decided Nov 2026): English-first, India only.** Screens are English; Coach understands Hinglish and replies in Hinglish (English letters) when the athlete writes that way. Hindi UI is switched off via `client/src/i18n/languages.js` (`HINDI_ENABLED = false`) — Hindi strings stay in translations.js but **new features need English copy only**; keep Hindi keys working only where tests require parity. Safety detection stays Hinglish-aware.
 
 ## 2. TECH STACK
 
@@ -31,7 +32,7 @@ Read at the start of every session. Verified against the code on **2026-10-21** 
 - `server/prisma/schema.prisma` — 38 models (additive changes only)
 - `server/src/index.js` — all route mounts, CORS allowlist, starts the push scheduler
 - `client/src/App.jsx` — all routes + redirects of retired pages
-- `client/src/i18n/translations.js` — every UI string, EN + HI (~4,400 lines — grep the namespace first)
+- `client/src/i18n/translations.js` — every UI string, EN + HI (~4,400 lines — grep the namespace first). `client/src/i18n/languages.js` — `HINDI_ENABLED` switch
 - `client/src/components/ui/` — shared primitives: `Button`, `Card`, `PageHeader`, `SectionLabel`, `SaveStatus`
 - `client/src/components/HelplineList.jsx` + `client/src/constants/helplines.js` — iCall 9152987821 · KIRAN 1800-599-0019 · 112
 - `client/tailwind.config.js` / `client/src/index.css` — design tokens + theme system
@@ -132,6 +133,7 @@ Retired → redirects: `/bounce-back`, `/before-you-play`, `/games` → `/train`
 - Main chat: `POST /api/chat/message` runs a **buffered** Anthropic tool loop (`services/coaching/bufferedToolLoop.js`, non-streaming, ≤1 coaching-state transition per turn), then sends the reply over SSE; the client reveals it progressively.
 - Coaching loop (spec §2): diagnose → **one** prescription at a time → follow-up on next open. Tools/state in `services/coaching/`.
 - Quick replies come as structured data from the coaching tools (SSE `quick_replies` event). `[SUGGEST:]` text tags are retired. `[APP:tool]` tags still render as tool cards (`parseArjunMessage.js`).
+- Language: English by default, Hinglish (English letters) when the athlete writes Hinglish, never Devanagari unless they do (`langInstruction` in `buildSystemPrompt`). `services/coaching/clarificationHint.js` detects short "didn't understand" replies ("matlab?", "samjha nahi", "what?") and appends a system note to re-explain simply. Manual checks: `docs/HINGLISH-CHECKS.md`.
 - Every message is first screened by the deterministic safety screen (`screenSafetyText`) before any AI call; flagged → fixed guidance + `SafetyEvent`, no AI.
 - Quick chat: **dormant** — server code remains (minimal prompt, own safety blocks) but the client never enables it.
 - Context: last 3 ToolReports from the past 7 days (excluding debrief), memories, plan, focus cards, coaching context. Memory extraction is a separate `messages.create`.
@@ -175,7 +177,7 @@ Fixed since the July audit: quick-chat safety (now dormant + own safety blocks),
 - Any athlete-written text that is saved or sent to AI goes through the deterministic safety screen first (persist nothing when flagged; record a `SafetyEvent`; return fixed guidance).
 - ToolReports: `prisma.toolReport.create({ toolType, summary, arjunResponse, details: JSON.stringify({...}) })` on tool completion.
 - XP: `awardXP(userId, amount)` in gamification.js (legacy inline `xp: { increment }` remains in chat.js/debrief.js). XP is invisible to athletes — build no new gamification.
-- Translations: `translations[language].namespace.key` — every new string in BOTH `en` and `hi`; no hardcoded copy in JSX.
+- Translations: `translations[language].namespace.key`; no hardcoded copy in JSX. English-first: new strings need `en`; add `hi` only where a parity test requires it (Hindi UI is off).
 - Frontend fetch: `apiFetch(path, init)` → raw Response.
 - New page: `client/src/pages/`, `<Route>` in App.jsx (BottomNav for library pages, none for full-screen flows), strings in translations.js.
 - Tests: `cd client && npm test` (node:test source checks + vitest DOM), `cd server && npm test` (node:test). Build: `cd client && npm run build` must pass before reporting done.

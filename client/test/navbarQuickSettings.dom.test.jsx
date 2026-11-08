@@ -106,7 +106,7 @@ describe('Navbar — avatar/chevron discoverability', () => {
   test('the avatar + chevron are one tap target — clicking anywhere on the button opens the menu', async () => {
     render(<App />);
     await openMenu();
-    expect(await screen.findByText('Language')).toBeTruthy();
+    expect(await screen.findByText('Theme')).toBeTruthy();
   });
 
   test('aria-expanded reflects open/closed state', async () => {
@@ -294,7 +294,7 @@ describe('Navbar — Notifications is a direct toggle', () => {
     await screen.findByText('Something went wrong. Please try again.');
     expect(toggle.checked).toBe(false);
     // The rest of the menu is still there — nothing closed or broke.
-    expect(screen.getByText('Language')).toBeTruthy();
+    expect(screen.getByText('Theme')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Settings' })).toBeTruthy();
   });
 
@@ -313,7 +313,7 @@ describe('Navbar — Notifications is a direct toggle', () => {
     await openMenu();
     const toggle = await screen.findByRole('switch', { name: 'Notifications' });
     await waitFor(() => expect(toggle.checked).toBe(false));
-    expect(screen.getByText('Language')).toBeTruthy();
+    expect(screen.getByText('Theme')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Settings' })).toBeTruthy();
   });
 });
@@ -329,22 +329,23 @@ describe('Navbar — EN/HI parity for the Notifications row', () => {
     await waitFor(() => expect(toggle.checked).toBe(true));
   });
 
-  test('existing Language/Theme translated labels remain correct in Hindi', async () => {
+  test('existing Theme translated label remains correct in Hindi', async () => {
     authState.language = 'hi';
     render(<App />);
     await openMenu();
-    expect(await screen.findByText('भाषा')).toBeTruthy();
-    expect(screen.getByText('थीम')).toBeTruthy();
+    expect(await screen.findByText('थीम')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'सेटिंग्स' })).toBeTruthy();
   });
 });
 
 describe('Navbar — existing Language/Theme behaviour regression', () => {
-  test('language toggle still works', async () => {
+  test('the language toggle is hidden while Hindi is switched off (i18n/languages.js)', async () => {
     render(<App />);
-    const { user } = await openMenu();
-    await user.click(screen.getByRole('button', { name: 'हि' }));
-    expect(authState.toggleLanguage).toHaveBeenCalledTimes(1);
+    await openMenu();
+    expect(await screen.findByText('Theme')).toBeTruthy();
+    expect(screen.queryByText('Language')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'हि' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'EN' })).toBeNull();
   });
 
   test('theme buttons still render and are clickable', async () => {

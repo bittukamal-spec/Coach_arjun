@@ -3,6 +3,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
+import { HINDI_ENABLED } from '../i18n/languages';
 import { apiFetch } from '../api';
 import { LogOut, Trash2, ChevronRight, Shield, User, Zap, Award, Camera, Star, MessageCircle, Mail, Sparkles, Sun, MessageSquare, FileX, RefreshCw, Tag, BarChart2, Layers, Bell, ListChecks } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
@@ -613,33 +614,35 @@ function AccountPage() {
               </div>
             </div>
 
-            {/* Language */}
-            <div>
-              <label className="text-xs text-slt font-medium block mb-2">
-                {language === 'hi' ? 'कोचिंग भाषा' : 'Coaching language'}
-              </label>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => handleLanguageChange('en')}
-                  disabled={saving}
-                  className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
-                    user?.language === 'en' ? 'bg-brand-500 text-white border-brand-500' : 'bg-dark-700 text-slt border-dark-500 hover:border-brand-600'
-                  }`}
-                >
-                  English
-                </button>
-                <button
-                  onClick={() => handleLanguageChange('hi')}
-                  disabled={saving}
-                  className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
-                    user?.language === 'hi' ? 'bg-brand-500 text-white border-brand-500' : 'bg-dark-700 text-slt border-dark-500 hover:border-brand-600'
-                  }`}
-                >
-                  हिंदी
-                </button>
+            {/* Language — hidden while Hindi is switched off (i18n/languages.js) */}
+            {HINDI_ENABLED && (
+              <div>
+                <label className="text-xs text-slt font-medium block mb-2">
+                  {language === 'hi' ? 'कोचिंग भाषा' : 'Coaching language'}
+                </label>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => handleLanguageChange('en')}
+                    disabled={saving}
+                    className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
+                      user?.language === 'en' ? 'bg-brand-500 text-white border-brand-500' : 'bg-dark-700 text-slt border-dark-500 hover:border-brand-600'
+                    }`}
+                  >
+                    English
+                  </button>
+                  <button
+                    onClick={() => handleLanguageChange('hi')}
+                    disabled={saving}
+                    className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
+                      user?.language === 'hi' ? 'bg-brand-500 text-white border-brand-500' : 'bg-dark-700 text-slt border-dark-500 hover:border-brand-600'
+                    }`}
+                  >
+                    हिंदी
+                  </button>
+                </div>
+                {savedMsg && <p className="text-win-400 text-xs mt-2 text-center">{savedMsg}</p>}
               </div>
-              {savedMsg && <p className="text-win-400 text-xs mt-2 text-center">{savedMsg}</p>}
-            </div>
+            )}
 
             {profileError && <p className="text-red-400 text-xs">{profileError}</p>}
             {profileSaved && <p className="text-win-400 text-xs text-center">{profileSaved}</p>}
