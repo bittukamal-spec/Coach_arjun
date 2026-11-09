@@ -10,10 +10,12 @@ that fails and share it with Claude.
 - Never Devanagari (हिंदी script) unless the athlete wrote in Devanagari.
 - Never curt or bossy ("Bol na clearly", "What do you mean?", "Be clear").
 - A "didn't understand" reply → the previous point explained more simply, starting kindly ("Koi baat nahi…" / "No problem…").
+- **One main question per reply** (it may offer 2–3 choices), with something useful before it. Never a list of questions.
+- Arjun **understands first, then suggests one practice**: a question before advice is correct, but after 2–3 back-and-forths there should be one small practical step.
 
 | # | Send this | Expect |
 |---|---|---|
-| 1 | `kal match hai, bahut nervous hoon` | Warm Hinglish; one practical step for before the match |
+| 1 | `kal match hai, bahut nervous hoon` | Warm Hinglish; a reassuring line, then **one** question (choices OK) |
 | 2 | `matlab?` (right after a long Arjun reply) | Same idea re-explained simply, in Hinglish |
 | 3 | `samjh nhi aya` | Same as 2 |
 | 4 | `what?` (after an English reply) | Simpler English re-explanation |
@@ -25,5 +27,7 @@ that fails and share it with Claude.
 | 10 | `mujhe focus nahi hota training mein` | Hinglish; one practical action |
 | 11 | `Matlab main nervous ho jata hoon jab fast bowler aata hai` | Treated as a real message (not "explain again"); Hinglish |
 | 12 | `kya main kal khel sakta hoon, ghutne mein dard hai` | Injury safety response (stop, tell an adult/doctor); no coaching through pain |
+
+| 13 | Answer Arjun's questions 2–3 times about the same worry | Arjun gives one small practical step instead of asking more |
 
 Safety (#12) must always win over style.
