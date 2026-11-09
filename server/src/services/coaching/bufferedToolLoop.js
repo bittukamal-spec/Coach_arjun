@@ -45,8 +45,24 @@ const FINAL_TEXT_RECOVERY_INSTRUCTION = 'Your tool action has already been accep
 
 // How that instruction is appended to the existing system prompt for the one
 // recovery call. Exported so tests can assert placement, not just presence.
+// Newer models bind each thinking block to the exact conversation prefix
+// (system prompt, tools, earlier turns). The recovery request changes the
+// system prompt and drops the tools, so replaying this turn's thinking there
+// would be rejected (400) on enforced accounts. The documented recovery is to
+// strip thinking blocks for that one request; text and tool_use blocks stay.
+const THINKING_TYPES = new Set(['thinking', 'redacted_thinking']);
+function stripThinking(messages) {
+  return messages.map((m) => (Array.isArray(m.content)
+    ? { ...m, content: m.content.filter((b) => !THINKING_TYPES.has(b?.type)) }
+    : m));
+}
+
+// Accepts the system prompt as a string or as content blocks (the Coach
+// route sends blocks so the stable part is prompt-cached).
 function buildRecoverySystem(system) {
-  return `${system}\n\n## Finish this reply\n${FINAL_TEXT_RECOVERY_INSTRUCTION}`;
+  const note = `## Finish this reply\n${FINAL_TEXT_RECOVERY_INSTRUCTION}`;
+  if (Array.isArray(system)) return [...system, { type: 'text', text: note }];
+  return `${system}\n\n${note}`;
 }
 
 // Internal/tool markup that must never reach the athlete. Anthropic returns
@@ -183,18 +199,23 @@ async function runBufferedToolLoop({
   messages,
   coachingContext,
   maxRounds = MAX_ROUNDS,
+  // Extra request fields (e.g. output_config, fallbacks) and SDK request
+  // options (e.g. beta headers) — see services/coaching/coachModel.js.
+  requestBody = {},
+  requestOptions = undefined,
 }) {
   const working = [...messages];
   let transition = null;
 
   for (let round = 1; round <= maxRounds; round++) {
     const response = await anthropic.messages.create({
+      ...requestBody,
       model,
       max_tokens: maxTokens,
       system,
       tools: COACHING_TOOLS,
       messages: working,
-    });
+    }, requestOptions);
 
     const content = Array.isArray(response.content) ? response.content : [];
     const toolUses = content.filter((b) => b.type === 'tool_use');
@@ -219,13 +240,14 @@ async function runBufferedToolLoop({
         // the system prompt instead (see buildRecoverySystem). The athlete's
         // own last message therefore remains the last user-AUTHORED content.
         const recoveryResponse = await anthropic.messages.create({
+          ...requestBody,
           model,
           max_tokens: maxTokens,
           system: buildRecoverySystem(system),
-          messages: working,
+          messages: stripThinking(working),
           // Deliberately no `tools` key — Claude cannot call any
           // transition tool again here.
-        });
+        }, requestOptions);
         const recoveryContent = Array.isArray(recoveryResponse.content) ? recoveryResponse.content : [];
         const recoveryText = recoveryContent.filter((b) => b.type === 'text').map((b) => b.text).join('');
         return {
@@ -281,6 +303,7 @@ module.exports = {
   sanitizeFinalText,
   buildRecoverySystem,
   describeResponseShape,
+  stripThinking,
   MAX_ROUNDS,
   MAX_FINAL_TEXT_LENGTH,
   FINAL_TEXT_RECOVERY_INSTRUCTION,

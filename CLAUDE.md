@@ -18,7 +18,7 @@ Read at the start of every session. Verified against the code on **2026-10-21** 
 - Founder Dashboard (`founder-dashboard/`): separate Vite app → its own Vercel project; talks to `/api/founder/*`
 - Backend (`server/`): Node.js + Express 4 → **Railway** (`npm start` runs `prisma db push` first)
 - DB: PostgreSQL via Prisma 5.7
-- AI: Claude API (`@anthropic-ai/sdk` 0.104). Model: `process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001'`
+- AI: Claude API (`@anthropic-ai/sdk` 0.104). Model: `process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001'`. **Coach chat only** uses `COACH_MODEL` (falls back to `ANTHROPIC_MODEL`) via `services/coaching/coachModel.js`: low effort + more max_tokens + server-side refusal fallback on newer models, prompt-cached system prompt for all.
 - Payments: Razorpay 2.9.6. Email: Resend 4.8. Push: `web-push` 3.6 (VAPID). Auth: JWT + bcrypt (no OAuth)
 - **Git workflow:** each session works on its own `claude/*` branch → PR to `main` → founder reviews the Vercel preview → squash-merge. Never push to `main` directly. Merges to `main` deploy both Vercel and Railway.
 
@@ -92,7 +92,7 @@ Mounted in `server/src/index.js`. All need JWT (`authenticate` → `req.userId`)
 
 ## 6. ENV VARIABLES
 
-**Railway (backend):** `DATABASE_URL`, `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`, `JWT_SECRET` (never rotate in prod), `PORT`, `CLIENT_URL` (comma-separated extra CORS origins + password-reset links), `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `CONTACT_TO_EMAIL`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`, `RAZORPAY_PLAN_MONTHLY`, `RAZORPAY_PLAN_YEARLY`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `FOUNDER_PIN`, `FOUNDER_TOKEN`, `FOUNDER_SESSION_SECRET`, `FOUNDER_DASHBOARD_URL` (CORS for the dashboard), `FOUNDER_TEST_EMAIL`
+**Railway (backend):** `DATABASE_URL`, `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`, `JWT_SECRET` (never rotate in prod), `PORT`, `CLIENT_URL` (comma-separated extra CORS origins + password-reset links), `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `CONTACT_TO_EMAIL`, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`, `RAZORPAY_PLAN_MONTHLY`, `RAZORPAY_PLAN_YEARLY`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `FOUNDER_PIN`, `FOUNDER_TOKEN`, `FOUNDER_SESSION_SECRET`, `FOUNDER_DASHBOARD_URL` (CORS for the dashboard), `FOUNDER_TEST_EMAIL`; optional Coach-only: `COACH_MODEL` (e.g. `claude-sonnet-5-5` / `claude-haiku-5-5`), `COACH_EFFORT` (`low` default on newer models; `none` sends nothing), `COACH_REFUSAL_FALLBACK` (`off` disables)
 
 **Vercel (client):** `VITE_API_URL`, `VITE_RAZORPAY_KEY_ID`, `VITE_VAPID_PUBLIC_KEY`
 
@@ -138,6 +138,7 @@ Retired → redirects: `/bounce-back`, `/before-you-play`, `/games` → `/train`
 - Every message is first screened by the deterministic safety screen (`screenSafetyText`) before any AI call; flagged → fixed guidance + `SafetyEvent`, no AI.
 - Quick chat: **dormant** — server code remains (minimal prompt, own safety blocks) but the client never enables it.
 - Context: last 3 ToolReports from the past 7 days (excluding debrief), memories, plan, focus cards, coaching context. Memory extraction is a separate `messages.create`.
+- Model settings: `coachRequestSettings()` / `buildCoachSystem()` in `services/coaching/coachModel.js` (system prompt sent as blocks: stable part cached, language/clarification notes uncached after it). The in-loop recovery request strips thinking blocks (`stripThinking`) because it changes the system prompt and tools.
 - ⚠️ No retention job: messages are never deleted on a schedule. The only background job is the push scheduler.
 
 ## 10. SAFETY RULES
