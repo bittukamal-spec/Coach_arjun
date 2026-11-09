@@ -477,7 +477,9 @@ function UseTips({ routine, t }) {
             <p className="text-sm text-slt leading-relaxed mb-3">{t.arjunBody}</p>
             <Link
               to="/coaching"
-              state={{ prefillMsg: arjunDraft(routine, t) }}
+              // routineId links the Coach conversation to this routine, so
+              // Arjun can offer an improved version with a Save card.
+              state={{ prefillMsg: arjunDraft(routine, t), routineId: routine.id }}
               className="inline-flex items-center justify-center min-h-[44px] px-4 rounded-[14px] bg-brand-500 text-white text-sm font-semibold hover:bg-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
             >
               {t.askArjun}

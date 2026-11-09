@@ -266,7 +266,7 @@ test('POST /suggest returns the rule-based suggestion and never touches the stor
     const res = await call('POST', '/suggest', { category: 'repeated_moment', purposeKey: 'reset', existingHabits: ['Towel off'] });
     assert.equal(res.status, 200);
     assert.equal(res.body.suggestion.templateKey, 'repeated_moment.seconds.reset');
-    assert.deepEqual(res.body.suggestion.steps.map(s => s.origin), ['existing', 'suggested']);
+    assert.deepEqual(res.body.suggestion.steps.map(s => s.origin), ['existing', 'suggested', 'suggested']);
     assert.equal(res.body.suggestion.steps[0].instruction, 'Towel off');
   });
   assert.equal(store.calls.length, 0);

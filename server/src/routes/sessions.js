@@ -331,7 +331,8 @@ router.post('/:id/fresh-start', authenticate, async (req, res) => {
     }
     const updated = await prisma.chatSession.update({
       where: { id: req.params.id },
-      data: { freshStartAt: new Date() },
+      // A fresh start also forgets which routine was being discussed.
+      data: { freshStartAt: new Date(), focusRoutineId: null },
       select: { id: true, freshStartAt: true },
     });
     res.json({ session: updated });

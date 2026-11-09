@@ -17,6 +17,7 @@ const {
   detectClarificationRequest, buildClarificationSection,
 } = require('../services/coaching');
 const { coachRequestSettings, buildCoachSystem } = require('../services/coaching/coachModel');
+const { buildRoutineFocusSection, buildRoutineProposalEvent } = require('../services/coaching/routineFocus');
 const { priorityPhrase } = require('../profile/ruleEngine');
 const loadReflectionContext = require('../services/mindJournal/loadReflectionContext');
 const { buildReflectionContextSection } = loadReflectionContext;
@@ -948,7 +949,7 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
     });
   }
 
-  const { content, sessionType = null, arjunMsgCount = 0, chatSessionId = null, chatMode = 'main' } = req.body;
+  const { content, sessionType = null, arjunMsgCount = 0, chatSessionId = null, chatMode = 'main', routineId = null } = req.body;
   const isQuickChat = chatMode === 'quick';
   if (!content || typeof content !== 'string' || content.trim().length === 0) {
     return res.status(400).json({ error: 'Message content is required' });
@@ -1145,19 +1146,38 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
     }
 
     // Fetch recent history to provide context to Claude
+    // The saved routine this conversation is about, if any (see below).
+    let focusRoutine = null;
     const historyWhere = chatSessionId
       ? { userId: req.userId, chatSessionId }
       : { userId: req.userId };
     if (isQuickChat) {
       historyWhere.createdAt = { gte: new Date(Date.now() - QUICK_HISTORY_DAYS * 24 * 60 * 60 * 1000) };
     } else if (chatSessionId) {
+      // "Talk to Arjun" on a Ritual routine sends its id once: link this
+      // conversation to it, but only if the routine is the athlete's own.
+      if (typeof routineId === 'string' && routineId) {
+        const owned = await prisma.routine.findFirst({ where: { id: routineId, userId: req.userId }, select: { id: true } }).catch(() => null);
+        if (owned) {
+          await prisma.chatSession.updateMany({
+            where: { id: chatSessionId, userId: req.userId },
+            data: { focusRoutineId: owned.id },
+          }).catch(() => null);
+        }
+      }
       // "Start fresh": Coach only reads this cycle's messages from the fresh
       // start on. Memories, coaching state and practices still apply.
       const sessionRow = await prisma.chatSession.findFirst({
         where: { id: chatSessionId, userId: req.userId },
-        select: { freshStartAt: true },
+        select: { freshStartAt: true, focusRoutineId: true },
       }).catch(() => null);
       if (sessionRow?.freshStartAt) historyWhere.createdAt = { gte: sessionRow.freshStartAt };
+      if (sessionRow?.focusRoutineId) {
+        focusRoutine = await prisma.routine.findFirst({
+          where: { id: sessionRow.focusRoutineId, userId: req.userId },
+          select: { id: true, name: true, category: true, steps: true },
+        }).catch(() => null);
+      }
     }
     const history = await prisma.message.findMany({
       where: historyWhere,
@@ -1288,7 +1308,7 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
     const coach = coachRequestSettings();
     const systemPrompt = buildCoachSystem(
       buildSystemPrompt(user, recentCheckIns, memories, sessionType, { ...promptExtra, coachingContext, reflectionContext, startingProfile, currentFocus }),
-      buildLanguageHintSection(languageHints) + buildClarificationSection(clarification),
+      buildLanguageHintSection(languageHints) + buildClarificationSection(clarification) + buildRoutineFocusSection(focusRoutine),
     );
     const loop = await runBufferedToolLoop({
       anthropic,
@@ -1551,6 +1571,12 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
       // Newly accepted prescription: the practice card is the only structured
       // element this reply carries — the athlete answers in free text.
       res.write(`data: ${JSON.stringify({ t: 'card', card: committed.card })}\n\n`);
+    }
+    // Routine card (Save to Ritual). Offered only — the athlete saves it.
+    const routineEvent = buildRoutineProposalEvent(loop.routineProposal, focusRoutine);
+    if (routineEvent) {
+      res.write(`data: ${JSON.stringify(routineEvent)}\n\n`);
+      console.log('[chat] routine_proposal', JSON.stringify({ mode: routineEvent.proposal.mode, steps: routineEvent.proposal.steps.length }));
     }
 
     res.write(`data: ${JSON.stringify({ t: 'end', id: committed.message.id })}\n\n`);

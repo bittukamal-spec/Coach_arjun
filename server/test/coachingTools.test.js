@@ -56,9 +56,9 @@ test('games and paused tools are not approved practice keys', () => {
   assert.equal(isApprovedPracticeKey('hasOwnProperty'), false, 'prototype names must not slip through');
 });
 
-test('all three coaching tools are defined with the expected names and required fields', () => {
+test('the coaching tools (three transitions + propose_routine) are defined with the expected names and required fields', () => {
   const names = COACHING_TOOLS.map((t) => t.name);
-  assert.deepEqual(names, ['propose_barrier', 'prescribe_mental_rep', 'record_prescription_outcome']);
+  assert.deepEqual(names, ['propose_barrier', 'prescribe_mental_rep', 'record_prescription_outcome', 'propose_routine']);
   const propose = COACHING_TOOLS[0];
   assert.deepEqual(propose.input_schema.required, ['problemStatement', 'barrierHypothesis']);
   const prescribe = COACHING_TOOLS[1];
@@ -66,6 +66,9 @@ test('all three coaching tools are defined with the expected names and required 
   const recordOutcome = COACHING_TOOLS[2];
   assert.deepEqual(recordOutcome.input_schema.required, ['outcomeStatus', 'lessonText']);
   assert.deepEqual(recordOutcome.input_schema.properties.outcomeStatus.enum, ['HELPED', 'HELPED_A_LITTLE', 'DID_NOT_HELP', 'NOT_TRIED']);
+  const proposeRoutine = COACHING_TOOLS[3];
+  assert.deepEqual(proposeRoutine.input_schema.required, ['steps']);
+  assert.equal(proposeRoutine.input_schema.properties.steps.maxItems, 5);
 });
 
 

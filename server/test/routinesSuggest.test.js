@@ -39,20 +39,20 @@ test('habits are never dropped for exceeding the window preference, up to the gl
     assert.ok(s.reasons.includes('habits_exceed_window'), category);
     assert.ok(!s.reasons.includes('habits_fill_window'), category);
   }
-  // A seconds-long moment prefers 2 steps; 3 habits are all still kept.
-  const three = suggest({ category: 'repeated_moment', purposeKey: 'focus', existingHabits: habits.slice(0, 3) });
-  assert.deepEqual(three.steps.map(x => x.instruction), habits.slice(0, 3));
-  assert.ok(three.reasons.includes('habits_exceed_window'));
+  // A between-balls moment prefers 3 steps; 4 habits are all still kept.
+  const four = suggest({ category: 'repeated_moment', purposeKey: 'focus', existingHabits: habits.slice(0, 4) });
+  assert.deepEqual(four.steps.map(x => x.instruction), habits.slice(0, 4));
+  assert.ok(four.reasons.includes('habits_exceed_window'));
 });
 
 test('habits exactly filling the window report habits_fill_window; fewer report neither', () => {
-  const two = suggest({ category: 'repeated_moment', purposeKey: 'reset', existingHabits: ['Towel off', 'Tap the line'] });
-  assert.deepEqual(two.steps.map(x => x.instruction), ['Towel off', 'Tap the line']);
-  assert.ok(two.reasons.includes('habits_fill_window'));
-  assert.ok(!two.reasons.includes('habits_exceed_window'));
+  const three = suggest({ category: 'repeated_moment', purposeKey: 'reset', existingHabits: ['Towel off', 'Tap the line', 'Look at the bat'] });
+  assert.deepEqual(three.steps.map(x => x.instruction), ['Towel off', 'Tap the line', 'Look at the bat']);
+  assert.ok(three.reasons.includes('habits_fill_window'));
+  assert.ok(!three.reasons.includes('habits_exceed_window'));
 
   const one = suggest({ category: 'repeated_moment', purposeKey: 'reset', existingHabits: ['Towel off'] });
-  assert.equal(one.steps.length, 2);
+  assert.equal(one.steps.length, 3);
   assert.ok(!one.reasons.some(r => r.startsWith('habits_') && r !== 'habits_kept'));
 });
 
@@ -81,7 +81,7 @@ test('breathing is not added to focus, confidence, activate or prepare routines 
   }
 });
 
-test('breathing appears in exactly seconds/settle, short/settle, short/reset and longer/settle', () => {
+test('breathing appears in exactly seconds/settle, seconds/reset, short/settle, short/reset and longer/settle', () => {
   const withBreath = [];
   for (const window of rules.TIME_WINDOWS) {
     for (const purposeKey of rules.PURPOSE_KEYS) {
@@ -90,14 +90,14 @@ test('breathing appears in exactly seconds/settle, short/settle, short/reset and
       }
     }
   }
-  assert.deepEqual(withBreath.sort(), ['longer/settle', 'seconds/settle', 'short/reset', 'short/settle']);
+  assert.deepEqual(withBreath.sort(), ['longer/settle', 'seconds/reset', 'seconds/settle', 'short/reset', 'short/settle']);
   assert.ok(!kinds(suggest({ category: 'pressure_moment', purposeKey: 'reset', timeWindow: 'longer' })).includes('breathe'));
 });
 
-test('a seconds-long reset is a release action plus the next action, with no breathing', () => {
+test('a between-balls reset is release, one breath, then the next action (founder test, Nov 2026)', () => {
   const s = suggest({ category: 'repeated_moment', purposeKey: 'reset' });
   assert.equal(s.timeWindow, 'seconds');
-  assert.deepEqual(kinds(s), ['reset', 'prepare']);
+  assert.deepEqual(kinds(s), ['reset', 'breathe', 'prepare']);
 });
 
 test('regulation is suggested for settle, and one quick breath for a short reset', () => {
@@ -106,7 +106,7 @@ test('regulation is suggested for settle, and one quick breath for a short reset
   assert.ok(settle.reasons.includes('regulation_included'));
 
   const seconds = suggest({ category: 'repeated_moment', purposeKey: 'settle' });
-  assert.deepEqual(kinds(seconds), ['breathe', 'prepare']);
+  assert.deepEqual(kinds(seconds), ['breathe', 'prepare', 'cue']);
   assert.equal(seconds.steps[0].instruction, 'Take one slow breath with a longer exhale');
 
   const shortReset = suggest({ category: 'pressure_moment', purposeKey: 'reset' });
@@ -115,14 +115,14 @@ test('regulation is suggested for settle, and one quick breath for a short reset
 
 // ── Preparation vs brief in-performance moments ─────────────────────────
 
-test('seconds-long moments stay genuinely short: at most 2 steps, no visualisation, one breath at most', () => {
+test('between-balls moments stay short: at most 3 steps, no visualisation, one breath at most', () => {
   for (const purposeKey of [...rules.PURPOSE_KEYS, undefined]) {
     const s = suggest({ category: 'repeated_moment', purposeKey });
-    assert.ok(s.steps.length <= 2, `${purposeKey}: ${s.steps.length}`);
+    assert.ok(s.steps.length <= 3, `${purposeKey}: ${s.steps.length}`);
     assert.ok(!kinds(s).includes('visualize'), String(purposeKey));
     assert.ok(kinds(s).filter(k => k === 'breathe').length <= 1);
   }
-  assert.equal(suggest({ category: 'repeated_moment', purposeKey: 'focus', existingHabits: ['Towel off'] }).steps.length, 2);
+  assert.equal(suggest({ category: 'repeated_moment', purposeKey: 'focus', existingHabits: ['Towel off'] }).steps.length, 3);
 });
 
 test('session preparation allows a fuller sequence without inventing a physical warm-up', () => {

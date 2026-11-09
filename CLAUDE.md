@@ -139,6 +139,7 @@ Retired → redirects: `/bounce-back`, `/before-you-play`, `/games` → `/train`
 - Quick chat: **dormant** — server code remains (minimal prompt, own safety blocks) but the client never enables it.
 - Context: last 3 ToolReports from the past 7 days (excluding debrief), memories, plan, focus cards, coaching context. Memory extraction is a separate `messages.create`.
 - Model settings: `coachRequestSettings()` / `buildCoachSystem()` in `services/coaching/coachModel.js` (system prompt sent as blocks: stable part cached, language/clarification notes uncached after it). The in-loop recovery request strips thinking blocks (`stripThinking`) because it changes the system prompt and tools.
+- **Routines in Coach** (Nov 2026): "Talk to Arjun" on a routine passes `routineId` once → `ChatSession.focusRoutineId` (owner-checked; cleared by Start fresh) → an internal note with that routine (`services/coaching/routineFocus.js`). Tool `propose_routine` (not a coaching-state transition; never blocked by/blocking one) stages a card → SSE `routine_proposal` after the reply commits → `components/coach/RoutineProposalCard.jsx`: Save = PATCH (linked routine) or POST (new) on `/api/routines` (validated + safety-screened). Coach never writes routines itself.
 - **Start fresh** (Nov 2026): Coach ⋮ menu → confirm → `POST /api/sessions/:id/fresh-start` sets `ChatSession.freshStartAt`. Coach's history and the chat screen then only use messages from that moment; nothing is deleted, the Weekly Review still reads the whole 7-day cycle, and memories / coaching state / practices carry on. No chat list by design.
 - ⚠️ No retention job: messages are never deleted on a schedule. The only background job is the push scheduler.
 
@@ -168,7 +169,7 @@ Selective deletion (`DELETE /api/user/data/:type`): 6 types — `chat-history`, 
 1. AI endpoints without the Access check (list in §5) — matters at paid launch.
 2. Razorpay cancel failure doesn't stop account deletion (§11).
 3. `Message` has no index; no message retention job (§4, §9).
-4. Coach only sees the **imported** legacy routine (via `User.ritualName/ritualSteps`); other routines reach Arjun only when the athlete taps "Talk to Arjun" (prefill). Automatic context needs a `buildSystemPrompt` change + founder approval.
+4. Coach does not see the athlete's routine list. It sees the imported legacy routine (via `User.ritualName/ritualSteps`) and, since Nov 2026, the ONE routine linked by "Talk to Arjun" (`ChatSession.focusRoutineId`). Showing all routines would need founder approval.
 5. Old docs (`AUDIT.md`, `PROJECT.md`, `PRODUCT-AUDIT.md`, `PLAN.md`) are stale.
 
 Fixed since the July audit: quick-chat safety (now dormant + own safety blocks), age/guardian consent gate, safety-event logging + founder review, `checkin-history` deletion, broken `--color-dark-*` vars, webhook idempotency, CORS allow-all, KIRAN on all safety surfaces.

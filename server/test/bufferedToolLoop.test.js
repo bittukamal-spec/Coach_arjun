@@ -116,7 +116,7 @@ test('every tool-loop Anthropic call carries the coaching tools', async () => {
   ]);
   await run(stub, NO_STATE);
   for (const call of stub.calls) {
-    assert.deepEqual(call.tools.map((t) => t.name), ['propose_barrier', 'prescribe_mental_rep', 'record_prescription_outcome']);
+    assert.deepEqual(call.tools.map((t) => t.name), ['propose_barrier', 'prescribe_mental_rep', 'record_prescription_outcome', 'propose_routine']);
   }
 });
 

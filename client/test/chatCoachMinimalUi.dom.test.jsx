@@ -356,6 +356,112 @@ describe('Coach — Start fresh', () => {
   });
 });
 
+// ── 3c. Routine card from Coach (Nov 2026) ──────────────────────────────────
+
+const PROPOSAL = {
+  mode: 'update', routineId: 'r1', routineName: 'After each ball while batting',
+  name: 'After each ball while batting', category: 'repeated_moment',
+  steps: ['Breathe out slowly and drop your shoulders', 'Set your stance', 'Watch the bowler\'s hand, say "Ball"'],
+};
+
+function AppWithState(state) {
+  return (
+    <MemoryRouter initialEntries={[{ pathname: '/coaching', state }]}>
+      <Routes>
+        <Route path="/coaching" element={<ChatPage />} />
+        <Route path="/ritual" element={<div>RITUAL PAGE</div>} />
+      </Routes>
+    </MemoryRouter>
+  );
+}
+
+async function sendAndReceiveProposal(stream, proposal = PROPOSAL) {
+  const user = userEvent.setup();
+  await screen.findByText(HISTORY_REPLY);
+  await user.type(composer(), 'make it 3 steps');
+  await user.click(screen.getByLabelText(/send/i));
+  stream.push({ t: 'd', c: 'Try this sequence.' });
+  stream.push({ t: 'routine_proposal', proposal });
+  stream.push({ t: 'end', id: 'm9' });
+  stream.finish();
+  return user;
+}
+
+function routesWith(extra) {
+  const base = apiFetch.getMockImplementation();
+  apiFetch.mockImplementation((path, init = {}) => extra(path, init) || base(path, init));
+}
+
+describe('Coach — routine card', () => {
+  beforeEach(() => setReducedMotion(true));
+
+  test('"Talk to Arjun" routineId is sent once with the next message', async () => {
+    const stream = makeStream();
+    mockApi({ stream, history: historyTurns() });
+    render(AppWithState({ prefillMsg: 'Here is my routine', routineId: 'r1' }));
+    await sendAndReceiveProposal(stream);
+    const sent = apiFetch.mock.calls.filter(([p]) => p === '/api/chat/message').map(([, i]) => JSON.parse(i.body));
+    expect(sent[0].routineId).toBe('r1');
+  });
+
+  test('the card shows the steps and Save updates the linked routine via PATCH', async () => {
+    const stream = makeStream();
+    mockApi({ stream, history: historyTurns() });
+    let patched;
+    routesWith((p, init) => {
+      if (p === '/api/routines/r1' && init.method === 'PATCH') {
+        patched = JSON.parse(init.body);
+        return Promise.resolve({ ok: true, status: 200, json: async () => ({ routine: { id: 'r1' } }) });
+      }
+      return null;
+    });
+    render(<App />);
+    const user = await sendAndReceiveProposal(stream);
+
+    expect(await screen.findByText('Updated routine: After each ball while batting')).toBeTruthy();
+    expect(screen.getByText('Set your stance')).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Save to "After each ball while batting"' }));
+
+    expect(await screen.findByText(/Saved to Ritual/)).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'View routine' }).getAttribute('href')).toBe('/ritual');
+    expect(patched).toEqual({ steps: PROPOSAL.steps.map((instruction) => ({ kind: 'custom', instruction, origin: 'suggested' })) });
+  });
+
+  test('a new routine is saved with POST, name and category', async () => {
+    const stream = makeStream();
+    mockApi({ stream, history: historyTurns() });
+    let posted;
+    routesWith((p, init) => {
+      if (p === '/api/routines' && init.method === 'POST') {
+        posted = JSON.parse(init.body);
+        return Promise.resolve({ ok: true, status: 201, json: async () => ({ routine: { id: 'r2' } }) });
+      }
+      return null;
+    });
+    render(<App />);
+    const user = await sendAndReceiveProposal(stream, { mode: 'create', routineId: null, routineName: null, name: 'Before I bat', category: 'pressure_moment', steps: ['Two slow breaths'] });
+    await user.click(await screen.findByRole('button', { name: 'Save as new routine' }));
+    await screen.findByText(/Saved to Ritual/);
+    expect(posted).toEqual({ name: 'Before I bat', category: 'pressure_moment', steps: [{ kind: 'custom', instruction: 'Two slow breaths', origin: 'suggested' }] });
+  });
+
+  test('a safety-flagged save shows the guidance and saves nothing; Not now dismisses the card', async () => {
+    const stream = makeStream();
+    mockApi({ stream, history: historyTurns() });
+    routesWith((p, init) => (p === '/api/routines/r1' && init.method === 'PATCH'
+      ? Promise.resolve({ ok: true, status: 200, json: async () => ({ safetyFlag: 'needs_support', guidance: 'Please talk to a trusted adult.' }) })
+      : null));
+    render(<App />);
+    const user = await sendAndReceiveProposal(stream);
+    await user.click(await screen.findByRole('button', { name: /Save to/ }));
+    expect(await screen.findByText('Please talk to a trusted adult.')).toBeTruthy();
+    expect(screen.queryByText(/Saved to Ritual/)).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: 'Not now' }));
+    expect(screen.queryByText('Updated routine: After each ball while batting')).toBeNull();
+  });
+});
+
 // ── 4. Scroll after reveal + composer remount ───────────────────────────────
 //
 // The bug this covers: the auto-scroll effect keyed only on
