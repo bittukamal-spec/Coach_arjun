@@ -292,6 +292,70 @@ describe('Coach — header overflow menu', () => {
   });
 });
 
+// ── 3b. Start fresh (Nov 2026) ──────────────────────────────────────────────
+
+describe('Coach — Start fresh', () => {
+  test('asks first, then clears the screen via the fresh-start endpoint and confirms', async () => {
+    mockApi({ stream: makeStream(), history: historyTurns() });
+    render(<App />);
+    await screen.findByText(HISTORY_REPLY);
+    const user = userEvent.setup();
+
+    await user.click(screen.getByLabelText('More options'));
+    await user.click(screen.getByRole('button', { name: 'Start fresh' }));
+    const dialog = screen.getByRole('dialog', { name: 'Start a fresh conversation?' });
+    expect(within(dialog).getByText(/Arjun still remembers your focus/)).toBeTruthy();
+    // Nothing happens until confirmed.
+    expect(apiFetch.mock.calls.some(([p]) => p.includes('/fresh-start'))).toBe(false);
+
+    await user.click(within(dialog).getByRole('button', { name: 'Start fresh' }));
+    await waitFor(() => expect(screen.queryByText(HISTORY_REPLY)).toBeNull());
+    const call = apiFetch.mock.calls.find(([p]) => p === '/api/sessions/cs-1/fresh-start');
+    expect(call?.[1]?.method).toBe('POST');
+    expect(screen.getByText('Fresh start. Arjun still remembers what matters.')).toBeTruthy();
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(composer()).toBeTruthy();
+  });
+
+  test('Cancel (or Escape) keeps the conversation untouched', async () => {
+    mockApi({ stream: makeStream(), history: historyTurns() });
+    render(<App />);
+    await screen.findByText(HISTORY_REPLY);
+    const user = userEvent.setup();
+
+    await user.click(screen.getByLabelText('More options'));
+    await user.click(screen.getByRole('button', { name: 'Start fresh' }));
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+
+    await user.click(screen.getByLabelText('More options'));
+    await user.click(screen.getByRole('button', { name: 'Start fresh' }));
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+
+    expect(screen.getByText(HISTORY_REPLY)).toBeTruthy();
+    expect(apiFetch.mock.calls.some(([p]) => p.includes('/fresh-start'))).toBe(false);
+  });
+
+  test('a failed request keeps the messages and shows a gentle error', async () => {
+    mockApi({ stream: makeStream(), history: historyTurns() });
+    const base = apiFetch.getMockImplementation();
+    apiFetch.mockImplementation((path, init) => (path.includes('/fresh-start')
+      ? Promise.resolve({ ok: false, status: 500, json: async () => ({}) })
+      : base(path, init)));
+    render(<App />);
+    await screen.findByText(HISTORY_REPLY);
+    const user = userEvent.setup();
+
+    await user.click(screen.getByLabelText('More options'));
+    await user.click(screen.getByRole('button', { name: 'Start fresh' }));
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Start fresh' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(screen.getByText(HISTORY_REPLY)).toBeTruthy();
+    expect(screen.getByRole('alert').textContent).toBe('Could not start fresh. Try again.');
+  });
+});
+
 // ── 4. Scroll after reveal + composer remount ───────────────────────────────
 //
 // The bug this covers: the auto-scroll effect keyed only on

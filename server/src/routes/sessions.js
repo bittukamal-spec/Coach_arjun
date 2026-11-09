@@ -195,6 +195,7 @@ router.get('/', authenticate, async (req, res) => {
         status: true,
         createdAt: true,
         endedAt: true,
+        freshStartAt: true,
         _count: { select: { messages: true } },
       },
     });
@@ -287,18 +288,20 @@ router.get('/:id/messages', authenticate, async (req, res) => {
   try {
     const session = await prisma.chatSession.findUnique({
       where: { id: req.params.id },
-      select: { userId: true },
+      select: { userId: true, freshStartAt: true },
     });
     if (!session || session.userId !== req.userId) {
       return res.status(404).json({ error: 'Session not found' });
     }
     const msgWhere = { chatSessionId: req.params.id };
+    let from = null;
     if (req.query.since) {
       const sinceDate = new Date(req.query.since);
-      if (!isNaN(sinceDate.getTime())) {
-        msgWhere.createdAt = { gte: sinceDate };
-      }
+      if (!isNaN(sinceDate.getTime())) from = sinceDate;
     }
+    // After "Start fresh", the screen only shows the new conversation.
+    if (session.freshStartAt && (!from || session.freshStartAt > from)) from = session.freshStartAt;
+    if (from) msgWhere.createdAt = { gte: from };
     const messages = await prisma.message.findMany({
       where: msgWhere,
       orderBy: { createdAt: 'asc' },
@@ -307,6 +310,33 @@ router.get('/:id/messages', authenticate, async (req, res) => {
     res.json({ messages });
   } catch (err) {
     console.error('session messages error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ── POST /:id/fresh-start — "Start fresh" (Nov 2026) ───────────────────────
+// Clears the athlete's screen and Coach's working history for this weekly
+// cycle without deleting anything: messages stay (Weekly Review reads the
+// whole cycle), and memories / coaching focus / practices are untouched.
+// No AI call. Ownership-checked; archived cycles cannot be restarted.
+
+router.post('/:id/fresh-start', authenticate, async (req, res) => {
+  try {
+    const session = await prisma.chatSession.findUnique({
+      where: { id: req.params.id },
+      select: { userId: true, status: true, mode: true },
+    });
+    if (!session || session.userId !== req.userId || session.mode !== 'main' || session.status === 'archived') {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+    const updated = await prisma.chatSession.update({
+      where: { id: req.params.id },
+      data: { freshStartAt: new Date() },
+      select: { id: true, freshStartAt: true },
+    });
+    res.json({ session: updated });
+  } catch (err) {
+    console.error('fresh start error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });

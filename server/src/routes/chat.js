@@ -1150,6 +1150,14 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
       : { userId: req.userId };
     if (isQuickChat) {
       historyWhere.createdAt = { gte: new Date(Date.now() - QUICK_HISTORY_DAYS * 24 * 60 * 60 * 1000) };
+    } else if (chatSessionId) {
+      // "Start fresh": Coach only reads this cycle's messages from the fresh
+      // start on. Memories, coaching state and practices still apply.
+      const sessionRow = await prisma.chatSession.findFirst({
+        where: { id: chatSessionId, userId: req.userId },
+        select: { freshStartAt: true },
+      }).catch(() => null);
+      if (sessionRow?.freshStartAt) historyWhere.createdAt = { gte: sessionRow.freshStartAt };
     }
     const history = await prisma.message.findMany({
       where: historyWhere,

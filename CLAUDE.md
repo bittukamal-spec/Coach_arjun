@@ -60,7 +60,7 @@ Mounted in `server/src/index.js`. All need JWT (`authenticate` → `req.userId`)
 |---|---|---|
 | `/api/auth` | register (DOB required; under 13 refused; under 18 needs a guardian email), guardian-consent, resend-guardian-consent, login, me, me/language, me/onboarding, me/profile, account (DELETE), logout, forgot/reset-password | public: register, login, guardian-consent, logout, forgot/reset |
 | `/api/chat` | GET messages, GET usage, **POST message**, **POST wizard** | Consent + **Access** on message & wizard |
-| `/api/sessions` | list/create, end-stale, :id/messages, :id/end, PATCH/DELETE :id | AI summaries; Consent on end/end-stale, no Access |
+| `/api/sessions` | list/create, end-stale, :id/messages, :id/fresh-start, :id/end, PATCH/DELETE :id | AI summaries; Consent on end/end-stale, no Access. Main chat = one 7-day cycle per ChatSession, archived on rollover → one Weekly Review per cycle |
 | `/api/onboarding` | GET/PATCH session, POST session/complete | |
 | `/api/profile` | GET starting, POST confirm, PATCH current-focus, PATCH answers, POST start-chat | AI wording of the starting profile; Consent on start-chat |
 | `/api/profile-intro` | GET | Retired AI surface — fixed welcome text for old clients; Consent |
@@ -139,6 +139,7 @@ Retired → redirects: `/bounce-back`, `/before-you-play`, `/games` → `/train`
 - Quick chat: **dormant** — server code remains (minimal prompt, own safety blocks) but the client never enables it.
 - Context: last 3 ToolReports from the past 7 days (excluding debrief), memories, plan, focus cards, coaching context. Memory extraction is a separate `messages.create`.
 - Model settings: `coachRequestSettings()` / `buildCoachSystem()` in `services/coaching/coachModel.js` (system prompt sent as blocks: stable part cached, language/clarification notes uncached after it). The in-loop recovery request strips thinking blocks (`stripThinking`) because it changes the system prompt and tools.
+- **Start fresh** (Nov 2026): Coach ⋮ menu → confirm → `POST /api/sessions/:id/fresh-start` sets `ChatSession.freshStartAt`. Coach's history and the chat screen then only use messages from that moment; nothing is deleted, the Weekly Review still reads the whole 7-day cycle, and memories / coaching state / practices carry on. No chat list by design.
 - ⚠️ No retention job: messages are never deleted on a schedule. The only background job is the push scheduler.
 
 ## 10. SAFETY RULES
