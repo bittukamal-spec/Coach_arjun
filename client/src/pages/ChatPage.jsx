@@ -386,6 +386,11 @@ function ChatPage() {
   const [usage, setUsage]                         = useState({ isPremium: false, trialDaysRemaining: 14, hasPilotAccess: false });
   const [activeSession, setActiveSession]         = useState(null);
   const [showSafety, setShowSafety]               = useState(false);
+  // "Start fresh" (Nov 2026): confirm dialog, in-flight flag, and a short
+  // confirmation line shown on the cleared screen.
+  const [freshConfirm, setFreshConfirm]           = useState(false);
+  const [freshBusy, setFreshBusy]                 = useState(false);
+  const [freshNote, setFreshNote]                 = useState('');
   const [menuOpen, setMenuOpen]                   = useState(false);
   // Single polite announcement of a COMPLETE reply — never per word.
   const [liveAnnouncement, setLiveAnnouncement]   = useState('');
@@ -986,6 +991,40 @@ function ChatPage() {
     };
   }, [menuOpen]);
 
+  // ── Start fresh ───────────────────────────────────────────────────────────
+  // Clears the screen and Coach's working history for this weekly cycle.
+  // Nothing is deleted: the Weekly Review still reads the whole cycle, and
+  // memories, focus and practices carry on (POST /api/sessions/:id/fresh-start).
+  async function handleStartFresh() {
+    if (!chatSessionId || freshBusy) return;
+    setFreshBusy(true);
+    try {
+      const res = await apiFetch(`/api/sessions/${chatSessionId}/fresh-start`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('fresh_start_failed');
+      sessionStorage.removeItem(`arjun_chat_messages_${chatSessionId}`);
+      setMessages([]);
+      setServerCards([]);
+      setOutcomeChoices(null);
+      setFreshNote(t.startFresh.done);
+      setFreshConfirm(false);
+    } catch {
+      setFreshNote(t.startFresh.error);
+      setFreshConfirm(false);
+    } finally {
+      setFreshBusy(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!freshConfirm) return undefined;
+    const onKey = (e) => { if (e.key === 'Escape' && !freshBusy) setFreshConfirm(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [freshConfirm, freshBusy]);
+
   // ── Keyboard ──────────────────────────────────────────────────────────────
 
   function handleKeyDown(e) {
@@ -1091,6 +1130,17 @@ function ChatPage() {
                   <History size={16} className="shrink-0 text-slt" aria-hidden="true" />
                   <span>{t.weeklyReviewsLabel}</span>
                 </Link>
+                {/* Start fresh — new screen, same coach (memories kept). */}
+                {chatSessionId && !showStartScreen && (
+                  <button
+                    type="button"
+                    onClick={() => { setMenuOpen(false); setFreshNote(''); setFreshConfirm(true); }}
+                    className="w-full min-h-[44px] flex items-center gap-3 px-4 text-sm text-ink hover:bg-dark-700 focus-visible:outline-none focus-visible:bg-dark-700"
+                  >
+                    <RotateCcw size={16} className="shrink-0 text-slt" aria-hidden="true" />
+                    <span>{t.startFresh.menu}</span>
+                  </button>
+                )}
                 {/* Safety info — same popover content as before. */}
                 <button
                   type="button"
@@ -1153,11 +1203,17 @@ function ChatPage() {
               own /weekly-reviews page (reached from the header icon), so
               the stream opens at the most recent active-cycle message. */}
 
-          {/* Empty state — no messages in last 7 days */}
+          {/* Empty state — no messages in last 7 days, or just after "Start fresh" */}
           {!showStartScreen && messages.length === 0 && !waitingForFirst && (
-            <div className="flex items-center justify-center min-h-[50vh]">
+            <div className="flex flex-col items-center justify-center min-h-[50vh] gap-2">
+              {freshNote && <p role="status" className="text-caption text-slt text-center max-w-xs">{freshNote}</p>}
               <p className="text-sm text-muted text-center">{t.emptyPrompt}</p>
             </div>
+          )}
+
+          {/* A failed "Start fresh" leaves the conversation in place; say so. */}
+          {!showStartScreen && freshNote === t.startFresh.error && messages.length > 0 && (
+            <p role="alert" className="text-caption text-slt text-center">{freshNote}</p>
           )}
 
           {/* Message list */}
@@ -1256,6 +1312,40 @@ function ChatPage() {
            already reserves its footprint above.
            Hidden entirely while Arjun is generating or a reply is revealing;
            it returns as soon as the reply completes or an error is shown. */}
+      {freshConfirm && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm px-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-0">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="fresh-start-title"
+            aria-describedby="fresh-start-body"
+            className="bg-dark-800 border border-dark-500 rounded-2xl p-6 w-full max-w-md animate-slide-up text-left"
+          >
+            <h2 id="fresh-start-title" className="font-bold text-ink mb-2 text-body">{t.startFresh.title}</h2>
+            <p id="fresh-start-body" className="text-slt text-sm mb-6 leading-relaxed">{t.startFresh.body}</p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                autoFocus
+                onClick={() => setFreshConfirm(false)}
+                disabled={freshBusy}
+                className="flex-1 btn-secondary min-h-[48px]"
+              >
+                {t.startFresh.cancel}
+              </button>
+              <button
+                type="button"
+                onClick={handleStartFresh}
+                disabled={freshBusy}
+                className="flex-1 inline-flex items-center justify-center min-h-[48px] px-6 py-3 bg-brand-500 text-white font-semibold rounded-xl hover:bg-brand-600 active:scale-95 transition-all disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+              >
+                {freshBusy ? t.startFresh.working : t.startFresh.confirm}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {chatSessionId && !showStartScreen && showComposer && (
       <div className="absolute left-0 right-0 bottom-0 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-2 pointer-events-none">
         <div className="max-w-2xl mx-auto relative pointer-events-auto">

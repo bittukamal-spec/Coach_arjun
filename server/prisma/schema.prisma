@@ -271,6 +271,10 @@ model ChatSession {
   status      String    @default("active") // "active" | "ended"
   createdAt   DateTime  @default(now())
   endedAt     DateTime?
+  // "Start fresh" (Nov 2026): when set, Coach and the chat screen only use
+  // messages from this moment on. Earlier messages of the same weekly cycle
+  // are kept (Weekly Review still reads the whole cycle). Additive.
+  freshStartAt DateTime?
   messages    Message[]
 
   // Optional origin reference for a coaching cycle/prescription that was
