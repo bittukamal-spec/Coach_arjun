@@ -52,3 +52,14 @@ test('English Coach prompt: Hinglish-friendly, no Devanagari unless the athlete 
   assert.match(prompt, /## Crisis detection and emotional safety/);
   assert.match(prompt, /Safety overrides everything/);
 });
+
+test('Coach prompt: one main question per reply, choices allowed, value first, and a step after 2-3 exchanges', () => {
+  const prompt = buildSystemPrompt({ name: 'A', sport: 'Cricket', language: 'en' }, [], [], null, {});
+  assert.match(prompt, /QUESTIONS \(this is a phone chat with a teenager/);
+  assert.match(prompt, /One main question per reply\. It may offer 2–3 short choices/);
+  assert.match(prompt, /Never three or more questions in one reply/);
+  assert.match(prompt, /A reply must never be only questions/);
+  assert.match(prompt, /After about 2–3 back-and-forths on the same problem, give one small practical step/);
+  assert.match(prompt, /Did I ask at most one main question/);
+  assert.match(prompt, /## Crisis detection and emotional safety/);
+});
