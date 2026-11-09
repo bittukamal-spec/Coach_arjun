@@ -9,6 +9,7 @@
 const { runBufferedToolLoop, sanitizeFinalText, buildRecoverySystem, describeResponseShape, MAX_ROUNDS, MAX_FINAL_TEXT_LENGTH, FINAL_TEXT_RECOVERY_INSTRUCTION } = require('./bufferedToolLoop');
 const { validateAthleteText, isApprovedSafetyText } = require('./validateAthleteText');
 const { getSportLanguageHints, buildLanguageHintSection, describeHints } = require('./sportLanguageHints');
+const { detectClarificationRequest, buildClarificationSection } = require('./clarificationHint');
 const {
   createLoadCoachingContext,
   createCommitCoachingTransition,
@@ -54,6 +55,8 @@ module.exports = {
   getSportLanguageHints,
   buildLanguageHintSection,
   describeHints,
+  detectClarificationRequest,
+  buildClarificationSection,
   MAX_ROUNDS,
   MAX_FINAL_TEXT_LENGTH,
   createLoadCoachingContext,

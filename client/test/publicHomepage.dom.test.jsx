@@ -293,11 +293,10 @@ describe('PWA install', () => {
 });
 
 describe('language', () => {
-  test('the language control calls the existing toggle', async () => {
-    const user = userEvent.setup();
+  test('no language control is shown while Hindi is switched off (i18n/languages.js)', () => {
     renderHome();
-    await user.click(screen.getByRole('button', { name: /language/i }));
-    expect(toggleLanguage).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('button', { name: /language/i })).toBeNull();
+    expect(screen.queryByText('हिंदी')).toBeNull();
   });
 
   test('Hindi renders Hindi copy across hero, cards and FAQ', () => {

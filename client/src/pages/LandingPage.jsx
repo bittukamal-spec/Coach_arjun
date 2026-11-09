@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
+import { HINDI_ENABLED } from '../i18n/languages';
 import { ArjunLogo, ArjunWordmark } from '../components/ArjunLogo';
 import LandingCarousel from '../components/landing/LandingCarousel';
 import {
@@ -171,15 +172,17 @@ function LandingPage() {
         <ArjunWordmark size="header" />
 
         <div className="flex items-center gap-1.5 xs:gap-2">
-          <button
-            type="button"
-            onClick={toggleLanguage}
-            aria-label={t.langLabel}
-            className={`flex h-10 shrink-0 items-center rounded-full border ${BORDER} bg-white p-[3px] text-[12px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5] focus-visible:ring-offset-2`}
-          >
-            <span className={`rounded-full px-2.5 py-1.5 ${language === 'hi' ? 'bg-[#185FA5] text-white' : BODY}`}>हिंदी</span>
-            <span className={`rounded-full px-2 py-1.5 ${language === 'en' ? 'bg-[#185FA5] text-white' : BODY}`}>EN</span>
-          </button>
+          {HINDI_ENABLED && (
+            <button
+              type="button"
+              onClick={toggleLanguage}
+              aria-label={t.langLabel}
+              className={`flex h-10 shrink-0 items-center rounded-full border ${BORDER} bg-white p-[3px] text-[12px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5] focus-visible:ring-offset-2`}
+            >
+              <span className={`rounded-full px-2.5 py-1.5 ${language === 'hi' ? 'bg-[#185FA5] text-white' : BODY}`}>हिंदी</span>
+              <span className={`rounded-full px-2 py-1.5 ${language === 'en' ? 'bg-[#185FA5] text-white' : BODY}`}>EN</span>
+            </button>
+          )}
 
           {installed ? (
             <span className={`flex h-10 shrink-0 items-center gap-1 rounded-full border ${BORDER} bg-white px-2.5 text-[12px] font-semibold ${BODY}`}>

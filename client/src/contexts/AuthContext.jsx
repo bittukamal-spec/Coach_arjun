@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { apiFetch } from '../api';
+import { HINDI_ENABLED } from '../i18n/languages';
 
 const AuthContext = createContext(null);
 
@@ -11,7 +12,7 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(() => !localStorage.getItem('mg_user'));
   const [token, setToken]     = useState(() => localStorage.getItem('mg_token'));
   const [language, setLanguage] = useState(
-    () => localStorage.getItem('mg_language') || 'en'
+    () => (HINDI_ENABLED ? localStorage.getItem('mg_language') || 'en' : 'en')
   );
   const [avatarUrl, setAvatarUrl] = useState(() => {
     try {
@@ -29,9 +30,20 @@ export function AuthProvider({ children }) {
         const data = await res.json();
         setUser(data.user);
         localStorage.setItem('mg_user', JSON.stringify(data.user));
-        const userLang = data.user.language || 'en';
+        const savedLang = data.user.language || 'en';
+        const userLang = HINDI_ENABLED ? savedLang : 'en';
         setLanguage(userLang);
         localStorage.setItem('mg_language', userLang);
+        // Hindi is switched off: move an account still set to Hindi back to
+        // English, so server-side AI (Coach, suggestions) answers in English
+        // too. Best effort; it simply retries on the next load if it fails.
+        if (!HINDI_ENABLED && savedLang === 'hi') {
+          apiFetch('/api/auth/me/language', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${activeToken}` },
+            body: JSON.stringify({ language: 'en' }),
+          }).catch(() => null);
+        }
 
         // PR 3: the old background profileIntro generation is gone. Arjun's
         // one interpretation of the athlete is the Starting Performance
@@ -71,7 +83,7 @@ export function AuthProvider({ children }) {
     localStorage.setItem('mg_user', JSON.stringify(newUser));
     setToken(newToken);
     setUser(newUser);
-    const lang = newUser.language || 'en';
+    const lang = HINDI_ENABLED ? newUser.language || 'en' : 'en';
     setLanguage(lang);
     localStorage.setItem('mg_language', lang);
     setLoading(false);
@@ -124,6 +136,7 @@ export function AuthProvider({ children }) {
   }
 
   async function toggleLanguage() {
+    if (!HINDI_ENABLED) return;
     const newLang = language === 'en' ? 'hi' : 'en';
     setLanguage(newLang);
     localStorage.setItem('mg_language', newLang);
