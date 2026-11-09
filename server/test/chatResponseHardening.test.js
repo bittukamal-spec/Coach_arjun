@@ -333,7 +333,7 @@ test('the route validates before any persistence, and only ever commits validate
 test('the controlled retry has no tools and carries its instruction in the system prompt', () => {
   const idx = chatSrc.indexOf('const retryResponse = await anthropic.messages.create({');
   assert.ok(idx !== -1, 'a single controlled retry must exist');
-  const block = chatSrc.slice(idx, idx + 400);
+  const block = chatSrc.slice(idx, chatSrc.indexOf('}, coach.options);', idx));
   assert.match(block, /system: buildRecoverySystem\(systemPrompt\)/);
   assert.doesNotMatch(block, /tools:/, 'the retry must not expose tools');
 });
@@ -349,6 +349,16 @@ test('rejected text is never logged — only fixed reason codes and structural f
   assert.doesNotMatch(block, /\bcandidateText\b|\bfinalText\b|\bretryText\b|\bcontent\b/, 'no message text may be logged');
   // The structural shape it does log is types/counts/lengths only.
   assert.match(block, /responseShape: responseShape \|\| loop\.responseShape/);
+});
+
+test('the recovery system builder also appends to a block-form (prompt-cached) system prompt', () => {
+  const blocks = [{ type: 'text', text: 'STABLE', cache_control: { type: 'ephemeral' } }];
+  const out = buildRecoverySystem(blocks);
+  assert.equal(out.length, 2);
+  assert.deepEqual(out[0], blocks[0]);
+  assert.equal(out[1].type, 'text');
+  assert.match(out[1].text, /## Finish this reply/);
+  assert.equal(blocks.length, 1, 'the input array is not mutated');
 });
 
 test('the recovery system builder appends to the existing prompt rather than replacing it', () => {

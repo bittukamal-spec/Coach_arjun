@@ -16,6 +16,7 @@ const {
   getSportLanguageHints, buildLanguageHintSection, describeHints,
   detectClarificationRequest, buildClarificationSection,
 } = require('../services/coaching');
+const { coachRequestSettings, buildCoachSystem } = require('../services/coaching/coachModel');
 const { priorityPhrase } = require('../profile/ruleEngine');
 const loadReflectionContext = require('../services/mindJournal/loadReflectionContext');
 const { buildReflectionContextSection } = loadReflectionContext;
@@ -1273,16 +1274,23 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
     const clarification = detectClarificationRequest(content);
     if (clarification) console.log('[chat] clarification_request', JSON.stringify({ kind: clarification.kind }));
 
-    const systemPrompt = buildSystemPrompt(user, recentCheckIns, memories, sessionType, { ...promptExtra, coachingContext, reflectionContext, startingProfile, currentFocus })
-      + buildLanguageHintSection(languageHints)
-      + buildClarificationSection(clarification);
+    // Coach-only model + request settings (COACH_MODEL / COACH_EFFORT /
+    // COACH_REFUSAL_FALLBACK — services/coaching/coachModel.js). The stable
+    // prompt is prompt-cached; the per-message notes ride after it.
+    const coach = coachRequestSettings();
+    const systemPrompt = buildCoachSystem(
+      buildSystemPrompt(user, recentCheckIns, memories, sessionType, { ...promptExtra, coachingContext, reflectionContext, startingProfile, currentFocus }),
+      buildLanguageHintSection(languageHints) + buildClarificationSection(clarification),
+    );
     const loop = await runBufferedToolLoop({
       anthropic,
-      model,
-      maxTokens: 800,
+      model: coach.model,
+      maxTokens: coach.maxTokens,
       system: systemPrompt,
       messages: conversationHistory,
       coachingContext,
+      requestBody: coach.body,
+      requestOptions: coach.options,
     });
 
     const candidateText = loop.exceededRounds ? null : sanitizeFinalText(loop.finalText);
@@ -1406,14 +1414,15 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
       if (!recoveryAlreadySpent) {
         try {
           const retryResponse = await anthropic.messages.create({
-            model,
-            max_tokens: 800,
+            ...coach.body,
+            model: coach.model,
+            max_tokens: coach.maxTokens,
             // On a typo-echo rejection the reminder is the hint section itself,
             // which already tells Arjun to use or paraphrase the intended
             // meaning and never quote the mistaken phrase back.
             system: buildRecoverySystem(systemPrompt),
             messages: conversationHistory,
-          });
+          }, coach.options);
           const retryContent = Array.isArray(retryResponse.content) ? retryResponse.content : [];
           const retryText = sanitizeFinalText(retryContent.filter((b) => b.type === 'text').map((b) => b.text).join(''));
           const retryCheck = validateAthleteText(retryText || '', { languageHints });
