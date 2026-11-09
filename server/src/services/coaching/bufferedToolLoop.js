@@ -20,6 +20,8 @@ const {
   PROPOSE_BARRIER,
   PRESCRIBE_MENTAL_REP,
   RECORD_PRESCRIPTION_OUTCOME,
+  PROPOSE_ROUTINE,
+  validateProposeRoutine,
   validateProposeBarrier,
   validatePrescribeMentalRep,
   validateRecordPrescriptionOutcome,
@@ -116,6 +118,21 @@ function sanitizeFinalText(raw) {
 // per athlete message. The reply-chip tool that used to share this path is
 // gone; every tool here is a real state transition.
 function handleToolUse(block, context, held) {
+  // propose_routine is not a coaching-state transition: it never counts
+  // against (or is blocked by) the one-transition rule. It only stages a
+  // card the athlete may save; the last valid one in a turn wins.
+  if (block.name === PROPOSE_ROUTINE) {
+    const v = validateProposeRoutine(block.input);
+    if (!v.ok) return { accepted: false, result: { accepted: false, error: v.error } };
+    return {
+      accepted: true,
+      routineProposal: v.proposal,
+      result: {
+        accepted: true,
+        note: 'Routine card staged. The athlete sees a Save button under your reply. Now write your normal reply listing the same steps; do not say it has been saved.',
+      },
+    };
+  }
   if (
     block.name !== PROPOSE_BARRIER &&
     block.name !== PRESCRIBE_MENTAL_REP &&
@@ -188,7 +205,7 @@ function handleToolUse(block, context, held) {
 }
 
 // anthropic is injected (real client in production, a stub in tests).
-// Returns { finalText, transition, rounds, exceededRounds,
+// Returns { finalText, transition, routineProposal, rounds, exceededRounds,
 // finalTextRecoveryAttempted, finalTextRecoverySucceeded, responseShape,
 // recoveryResponseShape }.
 async function runBufferedToolLoop({
@@ -206,6 +223,7 @@ async function runBufferedToolLoop({
 }) {
   const working = [...messages];
   let transition = null;
+  let routineProposal = null;
 
   for (let round = 1; round <= maxRounds; round++) {
     const response = await anthropic.messages.create({
@@ -253,6 +271,7 @@ async function runBufferedToolLoop({
         return {
           finalText: recoveryText,
           transition,
+          routineProposal,
           rounds: round,
           exceededRounds: false,
           finalTextRecoveryAttempted: true,
@@ -266,7 +285,7 @@ async function runBufferedToolLoop({
       }
 
       return {
-        finalText, transition, rounds: round, exceededRounds: false,
+        finalText, transition, routineProposal, rounds: round, exceededRounds: false,
         finalTextRecoveryAttempted: false, finalTextRecoverySucceeded: false,
         responseShape: describeResponseShape(response),
         recoveryResponseShape: null,
@@ -279,6 +298,7 @@ async function runBufferedToolLoop({
     const toolResults = toolUses.map((block) => {
       const outcome = handleToolUse(block, coachingContext, { transition });
       if (outcome.accepted && outcome.transition) transition = outcome.transition;
+      if (outcome.accepted && outcome.routineProposal) routineProposal = outcome.routineProposal;
       return {
         type: 'tool_result',
         tool_use_id: block.id,
@@ -292,7 +312,7 @@ async function runBufferedToolLoop({
   // Round cap hit while the model was still calling tools: discard
   // everything — the caller emits the deterministic retry message.
   return {
-    finalText: null, transition: null, rounds: maxRounds, exceededRounds: true,
+    finalText: null, transition: null, routineProposal: null, rounds: maxRounds, exceededRounds: true,
     finalTextRecoveryAttempted: false, finalTextRecoverySucceeded: false,
     responseShape: null, recoveryResponseShape: null,
   };

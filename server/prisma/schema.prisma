@@ -275,6 +275,10 @@ model ChatSession {
   // messages from this moment on. Earlier messages of the same weekly cycle
   // are kept (Weekly Review still reads the whole cycle). Additive.
   freshStartAt DateTime?
+  // The saved Routine this conversation is about (set by "Talk to Arjun" on
+  // a routine; cleared by Start fresh). A plain id, checked for ownership
+  // on every use — no relation, so routine deletes never touch sessions.
+  focusRoutineId String?
   messages    Message[]
 
   // Optional origin reference for a coaching cycle/prescription that was

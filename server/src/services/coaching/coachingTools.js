@@ -12,6 +12,13 @@ const { APPROVED_PRACTICE_KEYS, isApprovedPracticeKey } = require('./practiceReg
 const PROPOSE_BARRIER = 'propose_barrier';
 const PRESCRIBE_MENTAL_REP = 'prescribe_mental_rep';
 const RECORD_PRESCRIPTION_OUTCOME = 'record_prescription_outcome';
+// Not a coaching-state transition (Nov 2026): offers the athlete a routine
+// card they can save to Ritual. Nothing is written by the tool — the athlete
+// taps Save on the card, which goes through the normal routines API.
+const PROPOSE_ROUTINE = 'propose_routine';
+// Mirrors server/src/services/routines/validateRoutine.js.
+const ROUTINE_CATEGORIES = ['session_preparation', 'repeated_moment', 'pressure_moment', 'own_situation'];
+const ROUTINE_LIMITS = { maxSteps: 5, step: 120, name: 60 };
 
 // Length bounds for every athlete-visible or stored field. Anything outside
 // these is a malformed payload — rejected, never truncated silently.
@@ -136,6 +143,38 @@ const COACHING_TOOLS = [
       required: ['outcomeStatus', 'lessonText'],
     },
   },
+  {
+    name: PROPOSE_ROUTINE,
+    description:
+      'Offer the athlete a routine card they can save to their Ritual routines with one tap. ' +
+      'Use it when you and the athlete have agreed on a concrete routine — an improved version of the routine being discussed, or a new one they asked for — ' +
+      'or when they ask to save it. Give the COMPLETE routine in order (2-5 short steps they can do in that moment, in the words you used in your reply). ' +
+      'This saves nothing by itself: the athlete decides on the card. It is not a coaching-state transition and does not affect barriers or prescriptions. ' +
+      'Call it at most once per reply, and still write your normal reply to the athlete, listing the same steps.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        steps: {
+          type: 'array',
+          minItems: 1,
+          maxItems: ROUTINE_LIMITS.maxSteps,
+          items: { type: 'string', maxLength: ROUTINE_LIMITS.step },
+          description: 'The full routine, one short instruction per step, in order.',
+        },
+        name: {
+          type: 'string',
+          maxLength: ROUTINE_LIMITS.name,
+          description: 'A short name for a NEW routine (e.g. "Before I bat"). Leave out when improving the routine being discussed.',
+        },
+        category: {
+          type: 'string',
+          enum: ROUTINE_CATEGORIES,
+          description: 'For a NEW routine: when it is used. Leave out when improving the routine being discussed.',
+        },
+      },
+      required: ['steps'],
+    },
+  },
 ];
 
 function nonEmptyBounded(value, max) {
@@ -251,8 +290,43 @@ function validateRecordPrescriptionOutcome(input, context) {
   return { ok: true };
 }
 
+// Shape check only; the card's Save goes through the routines API, which
+// validates and safety-screens again before anything is stored.
+function validateProposeRoutine(input) {
+  if (!input || typeof input !== 'object') return { ok: false, error: 'Invalid routine.' };
+  const { steps, name, category } = input;
+  if (!Array.isArray(steps) || steps.length < 1 || steps.length > ROUTINE_LIMITS.maxSteps) {
+    return { ok: false, error: `Give 1-${ROUTINE_LIMITS.maxSteps} steps.` };
+  }
+  const clean = [];
+  for (const step of steps) {
+    if (typeof step !== 'string' || !step.trim()) return { ok: false, error: 'Every step must be non-empty text.' };
+    const text = step.replace(/\s+/g, ' ').trim();
+    if (text.length > ROUTINE_LIMITS.step) return { ok: false, error: `Each step must be at most ${ROUTINE_LIMITS.step} characters.` };
+    clean.push(text);
+  }
+  if (name !== undefined && name !== null && (typeof name !== 'string' || name.trim().length > ROUTINE_LIMITS.name)) {
+    return { ok: false, error: `The name must be at most ${ROUTINE_LIMITS.name} characters.` };
+  }
+  if (category !== undefined && category !== null && !ROUTINE_CATEGORIES.includes(category)) {
+    return { ok: false, error: 'Unknown category.' };
+  }
+  return {
+    ok: true,
+    proposal: {
+      steps: clean,
+      name: typeof name === 'string' && name.trim() ? name.trim() : null,
+      category: ROUTINE_CATEGORIES.includes(category) ? category : null,
+    },
+  };
+}
+
 module.exports = {
   COACHING_TOOLS,
+  PROPOSE_ROUTINE,
+  ROUTINE_CATEGORIES,
+  ROUTINE_LIMITS,
+  validateProposeRoutine,
   PROPOSE_BARRIER,
   PRESCRIBE_MENTAL_REP,
   RECORD_PRESCRIPTION_OUTCOME,

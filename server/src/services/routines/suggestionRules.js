@@ -13,8 +13,10 @@
 //  - Sport-neutral wording only. Sport- or role-specific content needs
 //    authoring and review first.
 //  - Breathing appears only in settle rules (seconds, short, longer) and as
-//    one breath in the short reset rule. A seconds-long reset is a release
-//    action plus the plan for the next action — no breathing.
+//    one breath in the seconds and short reset rules.
+//  - "seconds" is the gap between balls, points or shots: founder testing
+//    (Nov 2026) showed a batter has ~10-20 seconds, so a 2-step routine
+//    finished too early. The window allows 3 steps; reset and settle use them.
 //  - Visualisation appears only in the short and longer prepare rules, as
 //    process imagery (carrying out the action), never outcome imagery.
 //  - No physical warm-up is ever suggested. Physical steps come only from
@@ -48,7 +50,7 @@ const OWN_SITUATION_FALLBACK_WINDOW = 'short';
 // Preferred TOTAL steps (athlete habits + suggestions) for each window.
 // Suggestions stop at this number. Athlete habits are never cut to fit it.
 const WINDOW_STEP_LIMIT = Object.freeze({
-  seconds: 2,
+  seconds: 3,
   short: 3,
   longer: 4,
 });
@@ -92,8 +94,8 @@ const SUGGESTION_LANGUAGES = Object.freeze(['en', 'hi']);
 // window's step limit, and none is padded to reach it.
 const RULES = Object.freeze({
   seconds: Object.freeze({
-    reset:      ['RELEASE', 'NEXT_PLAN'],
-    settle:     ['ONE_BREATH', 'NEXT_PLAN'],
+    reset:      ['RELEASE', 'ONE_BREATH', 'NEXT_PLAN'],
+    settle:     ['ONE_BREATH', 'NEXT_PLAN', 'CUE'],
     focus:      ['NEXT_PLAN', 'CUE'],
     confidence: ['NEXT_PLAN', 'TRUST'],
     activate:   ['ENERGY', 'NEXT_PLAN'],

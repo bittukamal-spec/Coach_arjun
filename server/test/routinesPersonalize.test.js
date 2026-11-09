@@ -72,12 +72,13 @@ test('the athlete\'s own steps stay first and verbatim; Arjun only fills the roo
   assert.deepEqual(out.steps.map(s => [s.origin, s.instruction]), [
     ['existing', 'Towel off'],
     ['suggested', 'Turn away from the bowler and let that ball go'],
+    ['suggested', 'Say "Next ball" as you walk back'],
   ]);
-  assert.match(calls[0].user, /Write exactly 1 step\./);
+  assert.match(calls[0].user, /Write exactly 2 steps\./);
 });
 
 test('no model call when the athlete\'s steps already fill the window', async () => {
-  const input = { ...INPUT, existingHabits: ['One', 'Two'] }; // seconds window = 2
+  const input = { ...INPUT, existingHabits: ['One', 'Two', 'Three'] }; // seconds window = 3
   const { personalize, calls } = setup({ reply: REPLY });
   assert.equal(await personalize({ userId: 'u1', input, rule: rule(input), language: 'en' }), null);
   assert.equal(calls.length, 0);

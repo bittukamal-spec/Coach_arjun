@@ -36,7 +36,7 @@ const toolsSrc = SRC('services/coaching/coachingTools.js');
 
 test('offer_quick_replies is no longer an available tool in Coach chat', () => {
   const names = COACHING_TOOLS.map((t) => t.name);
-  assert.deepEqual(names, ['propose_barrier', 'prescribe_mental_rep', 'record_prescription_outcome']);
+  assert.deepEqual(names, ['propose_barrier', 'prescribe_mental_rep', 'record_prescription_outcome', 'propose_routine']);
   assert.ok(!names.includes('offer_quick_replies'));
   assert.doesNotMatch(toolsSrc, /name: OFFER_QUICK_REPLIES/);
   assert.doesNotMatch(toolsSrc, /function validateOfferQuickReplies/);
@@ -214,7 +214,7 @@ test('the internal hint note is system-context only and carries no athlete ident
 
   // Appended to the SYSTEM prompt only — never a message, never streamed.
   // Passed as the uncached second system block (buildCoachSystem), never a message.
-  assert.match(chatSrc, /buildCoachSystem\([\s\S]{0,400}?buildLanguageHintSection\(languageHints\) \+ buildClarificationSection\(clarification\),/);
+  assert.match(chatSrc, /buildCoachSystem\([\s\S]{0,400}?buildLanguageHintSection\(languageHints\) \+ buildClarificationSection\(clarification\) \+ buildRoutineFocusSection\(focusRoutine\),/);
   assert.doesNotMatch(chatSrc, /role: 'user', content: buildClarificationSection/);
   assert.doesNotMatch(chatSrc, /role: 'user', content: buildLanguageHintSection/);
 });

@@ -42,7 +42,7 @@ const PURPOSE_TEXT = {
 };
 
 const WINDOW_TEXT = {
-  seconds: 'a few seconds (between balls, points or shots); each step must be doable in 1-3 seconds',
+  seconds: 'the gap between balls, points or shots (about 10-20 seconds); each step takes a few seconds',
   short: 'under a minute, just before a pressure moment',
   longer: 'a few minutes before playing or training',
 };

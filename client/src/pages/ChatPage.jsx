@@ -9,6 +9,7 @@ import ConsentBanner, { needsGuardianConsent } from '../components/ConsentBanner
 import { parseArjunMessage, APP_TOOL_CONFIG } from '../utils/parseArjunMessage';
 import { shouldShowAiReminder, BREAK_REMINDER_MS } from '../utils/chatReminders';
 import { parseServerCardEvent, mergeUniqueServerCard } from '../utils/serverCardEvent';
+import RoutineProposalCard from '../components/coach/RoutineProposalCard';
 import { practiceRouteFor } from '../utils/prescriptionPractice';
 import { filterInternalMessages, isInternalContent, INTERNAL_CONTENT_FILTERED } from '../utils/internalContentFilter';
 
@@ -410,6 +411,8 @@ function ChatPage() {
   // with the QuickReplyChips component. Coach's own AI-generated chips were
   // removed; this control deliberately stays.
   const [outcomeChoices, setOutcomeChoices]       = useState(null);
+  // A routine Arjun offered to save to Ritual (SSE routine_proposal).
+  const [routineProposal, setRoutineProposal]     = useState(null);
 
   const bottomRef               = useRef(null);
   const scrollerRef             = useRef(null);
@@ -428,6 +431,9 @@ function ChatPage() {
   const fullStreamText          = useRef('');
   const arjunMsgCountRef        = useRef(0);
   const prefillMsgRef           = useRef(location.state?.prefillMsg ?? null);
+  // Set by "Talk to Arjun" on a Ritual routine; sent once with the next
+  // message so the server links this conversation to that routine.
+  const routineIdRef            = useRef(location.state?.routineId ?? null);
   const pendingChatSessionIdRef = useRef(location.state?.chatSessionId ?? null);
   // Entered from the Starting Performance Profile: the athlete already
   // finished confirming it, so Back must not drop them back into that flow.
@@ -620,7 +626,7 @@ function ChatPage() {
   // (PR-13) are never persisted — they only
   // live for the current loaded session, so switching sessions must not
   // leak them.
-  useEffect(() => { setServerCards([]); setOutcomeChoices(null); }, [chatSessionId]);
+  useEffect(() => { setServerCards([]); setOutcomeChoices(null); setRoutineProposal(null); }, [chatSessionId]);
 
   // ── Reset the per-entry follow-up-claim guard, and any still-showing
   // outcome choices, when the UI genuinely returns to the chat-entry screen
@@ -813,6 +819,7 @@ function ChatPage() {
     // came from typing, tapping an outcome choice, or tapping "Write my own".
     // A new response (if any) will offer its own fresh set.
     setOutcomeChoices(null);
+    setRoutineProposal(null);
 
     if (!isSessionStart) {
       setMessages(prev => [...prev, { id: 'user-' + Date.now(), role: 'user', content: trimmed }]);
@@ -826,8 +833,12 @@ function ChatPage() {
       const res = await apiFetch('/api/chat/message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ content: trimmed, sessionType, arjunMsgCount: arjunMsgCountRef.current, chatSessionId: sessionIdToUse, chatMode }),
+        body: JSON.stringify({
+          content: trimmed, sessionType, arjunMsgCount: arjunMsgCountRef.current, chatSessionId: sessionIdToUse, chatMode,
+          ...(routineIdRef.current && !isSessionStart ? { routineId: routineIdRef.current } : {}),
+        }),
       });
+      if (!isSessionStart) routineIdRef.current = null;
 
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -902,6 +913,12 @@ function ChatPage() {
               // stream keeps processing later events.
               const card = parseServerCardEvent(data);
               if (card) setServerCards(prev => mergeUniqueServerCard(prev, card));
+            } else if (data.t === 'routine_proposal') {
+              // Arjun offered a routine: shown as a card the athlete may
+              // save to Ritual. Nothing is saved until they tap Save.
+              if (data.proposal && Array.isArray(data.proposal.steps) && data.proposal.steps.length) {
+                setRoutineProposal(data.proposal);
+              }
             } else if (data.t === 'quick_replies') {
               // AI-generated reply chips were removed from Coach chat. The
               // branch stays so an event from an older server build is
@@ -1008,6 +1025,7 @@ function ChatPage() {
       setMessages([]);
       setServerCards([]);
       setOutcomeChoices(null);
+      setRoutineProposal(null);
       setFreshNote(t.startFresh.done);
       setFreshConfirm(false);
     } catch {
@@ -1256,6 +1274,15 @@ function ChatPage() {
           {!showStartScreen && serverCards.map(card => (
             <ServerCardBubble key={card.prescriptionId} card={card} t={t} />
           ))}
+
+          {!showStartScreen && !streaming && !reveal && routineProposal && (
+            <RoutineProposalCard
+              proposal={routineProposal}
+              token={token}
+              t={t.routineCard}
+              onDismiss={() => setRoutineProposal(null)}
+            />
+          )}
 
           {/* Deterministic prescription-outcome choices (PR-13) — a structured
               control, not an AI reply suggestion; tapping one sends only its

@@ -107,6 +107,7 @@ test('ChatPage: server cards reset when chatSessionId changes (no leak across se
   const block = chatPageSrc.slice(idx, idx + 500);
   // AI quick replies were removed; server cards and the deterministic
   // outcome choices still reset per session.
-  assert.match(block, /useEffect\(\(\) => \{ setServerCards\(\[\]\); setOutcomeChoices\(null\); \}, \[chatSessionId\]\)/);
+  // The routine card (Nov 2026) resets with them.
+  assert.match(block, /useEffect\(\(\) => \{ setServerCards\(\[\]\); setOutcomeChoices\(null\); setRoutineProposal\(null\); \}, \[chatSessionId\]\)/);
   assert.doesNotMatch(block, /setQuickReplies/);
 });

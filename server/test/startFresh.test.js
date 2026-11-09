@@ -26,7 +26,7 @@ test('POST /:id/fresh-start: authenticated, owner-only, main + non-archived only
   assert.match(block, /session\.userId !== req\.userId/);
   assert.match(block, /session\.mode !== 'main'/);
   assert.match(block, /session\.status === 'archived'/);
-  assert.match(block, /data: \{ freshStartAt: new Date\(\) \}/);
+  assert.match(block, /data: \{ freshStartAt: new Date\(\), focusRoutineId: null \}/);
   assert.doesNotMatch(block, /delete|deleteMany|messages\.create|Anthropic/);
 });
 
