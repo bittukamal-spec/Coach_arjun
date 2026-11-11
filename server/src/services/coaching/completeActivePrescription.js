@@ -150,6 +150,9 @@ function createLoadActivePrescription(db = prisma) {
       cueWord: prescription.cueWord ?? null,
       status: prescription.status,
       completedAt: prescription.completedAt,
+      // Read-only extra for Home's "Your practice from Arjun" card: whether
+      // the athlete has already reported a result.
+      outcomeStatus: prescription.outcomeStatus ?? null,
     };
   };
 }

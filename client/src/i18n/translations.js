@@ -501,6 +501,28 @@ export const translations = {
       athleteFallback: 'Athlete',
       heroSub: 'Talk through whatever is on your mind.',
       helpLabel: 'Pick what you need now',
+      // "Your practice from Arjun" card — shows the one practice Coach gave.
+      practice: {
+        label: 'Your practice from Arjun',
+        labelDone: 'Practice done',
+        forSituation: (situation) => `For: ${situation}`,
+        cue: 'Your cue:',
+        showSteps: 'Show the steps',
+        hideSteps: 'Hide the steps',
+        start: 'Start practice',
+        tellArjun: 'Tell Arjun how it went',
+        fallbackName: 'Your practice',
+        names: {
+          pressure_reset: 'Pressure Reset',
+          focus_cue_building: 'Your focus cue',
+          attentional_routine: 'Focus routine',
+          pre_performance_routine: 'Pre-performance routine',
+          mistake_reset_routine: 'Mistake reset routine',
+          guided_rehearsal: 'Guided rehearsal',
+          post_performance_reflection: 'Reflection after you play',
+          acclimatization_homework: 'Pressure practice in training',
+        },
+      },
     },
     // ── Train (Stage E) ──────────────────────────────────────────────────
     // The five real practices only — no invented categories, no practice
@@ -2673,6 +2695,27 @@ export const translations = {
       athleteFallback: 'एथलीट',
       heroSub: 'मन में जो है, उस पर बात करो।',
       helpLabel: 'अभी क्या चाहिए, चुनो',
+      practice: {
+        label: 'अर्जुन की दी हुई practice',
+        labelDone: 'Practice हो गई',
+        forSituation: (situation) => `किसके लिए: ${situation}`,
+        cue: 'तुम्हारा cue:',
+        showSteps: 'Steps दिखाओ',
+        hideSteps: 'Steps छुपाओ',
+        start: 'Practice शुरू करो',
+        tellArjun: 'अर्जुन को बताओ कैसा रहा',
+        fallbackName: 'तुम्हारी practice',
+        names: {
+          pressure_reset: 'Pressure Reset',
+          focus_cue_building: 'तुम्हारा focus cue',
+          attentional_routine: 'Focus routine',
+          pre_performance_routine: 'खेलने से पहले की routine',
+          mistake_reset_routine: 'गलती के बाद reset routine',
+          guided_rehearsal: 'Guided rehearsal',
+          post_performance_reflection: 'खेलने के बाद reflection',
+          acclimatization_homework: 'ट्रेनिंग में pressure practice',
+        },
+      },
     },
     // ── Train (Stage E) ──────────────────────────────────────────────────
     // The five real practices only — no invented categories, no practice

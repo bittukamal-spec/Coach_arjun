@@ -189,3 +189,23 @@ test('no XP, streak, score, Starter Plan, game or skill-path UI returns to the D
   assert.doesNotMatch(codeOnly, /\/games\/|\/skills\//);
   assert.doesNotMatch(codeOnly, /\/api\/progress|\/api\/streaks|\/api\/plan/);
 });
+
+// ── 7. "Your practice from Arjun" (Phase 1) ─────────────────────────────────
+// Home may show the ONE practice Coach already gave. It is a self-contained
+// component, so Dashboard.jsx itself still makes no API call and still picks
+// nothing on the athlete's behalf.
+
+test('Home mounts the current-practice card above Mind Journal, without fetching anything itself', () => {
+  const card = src.indexOf('<CurrentPracticeCard />');
+  assert.ok(card !== -1, 'the card is mounted');
+  assert.ok(card > src.indexOf('1. GREETING') && card < src.indexOf('2. MIND JOURNAL'));
+  assert.doesNotMatch(codeOnly, /apiFetch/);
+});
+
+test('the current-practice card only reads the active practice and never writes or claims anything', () => {
+  const cardSrc = stripComments(readFileSync(path.join(root, 'src/components/home/CurrentPracticeCard.jsx'), 'utf8'));
+  assert.match(cardSrc, /\/api\/prescriptions\/active/);
+  assert.doesNotMatch(cardSrc, /method:\s*'(POST|PUT|PATCH|DELETE)'/);
+  assert.doesNotMatch(cardSrc, /claim-opener|\/api\/sessions|\/api\/chat/);
+  assert.doesNotMatch(cardSrc, /\bxp\b|streak|score/i);
+});

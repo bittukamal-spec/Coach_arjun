@@ -115,10 +115,13 @@ describe('Dashboard problem shortcuts — real router integration', () => {
     // Navbar's Notifications quick-settings shortcut (Home quick-settings
     // discoverability) reading the athlete's existing push preference
     // status — neither is Home gating its own render behind a request the
-    // way the old /api/playbook call once did.
+    // way the old /api/playbook call once did. The third is the mounted
+    // CurrentPracticeCard reading the one practice Coach already gave
+    // (read-only; it renders nothing until, and unless, one comes back).
     const calledPaths = apiFetch.mock.calls.map((c) => c[0]);
     expect(calledPaths.sort()).toEqual([
       '/api/pilot-communications/next',
+      '/api/prescriptions/active',
       '/api/push-notifications/preferences',
     ]);
   });

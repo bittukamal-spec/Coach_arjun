@@ -7,6 +7,7 @@ import { ChevronRight, MessageCircle, CloudRain, RefreshCw, Crosshair, TrendingU
 import { CardWaves } from '../components/visuals/CardArt';
 import TrainGradientCard from '../components/train/TrainGradientCard';
 import PilotCommunicationPopup from '../components/pilotCommunications/PilotCommunicationPopup';
+import CurrentPracticeCard from '../components/home/CurrentPracticeCard';
 
 // Problem shortcuts — all four enter Coach with a visible, unsent prefill
 // instead of jumping straight to a tool. Stable internal starter values,
@@ -66,6 +67,13 @@ export default function Dashboard() {
             {t.greeting(firstName)}
           </h1>
         </div>
+
+        {/* ── YOUR PRACTICE FROM ARJUN — only when Coach has already given
+             one and no final result is reported yet. Self-contained: the
+             component reads the existing read-only active-practice
+             endpoint and renders nothing otherwise, so Home's four
+             standing sections below are unchanged and never wait on it. */}
+        <CurrentPracticeCard />
 
         {/* ── 2. MIND JOURNAL — elevated to the top of Home, directly
              under the greeting. Reuses the exact same premium gradient
