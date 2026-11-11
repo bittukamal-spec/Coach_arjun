@@ -17,7 +17,7 @@ export default function RoutineRun({ routine, title, color, t, onExit }) {
   const back = () => (index === 0 ? onExit() : setIndex(i => i - 1));
 
   return (
-    <div className="min-h-screen bg-dark-900 flex flex-col">
+    <div className="min-h-screen bg-dark-900 flex flex-col pb-20">
       <PageHeader onBack={back} title={title} />
       <main className="flex-1 max-w-lg w-full mx-auto px-page py-6 flex flex-col animate-fade-in">
         {!finished && (

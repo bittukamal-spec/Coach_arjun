@@ -114,12 +114,13 @@ Bottom nav: **Home** (`/dashboard`) · **Train** (`/train`) · **Coach** (`/coac
 
 | Surface | Route | Notes |
 |---|---|---|
+| Home | `/dashboard` | Greeting → "Your practice from Arjun" (`components/home/CurrentPracticeCard.jsx`, read-only `GET /api/prescriptions/active`; hidden when there is no open practice) → Mind Journal → Talk to Arjun → 4 shortcuts |
 | Coach | `/coaching` | Main chat (see §9) |
 | Mind Journal | `/mind-journal` (+ `/quick`, `/new`, `/new/details`, `/context`, `/:id`) | Guided reflections + quick notes; replaces debrief, check-in and mental-fitness |
 | Starting profile | `/starting-profile` (+ `/check-in`) | Onboarding performance profile |
-| Ritual | `/ritual` | Up to 5 routines: list → detail (steps, when-to-use tip, "Talk to Arjun" prefill) → builder with "Suggest steps for me". No in-app walkthrough |
-| Pressure Reset | `/body-reset` (+ `/history`) | Shared practice shell |
-| Quick Rep | `/mental-rep` | Delivers prescribed practices |
+| Ritual | `/ritual` | Up to 5 routines: list → detail (steps, when-to-use tip, "Talk to Arjun" prefill) → builder with "Suggest steps for me". "Practise this routine" = one-step-per-screen rehearsal (`components/ritual/RoutineRun.jsx`), saves/tracks nothing |
+| Pressure Reset | `/body-reset` (+ `/history`) | Shared practice shell. Opt-in sound + vibration breathing cues (`utils/breathCues.js`, off by default) |
+| Quick Rep | `/mental-rep` | Delivers prescribed practices; cue step offers the athlete's own Focus Card words first |
 | Focus Card Builder / Focus Deck | `/self-talk`, `/focus-deck` | Max 5 active cards (server-enforced) |
 | Skill paths | `/skills/focus-self-talk`, `/skills/pressure-reset` | Learn + quick check |
 | Games | `/games/focus-lock`, `/games/reset-rally` | `/games` → `/train` |
@@ -170,7 +171,7 @@ Selective deletion (`DELETE /api/user/data/:type`): 6 types — `chat-history`, 
 2. Razorpay cancel failure doesn't stop account deletion (§11).
 3. `Message` has no index; no message retention job (§4, §9).
 4. Coach does not see the athlete's routine list. It sees the imported legacy routine (via `User.ritualName/ritualSteps`) and, since Nov 2026, the ONE routine linked by "Talk to Arjun" (`ChatSession.focusRoutineId`). Showing all routines would need founder approval.
-5. Old docs (`AUDIT.md`, `PROJECT.md`, `PRODUCT-AUDIT.md`, `PLAN.md`) are stale.
+5. Old docs (`AUDIT.md`, `PROJECT.md`, `PRODUCT-AUDIT.md`, `PLAN.md`) are stale. Current plan: `docs/ROADMAP.md` (Nov 2026).
 
 Fixed since the July audit: quick-chat safety (now dormant + own safety blocks), age/guardian consent gate, safety-event logging + founder review, `checkin-history` deletion, broken `--color-dark-*` vars, webhook idempotency, CORS allow-all, KIRAN on all safety surfaces.
 
