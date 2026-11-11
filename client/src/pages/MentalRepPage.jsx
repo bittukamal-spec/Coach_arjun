@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Zap, Wind, Target, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -143,6 +143,29 @@ export default function MentalRepPage() {
 
   const sportKey = (user?.sport || '').toLowerCase();
 
+  // The athlete's own words from their saved Focus Cards, offered first on
+  // the cue step so the rep ends on a cue that is already theirs. Read-only;
+  // with no cards (or a failed request) the step shows the standard list.
+  const [ownCues, setOwnCues] = useState([]);
+  useEffect(() => {
+    let alive = true;
+    apiFetch('/api/self-talk/cards?filter=active', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => (r.ok ? r.json() : []))
+      .then(cards => {
+        if (!alive || !Array.isArray(cards)) return;
+        const words = [];
+        for (const c of cards) {
+          for (const w of [c?.focusWord, c?.resetWord]) {
+            const word = typeof w === 'string' ? w.trim() : '';
+            if (word && word.length <= 40 && !words.includes(word)) words.push(word);
+          }
+        }
+        setOwnCues(words.slice(0, 3));
+      })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [token]);
+
   function goBack() {
     const order = ['intro', 'context', 'state', 'moment', 'rep', 'cue', 'save'];
     const idx = order.indexOf(step);
@@ -159,7 +182,7 @@ export default function MentalRepPage() {
     const base = [...(CUE_BANK[athleteState] || CUE_BANK.ready)];
     const sportCue = SPORT_CUES[sportKey]?.[athleteState];
     if (sportCue && !base.includes(sportCue)) base.unshift(sportCue);
-    return base.slice(0, 4);
+    return base.filter(c => !ownCues.includes(c)).slice(0, 4);
   }
 
   async function finishRep(saveCue) {
@@ -321,6 +344,17 @@ export default function MentalRepPage() {
       title={hi ? 'अपना cue चुनो।' : 'Pick your cue.'}
       sub={hi ? 'छोटे शब्द जो तुम खेल के बीच खुद से कह सको।' : 'Short words you can actually say mid-game.'}
     >
+      {ownCues.length > 0 && (
+        <>
+          <p className="text-xs font-bold text-slt uppercase tracking-widest mb-2">{hi ? 'तुम्हारे अपने शब्द' : 'Your own words'}</p>
+          <div className="space-y-2.5 mb-4">
+            {ownCues.map(c => (
+              <ChoiceButton key={c} label={`"${c}"`} selected={cue === c} onClick={() => { setCue(c); setStep('save'); }} />
+            ))}
+          </div>
+          <p className="text-xs font-bold text-slt uppercase tracking-widest mb-2">{hi ? 'या इनमें से चुनो' : 'Or pick one of these'}</p>
+        </>
+      )}
       <div className="space-y-2.5 mb-4">
         {cueOptions().map(c => (
           <ChoiceButton key={c} label={`"${c}"`} selected={cue === c} onClick={() => { setCue(c); setStep('save'); }} />

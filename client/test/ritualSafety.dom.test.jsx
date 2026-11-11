@@ -363,7 +363,7 @@ describe('RitualPage — routines', () => {
     expect(await screen.findByText('Say it out loud')).toBeTruthy();
   });
 
-  test('the detail screen shows the steps, when to use it and Arjun help — and no start button', async () => {
+  test('the detail screen shows the steps, when to use it, Arjun help and a rehearsal button', async () => {
     mockApi({ 'GET /api/routines': json(listBody([routine()])) });
     const user = userEvent.setup();
     renderPage();
@@ -375,7 +375,32 @@ describe('RitualPage — routines', () => {
     expect(screen.getByText(new RegExp(t.useWhen.session_preparation))).toBeTruthy();
     expect(screen.getByRole('heading', { name: t.arjunTitle })).toBeTruthy();
     expect(screen.getByRole('link', { name: t.askArjun })).toBeTruthy();
-    expect(screen.queryByRole('button', { name: /start/i })).toBeNull();
+    expect(screen.getByRole('button', { name: t.runStart })).toBeTruthy();
+  });
+
+  test('"Practise this routine" walks one step per screen and saves nothing', async () => {
+    mockApi({ 'GET /api/routines': json(listBody([routine()])) });
+    const user = userEvent.setup();
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: /Before I bat/ }));
+    await user.click(screen.getByRole('button', { name: t.runStart }));
+
+    expect(screen.getByText(t.runStepOf(1, 2))).toBeTruthy();
+    expect(screen.getByText('Two slow breaths')).toBeTruthy();
+    expect(screen.queryByText('Say my word')).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: t.runNext }));
+    expect(screen.getByText(t.runStepOf(2, 2))).toBeTruthy();
+    expect(screen.getByText('Say my word')).toBeTruthy();
+    expect(screen.getByText('“Sharp”')).toBeTruthy();
+
+    await user.click(screen.getByRole('button', { name: t.runFinish }));
+    expect(screen.getByRole('heading', { name: t.runDoneTitle })).toBeTruthy();
+
+    await user.click(screen.getByRole('button', { name: t.runDone }));
+    expect(screen.getByRole('button', { name: t.runStart })).toBeTruthy();
+    // Only the initial list load ever hit the API.
+    expect(apiFetch.mock.calls.map(([p2, init = {}]) => `${init.method || 'GET'} ${p2}`)).toEqual(['GET /api/routines']);
   });
 
   test('"Talk to Arjun" opens Coach with the routine pre-filled, not sent', async () => {

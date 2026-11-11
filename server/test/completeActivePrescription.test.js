@@ -396,7 +396,7 @@ test('loadActivePrescription returns only the structured fields the client needs
   const load = createLoadActivePrescription(db);
   const result = await load(USER);
 
-  assert.deepEqual(Object.keys(result).sort(), ['cardContent', 'completedAt', 'cueWord', 'practiceKey', 'prescriptionId', 'situation', 'status'].sort());
+  assert.deepEqual(Object.keys(result).sort(), ['cardContent', 'completedAt', 'cueWord', 'outcomeStatus', 'practiceKey', 'prescriptionId', 'situation', 'status'].sort());
   assert.equal(result.prescriptionId, 'presc-A');
   assert.equal(result.practiceKey, 'pressure_reset');
   assert.ok(!('cycleId' in result));

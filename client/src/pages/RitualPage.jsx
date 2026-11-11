@@ -9,15 +9,17 @@ import { apiFetch } from '../api';
 import { Button, Card, PageHeader, SectionLabel } from '../components/ui';
 import { SafetyGuidanceCard } from './mindJournal/shared';
 import { CardWaves, AthleteMark } from '../components/visuals/CardArt';
+import RoutineRun from '../components/ritual/RoutineRun';
 
 // ─── Ritual rebuild (PR 3) — the athlete's saved routines. /ritual now reads
 // and writes /api/routines (up to 5 routines) instead of the legacy single
 // ritual on /api/ritual/me. Screens: list → detail → builder, all on this
 // one route, like the page it replaces.
 //
-// There is no in-app "start" walkthrough: routines are used on the field,
-// not on the phone. The detail screen shows the steps, when to use them,
-// and a hand-off to Arjun instead.
+// Routines are used on the field, not on the phone. The detail screen shows
+// the steps, when to use them, and a hand-off to Arjun — plus "Practise this
+// routine", a one-step-per-screen rehearsal (components/ritual/RoutineRun)
+// that saves and tracks nothing.
 //
 // The legacy single ritual is imported once, automatically, the first time
 // this page sees one (POST /api/routines/import-legacy is repeat-safe). From
@@ -735,6 +737,21 @@ function RitualPage() {
     );
   }
 
+  // ── Rehearsal walkthrough ────────────────────────────────────────────────
+
+  if (view.name === 'run' && current) {
+    return (
+      <RoutineRun
+        key={current.id}
+        routine={current}
+        title={routineTitle(current, t)}
+        color={categoryStyle(current.category).color}
+        t={t}
+        onExit={() => setView({ name: 'detail', id: current.id })}
+      />
+    );
+  }
+
   // ── Detail ───────────────────────────────────────────────────────────────
 
   if (view.name === 'detail' && current) {
@@ -761,6 +778,12 @@ function RitualPage() {
 
           <SectionLabel>{t.steps}</SectionLabel>
           <StepTimeline steps={current.steps} color={color} />
+
+          {current.steps.length > 0 && (
+            <Button type="button" onClick={() => setView({ name: 'run', id: current.id })} className="w-full mb-6">
+              {t.runStart}
+            </Button>
+          )}
 
           <UseTips routine={current} t={t} />
 
