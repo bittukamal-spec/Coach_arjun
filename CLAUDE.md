@@ -69,7 +69,7 @@ Mounted in `server/src/index.js`. All need JWT (`authenticate` → `req.userId`)
 | `/api/skills` | GET :skillKey, POST :skillKey/learn, POST :skillKey/quick-check | |
 | `/api/mental-rep` | POST complete | Quick Rep |
 | `/api/mind-journal` | POST, GET, PATCH context, GET/DELETE :id | AI reflection review; Consent on read/write |
-| `/api/playbook` | GET | Playbook UI retired (redirects to Home) |
+| `/api/playbook` | GET | Feeds My practice (`/my-practice`); old `/playbook` URL still redirects to Home |
 | `/api/weekly-reports` | GET (lazy-generates last week) | AI; Consent, no Access |
 | `/api/debrief` | POST, GET | AI; Consent, no Access (UI retired → redirect) |
 | `/api/self-talk` | POST generate, save, GET cards, PATCH/DELETE cards/:id, POST cards/:id/practice | Consent + **Access** on generate |
@@ -125,7 +125,8 @@ Bottom nav: **Home** (`/dashboard`) · **Train** (`/train`) · **Coach** (`/coac
 | Skill paths | `/skills/focus-self-talk`, `/skills/pressure-reset` | Learn + quick check |
 | Games | `/games/focus-lock`, `/games/reset-rally` | `/games` → `/train` |
 | Visualization | `/visualization` | |
-| Weekly reviews | `/weekly-reviews` | |
+| My practice | `/my-practice` | Plain look-back reached from Train: practices from Arjun + reported result, cues, reflection takeaways, link to Weekly reviews. Read-only over `GET /api/playbook`; no scores/streaks/patterns (simpler successor to the retired Playbook, founder-approved Nov 2026) |
+| Weekly reviews | `/weekly-reviews` | Reached from the Coach header and from My practice |
 
 Retired → redirects: `/bounce-back`, `/before-you-play`, `/games` → `/train`; `/breathing` → `/body-reset`; `/checkin` → `/mental-fitness` → `/mind-journal`; `/debrief` → journal (or reflection flow with a prescription); `/playbook`, `/progress` → `/dashboard`; `/mental-game-profile` → `/starting-profile`.
 

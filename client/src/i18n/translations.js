@@ -534,6 +534,8 @@ export const translations = {
       beforeLabel: 'Before you play',
       buildLabel: 'Build mental skills',
       resetHistory: 'View history →',
+      lookBackLabel: 'Look back',
+      myPractice: { name: 'My practice', desc: 'What you have practised and how it went.' },
       practices: {
         ritual:      { name: 'Ritual',                     desc: 'Your routine before you play.' },
         pressure:    { name: 'Pressure Reset',             desc: 'Steady your body before the next action.' },
@@ -1027,6 +1029,34 @@ export const translations = {
       arjunBody: 'Share your routine with Arjun to make it sharper, fit it to your sport, or work out what to do when it is not working.',
       askArjun: 'Talk to Arjun about it',
       arjunPrefill: (name, category, steps) => `Here is my routine "${name}" (${category}):\n${steps}\nCan you help me make it better?`,
+    },
+    // My practice — a plain look-back (English-first; no Hindi copy needed).
+    myPractice: {
+      title: 'My practice',
+      intro: 'What you have practised, and what you said about how it went.',
+      loading: 'Loading',
+      loadError: 'Could not load this right now. Try again later.',
+      emptyTitle: 'Nothing here yet',
+      emptySub: 'Once Arjun gives you a practice and you tell him how it went, it shows up here.',
+      emptyCta: 'Talk to Arjun',
+      weekLabel: 'This week',
+      weekLine: (reps, resets) => [
+        reps ? `${reps} Quick Rep${reps === 1 ? '' : 's'}` : '',
+        resets ? `${resets} Pressure Reset${resets === 1 ? '' : 's'}` : '',
+      ].filter(Boolean).join(' · '),
+      practicesLabel: 'Practices from Arjun',
+      practiceFallback: 'Practice',
+      forSituation: (situation) => `For: ${situation}`,
+      outcomes: {
+        HELPED: 'It helped',
+        HELPED_A_LITTLE: 'Helped a little',
+        DID_NOT_HELP: 'Did not help',
+        NOT_TRIED: 'Not tried yet',
+      },
+      cuesLabel: 'Your cues',
+      reflectionsLabel: 'From your reflections',
+      weeklyTitle: 'Weekly reviews',
+      weeklySub: 'Arjun\'s summary of each coaching week.',
     },
     weeklyReviews: {
       title: 'Weekly Reviews',
@@ -2740,6 +2770,8 @@ export const translations = {
       beforeLabel: 'खेलने से पहले',
       buildLabel: 'मानसिक स्किल बनाओ',
       resetHistory: 'Reset history देखो →',
+      lookBackLabel: 'पीछे देखो',
+      myPractice: { name: 'मेरी practice', desc: 'तुमने क्या practice किया और कैसा रहा।' },
       practices: {
         ritual:     { name: 'Ritual',                      desc: 'खेलने से पहले की अपनी रूटीन।' },
         pressure:   { name: 'Pressure Reset',              desc: 'शरीर को स्थिर करो, ट्रेनिंग या कॉम्पिटिशन से पहले ध्यान वापस अगले एक्शन पर लाओ।' },

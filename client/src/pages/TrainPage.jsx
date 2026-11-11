@@ -1,4 +1,5 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import { ChevronRight, ListChecks } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
@@ -86,6 +87,25 @@ export default function TrainPage() {
             </div>
           </section>
         ))}
+
+        {/* Look back — one plain row to "My practice" (what the athlete has
+            done and how it went; Weekly Reviews are reached from there). */}
+        <section className="mb-7">
+          <SectionLabel>{t.lookBackLabel}</SectionLabel>
+          <Link
+            to="/my-practice"
+            className="flex items-center gap-3 min-h-[56px] rounded-2xl border border-dark-600 bg-dark-800 px-4 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+          >
+            <span className="w-10 h-10 rounded-full bg-brand-500/10 flex items-center justify-center shrink-0">
+              <ListChecks size={18} className="text-brand-500" aria-hidden="true" />
+            </span>
+            <span className="flex-1 min-w-0">
+              <span className="block text-body font-bold text-ink">{t.myPractice.name}</span>
+              <span className="block text-caption text-slt">{t.myPractice.desc}</span>
+            </span>
+            <ChevronRight size={18} className="text-slt shrink-0" aria-hidden="true" />
+          </Link>
+        </section>
 
       </main>
     </div>

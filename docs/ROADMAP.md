@@ -54,6 +54,8 @@ Goal: make the coaching loop visible and usable outside the chat.
 | 1.6 | **Pricing page lists only real features** | Honest paywall | Small |
 | 1.7 | **Weekly Review reachable from Home/Profile**, with an honest empty state for week 1 | It is currently buried in the chat menu | Small |
 
+**Status (2026-11-11): all seven built on branch `ccr-a8ca1aef-33u85v`.** 1.5 is the small version (own focus words offered first); a past-reps view is not built.
+
 Order: 1.6 → 1.1 → 1.3 → 1.2 → 1.4 → 1.7 → 1.5. Each is its own PR with a Vercel preview.
 
 ---

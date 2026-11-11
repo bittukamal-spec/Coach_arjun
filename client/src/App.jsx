@@ -41,6 +41,7 @@ import BodyResetPage from './pages/BodyResetPage';
 import ResetHistoryPage from './pages/ResetHistoryPage';
 import MentalRepPage from './pages/MentalRepPage';
 import WeeklyReviewsPage from './pages/WeeklyReviewsPage';
+import MyPracticePage from './pages/MyPracticePage';
 import ProtectedRoute from './components/ProtectedRoute';
 import BottomNav from './components/BottomNav';
 import AppUpdatePrompt from './components/AppUpdatePrompt';
@@ -349,6 +350,17 @@ function App() {
         element={
           <ProtectedRoute requireOnboarding={true}>
             <MentalRepPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* My practice — plain look-back (reached from Train). */}
+      <Route
+        path="/my-practice"
+        element={
+          <ProtectedRoute requireOnboarding={true}>
+            <MyPracticePage />
+            <BottomNav />
           </ProtectedRoute>
         }
       />
