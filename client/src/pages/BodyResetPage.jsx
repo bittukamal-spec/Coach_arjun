@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { ChevronRight, Wind } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiFetch } from '../api';
+import { createBreathCues, cuesPreferred, rememberCues } from '../utils/breathCues';
 import { translations } from '../i18n/translations';
 import HelplineList from '../components/HelplineList';
 import { PracticeIntro, PracticeScreen, PracticeCompletion } from '../components/practice/PracticeShell';
@@ -115,6 +116,27 @@ export default function BodyResetPage() {
 
   // Breathing timer
   const [breathPhase, setBreathPhase] = useState('inhale');
+  // Optional sound + vibration on each breath change (off until the athlete
+  // turns it on; remembered on this device).
+  const [cuesOn, setCuesOn] = useState(cuesPreferred);
+  const cuesOnRef = useRef(cuesOn);
+  const cuesRef = useRef(null);
+  function breathCue(phase) {
+    if (!cuesOnRef.current) return;
+    if (!cuesRef.current) cuesRef.current = createBreathCues();
+    cuesRef.current.cue(phase);
+  }
+  function toggleCues() {
+    const next = !cuesOnRef.current;
+    cuesOnRef.current = next;
+    setCuesOn(next);
+    rememberCues(next);
+    if (next) {
+      if (!cuesRef.current) cuesRef.current = createBreathCues();
+      cuesRef.current.unlock();
+    }
+  }
+  useEffect(() => () => { cuesRef.current?.close(); }, []);
   const [phaseRemaining, setPhaseRemaining] = useState(3);
   const [cycleCount, setCycleCount] = useState(0);
   const [totalElapsed, setTotalElapsed] = useState(0);
@@ -197,6 +219,7 @@ export default function BodyResetPage() {
           phaseTimeRef.current = proto.exhale;
           setBreathPhase('exhale');
           setPhaseRemaining(phaseTimeRef.current);
+          breathCue('exhale');
         } else {
           cyclesCompletedRef.current += 1;
           setCycleCount(cyclesCompletedRef.current);
@@ -217,6 +240,7 @@ export default function BodyResetPage() {
           phaseTimeRef.current = proto.inhale;
           setBreathPhase('inhale');
           setPhaseRemaining(phaseTimeRef.current);
+          breathCue('inhale');
         }
       }
     }, 1000);
@@ -237,6 +261,7 @@ export default function BodyResetPage() {
     phaseTimeRef.current = proto.inhale;
     tipIdxRef.current = 0;
     startTimeRef.current = Date.now();
+    breathCue('inhale');
     runInterval();
   }
 
@@ -737,6 +762,19 @@ export default function BodyResetPage() {
               {t.breathing.cycle} {Math.min(cycleCount + 1, proto.cycles)} {t.breathing.cycleOf} {proto.cycles}
             </p>
           )}
+
+          {/* Sound + vibration cues — so the athlete can close their eyes. */}
+          <button
+            type="button"
+            onClick={toggleCues}
+            aria-pressed={cuesOn}
+            className={`min-h-[44px] px-5 mb-3 rounded-2xl text-sm font-semibold active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 ${
+              cuesOn ? 'bg-teal-500/15 text-teal-400 border border-teal-500/40' : 'bg-dark-700 text-slt'
+            }`}
+          >
+            {cuesOn ? t.breathing.cuesOn : t.breathing.cuesOff}
+          </button>
+          {cuesOn && <p className="text-xs text-muted text-center mb-3 px-8">{t.breathing.cuesHint}</p>}
 
           {/* Pause button (training only) */}
           {mode === 'training' && (
