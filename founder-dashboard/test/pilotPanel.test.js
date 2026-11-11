@@ -275,3 +275,21 @@ test('lastSeenAt is never labelled as lastActiveAt anywhere in the panel', () =>
   assert.doesNotMatch(panel, /formatLastSeen\(athlete\.lastActiveAt\)/);
   assert.doesNotMatch(panel, /formatLastActive\(athlete\.lastSeenAt\)/);
 });
+
+// ── Pilot readout: the actual result and week-by-week activity ─────────────
+
+test('PilotPanel shows what the reported outcome was, not only that one exists', () => {
+  const src = readFileSync(path.join(__dirname, '..', 'src/panels/PilotPanel.jsx'), 'utf8');
+  for (const label of ['Practice helped', 'Helped a little', 'Did not help']) {
+    assert.ok(src.includes(label), `missing outcome label: ${label}`);
+  }
+  assert.match(src, /athlete\.latestOutcome/);
+  assert.match(src, /outcomeBreakdown/);
+});
+
+test('PilotPanel shows active days for pilot weeks 1–3 and a dash for a week not started', () => {
+  const src = readFileSync(path.join(__dirname, '..', 'src/panels/PilotPanel.jsx'), 'utf8');
+  assert.match(src, /<WeeksLine weeks=\{athlete\.weeks\} \/>/);
+  assert.match(src, /weeks\.week1Days, weeks\.week2Days, weeks\.week3Days/);
+  assert.match(src, /weeks\.weeksReached/);
+});

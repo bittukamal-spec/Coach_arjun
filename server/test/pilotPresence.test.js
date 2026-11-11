@@ -272,6 +272,8 @@ function makeOverviewStubClient(users) {
     message: { findMany: async () => [] },
     chatSession: { count: async () => 0 },
     prescription: { findMany: async () => [] },
+    toolReport: { findMany: async () => [] },
+    mindJournalEntry: { findMany: async () => [] },
   };
 }
 

@@ -121,6 +121,47 @@ function summarizeActivity(rows, now) {
   return { activeLast24Hours, activeLast7Days, returningAthletes };
 }
 
+// Which pilot weeks an athlete was active in, counted from their signup's
+// IST calendar day: week 1 = days 0–6, week 2 = days 7–13, week 3 = days
+// 14–20. Built only from timestamps the product already stores for its own
+// use (the athlete's own Coach messages, completed practices, Mind Journal
+// entries) — no content is read and no new tracking exists. Each value is
+// the number of distinct active days in that week; `weeksReached` says how
+// many of the three weeks have started, so the dashboard can tell "not
+// active" from "not there yet". `now` is passed in for deterministic tests.
+function summarizeWeeks(signupAt, timestamps, now) {
+  const dayIndex = (date) => Math.floor(
+    (Date.parse(istDateString(date)) - Date.parse(istDateString(signupAt))) / DAY_MS,
+  );
+  const days = [new Set(), new Set(), new Set()];
+  for (const t of timestamps) {
+    if (!(t instanceof Date) || Number.isNaN(t.getTime())) continue;
+    const d = dayIndex(t);
+    if (d >= 0 && d < 21) days[Math.floor(d / 7)].add(d);
+  }
+  const today = dayIndex(now);
+  return {
+    week1Days: days[0].size,
+    week2Days: days[1].size,
+    week3Days: days[2].size,
+    weeksReached: Math.max(1, Math.min(3, Math.floor(today / 7) + 1)),
+  };
+}
+
+// The most recent real result each athlete reported for a practice. An enum
+// value only — never the athlete's words (outcomeLesson is never selected).
+// NOT_TRIED is a replaceable placeholder and is not a result.
+function latestOutcomeByUser(rows) {
+  const latest = new Map();
+  for (const p of rows) {
+    if (!p.outcomeStatus || p.outcomeStatus === 'NOT_TRIED') continue;
+    const at = p.outcomeRecordedAt instanceof Date ? p.outcomeRecordedAt.getTime() : 0;
+    const prev = latest.get(p.userId);
+    if (!prev || at >= prev.at) latest.set(p.userId, { at, status: p.outcomeStatus });
+  }
+  return new Map([...latest].map(([userId, v]) => [userId, v.status]));
+}
+
 // Safe percentage of `total` — never divides by zero, never returns
 // NaN/Infinity. Rounded to one decimal place.
 function pct(count, total) {
@@ -150,6 +191,8 @@ function summarizePrescriptions(rows) {
   const outcomeReportedAthletes = new Set();
   let completedTotal = 0;
   let outcomesReportedTotal = 0;
+  // How the reported results split — the pilot's "did it help?" answer.
+  const outcomeBreakdown = { helped: 0, helpedALittle: 0, didNotHelp: 0 };
 
   for (const p of rows) {
     receivedAthletes.add(p.userId);
@@ -160,6 +203,9 @@ function summarizePrescriptions(rows) {
     if (p.outcomeStatus && p.outcomeStatus !== 'NOT_TRIED') {
       outcomeReportedAthletes.add(p.userId);
       outcomesReportedTotal += 1;
+      if (p.outcomeStatus === 'HELPED') outcomeBreakdown.helped += 1;
+      else if (p.outcomeStatus === 'HELPED_A_LITTLE') outcomeBreakdown.helpedALittle += 1;
+      else if (p.outcomeStatus === 'DID_NOT_HELP') outcomeBreakdown.didNotHelp += 1;
     }
   }
 
@@ -167,6 +213,7 @@ function summarizePrescriptions(rows) {
     receivedTotal: rows.length,
     completedTotal,
     outcomesReportedTotal,
+    outcomeBreakdown,
     receivedAthletes,
     completedAthletes,
     outcomeReportedAthletes,
@@ -235,16 +282,32 @@ function createFounderPilotOverviewRouter(client = new PrismaClient()) {
       // Per-athlete flags for the "recent athletes" list, scoped to just
       // those ids — never a full-table scan for this part.
       const recentIds = recentUsersRaw.map((u) => u.id);
-      const [recentMessageRows, recentPrescriptionRows] = await Promise.all([
+      // createdAt on these rows feeds the week-by-week activity below;
+      // only timestamps are selected, never any content column.
+      const [recentMessageRows, recentPrescriptionRows, recentToolRows, recentJournalRows] = await Promise.all([
         client.message.findMany({
           where: { userId: { in: recentIds }, role: 'user' },
-          select: { userId: true },
+          select: { userId: true, createdAt: true },
         }),
         client.prescription.findMany({
           where: { userId: { in: recentIds } },
-          select: { userId: true, status: true, outcomeStatus: true },
+          select: { userId: true, status: true, outcomeStatus: true, outcomeRecordedAt: true },
+        }),
+        client.toolReport.findMany({
+          where: { userId: { in: recentIds } },
+          select: { userId: true, createdAt: true },
+        }),
+        client.mindJournalEntry.findMany({
+          where: { userId: { in: recentIds } },
+          select: { userId: true, createdAt: true },
         }),
       ]);
+      const activityByUser = new Map();
+      for (const row of [...recentMessageRows, ...recentToolRows, ...recentJournalRows]) {
+        if (!activityByUser.has(row.userId)) activityByUser.set(row.userId, []);
+        activityByUser.get(row.userId).push(row.createdAt);
+      }
+      const recentLatestOutcome = latestOutcomeByUser(recentPrescriptionRows);
       const recentCoachUsedSet = new Set(recentMessageRows.map((r) => r.userId));
       const recentRep = summarizePrescriptions(recentPrescriptionRows);
 
@@ -259,6 +322,10 @@ function createFounderPilotOverviewRouter(client = new PrismaClient()) {
         mentalRepReceived: recentRep.receivedAthletes.has(u.id),
         mentalRepCompleted: recentRep.completedAthletes.has(u.id),
         outcomeReported: recentRep.outcomeReportedAthletes.has(u.id),
+        // HELPED | HELPED_A_LITTLE | DID_NOT_HELP | null — the latest
+        // result this athlete reported (an enum, never their words).
+        latestOutcome: recentLatestOutcome.get(u.id) || null,
+        weeks: summarizeWeeks(u.createdAt, activityByUser.get(u.id) || [], now),
         lastActiveAt: u.lastActiveAt,
         isReturning: isReturningAthlete(u.createdAt, u.lastActiveAt),
         lastSeenAt: u.lastSeenAt,
@@ -294,6 +361,7 @@ function createFounderPilotOverviewRouter(client = new PrismaClient()) {
           mentalRepsReceived: rep.receivedTotal,
           mentalRepsCompleted: rep.completedTotal,
           outcomesReported: rep.outcomesReportedTotal,
+          outcomeBreakdown: rep.outcomeBreakdown,
           tier: { premium: premiumAthletes, free: totalAthletes - premiumAthletes },
           guardian: { required: guardianRequired, consentCompleted: guardianConsentCompleted },
           activeLast24Hours: activity.activeLast24Hours,
@@ -323,6 +391,8 @@ module.exports.createFounderPilotOverviewRouter = createFounderPilotOverviewRout
 module.exports.istDateString = istDateString;
 module.exports.isReturningAthlete = isReturningAthlete;
 module.exports.summarizeActivity = summarizeActivity;
+module.exports.summarizeWeeks = summarizeWeeks;
+module.exports.latestOutcomeByUser = latestOutcomeByUser;
 module.exports.isLive = isLive;
 module.exports.summarizePresence = summarizePresence;
 module.exports.LIVE_THRESHOLD_MS = LIVE_THRESHOLD_MS;

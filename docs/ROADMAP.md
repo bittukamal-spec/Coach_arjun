@@ -64,7 +64,7 @@ Order: 1.6 → 1.1 → 1.3 → 1.2 → 1.4 → 1.7 → 1.5. Each is its own PR w
 
 | # | Item |
 |---|---|
-| 2.1 | Founder dashboard: per athlete — days active in week 2–3, practice given / done / reported useful |
+| 2.1 | Founder dashboard: per athlete — days active in week 2–3, practice given / done / reported useful. **Built (Nov 2026):** Pilot tab shows the reported result and active days for weeks 1–3 |
 | 2.2 | End-of-pilot guardian and athlete debrief (5 questions, by phone or in person) |
 | 2.3 | Classify the result as **promising / weak / inconclusive** using spec §7. Weak or inconclusive → fix the cause and rerun; do not move to Phase 3 |
 

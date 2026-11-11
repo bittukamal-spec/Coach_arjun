@@ -152,6 +152,36 @@ function PilotAccessRow({ athlete, busy, onGrant, onRevoke }) {
   );
 }
 
+// The latest result the athlete reported for a practice. Falls back to the
+// plain "Outcome reported" pill for an older backend that sends no detail.
+const OUTCOME_PILLS = {
+  HELPED: { label: 'Practice helped', color: '#22C55E' },
+  HELPED_A_LITTLE: { label: 'Helped a little', color: '#F59E0B' },
+  DID_NOT_HELP: { label: 'Did not help', color: '#EF4444' },
+};
+
+// Week-by-week activity since signup: active days in each pilot week, with
+// a dash for a week that has not started yet. Coming back in weeks 2–3 is
+// the pilot's main signal.
+function WeeksLine({ weeks }) {
+  if (!weeks) return null;
+  const cells = [weeks.week1Days, weeks.week2Days, weeks.week3Days];
+  return (
+    <div className="flex items-center gap-1.5 text-xs">
+      <span className="text-[#64748B]">Active days</span>
+      {cells.map((days, i) => {
+        const reached = i < weeks.weeksReached;
+        const tone = !reached ? 'text-[#475569]' : days > 0 ? 'text-[#22C55E]' : 'text-[#94A3B8]';
+        return (
+          <span key={i} className={`px-2 py-0.5 rounded-md bg-[#0F172A] font-semibold ${tone}`}>
+            Wk {i + 1}: {reached ? days : '–'}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
 function AthleteRow({ athlete, pilotActionBusyId, onGrantPilotAccess, onRevokePilotAccess }) {
   return (
     <div className="bg-[#1E293B] rounded-xl px-4 py-3 space-y-2">
@@ -161,6 +191,7 @@ function AthleteRow({ athlete, pilotActionBusyId, onGrantPilotAccess, onRevokePi
       </div>
       <PresenceLine athlete={athlete} />
       <div className="text-xs text-[#64748B]">{formatLastActive(athlete.lastActiveAt)}</div>
+      <WeeksLine weeks={athlete.weeks} />
       <div className="flex items-center gap-1.5 flex-wrap">
         <Pill color={athlete.onboardingDone ? '#22C55E' : '#64748B'}>
           {athlete.onboardingDone ? 'Onboarded' : 'Onboarding pending'}
@@ -173,7 +204,9 @@ function AthleteRow({ athlete, pilotActionBusyId, onGrantPilotAccess, onRevokePi
             {athlete.mentalRepCompleted ? 'Mental Rep done' : 'Mental Rep active'}
           </Pill>
         )}
-        {athlete.outcomeReported && <Pill color="#22C55E">Outcome reported</Pill>}
+        {OUTCOME_PILLS[athlete.latestOutcome]
+          ? <Pill color={OUTCOME_PILLS[athlete.latestOutcome].color}>{OUTCOME_PILLS[athlete.latestOutcome].label}</Pill>
+          : athlete.outcomeReported && <Pill color="#22C55E">Outcome reported</Pill>}
         {athlete.isReturning && <Pill color="#1769AA">Returning</Pill>}
         <Pill color={athlete.tier === 'premium' ? '#1769AA' : '#64748B'}>
           {athlete.tier === 'premium' ? 'Premium' : 'Free'}
@@ -344,7 +377,13 @@ export default function PilotPanel() {
               sub={`${data.metrics.mentalRepsReceived} total prescribed`}
             />
             <StatCard label="Mental Rep completed" value={data.metrics.mentalRepsCompleted} />
-            <StatCard label="Outcomes reported" value={data.metrics.outcomesReported} />
+            <StatCard
+              label="Outcomes reported"
+              value={data.metrics.outcomesReported}
+              sub={data.metrics.outcomeBreakdown
+                ? `${data.metrics.outcomeBreakdown.helped} helped · ${data.metrics.outcomeBreakdown.helpedALittle} a little · ${data.metrics.outcomeBreakdown.didNotHelp} did not`
+                : undefined}
+            />
           </div>
 
           <div className="space-y-3">
