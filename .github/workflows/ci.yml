@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Tests and builds
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            server/package-lock.json
+            client/package-lock.json
+            founder-dashboard/package-lock.json
+
+      # One job installs all three apps: some source-check tests read files
+      # across app folders, so they are run the same way as on a dev machine.
+      - name: Install server
+        run: npm ci
+        working-directory: server
+      - name: Install client
+        run: npm ci
+        working-directory: client
+      - name: Install founder dashboard
+        run: npm ci
+        working-directory: founder-dashboard
+
+      - name: Server tests
+        run: npm test
+        working-directory: server
+      - name: Client tests
+        run: npm test
+        working-directory: client
+      - name: Client build
+        run: npm run build
+        working-directory: client
+      - name: Founder dashboard tests
+        run: npm test
+        working-directory: founder-dashboard
+      - name: Founder dashboard build
+        run: npm run build
+        working-directory: founder-dashboard

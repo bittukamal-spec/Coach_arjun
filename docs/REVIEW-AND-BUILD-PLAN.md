@@ -48,7 +48,7 @@ The engineering is ahead of the evidence. Safety, consent, payments and the coac
 Each step is one small PR unless noted. Do them in order.
 
 ### Phase 0 — Safety net (about 1 week)
-1. Add automated PR checks: server tests, client tests, client build.
+1. ✅ Add automated PR checks: server tests, client tests, client build (plus Founder Dashboard tests and build). `.github/workflows/ci.yml`
 2. Add error monitoring on server and client, with message text scrubbed so no chat content leaves your systems.
 3. Confirm Railway daily backups are on, and do one test restore.
 4. Add the `Message` index.

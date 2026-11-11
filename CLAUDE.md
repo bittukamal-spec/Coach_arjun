@@ -20,7 +20,7 @@ Read at the start of every session. Verified against the code on **2026-10-21** 
 - DB: PostgreSQL via Prisma 5.7
 - AI: Claude API (`@anthropic-ai/sdk` 0.104). Model: `process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001'`. **Coach chat only** uses `COACH_MODEL` (falls back to `ANTHROPIC_MODEL`) via `services/coaching/coachModel.js`: low effort + more max_tokens + server-side refusal fallback on newer models, prompt-cached system prompt for all.
 - Payments: Razorpay 2.9.6. Email: Resend 4.8. Push: `web-push` 3.6 (VAPID). Auth: JWT + bcrypt (no OAuth)
-- **Git workflow:** each session works on its own `claude/*` branch → PR to `main` → founder reviews the Vercel preview → squash-merge. Never push to `main` directly. Merges to `main` deploy both Vercel and Railway.
+- **Git workflow:** each session works on its own `claude/*` branch → PR to `main` → founder reviews the Vercel preview → squash-merge. Never push to `main` directly. Merges to `main` deploy both Vercel and Railway. GitHub Actions (`.github/workflows/ci.yml`) runs server, client and Founder Dashboard tests + builds on every PR and on `main`.
 
 ## 3. KEY FILES
 
