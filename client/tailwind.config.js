@@ -36,14 +36,22 @@ export default {
         // Primary brand — deep blue
         brand: {
           50:  'rgb(var(--brand-50) / <alpha-value>)', // active bg (tab pills, icon bg)
-          100: '#0F3357', // dark subtle accent
-          200: '#1A4E80', // medium dark blue
-          300: '#2A72B5', // medium blue
-          400: '#1F85D0', // bright blue (links, highlights)
-          500: '#1769AA', // primary action
-          600: '#0C4D85', // pressed
-          700: '#083869', // darkest brand
+          100: '#101C5C', // dark subtle accent
+          200: '#1A2F99', // medium dark blue
+          300: '#3A66FF', // medium blue
+          400: '#6E8FFF', // bright blue (fills, highlights)
+          500: '#1B4DFF', // primary action
+          600: '#1238C9', // pressed
+          700: '#0C2791', // darkest brand
         },
+
+        // Playbook colour blocks — identical in both themes; dark ink text on
+        // sun/coral/mint/blush, white text on brand blue.
+        sun:   '#FFC629',
+        coral: '#FF6B4A',
+        mint:  '#7FE3C4',
+        blush: '#FF8AD4', // Mind Journal
+        inkblock: '#101533', // text on the light colour blocks, in both themes
 
         // Amber / saffron — streaks, XP, fire
         fire: {
@@ -93,7 +101,7 @@ export default {
         // Bright blue accent (active states, glow)
         navy: {
           bright: '#19A7FF',
-          glow:   '#1769AA',
+          glow:   '#1B4DFF',
         },
 
         // Backwards compat
@@ -104,8 +112,17 @@ export default {
           600: '#15803D',
         },
       },
+      // Blue used as TEXT must stay readable on both grounds: the fill blue
+      // (#1B4DFF) is only ~3:1 on the dark page, so text utilities resolve to a
+      // theme-aware value instead (see --brand-text in index.css).
+      textColor: {
+        brand: {
+          400: 'rgb(var(--brand-text) / <alpha-value>)',
+          500: 'rgb(var(--brand-text) / <alpha-value>)',
+        },
+      },
       fontFamily: {
-        sans: ['Poppins', 'system-ui', 'sans-serif'],
+        sans: ['Sora', 'system-ui', 'sans-serif'],
       },
       // ── Stage 3 foundation: minimal type scale ─────────────────────────────
       // Size + line-height (+ tracking) only; weight stays a per-use utility.

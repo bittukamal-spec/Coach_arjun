@@ -70,11 +70,14 @@ test('Train page no longer carries its own "reset history" secondary link (reloc
 // left-aligned merely because it has a chevron; it centers when its actual
 // job is "start/open this feature", not "identify a destination in a list".
 
-test('Dashboard "Talk to Arjun" hero: the whole card launches Coach, so its copy centers', () => {
+test('Dashboard "Talk to Arjun" block: the whole sun-coloured row launches Coach', () => {
+  // Playbook redesign: a left-aligned colour block (drawing, title/sub, arrow),
+  // no longer a centered gradient hero.
   const idx = dashboard.indexOf('TALK TO ARJUN');
-  assert.notEqual(idx, -1, 'the Talk to Arjun hero section should still exist');
-  const hero = dashboard.slice(idx, idx + 2200);
-  assert.match(hero, /text-center/, 'the title/sub block centers');
+  assert.notEqual(idx, -1, 'the Talk to Arjun section should still exist');
+  const hero = dashboard.slice(idx, idx + 1400);
+  assert.match(hero, /bg-sun/, 'the sun colour block');
+  assert.match(hero, /<TalkArt \/>/, 'carries its drawing');
   assert.match(hero, /openCoach/, 'still the same approved copy');
   assert.match(hero, /to="\/coaching"/, 'still the same route');
 });
@@ -105,20 +108,18 @@ test('Dashboard: no day-context dropdown or recommended-practice CTA remains to 
 // text column it wraps into the corner arrow badge at the ≥430px
 // breakpoint (confirmed by screenshot) — so the illustration is
 // intentionally omitted here.
-test('Dashboard "Mind Journal" card: reuses TrainGradientCard (wide, violet, NotebookPen) with the approved heading/value copy, still opening /mind-journal', () => {
+test('Dashboard "Mind Journal" block: a compact blush row with its drawing, opening /mind-journal', () => {
+  // Playbook redesign (founder-approved Nov 2026): Mind Journal is a compact
+  // blush row under Talk to Arjun, not the large violet gradient card.
   const idx = dashboard.indexOf('MIND JOURNAL');
-  assert.notEqual(idx, -1, 'the Mind Journal card section should still exist');
-  const card = dashboard.slice(idx, idx + 2350);
-  assert.match(card, /<TrainGradientCard/, 'reuses the shared premium gradient card, not a bespoke one');
-  assert.match(card, /variant="purple"/, 'uses the existing violet/purple gradient variant, not amber');
-  assert.match(card, /Icon=\{NotebookPen\}/, 'uses the existing NotebookPen Lucide icon, not BookOpen/RingMark');
-  assert.doesNotMatch(card, /variant="amber"/, 'no longer amber — distinguishable from Train\'s Reflection card');
-  assert.doesNotMatch(card, /Illustration=/, 'no ghost illustration — its longer copy collides with the arrow badge at ≥430px');
-  assert.match(card, /\bwide\b/, 'the wide (icon → heading → copy, one column) layout is used');
+  assert.notEqual(idx, -1, 'the Mind Journal section should still exist');
+  const card = dashboard.slice(idx, idx + 1300);
+  assert.match(card, /to="\/mind-journal"/);
+  assert.match(card, /bg-blush/, 'the Mind Journal colour block');
+  assert.match(card, /<JournalArt \/>/);
   assert.match(card, /journalTitle/);
-  assert.match(card, /journalHeading/);
-  assert.match(card, /journalValue/);
-  assert.match(card, /onClick=\{\(\) => navigate\('\/mind-journal'\)\}/);
+  assert.match(card, /journalShort/);
+  assert.doesNotMatch(dashboard, /TrainGradientCard/, 'Home no longer uses the gradient card');
 });
 
 // The redesigned Mind Journal hero reads left-to-right: heading, one

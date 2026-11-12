@@ -23,15 +23,16 @@ function BottomNav() {
 
   return (
     <nav
-      // The bar keeps its 64px item row; the inset is added below it so the
-      // last row of icons never sits under a home indicator.
-      className="fixed bottom-0 inset-x-0 z-50 border-t pb-[env(safe-area-inset-bottom)]"
-      style={{
-        background: 'var(--nav-bar)',
-        borderTopColor: 'var(--nav-hairline)',
-      }}
+      // A floating pill: the bar sits above the page with a gutter on each
+      // side, and the safe-area inset is added below it so it never sits
+      // under a home indicator. The wrapper ignores taps so the page beside
+      // and below the pill stays usable.
+      className="fixed bottom-0 inset-x-0 z-50 px-5 pb-[calc(env(safe-area-inset-bottom)+12px)] pointer-events-none"
     >
-      <div className="flex items-stretch h-16 px-2 max-w-lg mx-auto">
+      <div
+        className="pointer-events-auto flex items-stretch h-16 px-1.5 max-w-lg mx-auto rounded-3xl elevation-row"
+        style={{ background: 'var(--nav-bar)' }}
+      >
         {NAV_ITEMS.map(({ icon: Icon, labelKey, path }) => {
           const active = pathname === path || (path !== '/dashboard' && pathname.startsWith(path));
           return (
@@ -43,18 +44,18 @@ function BottomNav() {
               style={{ '--tw-ring-color': 'var(--nav-fg-active)' }}
             >
               <div
-                className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-2xl transition-colors"
-                style={active ? { background: 'rgba(95, 168, 222, 0.14)' } : undefined}
+                className="flex flex-col items-center justify-center gap-0.5 w-full mx-1 h-12 rounded-[18px] transition-colors"
+                style={active ? { background: 'var(--nav-fg-active)' } : undefined}
               >
                 <Icon
-                  size={20}
-                  strokeWidth={active ? 2.5 : 1.8}
-                  style={{ color: active ? 'var(--nav-fg-active)' : 'var(--nav-fg-inactive)' }}
+                  size={19}
+                  strokeWidth={active ? 2.6 : 1.9}
+                  style={{ color: active ? 'var(--nav-on-active)' : 'var(--nav-fg-inactive)' }}
                   aria-hidden="true"
                 />
                 <span
-                  className="text-[10px] font-semibold leading-none"
-                  style={{ color: active ? 'var(--nav-fg-active)' : 'var(--nav-fg-inactive)' }}
+                  className={`text-[10.5px] leading-none ${active ? 'font-extrabold' : 'font-semibold'}`}
+                  style={{ color: active ? 'var(--nav-on-active)' : 'var(--nav-fg-inactive)' }}
                 >
                   {t[labelKey]}
                 </span>

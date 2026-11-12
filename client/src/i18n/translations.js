@@ -278,6 +278,8 @@ export const translations = {
       safetyTitle: 'Before we go on',
       // ── Performance Profile redesign ──────────────────────────────────
       savedTitleShort: 'Your Performance Profile',
+      myPracticeRow: 'My practice and weekly reviews',
+      myPracticeRowSub: 'What you practised and how it went',
       backAria: 'Back',
       currentFocusLabel: 'Current Focus',
       suggestedFocusLabel: 'Suggested Starting Focus',
@@ -500,6 +502,9 @@ export const translations = {
       greeting: (name) => `Hi, ${name}`,
       athleteFallback: 'Athlete',
       heroSub: 'Talk through whatever is on your mind.',
+      journalShort: 'Two minutes on today\'s session',
+      dayLine: (weekday, part) => `${weekday} ${part}`,
+      partOfDay: { morning: 'morning', afternoon: 'afternoon', evening: 'evening' },
       helpLabel: 'Pick what you need now',
       // "Your practice from Arjun" card — shows the one practice Coach gave.
       practice: {
@@ -530,7 +535,7 @@ export const translations = {
     // the existing approved wording, moved out of inline JSX conditionals.
     trainPage: {
       title: 'Train',
-      subtitle: 'Your mental training toolkit.',
+      subtitle: 'Short reps for your head. Pick one and go.',
       beforeLabel: 'Before you play',
       buildLabel: 'Build mental skills',
       resetHistory: 'View history →',
@@ -720,6 +725,8 @@ export const translations = {
       goalInjury: 'Dealing with Injuries',
     },
     chat: {
+      headerSub: 'AI coach · not a therapist',
+      practiceCardLabel: 'Your practice',
       retryBtn: 'Retry',
       title: 'Arjun',
       subtitle: 'Your coach for matches and mindset',
@@ -2558,6 +2565,8 @@ export const translations = {
       safetyTitle: 'आगे बढ़ने से पहले',
       // ── Performance Profile redesign ──────────────────────────────────
       savedTitleShort: 'तुम्हारी परफॉर्मेंस प्रोफाइल',
+      myPracticeRow: 'मेरी practice और weekly reviews',
+      myPracticeRowSub: 'तुमने क्या practice किया और कैसा रहा',
       backAria: 'वापस',
       currentFocusLabel: 'अभी का फोकस',
       suggestedFocusLabel: 'सुझाई गई शुरुआत',
@@ -2737,6 +2746,9 @@ export const translations = {
       greeting: (name) => `हाय, ${name}`,
       athleteFallback: 'एथलीट',
       heroSub: 'मन में जो है, उस पर बात करो।',
+      journalShort: 'आज के session पर दो मिनट',
+      dayLine: (weekday, part) => `${weekday} ${part}`,
+      partOfDay: { morning: 'सुबह', afternoon: 'दोपहर', evening: 'शाम' },
       helpLabel: 'अभी क्या चाहिए, चुनो',
       practice: {
         label: 'अर्जुन की दी हुई practice',
@@ -2962,6 +2974,8 @@ export const translations = {
       goalInjury: 'चोट से निपटना',
     },
     chat: {
+      headerSub: 'AI coach · therapist नहीं',
+      practiceCardLabel: 'तुम्हारी practice',
       retryBtn: 'फिर कोशिश करो',
       title: 'अर्जुन',
       subtitle: 'आपका कोच — मैच और मानसिकता के लिए',

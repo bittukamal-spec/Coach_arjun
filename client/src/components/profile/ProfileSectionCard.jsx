@@ -12,10 +12,10 @@ export default function ProfileSectionCard({ id, title, note, children, classNam
   return (
     <section
       aria-labelledby={headingId}
-      className={`card p-4 ${className}`}
+      className={`rounded-3xl bg-dark-400 p-4 ${className}`}
     >
       {title && (
-        <h2 id={headingId} className="text-micro font-bold text-slt uppercase">
+        <h2 id={headingId} className="text-[14px] font-extrabold text-ink">
           {title}
         </h2>
       )}

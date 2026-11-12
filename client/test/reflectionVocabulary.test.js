@@ -192,7 +192,7 @@ test('every retired reflection entry point now resolves to the Mind Journal', ()
   // Home's own entry point is the Mind Journal card. The recovery-day
   // recommendation that used to deep-link into the reflection flow went with
   // the "What's today?" selector; the flow itself is reached from the journal.
-  assert.match(read('src/pages/Dashboard.jsx'), /navigate\('\/mind-journal'\)/,
+  assert.match(read('src/pages/Dashboard.jsx'), /to="\/mind-journal"/,
     "Home's Mind Journal card opens the Mind Journal");
   assert.match(read('src/utils/parseArjunMessage.js'), /route: '\/mind-journal\/new'/,
     'the [APP:after-the-match] chat card opens the Mind Journal reflection');

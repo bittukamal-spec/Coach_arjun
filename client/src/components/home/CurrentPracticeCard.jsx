@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ClipboardCheck, ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { translations } from '../../i18n/translations';
 import { apiFetch } from '../../api';
 import { practiceRouteFor } from '../../utils/prescriptionPractice';
-import { Card } from '../ui';
+import SportArt from '../visuals/SportArt';
 
 // "Your practice from Arjun" — Home's view of the ONE practice Coach has
 // already given this athlete (spec §2: one prescription at a time).
@@ -28,7 +28,7 @@ export function isPracticeOpen(p) {
 }
 
 export default function CurrentPracticeCard() {
-  const { token, language } = useAuth();
+  const { user, token, language } = useAuth();
   const navigate = useNavigate();
   const t = translations[language]?.home?.practice || translations.en.home.practice;
 
@@ -53,79 +53,77 @@ export default function CurrentPracticeCard() {
   const details = String(practice.cardContent || '').trim();
 
   return (
-    <section aria-labelledby="current-practice-title" className="mb-7">
-      <Card className="p-4 border-brand-500/40">
-        <div className="flex items-start gap-3">
-          <div className="w-11 h-11 rounded-full bg-brand-500/10 flex items-center justify-center shrink-0">
-            <ClipboardCheck size={20} className="text-brand-500" aria-hidden="true" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-micro font-bold uppercase text-brand-500">
-              {done ? t.labelDone : t.label}
-            </p>
-            <h2 id="current-practice-title" className="text-heading font-bold text-ink leading-snug">
-              {name}
-            </h2>
-            {situation && (
-              <p className="text-caption text-slt leading-snug mt-0.5 break-words">
-                {t.forSituation(situation)}
-              </p>
-            )}
-          </div>
-        </div>
+    <section aria-labelledby="current-practice-title" className="mb-3">
+      <div className="relative overflow-hidden rounded-[28px] bg-brand-500 text-white px-5 pt-5 pb-3">
+        {/* Per-sport drawing, decorative. Sits behind the copy on the right. */}
+        <SportArt sport={user?.sport} size={132} className="absolute -right-3 top-1 pointer-events-none" />
 
-        {practice.cueWord && (
-          <p className="mt-3 text-caption text-slt">
-            {t.cue}{' '}
-            <span className="inline-block rounded-full bg-brand-500/10 text-brand-500 font-bold px-2.5 py-0.5">
-              {practice.cueWord}
-            </span>
+        <div className="relative">
+          <p className="inline-block rounded-full bg-white text-brand-600 text-micro font-bold uppercase px-3 py-1">
+            {done ? t.labelDone : t.label}
           </p>
-        )}
-
-        {details && (
-          <div className="mt-2">
-            <button
-              type="button"
-              onClick={() => setExpanded(v => !v)}
-              aria-expanded={expanded}
-              className="min-h-[44px] inline-flex items-center gap-1 text-caption font-semibold text-brand-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-lg"
-            >
-              {expanded ? t.hideSteps : t.showSteps}
-              {expanded
-                ? <ChevronUp size={16} aria-hidden="true" />
-                : <ChevronDown size={16} aria-hidden="true" />}
-            </button>
-            {expanded && (
-              <p className="text-body text-ink leading-relaxed whitespace-pre-wrap break-words">
-                {details}
-              </p>
-            )}
-          </div>
-        )}
-
-        <div className="mt-3 flex flex-wrap gap-2">
-          {route && (
-            <button
-              type="button"
-              onClick={() => navigate(route, {
-                state: { prescriptionId: practice.prescriptionId, practiceKey: practice.practiceKey },
-              })}
-              className="min-h-[44px] flex-1 rounded-[14px] bg-brand-500 text-white text-body font-semibold px-4 active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
-            >
-              {t.start}
-            </button>
+          <h2 id="current-practice-title" className="mt-3 max-w-[11.75rem] text-[26px] leading-[1.12] font-extrabold">
+            {name}
+          </h2>
+          {situation && (
+            <p className="mt-1 max-w-[14rem] text-body text-white/90 leading-snug break-words">
+              {t.forSituation(situation)}
+            </p>
           )}
-          <Link
-            to="/coaching"
-            className={`min-h-[44px] flex-1 inline-flex items-center justify-center text-center rounded-[14px] text-body font-semibold px-4 active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 ${
-              route ? 'border border-brand-600/40 text-brand-500' : 'bg-brand-500 text-white'
-            }`}
-          >
-            {t.tellArjun}
-          </Link>
+
+          {practice.cueWord && (
+            <p className="mt-3 flex flex-wrap items-center gap-2 text-caption text-white/90">
+              {t.cue}
+              <span className="rounded-full bg-brand-600 text-white text-[13px] font-bold px-3 py-1">
+                {practice.cueWord}
+              </span>
+            </p>
+          )}
+
+          {details && (
+            <div className="mt-1">
+              <button
+                type="button"
+                onClick={() => setExpanded(v => !v)}
+                aria-expanded={expanded}
+                className="min-h-[44px] inline-flex items-center gap-1 text-caption font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white rounded-lg"
+              >
+                {expanded ? t.hideSteps : t.showSteps}
+                {expanded
+                  ? <ChevronUp size={16} aria-hidden="true" />
+                  : <ChevronDown size={16} aria-hidden="true" />}
+              </button>
+              {expanded && (
+                <p className="rounded-2xl bg-brand-600 p-3 text-body text-white leading-relaxed whitespace-pre-wrap break-words">
+                  {details}
+                </p>
+              )}
+            </div>
+          )}
+
+          <div className="mt-3 flex flex-col gap-1">
+            {route && (
+              <button
+                type="button"
+                onClick={() => navigate(route, {
+                  state: { prescriptionId: practice.prescriptionId, practiceKey: practice.practiceKey },
+                })}
+                className="min-h-[54px] w-full rounded-[18px] bg-sun text-inkblock text-base font-extrabold px-4 active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-brand-500"
+              >
+                {t.start}
+              </button>
+            )}
+            <Link
+              to="/coaching"
+              className={`min-h-[44px] w-full inline-flex items-center justify-center text-center rounded-[18px] font-bold px-4 active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white ${
+                route ? 'text-[13.5px] text-white' : 'min-h-[54px] bg-sun text-inkblock text-base font-extrabold'
+              }`}
+            >
+              {t.tellArjun}
+            </Link>
+          </div>
         </div>
-      </Card>
+      </div>
     </section>
   );
 }

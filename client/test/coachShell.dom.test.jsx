@@ -82,9 +82,12 @@ describe('Coach — immersive shell', () => {
 
     const header = document.querySelector('header');
     expect(header).toBeTruthy();
-    // The header is now integrated into the chat background rather than
-    // sitting on the near-black nav surface, and carries no heavy divider.
-    expect(header.className).toMatch(/bg-dark-900/);
+    // Playbook redesign: the header sits on the card surface with a rounded
+    // lower edge — still not the near-black nav surface, still no divider —
+    // and always states what Arjun is.
+    expect(header.className).toMatch(/bg-dark-400/);
+    expect(header.className).toMatch(/rounded-b-3xl/);
+    expect(within(header).getByText('AI coach · not a therapist')).toBeTruthy();
     expect(header.style.background).not.toContain('--nav-bar');
     expect(header.className).not.toMatch(/border-b/);
     expect(within(header).getByLabelText('Go back')).toBeTruthy();
@@ -132,15 +135,17 @@ describe('Coach — message presentation', () => {
     const athlete = screen.getByText(ATHLETE_MSG);
     const arjun = screen.getByText(ARJUN_REPLY);
 
-    // Athlete: a bubble on the approved selected-surface tint.
-    expect(athlete.style.background).toContain('--surface-selected');
-    // ...and no longer the old saturated brand fill.
-    expect(athlete.className).not.toMatch(/bg-brand-600/);
-    expect(athlete.className).not.toMatch(/text-white/);
+    // Playbook redesign (founder-approved Nov 2026).
+    // Athlete: the brand-blue block with white text, on the right.
+    expect(athlete.className).toMatch(/bg-brand-500/);
+    expect(athlete.className).toMatch(/text-white/);
+    expect(athlete.parentElement.className).toMatch(/justify-end/);
 
-    // Arjun: plain text, no bubble surface of its own.
-    expect(arjun.style.background).toBe('');
-    expect(arjun.className).not.toMatch(/bg-dark-400/);
+    // Arjun: a bubble on the card surface, on the left — never the blue fill.
+    const arjunBubble = arjun.closest('.bg-dark-400');
+    expect(arjunBubble).toBeTruthy();
+    expect(arjunBubble.className).not.toMatch(/bg-brand-500/);
+    expect(arjunBubble.parentElement.className).toMatch(/items-start/);
   });
 
   test('long athlete messages wrap instead of overflowing', async () => {

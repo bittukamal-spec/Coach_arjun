@@ -57,7 +57,7 @@ function matchWhere(row, where) {
   });
 }
 
-function makeStubClient({ users, onboardingSessions, messages, prescriptions, chatSessionCount }) {
+function makeStubClient({ users, onboardingSessions, messages, prescriptions, chatSessionCount, toolReports = [], mindJournalEntries = [] }) {
   return {
     user: {
       count: async ({ where } = {}) => users.filter((u) => matchWhere(u, where)).length,
@@ -78,6 +78,14 @@ function makeStubClient({ users, onboardingSessions, messages, prescriptions, ch
     },
     chatSession: {
       count: async () => chatSessionCount,
+    },
+    toolReport: {
+      findMany: async ({ where, select } = {}) =>
+        toolReports.filter((r) => matchWhere(r, where)).map((r) => project(r, select)),
+    },
+    mindJournalEntry: {
+      findMany: async ({ where, select } = {}) =>
+        mindJournalEntries.filter((r) => matchWhere(r, where)).map((r) => project(r, select)),
     },
     prescription: {
       findMany: async ({ where, select } = {}) =>
@@ -501,6 +509,7 @@ test('each recent-athlete row carries exactly the allowed operational fields (pr
     const allowed = [
       'id', 'firstName', 'signupDate', 'onboardingDone', 'tier',
       'guardianConsentStatus', 'coachUsed', 'mentalRepReceived', 'mentalRepCompleted', 'outcomeReported',
+      'latestOutcome', 'weeks',
       'lastActiveAt', 'isReturning', 'lastSeenAt', 'isLive',
       'pilotAccessUntil', 'pilotAccessGrantedAt', 'pilotAccessActive',
     ].sort();
@@ -588,5 +597,61 @@ test('no dateOfBirth is ever returned', async () => {
   try {
     const { body } = await getJson(baseUrl);
     assert.doesNotMatch(JSON.stringify(body), /dateOfBirth/);
+  } finally { await stop(server); }
+});
+
+// ── Pilot readout: what the result was, and which weeks they came back ────
+
+test('summarizeWeeks counts distinct active days per pilot week from the signup day (IST)', () => {
+  const { summarizeWeeks } = require('../src/routes/founderPilotOverview');
+  const signup = new Date('2026-11-01T06:00:00Z');
+  const day = (n, hour = 6) => new Date(Date.UTC(2026, 10, 1 + n, hour));
+  const weeks = summarizeWeeks(signup, [
+    day(0), day(0, 9),          // same day twice → 1 day in week 1
+    day(3),                     // week 1
+    day(8),                     // week 2
+    day(14), day(20),           // week 3
+    day(21),                    // after week 3 → ignored
+    new Date('2026-10-30T06:00:00Z'), // before signup → ignored
+    null, 'not a date',
+  ], day(16));
+  assert.deepEqual(weeks, { week1Days: 2, week2Days: 1, week3Days: 2, weeksReached: 3 });
+});
+
+test('summarizeWeeks reports how many weeks have started, so "not yet" is not read as "inactive"', () => {
+  const { summarizeWeeks } = require('../src/routes/founderPilotOverview');
+  const signup = new Date('2026-11-01T06:00:00Z');
+  const at = (n) => new Date(Date.UTC(2026, 10, 1 + n, 6));
+  assert.equal(summarizeWeeks(signup, [], at(0)).weeksReached, 1);
+  assert.equal(summarizeWeeks(signup, [], at(6)).weeksReached, 1);
+  assert.equal(summarizeWeeks(signup, [], at(7)).weeksReached, 2);
+  assert.equal(summarizeWeeks(signup, [], at(40)).weeksReached, 3);
+});
+
+test('latestOutcomeByUser returns each athlete\'s most recent real result and ignores NOT_TRIED', () => {
+  const { latestOutcomeByUser } = require('../src/routes/founderPilotOverview');
+  const map = latestOutcomeByUser([
+    { userId: 'a', outcomeStatus: 'DID_NOT_HELP', outcomeRecordedAt: new Date('2026-11-02T00:00:00Z') },
+    { userId: 'a', outcomeStatus: 'HELPED', outcomeRecordedAt: new Date('2026-11-09T00:00:00Z') },
+    { userId: 'b', outcomeStatus: 'NOT_TRIED', outcomeRecordedAt: new Date('2026-11-09T00:00:00Z') },
+    { userId: 'c', outcomeStatus: null, outcomeRecordedAt: null },
+  ]);
+  assert.equal(map.get('a'), 'HELPED');
+  assert.equal(map.has('b'), false);
+  assert.equal(map.has('c'), false);
+});
+
+test('the overview carries an outcome breakdown that adds up to outcomes reported, and never the athlete\'s own words', async () => {
+  const { server, baseUrl } = await startServer();
+  try {
+    const { body } = await getJson(baseUrl);
+    const b = body.metrics.outcomeBreakdown;
+    assert.deepEqual(Object.keys(b).sort(), ['didNotHelp', 'helped', 'helpedALittle']);
+    assert.equal(b.helped + b.helpedALittle + b.didNotHelp, body.metrics.outcomesReported);
+    assert.doesNotMatch(JSON.stringify(body), /outcomeLesson|cardContent|situation/);
+    for (const athlete of body.recentAthletes) {
+      assert.deepEqual(Object.keys(athlete.weeks).sort(), ['week1Days', 'week2Days', 'week3Days', 'weeksReached']);
+      assert.ok([null, 'HELPED', 'HELPED_A_LITTLE', 'DID_NOT_HELP'].includes(athlete.latestOutcome));
+    }
   } finally { await stop(server); }
 });

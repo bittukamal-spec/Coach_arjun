@@ -24,9 +24,10 @@ const STAGE_ICON = { situation: Zap, firstResponse: Brain, impact: Target };
 // Blue / amber / teal — the same tone family the rest of the Performance
 // Profile uses, one per stage so each is immediately distinct.
 const STAGE_TONE = {
-  situation:     { bg: 'rgba(23,105,170,0.12)', fg: 'var(--brand-primary)' },
-  firstResponse: { bg: 'rgba(242,155,56,0.14)', fg: 'var(--accent-amber)' },
-  impact:        { bg: 'rgba(34,211,197,0.14)', fg: 'var(--accent-teal)' },
+  // Playbook block palette: solid squares, identical in both themes.
+  situation:     'bg-brand-500 text-white',
+  firstResponse: 'bg-coral text-inkblock',
+  impact:        'bg-sun text-inkblock',
 };
 
 export function stageValue(stage, labelFor, t) {
@@ -72,17 +73,14 @@ export default function PressureSequence({ stages, labelFor, t, ariaLabel }) {
                   athlete's answer are both real visible text, so the sequence
                   reads correctly without this column. */}
               <div className="flex flex-col items-center shrink-0" aria-hidden="true">
-                <span
-                  className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
-                  style={{ background: tone.bg }}
-                >
-                  <Icon size={18} style={{ color: tone.fg }} />
+                <span className={`w-10 h-10 rounded-[14px] flex items-center justify-center shrink-0 ${tone}`}>
+                  <Icon size={18} />
                 </span>
                 {!isLast && <span className="w-px flex-1 bg-dark-600 my-1" />}
               </div>
 
               <div className={`min-w-0 flex-1 ${isLast ? 'pb-0' : 'pb-4'}`}>
-                <p className="text-micro font-bold uppercase mb-0.5" style={{ color: tone.fg }}>
+                <p className="text-caption text-slt mb-0.5">
                   {STAGE_LABEL[name]}
                 </p>
                 <p

@@ -15,7 +15,8 @@
 // change at any time. Showing it here implied the current focus had been
 // vetted. It stays in the API for compatibility.
 
-import { Target } from 'lucide-react';
+
+import { TargetArt } from '../visuals/ProfileArt';
 
 export default function CurrentFocusCard({
   label,          // section label, already localised
@@ -30,49 +31,46 @@ export default function CurrentFocusCard({
   if (!focusLabel) return null;
   const hasMeta = !!(updatedText || onChangeFocus);
 
+  // Playbook redesign: the focus is the blue block with a target drawing —
+  // white text on brand blue, identical in both themes. Anything passed as
+  // `children` renders on that blue, so it must use white-based text.
   return (
     <section
       aria-labelledby="profile-focus-heading"
-      className="card p-4 bg-brand-50/60 border-brand-500/20"
+      className="relative overflow-hidden rounded-[28px] bg-brand-500 text-white p-5"
     >
-      <div className="flex items-start gap-3">
-        <span
-          className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 border border-brand-500/25 bg-brand-50"
-          aria-hidden="true"
+      <TargetArt className="absolute -right-4 -top-3 pointer-events-none" />
+
+      <div className="relative">
+        <h2
+          id="profile-focus-heading"
+          className="inline-block rounded-full bg-white text-brand-600 text-micro font-bold uppercase px-3 py-1"
         >
-          <Target size={20} className="text-brand-500" />
-        </span>
-        <div className="min-w-0">
-          <h2 id="profile-focus-heading" className="text-micro font-bold text-slt uppercase">
-            {label}
-          </h2>
-          <p className="text-heading font-bold text-ink mt-0.5 break-words">{focusLabel}</p>
-          {helper && <p className="text-caption text-slt mt-1 break-words">{helper}</p>}
-        </div>
-      </div>
+          {label}
+        </h2>
+        <p className="mt-3 max-w-[14.5rem] text-[22px] leading-[1.2] font-extrabold break-words">{focusLabel}</p>
+        {helper && <p className="mt-1 max-w-[15.5rem] text-[13px] leading-normal text-white/90 break-words">{helper}</p>}
 
-      {children}
+        {children}
 
-      {hasMeta && (
-        <>
-          <div className="h-px bg-dark-600 my-3" aria-hidden="true" />
-          <div className="flex items-end justify-between gap-3 flex-wrap">
+        {hasMeta && (
+          <div className="mt-3 flex items-end justify-between gap-3 flex-wrap">
             <div className="min-w-0">
-              {updatedText && <p className="text-caption text-slt">{updatedText}</p>}
+              {updatedText && <p className="text-caption text-white/85">{updatedText}</p>}
             </div>
             {onChangeFocus && (
               <button
                 type="button"
                 ref={changeFocusRef}
                 onClick={onChangeFocus}
-                className="shrink-0 px-4 py-3 min-h-[44px] rounded-xl border border-brand-500/40 text-caption font-semibold text-brand-500 bg-dark-400 active:scale-95 transition-transform"
+                className="shrink-0 px-4 py-3 min-h-[44px] rounded-2xl bg-brand-600 text-[13.5px] font-bold text-white active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
               >
                 {changeFocusLabel}
               </button>
             )}
           </div>
-        </>
-      )}
+        )}
+      </div>
     </section>
   );
 }
