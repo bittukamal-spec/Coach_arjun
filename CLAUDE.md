@@ -100,9 +100,13 @@ Mounted in `server/src/index.js`. All need JWT (`authenticate` → `req.userId`)
 
 CORS is an allowlist (production domains + `CLIENT_URL` + `FOUNDER_DASHBOARD_URL` + this project's Vercel preview pattern) — not allow-all.
 
-## 7. DESIGN SYSTEM — CALM CLARITY
+## 7. DESIGN SYSTEM — PLAYBOOK (redesign in progress, Nov 2026)
 
-- Primary deep blue; tailwind `brand.500` = `#1769AA`. Accent amber. Font **Poppins**.
+- **Approved direction "D / Playbook"** (mock-ups: claude.ai artifact "Arjun redesign mockups"): flat colour blocks + flat geometric illustrations, light and dark. Rolled out screen by screen: **done** = tokens/font/nav bar, Home. **Still old layout** (new colours only) = Train, Coach, Profile, inner tool screens.
+- Palette: brand blue `brand.500` = `#1B4DFF` (fills, white text). Colour blocks, identical in both themes, dark `inkblock` (`#101533`) text: `sun` `#FFC629` (main action / Talk to Arjun), `coral` `#FF6B4A`, `mint` `#7FE3C4`, `blush` `#FF8AD4` (Mind Journal only). Font **Sora**.
+- Blue as TEXT: `text-brand-400/500` resolve to the theme-aware `--brand-text` (not the fill blue, which fails contrast on dark).
+- No gradients on redesigned screens; one colour block per job. Illustrations: `components/visuals/SportArt.jsx` (one per onboarding sport + neutral fallback), `HomeArt.jsx`.
+- Bottom nav is a floating pill (`--nav-bar`), active item = yellow pill (`--nav-fg-active`) with `--nav-on-active` content.
 - Theme: light default → `prefers-color-scheme` auto-dark → manual `[data-theme]` on `<html>` → `localStorage arjun_theme`. Dark tokens are `--dark-*` CSS vars (`bg-dark-900`, `text-ink`, `text-slt`).
 - Stage 3 UI foundation: use `components/ui` primitives, type tokens (`text-display/title/heading/body/caption/micro`), `px-page`. Flat cards by default; at most one gradient "hero" per screen (`card-hero`, `TrainGradientCard`, `GradientIconTile`). Tap targets ≥ 44px; visible focus rings.
 - Purple `#8B5CF6` remains only in `GradientIconTile` and `SelfTalkPage`.
@@ -114,7 +118,7 @@ Bottom nav: **Home** (`/dashboard`) · **Train** (`/train`) · **Coach** (`/coac
 
 | Surface | Route | Notes |
 |---|---|---|
-| Home | `/dashboard` | Greeting → "Your practice from Arjun" (`components/home/CurrentPracticeCard.jsx`, read-only `GET /api/prescriptions/active`; hidden when there is no open practice) → Mind Journal → Talk to Arjun → 4 shortcuts |
+| Home | `/dashboard` | Day line + greeting → blue "Your practice from Arjun" block with the athlete's sport drawing (`components/home/CurrentPracticeCard.jsx`, read-only `GET /api/prescriptions/active`; hidden when there is no open practice) → sun "Talk to Arjun" → blush Mind Journal row → 4 shortcuts |
 | Coach | `/coaching` | Main chat (see §9) |
 | Mind Journal | `/mind-journal` (+ `/quick`, `/new`, `/new/details`, `/context`, `/:id`) | Guided reflections + quick notes; replaces debrief, check-in and mental-fitness |
 | Starting profile | `/starting-profile` (+ `/check-in`) | Onboarding performance profile |

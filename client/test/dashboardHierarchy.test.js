@@ -49,30 +49,31 @@ function homeNamespace(lang) {
 // "Pick what you need now" closes the page. Nothing sits between the Coach
 // hero and the shortcuts any more.
 
-test('Dashboard renders exactly the approved order: greeting → Mind Journal → Talk to Arjun → Pick what you need now', () => {
+test('Dashboard renders exactly the approved order: greeting → Talk to Arjun → Mind Journal → Pick what you need now', () => {
+  // Playbook redesign (founder-approved Nov 2026): Talk to Arjun leads, the
+  // compact Mind Journal row follows, the shortcuts close the page.
   const order = [
     src.indexOf('1. GREETING'),
-    src.indexOf('2. MIND JOURNAL'),
-    src.indexOf('3. TALK TO ARJUN'),
+    src.indexOf('2. TALK TO ARJUN'),
+    src.indexOf('3. MIND JOURNAL'),
     src.indexOf('4. PICK WHAT YOU NEED NOW'),
   ];
   for (const idx of order) assert.ok(idx !== -1, 'every approved section must exist');
   for (let i = 1; i < order.length; i++) {
     assert.ok(order[i] > order[i - 1], `section ${i + 1} must render after section ${i}`);
   }
-  // No fifth section slipped in to fill the space the recommender left.
-  assert.equal(src.indexOf('5. '), -1, 'Home is deliberately four sections');
+  assert.equal(src.indexOf('5. '), -1, 'Home has four numbered sections');
 });
 
-test('Talk to Arjun is the ONE dominant action — a plain Link to Coach that claims nothing on Home load', () => {
-  const hero = src.slice(src.indexOf('3. TALK TO ARJUN'), src.indexOf('CONTINUE COACHING'));
-  assert.match(hero, /to="\/coaching"/, 'the hero opens the existing Coach route');
+test('Talk to Arjun is a plain Link to Coach that claims nothing on Home load', () => {
+  const hero = src.slice(src.indexOf('2. TALK TO ARJUN'), src.indexOf('CONTINUE COACHING'));
+  assert.match(hero, /to="\/coaching"/, 'the block opens the existing Coach route');
   assert.match(hero, /L\.dashboard\.openCoach/, 'uses the existing approved "Talk to Arjun" wording');
   // A Link cannot create a session, claim the follow-up opener, or call any
   // chat API — the whole point of using one here.
   assert.doesNotMatch(hero, /apiFetch|method:\s*'POST'|claim-opener|sessionId/);
-  // Exactly one hero: no competing saturated primary elsewhere on the page.
-  assert.equal((src.match(/elevation-hero/g) || []).length, 1);
+  // Playbook redesign: flat colour blocks, no gradient hero anywhere on Home.
+  assert.doesNotMatch(codeOnly, /elevation-hero|linear-gradient/);
 });
 
 test('Continue coaching is deliberately absent, not faked — no session/eligibility guess on Home', () => {
@@ -123,12 +124,10 @@ test('all four problem shortcuts are real Links to /coaching with unsent prefill
   }
 });
 
-test('shortcut tiles still read as actions — icon plus bordered tile', () => {
-  // "Pick what you need now" is the last rendered section, so the block runs
-  // to end of file.
+test('shortcut tiles still read as actions — a colour dot on a card-coloured tile', () => {
   const shortcutBlock = src.slice(src.indexOf('PROBLEM_SHORTCUTS.map'));
-  assert.match(shortcutBlock, /border border-dark-600/, 'shortcuts are outlined tiles');
-  assert.match(shortcutBlock, /<Icon size=/, 'shortcuts carry a small icon');
+  assert.match(shortcutBlock, /bg-dark-400/, 'shortcuts sit on the card surface');
+  assert.match(shortcutBlock, /\$\{q\.dot\}/, 'each shortcut carries its colour dot');
 });
 
 test('the four shortcuts are visually demoted but keep accessible tap targets', () => {
@@ -163,19 +162,12 @@ test('Home no longer fetches /api/playbook — it makes no API call of its own',
   assert.doesNotMatch(codeOnly, /method:\s*'(POST|PUT|PATCH|DELETE)'/, 'Home writes nothing');
 });
 
-test('Mind Journal is a gradient CTA (reusing TrainGradientCard) linking to /mind-journal with the approved heading/value copy, no score', () => {
-  assert.match(src, /onClick=\{\(\) => navigate\('\/mind-journal'\)\}/);
-  // Homepage-priority pass: the card's own heading/value live in dedicated
-  // `home` namespace keys, distinct from journalDesc/journalHint (still
-  // defined, still read by other surfaces) so the exact approved copy is
-  // asserted where it now actually renders. The affordance to open Mind
-  // Journal is the shared card's own bottom-right arrow badge, the same
-  // established pattern Train's own gradient cards already use — there is
-  // no separate CTA label to assert here.
-  assert.ok(src.includes('title={t.journalHeading}'));
-  assert.ok(translations.includes('Reflect. Grow. Perform.'));
-  assert.ok(src.includes('desc={t.journalValue}'), 'one short value statement, tying reflection to Arjun\'s coaching');
-  assert.ok(translations.includes('help Arjun coach you more personally'));
+test('Mind Journal is a compact blush row linking to /mind-journal, with no score and no pressure to write daily', () => {
+  const block = src.slice(src.indexOf('3. MIND JOURNAL'), src.indexOf('4. PICK WHAT YOU NEED NOW'));
+  assert.match(block, /to="\/mind-journal"/);
+  assert.match(block, /bg-blush/);
+  assert.ok(block.includes('{t.journalTitle}'));
+  assert.ok(block.includes('{t.journalShort}'));
   assert.doesNotMatch(codeOnly, /daily habit|every day|har din likho/i, 'no pressure-to-write-daily copy');
 });
 
@@ -195,10 +187,10 @@ test('no XP, streak, score, Starter Plan, game or skill-path UI returns to the D
 // component, so Dashboard.jsx itself still makes no API call and still picks
 // nothing on the athlete's behalf.
 
-test('Home mounts the current-practice card above Mind Journal, without fetching anything itself', () => {
+test('Home mounts the current-practice card above Talk to Arjun, without fetching anything itself', () => {
   const card = src.indexOf('<CurrentPracticeCard />');
   assert.ok(card !== -1, 'the card is mounted');
-  assert.ok(card > src.indexOf('1. GREETING') && card < src.indexOf('2. MIND JOURNAL'));
+  assert.ok(card > src.indexOf('1. GREETING') && card < src.indexOf('2. TALK TO ARJUN'));
   assert.doesNotMatch(codeOnly, /apiFetch/);
 });
 

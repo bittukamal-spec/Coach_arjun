@@ -55,8 +55,8 @@ test('Dashboard: renders a score-free Mind Journal card that opens /mind-journal
   // (onClick + navigate()), still score-free, with the founder-approved
   // heading/value copy.
   assert.match(dashboard, /to="\/mind-journal"|navigate\('\/mind-journal'\)/);
-  assert.match(dashboard, /\{t\.journalHeading\}/);
-  assert.match(dashboard, /\{t\.journalValue\}/);
+  assert.match(dashboard, /\{t\.journalTitle\}/);
+  assert.match(dashboard, /\{t\.journalShort\}/);
   assert.doesNotMatch(dashboard, /\d+\s*\/\s*5|score:\s*\d/i, 'still no numeric score of any kind');
 });
 
@@ -91,7 +91,7 @@ test('Dashboard: all four problem shortcuts are real <Link> elements to /coachin
   const idx = dashboard.indexOf('PROBLEM_SHORTCUTS');
   assert.ok(idx !== -1, 'expected a PROBLEM_SHORTCUTS definition');
   // A real <Link>, not onClick+navigate — see hotfix/dashboard-shortcut-navigation.
-  assert.match(dashboard, /import \{ useNavigate, Link \} from 'react-router-dom'/);
+  assert.match(dashboard, /import \{ Link \} from 'react-router-dom'/);
   assert.match(dashboard, /<Link[\s\S]{0,80}to="\/coaching"[\s\S]{0,80}state=\{\{ prefillMsg: q\.prefill\[hi \? 'hi' : 'en'\] \}\}/);
   // Exactly 4 stable shortcut ids, matching the approved product decision.
   for (const id of ['nervous', 'mistake', 'focus', 'confidence']) {

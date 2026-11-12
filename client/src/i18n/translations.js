@@ -500,6 +500,9 @@ export const translations = {
       greeting: (name) => `Hi, ${name}`,
       athleteFallback: 'Athlete',
       heroSub: 'Talk through whatever is on your mind.',
+      journalShort: 'Two minutes on today\'s session',
+      dayLine: (weekday, part) => `${weekday} ${part}`,
+      partOfDay: { morning: 'morning', afternoon: 'afternoon', evening: 'evening' },
       helpLabel: 'Pick what you need now',
       // "Your practice from Arjun" card — shows the one practice Coach gave.
       practice: {
@@ -2737,6 +2740,9 @@ export const translations = {
       greeting: (name) => `हाय, ${name}`,
       athleteFallback: 'एथलीट',
       heroSub: 'मन में जो है, उस पर बात करो।',
+      journalShort: 'आज के session पर दो मिनट',
+      dayLine: (weekday, part) => `${weekday} ${part}`,
+      partOfDay: { morning: 'सुबह', afternoon: 'दोपहर', evening: 'शाम' },
       helpLabel: 'अभी क्या चाहिए, चुनो',
       practice: {
         label: 'अर्जुन की दी हुई practice',
