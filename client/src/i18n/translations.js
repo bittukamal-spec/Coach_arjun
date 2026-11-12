@@ -533,7 +533,7 @@ export const translations = {
     // the existing approved wording, moved out of inline JSX conditionals.
     trainPage: {
       title: 'Train',
-      subtitle: 'Your mental training toolkit.',
+      subtitle: 'Short reps for your head. Pick one and go.',
       beforeLabel: 'Before you play',
       buildLabel: 'Build mental skills',
       resetHistory: 'View history →',

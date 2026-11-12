@@ -190,10 +190,9 @@ test('Train: exactly the four real practices — no invented categories, no fabr
   // No count/metadata language anywhere on the page.
   assert.doesNotMatch(train, /\d+\s*(practices|sessions|exercises)/i);
   assert.doesNotMatch(train, /practiceCount|count:/);
-  // No category scaffolding beyond the two real groupings — the "After you
-  // play" group went with the retired reflection tool rather than being left
-  // behind empty.
-  assert.equal((train.match(/labelKey:/g) || []).length, 2);
+  // Playbook redesign: four tiles in one grid, so no category scaffolding at
+  // all — the two group labels went with the gradient cards.
+  assert.equal((train.match(/labelKey:/g) || []).length, 0);
   assert.doesNotMatch(train, /afterLabel/, 'no empty group is left behind');
 });
 
@@ -202,22 +201,22 @@ test('Train: exactly the four real practices — no invented categories, no fabr
 // used to pin. The old flat PracticeTile.jsx is left untouched and unused
 // (still importable, still flat) rather than deleted, so this only asserts
 // the NEW page actually adopted the approved gradient system.
-test('Train tiles now use the approved blue/teal/amber/purple gradient system from the mockup', () => {
+test('Train tiles are flat Playbook colour blocks, one tone and one drawing per practice', () => {
+  // Playbook redesign (founder-approved Nov 2026): the gradient cards gave way
+  // to flat colour blocks. The older tile components stay in the repo, unused.
   const stripComments = (s) => s
     .replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .split('\n').filter(l => !l.trim().startsWith('//')).join('\n');
 
-  assert.match(stripComments(train), /TrainGradientCard/, 'the practices render through the new gradient card');
-  // Amber left Train with the retired reflection tile; the remaining
-  // practices keep their own approved gradients.
-  for (const variant of ['blue', 'teal', 'purple']) {
-    assert.ok(train.includes(`variant: '${variant}'`), `the ${variant} gradient must still be assigned somewhere`);
+  const code = stripComments(train);
+  assert.match(code, /<PracticeBlock/, 'the practices render through the colour-block tile');
+  for (const tone of ['blue', 'mint', 'sun', 'coral']) {
+    assert.ok(train.includes(`tone: '${tone}'`), `the ${tone} block must be assigned to a practice`);
   }
-  // The old flat tile stays untouched and unused rather than deleted.
-  const tile = stripComments(readFileSync(path.join(root, 'src/components/train/PracticeTile.jsx'), 'utf8'));
-  assert.doesNotMatch(tile, /gradient|GradientIconTile|card-hero|btn-gradient/i);
-  assert.doesNotMatch(stripComments(train), /PracticeTile/, 'Train no longer renders the retired flat tile');
+  assert.doesNotMatch(code, /gradient|TrainGradientCard|PracticeTile/i, 'no gradient card or retired flat tile on Train');
+  const block = stripComments(readFileSync(path.join(root, 'src/components/train/PracticeBlock.jsx'), 'utf8'));
+  assert.doesNotMatch(block, /gradient|card-hero|btn-gradient/i);
 });
 
 test('Train: two-column grid with a real minimum tile height and accessible targets', () => {
