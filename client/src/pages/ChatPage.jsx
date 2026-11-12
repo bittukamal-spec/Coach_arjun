@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
 import { ArjunLogo } from '../components/ArjunLogo';
+import { FocusArt } from '../components/visuals/TrainArt';
 import ConsentBanner, { needsGuardianConsent } from '../components/ConsentBanner';
 import { parseArjunMessage, APP_TOOL_CONFIG } from '../utils/parseArjunMessage';
 import { shouldShowAiReminder, BREAK_REMINDER_MS } from '../utils/chatReminders';
@@ -67,14 +68,12 @@ function MessageBubble({ message, isStreaming, revealedText }) {
   if (message.role === 'assistant') {
     return <ArjunBubble message={message} isStreaming={isStreaming} revealedText={revealedText} />;
   }
-  // Athlete turn: a restrained bubble on the approved selected-surface tint,
-  // not the old saturated brand fill. Text stays `text-ink`, which is the
-  // high-contrast pairing for this surface in both themes.
+  // Athlete turn (Playbook redesign): the brand-blue block with white text,
+  // the same pairing as the blue blocks elsewhere — identical in both themes.
   return (
     <div className="flex justify-end">
       <div
-        className="max-w-[78%] px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap break-words text-ink rounded-[18px] rounded-br-md border"
-        style={{ background: 'var(--surface-selected)', borderColor: 'var(--border-hairline)' }}
+        className="max-w-[78%] px-[15px] py-3 text-[14.5px] leading-relaxed whitespace-pre-wrap break-words bg-brand-500 text-white font-medium rounded-[22px] rounded-br-md"
       >
         {message.content}
       </div>
@@ -251,40 +250,32 @@ function ServerCardBubble({ card, t }) {
   const practiceRoute = practiceRouteFor(card.practiceKey);
 
   return (
-    <div className="flex justify-start px-1">
-      <div className="max-w-[92%] card-elevated overflow-hidden">
-        <div className="px-3.5 py-2.5 flex flex-col gap-1.5">
-          <p className="text-micro uppercase text-brand-400 font-bold">
-            Mental Rep
+    <div className="flex justify-start">
+      <div className="relative w-full overflow-hidden rounded-[26px] bg-sun text-inkblock p-[18px] flex flex-col gap-2">
+        <span className="absolute right-1 top-2 pointer-events-none scale-90 origin-top-right" aria-hidden="true">
+          <FocusArt />
+        </span>
+        <p className="relative self-start rounded-full bg-inkblock text-white text-micro font-bold uppercase px-3 py-1">
+          {t.practiceCardLabel}
+        </p>
+        <p className="relative max-w-[78%] text-[14.5px] leading-relaxed text-[#2A2404] whitespace-pre-wrap break-words">
+          {card.cardContent}
+        </p>
+        {card.cueWord && (
+          <p className="relative self-start rounded-full bg-white text-inkblock text-[13px] font-bold px-3 py-1">
+            {card.cueWord}
           </p>
-          <p className="text-sm leading-relaxed text-ink whitespace-pre-wrap">
-            {card.cardContent}
-          </p>
-          {card.cueWord && (
-            <div
-              className="font-medium rounded-md"
-              style={{
-                background: 'rgba(217,139,43,0.12)',
-                borderLeft: '3px solid var(--accent-amber)',
-                padding: '8px 10px',
-                color: 'var(--accent-amber)',
-                marginTop: '2px',
-              }}
-            >
-              {card.cueWord}
-            </div>
-          )}
-          {practiceRoute && (
-            <button
-              onClick={() => navigate(practiceRoute, {
-                state: { prescriptionId: card.prescriptionId, practiceKey: card.practiceKey },
-              })}
-              className="mt-1 self-start text-xs font-bold text-brand-400 hover:text-brand-300"
-            >
-              {t.startPractice} ›
-            </button>
-          )}
-        </div>
+        )}
+        {practiceRoute && (
+          <button
+            onClick={() => navigate(practiceRoute, {
+              state: { prescriptionId: card.prescriptionId, practiceKey: card.practiceKey },
+            })}
+            className="relative mt-1 min-h-[52px] w-full rounded-[18px] bg-inkblock text-white text-[15px] font-extrabold active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inkblock focus-visible:ring-offset-2 focus-visible:ring-offset-sun"
+          >
+            {t.startPractice}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -344,15 +335,18 @@ function ArjunBubble({ message, isStreaming, revealedText }) {
   // half-painted sentence.
   const hasTools = !isStreaming && !revealing && appTools.length > 0;
 
-  // Arjun speaks as plain text — no bubble, no avatar, generous spacing
-  // between turns. Tool cards keep their own card surface and sit beneath
-  // the text rather than inside a shared bubble container.
+  // Arjun's turn (Playbook redesign): a bubble on the card surface, left
+  // aligned, no avatar. Tool cards keep their own surface and sit beneath
+  // the bubble rather than inside it.
   return (
-    <div className="flex flex-col gap-2 px-1">
+    <div className="flex flex-col items-start gap-2">
       {/* Mid-reveal the partial text is hidden from assistive tech — a single
           complete announcement is made when the reveal finishes, so nothing is
           read out word by word. */}
-      <div aria-hidden={revealing ? 'true' : undefined}>
+      <div
+        aria-hidden={revealing ? 'true' : undefined}
+        className="max-w-[86%] bg-dark-400 rounded-[22px] rounded-bl-md px-[15px] py-3"
+      >
         <ArjunText text={revealing ? revealedText : message.content} isStreaming={isStreaming} />
       </div>
       {hasTools && (
@@ -1095,7 +1089,7 @@ function ChatPage() {
           tokens. No divider — separation comes from spacing alone.
           History and Info keep their exact behaviour; they moved into the
           overflow menu so the header carries one action, not three. */}
-      <header className="shrink-0 bg-dark-900 px-4 py-2.5 relative pt-[calc(0.625rem+env(safe-area-inset-top))]">
+      <header className="shrink-0 bg-dark-400 rounded-b-3xl px-4 py-2.5 relative pt-[calc(0.625rem+env(safe-area-inset-top))]">
         <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
             <button
@@ -1110,6 +1104,7 @@ function ChatPage() {
             <ArjunLogo size={32} ariaLabel="Arjun logo" className="shrink-0" />
             <div className="min-w-0">
               <h1 className="text-[21px] font-extrabold leading-none tracking-[-0.02em] text-ink">{t.title}</h1>
+              <p className="mt-1 text-[12px] leading-none text-slt truncate">{t.headerSub}</p>
             </div>
           </div>
 
@@ -1199,7 +1194,7 @@ function ChatPage() {
               {consentPending && <div className="w-full"><ConsentBanner /></div>}
               <h2 className="text-title font-bold text-ink mb-2 text-center">{t.entry.heading}</h2>
               <p className="text-body text-slt text-center mb-6 leading-relaxed max-w-xs">{t.entry.description}</p>
-              <div className="w-full bg-brand-500/10 border border-brand-500/30 rounded-2xl px-4 py-3 mb-6">
+              <div className="w-full bg-dark-400 rounded-[22px] px-4 py-3.5 mb-6">
                 <p className="text-xs text-slt leading-relaxed">{t.entryDisclosure}</p>
                 <p className="text-xs text-slt leading-relaxed mt-2">{t.entryDisclosureSafety}</p>
               </div>
@@ -1207,7 +1202,7 @@ function ChatPage() {
                 <button
                   onClick={handleContinueMain}
                   disabled={atLimit || consentPending}
-                  className="w-full py-4 bg-brand-600 text-white rounded-2xl font-semibold text-sm active:scale-[0.98] transition-all disabled:opacity-40"
+                  className="w-full min-h-[54px] bg-brand-500 text-white rounded-[18px] font-extrabold text-base active:scale-[0.98] transition-all disabled:opacity-40"
                 >
                   {t.entry.continue.label}
                 </button>
@@ -1432,11 +1427,11 @@ function ChatPage() {
             <button
               onClick={() => sendMessage()}
               disabled={!input.trim() || streaming || atLimit}
-              className="w-11 h-11 bg-brand-500 text-white rounded-full flex items-center justify-center hover:bg-brand-600 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:scale-100 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+              className="w-11 h-11 bg-sun text-inkblock rounded-2xl flex items-center justify-center active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:scale-100 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
               aria-label={t.send}
             >
               {streaming ? (
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <div className="w-4 h-4 border-2 border-inkblock border-t-transparent rounded-full animate-spin" />
               ) : (
                 <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5" aria-hidden="true">
                   <path d="M22 2L11 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>

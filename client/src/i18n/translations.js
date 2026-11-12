@@ -723,6 +723,8 @@ export const translations = {
       goalInjury: 'Dealing with Injuries',
     },
     chat: {
+      headerSub: 'AI coach · not a therapist',
+      practiceCardLabel: 'Your practice',
       retryBtn: 'Retry',
       title: 'Arjun',
       subtitle: 'Your coach for matches and mindset',
@@ -2968,6 +2970,8 @@ export const translations = {
       goalInjury: 'चोट से निपटना',
     },
     chat: {
+      headerSub: 'AI coach · therapist नहीं',
+      practiceCardLabel: 'तुम्हारी practice',
       retryBtn: 'फिर कोशिश करो',
       title: 'अर्जुन',
       subtitle: 'आपका कोच — मैच और मानसिकता के लिए',
