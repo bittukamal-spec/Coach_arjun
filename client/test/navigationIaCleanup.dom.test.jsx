@@ -226,13 +226,19 @@ describe('BottomNav — Stage B shell', () => {
     expect(hrefs).toEqual(['/dashboard', '/train', '/coaching', '/starting-profile']);
   });
 
-  test('the bar uses the near-black nav surface and a safe-area inset, not a theme-specific page colour', async () => {
+  test('the bar is a floating pill on the nav surface with a safe-area inset, not a theme-specific page colour', async () => {
     render(<BottomNavApp initialEntries={['/dashboard']} />);
     const nav = screen.getByRole('navigation');
-    expect(nav.style.background).toContain('--nav-bar');
+    // Playbook redesign: the surface is the pill inside the nav, and the nav
+    // wrapper itself must not swallow taps beside or below the pill.
+    const pill = nav.firstElementChild;
+    expect(pill.style.background).toContain('--nav-bar');
+    expect(pill.className).toMatch(/rounded-3xl/);
+    expect(pill.className).toMatch(/pointer-events-auto/);
+    expect(nav.className).toMatch(/pointer-events-none/);
     // Asserted as a class, not an inline style: jsdom drops `env()` from
     // inline styles, so the utility class is the reliable signal here.
-    expect(nav.className).toMatch(/pb-\[env\(safe-area-inset-bottom\)\]/);
+    expect(nav.className).toMatch(/pb-\[calc\(env\(safe-area-inset-bottom\)\+12px\)\]/);
     // The old theme-following page background must be gone.
     expect(nav.className).not.toMatch(/bg-dark-900/);
   });
@@ -241,8 +247,10 @@ describe('BottomNav — Stage B shell', () => {
     render(<BottomNavApp initialEntries={['/train']} />);
     const nav = screen.getByRole('navigation');
 
+    // The active item is a filled pill (--nav-fg-active) with dark content on it.
     const active = within(nav).getByRole('link', { name: /Train/i });
-    expect(active.querySelector('span').style.color).toContain('--nav-fg-active');
+    expect(active.firstElementChild.style.background).toContain('--nav-fg-active');
+    expect(active.querySelector('span').style.color).toContain('--nav-on-active');
 
     const inactive = within(nav).getByRole('link', { name: /Home/i });
     expect(inactive.querySelector('span').style.color).toContain('--nav-fg-inactive');
@@ -251,13 +259,13 @@ describe('BottomNav — Stage B shell', () => {
     expect(nav.innerHTML).not.toMatch(/navy-bright/);
   });
 
-  test('every destination keeps a >=48px tap target and a 10px label', async () => {
+  test('every destination keeps a >=48px tap target and a small fixed-size label', async () => {
     render(<BottomNavApp initialEntries={['/dashboard']} />);
     const links = within(screen.getByRole('navigation')).getAllByRole('link');
     expect(links).toHaveLength(4);
     for (const link of links) {
       expect(link.className).toMatch(/min-h-\[48px\]/);
-      expect(link.querySelector('span').className).toMatch(/text-\[10px\]/);
+      expect(link.querySelector('span').className).toMatch(/text-\[10\.5px\]/);
     }
   });
 

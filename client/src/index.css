@@ -7,47 +7,48 @@
 /* dark-* scale INVERTED in light mode: 900=lightest bg, 400=white card        */
 :root {
   /* Light theme (default) */
-  --dark-900: 248 250 252;   /* #F8FAFC — page bg         */
-  --dark-800: 237 242 247;   /* #EDF2F7 — surface         */
-  --dark-700: 226 232 240;   /* #E2E8F0 — elevated        */
-  --dark-600: 203 213 225;   /* #CBD5E1 — border          */
-  --dark-500: 148 163 184;   /* #94A3B8 — soft border     */
+  --dark-900: 238 243 255;   /* #EEF3FF — page bg         */
+  --dark-800: 226 233 251;   /* #E2E9FB — surface         */
+  --dark-700: 214 223 247;   /* #D6DFF7 — elevated        */
+  --dark-600: 197 207 237;   /* #C5CFED — border          */
+  --dark-500: 150 161 201;   /* #96A1C9 — soft border     */
   --dark-400: 255 255 255;   /* #FFFFFF — card            */
-  --dark-300: 247 250 252;   /* #F7FAFC — card muted      */
-  --dark-200: 226 232 240;   /* #E2E8F0 — hover           */
-  --dark-100: 219 234 254;   /* #DBEAFE — active          */
-  --ink:      15 23 42;      /* #0F172A — primary text    */
-  --slt:      71 85 105;     /* #475569 — secondary text  */
-  --muted:    100 116 139;   /* #64748B — muted text      */
-  --brand-50: 239 246 255;   /* #EFF6FF — active tab bg   */
+  --dark-300: 246 248 255;   /* #F6F8FF — card muted      */
+  --dark-200: 226 233 251;   /* #E2E9FB — hover           */
+  --dark-100: 217 227 255;   /* #D9E3FF — active          */
+  --ink:      16 21 51;      /* #101533 — primary text    */
+  --slt:      74 82 115;     /* #4A5273 — secondary text  */
+  --muted:    94 102 138;   /* #5E668A — muted text      */
+  --brand-50: 228 235 255;   /* #E4EBFF — active tab bg   */
+  --brand-text: 27 63 209;    /* #1B3FD1 — blue used for TEXT/icons (text-brand-400/500) */
 
   /* Non-Tailwind CSS vars (used in inline styles / old code) */
-  --bg:            #F8FAFC;
-  --surface:       #EDF2F7;
+  --bg:            #EEF3FF;
+  --surface:       #E2E9FB;
   --card:          #FFFFFF;
-  --card-muted:    #F7FAFC;
-  --elevated:      #E2E8F0;
-  --text-1:        #0F172A;
-  --text-2:        #475569;
-  --text-3:        #64748B;
-  --border:        #CBD5E1;
-  --border-soft:   #E2E8F0;
-  --color-ink:     #0F172A;
-  --color-slate:   #475569;
-  --color-bg:      #F8FAFC;
-  --color-surface: #EDF2F7;
-  --color-border:  #CBD5E1;
+  --card-muted:    #F6F8FF;
+  --elevated:      #D6DFF7;
+  --text-1:        #101533;
+  --text-2:        #4A5273;
+  --text-3:        #5E668A;
+  --border:        #C5CFED;
+  --border-soft:   #D6DFF7;
+  --color-ink:     #101533;
+  --color-slate:   #4A5273;
+  --color-bg:      #EEF3FF;
+  --color-surface: #E2E9FB;
+  --color-border:  #C5CFED;
 
   /* Brand/accent — same in both themes */
-  --blue:          #1769AA;
-  --blue-bright:   #19A7FF;
+  --blue:          #1B4DFF;
+  --blue-bright:   #6E8FFF;
   --saffron:       #F29B38;
   --teal:          #22D3C5;
   --purple:        #8B5CF6;
   --green:         #22C55E;
   --red:           #EF4444;
-  --color-primary:      #1769AA;
-  --color-primary-dark: #0C4D85;
+  --color-primary:      #1B4DFF;
+  --color-primary-dark: #1238C9;
   --color-action:       #F29B38;
   --color-success:      #22C55E;
   --color-alert:        #EF4444;
@@ -61,24 +62,25 @@
      here for later stages (Stage B+) to consume and are not yet applied to
      any component or screen by this stage. */
   --brand-primary:      var(--blue);          /* #1769AA — brand/primary, identical in both themes */
-  --brand-primary-rgb:  23 105 170;           /* #1769AA components, for rgb(var(--brand-primary-rgb) / alpha) */
+  --brand-primary-rgb:  27 77 255;           /* #1B4DFF components, for rgb(var(--brand-primary-rgb) / alpha) */
   --brand-on-dark:      var(--blue);          /* light: identical to brand/primary */
   --brand-logo:         #185FA5;              /* the ArjunLogo mark only — never a UI fill */
-  --nav-bar:            #07131F;              /* bottom nav / Coach header — identical in both themes (Stage B) */
+  --nav-bar:            #101533;              /* bottom nav / Coach header — identical in both themes (Stage B) */
   /* Foreground colours for content sitting ON --nav-bar. Deliberately NOT
      theme-branched: --nav-bar is the same near-black in both themes, so its
      foreground must be too. `--brand-on-dark` cannot serve this role — it
      resolves to #1769AA in light theme, only ~3.2:1 against #07131F, which
      fails AA for the 10px nav label. These are the study's dark-theme
      on-dark values, used in both themes: 7.3:1 and 9.2:1 respectively. */
-  --nav-fg-active:      #5FA8DE;              /* active nav item, Coach header accents */
-  --nav-fg-inactive:    #AAB7C4;              /* inactive nav item, secondary header controls */
-  --nav-fg-strong:      #F8FAFC;              /* primary text on the nav/header surface */
-  --nav-hairline:       #1F3448;              /* divider between nav/header and page content */
+  --nav-fg-active:      #FFC629;              /* active nav item, Coach header accents */
+  --nav-on-active:      #101533;              /* icon + label ON the yellow active pill */
+  --nav-fg-inactive:    #D5DAF0;              /* inactive nav item, secondary header controls */
+  --nav-fg-strong:      #F3F5FF;              /* primary text on the nav/header surface */
+  --nav-hairline:       #2A3166;              /* divider between nav/header and page content */
   --text-ink:           var(--text-1);
   --text-secondary:     var(--text-2);
   --text-muted:         var(--text-3);
-  --text-disabled:      #94A3B8;
+  --text-disabled:      #96A1C9;
   --border-hairline:    var(--border-soft);   /* #E2E8F0 */
   --surface-card:       var(--card);          /* #FFFFFF */
   --surface-chip:       var(--card);          /* chip body uses the card value, not elevated */
@@ -124,38 +126,40 @@
 /* OS prefers dark — applies when arjun_theme = 'system' (no data-theme attr) */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --dark-900: 7 19 31;
-    --dark-800: 11 27 42;
-    --dark-700: 16 37 56;
-    --dark-600: 43 65 87;
-    --dark-500: 31 52 72;
-    --dark-400: 19 35 52;
-    --dark-300: 27 48 68;
-    --dark-200: 34 56 79;
-    --dark-100: 46 77 105;
-    --ink:      248 250 252;
-    --slt:      170 183 196;
-    --muted:    126 138 153;
-    --brand-50: 13 42 74;
-    --bg:            #07131F;
-    --surface:       #0B1B2A;
-    --card:          #132334;
-    --card-muted:    #1B3044;
-    --elevated:      #102538;
-    --text-1:        #F8FAFC;
-    --text-2:        #AAB7C4;
-    --text-3:        #7E8A99;
-    --border:        #2B4157;
-    --border-soft:   #1F3448;
-    --color-ink:     #F8FAFC;
-    --color-slate:   #AAB7C4;
-    --color-bg:      #07131F;
-    --color-surface: #0B1B2A;
-    --color-border:  #2B4157;
+    --dark-900: 13 16 38;
+    --dark-800: 20 24 50;
+    --dark-700: 30 35 70;
+    --dark-600: 58 65 128;
+    --dark-500: 42 49 102;
+    --dark-400: 24 28 58;
+    --dark-300: 35 40 83;
+    --dark-200: 42 49 102;
+    --dark-100: 52 61 125;
+    --ink:      243 245 255;
+    --slt:      169 176 214;
+    --muted:    134 142 184;
+    --brand-50: 27 36 92;
+    --brand-text: 157 180 255;
+    --nav-bar: #181C3A;
+    --bg:            #0D1026;
+    --surface:       #141832;
+    --card:          #181C3A;
+    --card-muted:    #232853;
+    --elevated:      #1E2346;
+    --text-1:        #F3F5FF;
+    --text-2:        #A9B0D6;
+    --text-3:        #868EB8;
+    --border:        #3A4180;
+    --border-soft:   #2A3166;
+    --color-ink:     #F3F5FF;
+    --color-slate:   #A9B0D6;
+    --color-bg:      #0D1026;
+    --color-surface: #141832;
+    --color-border:  #3A4180;
 
     /* Stage A tokens that diverge from their light-theme value */
-    --brand-on-dark:     #5FA8DE;
-    --text-disabled:     #5A6B7C;
+    --brand-on-dark:     #9DB4FF;
+    --text-disabled:     #5E668A;
     --border-hairline:   var(--border); /* #2B4157 — not --border-soft (#1F3448) */
     --surface-elevated:  var(--card-muted); /* #1B3044 */
     --surface-selected:  var(--card-muted); /* #1B3044 — shared with elevated, intentionally (see study) */
@@ -175,38 +179,40 @@
 
 /* Manual dark override — beats OS preference */
 [data-theme="dark"] {
-  --dark-900: 7 19 31;
-  --dark-800: 11 27 42;
-  --dark-700: 16 37 56;
-  --dark-600: 43 65 87;
-  --dark-500: 31 52 72;
-  --dark-400: 19 35 52;
-  --dark-300: 27 48 68;
-  --dark-200: 34 56 79;
-  --dark-100: 46 77 105;
-  --ink:      248 250 252;
-  --slt:      170 183 196;
-  --muted:    126 138 153;
-  --brand-50: 13 42 74;
-  --bg:            #07131F;
-  --surface:       #0B1B2A;
-  --card:          #132334;
-  --card-muted:    #1B3044;
-  --elevated:      #102538;
-  --text-1:        #F8FAFC;
-  --text-2:        #AAB7C4;
-  --text-3:        #7E8A99;
-  --border:        #2B4157;
-  --border-soft:   #1F3448;
-  --color-ink:     #F8FAFC;
-  --color-slate:   #AAB7C4;
-  --color-bg:      #07131F;
-  --color-surface: #0B1B2A;
-  --color-border:  #2B4157;
+  --dark-900: 13 16 38;
+  --dark-800: 20 24 50;
+  --dark-700: 30 35 70;
+  --dark-600: 58 65 128;
+  --dark-500: 42 49 102;
+  --dark-400: 24 28 58;
+  --dark-300: 35 40 83;
+  --dark-200: 42 49 102;
+  --dark-100: 52 61 125;
+  --ink:      243 245 255;
+  --slt:      169 176 214;
+  --muted:    134 142 184;
+  --brand-50: 27 36 92;
+  --brand-text: 157 180 255;
+  --nav-bar: #181C3A;
+  --bg:            #0D1026;
+  --surface:       #141832;
+  --card:          #181C3A;
+  --card-muted:    #232853;
+  --elevated:      #1E2346;
+  --text-1:        #F3F5FF;
+  --text-2:        #A9B0D6;
+  --text-3:        #868EB8;
+  --border:        #3A4180;
+  --border-soft:   #2A3166;
+  --color-ink:     #F3F5FF;
+  --color-slate:   #A9B0D6;
+  --color-bg:      #0D1026;
+  --color-surface: #141832;
+  --color-border:  #3A4180;
 
   /* Stage A tokens that diverge from their light-theme value */
-  --brand-on-dark:     #5FA8DE;
-  --text-disabled:     #5A6B7C;
+  --brand-on-dark:     #9DB4FF;
+  --text-disabled:     #5E668A;
   --border-hairline:   var(--border); /* #2B4157 — not --border-soft (#1F3448) */
   --surface-elevated:  var(--card-muted); /* #1B3044 */
   --surface-selected:  var(--card-muted); /* #1B3044 */
@@ -232,7 +238,7 @@
   body {
     background-color: var(--bg);
     color: var(--text-1);
-    font-family: 'Poppins', system-ui, sans-serif;
+    font-family: 'Sora', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     transition: background-color 200ms ease, color 200ms ease;
