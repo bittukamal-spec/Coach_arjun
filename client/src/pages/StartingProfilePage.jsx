@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
-  ChevronLeft, ChevronRight, Activity, User as UserIcon, Trophy,
+  ChevronLeft, ChevronRight, ArrowRight, Activity, User as UserIcon, Trophy,
   CheckCircle2, Settings as SettingsIcon,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -60,7 +60,7 @@ function formatDate(value, language) {
 }
 
 export default function StartingProfilePage() {
-  const { token, language } = useAuth();
+  const { user, token, language } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const L = translations[language] || translations.en;
@@ -231,7 +231,26 @@ export default function StartingProfilePage() {
           <ArjunWordmark size="hero" />
         </div>
 
-        <h1 className="text-title font-bold text-ink mb-3">
+        {/* Playbook redesign: the saved profile opens with the athlete — who
+            they are and what they play — before anything Arjun worked out. */}
+        {savedMode && user?.name && (
+          <div className="flex items-center gap-3.5 mb-4">
+            <span className="w-16 h-16 rounded-3xl bg-sun text-inkblock flex items-center justify-center text-[22px] font-extrabold shrink-0" aria-hidden="true">
+              {user.name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase()}
+            </span>
+            <span className="min-w-0">
+              <span className="block text-[24px] leading-[1.15] font-extrabold tracking-tight text-ink break-words">{user.name}</span>
+              {user.sport && (
+                <span className="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-dark-400 pl-1.5 pr-3 py-1 text-[12.5px] font-bold text-ink">
+                  <span className="w-5 h-5 rounded-full bg-coral" aria-hidden="true" />
+                  <span className="capitalize">{user.sport}</span>
+                </span>
+              )}
+            </span>
+          </div>
+        )}
+
+        <h1 className={savedMode ? 'text-[14px] font-extrabold text-ink mb-2' : 'text-title font-bold text-ink mb-3'}>
           {savedMode ? t.savedTitleShort : t.summaryTitle}
         </h1>
         {!savedMode && <p className="text-body text-slt mb-4 leading-relaxed">{t.summarySubtitle}</p>}
@@ -252,9 +271,9 @@ export default function StartingProfilePage() {
                   secondary to it, and the only other thing in this card. The
                   broader areas the athlete wants to improve are NOT repeated
                   here; they live in My Game. */}
-              <div className="mt-3 pt-3 border-t border-dark-600">
-                <p className="text-micro font-bold text-slt uppercase">{t.fourWeekLabel}</p>
-                <p className={`text-body break-words ${fourWeekLabel ? 'text-ink' : 'text-muted italic'}`}>
+              <div className="mt-3 pt-3 border-t border-white/25">
+                <p className="text-micro font-bold text-white/85 uppercase">{t.fourWeekLabel}</p>
+                <p className={`text-body break-words ${fourWeekLabel ? 'text-white' : 'text-white/80 italic'}`}>
                   {fourWeekLabel || t.notSetYet}
                 </p>
               </div>
@@ -345,6 +364,18 @@ export default function StartingProfilePage() {
                 {t.editAction}
               </button>
             </ProfileSectionCard>
+
+            {/* Look back — the same "My practice" destination Train links to. */}
+            <Link
+              to="/my-practice"
+              className="flex items-center gap-3 min-h-[60px] rounded-[22px] bg-mint text-inkblock px-4 py-2.5 active:scale-[0.99] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+            >
+              <span className="flex-1 min-w-0">
+                <span className="block text-[15px] font-extrabold">{t.myPracticeRow}</span>
+                <span className="block text-[12.5px] opacity-80">{t.myPracticeRowSub}</span>
+              </span>
+              <ArrowRight size={20} strokeWidth={2.6} aria-hidden="true" />
+            </Link>
           </div>
         ) : (
           // ── FIRST-TIME "Your starting profile" — a read-back, not a report ─

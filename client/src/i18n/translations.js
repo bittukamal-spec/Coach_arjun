@@ -278,6 +278,8 @@ export const translations = {
       safetyTitle: 'Before we go on',
       // ── Performance Profile redesign ──────────────────────────────────
       savedTitleShort: 'Your Performance Profile',
+      myPracticeRow: 'My practice and weekly reviews',
+      myPracticeRowSub: 'What you practised and how it went',
       backAria: 'Back',
       currentFocusLabel: 'Current Focus',
       suggestedFocusLabel: 'Suggested Starting Focus',
@@ -2563,6 +2565,8 @@ export const translations = {
       safetyTitle: 'आगे बढ़ने से पहले',
       // ── Performance Profile redesign ──────────────────────────────────
       savedTitleShort: 'तुम्हारी परफॉर्मेंस प्रोफाइल',
+      myPracticeRow: 'मेरी practice और weekly reviews',
+      myPracticeRowSub: 'तुमने क्या practice किया और कैसा रहा',
       backAria: 'वापस',
       currentFocusLabel: 'अभी का फोकस',
       suggestedFocusLabel: 'सुझाई गई शुरुआत',
