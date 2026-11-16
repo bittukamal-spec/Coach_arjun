@@ -503,6 +503,18 @@ export const translations = {
       athleteFallback: 'Athlete',
       heroSub: 'Talk through whatever is on your mind.',
       journalShort: 'Two minutes on today\'s session',
+      thisWeek: {
+        title: 'This week',
+        practices: 'Practices',
+        journal: 'Journal entries',
+        helped: 'Helped in play',
+        helpedValue: (helped, tried) => `${helped} of ${tried}`,
+        none: '–',
+        daysLabel: 'Days you trained in the last 7 days',
+        dayDone: 'trained',
+        dayRest: 'no practice',
+        open: 'See my practice',
+      },
       dayLine: (weekday, part) => `${weekday} ${part}`,
       partOfDay: { morning: 'morning', afternoon: 'afternoon', evening: 'evening' },
       helpLabel: 'Pick what you need now',
@@ -2113,6 +2125,7 @@ export const translations = {
     },
     common: {
       loading: 'Loading…',
+      launchTagline: 'Train your mind like a pro',
       error: 'Something went wrong. Please refresh.',
       langToggle: 'हिंदी',
       // Accessible name for icon-only back controls in shared headers.
@@ -2747,6 +2760,18 @@ export const translations = {
       athleteFallback: 'एथलीट',
       heroSub: 'मन में जो है, उस पर बात करो।',
       journalShort: 'आज के session पर दो मिनट',
+      thisWeek: {
+        title: 'This week',
+        practices: 'Practices',
+        journal: 'Journal entries',
+        helped: 'Helped in play',
+        helpedValue: (helped, tried) => `${helped} of ${tried}`,
+        none: '–',
+        daysLabel: 'Days you trained in the last 7 days',
+        dayDone: 'trained',
+        dayRest: 'no practice',
+        open: 'See my practice',
+      },
       dayLine: (weekday, part) => `${weekday} ${part}`,
       partOfDay: { morning: 'सुबह', afternoon: 'दोपहर', evening: 'शाम' },
       helpLabel: 'अभी क्या चाहिए, चुनो',
@@ -4343,6 +4368,7 @@ export const translations = {
     },
     common: {
       loading: 'लोड हो रहा है…',
+      launchTagline: 'Train your mind like a pro',
       error: 'कुछ गलत हो गया। कृपया रिफ्रेश करें।',
       langToggle: 'English',
       // Accessible name for icon-only back controls in shared headers.

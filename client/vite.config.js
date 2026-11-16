@@ -45,7 +45,7 @@ export default defineConfig({
         short_name: 'Arjun',
         description: 'AI mental performance coaching for Indian athletes. Build focus, resilience, and confidence.',
         theme_color: '#1B4DFF',
-        background_color: '#FFFFFF',
+        background_color: '#EEF3FF',
         display: 'standalone',
         orientation: 'portrait',
         scope: '/',

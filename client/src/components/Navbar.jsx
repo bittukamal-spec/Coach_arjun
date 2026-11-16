@@ -14,7 +14,10 @@ function getInitials(name = '') {
   return (parts[0]?.[0] || '?').toUpperCase();
 }
 
-function Navbar() {
+// `bare` drops the fixed logo bar and renders only the account button,
+// placed by the caller (Home and Train sit it beside their page title —
+// the logo now lives on the launch screen, not on every page).
+function Navbar({ bare = false }) {
   const { user, language, toggleLanguage, avatarUrl } = useAuth();
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
@@ -54,10 +57,10 @@ function Navbar() {
   }, [menuOpen]);
 
   return (
-    <nav className="fixed top-0 inset-x-0 z-50 bg-dark-900">
-      <div className="max-w-5xl mx-auto px-4 h-12 flex items-center justify-between">
-        {/* Logo */}
-        <ArjunWordmark size="compact" />
+    <nav className={bare ? 'shrink-0' : 'fixed top-0 inset-x-0 z-50 bg-dark-900'} aria-label={bare ? t.settings : undefined}>
+      <div className={bare ? 'flex items-center' : 'max-w-5xl mx-auto px-4 h-12 flex items-center justify-between'}>
+        {/* Logo — only on the full bar */}
+        {!bare && <ArjunWordmark size="compact" />}
 
         {/* Avatar + dropdown */}
         {user && (

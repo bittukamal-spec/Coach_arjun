@@ -203,11 +203,11 @@ test('the authenticated app header (Navbar) uses the compact lockup — it sits 
 
 test('the Coach chat header uses the same restored mark, sized compact — no separate Coach avatar image', () => {
   assert.match(chatPage, /import \{ ArjunLogo \} from '\.\.\/components\/ArjunLogo';/);
-  assert.match(chatPage, /<ArjunLogo size=\{32\} ariaLabel="Arjun logo" className="shrink-0" \/>/);
+  assert.match(chatPage, /<ArjunLogo size=\{24\} ariaLabel="Arjun logo" className="shrink-0" \/>/);
   assert.doesNotMatch(chatPage, /variant="coach"|variant=\{.*coach/i);
-  // Its "Arjun" label stays a real <h1> (accessibility contract), styling
-  // untouched by this PR.
-  assert.match(chatPage, /<h1 className="text-\[21px\] font-extrabold leading-none tracking-\[-0\.02em\] text-ink">\{t\.title\}<\/h1>/);
+  // Its "Arjun" label stays a real <h1> (accessibility contract). Smaller
+  // since Nov 2026 (founder: keep the logo in Coach but make it smaller).
+  assert.match(chatPage, /<h1 className="text-\[17px\] font-extrabold leading-none tracking-\[-0\.01em\] text-ink">\{t\.title\}<\/h1>/);
 });
 
 // ── 8. The reverted PR's raster asset set is gone ─────────────────────────

@@ -30,14 +30,15 @@ export default function TrainPage() {
 
   return (
     <div className="min-h-screen bg-dark-900">
-      <Navbar />
-
-      <main className="max-w-lg md:max-w-2xl mx-auto px-5 pt-14 pb-28 animate-fade-in">
+      <main className="max-w-lg md:max-w-2xl mx-auto px-5 pt-[calc(1rem+env(safe-area-inset-top))] pb-28 animate-fade-in">
 
         {/* Page header */}
-        <div className="pt-2 mb-5">
-          <h1 className="text-[32px] leading-[1.1] font-extrabold tracking-tight text-ink">{t.title}</h1>
-          <p className="text-sm text-slt mt-1">{t.subtitle}</p>
+        <div className="pt-1 mb-5 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-[32px] leading-[1.1] font-extrabold tracking-tight text-ink">{t.title}</h1>
+            <p className="text-sm text-slt mt-1">{t.subtitle}</p>
+          </div>
+          <Navbar bare />
         </div>
 
         <div className="grid grid-cols-2 gap-2.5 items-stretch">

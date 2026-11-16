@@ -236,7 +236,7 @@ test('the shared PageHeader renders its title as the page heading', () => {
 
 test('Home and Coach carry a real page heading rather than a styled paragraph', () => {
   assert.match(src('pages/Dashboard.jsx'), /<h1 className="text-\[30px\] leading-\[1\.1\] font-extrabold tracking-tight text-ink">/);
-  assert.match(src('pages/ChatPage.jsx'), /<h1 className="text-\[21px\] font-extrabold leading-none tracking-\[-0\.02em\] text-ink">/);
+  assert.match(src('pages/ChatPage.jsx'), /<h1 className="text-\[17px\] font-extrabold leading-none tracking-\[-0\.01em\] text-ink">/);
 });
 
 // ── 8. Mind Journal control accessibility ──────────────────────────────────
@@ -307,4 +307,41 @@ test('the Change Focus primary action keeps the 54px standard and duplicate-subm
   }
   assert.match(dialog, /if \(!valid \|\| saving\) return;/, 'a second submit while saving must be ignored');
   assert.match(dialog, /disabled=\{saving\}/, 'the confirm action disables itself while the save is in flight');
+});
+
+// ── Launch screen, logo-free Home/Train, This week strip (Nov 2026) ───────
+
+test('the app opens on the launch screen: logo, name, the line and loading dots — also before JavaScript loads', () => {
+  const app = src('App.jsx');
+  assert.match(app, /<LaunchScreen tagline=\{t\.common\.launchTagline\} loadingLabel=\{t\.common\.loading\} \/>/);
+  const launch = src('components/LaunchScreen.jsx');
+  assert.match(launch, /role="status"/);
+  assert.match(launch, /animate-launch-dot/);
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  assert.match(html, /class="arjun-splash"/);
+  assert.match(html, /Train your mind like a pro/);
+});
+
+test('Home and Train have no logo bar: the account button sits beside the page title', () => {
+  for (const page of ['pages/Dashboard.jsx', 'pages/TrainPage.jsx']) {
+    const s = src(page);
+    assert.match(s, /<Navbar bare \/>/);
+    assert.doesNotMatch(s, /<Navbar \/>/);
+  }
+  assert.match(src('components/Navbar.jsx'), /\{!bare && <ArjunWordmark size="compact" \/>\}/);
+});
+
+test('Home\'s This week strip shows plain counts only — no streaks, points or scores', () => {
+  const strip = src('components/home/ThisWeekStrip.jsx');
+  assert.match(strip, /\/api\/playbook/);
+  assert.match(strip, /to="\/my-practice"/);
+  const code = strip.replace(/\/\/.*$/gm, '');
+  assert.doesNotMatch(code, /\b(streak|xp|points?|scores?)\b/i);
+  assert.match(src('pages/Dashboard.jsx'), /<ThisWeekStrip \/>/);
+});
+
+test('the Coach header shares the page colour — no separate white box', () => {
+  const chat = src('pages/ChatPage.jsx');
+  assert.match(chat, /<header className="shrink-0 bg-dark-900 /);
+  assert.doesNotMatch(chat, /<header className="shrink-0 bg-dark-400 rounded-b-3xl/);
 });
