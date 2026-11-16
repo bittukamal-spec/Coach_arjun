@@ -1,687 +1,332 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import {
-  Activity, ArrowRight, Bookmark, Check, ChevronDown, Download, Flag, Gauge,
-  Globe, Lock, Menu, MessageCircle, NotebookPen, RefreshCw, RotateCcw, Sparkles,
-  Target, Trophy, X, Zap,
-} from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowRight, Menu, X, ChevronDown, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
-import { HINDI_ENABLED } from '../i18n/languages';
-import { ArjunLogo, ArjunWordmark } from '../components/ArjunLogo';
-import LandingCarousel from '../components/landing/LandingCarousel';
-import {
-  CoachPreview, GameChips, HeroPhone, PressureFlow,
-  ProfilePreview, RepsPreview, WorksList,
-} from '../components/landing/LandingMockups';
-import {
-  AthleteMark, BreathMark, CardsMark, StopwatchMark,
-} from '../components/visuals/CardArt';
+import { ArjunLogo } from '../components/ArjunLogo';
+import { PhotoSlot, CheckDot } from '../components/site/SiteBits';
 
-// Public homepage. Deliberately a fixed light surface rather than the app's
-// themed tokens: this is the first screen a visitor sees, the approved
-// direction is white, and it must not flip to the dark theme on a device
-// whose OS prefers dark. Same reasoning (and same technique) as the
-// intentionally always-dark tool screens inside the app — a hard-coded
-// palette, scoped to this one page, that never touches the shared tokens.
-const INK = 'text-[#0F172A]';
-const BODY = 'text-[#5A6B80]';
-const BORDER = 'border-[#E4E9F2]';
-const BRAND = '#1B4DFF';
+// ─── Public website (Playbook redesign, Nov 2026) ─────────────────────────────
+// Founder-approved mock-ups ("Arjun public pages"): one main action, "Start
+// free" (→ sign up); no prices on this page — the Premium box opens the
+// Free vs Premium page (/premium), which leads to the plans page (/plans).
+// Words are sport-neutral. Photos load from /photos/*.jpg and fall back to
+// a drawing until the founder adds them (components/site/SiteBits.jsx).
 
-// The four use cases, each with its own restrained tint so the row doesn't
-// read as four identical white SaaS cards. Same four-accent family the
-// authenticated Train cards use — blue, teal, amber, violet.
-// The four use cases. Each gets its own tint AND its own sport mark — the
-// same silhouettes the authenticated Train cards use (CardArt.jsx), so the
-// section carries sport imagery without shipping a single binary asset or a
-// stock photo.
-const HELP_TINTS = [
-  { bg: '#E3EEFA', fg: BRAND,     Icon: Flag,      Art: AthleteMark },   // before a match — blue
-  { bg: '#DDF0EC', fg: '#13776F', Icon: Activity,  Art: BreathMark },    // under pressure — teal
-  { bg: '#FAEBD8', fg: '#9A5410', Icon: RotateCcw, Art: StopwatchMark }, // after a setback — amber
-  { bg: '#E8E4FB', fg: '#5546C9', Icon: Target,    Art: CardsMark },     // build the mental game — violet
-];
-
-// Personalisation cards — one accent each, in the same family.
-const PERSONAL_TINTS = [
-  { bg: '#E3EEFA', fg: BRAND,     Icon: Trophy },   // your game — blue
-  { bg: '#DDF0EC', fg: '#13776F', Icon: Gauge },    // when pressure hits — teal
-  { bg: '#E8E4FB', fg: '#5546C9', Icon: Sparkles }, // what works — violet
-];
-
-// Sport-psychology principles — a lighter wash of the same accents, so the
-// row reads as calmer than the two gradient-card rows above it.
-const PRINCIPLE_TINTS = [
-  { bg: '#DDF0EC', fg: '#13776F', Icon: RefreshCw },   // reset after setbacks
-  { bg: '#E3EEFA', fg: BRAND,     Icon: MessageCircle }, // focus & self-talk
-  { bg: '#FAEBD8', fg: '#9A5410', Icon: NotebookPen }, // reflect & learn
-];
+const STEP_DOT = 'w-[34px] h-[34px] rounded-full bg-brand-500 text-white flex items-center justify-center text-[15px] font-extrabold shrink-0';
+const HELP_TONES = ['bg-sun', 'bg-coral', 'bg-mint', 'bg-sky', 'bg-blush'];
 
 function LandingPage() {
-  const { language, toggleLanguage } = useAuth();
-  const t = translations[language].landing;
+  const { language } = useAuth();
+  const t = translations[language]?.site || translations.en.site;
   const navigate = useNavigate();
 
   const [menuOpen, setMenuOpen] = useState(false);
+  const [openFaq, setOpenFaq] = useState(0);
   const [installPrompt, setInstallPrompt] = useState(null);
-  const [installed, setInstalled] = useState(false);
-  const [installHint, setInstallHint] = useState(false);
-  const [openFaq, setOpenFaq] = useState(null);
   const menuRef = useRef(null);
 
-  const ua = typeof navigator === 'undefined' ? '' : navigator.userAgent;
-  const isIOS = /iphone|ipad|ipod/i.test(ua);
-  const isAndroid = /android/i.test(ua);
-
-  // PWA install support is the same implementation it has always been — the
-  // beforeinstallprompt event is captured here, prompt() is called in
-  // handleInstall, and the no-prompt fallback still shows the platform
-  // instructions. What changed is placement: installing is now the page's
-  // primary action, exposed directly in the header and behind every Download
-  // CTA, rather than hidden in the menu.
+  // Install stays available from the menu (same PWA prompt as before); the
+  // page's main action is now signing up.
   useEffect(() => {
-    const standalone =
-      (typeof window !== 'undefined' && window.navigator?.standalone) ||
-      (typeof window !== 'undefined' && typeof window.matchMedia === 'function' &&
-        window.matchMedia('(display-mode: standalone)').matches);
-    if (standalone) setInstalled(true);
-
     const onPrompt = (e) => { e.preventDefault(); setInstallPrompt(e); };
-    const onInstalled = () => { setInstalled(true); setInstallPrompt(null); };
     window.addEventListener('beforeinstallprompt', onPrompt);
-    window.addEventListener('appinstalled', onInstalled);
-    return () => {
-      window.removeEventListener('beforeinstallprompt', onPrompt);
-      window.removeEventListener('appinstalled', onInstalled);
-    };
+    return () => window.removeEventListener('beforeinstallprompt', onPrompt);
   }, []);
 
   useEffect(() => {
     if (!menuOpen) return undefined;
     const onKey = (e) => { if (e.key === 'Escape') setMenuOpen(false); };
-    const onClick = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
-    };
+    const onClick = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false); };
     document.addEventListener('keydown', onKey);
     document.addEventListener('mousedown', onClick);
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      document.removeEventListener('mousedown', onClick);
-    };
+    return () => { document.removeEventListener('keydown', onKey); document.removeEventListener('mousedown', onClick); };
   }, [menuOpen]);
 
   async function handleInstall() {
-    if (installPrompt) {
-      installPrompt.prompt();
-      const { outcome } = await installPrompt.userChoice;
-      if (outcome === 'accepted') setInstalled(true);
-      setInstallPrompt(null);
-      setMenuOpen(false);
-    } else {
-      setInstallHint(true);
-    }
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    await installPrompt.userChoice;
+    setInstallPrompt(null);
+    setMenuOpen(false);
   }
 
-  const goSignIn = () => navigate('/auth?tab=signin');
+  const startFree = () => navigate('/auth?tab=signup');
 
-  // One product action for the whole page: install Arjun. Every CTA (hero,
-  // pricing, final, footer) runs the same PWA handler as the header button —
-  // there is no second install implementation. Once the app is installed the
-  // same button stops claiming to install and opens Arjun instead, so an
-  // installed visitor never sees a misleading action. Account creation and
-  // sign-in happen inside the app; /auth is untouched and still reachable
-  // from the menu.
-  //
-  // The pricing CTAs deliberately run this same action: choosing a plan needs
-  // an authenticated Razorpay subscription (POST /api/payments/create-
-  // subscription, in-app /pricing), so the homepage routes to the real entry
-  // point instead of faking a checkout. No payment contract is touched.
-  const primaryLabel = installed ? t.ctaOpen : t.ctaInstall;
-  const primaryAction = installed ? goSignIn : handleInstall;
-
-  // Three stories, not four: the Playbook card was removed with the Playbook
-  // page rather than left advertising a surface the app no longer has. Nothing
-  // takes its slot — the carousel renders whatever it is given.
-  const previews = t.preview;
-  const previewCards = [
-    <CoachPreview key="coach" t={previews.coachCard} />,
-    <RepsPreview key="reps" t={previews.repsCard} />,
-    <ProfilePreview key="profile" t={previews.profileCard} />,
-  ];
-
-  // One accent per tag, from the same family the app uses. Green is added
-  // only here, for the privacy tag — it reads as reassurance, not as a
-  // product area.
-  const benefitTags = [
-    { Icon: MessageCircle, label: t.tagTalk,    bg: '#E7F0FB', fg: '#1B4DFF' },
-    { Icon: Zap,           label: t.tagReps,    bg: '#DDF0EC', fg: '#13776F' },
-    { Icon: Bookmark,      label: t.tagSave,    bg: '#FAEBD8', fg: '#9A5410' },
-    { Icon: Globe,         label: t.tagLang,    bg: '#EAE6FC', fg: '#5546C9' },
-    { Icon: Lock,          label: t.tagPrivate, bg: '#E2F2E6', fg: '#1F7A46' },
-  ];
+  const menuItem = 'flex min-h-[44px] w-full items-center rounded-xl px-3 text-left text-[14px] font-semibold text-ink hover:bg-dark-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500';
 
   return (
-    <div className={`min-h-screen overflow-x-clip bg-[#FAFBFD] ${INK}`}>
-
-      {/* ── Header ────────────────────────────────────────────────────────── */}
-      {/* Order: brand · language · install · menu. Install is a visible header
-          action rather than a menu item, and shares the one PWA handler with
-          every other Download CTA on the page. */}
+    <div className="min-h-screen overflow-x-clip bg-dark-900 text-ink">
+      {/* ── Header ─────────────────────────────────────────────────────── */}
       <header className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-5 py-3">
-        <ArjunWordmark size="header" />
-
-        <div className="flex items-center gap-1.5 xs:gap-2">
-          {HINDI_ENABLED && (
+        <Link to="/" className="flex items-center gap-2 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500" aria-label="Arjun home">
+          <ArjunLogo size={30} />
+          <span className="text-[20px] font-extrabold tracking-[-0.02em]">Arjun</span>
+        </Link>
+        <nav aria-label="Site" className="flex items-center gap-2">
+          <a href="#how" className="hidden lg:flex min-h-[44px] items-center px-3 text-[15px] font-semibold">{t.howTitle}</a>
+          <a href="#faq" className="hidden lg:flex min-h-[44px] items-center px-3 text-[15px] font-semibold">{t.faqTitle}</a>
+          <Link to="/auth?tab=signin" className="flex min-h-[44px] items-center rounded-[14px] bg-dark-400 px-4 text-[14px] font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
+            {t.signIn}
+          </Link>
+          <button type="button" onClick={startFree} className="hidden lg:flex min-h-[44px] items-center rounded-[14px] bg-sun px-4 text-[14px] font-extrabold text-inkblock focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
+            {t.startFree}
+          </button>
+          <div className="relative" ref={menuRef}>
             <button
               type="button"
-              onClick={toggleLanguage}
-              aria-label={t.langLabel}
-              className={`flex h-10 shrink-0 items-center rounded-full border ${BORDER} bg-white p-[3px] text-[12px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4DFF] focus-visible:ring-offset-2`}
-            >
-              <span className={`rounded-full px-2.5 py-1.5 ${language === 'hi' ? 'bg-[#1B4DFF] text-white' : BODY}`}>हिंदी</span>
-              <span className={`rounded-full px-2 py-1.5 ${language === 'en' ? 'bg-[#1B4DFF] text-white' : BODY}`}>EN</span>
-            </button>
-          )}
-
-          {installed ? (
-            <span className={`flex h-10 shrink-0 items-center gap-1 rounded-full border ${BORDER} bg-white px-2.5 text-[12px] font-semibold ${BODY}`}>
-              <Check size={15} className="text-[#13776F]" aria-hidden="true" />
-              <span className="hidden xs:inline">{t.installDone}</span>
-            </span>
-          ) : (
-            <button
-              type="button"
-              onClick={handleInstall}
-              aria-label={t.installApp}
-              className="flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-[#1B4DFF] px-3.5 text-[13px] font-bold text-white shadow-[0_3px_10px_rgba(27, 77, 255,0.25)] transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4DFF] focus-visible:ring-offset-2 xs:px-4"
-            >
-              <Download size={16} aria-hidden="true" />
-              <span className="hidden xs:inline">{t.installShort}</span>
-            </button>
-          )}
-
-          <div className="relative shrink-0" ref={menuRef}>
-            <button
-              type="button"
-              onClick={() => setMenuOpen((v) => !v)}
+              onClick={() => setMenuOpen(v => !v)}
               aria-label={menuOpen ? t.menuClose : t.menuOpen}
               aria-expanded={menuOpen}
-              aria-controls="landing-menu"
-              className={`flex h-10 w-10 items-center justify-center rounded-full border ${BORDER} bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4DFF] focus-visible:ring-offset-2`}
+              aria-controls="site-menu"
+              className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-dark-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
             >
-              {menuOpen
-                ? <X size={20} aria-hidden="true" />
-                : <Menu size={20} aria-hidden="true" />}
+              {menuOpen ? <X size={20} aria-hidden="true" /> : <Menu size={20} aria-hidden="true" />}
             </button>
-
             {menuOpen && (
-              <div
-                id="landing-menu"
-                className={`absolute right-0 top-[52px] z-30 w-60 rounded-2xl border ${BORDER} bg-white p-2 shadow-[0_10px_30px_rgba(15,23,42,0.12)]`}
-              >
-                {/* Install is NOT repeated here — it has its own visible
-                    header action. Sign in stays available for athletes who
-                    already have an account, without being a page CTA. */}
-                <button type="button" onClick={goSignIn} className={`flex min-h-[44px] w-full items-center rounded-xl px-3 text-left text-[14px] font-semibold hover:bg-[#F3F6FB]`}>
-                  {t.ctaSignIn}
-                </button>
-                <span className={`my-1 block h-px ${BORDER} border-t`} />
-                <button type="button" onClick={() => navigate('/privacy')} className={`flex min-h-[44px] w-full items-center rounded-xl px-3 text-left text-[14px] ${BODY} hover:bg-[#F3F6FB]`}>
-                  {t.footerPrivacy}
-                </button>
-                <button type="button" onClick={() => navigate('/terms')} className={`flex min-h-[44px] w-full items-center rounded-xl px-3 text-left text-[14px] ${BODY} hover:bg-[#F3F6FB]`}>
-                  {t.footerTerms}
-                </button>
-                <button type="button" onClick={() => navigate('/contact')} className={`flex min-h-[44px] w-full items-center rounded-xl px-3 text-left text-[14px] ${BODY} hover:bg-[#F3F6FB]`}>
-                  {t.menuContactSupport}
-                </button>
+              <div id="site-menu" className="absolute right-0 top-[52px] z-30 w-56 rounded-2xl bg-dark-400 p-2 shadow-card">
+                {installPrompt && (
+                  <button type="button" onClick={handleInstall} className={menuItem}>{t.installApp}</button>
+                )}
+                <button type="button" onClick={() => navigate('/privacy')} className={menuItem}>{t.footerPrivacy}</button>
+                <button type="button" onClick={() => navigate('/terms')} className={menuItem}>{t.footerTerms}</button>
+                <button type="button" onClick={() => navigate('/contact')} className={menuItem}>{t.footerContact}</button>
               </div>
             )}
           </div>
-        </div>
+        </nav>
       </header>
 
-      {/* Manual-install instructions — the existing fallback for browsers with
-          no beforeinstallprompt. It sits under the header so it is visible
-          whichever Download action triggered it. */}
-      {installHint && (
-        <div className="mx-auto max-w-5xl px-5">
-          <div className={`flex items-start gap-3 rounded-2xl border ${BORDER} bg-white p-4 shadow-[0_2px_8px_rgba(15,23,42,0.05)]`}>
-            <p className={`flex-1 text-[13px] leading-snug ${BODY}`}>
-              <span className="block font-bold text-[#0F172A]">{t.installHow}</span>
-              {isIOS ? t.installIos : isAndroid ? t.installAndroid : t.installDesktop}
-            </p>
+      <main>
+        {/* ── Hero ───────────────────────────────────────────────────────── */}
+        <section className="mx-auto max-w-5xl px-5 pt-2 lg:grid lg:grid-cols-2 lg:items-center lg:gap-10 lg:pt-10">
+          <div>
+            <h1 className="text-[38px] leading-[1.02] font-extrabold tracking-[-0.03em] [text-wrap:balance] lg:text-[60px]">{t.heroTitle}</h1>
+            <p className="mt-3 text-[15px] leading-relaxed text-slt lg:text-[18px]">{t.heroSub}</p>
             <button
               type="button"
-              onClick={() => setInstallHint(false)}
-              aria-label={t.close}
-              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${BODY} hover:bg-[#F3F6FB] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4DFF]`}
+              onClick={startFree}
+              data-testid="site-hero-cta"
+              className="mt-5 hidden lg:inline-flex min-h-[58px] items-center gap-2 rounded-[18px] bg-sun px-8 text-[17px] font-extrabold text-inkblock focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
             >
-              <X size={18} aria-hidden="true" />
+              {t.startFree}
+              <ArrowRight size={18} strokeWidth={2.6} aria-hidden="true" />
             </button>
           </div>
-        </div>
-      )}
 
-      <main>
-        {/* ── Hero ────────────────────────────────────────────────────────── */}
-        {/* No eyebrow/pill: header → whitespace → headline. Gap to the next
-            section is owned entirely by that section's own top padding (the
-            pattern every section below follows), so there is no pb here. */}
-        <section className="mx-auto max-w-5xl px-5 pt-6 lg:grid lg:grid-cols-2 lg:items-center lg:gap-10 lg:pt-12">
-          <div>
-            {/* No hard-coded line breaks: the headline wraps to the column,
-                balanced so the accent phrase never strands one short word. */}
-            {/* Two logical lines: the statement, then the accented promise on
-                its own line. Each half still wraps freely inside its column. */}
-            <h1 className="text-[42px] font-black leading-[0.98] tracking-[-0.02em] [text-wrap:balance] xs:text-[48px] lg:text-[58px]">
-              {t.headlineLead}
-              <span className="block text-[#1B4DFF]">{t.headlineAccent}</span>
-            </h1>
-
-            <p className={`mt-4 text-[16px] leading-snug ${BODY}`}>{t.subtitle}</p>
-
-            <div className="mt-6">
-              <button
-                type="button"
-                onClick={primaryAction}
-                className="inline-flex min-h-[54px] w-full items-center justify-center gap-2 rounded-2xl bg-[#1B4DFF] px-8 text-[16.5px] font-bold text-white shadow-[0_6px_18px_rgba(27, 77, 255,0.25)] transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4DFF] focus-visible:ring-offset-2 sm:w-auto"
-              >
-                {primaryLabel}
-                <ArrowRight size={18} aria-hidden="true" />
-              </button>
-            </div>
+          <div className="relative mt-4 h-[330px] overflow-hidden rounded-[32px] bg-brand-500 lg:mt-0 lg:h-[440px]">
+            <span className="absolute inset-x-[18px] bottom-0 h-[300px] rounded-t-[160px] bg-brand-300 lg:h-[400px]" aria-hidden="true" />
+            <PhotoSlot
+              src="/photos/hero.jpg"
+              alt={t.heroPhotoAlt}
+              className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[300px] w-[230px] rounded-t-[115px] lg:h-[400px] lg:w-[300px] lg:rounded-t-[150px]"
+            />
+            <span className="absolute left-3.5 top-5 flex items-center gap-2 rounded-2xl bg-white px-3 py-2 text-[12.5px] font-bold text-inkblock shadow-card">
+              <span className="flex h-[22px] w-[22px] items-center justify-center rounded-[7px] bg-mint" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#101533" strokeWidth="2.6"><circle cx="12" cy="12" r="7" /><circle cx="12" cy="12" r="2.5" fill="#101533" /></svg>
+              </span>
+              {t.chipBreathe}
+            </span>
+            <span className="absolute right-3.5 top-[92px] rounded-2xl bg-sun px-3 py-2 text-[12.5px] font-extrabold text-inkblock">{t.chipCue}</span>
+            <span className="absolute bottom-6 left-5 flex items-center gap-1.5 rounded-2xl bg-white px-3 py-2 text-[12.5px] font-bold text-inkblock">
+              <CheckDot className="w-4 h-4" tone="plain" />
+              {t.chipHelped}
+            </span>
           </div>
 
-          {/* The device sits after the copy + CTA on mobile and beside them from
-              lg up, so the fold stays copy → CTA → phone → tags → How Arjun
-              helps rather than pushing the sections down. */}
-          <div className="mt-7 lg:mt-0">
-            <HeroPhone t={t} label={t.heroVisualAlt} />
-          </div>
-        </section>
+          <button
+            type="button"
+            onClick={startFree}
+            className="mt-4 flex w-full min-h-[56px] items-center justify-center gap-2 rounded-[18px] bg-sun text-[16px] font-extrabold text-inkblock focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 lg:hidden"
+          >
+            {t.startFree}
+            <ArrowRight size={18} strokeWidth={2.6} aria-hidden="true" />
+          </button>
 
-        {/* ── Benefit tags ────────────────────────────────────────────────── */}
-        {/* Separate coloured tags, one accent each — not five identical pills. */}
-        <section className="mx-auto max-w-5xl px-5 pt-16 lg:pt-24" aria-label={t.tagsLabel}>
-          {/* One elevated rail: circular tinted icon, label, nothing else. It
-              scrolls on a phone and settles into a single white container from
-              `sm` up, as in the approved direction. */}
-          <ul className={`no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 sm:mx-0 sm:justify-between sm:gap-1 sm:overflow-visible sm:rounded-[1.75rem] sm:border ${BORDER} sm:bg-white sm:px-3 sm:py-3 sm:shadow-[0_6px_22px_rgba(15,23,42,0.06)]`}>
-            {benefitTags.map(({ Icon, label, bg, fg }, i) => (
-              <li
-                key={label}
-                className={`flex shrink-0 items-center gap-2.5 rounded-2xl px-3 py-2.5 sm:flex-1 sm:justify-center sm:rounded-none sm:border-0 sm:bg-transparent sm:px-3 ${
-                  i > 0 ? `sm:border-l ${BORDER}` : ''
-                }`}
-                style={{ background: bg, border: `1px solid ${fg}22` }}
-              >
-                <span
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl"
-                  style={{ background: `${fg}1F` }}
-                  aria-hidden="true"
-                >
-                  <Icon size={18} style={{ color: fg }} />
-                </span>
-                <span className="whitespace-nowrap text-[13px] font-bold text-[#0F172A] sm:max-w-[10ch] sm:whitespace-normal sm:text-[12.5px] sm:leading-tight">
-                  {label}
-                </span>
-              </li>
+          <ul className="mt-3.5 flex flex-wrap justify-center gap-1.5 lg:col-span-2 lg:mt-8" aria-label="Why athletes trust Arjun">
+            {t.tags.map(tag => (
+              <li key={tag} className="rounded-full bg-dark-400 px-3 py-1.5 text-[12.5px] font-bold">{tag}</li>
             ))}
           </ul>
         </section>
 
-        {/* ── How Arjun helps ─────────────────────────────────────────────── */}
-        <section className="mx-auto max-w-5xl px-5 pt-16 lg:pt-24">
-          <h2 className="text-[22px] font-black tracking-tight">{t.helpsTitle}</h2>
-          <LandingCarousel
-            label={t.helpsTitle}
-            slideLabel={(i, n) => `${t.helps[i].title} (${i + 1}/${n})`}
-            slideClass="w-[68%] xs:w-[54%] sm:w-[42%] lg:w-[23.5%]"
-            className="mt-6 lg:mt-8"
-          >
-            {t.helps.map((help, i) => {
-              const { bg, fg, Icon, Art } = HELP_TINTS[i];
-              return (
-                <div
-                  key={help.title}
-                  className="relative flex h-full min-h-[236px] flex-col overflow-hidden rounded-3xl border p-5"
-                  style={{
-                    background: `linear-gradient(160deg, ${bg} 0%, ${bg}88 52%, #FFFFFF 100%)`,
-                    borderColor: `${fg}26`,
-                  }}
-                >
-                  {/* Sport imagery band filling the lower half of the card —
-                      the same silhouettes the app's Train cards use, sized up
-                      so they read as imagery rather than as a watermark. */}
-                  <span
-                    className="pointer-events-none absolute inset-x-0 bottom-0 block h-[48%] rounded-b-3xl"
-                    style={{ background: `linear-gradient(180deg, transparent 0%, ${fg}1A 100%)` }}
-                    aria-hidden="true"
-                  />
-                  <span
-                    className="pointer-events-none absolute -bottom-1 right-2 block h-32 w-32 opacity-[0.32]"
-                    style={{ color: fg }}
-                    aria-hidden="true"
-                  >
-                    <Art className="h-full w-full" />
-                  </span>
-                  <span
-                    className="relative flex h-11 w-11 items-center justify-center rounded-2xl text-white shadow-[0_4px_12px_rgba(15,23,42,0.12)]"
-                    style={{ background: fg }}
-                    aria-hidden="true"
-                  >
-                    <Icon size={19} />
-                  </span>
-                  <h3 className="relative mt-4 text-[16px] font-bold leading-snug">{help.title}</h3>
-                  <p className={`relative mt-1 text-[13px] leading-snug ${BODY}`}>{help.line}</p>
-                </div>
-              );
-            })}
-          </LandingCarousel>
-        </section>
+        {/* ── How Arjun helps ────────────────────────────────────────────── */}
+        <section id="how" className="mx-auto max-w-5xl scroll-mt-4 px-5 pt-14 lg:pt-20">
+          <h2 className="text-[26px] leading-tight font-extrabold tracking-[-0.02em] lg:text-[34px]">{t.howTitle}</h2>
+          <p className="mt-1.5 text-[14px] text-slt">{t.howSub}</p>
 
-        {/* ── Inside Arjun ────────────────────────────────────────────────── */}
-        {/* A full-bleed tinted canvas breaks the heading/card/heading rhythm
-            and lets the dark product crops sit on something other than white.
-            The band carries its own py-11 top/bottom breathing room, so the
-            outer margins here are intentionally smaller than a plain section's
-            — combined with that internal padding they land the same visual
-            gap as every other section transition on the page. */}
-        <section className="mt-6 bg-[#F1F5FA] py-11 lg:mt-12">
-          <div className="mx-auto max-w-5xl px-5">
-          <div className="flex items-baseline justify-between gap-3">
-            <h2 className="text-[22px] font-black tracking-tight">{t.previewTitle}</h2>
-            <p className={`text-[12.5px] font-semibold ${BODY}`}>{t.previewHint}</p>
-          </div>
-          <LandingCarousel
-            label={t.previewTitle}
-            slideLabel={(i, n) => `${previewCards[i].props.t.title} (${i + 1}/${n})`}
-            slideClass="w-[85%] xs:w-[72%] sm:w-[50%] lg:w-[32%]"
-            className="mt-6 lg:mt-8"
-          >
-            {previewCards}
-          </LandingCarousel>
-          </div>
-        </section>
-
-        {/* ── Built around you ─────────────────────────────────────────────── */}
-        {/* Mirrors the athlete's real Profile sections — My Game, When
-            Pressure Hits, What Helps Me — so the claim stays inside what the
-            athlete themselves told Arjun. No traits, no scoring. */}
-        {/* pt is smaller than the standard major-gap here on purpose: the
-            Inside Arjun band above already ends with its own py-11 bottom
-            padding, so this top padding only needs to make up the remainder
-            of the same target gap, not the whole thing. */}
-        <section className="relative mx-auto max-w-5xl px-5 pt-8 lg:pt-12">
-          {/* One athlete figure, part of the composition rather than a card —
-              the same silhouette the Ritual card uses inside the app. */}
-          <span
-            className="pointer-events-none absolute -bottom-2 right-2 block h-40 w-40 opacity-[0.08] sm:h-56 sm:w-56"
-            style={{ color: BRAND }}
-            aria-hidden="true"
-          >
-            <AthleteMark className="h-full w-full" />
-          </span>
-          <h2 className="relative text-[22px] font-black tracking-tight">{t.personalTitle}</h2>
-          <div className="relative mt-6 grid gap-4 sm:grid-cols-3 lg:mt-8">
-            {t.personal.map((item, i) => {
-              const { bg, fg, Icon } = PERSONAL_TINTS[i];
-              return (
-                <div
-                  key={item.title}
-                  className="relative flex flex-col overflow-hidden rounded-3xl border p-5"
-                  style={{
-                    background: `linear-gradient(155deg, ${bg} 0%, ${bg}77 60%, #FFFFFF 100%)`,
-                    borderColor: `${fg}26`,
-                  }}
-                >
-                  <div className="flex items-center gap-3">
-                    <span
-                      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-white shadow-[0_6px_16px_rgba(15,23,42,0.14)]"
-                      style={{ background: fg }}
-                      aria-hidden="true"
-                    >
-                      <Icon size={22} />
-                    </span>
-                    <h3 className="text-[16px] font-bold leading-snug">{item.title}</h3>
-                  </div>
-                  <div className="mt-3.5" aria-hidden="true">
-                    {i === 0 && <GameChips chips={t.personalGameChips} fg={fg} />}
-                    {i === 1 && (
-                      <PressureFlow
-                        steps={[t.personalFlow.situation, t.personalFlow.firstResponse, t.personalFlow.impact]}
-                        fg={fg}
-                      />
-                    )}
-                    {i === 2 && <WorksList items={t.personalWorks} fg={fg} />}
-                  </div>
-                  <p className={`mt-3.5 text-[13px] leading-snug ${BODY}`}>{item.line}</p>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* ── Built around sport psychology principles ─────────────────────── */}
-        {/* Principles only — no percentages, no study names, no claim that any
-            research measured Arjun itself. */}
-        <section className="mx-auto max-w-5xl px-5 pt-16 lg:pt-24">
-          <h2 className="text-[22px] font-black tracking-tight">{t.principlesTitle}</h2>
-          <div className="mt-6 grid gap-4 sm:grid-cols-3 lg:mt-8">
-            {t.principles.map((item, i) => {
-              const { bg, fg, Icon } = PRINCIPLE_TINTS[i];
-              return (
-                <div
-                  key={item.title}
-                  className="flex items-start gap-3 rounded-2xl border p-4"
-                  style={{ background: `${bg}66`, borderColor: `${fg}22` }}
-                >
-                  <span
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-white shadow-[0_4px_12px_rgba(15,23,42,0.10)]"
-                    style={{ background: fg }}
-                    aria-hidden="true"
-                  >
-                    <Icon size={18} />
-                  </span>
-                  <div>
-                    <h3 className="text-[14.5px] font-bold leading-snug">{item.title}</h3>
-                    <p className={`mt-1 text-[12.5px] leading-snug ${BODY}`}>{item.line}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* ── Pricing ─────────────────────────────────────────────────────── */}
-        {/* Two real plans, one heading above them — not inside a card. The only
-            saving claimed is the arithmetic one: ₹299 × 12 = ₹3,588, minus
-            ₹2,499 = ₹1,089. No third tier, no struck-through price, no
-            urgency. Both CTAs run the page's install action because choosing a
-            plan requires an authenticated Razorpay subscription inside the app;
-            no payment contract is touched here. */}
-        <section className="mx-auto max-w-5xl px-5 pt-16 lg:pt-24">
-          <h2 className="text-[22px] font-black tracking-tight">{t.pricingTitle}</h2>
-          <p className={`mt-1.5 text-[13.5px] ${BODY}`}>{t.pricingTrialNote}</p>
-
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 sm:items-start lg:mt-8">
-            {/* Monthly — neutral container, outlined CTA */}
-            <div className={`flex flex-col rounded-3xl border ${BORDER} bg-white p-5`}>
-              <p className={`text-[12px] font-bold uppercase tracking-[0.12em] ${BODY}`}>{t.planMonthly}</p>
-              <p className="mt-2 text-[26px] font-black leading-none">{t.planMonthlyPrice}</p>
-              <ul className="mt-5 flex-1 space-y-2.5">
-                {t.planBenefits.map((benefit) => (
-                  <li key={benefit} className="flex items-start gap-2 text-[13.5px] leading-snug">
-                    <Check size={16} strokeWidth={3} className="mt-[2px] shrink-0 text-[#1B4DFF]" aria-hidden="true" />
-                    {benefit}
-                  </li>
-                ))}
-              </ul>
-              <button
-                type="button"
-                onClick={primaryAction}
-                className="mt-6 inline-flex min-h-[52px] w-full items-center justify-center rounded-2xl border-[1.5px] border-[#1B4DFF] bg-white text-[15.5px] font-bold text-[#1B4DFF] transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4DFF] focus-visible:ring-offset-2"
-              >
-                {t.planChooseMonthly}
-              </button>
-            </div>
-
-            {/* Yearly — preferred: brand border, light tint, badge, filled CTA */}
-            <div
-              className="relative flex flex-col rounded-3xl border-2 border-[#1B4DFF] p-5 shadow-[0_8px_28px_rgba(27, 77, 255,0.12)]"
-              style={{ background: 'linear-gradient(160deg, #EDF4FC 0%, #FFFFFF 72%)' }}
-            >
-              <span className="absolute right-4 top-4 rounded-full bg-[#1B4DFF] px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-[0.08em] text-white">
-                {t.planPopular}
-              </span>
-              <p className="text-[12px] font-bold uppercase tracking-[0.12em] text-[#1B4DFF]">{t.planYearly}</p>
-              <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1.5">
-                <p className="text-[28px] font-black leading-none">{t.planYearlyPrice}</p>
-                <span className="rounded-full bg-[#E2F2E6] px-2.5 py-1 text-[11.5px] font-bold text-[#1F7A46]">
-                  {t.planSave}
-                </span>
+          <ol className="mt-4 space-y-3 lg:grid lg:grid-cols-3 lg:gap-4 lg:space-y-0">
+            <li className="flex gap-3 lg:flex-col">
+              <span className={STEP_DOT} aria-hidden="true">1</span>
+              <div className="flex-1 rounded-[22px] bg-dark-400 p-3.5 flex flex-col gap-2">
+                <h3 className="text-[16px] font-extrabold">{t.step1}</h3>
+                <p className="self-end max-w-[85%] rounded-[16px_16px_4px_16px] bg-brand-500 px-3 py-2 text-[13px] text-white">{t.step1You}</p>
+                <p className="flex items-end gap-1.5">
+                  <ArjunLogo size={26} className="shrink-0" />
+                  <span className="max-w-[85%] rounded-[16px_16px_16px_4px] bg-dark-900 px-3 py-2 text-[13px]">{t.step1Arjun}</span>
+                </p>
               </div>
-              <ul className="mt-5 flex-1 space-y-2.5">
-                {[...t.planBenefits, t.planYearlyExtra].map((benefit) => (
-                  <li key={benefit} className="flex items-start gap-2 text-[13.5px] leading-snug">
-                    <Check size={16} strokeWidth={3} className="mt-[2px] shrink-0 text-[#1B4DFF]" aria-hidden="true" />
-                    {benefit}
-                  </li>
+            </li>
+            <li className="flex gap-3 lg:flex-col">
+              <span className={STEP_DOT} aria-hidden="true">2</span>
+              <div className="flex-1 rounded-[22px] bg-dark-400 p-3.5 flex flex-col gap-2">
+                <h3 className="text-[16px] font-extrabold">{t.step2}</h3>
+                <p className="flex items-center gap-2.5 rounded-2xl bg-mint p-3 text-inkblock">
+                  <svg aria-hidden="true" width="36" height="36" viewBox="0 0 104 104" className="shrink-0"><circle cx="52" cy="52" r="44" fill="#A8EFD8" /><circle cx="52" cy="52" r="26" fill="#FFFFFF" /><circle cx="52" cy="52" r="8" fill="#101533" /></svg>
+                  <span className="flex flex-col">
+                    <span className="text-[14px] font-extrabold">{t.step2Card}</span>
+                    <span className="text-[12px] text-[#1C3B33]">{t.step2CardSub}</span>
+                  </span>
+                </p>
+              </div>
+            </li>
+            <li className="flex gap-3 lg:flex-col">
+              <span className={STEP_DOT} aria-hidden="true">3</span>
+              <div className="flex-1 rounded-[22px] bg-dark-400 p-3.5 flex flex-col gap-2">
+                <h3 className="text-[16px] font-extrabold">{t.step3}</h3>
+                <p className="grid grid-cols-3 gap-1.5 rounded-2xl bg-brand-500 p-2.5 text-white">
+                  <span className="flex flex-col"><span className="text-[20px] font-extrabold">4</span><span className="text-[10.5px] text-white/90">{t.step3Practices}</span></span>
+                  <span className="flex flex-col"><span className="text-[20px] font-extrabold">2</span><span className="text-[10.5px] text-white/90">{t.step3Reflections}</span></span>
+                  <span className="flex flex-col"><span className="text-[20px] font-extrabold">3 of 4</span><span className="text-[10.5px] text-white/90">{t.step3Helped}</span></span>
+                </p>
+              </div>
+            </li>
+          </ol>
+
+          <p className="mt-5 mb-2 text-[13px] font-extrabold uppercase tracking-[0.06em] text-slt">{t.helpsLabel}</p>
+          <ul className="flex flex-wrap gap-2">
+            {t.helps.map((h, i) => (
+              <li key={h} className={`rounded-full px-3 py-2 text-[13px] font-bold text-inkblock ${HELP_TONES[i % HELP_TONES.length]}`}>{h}</li>
+            ))}
+          </ul>
+        </section>
+
+        {/* ── Why Arjun — an honest comparison ───────────────────────────── */}
+        <section className="mx-auto max-w-5xl px-5 pt-14 lg:pt-20">
+          <h2 className="text-[26px] leading-tight font-extrabold tracking-[-0.02em] lg:text-[34px]">{t.whyTitle}</h2>
+          <p className="mt-1.5 text-[14px] text-slt">{t.whySub}</p>
+          <div className="mt-4 overflow-hidden rounded-[22px] bg-dark-400">
+            <table className="w-full border-collapse text-[13px] lg:text-[15px]">
+              <thead>
+                <tr>
+                  <td className="p-3" />
+                  <th scope="col" className="bg-brand-500 p-3 text-left font-extrabold text-white">{t.whyCols.arjun}</th>
+                  <th scope="col" className="p-3 text-left font-extrabold">{t.whyCols.inPerson}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {t.whyRows.map(r => (
+                  <tr key={r.label} className="border-t border-dark-600">
+                    <th scope="row" className="p-3 text-left font-bold align-top">{r.label}</th>
+                    <td className="bg-brand-500/10 p-3 font-bold align-top">{r.arjun}</td>
+                    <td className="p-3 text-slt align-top">{r.inPerson}</td>
+                  </tr>
                 ))}
-              </ul>
-              <button
-                type="button"
-                onClick={primaryAction}
-                className="mt-6 inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-[#1B4DFF] text-[15.5px] font-bold text-white shadow-[0_6px_18px_rgba(27, 77, 255,0.25)] transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4DFF] focus-visible:ring-offset-2"
-              >
-                {t.planChooseYearly}
-                <ArrowRight size={17} aria-hidden="true" />
-              </button>
-            </div>
+              </tbody>
+            </table>
           </div>
         </section>
 
-        {/* ── FAQ ─────────────────────────────────────────────────────────── */}
-        {/* Same 5xl gutter as every other section, with the rows themselves
-            capped narrower so long questions stay readable. */}
-        <section className="mx-auto max-w-5xl px-5 pt-16 lg:pt-24">
-          <h2 className="text-[22px] font-black tracking-tight">{t.faqTitle}</h2>
-          <div className="mt-6 max-w-3xl space-y-2 lg:mt-8">
-            {t.faq.map((item, i) => {
+        {/* ── Is AI coaching safe? ────────────────────────────────────────── */}
+        <section className="mx-auto max-w-5xl px-5 pt-10">
+          <div className="rounded-[28px] bg-[#DDF7EE] p-5 text-inkblock lg:p-8">
+            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-mint" aria-hidden="true">
+              <ShieldCheck size={26} strokeWidth={2.2} />
+            </span>
+            <h2 className="mt-3 text-[22px] leading-tight font-extrabold">{t.safeTitle}</h2>
+            <ul className="mt-3 space-y-2.5 lg:grid lg:grid-cols-2 lg:gap-x-6 lg:space-y-0 lg:gap-y-3">
+              {t.safePoints.map(p => (
+                <li key={p} className="flex gap-2.5 text-[14px] leading-snug">
+                  <CheckDot className="w-5 h-5 shrink-0 mt-px" tone="mint" />
+                  {p}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        {/* ── Premium box — no price here; opens the Free vs Premium page ── */}
+        <section className="mx-auto max-w-5xl px-5 pt-10">
+          <Link
+            to="/premium"
+            data-testid="site-premium-box"
+            className="relative flex flex-col gap-3 overflow-hidden rounded-[28px] bg-brand-500 p-5 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 lg:p-8"
+          >
+            <span className="absolute -right-5 -top-5 h-[120px] w-[120px] rounded-full bg-brand-300" aria-hidden="true" />
+            <span className="relative flex items-center gap-2.5">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white" aria-hidden="true">
+                <ArjunLogo size={30} />
+              </span>
+              <span className="text-[20px] font-extrabold">{t.premiumBoxTitle}</span>
+            </span>
+            <span className="relative flex flex-col gap-2 text-[14px] font-semibold">
+              {t.premiumBoxPoints.map(p => (
+                <span key={p} className="flex items-center gap-2">
+                  <CheckDot className="w-5 h-5 shrink-0" tone="sun" />
+                  {p}
+                </span>
+              ))}
+            </span>
+            <span className="relative flex min-h-[56px] items-center justify-center gap-2 rounded-[18px] bg-sun text-[16px] font-extrabold text-inkblock lg:self-start lg:px-10">
+              {t.premiumBoxCta}
+              <ArrowRight size={18} strokeWidth={2.6} aria-hidden="true" />
+            </span>
+          </Link>
+        </section>
+
+        {/* ── Questions ──────────────────────────────────────────────────── */}
+        <section id="faq" className="mx-auto max-w-5xl scroll-mt-4 px-5 pt-14 lg:pt-20">
+          <h2 className="mb-3 text-[26px] leading-tight font-extrabold tracking-[-0.02em] lg:text-[34px]">{t.faqTitle}</h2>
+          <ul className="space-y-2">
+            {t.faqs.map((f, i) => {
               const open = openFaq === i;
               return (
-                <div key={item.q} className={`rounded-2xl border ${BORDER} bg-white`}>
-                  <h3>
-                    <button
-                      type="button"
-                      onClick={() => setOpenFaq(open ? null : i)}
-                      aria-expanded={open}
-                      aria-controls={`faq-panel-${i}`}
-                      id={`faq-btn-${i}`}
-                      className="flex min-h-[56px] w-full items-center justify-between gap-3 px-4 py-3 text-left text-[14.5px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4DFF] focus-visible:ring-offset-2 rounded-2xl"
-                    >
-                      {item.q}
-                      <ChevronDown
-                        size={18}
-                        aria-hidden="true"
-                        className={`shrink-0 text-[#5A6B80] transition-transform motion-reduce:transition-none ${open ? 'rotate-180' : ''}`}
-                      />
-                    </button>
-                  </h3>
-                  <div
-                    id={`faq-panel-${i}`}
-                    role="region"
-                    aria-labelledby={`faq-btn-${i}`}
-                    hidden={!open}
-                    className={`px-4 pb-4 text-[13.5px] leading-relaxed ${BODY}`}
+                <li key={f.q} className="rounded-[18px] bg-dark-400">
+                  <button
+                    type="button"
+                    aria-expanded={open}
+                    aria-controls={`faq-${i}`}
+                    onClick={() => setOpenFaq(open ? null : i)}
+                    className="flex min-h-[56px] w-full items-center justify-between gap-3 px-4 text-left text-[15px] font-bold rounded-[18px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
                   >
-                    {item.a}
-                  </div>
-                </div>
+                    {f.q}
+                    <ChevronDown size={18} strokeWidth={2.4} className={`shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden="true" />
+                  </button>
+                  {open && <p id={`faq-${i}`} className="px-4 pb-4 text-[13.5px] leading-relaxed text-slt">{f.a}</p>}
+                </li>
               );
             })}
-          </div>
+          </ul>
         </section>
 
-        {/* ── Final CTA ───────────────────────────────────────────────────── */}
-        <section className="mx-auto max-w-5xl px-5 pt-16 lg:pt-24">
-          <div
-            className="relative overflow-hidden rounded-3xl px-6 py-9 text-white sm:flex sm:items-center sm:justify-between sm:gap-6"
-            style={{ background: 'linear-gradient(135deg, #1C6FBE 0%, #1B4DFF 46%, #10456F 100%)' }}
-          >
-            {/* Abstract performance lines — decorative, no meaning carried. */}
-            <svg
-              className="pointer-events-none absolute inset-0 h-full w-full"
-              viewBox="0 0 400 200" fill="none" preserveAspectRatio="xMaxYMid slice" aria-hidden="true"
-            >
-              <circle cx="345" cy="60" r="96" stroke="#FFFFFF" strokeOpacity="0.12" strokeWidth="10" />
-              <circle cx="345" cy="60" r="60" stroke="#FFFFFF" strokeOpacity="0.14" strokeWidth="10" />
-              <path d="M-20 178 C 90 178, 150 96, 250 96 S 400 34, 460 34" stroke="#FFFFFF" strokeOpacity="0.16" strokeWidth="3" />
-              <path d="M-20 196 C 100 196, 170 130, 270 130 S 400 74, 460 74" stroke="#FFFFFF" strokeOpacity="0.10" strokeWidth="3" />
-            </svg>
-            <div className="relative flex items-center gap-3">
-              <ArjunLogo size={44} className="hidden shrink-0 xs:block" alt="Arjun" />
-              <div>
-                <p className="text-[24px] font-black leading-tight xs:text-[26px]">{t.finalTitle}</p>
-                <p className="mt-1.5 text-[14px] leading-snug text-white/80">{t.finalLine}</p>
-              </div>
-            </div>
-            <div className="relative mt-6 sm:mt-0 sm:shrink-0">
+        {/* ── Final call ─────────────────────────────────────────────────── */}
+        <section className="mx-auto max-w-5xl px-5 pt-12">
+          <div className="flex flex-col items-center gap-3 rounded-[28px] bg-sun p-5 text-center text-inkblock lg:flex-row lg:p-8 lg:text-left">
+            <PhotoSlot src="/photos/cta.jpg" alt={t.finalPhotoAlt} className="h-[150px] w-full rounded-[20px] lg:h-[180px] lg:w-[320px]" tone="sun" />
+            <div className="flex w-full flex-col gap-3 lg:pl-6">
+              <h2 className="text-[24px] leading-tight font-extrabold">{t.finalTitle}</h2>
               <button
                 type="button"
-                onClick={primaryAction}
-                className="inline-flex min-h-[54px] w-full items-center justify-center gap-2 rounded-2xl bg-white px-8 text-[16px] font-bold text-[#1B4DFF] shadow-[0_8px_24px_rgba(8,42,74,0.28)] transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#1B4DFF] sm:w-auto"
+                onClick={startFree}
+                className="flex min-h-[56px] items-center justify-center rounded-[18px] bg-brand-500 text-[16px] font-extrabold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inkblock focus-visible:ring-offset-2 lg:self-start lg:px-10"
               >
-                {primaryLabel}
-                <ArrowRight size={18} aria-hidden="true" />
+                {t.startFree}
               </button>
             </div>
           </div>
         </section>
       </main>
 
-      {/* ── Footer ────────────────────────────────────────────────────────── */}
-      <footer className={`mx-auto mt-16 max-w-5xl border-t ${BORDER} px-5 py-8 lg:mt-24`}>
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <ArjunWordmark size="medium" />
-          <button
-            type="button"
-            onClick={primaryAction}
-            className={`inline-flex min-h-[44px] items-center gap-2 rounded-full border-[1.5px] border-[#1B4DFF] px-5 text-[14px] font-bold text-[#1B4DFF] transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4DFF] focus-visible:ring-offset-2`}
-          >
-            {primaryLabel}
-            <ArrowRight size={16} aria-hidden="true" />
-          </button>
-        </div>
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
-          {[
-            { label: t.footerPrivacy, to: '/privacy' },
-            { label: t.footerTerms, to: '/terms' },
-            { label: t.footerChildSafety, to: '/terms#ai-child-safety' },
-            { label: t.footerRefund, to: '/refund' },
-          ].map((link) => (
-            <button
-              key={link.to}
-              type="button"
-              onClick={() => navigate(link.to)}
-              className={`min-h-[44px] text-[13px] ${BODY} hover:text-[#0F172A]`}
-            >
-              {link.label}
-            </button>
-          ))}
-          <button
-            type="button"
-            onClick={() => navigate('/contact')}
-            className={`inline-flex min-h-[44px] items-center text-[13px] ${BODY} hover:text-[#0F172A]`}
-          >
-            {t.footerSupport}
-          </button>
-        </div>
-        <p className={`mt-2 text-[12px] ${BODY}`}>
-          © {new Date().getFullYear()} Arjun · {t.footerRights}
-        </p>
+      {/* ── Footer ─────────────────────────────────────────────────────── */}
+      <footer className="mx-auto max-w-5xl px-5 pb-10 pt-8">
+        <nav aria-label="Legal" className="flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-slt">
+          <Link to="/privacy" className="min-h-[32px] flex items-center">{t.footerPrivacy}</Link>
+          <Link to="/terms" className="min-h-[32px] flex items-center">{t.footerTerms}</Link>
+          <Link to="/terms#ai-child-safety" className="min-h-[32px] flex items-center">{t.footerChildSafety}</Link>
+          <Link to="/refund" className="min-h-[32px] flex items-center">{t.footerRefund}</Link>
+          <Link to="/contact" className="min-h-[32px] flex items-center">{t.footerContact}</Link>
+        </nav>
+        <p className="mt-3 text-[12px] text-slt">{t.copyright(new Date().getFullYear())}</p>
       </footer>
     </div>
   );

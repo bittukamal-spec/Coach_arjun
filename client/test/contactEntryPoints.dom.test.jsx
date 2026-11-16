@@ -46,7 +46,7 @@ afterEach(() => cleanup());
 
 // ── Homepage 3-dot menu ──────────────────────────────────────────────────
 
-describe('homepage 3-dot menu', () => {
+describe('website menu', () => {
   function renderHome() {
     return render(
       <MemoryRouter initialEntries={['/']}>
@@ -60,38 +60,22 @@ describe('homepage 3-dot menu', () => {
     );
   }
 
-  test('opening the menu shows a Contact & Support item', async () => {
+  test('opening the menu shows Contact, Privacy and Terms', async () => {
     const user = userEvent.setup();
     renderHome();
     await user.click(screen.getByRole('button', { name: /open menu/i }));
-    expect(screen.getByRole('button', { name: 'Contact & Support' })).toBeTruthy();
-  });
-
-  test('the menu item routes to /contact', async () => {
-    const user = userEvent.setup();
-    renderHome();
-    await user.click(screen.getByRole('button', { name: /open menu/i }));
-    await user.click(screen.getByRole('button', { name: 'Contact & Support' }));
-    expect(await screen.findByText('CONTACT')).toBeTruthy();
-  });
-
-  test('other menu items (Sign in, Privacy, Terms) still work alongside it', async () => {
-    const user = userEvent.setup();
-    renderHome();
-    await user.click(screen.getByRole('button', { name: /open menu/i }));
-    const menu = document.getElementById('landing-menu');
-    expect(within(menu).getByRole('button', { name: 'Sign in' })).toBeTruthy();
+    const menu = document.getElementById('site-menu');
+    expect(within(menu).getByRole('button', { name: 'Contact' })).toBeTruthy();
     expect(within(menu).getByRole('button', { name: 'Privacy' })).toBeTruthy();
     expect(within(menu).getByRole('button', { name: 'Terms' })).toBeTruthy();
-    expect(within(menu).getByRole('button', { name: 'Contact & Support' })).toBeTruthy();
   });
 
-  test('the Hindi menu shows the translated Contact & Support label', async () => {
-    authState.language = 'hi';
+  test('the Contact item routes to /contact', async () => {
     const user = userEvent.setup();
     renderHome();
-    await user.click(screen.getByRole('button', { name: /मेन्यू/i }));
-    expect(screen.getByRole('button', { name: 'संपर्क और सहायता' })).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: /open menu/i }));
+    await user.click(within(document.getElementById('site-menu')).getByRole('button', { name: 'Contact' }));
+    expect(await screen.findByText('CONTACT')).toBeTruthy();
   });
 });
 

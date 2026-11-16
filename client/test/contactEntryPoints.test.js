@@ -26,43 +26,23 @@ const hi = translations.hi;
 
 // ── 1-2. Homepage footer + 3-dot menu ───────────────────────────────────────
 
-test('the homepage footer Support link still routes to /contact (no regression from #78)', () => {
+test('the website footer links to /contact (no mailto)', () => {
   assert.doesNotMatch(landing, /mailto:/);
   const footer = landing.slice(landing.indexOf('{/* ── Footer'));
-  assert.match(footer, /onClick=\{\(\) => navigate\('\/contact'\)\}/);
-  assert.match(footer, /\{t\.footerSupport\}/);
+  assert.match(footer, /to="\/contact"/);
+  assert.match(footer, /\{t\.footerContact\}/);
 });
 
-test('the 3-dot menu contains a Contact & Support item that routes to /contact', () => {
-  const menu = landing.slice(landing.indexOf('id="landing-menu"'), landing.indexOf('</header>'));
-  assert.match(menu, /onClick=\{\(\) => navigate\('\/contact'\)\}/);
-  assert.match(menu, /\{t\.menuContactSupport\}/);
-  assert.equal(en.landing.menuContactSupport, 'Contact & Support');
+test('the website menu has a Contact item next to Privacy and Terms, styled the same', () => {
+  const menu = landing.slice(landing.indexOf('id="site-menu"'), landing.indexOf('</header>'));
+  assert.match(menu, /onClick=\{\(\) => navigate\('\/contact'\)\} className=\{menuItem\}/);
+  assert.match(menu, /onClick=\{\(\) => navigate\('\/privacy'\)\} className=\{menuItem\}/);
 });
 
-test('the menu item sits with the other utility/public links, styled the same as Privacy/Terms', () => {
-  const menu = landing.slice(landing.indexOf('id="landing-menu"'), landing.indexOf('</header>'));
-  const privacyBtn = menu.slice(menu.indexOf("navigate('/privacy')") - 60, menu.indexOf("navigate('/privacy')") + 200);
-  const contactBtn = menu.slice(menu.indexOf("navigate('/contact')") - 60, menu.indexOf("navigate('/contact')") + 200);
-  // Same className recipe (BODY text colour, same rounded/min-h treatment).
-  const classOf = (chunk) => chunk.match(/className=\{`([^`]+)`\}/)?.[1];
-  assert.equal(classOf(contactBtn), classOf(privacyBtn));
-});
-
-test('the menu item does not disturb install, language, or sign-in behaviour', () => {
+test('sign-in stays in the header and the main action stays sign-up', () => {
   const header = landing.slice(landing.indexOf('{/* ── Header'), landing.indexOf('</header>'));
-  assert.match(header, /onClick=\{handleInstall\}/, 'install action still present');
-  assert.match(header, /onClick=\{toggleLanguage\}/, 'language toggle still present');
-  assert.match(header, /onClick=\{goSignIn\}/, 'sign-in link still present');
-  // Install is still not repeated inside the menu.
-  const menu = landing.slice(landing.indexOf('id="landing-menu"'), landing.indexOf('</header>'));
-  assert.doesNotMatch(menu, /handleInstall|installApp|installShort/);
-});
-
-test('/contact is an allowed navigation target on the homepage (footer + menu, both intentional)', () => {
-  const routes = [...landing.matchAll(/navigate\('([^']+)'\)/g)].map((m) => m[1]);
-  const contactCalls = routes.filter((r) => r === '/contact');
-  assert.equal(contactCalls.length, 2, 'exactly footer + menu should call navigate(\'/contact\')');
+  assert.match(header, /to="\/auth\?tab=signin"/);
+  assert.match(header, /onClick=\{startFree\}/);
 });
 
 // ── 3-4. Auth page support link ─────────────────────────────────────────────
@@ -91,7 +71,7 @@ test('the support link sits outside the sign-in/sign-up tab branches — visible
 test('the support link is visually secondary — quiet colour, not the primary blue CTA styling', () => {
   const linkBlock = auth.slice(auth.indexOf('{t.auth.needHelp}') - 40, auth.indexOf('{t.auth.needHelp}') + 400);
   assert.doesNotMatch(linkBlock, /bg-\[#1B4DFF\]/, 'not styled as a filled primary button');
-  assert.match(linkBlock, /text-\[#7B8A9C\]|text-\[#5A6B80\]/, 'quiet secondary text colour');
+  assert.match(linkBlock, /text-slt/, 'quiet secondary text colour');
 });
 
 test('the support link does not change auth behaviour — same endpoints/redirects remain', () => {

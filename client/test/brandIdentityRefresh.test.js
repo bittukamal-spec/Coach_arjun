@@ -161,14 +161,9 @@ test('the wordmark size presets are unchanged by the logo swap — same determin
   assert.doesNotMatch(arjunLogoCode, /\bvariant\b/);
 });
 
-test('the public homepage header, final CTA and footer all carry the Arjun mark', () => {
-  assert.match(landing, /import \{ ArjunLogo, ArjunWordmark \} from '\.\.\/components\/ArjunLogo';/);
-  assert.match(landing, /<ArjunWordmark size="header" \/>/, 'header uses the responsive canonical lockup');
-  assert.match(landing, /<ArjunWordmark size="medium" \/>/, 'footer uses the medium lockup');
-  assert.match(landing, /<ArjunLogo size=\{44\}.*alt="Arjun"/, 'final CTA keeps its icon-only mark');
-  // The SVG mark carries its own corner radius now — no page should still
-  // be papering over a raster mark's square bounding box with a rounded-*
-  // className on the icon.
+test('the public website header carries the Arjun mark next to the name', () => {
+  assert.match(landing, /import \{ ArjunLogo \} from '\.\.\/components\/ArjunLogo';/);
+  assert.match(landing, /<ArjunLogo size=\{30\} \/>/);
   assert.doesNotMatch(landing, /ArjunLogo[^/]*rounded-/s);
 });
 
@@ -181,9 +176,9 @@ test('the homepage header wordmark still grows in a verified-safe second step, n
   assert.match(presetsBlock, /min-\[360px\]:text-\[#1B4DFF\]/, 'the brand-navy colour is reserved for the grown-in state');
 });
 
-test('auth (sign in / create account) uses the canonical hero lockup', () => {
-  assert.match(auth, /import \{ ArjunWordmark \} from '\.\.\/components\/ArjunLogo';/);
-  assert.match(auth, /<ArjunWordmark size="hero" \/>/);
+test('auth (sign in / create account) opens with the centred Arjun mark', () => {
+  assert.match(auth, /import \{ ArjunLogo \} from '\.\.\/components\/ArjunLogo';/);
+  assert.match(auth, /<ArjunLogo size=\{56\} \/>/);
 });
 
 test('the password reset flow uses the canonical hero lockup on both screens', () => {

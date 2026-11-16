@@ -25,6 +25,8 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import GuardianConsentPage from './pages/GuardianConsentPage';
 import PricingPage from './pages/PricingPage';
+import PremiumPage from './pages/site/PremiumPage';
+import PlansPage from './pages/site/PlansPage';
 import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import MindJournalPage from './pages/MindJournalPage';
 import QuickNotePage from './pages/mindJournal/QuickNotePage';
@@ -82,6 +84,8 @@ function App() {
       {/* Public */}
       <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <LandingPage />} />
       <Route path="/auth" element={user ? <Navigate to="/dashboard" replace /> : <AuthPage />} />
+      <Route path="/premium" element={<PremiumPage />} />
+      <Route path="/plans" element={<PlansPage />} />
       <Route path="/privacy" element={<PrivacyPage />} />
       <Route path="/terms" element={<TermsPage />} />
       <Route path="/refund" element={<RefundPage />} />

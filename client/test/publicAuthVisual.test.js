@@ -23,25 +23,21 @@ const { translations } = await import('../src/i18n/translations.js');
 
 // ── 1. Light theme, matching the homepage ───────────────────────────────────
 
-test('the auth page is a light surface, not the old dark shell', () => {
-  assert.match(auth, /bg-\[#FAFBFD\]/, 'same canvas as the landing page');
-  assert.match(auth, /text-\[#0F172A\]/, 'dark navy typography');
-  assert.doesNotMatch(auth, /bg-dark-\d|text-ink|text-slt|text-muted|shadow-2xl/,
-    'no themed dark-shell tokens remain');
-  assert.doesNotMatch(auth, /blur-2xl/, 'the dark-page glow is gone');
+test('the auth page follows the app theme (Playbook): page, card inputs, sun action', () => {
+  assert.match(auth, /bg-dark-900 text-ink/, 'page uses the theme tokens');
+  assert.match(auth, /rounded-2xl bg-dark-400 px-4/, 'inputs are card-surface boxes');
+  assert.match(auth, /bg-sun text-\[16px\] font-extrabold text-inkblock/, 'sun main action');
+  assert.doesNotMatch(auth, /shadow-\[0_6px_24px/, 'no floating form card');
 });
 
-test('it uses the homepage visual language — Arjun mark, blue CTA, soft outlines', () => {
-  assert.match(auth, /import \{ ArjunWordmark \}/);
-  assert.match(auth, /<ArjunWordmark size="hero"/);
-  assert.match(auth, /bg-\[#1B4DFF\]/, 'Arjun-blue primary action');
-  assert.match(auth, /rounded-3xl border border-\[#E4E9F2\] bg-white/, 'rounded white form card');
-  assert.match(auth, /border-\[#D9E1EC\]/, 'cool-grey outlined inputs');
+test('it opens with the centred Arjun mark', () => {
+  assert.match(auth, /import \{ ArjunLogo \}/);
+  assert.match(auth, /<ArjunLogo size=\{56\} \/>/);
 });
 
 test('controls clear the 44px touch target and inputs are not tiny', () => {
-  assert.match(auth, /min-h-\[48px\]/, 'inputs are 48px tall');
-  assert.match(auth, /min-h-\[54px\] w-full/, 'the primary button is full width and 54px tall');
+  assert.match(auth, /min-h-\[52px\]/, 'inputs are 52px tall');
+  assert.match(auth, /min-h-\[56px\] w-full/, 'the primary button is full width and 56px tall');
   assert.match(auth, /min-h-\[44px\] flex-1/, 'the tab controls are 44px tall');
 });
 
