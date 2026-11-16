@@ -18,7 +18,7 @@ export default function BottomNav({ active, onChange }) {
             key={id}
             onClick={() => onChange(id)}
             className="flex-1 flex flex-col items-center gap-0.5 py-3 transition-colors"
-            style={{ color: isActive ? '#1769AA' : '#64748B' }}
+            style={{ color: isActive ? '#1B4DFF' : '#64748B' }}
           >
             <Icon size={22} strokeWidth={isActive ? 2.5 : 1.8} />
             <span className="text-[10px] font-medium">{label}</span>

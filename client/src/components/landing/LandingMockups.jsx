@@ -105,7 +105,7 @@ function Story({ title, line, tint, Icon, artClass = 'h-[240px]', children }) {
 }
 
 const TINTS = {
-  blue: { bg: '#E7F0FB', fg: '#185FA5' },
+  blue: { bg: '#E7F0FB', fg: '#1B4DFF' },
   teal: { bg: '#DDF0EC', fg: '#13776F' },
   amber: { bg: '#FAEBD8', fg: '#9A5410' },
   violet: { bg: '#EAE6FC', fg: '#5546C9' },
@@ -145,7 +145,7 @@ export function RepsPreview({ t }) {
         style={{ background: DARK.bg, border: `1px solid ${DARK.line}` }}
       >
         <div className="flex items-center gap-2">
-          <span className="flex h-7 w-7 items-center justify-center rounded-xl" style={{ background: 'rgba(95,168,222,0.16)' }}>
+          <span className="flex h-7 w-7 items-center justify-center rounded-xl" style={{ background: 'rgba(157, 180, 255,0.16)' }}>
             <Zap size={14} style={{ color: DARK.accent }} />
           </span>
           <span className="text-[10px] font-bold uppercase tracking-[0.12em]" style={{ color: DARK.dim }}>{t.meta}</span>
@@ -160,7 +160,7 @@ export function RepsPreview({ t }) {
             >
               <span
                 className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold"
-                style={{ background: 'rgba(95,168,222,0.16)', color: DARK.accent }}
+                style={{ background: 'rgba(157, 180, 255,0.16)', color: DARK.accent }}
               >
                 {i + 1}
               </span>
@@ -194,7 +194,7 @@ export function ProfilePreview({ t }) {
         style={{ background: DARK.bg, border: `1px solid ${DARK.line}` }}
       >
         <div className="flex items-center gap-2">
-          <span className="flex h-6 w-6 items-center justify-center rounded-lg" style={{ background: 'rgba(95,168,222,0.16)' }}>
+          <span className="flex h-6 w-6 items-center justify-center rounded-lg" style={{ background: 'rgba(157, 180, 255,0.16)' }}>
             <Gauge size={12} style={{ color: DARK.accent }} />
           </span>
           <span className="text-[10px] font-bold uppercase tracking-[0.1em]" style={{ color: DARK.ink }}>{t.screenTitle}</span>
@@ -207,14 +207,14 @@ export function ProfilePreview({ t }) {
                 <p className="mt-0.5 text-[12px] leading-snug" style={{ color: DARK.ink }}>{value}</p>
               </div>
               {i < rows.length - 1 && (
-                <span className="mx-auto block h-3 w-[2px]" style={{ background: 'rgba(95,168,222,0.45)' }} />
+                <span className="mx-auto block h-3 w-[2px]" style={{ background: 'rgba(157, 180, 255,0.45)' }} />
               )}
             </li>
           ))}
         </ol>
         <p
           className="mt-3 rounded-full px-3 py-1.5 text-center text-[10px] font-semibold"
-          style={{ background: 'rgba(95,168,222,0.12)', color: DARK.accent }}
+          style={{ background: 'rgba(157, 180, 255,0.12)', color: DARK.accent }}
         >
           {t.resetTime}
         </p>

@@ -8,7 +8,7 @@ import { ArjunWordmark } from '../components/ArjunLogo';
 // Shared field recipe for this page: light surface, cool-grey outline, 48px
 // tall so every control clears the 44px touch target on a phone.
 const INPUT =
-  'w-full min-h-[48px] rounded-xl border border-[#D9E1EC] bg-white px-3.5 text-[15px] text-[#0F172A] placeholder-[#9AA7B8] focus:border-[#185FA5] focus:outline-none focus:ring-2 focus:ring-[#185FA5]/25 transition-colors';
+  'w-full min-h-[48px] rounded-xl border border-[#D9E1EC] bg-white px-3.5 text-[15px] text-[#0F172A] placeholder-[#9AA7B8] focus:border-[#1B4DFF] focus:outline-none focus:ring-2 focus:ring-[#1B4DFF]/25 transition-colors';
 
 function AuthPage() {
   const { language, loginWithUser } = useAuth();
@@ -85,7 +85,7 @@ function AuthPage() {
 
       {/* Header */}
       <header className="mx-auto flex w-full max-w-md items-center px-5 py-5">
-        <button onClick={() => navigate('/')} className="flex items-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5] focus-visible:ring-offset-2">
+        <button onClick={() => navigate('/')} className="flex items-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4DFF] focus-visible:ring-offset-2">
           <ArjunWordmark size="hero" />
         </button>
       </header>
@@ -113,8 +113,8 @@ function AuthPage() {
                     key={id}
                     type="button"
                     onClick={() => { setTab(id); setError(''); }}
-                    className={`min-h-[44px] flex-1 rounded-xl text-[14px] font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5] ${
-                      tab === id ? 'bg-[#185FA5] text-white shadow-sm' : 'text-[#5A6B80] hover:text-[#0F172A]'
+                    className={`min-h-[44px] flex-1 rounded-xl text-[14px] font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4DFF] ${
+                      tab === id ? 'bg-[#1B4DFF] text-white shadow-sm' : 'text-[#5A6B80] hover:text-[#0F172A]'
                     }`}
                   >
                     {id === 'signin' ? t.auth.tabSignIn : t.auth.tabSignUp}
@@ -171,7 +171,7 @@ function AuthPage() {
                     <label className="block text-[12.5px] font-bold text-[#5A6B80]">{t.auth.passwordLabel}</label>
                     {tab === 'signin' && (
                       <button type="button" onClick={() => navigate('/forgot-password')}
-                        className="text-[12.5px] font-semibold text-[#185FA5] hover:underline">
+                        className="text-[12.5px] font-semibold text-[#1B4DFF] hover:underline">
                         {t.auth.forgotPassword}
                       </button>
                     )}
@@ -193,7 +193,7 @@ function AuthPage() {
                 <button
                   type="submit"
                   disabled={busy || (tab === 'signup' && isUnderage)}
-                  className="inline-flex min-h-[54px] w-full items-center justify-center rounded-2xl bg-[#185FA5] text-[16px] font-bold text-white shadow-[0_6px_18px_rgba(24,95,165,0.25)] transition-transform active:scale-[0.98] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5] focus-visible:ring-offset-2"
+                  className="inline-flex min-h-[54px] w-full items-center justify-center rounded-2xl bg-[#1B4DFF] text-[16px] font-bold text-white shadow-[0_6px_18px_rgba(27, 77, 255,0.25)] transition-transform active:scale-[0.98] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4DFF] focus-visible:ring-offset-2"
                 >
                   {busy
                     ? (tab === 'signup' ? t.auth.signingUp : t.auth.signingIn)
@@ -223,7 +223,7 @@ function AuthPage() {
             {tab === 'signup' ? t.auth.haveAccount : t.auth.noAccount}{' '}
             <button
               onClick={() => { setTab(tab === 'signup' ? 'signin' : 'signup'); setError(''); }}
-              className="min-h-[44px] font-bold text-[#185FA5] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5] focus-visible:ring-offset-2 rounded-lg"
+              className="min-h-[44px] font-bold text-[#1B4DFF] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4DFF] focus-visible:ring-offset-2 rounded-lg"
             >
               {tab === 'signup' ? t.auth.tabSignIn : t.auth.signUpBtn}
             </button>
@@ -236,7 +236,7 @@ function AuthPage() {
             <button
               type="button"
               onClick={() => navigate('/contact')}
-              className="min-h-[44px] font-semibold text-[#5A6B80] hover:text-[#0F172A] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5] focus-visible:ring-offset-2 rounded-lg"
+              className="min-h-[44px] font-semibold text-[#5A6B80] hover:text-[#0F172A] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4DFF] focus-visible:ring-offset-2 rounded-lg"
             >
               {t.auth.contactSupport}
             </button>

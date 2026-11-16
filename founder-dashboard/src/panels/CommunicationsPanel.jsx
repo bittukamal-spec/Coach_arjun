@@ -5,7 +5,7 @@ import EmailSection, { ToolSwitcher } from './EmailSection';
 
 // Pilot Communications v1 — founder surface. Reuses the exact visual
 // language already established by PilotPanel/SafetyPanel (StatCard-style
-// cards, #1E293B surfaces, #1769AA accent, Pill/Badge chips) rather than
+// cards, #1E293B surfaces, #1B4DFF accent, Pill/Badge chips) rather than
 // inventing new patterns.
 
 // Same allowlist the server enforces (routes/founderPilotCommunications.js
@@ -45,7 +45,7 @@ const STATUS_LABELS = {
 };
 const STATUS_COLORS = {
   not_seen: '#64748B',
-  seen: '#1769AA',
+  seen: '#1B4DFF',
   deferred: '#F59E0B',
   dismissed: '#94A3B8',
   responded: '#22C55E',
@@ -86,7 +86,7 @@ function CommRow({ comm, onOpen }) {
     >
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
-          <Pill color={comm.type === 'SURVEY' ? '#1769AA' : '#8B5CF6'}>{comm.type === 'SURVEY' ? 'Survey' : 'Announcement'}</Pill>
+          <Pill color={comm.type === 'SURVEY' ? '#1B4DFF' : '#8B5CF6'}>{comm.type === 'SURVEY' ? 'Survey' : 'Announcement'}</Pill>
           <Pill color={comm.isActive ? '#22C55E' : '#64748B'}>{comm.isActive ? 'Active' : 'Inactive'}</Pill>
         </div>
         <ChevronRight size={18} className="text-[#475569] shrink-0" />
@@ -149,7 +149,7 @@ function DetailView({ id, onBack, onChanged }) {
     );
   }
   if (!data) {
-    return <div className="flex items-center justify-center py-16"><RefreshCw size={24} className="animate-spin text-[#1769AA]" /></div>;
+    return <div className="flex items-center justify-center py-16"><RefreshCw size={24} className="animate-spin text-[#1B4DFF]" /></div>;
   }
 
   const { communication: c, athletes, breakdown } = data;
@@ -162,7 +162,7 @@ function DetailView({ id, onBack, onChanged }) {
 
       <div className="bg-[#1E293B] rounded-xl p-4 space-y-3">
         <div className="flex items-center gap-2 flex-wrap">
-          <Pill color={c.type === 'SURVEY' ? '#1769AA' : '#8B5CF6'}>{c.type === 'SURVEY' ? 'Survey' : 'Announcement'}</Pill>
+          <Pill color={c.type === 'SURVEY' ? '#1B4DFF' : '#8B5CF6'}>{c.type === 'SURVEY' ? 'Survey' : 'Announcement'}</Pill>
           <Pill color={c.isActive ? '#22C55E' : '#64748B'}>{c.isActive ? 'Active' : 'Inactive'}</Pill>
         </div>
         <p className="text-base font-bold text-[#F1F5F9]">{c.title}</p>
@@ -316,7 +316,7 @@ function CreateView({ onCancel, onCreated }) {
         <button
           onClick={publish}
           disabled={saving}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#1769AA] text-white text-sm font-semibold disabled:opacity-40 transition-opacity"
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#1B4DFF] text-white text-sm font-semibold disabled:opacity-40 transition-opacity"
         >
           <Send size={16} />
           {saving ? 'Publishing…' : 'Publish'}
@@ -340,9 +340,9 @@ function CreateView({ onCancel, onCreated }) {
             onClick={() => setType(v)}
             className="flex-1 text-sm font-semibold py-2 rounded-lg border transition-colors"
             style={{
-              borderColor: type === v ? '#1769AA' : '#334155',
-              background: type === v ? '#1769AA22' : 'transparent',
-              color: type === v ? '#1769AA' : '#94A3B8',
+              borderColor: type === v ? '#1B4DFF' : '#334155',
+              background: type === v ? '#1B4DFF22' : 'transparent',
+              color: type === v ? '#1B4DFF' : '#94A3B8',
             }}
           >
             {v === 'ANNOUNCEMENT' ? 'Announcement' : 'Survey'}
@@ -382,9 +382,9 @@ function CreateView({ onCancel, onCreated }) {
                 onClick={() => setResponseType(rt.id)}
                 className="text-left text-sm font-medium px-3 py-2.5 rounded-lg border transition-colors"
                 style={{
-                  borderColor: responseType === rt.id ? '#1769AA' : '#334155',
-                  background: responseType === rt.id ? '#1769AA22' : 'transparent',
-                  color: responseType === rt.id ? '#1769AA' : '#94A3B8',
+                  borderColor: responseType === rt.id ? '#1B4DFF' : '#334155',
+                  background: responseType === rt.id ? '#1B4DFF22' : 'transparent',
+                  color: responseType === rt.id ? '#1B4DFF' : '#94A3B8',
                 }}
               >
                 {rt.label}
@@ -408,7 +408,7 @@ function CreateView({ onCancel, onCreated }) {
                 </div>
               ))}
               {customOptions.length < 5 && (
-                <button onClick={addOption} className="text-xs text-[#1769AA] font-semibold flex items-center gap-1">
+                <button onClick={addOption} className="text-xs text-[#1B4DFF] font-semibold flex items-center gap-1">
                   <Plus size={14} /> Add option
                 </button>
               )}
@@ -449,9 +449,9 @@ function CreateView({ onCancel, onCreated }) {
               onClick={() => setAudienceMode(m)}
               className="flex-1 text-sm font-semibold py-2 rounded-lg border transition-colors"
               style={{
-                borderColor: audienceMode === m ? '#1769AA' : '#334155',
-                background: audienceMode === m ? '#1769AA22' : 'transparent',
-                color: audienceMode === m ? '#1769AA' : '#94A3B8',
+                borderColor: audienceMode === m ? '#1B4DFF' : '#334155',
+                background: audienceMode === m ? '#1B4DFF22' : 'transparent',
+                color: audienceMode === m ? '#1B4DFF' : '#94A3B8',
               }}
             >
               {m === 'ALL' ? 'All pilot athletes' : 'Selected athletes'}
@@ -460,7 +460,7 @@ function CreateView({ onCancel, onCreated }) {
         </div>
         {audienceMode === 'SELECTED' && (
           <div className="max-h-56 overflow-y-auto space-y-1.5 pt-1">
-            {!athletes && <RefreshCw size={18} className="animate-spin text-[#1769AA] mx-auto my-4" />}
+            {!athletes && <RefreshCw size={18} className="animate-spin text-[#1B4DFF] mx-auto my-4" />}
             {athletes?.map((a) => {
               const isSel = selectedIds.includes(a.id);
               return (
@@ -468,10 +468,10 @@ function CreateView({ onCancel, onCreated }) {
                   key={a.id}
                   onClick={() => toggleSelected(a.id)}
                   className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg border transition-colors"
-                  style={{ borderColor: isSel ? '#1769AA' : '#334155', background: isSel ? '#1769AA22' : 'transparent' }}
+                  style={{ borderColor: isSel ? '#1B4DFF' : '#334155', background: isSel ? '#1B4DFF22' : 'transparent' }}
                 >
                   <span className="text-sm text-[#F1F5F9]">{a.firstName}{a.sport ? ` · ${a.sport}` : ''}</span>
-                  {isSel && <Check size={16} className="text-[#1769AA]" />}
+                  {isSel && <Check size={16} className="text-[#1B4DFF]" />}
                 </button>
               );
             })}
@@ -484,7 +484,7 @@ function CreateView({ onCancel, onCreated }) {
       <button
         onClick={() => setConfirming(true)}
         disabled={!valid}
-        className="w-full py-2.5 rounded-lg bg-[#1769AA] text-white text-sm font-semibold disabled:opacity-40 transition-opacity"
+        className="w-full py-2.5 rounded-lg bg-[#1B4DFF] text-white text-sm font-semibold disabled:opacity-40 transition-opacity"
       >
         Review &amp; publish
       </button>
@@ -569,7 +569,7 @@ function TestPushSender() {
       <button
         onClick={send}
         disabled={!selectedId || sending}
-        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#1769AA] text-white text-sm font-semibold disabled:opacity-40 transition-opacity"
+        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#1B4DFF] text-white text-sm font-semibold disabled:opacity-40 transition-opacity"
       >
         <Send size={16} />
         {sending ? 'Sending…' : 'Send test notification'}
@@ -659,7 +659,7 @@ export default function CommunicationsPanel() {
           </button>
           <button
             onClick={() => setView('create')}
-            className="p-2 rounded-lg bg-[#1769AA] text-white active:opacity-80 transition-opacity"
+            className="p-2 rounded-lg bg-[#1B4DFF] text-white active:opacity-80 transition-opacity"
           >
             <Plus size={18} />
           </button>
@@ -674,7 +674,7 @@ export default function CommunicationsPanel() {
 
       {loading && !communications && (
         <div className="flex items-center justify-center py-16">
-          <RefreshCw size={28} className="animate-spin text-[#1769AA]" />
+          <RefreshCw size={28} className="animate-spin text-[#1B4DFF]" />
         </div>
       )}
 

@@ -23,7 +23,7 @@ import { CardWaves, RingMark } from '../visuals/CardArt';
 // exactly how the original 360px failure appeared. Blue already passed at
 // every real text position with margin and is deliberately untouched.
 const CARD_GRADIENTS = {
-  blue:   { from: '#1F85D0', to: '#0C4D85' },
+  blue:   { from: '#1B4DFF', to: '#1238C9' },
   teal:   { from: '#225D4F', to: '#158178' },
   amber:  { from: '#AB6418', to: '#915A07' },
   purple: { from: '#5D60F0', to: '#8350F6' },

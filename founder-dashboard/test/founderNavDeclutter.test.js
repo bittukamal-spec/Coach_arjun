@@ -164,5 +164,5 @@ test('the fixed/safe-area bottom-nav behavior is unchanged', () => {
 test('active-state styling is unchanged', () => {
   const nav = read('components/BottomNav.jsx');
   assert.match(nav, /const isActive = active === id;/);
-  assert.match(nav, /color: isActive \? '#1769AA' : '#64748B'/);
+  assert.match(nav, /color: isActive \? '#1B4DFF' : '#64748B'/);
 });

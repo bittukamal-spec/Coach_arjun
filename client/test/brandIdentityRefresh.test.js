@@ -125,12 +125,12 @@ test('the colour treatment is refined — one consistent blue family, no translu
   // Background uses the dedicated design-system token, not a hardcoded
   // duplicate or a different blue.
   assert.match(arjunLogo, /fill="var\(--brand-logo\)"/);
-  assert.match(indexCss, /--brand-logo:\s*#185FA5;/, 'the reserved logo-only token stays #185FA5');
+  assert.match(indexCss, /--brand-logo:\s*#1B4DFF;/, 'the reserved logo-only token stays #1B4DFF');
   // Primary strokes are solid white for maximum contrast.
   assert.equal((arjunLogo.match(/stroke="#FFFFFF"/g) || []).length, 4, 'bow arc, arrow shaft, both fletching lines');
   assert.match(arjunLogo, /fill="#FFFFFF"/, 'arrowhead');
   // The accent line is a solid colour, not the old translucent overlay.
-  assert.match(arjunLogo, /stroke="#8ECBFF"/);
+  assert.match(arjunLogo, /stroke="#9DB4FF"/);
   assert.doesNotMatch(arjunLogo, /opacity="0\.5"|opacity=\{0\.5\}/, 'no more translucent (muddy) accent stroke');
   // No purple anywhere in the mark's actual code (comments may reference
   // the old purple asset by way of explaining the change).
@@ -178,7 +178,7 @@ test('the homepage header wordmark still grows in a verified-safe second step, n
   assert.match(presetsBlock, /text-\[19px\]/, 'unprefixed (mobile-first) text size is unchanged from before');
   assert.match(presetsBlock, /min-\[360px\]:w-10 min-\[360px\]:h-10/);
   assert.match(presetsBlock, /min-\[360px\]:text-\[26px\]/);
-  assert.match(presetsBlock, /min-\[360px\]:text-\[#185FA5\]/, 'the brand-navy colour is reserved for the grown-in state');
+  assert.match(presetsBlock, /min-\[360px\]:text-\[#1B4DFF\]/, 'the brand-navy colour is reserved for the grown-in state');
 });
 
 test('auth (sign in / create account) uses the canonical hero lockup', () => {
@@ -275,7 +275,7 @@ test('PWA registration, install behaviour and app identity are untouched', () =>
   assert.match(viteConfig, /display: 'standalone'/);
   assert.match(viteConfig, /scope: '\/'/);
   assert.match(viteConfig, /start_url: '\/'/);
-  assert.match(viteConfig, /theme_color: '#185FA5'/);
+  assert.match(viteConfig, /theme_color: '#1B4DFF'/);
   // Still exactly 3 manifest icons — no size was silently added or dropped.
   const iconsBlock = viteConfig.slice(viteConfig.indexOf('icons: ['), viteConfig.indexOf('],', viteConfig.indexOf('icons: [')));
   assert.equal((iconsBlock.match(/src:/g) || []).length, 3);

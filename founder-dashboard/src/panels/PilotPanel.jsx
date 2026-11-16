@@ -85,7 +85,7 @@ function FunnelRow({ stage, count, percent }) {
       </div>
       <div className="h-1.5 rounded-full bg-[#334155] overflow-hidden">
         <div
-          className="h-full rounded-full bg-[#1769AA] transition-all"
+          className="h-full rounded-full bg-[#1B4DFF] transition-all"
           style={{ width: `${Math.min(100, Math.max(0, percent))}%` }}
         />
       </div>
@@ -136,7 +136,7 @@ function PilotAccessRow({ athlete, busy, onGrant, onRevoke }) {
         <button
           onClick={() => onGrant(athlete.id)}
           disabled={busy}
-          className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-[#1769AA] text-white active:bg-[#125685] disabled:opacity-40 transition-colors"
+          className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-[#1B4DFF] text-white active:bg-[#1238C9] disabled:opacity-40 transition-colors"
         >
           Grant 60 days
         </button>
@@ -207,8 +207,8 @@ function AthleteRow({ athlete, pilotActionBusyId, onGrantPilotAccess, onRevokePi
         {OUTCOME_PILLS[athlete.latestOutcome]
           ? <Pill color={OUTCOME_PILLS[athlete.latestOutcome].color}>{OUTCOME_PILLS[athlete.latestOutcome].label}</Pill>
           : athlete.outcomeReported && <Pill color="#22C55E">Outcome reported</Pill>}
-        {athlete.isReturning && <Pill color="#1769AA">Returning</Pill>}
-        <Pill color={athlete.tier === 'premium' ? '#1769AA' : '#64748B'}>
+        {athlete.isReturning && <Pill color="#1B4DFF">Returning</Pill>}
+        <Pill color={athlete.tier === 'premium' ? '#1B4DFF' : '#64748B'}>
           {athlete.tier === 'premium' ? 'Premium' : 'Free'}
         </Pill>
         {athlete.pilotAccessActive && <Pill color="#22C55E">Pilot access</Pill>}
@@ -338,7 +338,7 @@ export default function PilotPanel() {
 
       {loading && !data && (
         <div className="flex items-center justify-center py-16">
-          <RefreshCw size={28} className="animate-spin text-[#1769AA]" />
+          <RefreshCw size={28} className="animate-spin text-[#1B4DFF]" />
         </div>
       )}
 

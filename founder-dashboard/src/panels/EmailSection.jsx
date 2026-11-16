@@ -6,7 +6,7 @@ import { founderFetch } from '../api';
 // sending beta/product emails to pilot athletes. Deliberately NOT a full
 // inbox: no reply threading, no incoming mail, no attachments, no search.
 // Reuses the exact same visual language CommunicationsPanel already
-// established (StatChip/Pill-style cards, #1E293B surfaces, #1769AA
+// established (StatChip/Pill-style cards, #1E293B surfaces, #1B4DFF
 // accent) rather than inventing new patterns — small local copies of those
 // two presentational helpers live below, same convention CommunicationsPanel
 // itself already uses for its own CTA_ROUTES duplication (the server is the
@@ -78,7 +78,7 @@ Thanks for helping us build this properly.`,
 };
 
 const STATUS_LABELS = { SENT: 'Sent', FAILED: 'Failed', DELIVERED: 'Delivered', BOUNCED: 'Bounced' };
-const STATUS_COLORS = { SENT: '#22C55E', FAILED: '#EF4444', DELIVERED: '#1769AA', BOUNCED: '#F59E0B' };
+const STATUS_COLORS = { SENT: '#22C55E', FAILED: '#EF4444', DELIVERED: '#1B4DFF', BOUNCED: '#F59E0B' };
 
 function formatDate(iso) {
   if (!iso) return '—';
@@ -117,7 +117,7 @@ function ToolSwitcher({ active, onSwitch }) {
           onClick={() => onSwitch(t.id)}
           className="flex-1 text-xs font-semibold py-1.5 rounded-md transition-colors"
           style={{
-            background: active === t.id ? '#1769AA' : 'transparent',
+            background: active === t.id ? '#1B4DFF' : 'transparent',
             color: active === t.id ? '#FFFFFF' : '#94A3B8',
           }}
         >
@@ -181,7 +181,7 @@ function DetailView({ id, onBack }) {
     );
   }
   if (!data) {
-    return <div className="flex items-center justify-center py-16"><RefreshCw size={24} className="animate-spin text-[#1769AA]" /></div>;
+    return <div className="flex items-center justify-center py-16"><RefreshCw size={24} className="animate-spin text-[#1B4DFF]" /></div>;
   }
 
   const { campaign: c, deliveries } = data;
@@ -346,7 +346,7 @@ function ComposeView({ onCancel, onSent }) {
         <button
           onClick={sendReal}
           disabled={sending}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#1769AA] text-white text-sm font-semibold disabled:opacity-40 transition-opacity"
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#1B4DFF] text-white text-sm font-semibold disabled:opacity-40 transition-opacity"
         >
           <Send size={16} />
           {sending ? 'Sending…' : 'Send email'}
@@ -462,9 +462,9 @@ function ComposeView({ onCancel, onSent }) {
               onClick={() => { setAudienceUiMode(m.id); setSelectedIds([]); }}
               className="flex-1 text-xs font-semibold py-2 rounded-lg border transition-colors"
               style={{
-                borderColor: audienceUiMode === m.id ? '#1769AA' : '#334155',
-                background: audienceUiMode === m.id ? '#1769AA22' : 'transparent',
-                color: audienceUiMode === m.id ? '#1769AA' : '#94A3B8',
+                borderColor: audienceUiMode === m.id ? '#1B4DFF' : '#334155',
+                background: audienceUiMode === m.id ? '#1B4DFF22' : 'transparent',
+                color: audienceUiMode === m.id ? '#1B4DFF' : '#94A3B8',
               }}
             >
               {m.label}
@@ -473,7 +473,7 @@ function ComposeView({ onCancel, onSent }) {
         </div>
         {audienceUiMode !== 'ALL' && (
           <div className="max-h-56 overflow-y-auto space-y-1.5 pt-1">
-            {!athletes && <RefreshCw size={18} className="animate-spin text-[#1769AA] mx-auto my-4" />}
+            {!athletes && <RefreshCw size={18} className="animate-spin text-[#1B4DFF] mx-auto my-4" />}
             {athletes?.map((a) => {
               const isSel = selectedIds.includes(a.id);
               return (
@@ -481,13 +481,13 @@ function ComposeView({ onCancel, onSent }) {
                   key={a.id}
                   onClick={() => selectAthlete(a.id)}
                   className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg border transition-colors"
-                  style={{ borderColor: isSel ? '#1769AA' : '#334155', background: isSel ? '#1769AA22' : 'transparent' }}
+                  style={{ borderColor: isSel ? '#1B4DFF' : '#334155', background: isSel ? '#1B4DFF22' : 'transparent' }}
                 >
                   <span className="text-left min-w-0">
                     <span className="block text-sm text-[#F1F5F9] truncate">{a.name}{a.sport ? ` · ${a.sport}` : ''}</span>
                     <span className="block text-xs text-[#64748B] truncate">{a.email}</span>
                   </span>
-                  {isSel && <Check size={16} className="text-[#1769AA] shrink-0" />}
+                  {isSel && <Check size={16} className="text-[#1B4DFF] shrink-0" />}
                 </button>
               );
             })}
@@ -498,7 +498,7 @@ function ComposeView({ onCancel, onSent }) {
       <button
         onClick={() => setConfirming(true)}
         disabled={!valid}
-        className="w-full py-2.5 rounded-lg bg-[#1769AA] text-white text-sm font-semibold disabled:opacity-40 transition-opacity"
+        className="w-full py-2.5 rounded-lg bg-[#1B4DFF] text-white text-sm font-semibold disabled:opacity-40 transition-opacity"
       >
         Review &amp; send
       </button>
@@ -567,7 +567,7 @@ export default function EmailSection({ onSwitchTool }) {
           </button>
           <button
             onClick={() => setView('compose')}
-            className="px-3 py-2 rounded-lg bg-[#1769AA] text-white text-sm font-semibold flex items-center gap-1.5 active:opacity-80 transition-opacity"
+            className="px-3 py-2 rounded-lg bg-[#1B4DFF] text-white text-sm font-semibold flex items-center gap-1.5 active:opacity-80 transition-opacity"
           >
             <Mail size={16} /> Compose
           </button>
@@ -582,7 +582,7 @@ export default function EmailSection({ onSwitchTool }) {
 
       {loading && !campaigns && (
         <div className="flex items-center justify-center py-16">
-          <RefreshCw size={28} className="animate-spin text-[#1769AA]" />
+          <RefreshCw size={28} className="animate-spin text-[#1B4DFF]" />
         </div>
       )}
 

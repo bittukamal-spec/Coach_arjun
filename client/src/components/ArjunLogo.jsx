@@ -38,7 +38,7 @@ export function ArjunLogo({ size = 32, className = '', alt = '', ariaLabel, resp
       {/* Brain-fold hint — a solid light-blue accent, not a translucent
           overlay, so it stays a clean, deliberate second colour. */}
       <path d="M 196 182 C 268 202 268 308 196 328"
-            stroke="#8ECBFF" strokeWidth="14" fill="none" strokeLinecap="round" />
+            stroke="#9DB4FF" strokeWidth="14" fill="none" strokeLinecap="round" />
       {/* Arrow shaft */}
       <line x1="86" y1="256" x2="376" y2="256" stroke="#FFFFFF" strokeWidth="22" strokeLinecap="round" />
       {/* Arrowhead */}
@@ -76,23 +76,23 @@ const LOCKUP_PRESETS = {
   hero: {
     icon: 48,
     gapClassName: 'gap-3',
-    textClassName: 'text-[32px] font-extrabold leading-none tracking-[-0.02em] text-[#185FA5]',
+    textClassName: 'text-[32px] font-extrabold leading-none tracking-[-0.02em] text-[#1B4DFF]',
   },
   header: {
     responsive: true,
     iconSizeClassName: 'w-8 h-8 min-[360px]:w-10 min-[360px]:h-10',
     gapClassName: 'gap-2 min-[360px]:gap-2.5',
-    textClassName: 'text-[19px] min-[360px]:text-[26px] font-black leading-none tracking-tight min-[360px]:text-[#185FA5]',
+    textClassName: 'text-[19px] min-[360px]:text-[26px] font-black leading-none tracking-tight min-[360px]:text-[#1B4DFF]',
   },
   medium: {
     icon: 28,
     gapClassName: 'gap-2',
-    textClassName: 'text-[20px] font-extrabold leading-none tracking-[-0.02em] text-[#185FA5]',
+    textClassName: 'text-[20px] font-extrabold leading-none tracking-[-0.02em] text-[#1B4DFF]',
   },
   compact: {
     icon: 32,
     gapClassName: 'gap-2',
-    textClassName: 'text-[21px] font-extrabold leading-none tracking-[-0.02em] text-[#185FA5]',
+    textClassName: 'text-[21px] font-extrabold leading-none tracking-[-0.02em] text-[#1B4DFF]',
   },
 };
 

@@ -66,7 +66,7 @@ export default function PricingPage() {
           name:  user?.name  ?? '',
           email: user?.email ?? '',
         },
-        theme: { color: '#185FA5' },
+        theme: { color: '#1B4DFF' },
         modal: {
           ondismiss: () => setLoadingPlan(null),
         },
