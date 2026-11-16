@@ -1,3 +1,4 @@
+import { useToneStatusBar } from '../components/ui/TonePage';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Star, Plus } from 'lucide-react';
@@ -5,7 +6,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { apiFetch } from '../api';
 import { translations } from '../i18n/translations';
 import FocusWordChip from '../components/train/FocusWordChip';
-import { useToneStatusBar } from '../components/ui/TonePage';
 
 const MATCH_CONTEXTS = [
   { key: 'pre_match',    labelEn: 'Pre-match',    labelHi: 'Match से पहले' },

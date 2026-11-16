@@ -122,23 +122,21 @@ test('Dashboard "Mind Journal" block: a blush row with its drawing, opening /min
   assert.doesNotMatch(dashboard, /TrainGradientCard/, 'Home no longer uses the gradient card');
 });
 
-// The redesigned Mind Journal hero reads left-to-right: heading, one
-// supporting line, the effort micro-line, then its own CTA control. It is no
-// longer an icon/copy/arrow bookend row with centered copy, so the centering
-// guarantee moved onto the CTA itself — the shared recipe centers its own
-// label, and the whole card remains one action.
-test('Mind Journal hero: heading, supporting line, effort line and a single left-aligned CTA', () => {
+// Playbook founder layout (Nov 2026): the Mind Journal hero is centred,
+// straight on the blush page — heading, one supporting line, the effort
+// micro-line, then a sun CTA pill. The CTA is a styled span inside the one
+// link, so the whole hero stays a single accessible action.
+test('Mind Journal hero: centred heading, supporting line, effort line and a single CTA pill', () => {
   const idx = mindJournal.indexOf('mj-hero-new');
   assert.notEqual(idx, -1);
-  const hero = mindJournal.slice(idx, mindJournal.indexOf('</Card>', idx));
+  const hero = mindJournal.slice(idx, mindJournal.indexOf('</Link>', idx));
   assert.match(hero, /\{mj\.hero\.heading\}/, 'heading renders');
   assert.match(hero, /\{mj\.hero\.sub\}/, 'one supporting line renders');
   assert.match(hero, /\{mj\.hero\.effort\}/, 'the effort micro-line renders');
   assert.match(hero, /\{mj\.hero\.cta\}/, 'the CTA label renders');
-  // The CTA is a styled span inside the one card action, not a nested
-  // control that would break the single accessible action.
-  assert.match(hero, /inline-flex items-center gap-2[^"]*min-h-\[44px\]/);
-  assert.doesNotMatch(hero, /<button|<Link/, 'no nested interactive controls inside the hero card');
+  assert.match(hero, /text-center/, 'the hero is centred');
+  assert.match(hero, /<span className="inline-flex items-center justify-center[^"]*min-h-\[56px\][^"]*bg-sun/);
+  assert.doesNotMatch(hero, /<button|<Link/, 'no nested interactive controls inside the hero');
 });
 
 // Unified reflection (PR 1): the separate Quick Note card was retired from

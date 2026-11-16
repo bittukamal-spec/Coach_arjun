@@ -1,3 +1,5 @@
+import useScrollTopOnChange from '../../hooks/useScrollTopOnChange';
+import { useToneStatusBar } from '../../components/ui/TonePage';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -17,7 +19,6 @@ import {
   resolveConditionalQuestion, textOrUndefined, toggleStateKey,
 } from './constants';
 import { ChoiceChips, SafetyGuidanceCard, StepProgress, STATE_ICONS, useMindJournalSave, useMindJournalBack } from './shared';
-import useScrollTopOnChange from '../../hooks/useScrollTopOnChange';
 
 // ─── The unified Mind Journal reflection — ONE component driving every
 // question, rather than six routed pages. All answers live in this
@@ -45,6 +46,7 @@ const CONTEXT_ICONS = {
 const emptyGroup = () => ({ tags: [], customOpen: false, custom: '' });
 
 export default function ReflectionWizard() {
+  useToneStatusBar('blush');
   const navigate = useNavigate();
   const location = useLocation();
   const handleExit = useMindJournalBack();
@@ -425,8 +427,8 @@ export default function ReflectionWizard() {
   }
 
   return (
-    <div className="min-h-screen bg-dark-900 pb-10">
-      <PageHeader onBack={goBack} title={r.title} />
+    <div className="min-h-screen bg-tonepage-blush pb-10">
+      <PageHeader onBack={goBack} title={r.title} barClass="bg-tonepage-blush" />
       <div className="px-page pt-5 max-w-lg mx-auto">
         {safety ? (
           <SafetyGuidanceCard guidance={safety.guidance} onDismiss={dismissSafety} />

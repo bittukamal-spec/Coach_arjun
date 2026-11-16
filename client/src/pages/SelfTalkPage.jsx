@@ -1,3 +1,5 @@
+import { useToneStatusBar } from '../components/ui/TonePage';
+import useScrollTopOnChange from '../hooks/useScrollTopOnChange';
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, MessageSquare } from 'lucide-react';
@@ -7,8 +9,6 @@ import { translations } from '../i18n/translations';
 import HelplineList from '../components/HelplineList';
 import { PracticeHeader, PracticeIntro } from '../components/practice/PracticeShell';
 import { FocusArt } from '../components/visuals/TrainArt';
-import { useToneStatusBar } from '../components/ui/TonePage';
-import useScrollTopOnChange from '../hooks/useScrollTopOnChange';
 
 export default function SelfTalkPage() {
   const { user, token, language } = useAuth();

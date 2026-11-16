@@ -1,3 +1,4 @@
+import { useToneStatusBar } from '../../components/ui/TonePage';
 import { useNavigate, useLocation, Navigate, Link } from 'react-router-dom';
 import { CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -16,6 +17,7 @@ import { useMindJournalBack } from './shared';
 // Reading one entry by id lives on Reflection Details (/mind-journal/:id). ─
 
 export default function ReflectionSavedPage() {
+  useToneStatusBar('blush');
   const navigate = useNavigate();
   const location = useLocation();
   const handleBack = useMindJournalBack();
@@ -46,8 +48,8 @@ export default function ReflectionSavedPage() {
     : null;
 
   return (
-    <div className="min-h-screen bg-dark-900 pb-10">
-      <PageHeader onBack={handleBack} title={saved.title} />
+    <div className="min-h-screen bg-tonepage-blush pb-10">
+      <PageHeader onBack={handleBack} title={saved.title} barClass="bg-tonepage-blush" />
 
       <div className="px-page pt-8 max-w-lg mx-auto">
         <div className="flex flex-col items-center text-center mb-7">

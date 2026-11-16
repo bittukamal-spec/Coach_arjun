@@ -1,3 +1,4 @@
+import useScrollTopOnChange from '../../hooks/useScrollTopOnChange';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -7,7 +8,6 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { translations } from '../../i18n/translations';
 import { apiFetch } from '../../api';
-import useScrollTopOnChange from '../../hooks/useScrollTopOnChange';
 
 const SKILL_KEY = 'calm_body';
 

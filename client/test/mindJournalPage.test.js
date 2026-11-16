@@ -727,7 +727,9 @@ test('Dashboard.jsx: the visible check-in link still opens Mind Journal, unchang
 
 test('home: hero and recent reflection sections are present, with nothing between them', () => {
   assert.match(home, /data-testid="mj-hero-new"/);
-  assert.match(home, /variant="hero"/);
+  // Playbook layout (Nov 2026): the hero sits on the blush page with a sun
+  // "Start a reflection" pill, not in a gradient card.
+  assert.match(home, /bg-sun/);
   assert.doesNotMatch(home, /data-testid="mj-quick-note"/, 'the separate Quick Note card was retired from home');
   assert.match(home, /data-testid="mj-recent-section"/);
   assert.match(home, /data-testid="mj-reflection-card"/);
@@ -741,16 +743,19 @@ test('home: hero and recent reflection sections are present, with nothing betwee
   assert.doesNotMatch(home.slice(heroIdx, recentIdx), /data-testid="mj-context/, 'nothing consent-related sits between them');
 });
 
-test('home: the hero uses the journal violet identity and is one accessible action', () => {
+test('home: the hero sits on the journal page with no box, and is one accessible action', () => {
+  // Playbook founder layout (Nov 2026): the journal's identity is its blush
+  // page; the hero is centred straight on it — drawing, heading, line, effort,
+  // a sun CTA pill — and the whole block is one link.
   const heroStart = home.indexOf('data-testid="mj-hero-new"');
   assert.ok(heroStart !== -1);
-  const hero = home.slice(heroStart, home.indexOf('</Card>', heroStart));
+  const hero = home.slice(heroStart, home.indexOf('</Link>', heroStart));
   assert.match(hero, /aria-label=\{mj\.hero\.heading\}/, 'one coherent accessible name');
-  // The gradient comes from the journal tokens, not a hard-coded colour.
-  assert.match(hero, /'--grad-from': 'var\(--journal-hero-from\)'/);
-  assert.match(hero, /'--grad-to': 'var\(--journal-hero-to\)'/);
-  assert.doesNotMatch(hero, /#[0-9A-Fa-f]{6}/, 'no hard-coded hex where a token exists');
-  assert.doesNotMatch(hero, /<button|<Link/, 'no nested interactive controls inside the hero card');
+  assert.match(hero, /text-center/);
+  assert.match(hero, /<JournalArt/);
+  assert.match(home, /min-h-screen bg-tonepage-blush/, 'the page carries the journal colour');
+  assert.doesNotMatch(hero, /#[0-9A-Fa-f]{6}|linear-gradient|card-hero/, 'no hard-coded hex or gradient');
+  assert.doesNotMatch(hero, /<button|<Link/, 'no nested interactive controls inside the hero');
 });
 
 // ── The header AI-access control + popover ────────────────────────────────
@@ -842,7 +847,7 @@ test('guided step 2: exposes four distinct prompt sections with live counters', 
 
 test('Mind Journal screens use semantic light/dark tokens rather than hardcoded page whites', () => {
   for (const [name, source] of SCREENS) {
-    assert.match(source, /bg-dark-900/, `${name} must use the page token`);
+    assert.match(source, /bg-dark-900|bg-tonepage-blush/, `${name} must use a page token`);
     assert.match(source, /text-ink|text-slt/, `${name} must use semantic text tokens`);
     assert.doesNotMatch(
       codeOnly(source),

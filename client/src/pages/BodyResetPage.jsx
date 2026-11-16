@@ -1,3 +1,4 @@
+import useScrollTopOnChange from '../hooks/useScrollTopOnChange';
 import { ResetArt } from '../components/visuals/TrainArt';
 import TonePage from '../components/ui/TonePage';
 import { useState, useEffect, useRef } from 'react';
@@ -9,7 +10,6 @@ import { createBreathCues, cuesPreferred, rememberCues } from '../utils/breathCu
 import { translations } from '../i18n/translations';
 import HelplineList from '../components/HelplineList';
 import { PracticeIntro, PracticeScreen, PracticeCompletion } from '../components/practice/PracticeShell';
-import useScrollTopOnChange from '../hooks/useScrollTopOnChange';
 
 const CRISIS_KEYWORDS = [
   'suicide', 'kill myself', 'end my life', 'self harm', 'hurt myself',

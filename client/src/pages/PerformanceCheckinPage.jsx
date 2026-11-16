@@ -1,3 +1,4 @@
+import useScrollTopOnChange from '../hooks/useScrollTopOnChange';
 import { useEffect, useMemo, useState } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
@@ -8,7 +9,6 @@ import CheckinQuestion, { checkinScreenValid } from '../components/profile/Check
 import { ProfileSkeleton } from '../components/profile';
 import ModalDialog from '../components/onboarding/ModalDialog';
 import * as CFG from '../onboarding/config';
-import useScrollTopOnChange from '../hooks/useScrollTopOnChange';
 
 // ─── Section-scoped profile edit ───────────────────────────────────────────
 // NEVER called "onboarding" in this page's own copy: onboarding is the

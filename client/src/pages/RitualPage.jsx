@@ -1,3 +1,4 @@
+import useScrollTopOnChange from '../hooks/useScrollTopOnChange';
 import { useState, useEffect, useCallback, useRef, useId } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -11,7 +12,6 @@ import { SafetyGuidanceCard } from './mindJournal/shared';
 import { RitualArt } from '../components/visuals/TrainArt';
 import TonePage from '../components/ui/TonePage';
 import RoutineRun from '../components/ritual/RoutineRun';
-import useScrollTopOnChange from '../hooks/useScrollTopOnChange';
 
 // ─── Ritual rebuild (PR 3) — the athlete's saved routines. /ritual now reads
 // and writes /api/routines (up to 5 routines) instead of the legacy single

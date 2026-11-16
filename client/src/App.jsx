@@ -1,3 +1,4 @@
+import ScrollManager from './components/ScrollManager';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import { useTheme } from './hooks/useTheme';
@@ -46,7 +47,6 @@ import ProtectedRoute from './components/ProtectedRoute';
 import BottomNav from './components/BottomNav';
 import AppUpdatePrompt from './components/AppUpdatePrompt';
 import { translations } from './i18n/translations';
-import ScrollManager from './components/ScrollManager';
 
 function App() {
   const { loading, language, user } = useAuth();

@@ -1,3 +1,4 @@
+import useScrollTopOnChange from '../hooks/useScrollTopOnChange';
 import { RepArt } from '../components/visuals/TrainArt';
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -5,7 +6,6 @@ import { Zap, Wind, Target, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiFetch } from '../api';
 import { PracticeIntro, PracticeScreen, PracticeCompletion } from '../components/practice/PracticeShell';
-import useScrollTopOnChange from '../hooks/useScrollTopOnChange';
 
 // ─── Quick Rep (Daily Mental Rep) — the core Healthy Hook habit ────────────
 // Flow: intro → context → state → moment → short guided rep → one cue →

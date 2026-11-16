@@ -1,3 +1,5 @@
+import { useToneStatusBar } from '../components/ui/TonePage';
+import { JournalArt } from '../components/visuals/HomeArt';
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { ArrowRight, ChevronRight } from 'lucide-react';
@@ -118,6 +120,7 @@ function EntryRow({ entry, mj, dateLabel }) {
 }
 
 export default function MindJournalPage() {
+  useToneStatusBar('blush');
   const navigate = useNavigate();
   const location = useLocation();
   const { token, language } = useAuth();
@@ -156,8 +159,8 @@ export default function MindJournalPage() {
   }
 
   return (
-    <div className="min-h-screen bg-dark-900 pb-[calc(2.5rem+env(safe-area-inset-bottom))]">
-      <PageHeader onBack={() => navigate(-1)} title={mj.title}>
+    <div className="min-h-screen bg-tonepage-blush pb-[calc(2.5rem+env(safe-area-inset-bottom))]">
+      <PageHeader onBack={() => navigate(-1)} title={mj.title} barClass="bg-tonepage-blush">
         <AiAccessPopover
           token={token}
           mj={mj}
@@ -175,29 +178,28 @@ export default function MindJournalPage() {
         </div>
 
         {/* ── Hero — the one way in ─────────────────────────────────────────
-            The journal's violet identity, carrying the heading, one line of
-            supporting copy, the effort micro-line and a single CTA. The whole
-            card is one action to the existing /mind-journal/new route, with
+            Playbook founder layout (Nov 2026): straight on the blush page, no
+            box, centred — the journal drawing, the heading, one line, the
+            effort micro-line and a sun "Start a reflection" pill. The whole
+            block is ONE action to the existing /mind-journal/new route, with
             the same origin state as before. Nothing on this screen counts,
             ranks or compares anything. */}
-        <Card
-          as={Link}
+        <Link
           to="/mind-journal/new"
           state={mindJournalOriginState()}
-          variant="hero"
           data-testid="mj-hero-new"
           aria-label={mj.hero.heading}
-          className="block p-5 elevation-hero active:scale-[0.99] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-          style={{ '--grad-from': 'var(--journal-hero-from)', '--grad-to': 'var(--journal-hero-to)' }}
+          className="block text-center rounded-3xl py-2 active:scale-[0.99] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
         >
-          <p className="text-title font-bold text-white leading-snug" aria-hidden="true">{mj.hero.heading}</p>
-          <p className="text-caption text-white/85 leading-relaxed mt-2">{mj.hero.sub}</p>
-          <p className="text-micro font-semibold text-white/75 mt-3" data-testid="mj-hero-effort">{mj.hero.effort}</p>
-          <span className="inline-flex items-center gap-2 mt-4 min-h-[44px] px-page rounded-[14px] bg-white/20 text-white text-body font-bold">
+          <JournalArt size={96} className="mx-auto" />
+          <p className="mt-4 text-[26px] font-extrabold text-ink leading-tight" aria-hidden="true">{mj.hero.heading}</p>
+          <p className="mt-2 text-[15px] text-slt leading-relaxed">{mj.hero.sub}</p>
+          <p className="mt-3 text-micro font-bold text-ink" data-testid="mj-hero-effort">{mj.hero.effort}</p>
+          <span className="inline-flex items-center justify-center gap-2 mt-5 min-h-[56px] px-8 rounded-[18px] bg-sun text-inkblock text-base font-extrabold">
             {mj.hero.cta}
-            <ArrowRight size={16} aria-hidden="true" />
+            <ArrowRight size={18} aria-hidden="true" />
           </span>
-        </Card>
+        </Link>
 
         {/* ── Recent entries ───────────────────────────────────────────────
             Nothing sits between the hero and this list any more: the coaching

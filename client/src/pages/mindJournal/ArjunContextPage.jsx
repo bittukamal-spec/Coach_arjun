@@ -1,3 +1,4 @@
+import { useToneStatusBar } from '../../components/ui/TonePage';
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Shield } from 'lucide-react';
@@ -14,6 +15,7 @@ import { useMindJournalBack } from './shared';
 // ───────────────────────────────────────────────────────────────────────────
 
 export default function ArjunContextPage() {
+  useToneStatusBar('blush');
   const navigate = useNavigate();
   const handleBack = useMindJournalBack();
   const { token, language } = useAuth();
@@ -70,8 +72,8 @@ export default function ArjunContextPage() {
   }
 
   return (
-    <div className="min-h-screen bg-dark-900 pb-[calc(2.5rem+env(safe-area-inset-bottom))]">
-      <PageHeader onBack={handleBack} title={cx.title} />
+    <div className="min-h-screen bg-tonepage-blush pb-[calc(2.5rem+env(safe-area-inset-bottom))]">
+      <PageHeader onBack={handleBack} title={cx.title} barClass="bg-tonepage-blush" />
 
       <div className="px-page pt-5 max-w-lg mx-auto">
         <div className="flex items-start gap-3.5 mb-6">
