@@ -15,9 +15,9 @@ export function TalkArt({ size = 62 }) {
   );
 }
 
-export function JournalArt({ size = 48 }) {
+export function JournalArt({ size = 48, className = '' }) {
   return (
-    <svg aria-hidden="true" width={size} height={size} viewBox="0 0 48 48" className="shrink-0">
+    <svg aria-hidden="true" width={size} height={size} viewBox="0 0 48 48" className={`shrink-0 ${className}`}>
       <rect x="8" y="5" width="30" height="38" rx="6" fill="#101533" />
       <rect x="12" y="5" width="6" height="38" fill="#2A3166" />
       <rect x="22" y="14" width="12" height="3.5" rx="1.75" fill="#FFFFFF" />

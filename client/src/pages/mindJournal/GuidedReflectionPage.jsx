@@ -1,3 +1,4 @@
+import { useToneStatusBar } from '../../components/ui/TonePage';
 import { useId, useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Lightbulb } from 'lucide-react';
@@ -21,6 +22,7 @@ import { StateChips, ContextTypeCards, StepProgress, useMindJournalBack } from '
 // ───────────────────────────────────────────────────────────────────────────
 
 export default function GuidedReflectionPage() {
+  useToneStatusBar('blush');
   const navigate = useNavigate();
   const location = useLocation();
   const handleBack = useMindJournalBack();
@@ -75,8 +77,8 @@ export default function GuidedReflectionPage() {
     && (contextType !== 'SOMETHING_ELSE' || customContext.trim().length > 0);
 
   return (
-    <div className="min-h-screen bg-dark-900 pb-10">
-      <PageHeader onBack={handleBack} title={g.title} />
+    <div className="min-h-screen bg-tonepage-blush pb-10">
+      <PageHeader onBack={handleBack} title={g.title} barClass="bg-tonepage-blush" />
 
       <div className="px-page pt-5 max-w-lg mx-auto">
         <StepProgress label={g.step1} step={1} />

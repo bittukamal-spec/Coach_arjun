@@ -1,3 +1,4 @@
+import useScrollTopOnChange from '../hooks/useScrollTopOnChange';
 import { useEffect, useMemo, useState } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
@@ -57,6 +58,7 @@ export default function PerformanceCheckinPage() {
   const scoped = VALID_SECTIONS.has(section) ? section : null;
 
   const [step, setStep] = useState(0);
+  useScrollTopOnChange(step);
   const [answers, setAnswers] = useState(null); // lazily seeded from profile.checkin.answers
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);

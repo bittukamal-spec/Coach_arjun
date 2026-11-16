@@ -1,3 +1,4 @@
+import { useToneStatusBar } from '../../components/ui/TonePage';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PenLine } from 'lucide-react';
@@ -12,6 +13,7 @@ import { StateChips, SafetyGuidanceCard, useMindJournalSave, useMindJournalBack 
 // this is the shape the server calls QUICK_NOTE. ────────────────────────────
 
 export default function QuickNotePage() {
+  useToneStatusBar('blush');
   const navigate = useNavigate();
   const handleBack = useMindJournalBack();
   const { language } = useAuth();
@@ -45,8 +47,8 @@ export default function QuickNotePage() {
   }
 
   return (
-    <div className="min-h-screen bg-dark-900 pb-10">
-      <PageHeader onBack={handleBack} title={qn.title} />
+    <div className="min-h-screen bg-tonepage-blush pb-10">
+      <PageHeader onBack={handleBack} title={qn.title} barClass="bg-tonepage-blush" />
 
       <div className="px-page pt-5 max-w-lg mx-auto">
         {safety ? (

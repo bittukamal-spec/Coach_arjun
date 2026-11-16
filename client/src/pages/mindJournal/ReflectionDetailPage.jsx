@@ -1,3 +1,4 @@
+import { useToneStatusBar } from '../../components/ui/TonePage';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { ChevronDown, Trash2 } from 'lucide-react';
@@ -62,6 +63,7 @@ function DetailSection({ heading, children, testId }) {
 }
 
 export default function ReflectionDetailPage() {
+  useToneStatusBar('blush');
   const { id } = useParams();
   const navigate = useNavigate();
   const handleBack = useMindJournalBack();
@@ -146,8 +148,8 @@ export default function ReflectionDetailPage() {
 
   if (entry === null) {
     return (
-      <div className="min-h-screen bg-dark-900 pb-10">
-        <PageHeader onBack={handleBack} title={d.title} />
+      <div className="min-h-screen bg-tonepage-blush pb-10">
+        <PageHeader onBack={handleBack} title={d.title} barClass="bg-tonepage-blush" />
         <div className="px-page pt-5 max-w-lg mx-auto">
           <div className="h-32 bg-dark-800 rounded-2xl animate-pulse border border-dark-600" />
         </div>
@@ -157,8 +159,8 @@ export default function ReflectionDetailPage() {
 
   if (entry === false) {
     return (
-      <div className="min-h-screen bg-dark-900 pb-10">
-        <PageHeader onBack={handleBack} title={d.title} />
+      <div className="min-h-screen bg-tonepage-blush pb-10">
+        <PageHeader onBack={handleBack} title={d.title} barClass="bg-tonepage-blush" />
         <div className="px-page pt-8 max-w-lg mx-auto text-left">
           <Card className="p-5 elevation-card mb-4">
             <p className="text-body text-slt leading-relaxed mb-4">
@@ -252,8 +254,8 @@ export default function ReflectionDetailPage() {
   const takeForward = entry.takeForward || null;
 
   return (
-    <div className="min-h-screen bg-dark-900 pb-[calc(2.5rem+env(safe-area-inset-bottom))]">
-      <PageHeader onBack={handleBack} title={d.title} />
+    <div className="min-h-screen bg-tonepage-blush pb-[calc(2.5rem+env(safe-area-inset-bottom))]">
+      <PageHeader onBack={handleBack} title={d.title} barClass="bg-tonepage-blush" />
 
       <div className="px-page pt-5 max-w-lg mx-auto" data-testid="mj-detail">
 
@@ -423,7 +425,7 @@ export default function ReflectionDetailPage() {
 
       {confirmOpen ? (
         <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm px-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-0"
+          className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm px-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-0"
           data-testid="mj-delete-confirm"
         >
           <div

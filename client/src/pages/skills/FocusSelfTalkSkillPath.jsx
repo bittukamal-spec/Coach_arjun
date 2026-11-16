@@ -1,3 +1,4 @@
+import useScrollTopOnChange from '../../hooks/useScrollTopOnChange';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -25,6 +26,7 @@ export default function FocusSelfTalkSkillPath() {
   const t = translations[language]?.skillPathFocus || translations.en.skillPathFocus;
 
   const [screen, setScreen] = useState('intro');
+  useScrollTopOnChange(screen);
   const [hasActiveFocusCard, setHasActiveFocusCard] = useState(false);
 
   const [quizIndex, setQuizIndex] = useState(0);

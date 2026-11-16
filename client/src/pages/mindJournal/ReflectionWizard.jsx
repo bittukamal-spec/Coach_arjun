@@ -1,3 +1,5 @@
+import useScrollTopOnChange from '../../hooks/useScrollTopOnChange';
+import { useToneStatusBar } from '../../components/ui/TonePage';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -44,6 +46,7 @@ const CONTEXT_ICONS = {
 const emptyGroup = () => ({ tags: [], customOpen: false, custom: '' });
 
 export default function ReflectionWizard() {
+  useToneStatusBar('blush');
   const navigate = useNavigate();
   const location = useLocation();
   const handleExit = useMindJournalBack();
@@ -63,6 +66,7 @@ export default function ReflectionWizard() {
   const [cueFeedback, setCueFeedback] = useState(null);
 
   const [stepIndex, setStepIndex] = useState(0);
+  useScrollTopOnChange(stepIndex);
   const [focusWord, setFocusWord] = useState(null);
   const { saving, saveError, safety, dismissSafety, save } = useMindJournalSave();
 
@@ -423,8 +427,8 @@ export default function ReflectionWizard() {
   }
 
   return (
-    <div className="min-h-screen bg-dark-900 pb-10">
-      <PageHeader onBack={goBack} title={r.title} />
+    <div className="min-h-screen bg-tonepage-blush pb-10">
+      <PageHeader onBack={goBack} title={r.title} barClass="bg-tonepage-blush" />
       <div className="px-page pt-5 max-w-lg mx-auto">
         {safety ? (
           <SafetyGuidanceCard guidance={safety.guidance} onDismiss={dismissSafety} />

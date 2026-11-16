@@ -1,3 +1,4 @@
+import { useToneStatusBar } from '../../components/ui/TonePage';
 import { useState } from 'react';
 import { useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { Compass, Eye, Flag, HelpCircle } from 'lucide-react';
@@ -53,6 +54,7 @@ function PromptField({ id, label, placeholder, value, maxLength, onChange, icon:
 }
 
 export default function GuidedReflectionDetailsPage() {
+  useToneStatusBar('blush');
   const navigate = useNavigate();
   const location = useLocation();
   const { language } = useAuth();
@@ -121,8 +123,8 @@ export default function GuidedReflectionDetailsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-dark-900 pb-10">
-      <PageHeader onBack={handleBack} title={g.title} />
+    <div className="min-h-screen bg-tonepage-blush pb-10">
+      <PageHeader onBack={handleBack} title={g.title} barClass="bg-tonepage-blush" />
 
       <div className="px-page pt-5 max-w-lg mx-auto">
         {safety ? (

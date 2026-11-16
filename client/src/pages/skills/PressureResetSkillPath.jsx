@@ -1,3 +1,4 @@
+import useScrollTopOnChange from '../../hooks/useScrollTopOnChange';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -24,6 +25,7 @@ export default function PressureResetSkillPath() {
   const t = translations[language]?.skillPathPressure || translations.en.skillPathPressure;
 
   const [screen, setScreen] = useState('intro');
+  useScrollTopOnChange(screen);
   const [quizIndex, setQuizIndex] = useState(0);
   const [correctCount, setCorrectCount] = useState(0);
   const [selected, setSelected] = useState(null);

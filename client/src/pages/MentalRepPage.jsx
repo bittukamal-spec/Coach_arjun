@@ -1,10 +1,10 @@
+import useScrollTopOnChange from '../hooks/useScrollTopOnChange';
 import { RepArt } from '../components/visuals/TrainArt';
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Zap, Wind, Target, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiFetch } from '../api';
-import GradientIconTile from '../components/train/GradientIconTile';
 import { PracticeIntro, PracticeScreen, PracticeCompletion } from '../components/practice/PracticeShell';
 
 // ─── Quick Rep (Daily Mental Rep) — the core Healthy Hook habit ────────────
@@ -133,6 +133,7 @@ export default function MentalRepPage() {
   const preContext = CONTEXTS.some(c => c.id === location.state?.context) ? location.state.context : null;
 
   const [step, setStep]           = useState('intro');
+  useScrollTopOnChange(step);
   const [context, setContext]     = useState(preContext);
   const [athleteState, setAthleteState] = useState(null);
   const [moment, setMoment]       = useState(null);
@@ -204,7 +205,7 @@ export default function MentalRepPage() {
   const headerTitle = hi ? 'आज का मेंटल रेप' : "Today's Mental Rep";
 
   const Screen = ({ title, sub, children }) => (
-    <PracticeScreen onBack={goBack} headerTitle={headerTitle} title={title} sub={sub}>
+    <PracticeScreen tone="sun" onBack={goBack} headerTitle={headerTitle} title={title} sub={sub}>
       {children}
     </PracticeScreen>
   );
@@ -212,8 +213,9 @@ export default function MentalRepPage() {
   const ChoiceButton = ({ label, onClick, selected = false }) => (
     <button
       onClick={onClick}
-      className={`w-full text-left px-4 py-3.5 rounded-2xl border text-sm font-medium transition-colors active:scale-[0.99] ${
-        selected ? 'bg-brand-500/15 border-brand-500/60 text-brand-400' : 'bg-dark-800 border-dark-600 text-ink'
+      aria-pressed={selected}
+      className={`w-full text-left px-4 py-3.5 rounded-2xl text-sm font-semibold transition-colors active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
+        selected ? 'bg-brand-500 text-white' : 'bg-dark-400 text-ink'
       }`}
       style={{ minHeight: '48px' }}
     >
@@ -286,13 +288,13 @@ export default function MentalRepPage() {
               value={momentText}
               onChange={e => setMomentText(e.target.value.slice(0, 120))}
               placeholder={hi ? 'जैसे: पहली गेंद पर बोलिंग' : 'e.g. bowling the first over'}
-              className="input-field"
+              className="input-field bg-dark-400"
               autoFocus
             />
             <button
               onClick={() => momentText.trim() && setStep('rep')}
               disabled={!momentText.trim()}
-              className="btn-gradient w-full py-3 text-sm mt-2.5 disabled:opacity-40"
+              className="w-full text-sm mt-2.5 disabled:opacity-40 min-h-[52px] rounded-[18px] bg-brand-500 text-white font-extrabold active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
               style={{ minHeight: '48px' }}
             >
               {hi ? 'आगे बढ़ो' : 'Continue'}
@@ -311,7 +313,7 @@ export default function MentalRepPage() {
       return (
         <Screen title={hi ? rep.title.hi : rep.title.en} sub={hi ? rep.sub.hi : rep.sub.en}>
           <div className="flex flex-col items-center pt-6">
-            <GradientIconTile icon={Wind} variant="teal" size={30} className="w-20 h-20 rounded-3xl mb-6" />
+            <span className="w-20 h-20 rounded-3xl mb-6 bg-dark-400 text-ink flex items-center justify-center" aria-hidden="true"><Wind size={30} /></span>
             <p className="text-sm text-slt mb-6">{hi ? `सांस ${breaths}/3` : `Breath ${breaths} of 3`}</p>
             <button
               onClick={() => {
@@ -319,7 +321,7 @@ export default function MentalRepPage() {
                 setBreaths(next);
                 if (next >= 3) setStep('cue');
               }}
-              className="btn-gradient w-full max-w-xs py-4 text-base"
+              className="w-full max-w-xs text-base min-h-[52px] rounded-[18px] bg-brand-500 text-white font-extrabold active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
               style={{ minHeight: '56px' }}
             >
               {breaths === 0 ? (hi ? 'सांस शुरू करो' : 'Start breathing') : (hi ? 'सांस पूरी हुई' : 'Breath done')}
@@ -367,12 +369,12 @@ export default function MentalRepPage() {
         value={customCue}
         onChange={e => setCustomCue(e.target.value.slice(0, 40))}
         placeholder={hi ? 'जैसे: अगली गेंद' : 'e.g. Next ball'}
-        className="input-field"
+        className="input-field bg-dark-400"
       />
       <button
         onClick={() => { const c = customCue.trim(); if (c) { setCue(c); setStep('save'); } }}
         disabled={!customCue.trim()}
-        className="btn-gradient w-full py-3 text-sm mt-2.5 disabled:opacity-40"
+        className="w-full text-sm mt-2.5 disabled:opacity-40 min-h-[52px] rounded-[18px] bg-brand-500 text-white font-extrabold active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
         style={{ minHeight: '48px' }}
       >
         {hi ? 'यह मेरा cue है' : 'Use this cue'}
@@ -382,8 +384,8 @@ export default function MentalRepPage() {
 
   // ── STEP: Save ─────────────────────────────────────────────────────────────
   if (step === 'save') return (
-    <PracticeCompletion>
-      <GradientIconTile icon={Target} variant="blue" size={26} className="mb-5" />
+    <PracticeCompletion tone="sun">
+      <span className="w-16 h-16 rounded-3xl mb-5 bg-dark-400 text-ink flex items-center justify-center" aria-hidden="true"><Target size={26} /></span>
       <p className="text-xs font-bold text-slt uppercase tracking-widest mb-2">{hi ? 'तुम्हारा cue' : 'Your cue'}</p>
       <p className="text-3xl font-black text-ink mb-8">"{cue}"</p>
       {/* Copy only: the cue is still saved by exactly the same call, but the
@@ -392,7 +394,7 @@ export default function MentalRepPage() {
       <button
         onClick={() => finishRep(true)}
         disabled={saving}
-        className="btn-gradient w-full max-w-xs py-4 text-base mb-3 disabled:opacity-60"
+        className="w-full max-w-xs text-base mb-3 disabled:opacity-60 min-h-[52px] rounded-[18px] bg-brand-500 text-white font-extrabold active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
         style={{ minHeight: '56px' }}
       >
         {hi ? 'Cue save करो' : 'Save cue'}
@@ -409,13 +411,13 @@ export default function MentalRepPage() {
 
   // ── STEP: Exit ─────────────────────────────────────────────────────────────
   if (step === 'done') return (
-    <PracticeCompletion>
-      <div className="w-14 h-14 rounded-2xl bg-teal-500/15 flex items-center justify-center mb-5">
-        <CheckCircle2 size={28} className="text-teal-400" />
+    <PracticeCompletion tone="sun">
+      <div className="w-16 h-16 rounded-3xl bg-dark-400 flex items-center justify-center mb-5">
+        <CheckCircle2 size={28} className="text-ink" />
       </div>
       <h1 className="text-xl font-bold text-ink mb-6">{hi ? 'रेप पूरा।' : 'Rep complete.'}</h1>
       <p className="text-xs font-bold text-slt uppercase tracking-widest mb-2">{hi ? 'आज का cue' : "Today's cue"}</p>
-      <p className="text-3xl font-black mb-8" style={{ color: 'var(--brand-primary)' }}>"{cue}"</p>
+      <p className="text-3xl font-black text-ink mb-8">"{cue}"</p>
       <p className="text-sm text-slt mb-10 max-w-xs leading-relaxed">
         {context === 'match'
           ? (hi ? 'इसे मैच में लेकर जाओ। फोन रखो और खेलने चलो।' : 'Take this into the match. Put the phone away and go play.')
@@ -423,7 +425,7 @@ export default function MentalRepPage() {
       </p>
       <button
         onClick={() => navigate('/dashboard')}
-        className="btn-gradient w-full max-w-xs py-4 text-base"
+        className="w-full max-w-xs text-base min-h-[52px] rounded-[18px] bg-brand-500 text-white font-extrabold active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
         style={{ minHeight: '56px' }}
       >
         <Zap size={18} />

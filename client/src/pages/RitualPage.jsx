@@ -1,3 +1,4 @@
+import useScrollTopOnChange from '../hooks/useScrollTopOnChange';
 import { useState, useEffect, useCallback, useRef, useId } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -497,7 +498,7 @@ function DeleteConfirm({ t, deleting, error, onCancel, onConfirm }) {
   }, [deleting, onCancel]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm px-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-0">
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm px-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-0">
       <div
         role="dialog"
         aria-modal="true"
@@ -541,6 +542,7 @@ function RitualPage() {
   // view.name: loading | error | list | detail | build
   // view.id:   the routine shown (detail) or edited (build; null = new)
   const [view, setView] = useState({ name: 'loading', id: null });
+  useScrollTopOnChange(`${view.name}:${view.id}`);
   const [routines, setRoutines] = useState([]);
   const [limit, setLimit] = useState(DEFAULT_LIMIT);
   // Guidance from a flagged legacy import, shown above the list.

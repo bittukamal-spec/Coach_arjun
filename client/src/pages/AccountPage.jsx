@@ -830,7 +830,7 @@ function AccountPage() {
 
       {/* Cancel subscription confirmation */}
       {showCancelConfirm && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm px-4 pb-4 sm:pb-0">
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm px-4 pb-4 sm:pb-0">
           <div className="bg-dark-800 border border-dark-500 rounded-2xl p-6 w-full max-w-md animate-slide-up">
             <h3 className="font-bold text-ink mb-3">{tp.cancelSub}</h3>
             <p className="text-slt text-sm mb-6">{tp.cancelConfirm}</p>
@@ -858,7 +858,7 @@ function AccountPage() {
 
       {/* Privacy & Data bottom sheet */}
       {showPrivacySheet && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/70 backdrop-blur-sm">
           <div className="bg-dark-800 border border-dark-500 rounded-t-3xl w-full max-w-md animate-slide-up pb-8">
             <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-dark-600">
               <div className="flex items-center gap-2">
@@ -904,7 +904,7 @@ function AccountPage() {
 
       {/* Selective data delete confirmation sheet */}
       {showDataConfirm && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm px-4 pb-4 sm:pb-0">
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm px-4 pb-4 sm:pb-0">
           <div className="bg-dark-800 border border-dark-500 rounded-2xl p-6 w-full max-w-md animate-slide-up">
             <h3 className="font-bold text-ink mb-2">{tprivacy.confirm.title}</h3>
             <p className="text-slt text-sm mb-6">{tprivacy.confirm.body}</p>
@@ -932,7 +932,7 @@ function AccountPage() {
 
       {/* Delete account modal — two-step */}
       {showDeleteModal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm px-4 pb-4 sm:pb-0">
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm px-4 pb-4 sm:pb-0">
           <div className="bg-dark-800 border border-dark-500 rounded-2xl p-6 w-full max-w-md animate-slide-up">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center flex-shrink-0">

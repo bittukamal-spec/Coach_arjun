@@ -1,3 +1,4 @@
+import ScrollManager from './components/ScrollManager';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import { useTheme } from './hooks/useTheme';
@@ -80,6 +81,7 @@ function App() {
   return (
     <>
     {updatePrompt}
+    <ScrollManager />
     <Routes>
       {/* Public */}
       <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <LandingPage />} />

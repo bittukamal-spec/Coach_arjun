@@ -1,3 +1,4 @@
+import useScrollTopOnChange from '../hooks/useScrollTopOnChange';
 import { ResetArt } from '../components/visuals/TrainArt';
 import TonePage from '../components/ui/TonePage';
 import { useState, useEffect, useRef } from 'react';
@@ -86,6 +87,7 @@ export default function BodyResetPage() {
   );
 
   const [screen, setScreen] = useState('intro');
+  useScrollTopOnChange(screen);
 
   // Minimal safety-incident log when a crisis keyword routes to the safety screen
   function reportCrisisEvent() {

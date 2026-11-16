@@ -59,6 +59,7 @@ export default {
           sky:   'var(--tone-sky-page)',
           sun:   'var(--tone-sun-page)',
           coral: 'var(--tone-coral-page)',
+          blush: 'var(--tone-blush-page)',
         },
 
         // Amber / saffron — streaks, XP, fire
