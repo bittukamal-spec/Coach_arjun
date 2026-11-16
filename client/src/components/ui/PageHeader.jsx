@@ -3,7 +3,9 @@ import { ChevronLeft } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { translations } from '../../i18n/translations';
 
-function PageHeader({ backTo, onBack, title, children }) {
+// `barClass` lets a feature-coloured page (TonePage) paint the bar in its own
+// colour with no divider, so the top of the screen is one surface.
+function PageHeader({ backTo, onBack, title, children, barClass = 'bg-dark-900 border-b border-dark-600' }) {
   const { language } = useAuth();
   // Icon-only control: without this the screen reader announces only "button".
   const backLabel = (translations[language] || translations.en).common.back;
@@ -12,7 +14,7 @@ function PageHeader({ backTo, onBack, title, children }) {
   const backClass =
     'w-11 h-11 -ml-3 flex items-center justify-center shrink-0 rounded-full text-slt hover:text-ink transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500';
   return (
-    <header className="bg-dark-900 border-b border-dark-600 px-page py-4 sticky top-0 z-10">
+    <header className={`${barClass} px-page py-4 sticky top-0 z-10`}>
       <div className="max-w-lg mx-auto flex items-center gap-2">
         {backTo && (
           <Link to={backTo} aria-label={backLabel} className={backClass}>

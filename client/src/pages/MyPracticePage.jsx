@@ -69,7 +69,7 @@ export default function MyPracticePage() {
   const isEmpty = data && !outcomes.length && !cues.length && !reflections.length && !reps && !resets;
 
   return (
-    <div className="min-h-screen bg-dark-900 pb-24">
+    <div className="min-h-screen bg-dark-900 pb-[calc(7.5rem+env(safe-area-inset-bottom))]">
       <PageHeader backTo="/train" title={t.title} />
 
       <main className="px-page pt-4 max-w-lg mx-auto animate-fade-in">

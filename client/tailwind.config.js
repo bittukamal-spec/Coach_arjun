@@ -53,6 +53,13 @@ export default {
         mint:  '#7FE3C4',
         blush: '#FF8AD4', // Mind Journal
         inkblock: '#101533', // text on the light colour blocks, in both themes
+        // Feature page backgrounds — theme-aware (see --tone-*-page in index.css).
+        tonepage: {
+          mint:  'var(--tone-mint-page)',
+          sky:   'var(--tone-sky-page)',
+          sun:   'var(--tone-sun-page)',
+          coral: 'var(--tone-coral-page)',
+        },
 
         // Amber / saffron — streaks, XP, fire
         fire: {

@@ -1,3 +1,5 @@
+import { ResetArt } from '../components/visuals/TrainArt';
+import TonePage from '../components/ui/TonePage';
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ChevronRight, Wind } from 'lucide-react';
@@ -29,19 +31,20 @@ const STEP_ORDER = ['intro', 'feeling', 'mode', 'before', 'focus', 'breathing', 
 function TensionPicker({ value, onChange, low, high }) {
   return (
     <div>
-      <div className="flex justify-between text-[10px] text-muted mb-2">
+      <div className="flex justify-between text-[11px] text-slt mb-2">
         <span>1 — {low}</span>
         <span>{high} — 10</span>
       </div>
-      <div className="flex gap-1.5 flex-wrap">
+      <div className="grid grid-cols-5 gap-2">
         {Array.from({ length: 10 }, (_, i) => i + 1).map(n => (
           <button
             key={n}
             onClick={() => onChange(n)}
-            className={`w-9 h-9 rounded-xl text-sm font-bold transition-all active:scale-95 ${
+            aria-pressed={value === n}
+            className={`h-11 rounded-2xl text-sm font-bold transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
               value === n
                 ? 'bg-brand-500 text-white'
-                : 'bg-dark-700 text-slt hover:bg-dark-600'
+                : 'bg-dark-400 text-ink'
             }`}
           >
             {n}
@@ -405,7 +408,7 @@ export default function BodyResetPage() {
     if (tensionBefore == null || tensionAfter == null) return null;
     const diff = tensionBefore - tensionAfter;
     const arrow = diff > 0 ? '↓' : diff < 0 ? '↑' : '→';
-    const color = diff > 0 ? 'text-teal-400' : diff < 0 ? 'text-red-400' : 'text-slt';
+    const color = diff !== 0 ? 'text-ink' : 'text-slt';
     return { label: `${tensionBefore} → ${tensionAfter} ${arrow}`, color };
   }
 
@@ -428,7 +431,7 @@ export default function BodyResetPage() {
           </div>
           <button
             onClick={() => navigate('/train')}
-            className="w-full bg-dark-700 text-ink font-semibold py-3.5 rounded-2xl active:scale-95"
+            className="w-full min-h-[52px] bg-dark-400 text-ink font-bold rounded-[18px] active:scale-95"
           >
             {t.safety.backBtn}
           </button>
@@ -446,15 +449,11 @@ export default function BodyResetPage() {
         onBack={goBack}
         headerTitle={headerTitle}
         icon={Wind}
-        variant="teal"
+        tone="mint"
+        Art={ResetArt}
         tag={t.learn.duration}
         title={t.learn.title}
         desc={t.learn.desc}
-        stats={[
-          { label: hi ? 'समय' : 'Duration', value: t.learn.duration },
-          { label: hi ? 'किसके लिए' : 'Best for', value: hi ? 'घबराया हुआ, तना हुआ' : 'Nervous, tight, or overloaded' },
-          { label: hi ? 'लक्ष्य' : 'Goal', value: hi ? 'अगले एक्शन पर वापसी' : 'Return to the next action' },
-        ]}
         checklist={{
           title: hi ? 'क्या उम्मीद करें' : 'What to expect',
           items: [t.learn.benefit1, t.learn.benefit2, t.learn.benefit3],
@@ -492,7 +491,7 @@ export default function BodyResetPage() {
     }
 
     return (
-      <PracticeScreen onBack={goBack} headerTitle={headerTitle}>
+      <PracticeScreen tone="mint" onBack={goBack} headerTitle={headerTitle}>
         <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">1 / 7</p>
 
         {/* Feeling question */}
@@ -505,7 +504,7 @@ export default function BodyResetPage() {
               onClick={() => setFeeling(opt.val)}
               className={`py-3 px-3 rounded-2xl text-sm font-semibold border transition-all active:scale-95 ${
                 feeling === opt.val
-                  ? 'bg-teal-500/15 border-teal-500/60 text-teal-400'
+                  ? 'bg-brand-500 border-brand-500 text-white'
                   : 'bg-dark-800 border-dark-600 text-slt'
               }`}
             >
@@ -516,7 +515,7 @@ export default function BodyResetPage() {
             onClick={() => setFeeling('custom')}
             className={`col-span-2 py-2 px-3 rounded-2xl text-sm font-semibold border transition-all active:scale-95 ${
               isFeelingCustom
-                ? 'bg-teal-500/15 border-teal-500/60 text-teal-400'
+                ? 'bg-brand-500 border-brand-500 text-white'
                 : 'bg-dark-800 border-dark-600 text-slt'
             }`}
           >
@@ -530,7 +529,7 @@ export default function BodyResetPage() {
             onChange={e => setFeelingCustom(e.target.value)}
             placeholder={t.feeling.customPlaceholder}
             rows={2}
-            className="w-full bg-dark-800 border border-dark-600 rounded-2xl px-4 py-3 text-sm text-ink placeholder-muted resize-none focus:outline-none focus:border-teal-500/60 mb-2"
+            className="w-full bg-dark-400 border border-dark-600 rounded-2xl px-4 py-3 text-sm text-ink placeholder-muted resize-none focus:outline-none focus:border-brand-500 mb-2"
           />
         )}
 
@@ -545,7 +544,7 @@ export default function BodyResetPage() {
                 onClick={() => setContext(opt.val)}
                 className={`py-3 px-3 rounded-2xl text-sm font-semibold border transition-all active:scale-95 ${
                   context === opt.val
-                    ? 'bg-teal-500/15 border-teal-500/60 text-teal-400'
+                    ? 'bg-brand-500 border-brand-500 text-white'
                     : 'bg-dark-800 border-dark-600 text-slt'
                 }`}
               >
@@ -556,7 +555,7 @@ export default function BodyResetPage() {
               onClick={() => setContext('custom')}
               className={`col-span-2 py-2 px-3 rounded-2xl text-sm font-semibold border transition-all active:scale-95 ${
                 isContextCustom
-                  ? 'bg-teal-500/15 border-teal-500/60 text-teal-400'
+                  ? 'bg-brand-500 border-brand-500 text-white'
                   : 'bg-dark-800 border-dark-600 text-slt'
               }`}
             >
@@ -569,7 +568,7 @@ export default function BodyResetPage() {
               onChange={e => setContextCustom(e.target.value)}
               placeholder={t.context.customPlaceholder}
               rows={2}
-              className="w-full bg-dark-800 border border-dark-600 rounded-2xl px-4 py-3 text-sm text-ink placeholder-muted resize-none focus:outline-none focus:border-teal-500/60 mb-2"
+              className="w-full bg-dark-400 border border-dark-600 rounded-2xl px-4 py-3 text-sm text-ink placeholder-muted resize-none focus:outline-none focus:border-brand-500 mb-2"
             />
           )}
         </div>
@@ -577,7 +576,7 @@ export default function BodyResetPage() {
         <button
           disabled={!canContinue}
           onClick={advance}
-          className="w-full bg-teal-500 text-white font-bold py-4 rounded-2xl text-base active:scale-[0.98] disabled:opacity-40"
+          className="w-full bg-sun text-inkblock font-extrabold py-4 rounded-[18px] text-base active:scale-[0.98] disabled:opacity-40"
         >
           {t.feeling.nextBtn}
         </button>
@@ -590,7 +589,7 @@ export default function BodyResetPage() {
   // ──────────────────────────────────────────────────────────────────────────────
   if (screen === 'mode') {
     return (
-      <PracticeScreen onBack={goBack} headerTitle={headerTitle}>
+      <PracticeScreen tone="mint" onBack={goBack} headerTitle={headerTitle}>
         <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">2 / 7</p>
         <h2 className="text-xl font-bold text-ink mb-5">{t.mode.heading}</h2>
         <div className="space-y-3">
@@ -601,11 +600,11 @@ export default function BodyResetPage() {
             <button
               key={m.key}
               onClick={() => { setMode(m.key); setScreen('before'); }}
-              className="w-full text-left bg-dark-800 border border-dark-600 hover:border-teal-500/40 rounded-2xl p-5 transition-all active:scale-[0.98] flex items-center justify-between"
+              className="w-full text-left bg-dark-800 border border-dark-600 hover:border-brand-500 rounded-2xl p-5 transition-all active:scale-[0.98] flex items-center justify-between"
             >
               <div>
                 <p className="text-base font-bold text-ink mb-0.5">{m.title}</p>
-                <p className="text-sm font-semibold text-teal-400 mb-1">{m.sub}</p>
+                <p className="text-sm font-semibold text-[color:var(--accent-teal)] mb-1">{m.sub}</p>
                 <p className="text-xs text-muted">{m.detail}</p>
               </div>
               <ChevronRight size={20} className="text-slt shrink-0 ml-3" />
@@ -621,7 +620,7 @@ export default function BodyResetPage() {
   // ──────────────────────────────────────────────────────────────────────────────
   if (screen === 'before') {
     return (
-      <PracticeScreen onBack={goBack} headerTitle={headerTitle}>
+      <PracticeScreen tone="mint" onBack={goBack} headerTitle={headerTitle}>
         <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">3 / 7</p>
         <h2 className="text-xl font-bold text-ink mb-5">{t.before.heading}</h2>
 
@@ -643,7 +642,7 @@ export default function BodyResetPage() {
         <button
           disabled={!tensionBefore}
           onClick={() => setScreen('focus')}
-          className="w-full bg-teal-500 text-white font-bold py-4 rounded-2xl text-base active:scale-[0.98] disabled:opacity-40"
+          className="w-full bg-sun text-inkblock font-extrabold py-4 rounded-[18px] text-base active:scale-[0.98] disabled:opacity-40"
         >
           {t.before.nextBtn}
         </button>
@@ -656,17 +655,17 @@ export default function BodyResetPage() {
   // ──────────────────────────────────────────────────────────────────────────────
   if (screen === 'focus') {
     return (
-      <PracticeScreen onBack={goBack} headerTitle={headerTitle}>
+      <PracticeScreen tone="mint" onBack={goBack} headerTitle={headerTitle}>
         <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">4 / 7</p>
         <h2 className="text-xl font-bold text-ink mb-1">{t.focus.heading}</h2>
         <p className="text-sm text-slt mb-5">{t.focus.sub}</p>
 
         {cardsLoading ? (
           <div className="flex justify-center py-8">
-            <div className="w-7 h-7 border-2 border-teal-400 border-t-transparent rounded-full animate-spin" />
+            <div className="w-7 h-7 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : cards.length === 0 ? (
-          <div className="bg-dark-800 border border-dark-600 rounded-2xl p-4 mb-4">
+          <div className="bg-dark-400 border border-dark-600 rounded-2xl p-4 mb-4">
             <p className="text-sm text-slt">{t.focus.noCards}</p>
           </div>
         ) : (
@@ -677,7 +676,7 @@ export default function BodyResetPage() {
                 onClick={() => setFocusWord(focusWord === card.focusWord ? null : card.focusWord)}
                 className={`px-4 py-2.5 rounded-2xl text-sm font-bold border transition-all active:scale-95 ${
                   focusWord === card.focusWord
-                    ? 'bg-teal-500 border-teal-500 text-white'
+                    ? 'bg-brand-500 border-brand-500 text-white'
                     : 'bg-dark-800 border-dark-600 text-slt'
                 }`}
               >
@@ -689,7 +688,7 @@ export default function BodyResetPage() {
 
         <button
           onClick={() => setScreen('breathing')}
-          className="w-full bg-teal-500 text-white font-bold py-4 rounded-2xl text-base active:scale-[0.98] mb-3"
+          className="w-full bg-sun text-inkblock font-extrabold py-4 rounded-[18px] text-base active:scale-[0.98] mb-3"
         >
           {t.before.nextBtn}
         </button>
@@ -713,7 +712,7 @@ export default function BodyResetPage() {
       : cycleCount / proto.cycles;
 
     return (
-      <div className="min-h-screen bg-dark-900 flex flex-col">
+      <TonePage tone="mint" className="flex flex-col">
         <div className="flex items-center gap-3 px-4 pt-4 pb-3">
           <div className="w-9 h-9" />
           <h1 className="text-lg font-bold text-ink flex-1">{headerTitle}</h1>
@@ -723,14 +722,14 @@ export default function BodyResetPage() {
           {/* Breathing circle */}
           <div className="relative flex items-center justify-center mb-8">
             <div
-              className="w-48 h-48 rounded-full bg-teal-500/20 border-2 border-teal-400/40"
+              className="w-48 h-48 rounded-full bg-white/40 border-[3px] border-white/80"
               style={{
                 transform: `scale(${circleScale})`,
                 transition: `transform ${transitionDuration} ease-in-out`,
               }}
             />
             <div className="absolute flex flex-col items-center">
-              <p className="text-2xl font-black text-teal-400">{phaseRemaining}</p>
+              <p className="text-3xl font-black text-ink">{phaseRemaining}</p>
               <p className="text-sm font-semibold text-ink">
                 {breathPhase === 'inhale' ? t.breathing.inhale : t.breathing.exhale}
               </p>
@@ -739,8 +738,8 @@ export default function BodyResetPage() {
 
           {/* Focus word */}
           {focusWord && (
-            <div className="bg-teal-500/10 border border-teal-500/30 rounded-2xl px-5 py-2 mb-4">
-              <p className="text-lg font-black text-teal-400">{focusWord}</p>
+            <div className="bg-dark-400 rounded-2xl px-5 py-2 mb-4">
+              <p className="text-lg font-black text-ink">{focusWord}</p>
             </div>
           )}
 
@@ -754,7 +753,7 @@ export default function BodyResetPage() {
                 {formatTime(totalElapsed)} / {formatTime(proto.totalSeconds)}
               </p>
               <div className="w-48 h-1.5 bg-dark-700 rounded-full mt-2 overflow-hidden">
-                <div className="h-full bg-teal-400 rounded-full transition-all" style={{ width: `${progress * 100}%` }} />
+                <div className="h-full bg-brand-500 rounded-full transition-all" style={{ width: `${progress * 100}%` }} />
               </div>
             </div>
           ) : (
@@ -768,8 +767,8 @@ export default function BodyResetPage() {
             type="button"
             onClick={toggleCues}
             aria-pressed={cuesOn}
-            className={`min-h-[44px] px-5 mb-3 rounded-2xl text-sm font-semibold active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 ${
-              cuesOn ? 'bg-teal-500/15 text-teal-400 border border-teal-500/40' : 'bg-dark-700 text-slt'
+            className={`min-h-[44px] px-5 mb-3 rounded-2xl text-sm font-semibold active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
+              cuesOn ? 'bg-brand-500 text-white border border-brand-500' : 'bg-dark-400 text-ink'
             }`}
           >
             {cuesOn ? t.breathing.cuesOn : t.breathing.cuesOff}
@@ -786,7 +785,7 @@ export default function BodyResetPage() {
             </button>
           )}
         </div>
-      </div>
+      </TonePage>
     );
   }
 
@@ -795,23 +794,23 @@ export default function BodyResetPage() {
   // ──────────────────────────────────────────────────────────────────────────────
   if (screen === 'note') {
     return (
-      <PracticeScreen onBack={goBack} headerTitle={headerTitle} canGoBack={false}>
+      <PracticeScreen tone="mint" onBack={goBack} headerTitle={headerTitle} canGoBack={false}>
         <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">5 / 7</p>
         <h2 className="text-xl font-bold text-ink mb-5">{t.note.heading}</h2>
 
         {noteLoading ? (
           <div className="flex flex-col items-center py-12 gap-3">
-            <div className="w-8 h-8 border-2 border-teal-400 border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
             <p className="text-sm text-slt">{t.note.loading}</p>
           </div>
         ) : (
           <>
             {focusWord && (
-              <div className="inline-flex items-center bg-teal-500/10 border border-teal-500/30 rounded-full px-3 py-1 mb-4">
-                <p className="text-xs font-bold text-teal-400">{focusWord}</p>
+              <div className="inline-flex items-center bg-dark-400 rounded-full px-3 py-1 mb-4">
+                <p className="text-xs font-bold text-ink">{focusWord}</p>
               </div>
             )}
-            <div className="bg-brand-500/10 border border-brand-500/30 rounded-2xl p-4 mb-6">
+            <div className="bg-dark-400 rounded-3xl p-4 mb-6">
               <p className="text-[10px] font-bold text-brand-400 uppercase tracking-widest mb-2">
                 {hi ? 'अर्जुन' : 'Arjun'}
               </p>
@@ -819,7 +818,7 @@ export default function BodyResetPage() {
             </div>
             <button
               onClick={() => setScreen('after')}
-              className="w-full bg-teal-500 text-white font-bold py-4 rounded-2xl text-base active:scale-[0.98]"
+              className="w-full bg-sun text-inkblock font-extrabold py-4 rounded-[18px] text-base active:scale-[0.98]"
             >
               {t.note.continueBtn}
             </button>
@@ -834,7 +833,7 @@ export default function BodyResetPage() {
   // ──────────────────────────────────────────────────────────────────────────────
   if (screen === 'after') {
     return (
-      <PracticeScreen onBack={goBack} headerTitle={headerTitle} canGoBack={false}>
+      <PracticeScreen tone="mint" onBack={goBack} headerTitle={headerTitle} canGoBack={false}>
         <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">6 / 7</p>
         <h2 className="text-xl font-bold text-ink mb-5">{t.after.heading}</h2>
 
@@ -856,7 +855,7 @@ export default function BodyResetPage() {
         <button
           disabled={!tensionAfter}
           onClick={() => setScreen('card')}
-          className="w-full bg-teal-500 text-white font-bold py-4 rounded-2xl text-base active:scale-[0.98] disabled:opacity-40"
+          className="w-full bg-sun text-inkblock font-extrabold py-4 rounded-[18px] text-base active:scale-[0.98] disabled:opacity-40"
         >
           {t.after.nextBtn}
         </button>
@@ -877,14 +876,14 @@ export default function BodyResetPage() {
       : contextOpts.find(o => o.val === context)?.key || context;
 
     return (
-      <PracticeScreen onBack={goBack} headerTitle={headerTitle} canGoBack={false}>
+      <PracticeScreen tone="mint" onBack={goBack} headerTitle={headerTitle} canGoBack={false}>
         <p className="text-xs font-bold text-slt uppercase tracking-widest mb-1">7 / 7</p>
         <h2 className="text-xl font-bold text-ink mb-5">{t.card.heading}</h2>
 
-        <div className="bg-dark-800 border border-dark-600 rounded-2xl overflow-hidden mb-6">
+        <div className="bg-dark-400 border border-dark-600 rounded-2xl overflow-hidden mb-6">
           <div className="flex items-center gap-2 px-4 py-3 border-b border-dark-700">
             <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-              mode === 'quick' ? 'bg-teal-500/20 text-teal-400' : 'bg-brand-500/20 text-brand-400'
+              mode === 'quick' ? 'bg-mint text-inkblock' : 'bg-sky text-inkblock'
             }`}>
               {mode === 'quick' ? t.card.modeQuick : t.card.modeTraining}
             </span>
@@ -911,7 +910,7 @@ export default function BodyResetPage() {
             {focusWord && (
               <div>
                 <p className="text-[10px] font-semibold text-slt uppercase tracking-wider mb-0.5">{t.card.focusWordLabel}</p>
-                <p className="text-sm font-bold text-teal-400">{focusWord}</p>
+                <p className="text-sm font-bold text-[color:var(--accent-teal)]">{focusWord}</p>
               </div>
             )}
           </div>
@@ -926,7 +925,7 @@ export default function BodyResetPage() {
         <button
           disabled={saving}
           onClick={saveSession}
-          className="w-full bg-teal-500 text-white font-bold py-4 rounded-2xl text-base active:scale-[0.98] disabled:opacity-60"
+          className="w-full bg-sun text-inkblock font-extrabold py-4 rounded-[18px] text-base active:scale-[0.98] disabled:opacity-60"
         >
           {saving ? t.card.saving : t.card.saveBtn}
         </button>
@@ -940,9 +939,9 @@ export default function BodyResetPage() {
   if (screen === 'done') {
     const delta = tensionDelta();
     return (
-      <PracticeCompletion>
-        <div className="w-16 h-16 rounded-2xl bg-teal-500/15 flex items-center justify-center mb-4">
-          <Wind size={28} className="text-teal-400" />
+      <PracticeCompletion tone="mint">
+        <div className="w-20 h-20 rounded-3xl bg-dark-400 flex items-center justify-center mb-4">
+          <Wind size={32} className="text-ink" />
         </div>
         <h2 className="text-xl font-bold text-ink mb-2 text-center">{t.done.heading}</h2>
         {delta && (
@@ -953,13 +952,13 @@ export default function BodyResetPage() {
         <div className="w-full space-y-3">
           <button
             onClick={() => navigate('/body-reset')}
-            className="w-full bg-teal-500 text-white font-bold py-4 rounded-2xl active:scale-[0.98]"
+            className="w-full bg-sun text-inkblock font-extrabold py-4 rounded-[18px] active:scale-[0.98]"
           >
             {t.done.anotherBtn}
           </button>
           <button
             onClick={() => navigate('/body-reset/history')}
-            className="w-full bg-dark-700 text-ink font-semibold py-3.5 rounded-2xl active:scale-95"
+            className="w-full min-h-[52px] bg-dark-400 text-ink font-bold rounded-[18px] active:scale-95"
           >
             {t.done.historyBtn}
           </button>

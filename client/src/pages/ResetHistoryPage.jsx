@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Wind } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiFetch } from '../api';
+import TonePage from '../components/ui/TonePage';
 import { translations } from '../i18n/translations';
 
 export default function ResetHistoryPage() {
@@ -60,7 +61,7 @@ export default function ResetHistoryPage() {
     if (s.tensionBefore == null || s.tensionAfter == null) return null;
     const diff = s.tensionBefore - s.tensionAfter;
     const arrow = diff > 0 ? '↓' : diff < 0 ? '↑' : '→';
-    const color = diff > 0 ? 'text-teal-400' : diff < 0 ? 'text-red-400' : 'text-slt';
+    const color = diff > 0 ? 'text-[color:var(--accent-teal)]' : diff < 0 ? 'text-red-400' : 'text-slt';
     return { label: `${s.tensionBefore} → ${s.tensionAfter} ${arrow}`, color };
   }
 
@@ -71,16 +72,16 @@ export default function ResetHistoryPage() {
   }
 
   if (loading) return (
-    <div className="min-h-screen bg-dark-900 flex items-center justify-center">
-      <div className="w-8 h-8 border-2 border-teal-400 border-t-transparent rounded-full animate-spin" />
-    </div>
+    <TonePage tone="mint" className="flex items-center justify-center">
+      <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+    </TonePage>
   );
 
   return (
-    <div className="min-h-screen bg-dark-900 pb-24">
+    <TonePage tone="mint" className="pb-[calc(7.5rem+env(safe-area-inset-bottom))]">
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 pt-4 pb-3 sticky top-0 bg-dark-900/95 backdrop-blur z-10">
-        <button onClick={() => navigate('/train')} className="w-9 h-9 flex items-center justify-center rounded-full bg-dark-700 active:scale-95">
+      <div className="flex items-center gap-3 px-4 pt-4 pb-3 sticky top-0 bg-tonepage-mint z-10">
+        <button onClick={() => navigate('/train')} aria-label="Back" className="w-11 h-11 flex items-center justify-center rounded-2xl bg-dark-400 active:scale-95">
           <ArrowLeft size={18} className="text-ink" />
         </button>
         <h1 className="text-xl font-bold text-ink flex-1">{t.history.title}</h1>
@@ -89,13 +90,13 @@ export default function ResetHistoryPage() {
       {/* Empty state */}
       {sessions.length === 0 && (
         <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
-          <div className="w-14 h-14 bg-teal-500/15 rounded-2xl flex items-center justify-center mb-4">
-            <Wind size={24} className="text-teal-400" />
+          <div className="w-16 h-16 bg-dark-400 rounded-3xl flex items-center justify-center mb-4">
+            <Wind size={28} className="text-ink" />
           </div>
           <h3 className="text-base font-bold text-ink mb-2">{t.history.emptyTitle}</h3>
           <button
             onClick={() => navigate('/body-reset')}
-            className="mt-4 bg-teal-500 text-white font-bold py-3 px-8 rounded-2xl active:scale-95"
+            className="mt-4 bg-sun text-inkblock font-extrabold py-3 px-8 rounded-[18px] min-h-[48px] active:scale-95"
           >
             {t.history.emptyBtn}
           </button>
@@ -109,10 +110,10 @@ export default function ResetHistoryPage() {
           const delta = tensionDelta(session);
           const dur = formatDuration(session.durationSeconds);
           const modeBadge = session.mode === 'quick' ? t.history.modeQuick : t.history.modeTraining;
-          const modeBadgeColor = session.mode === 'quick' ? 'text-teal-400 bg-teal-500/15' : 'text-brand-400 bg-brand-500/15';
+          const modeBadgeColor = session.mode === 'quick' ? 'text-inkblock bg-mint' : 'text-inkblock bg-sky';
 
           return (
-            <div key={session.id} className="bg-dark-800 border border-dark-600 rounded-2xl overflow-hidden">
+            <div key={session.id} className="bg-dark-400 rounded-3xl overflow-hidden">
               <button
                 className="w-full text-left px-4 py-3.5"
                 onClick={() => setExpandedId(isExpanded ? null : session.id)}
@@ -146,7 +147,7 @@ export default function ResetHistoryPage() {
                   {session.focusWordUsed && (
                     <div>
                       <p className="text-[10px] font-semibold text-slt uppercase tracking-wider mb-0.5">{t.card.focusWordLabel}</p>
-                      <p className="text-sm font-bold text-teal-400">{session.focusWordUsed}</p>
+                      <p className="text-sm font-bold text-[color:var(--accent-teal)]">{session.focusWordUsed}</p>
                     </div>
                   )}
                   {session.arjunNote && (
@@ -191,6 +192,6 @@ export default function ResetHistoryPage() {
           );
         })}
       </div>
-    </div>
+    </TonePage>
   );
 }

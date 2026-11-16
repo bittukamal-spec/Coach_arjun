@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { ArrowLeft, ChevronDown } from 'lucide-react';
-import ToolIntroLayout from '../train/ToolIntroLayout';
+import { ArrowLeft, ChevronDown, CheckCircle2 } from 'lucide-react';
+import TonePage from '../ui/TonePage';
 
 // Shared Intro → Practice → Completion shell for mental-training tools
 // (proven first on Quick Rep, Stage 6). Each practice keeps its own step
@@ -13,15 +13,19 @@ export function PracticeHeader({ onBack, title, progress, canGoBack = true }) {
   return (
     <div className="flex items-center gap-3 px-4 pt-4 pb-2">
       {canGoBack ? (
-        <button onClick={onBack} className="w-9 h-9 flex items-center justify-center rounded-full bg-dark-700 active:scale-95">
+        <button
+          onClick={onBack}
+          aria-label="Back"
+          className="w-11 h-11 flex items-center justify-center rounded-2xl bg-dark-400 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+        >
           <ArrowLeft size={18} className="text-ink" />
         </button>
       ) : (
-        <div className="w-9 h-9" />
+        <div className="w-11 h-11" />
       )}
-      {title && <p className="text-sm font-bold text-ink">{title}</p>}
+      {title && <p className="text-sm font-extrabold text-ink">{title}</p>}
       {progress && (
-        <div className="flex-1 h-1.5 bg-dark-700 rounded-full overflow-hidden">
+        <div className="flex-1 h-2 bg-dark-400 rounded-full overflow-hidden">
           <div className="h-full bg-brand-500 rounded-full transition-all duration-300" style={{ width: progress }} />
         </div>
       )}
@@ -29,84 +33,128 @@ export function PracticeHeader({ onBack, title, progress, canGoBack = true }) {
   );
 }
 
-// The practice's single introduction screen: hero + headline (via the
-// existing ToolIntroLayout), an optional collapsible "why this works"
-// explainer, and exactly one primary Start action pinned at the bottom.
+// Playbook redesign, founder layout (Nov 2026): the whole intro sits on the
+// feature's own page colour — no separate hero box and no boxes around the
+// details. Everything is centred, in this order: drawing, title, one line,
+// the time tag; then "What to expect"; then "Why this works" (a quiet
+// disclosure). The old Duration / Best for / Goal tiles are gone; the time
+// tag carries the duration. One Start action at the bottom.
+const VARIANT_TONE = { teal: 'mint', blue: 'sky', amber: 'sun', purple: 'sky' };
+// The main action must stand out from the page: sun everywhere except on the
+// sun page itself, where it is brand blue.
+const START_CLASS = {
+  sun: 'bg-brand-500 text-white',
+  default: 'bg-sun text-inkblock',
+};
+
 export function PracticeIntro({
   onBack, headerTitle,
-  icon, variant = 'blue', tag, title, desc, stats, checklist,
+  icon: Icon, variant = 'blue', tone, Art, tag, title, desc, checklist,
   whyLabel, whyBody,
   onStart, startLabel,
   secondaryLabel, onSecondary,
 }) {
   const [whyOpen, setWhyOpen] = useState(false);
+  const pageTone = tone || VARIANT_TONE[variant] || 'sky';
+  const startClass = START_CLASS[pageTone] || START_CLASS.default;
   return (
-    <div className="min-h-screen bg-dark-900 flex flex-col">
+    <TonePage tone={pageTone} className="flex flex-col">
       <PracticeHeader onBack={onBack} title={headerTitle} />
-      <div className="flex-1 px-4 pt-2 pb-8 overflow-y-auto">
-        <ToolIntroLayout icon={icon} variant={variant} tag={tag} title={title} desc={desc} stats={stats} checklist={checklist} />
+      <div className="flex-1 px-6 pt-2 pb-6 overflow-y-auto max-w-lg mx-auto w-full text-center">
+        <section>
+          {Art
+            ? <Art className="h-[clamp(84px,14dvh,128px)] w-auto mx-auto" />
+            : Icon && (
+              <span className="w-16 h-16 rounded-3xl bg-dark-400 text-ink flex items-center justify-center mx-auto" aria-hidden="true">
+                <Icon size={28} />
+              </span>
+            )}
+          <h2 className="mt-4 text-[28px] leading-[1.12] font-extrabold text-ink">{title}</h2>
+          {desc && <p className="mt-2 text-[15px] leading-relaxed text-slt">{desc}</p>}
+          {tag && (
+            <span className="mt-4 inline-block rounded-full bg-inkblock text-white text-micro font-bold uppercase px-3.5 py-1.5">{tag}</span>
+          )}
+        </section>
+
+        {checklist && (
+          <section className="mt-8">
+            {checklist.title && <h3 className="text-[16px] font-extrabold text-ink mb-3">{checklist.title}</h3>}
+            <ul className="space-y-2.5">
+              {checklist.items.map((item, i) => (
+                <li key={i} className="flex items-start justify-center gap-2 text-[14.5px] text-ink leading-snug">
+                  <CheckCircle2 size={18} className="shrink-0 mt-0.5" aria-hidden="true" />
+                  <span className="text-left">{item}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         {whyBody && (
-          <div className="bg-dark-800 border border-dark-600 rounded-2xl overflow-hidden mt-2 mb-2">
+          <section className="mt-6">
             <button
               onClick={() => setWhyOpen(o => !o)}
-              className="w-full flex items-center justify-between px-4 py-3 text-left"
+              className="min-h-[48px] inline-flex items-center justify-center gap-1.5 px-3 rounded-2xl text-[16px] font-extrabold text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
               aria-expanded={whyOpen}
             >
-              <p className="text-xs font-bold text-brand-400 uppercase tracking-wider">{whyLabel}</p>
-              <ChevronDown size={16} className={`text-slt shrink-0 transition-transform ${whyOpen ? 'rotate-180' : ''}`} />
+              {whyLabel}
+              <ChevronDown size={18} className={`shrink-0 transition-transform ${whyOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
             </button>
             {whyOpen && (
-              <div className="px-4 pb-4 text-sm text-slt leading-relaxed border-t border-dark-700 pt-3">
+              <div className="mt-1 text-[14.5px] text-slt leading-relaxed">
                 {whyBody}
               </div>
             )}
-          </div>
+          </section>
         )}
       </div>
-      <div className="px-4 pb-8 pt-2">
-        <button onClick={onStart} className="btn-gradient w-full py-3.5" style={{ minHeight: '52px' }}>
+      <div className="px-4 pb-8 pt-2 max-w-lg mx-auto w-full">
+        <button
+          onClick={onStart}
+          className={`w-full min-h-[56px] rounded-[18px] text-base font-extrabold active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 ${startClass}`}
+        >
           {startLabel}
         </button>
         {/* Secondary intro action (e.g. Pressure Reset's "View history").
             min-h-[44px] + flex centering give the control itself a real 44px
-            tap target — a taller parent would not, since the button is the
-            interactive element. It stays a quiet text link visually: no
-            background, no border, same muted 12px type as before. */}
+            tap target — it stays a quiet text link visually. */}
         {secondaryLabel && (
           <button
             onClick={onSecondary}
-            className="w-full min-h-[44px] flex items-center justify-center text-center text-xs text-muted font-medium mt-3 rounded active:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+            className="w-full min-h-[44px] flex items-center justify-center text-center text-sm text-ink font-semibold mt-2 rounded active:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
           >
             {secondaryLabel}
           </button>
         )}
       </div>
-    </div>
+    </TonePage>
   );
 }
 
-// One step of the practice itself — the same header + title/sub/children
-// shape every practice already used locally before this shell existed.
-export function PracticeScreen({ onBack, headerTitle, progress, canGoBack = true, title, sub, children }) {
-  return (
-    <div className="min-h-screen bg-dark-900 flex flex-col">
+// One step of the practice itself. With a `tone`, the step sits on the
+// feature's page colour like its intro; without one, on the ordinary page.
+export function PracticeScreen({ onBack, headerTitle, progress, canGoBack = true, title, sub, tone, children }) {
+  const body = (
+    <>
       <PracticeHeader onBack={onBack} title={headerTitle} progress={progress} canGoBack={canGoBack} />
       <div className="flex-1 px-4 pt-4 pb-8 max-w-lg mx-auto w-full">
-        {title && <h1 className="text-xl font-bold text-ink mb-2 leading-snug">{title}</h1>}
+        {title && <h1 className="text-[22px] font-extrabold text-ink mb-2 leading-snug">{title}</h1>}
         {sub && <p className="text-sm text-slt mb-6 leading-relaxed">{sub}</p>}
         {children}
       </div>
-    </div>
+    </>
   );
+  return tone
+    ? <TonePage tone={tone} className="flex flex-col">{body}</TonePage>
+    : <div className="min-h-screen bg-dark-900 flex flex-col">{body}</div>;
 }
 
 // Consistent full-screen completion frame. The practice supplies its own
 // completion content (icon, summary, save/exit actions) unchanged — only
 // the surrounding frame is shared.
-export function PracticeCompletion({ children }) {
-  return (
-    <div className="min-h-screen bg-dark-900 flex flex-col items-center justify-center px-4 text-center">
-      {children}
-    </div>
-  );
+export function PracticeCompletion({ tone, children }) {
+  const cls = 'flex flex-col items-center justify-center px-4 text-center';
+  return tone
+    ? <TonePage tone={tone} className={cls}>{children}</TonePage>
+    : <div className={`min-h-screen bg-dark-900 ${cls}`}>{children}</div>;
 }
