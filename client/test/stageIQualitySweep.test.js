@@ -51,17 +51,16 @@ test('nothing imports the removed components, statically or dynamically', () => 
   }
 });
 
-test('the components they shared are still present, because they still have callers', () => {
-  // GradientIconTile and ToolIntroLayout still have callers (Quick Rep, and
-  // the Focus Card Builder intro), so neither may be swept up yet. The shared
-  // PracticeShell intro moved to the Playbook colour-block hero (Nov 2026)
-  // and no longer uses ToolIntroLayout.
-  for (const name of ['GradientIconTile', 'ToolIntroLayout']) {
-    assert.ok(existsSync(path.join(root, `src/components/train/${name}.jsx`)), `${name} is still in use`);
+test('the gradient-era intro pieces are gone once their last callers moved to the Playbook intro', () => {
+  // Nov 2026: Pressure Reset, Quick Rep and the Focus Card Builder all use the
+  // shared PracticeShell intro on their feature colour, so the old gradient
+  // intro (ToolIntroLayout, GradientIconTile, InfoStatCard, ChecklistCard)
+  // had no callers left and was removed. Nothing may import them again.
+  for (const name of ['ToolIntroLayout', 'GradientIconTile', 'InfoStatCard', 'ChecklistCard']) {
+    assert.ok(!existsSync(path.join(root, `src/components/train/${name}.jsx`)), `${name} was removed`);
+    assert.doesNotMatch(ALL_SOURCE, new RegExp(`import[^\\n]*\\b${name}\\b`), `${name} must have no remaining import`);
   }
-  assert.match(src('components/train/ToolIntroLayout.jsx'), /GradientIconTile/);
-  assert.match(src('pages/SelfTalkPage.jsx'), /ToolIntroLayout/);
-  assert.doesNotMatch(src('components/practice/PracticeShell.jsx'), /import ToolIntroLayout|btn-gradient|linear-gradient/);
+  assert.doesNotMatch(src('components/practice/PracticeShell.jsx'), /btn-gradient|linear-gradient/);
 });
 
 // ── 2. Translation cleanup on the redesigned pilot surfaces ────────────────

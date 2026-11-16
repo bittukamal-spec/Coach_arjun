@@ -3,4 +3,4 @@ export { default as Card } from './Card.jsx';
 export { default as PageHeader } from './PageHeader.jsx';
 export { default as SectionLabel } from './SectionLabel.jsx';
 export { default as SaveStatus } from './SaveStatus.jsx';
-export { default as TonePage, toneBg } from './TonePage.jsx';
+export { default as TonePage, toneBg, useToneStatusBar } from './TonePage.jsx';

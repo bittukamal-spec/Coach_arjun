@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { apiFetch } from '../api';
 import { translations } from '../i18n/translations';
 import FocusWordChip from '../components/train/FocusWordChip';
+import { useToneStatusBar } from '../components/ui/TonePage';
 
 const MATCH_CONTEXTS = [
   { key: 'pre_match',    labelEn: 'Pre-match',    labelHi: 'Match से पहले' },
@@ -17,6 +18,7 @@ const MATCH_CONTEXTS = [
 const POPULAR_FOCUS_WORDS = ['Next action', 'Watch', 'Steady', 'Attack', 'Reset', 'Lock in'];
 
 export default function FocusDeckPage() {
+  useToneStatusBar('coral');
   const { token, language } = useAuth();
   const navigate = useNavigate();
   const t = translations[language]?.selfTalk?.deck || translations.en.selfTalk.deck;
@@ -111,21 +113,21 @@ export default function FocusDeckPage() {
   };
 
   if (loading) return (
-    <div className="min-h-screen bg-dark-900 flex items-center justify-center">
+    <div className="min-h-screen bg-tonepage-coral flex items-center justify-center">
       <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-dark-900 pb-[calc(7.5rem+env(safe-area-inset-bottom))]">
+    <div className="min-h-screen bg-tonepage-coral pb-[calc(7.5rem+env(safe-area-inset-bottom))]">
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 pt-4 pb-3 sticky top-0 bg-dark-900/95 backdrop-blur z-10">
-        <button onClick={() => navigate('/train')} className="w-9 h-9 flex items-center justify-center rounded-full bg-dark-700 active:scale-95">
+      <div className="flex items-center gap-3 px-4 pt-4 pb-3 sticky top-0 bg-tonepage-coral z-10">
+        <button onClick={() => navigate('/train')} aria-label="Back" className="w-11 h-11 flex items-center justify-center rounded-2xl bg-dark-400 active:scale-95">
           <ArrowLeft size={18} className="text-ink" />
         </button>
         <h1 className="text-title font-bold text-ink flex-1">{t.title}</h1>
         {activeCount >= 5 && (
-          <span className="text-xs bg-amber-500/15 text-amber-400 px-2 py-1 rounded-full font-semibold">5/5</span>
+          <span className="text-xs bg-inkblock text-white px-2.5 py-1 rounded-full font-bold">5/5</span>
         )}
         {activeCount < 5 && (
           <button
@@ -185,8 +187,8 @@ export default function FocusDeckPage() {
 
       {/* Max cards banner */}
       {activeCount >= 5 && (
-        <div className="mx-4 mb-3 bg-amber-500/10 border border-amber-500/30 rounded-xl px-3 py-2">
-          <p className="text-xs text-amber-400">{t.maxBanner} {hi ? 'पहले एक हटाओ।' : 'Delete one first.'}</p>
+        <div className="mx-4 mb-3 bg-dark-400 rounded-2xl px-3 py-2">
+          <p className="text-xs text-ink">{t.maxBanner} {hi ? 'पहले एक हटाओ।' : 'Delete one first.'}</p>
         </div>
       )}
 
@@ -196,7 +198,7 @@ export default function FocusDeckPage() {
           <h3 className="text-base font-bold text-ink mb-2">{t.emptyTitle}</h3>
           <button
             onClick={() => navigate('/self-talk')}
-            className="btn-gradient mt-4 py-3 px-8"
+            className="mt-4 px-8 min-h-[52px] rounded-[18px] bg-sun text-inkblock font-extrabold active:scale-[0.98] transition-transform"
             style={{ minHeight: '48px' }}
           >
             {t.emptyBtn}
@@ -213,7 +215,7 @@ export default function FocusDeckPage() {
           const isExpanded = expandedId === card.id;
           const showContextMenu = contextMenuId === card.id;
           return (
-            <div key={card.id} className={`rounded-3xl border ${card.isMatchDayCard ? 'bg-brand-500/10 border-brand-500/40' : 'bg-dark-800 border-dark-600'}`}>
+            <div key={card.id} className={`rounded-3xl border ${card.isMatchDayCard ? 'bg-dark-400 border-2 border-brand-500' : 'bg-dark-400 border-transparent'}`}>
 
               {/* Tappable card header */}
               <button
@@ -226,8 +228,8 @@ export default function FocusDeckPage() {
                 {/* Match day badge with context */}
                 {card.isMatchDayCard && (
                   <div className="flex items-center gap-1 mb-2">
-                    <Star size={12} className="text-amber-400 fill-amber-400" />
-                    <span className="text-xs font-semibold text-amber-400">
+                    <Star size={12} className="text-inkblock fill-sun" />
+                    <span className="text-xs font-semibold text-ink">
                       {contextLabel(card.matchDayContext)}
                     </span>
                   </div>

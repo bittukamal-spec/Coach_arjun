@@ -17,6 +17,7 @@ import {
   resolveConditionalQuestion, textOrUndefined, toggleStateKey,
 } from './constants';
 import { ChoiceChips, SafetyGuidanceCard, StepProgress, STATE_ICONS, useMindJournalSave, useMindJournalBack } from './shared';
+import useScrollTopOnChange from '../../hooks/useScrollTopOnChange';
 
 // ─── The unified Mind Journal reflection — ONE component driving every
 // question, rather than six routed pages. All answers live in this
@@ -63,6 +64,7 @@ export default function ReflectionWizard() {
   const [cueFeedback, setCueFeedback] = useState(null);
 
   const [stepIndex, setStepIndex] = useState(0);
+  useScrollTopOnChange(stepIndex);
   const [focusWord, setFocusWord] = useState(null);
   const { saving, saveError, safety, dismissSafety, save } = useMindJournalSave();
 

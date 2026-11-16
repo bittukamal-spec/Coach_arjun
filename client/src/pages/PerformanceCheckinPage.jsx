@@ -8,6 +8,7 @@ import CheckinQuestion, { checkinScreenValid } from '../components/profile/Check
 import { ProfileSkeleton } from '../components/profile';
 import ModalDialog from '../components/onboarding/ModalDialog';
 import * as CFG from '../onboarding/config';
+import useScrollTopOnChange from '../hooks/useScrollTopOnChange';
 
 // ─── Section-scoped profile edit ───────────────────────────────────────────
 // NEVER called "onboarding" in this page's own copy: onboarding is the
@@ -57,6 +58,7 @@ export default function PerformanceCheckinPage() {
   const scoped = VALID_SECTIONS.has(section) ? section : null;
 
   const [step, setStep] = useState(0);
+  useScrollTopOnChange(step);
   const [answers, setAnswers] = useState(null); // lazily seeded from profile.checkin.answers
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);

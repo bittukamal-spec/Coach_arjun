@@ -46,6 +46,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import BottomNav from './components/BottomNav';
 import AppUpdatePrompt from './components/AppUpdatePrompt';
 import { translations } from './i18n/translations';
+import ScrollManager from './components/ScrollManager';
 
 function App() {
   const { loading, language, user } = useAuth();
@@ -80,6 +81,7 @@ function App() {
   return (
     <>
     {updatePrompt}
+    <ScrollManager />
     <Routes>
       {/* Public */}
       <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <LandingPage />} />

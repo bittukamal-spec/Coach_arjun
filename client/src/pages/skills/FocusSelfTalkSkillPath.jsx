@@ -7,6 +7,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { translations } from '../../i18n/translations';
 import { apiFetch } from '../../api';
+import useScrollTopOnChange from '../../hooks/useScrollTopOnChange';
 
 const SKILL_KEY = 'focus_self_talk';
 
@@ -25,6 +26,7 @@ export default function FocusSelfTalkSkillPath() {
   const t = translations[language]?.skillPathFocus || translations.en.skillPathFocus;
 
   const [screen, setScreen] = useState('intro');
+  useScrollTopOnChange(screen);
   const [hasActiveFocusCard, setHasActiveFocusCard] = useState(false);
 
   const [quizIndex, setQuizIndex] = useState(0);

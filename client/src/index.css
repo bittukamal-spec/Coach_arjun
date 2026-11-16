@@ -127,7 +127,8 @@
   --tone-mint-page:  #7FE3C4;
   --tone-sky-page:   #B7C8FF;
   --tone-sun-page:   #FFC629;
-  --tone-coral-page: #FF6B4A;
+  --tone-coral-page: #FFBCAE; /* lighter than the coral block so grey text still reads (4.7:1) */
+  --tone-blush-page: #FFC2E9; /* lighter than the blush block, same reason (5.1:1) */
 }
 
 /* OS prefers dark — applies when arjun_theme = 'system' (no data-theme attr) */
@@ -185,6 +186,7 @@
     --tone-sky-page:   #1A2560;
     --tone-sun-page:   #3A2E07;
     --tone-coral-page: #3E1A12;
+    --tone-blush-page: #3A1530;
   }
 }
 
@@ -241,6 +243,7 @@
   --tone-sky-page:   #1A2560;
   --tone-sun-page:   #3A2E07;
   --tone-coral-page: #3E1A12;
+  --tone-blush-page: #3A1530;
 }
 
 @layer utilities {

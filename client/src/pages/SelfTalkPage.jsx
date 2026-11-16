@@ -5,8 +5,10 @@ import { useAuth } from '../contexts/AuthContext';
 import { apiFetch } from '../api';
 import { translations } from '../i18n/translations';
 import HelplineList from '../components/HelplineList';
-import ToolIntroLayout from '../components/train/ToolIntroLayout';
-import { PracticeHeader } from '../components/practice/PracticeShell';
+import { PracticeHeader, PracticeIntro } from '../components/practice/PracticeShell';
+import { FocusArt } from '../components/visuals/TrainArt';
+import { useToneStatusBar } from '../components/ui/TonePage';
+import useScrollTopOnChange from '../hooks/useScrollTopOnChange';
 
 export default function SelfTalkPage() {
   const { user, token, language } = useAuth();
@@ -15,6 +17,8 @@ export default function SelfTalkPage() {
   const hi = language === 'hi';
 
   const [screen, setScreen] = useState(1);
+  useScrollTopOnChange(screen);
+  useToneStatusBar('coral');
   const [form, setForm] = useState({
     sport: user?.sport || '',
     roleOrPosition: user?.position || '',
@@ -142,63 +146,44 @@ export default function SelfTalkPage() {
 
   // ── SCREEN 1: Learn ──────────────────────────────────────────────────────
   if (screen === 1) return (
-    <div className="min-h-screen bg-dark-900 flex flex-col">
-      <Header />
-      <div className="flex-1 px-4 pt-2 pb-8 overflow-y-auto">
-        <ToolIntroLayout
-          icon={MessageSquare}
-          variant="blue"
-          tag={t.learn.duration}
-          title={t.learn.title}
-          desc={t.learn.desc}
-          stats={[
-            { label: hi ? 'समय' : 'Duration', value: t.learn.duration },
-            { label: hi ? 'किसके लिए' : 'Best for', value: hi ? 'दबाव वाली सोच' : 'Pressure thoughts' },
-            { label: hi ? 'लक्ष्य' : 'Goal', value: hi ? 'अपना Focus Card' : 'Your own Focus Card' },
-          ]}
-          checklist={{
-            title: hi ? 'क्या उम्मीद करें' : 'What to expect',
-            items: [t.learn.benefit1, t.learn.benefit2, t.learn.benefit3],
-          }}
-        />
-
-        <div className="bg-dark-800 rounded-2xl p-4 mb-8">
-          <p className="text-xs font-semibold text-brand-400 uppercase tracking-wider mb-1">{t.learn.educTitle}</p>
-          <p className="text-sm text-slt">{t.learn.educBody}</p>
-        </div>
-
-      </div>
-      <div className="px-4 pb-8 pt-2">
-        <button
-          onClick={() => setScreen(2)}
-          className="btn-gradient w-full py-3.5"
-          style={{ minHeight: '52px' }}
-        >
-          {t.learn.startBtn}
-        </button>
-      </div>
-    </div>
+    <PracticeIntro
+      onBack={goBack}
+      tone="coral"
+      Art={FocusArt}
+      icon={MessageSquare}
+      tag={t.learn.duration}
+      title={t.learn.title}
+      desc={t.learn.desc}
+      checklist={{
+        title: hi ? 'क्या उम्मीद करें' : 'What to expect',
+        items: [t.learn.benefit1, t.learn.benefit2, t.learn.benefit3],
+      }}
+      whyLabel={t.learn.educTitle}
+      whyBody={<p>{t.learn.educBody}</p>}
+      onStart={() => setScreen(2)}
+      startLabel={t.learn.startBtn}
+    />
   );
 
   // ── SCREEN 2: Sport Context ──────────────────────────────────────────────
   if (screen === 2) return (
-    <div className="min-h-screen bg-dark-900 flex flex-col">
+    <div className="min-h-screen bg-tonepage-coral flex flex-col">
       <Header progress="28%" />
       <div className="flex-1 px-4 pt-2 pb-8 overflow-y-auto">
         <p className="text-xs text-slt mb-1">{t.sport.progress}</p>
-        <h2 className="text-title font-bold text-ink mb-5">{t.sport.heading}</h2>
+        <h2 className="text-[22px] font-extrabold text-ink mb-5">{t.sport.heading}</h2>
 
         <div className="space-y-4">
           <div>
             <label className="text-xs font-semibold text-slt uppercase tracking-wider">{t.sport.sportLabel}</label>
             {form.sport && user?.sport && form.sport === user.sport ? (
               <div className="mt-1.5 flex items-center gap-2">
-                <div className="flex-1 bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 text-sm text-ink capitalize">{form.sport}</div>
+                <div className="flex-1 bg-dark-400 border border-dark-600 rounded-xl px-4 py-3 text-sm text-ink capitalize">{form.sport}</div>
                 <button onClick={() => setField('sport', '')} className="text-xs text-brand-400">{t.sport.changeSport}</button>
               </div>
             ) : (
               <input
-                className="mt-1.5 w-full bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 text-sm text-ink placeholder-muted focus:outline-none focus:border-brand-500"
+                className="mt-1.5 w-full bg-dark-400 border border-dark-600 rounded-xl px-4 py-3 text-sm text-ink placeholder-muted focus:outline-none focus:border-brand-500"
                 placeholder={t.sport.sportHint}
                 value={form.sport}
                 onChange={e => setField('sport', e.target.value)}
@@ -209,7 +194,7 @@ export default function SelfTalkPage() {
           <div>
             <label className="text-xs font-semibold text-slt uppercase tracking-wider">{t.sport.roleLabel}</label>
             <input
-              className="mt-1.5 w-full bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 text-sm text-ink placeholder-muted focus:outline-none focus:border-brand-500"
+              className="mt-1.5 w-full bg-dark-400 border border-dark-600 rounded-xl px-4 py-3 text-sm text-ink placeholder-muted focus:outline-none focus:border-brand-500"
               placeholder={t.sport.rolePlaceholder}
               value={form.roleOrPosition}
               onChange={e => setField('roleOrPosition', e.target.value)}
@@ -221,7 +206,7 @@ export default function SelfTalkPage() {
               {t.sport.momentLabel} <span className="text-red-400">*</span>
             </label>
             <input
-              className="mt-1.5 w-full bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 text-sm text-ink placeholder-muted focus:outline-none focus:border-brand-500"
+              className="mt-1.5 w-full bg-dark-400 border border-dark-600 rounded-xl px-4 py-3 text-sm text-ink placeholder-muted focus:outline-none focus:border-brand-500"
               placeholder={t.sport.momentPlaceholder}
               value={form.performanceMoment}
               onChange={e => setField('performanceMoment', e.target.value)}
@@ -231,7 +216,7 @@ export default function SelfTalkPage() {
           <div>
             <label className="text-xs font-semibold text-slt uppercase tracking-wider">{t.sport.skillLabel}</label>
             <input
-              className="mt-1.5 w-full bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 text-sm text-ink placeholder-muted focus:outline-none focus:border-brand-500"
+              className="mt-1.5 w-full bg-dark-400 border border-dark-600 rounded-xl px-4 py-3 text-sm text-ink placeholder-muted focus:outline-none focus:border-brand-500"
               placeholder={t.sport.skillPlaceholder}
               value={form.skillContext}
               onChange={e => setField('skillContext', e.target.value)}
@@ -265,11 +250,11 @@ export default function SelfTalkPage() {
   ];
 
   if (screen === 3) return (
-    <div className="min-h-screen bg-dark-900 flex flex-col">
+    <div className="min-h-screen bg-tonepage-coral flex flex-col">
       <Header progress="42%" />
       <div className="flex-1 px-4 pt-2 pb-8 overflow-y-auto">
         <p className="text-xs text-slt mb-1">{t.situation.progress}</p>
-        <h2 className="text-title font-bold text-ink mb-5">{t.situation.heading}</h2>
+        <h2 className="text-[22px] font-extrabold text-ink mb-5">{t.situation.heading}</h2>
 
         <div className="grid grid-cols-1 gap-2 mb-4">
           {SITUATION_OPTIONS.map(opt => (
@@ -281,8 +266,8 @@ export default function SelfTalkPage() {
               }}
               className={`text-left px-4 py-3.5 rounded-2xl border text-sm font-medium transition-colors active:scale-[0.98] ${
                 form.situationCategory === opt.key
-                  ? 'bg-brand-500/15 border-brand-500 text-brand-400'
-                  : 'bg-dark-800 border-dark-600 text-slt'
+                  ? 'bg-brand-500 border-brand-500 text-white'
+                  : 'bg-dark-400 border-transparent text-ink'
               }`}
             >
               {opt.label}
@@ -292,7 +277,7 @@ export default function SelfTalkPage() {
 
         {form.situationCategory === 'custom' && (
           <textarea
-            className="w-full bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 text-sm text-ink placeholder-muted focus:outline-none focus:border-brand-500 resize-none"
+            className="w-full bg-dark-400 border border-dark-600 rounded-xl px-4 py-3 text-sm text-ink placeholder-muted focus:outline-none focus:border-brand-500 resize-none"
             rows={3}
             placeholder={t.situation.customPlaceholder}
             value={form.situationText}
@@ -326,7 +311,7 @@ export default function SelfTalkPage() {
   ];
 
   if (screen === 4) return (
-    <div className="min-h-screen bg-dark-900 flex flex-col">
+    <div className="min-h-screen bg-tonepage-coral flex flex-col">
       <Header progress="57%" />
       <div className="flex-1 px-4 pt-2 pb-8 overflow-y-auto">
         <p className="text-xs text-slt mb-1">{t.thought.progress}</p>
@@ -343,8 +328,8 @@ export default function SelfTalkPage() {
               }}
               className={`text-left px-4 py-3.5 rounded-2xl border text-sm font-medium transition-colors active:scale-[0.98] ${
                 form._thoughtKey === opt.key
-                  ? 'bg-brand-500/15 border-brand-500 text-brand-400'
-                  : 'bg-dark-800 border-dark-600 text-slt'
+                  ? 'bg-brand-500 border-brand-500 text-white'
+                  : 'bg-dark-400 border-transparent text-ink'
               }`}
             >
               {opt.label}
@@ -354,7 +339,7 @@ export default function SelfTalkPage() {
 
         {form._thoughtKey === 'custom' && (
           <textarea
-            className="w-full bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 text-sm text-ink placeholder-muted focus:outline-none focus:border-brand-500 resize-none mb-4"
+            className="w-full bg-dark-400 border border-dark-600 rounded-xl px-4 py-3 text-sm text-ink placeholder-muted focus:outline-none focus:border-brand-500 resize-none mb-4"
             rows={3}
             placeholder={t.thought.customPlaceholder}
             value={form.oldThought}
@@ -373,7 +358,7 @@ export default function SelfTalkPage() {
                   className={`w-8 h-8 rounded-lg text-xs font-bold transition-colors ${
                     form.thoughtIntensityBefore === n
                       ? 'bg-brand-500 text-white'
-                      : 'bg-dark-800 border border-dark-600 text-slt'
+                      : 'bg-dark-400 border border-dark-600 text-slt'
                   }`}
                 >
                   {n}
@@ -392,7 +377,7 @@ export default function SelfTalkPage() {
                   className={`w-8 h-8 rounded-lg text-xs font-bold transition-colors ${
                     form.confidenceBefore === n
                       ? 'bg-brand-500 text-white'
-                      : 'bg-dark-800 border border-dark-600 text-slt'
+                      : 'bg-dark-400 border border-dark-600 text-slt'
                   }`}
                 >
                   {n}
@@ -421,17 +406,17 @@ export default function SelfTalkPage() {
   // ── SCREEN 5: Generating / Safety / Error ────────────────────────────────
   if (screen === 5) {
     if (safetyFlag === 'needs_support') return (
-      <div className="min-h-screen bg-dark-900 flex flex-col">
+      <div className="min-h-screen bg-tonepage-coral flex flex-col">
         <Header />
         <div className="flex-1 px-4 pt-6 pb-8 flex flex-col">
-          <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-5 mb-6">
-            <h2 className="text-lg font-bold text-amber-400 mb-2">{t.safety.heading}</h2>
+          <div className="bg-dark-400 rounded-3xl p-5 mb-6">
+            <h2 className="text-lg font-bold text-ink mb-2">{t.safety.heading}</h2>
             <p className="text-sm text-slt leading-relaxed">{t.safety.message}</p>
           </div>
           <div className="mb-6">
             <HelplineList />
           </div>
-          <button onClick={() => navigate('/train')} className="w-full bg-dark-700 text-ink font-bold py-3.5 rounded-2xl active:scale-95">
+          <button onClick={() => navigate('/train')} className="w-full min-h-[52px] bg-dark-400 text-ink font-bold rounded-[18px] active:scale-95">
             {t.safety.backBtn}
           </button>
         </div>
@@ -439,13 +424,13 @@ export default function SelfTalkPage() {
     );
 
     if (generateError) return (
-      <div className="min-h-screen bg-dark-900 flex flex-col">
+      <div className="min-h-screen bg-tonepage-coral flex flex-col">
         <Header />
         <div className="flex-1 px-4 flex flex-col items-center justify-center gap-6">
           <p className="text-sm text-slt text-center">{t.error.message}</p>
           <button
             onClick={() => { setGenerateError(false); setScreen(5); }}
-            className="bg-brand-500 text-white font-bold py-3 px-8 rounded-2xl active:scale-95"
+            className="px-8 min-h-[56px] rounded-[18px] bg-sun text-inkblock font-extrabold active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
           >
             {t.error.retryBtn}
           </button>
@@ -454,10 +439,10 @@ export default function SelfTalkPage() {
     );
 
     return (
-      <div className="min-h-screen bg-dark-900 flex flex-col items-center justify-center gap-5 px-4">
+      <div className="min-h-screen bg-tonepage-coral flex flex-col items-center justify-center gap-5 px-4">
         <Loader2 size={40} className="text-brand-400 animate-spin" />
         <p className="text-sm text-slt text-center">{t.generating.text}</p>
-        <div className="w-48 h-1 bg-dark-700 rounded-full overflow-hidden">
+        <div className="w-48 h-1.5 bg-dark-400 rounded-full overflow-hidden">
           <div className="h-full bg-brand-500 rounded-full animate-pulse" style={{ width: '60%' }} />
         </div>
       </div>
@@ -467,26 +452,23 @@ export default function SelfTalkPage() {
   // ── SCREEN 6: Focus Card ─────────────────────────────────────────────────
   if (screen === 6 && card) {
   return (
-    <div className="min-h-screen bg-dark-900 flex flex-col">
+    <div className="min-h-screen bg-tonepage-coral flex flex-col">
       <Header progress="85%" />
       <div className="flex-1 px-4 pt-2 pb-4 overflow-y-auto">
         <p className="text-xs text-slt mb-1">{t.card.progress}</p>
         <h2 className="text-title font-bold text-ink mb-4">{t.card.heading}</h2>
 
-        <div className="rounded-3xl overflow-hidden mb-4 card-elevated">
+        <div className="rounded-3xl overflow-hidden mb-4 bg-dark-400">
           {/* Gradient crown band */}
-          <div
-            className="px-5 pt-5 pb-4 text-center text-white"
-            style={{ background: 'linear-gradient(135deg, #1B4DFF 0%, #8B5CF6 100%)' }}
-          >
-            <p className="text-micro font-semibold text-white/80 uppercase mb-1">{t.card.focusWordLabel}</p>
+          <div className="px-5 pt-5 pb-4 text-center bg-sun text-inkblock">
+            <p className="text-micro font-bold uppercase mb-1">{t.card.focusWordLabel}</p>
             <p className="text-display font-black leading-tight">{card.focusWord}</p>
           </div>
 
           <div className="p-5">
             <div className="text-center mb-4">
-              <p className="text-micro font-semibold uppercase mb-1" style={{ color: '#D98B2B' }}>{t.card.resetWordLabel}</p>
-              <p className="text-title font-bold" style={{ color: '#D98B2B' }}>{card.resetWord}</p>
+              <p className="text-micro font-semibold uppercase mb-1 text-slt">{t.card.resetWordLabel}</p>
+              <p className="text-title font-bold text-ink">{card.resetWord}</p>
             </div>
 
             <div className="border-t border-dark-600 pt-4 mb-3">
@@ -501,8 +483,8 @@ export default function SelfTalkPage() {
           </div>
         </div>
 
-        <div className="bg-dark-800 rounded-2xl p-4 mb-4">
-          <p className="text-micro font-semibold text-brand-400 uppercase mb-1">{t.card.arjunNoteLabel}</p>
+        <div className="text-center mb-4 px-2">
+          <p className="text-[14px] font-extrabold text-ink mb-1">{t.card.arjunNoteLabel}</p>
           <p className="text-sm text-slt leading-relaxed">{card.arjunNote}</p>
         </div>
 
@@ -518,20 +500,19 @@ export default function SelfTalkPage() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="btn-gradient w-full py-3.5"
-          style={{ minHeight: '52px' }}
+          className="w-full min-h-[56px] rounded-[18px] bg-sun text-inkblock font-extrabold active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 inline-flex items-center justify-center gap-2"
         >
           {saving ? <><Loader2 size={16} className="animate-spin" />{t.card.saving}</> : t.card.saveBtn}
         </button>
         <button
           onClick={() => { setCard(null); setScreen(5); }}
-          className="w-full bg-dark-700 text-slt font-semibold py-3 rounded-2xl active:scale-95"
+          className="w-full min-h-[52px] bg-dark-400 text-ink font-bold rounded-[18px] active:scale-95"
         >
           {t.card.regenBtn}
         </button>
         <button
           onClick={() => setScreen(4)}
-          className="w-full text-muted text-sm py-2 active:opacity-60"
+          className="w-full min-h-[44px] text-ink text-sm font-semibold active:opacity-60"
         >
           {hi ? 'वापस जाओ' : 'Back'}
         </button>
@@ -542,9 +523,9 @@ export default function SelfTalkPage() {
 
   // ── SCREEN 7: Saved ──────────────────────────────────────────────────────
   if (screen === 7 && card) return (
-    <div className="min-h-screen bg-dark-900 flex flex-col items-center justify-center px-4">
+    <div className="min-h-screen bg-tonepage-coral flex flex-col items-center justify-center px-4">
       <div className="text-center mb-8">
-        <div className="w-16 h-16 bg-brand-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+        <div className="w-16 h-16 bg-dark-400 rounded-3xl flex items-center justify-center mx-auto mb-4">
           <span className="text-3xl">✦</span>
         </div>
         <h2 className="text-2xl font-bold text-ink mb-2">{t.saved.heading}</h2>
@@ -553,13 +534,13 @@ export default function SelfTalkPage() {
       <div className="w-full space-y-3">
         <button
           onClick={handlePractice}
-          className="w-full bg-brand-500 text-white font-bold py-3.5 rounded-2xl active:scale-95"
+          className="w-full min-h-[56px] rounded-[18px] bg-sun text-inkblock font-extrabold active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
         >
           {t.saved.practiceBtn}
         </button>
         <button
           onClick={() => navigate('/focus-deck')}
-          className="w-full bg-dark-700 text-ink font-semibold py-3.5 rounded-2xl active:scale-95"
+          className="w-full min-h-[52px] bg-dark-400 text-ink font-bold rounded-[18px] active:scale-95"
         >
           {t.saved.deckBtn}
         </button>
@@ -576,12 +557,12 @@ export default function SelfTalkPage() {
     ];
 
     if (practiceDone) return (
-      <div className="min-h-screen bg-dark-900 flex flex-col items-center justify-center px-4">
+      <div className="min-h-screen bg-tonepage-coral flex flex-col items-center justify-center px-4">
         <div className="text-center mb-8">
           <div className="text-5xl mb-4">⚡</div>
           <h2 className="text-title font-bold text-ink mb-2">{t.practice.doneMsg}</h2>
         </div>
-        <button onClick={() => navigate('/focus-deck')} className="w-full bg-brand-500 text-white font-bold py-3.5 rounded-2xl active:scale-95">
+        <button onClick={() => navigate('/focus-deck')} className="w-full min-h-[56px] rounded-[18px] bg-sun text-inkblock font-extrabold active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2">
           {t.saved.deckBtn}
         </button>
       </div>
@@ -590,12 +571,12 @@ export default function SelfTalkPage() {
     if (practiceStep < 3) {
       const step = steps[practiceStep];
       return (
-        <div className="min-h-screen bg-dark-900 flex flex-col">
+        <div className="min-h-screen bg-tonepage-coral flex flex-col">
           <Header />
           <div className="flex-1 flex flex-col items-center justify-center px-6 text-center gap-6">
             <div className="flex gap-2 mb-2">
               {[0,1,2,3].map(i => (
-                <div key={i} className={`h-1.5 w-12 rounded-full transition-colors ${i <= practiceStep ? 'bg-brand-500' : 'bg-dark-700'}`} />
+                <div key={i} className={`h-1.5 w-12 rounded-full transition-colors ${i <= practiceStep ? 'bg-brand-500' : 'bg-dark-400'}`} />
               ))}
             </div>
             <p className="text-lg font-semibold text-ink leading-snug">{step.text}</p>
@@ -606,15 +587,15 @@ export default function SelfTalkPage() {
     }
 
     return (
-      <div className="min-h-screen bg-dark-900 flex flex-col">
+      <div className="min-h-screen bg-tonepage-coral flex flex-col">
         <Header />
         <div className="flex-1 flex flex-col items-center justify-center px-6 text-center gap-6">
           <div className="flex gap-2 mb-2">
             {[0,1,2,3].map(i => (
-              <div key={i} className={`h-1.5 w-12 rounded-full ${i < 3 ? 'bg-brand-500' : 'bg-dark-700'}`} />
+              <div key={i} className={`h-1.5 w-12 rounded-full ${i < 3 ? 'bg-brand-500' : 'bg-dark-400'}`} />
             ))}
           </div>
-          <div className="bg-brand-500/10 border border-brand-500/30 rounded-3xl p-6 w-full">
+          <div className="bg-dark-400 rounded-3xl p-6 w-full">
             <p className="text-xs font-semibold text-slt uppercase tracking-wider mb-2">{t.practice.step4Label}</p>
             <p className="text-3xl font-black text-ink mb-2">{card.focusWord}</p>
             <p className="text-sm text-slt italic">"{card.powerLine}"</p>
@@ -624,7 +605,7 @@ export default function SelfTalkPage() {
         <div className="px-4 pb-8">
           <button
             onClick={() => setPracticeDone(true)}
-            className="w-full bg-brand-500 text-white font-bold py-3.5 rounded-2xl active:scale-95"
+            className="w-full min-h-[56px] rounded-[18px] bg-sun text-inkblock font-extrabold active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
           >
             {hi ? 'मैं तैयार हूं ✦' : 'Ready ✦'}
           </button>

@@ -14,7 +14,7 @@ function ModalDialog({ open, titleId, title, children, actions, onDismiss }) {
   if (!open) return null;
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4"
+      className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/50 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4"
       onKeyDown={(e) => { if (e.key === 'Escape' && onDismiss) onDismiss(); }}
     >
       <div
