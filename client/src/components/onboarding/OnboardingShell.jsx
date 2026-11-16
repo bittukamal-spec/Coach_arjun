@@ -68,7 +68,7 @@ function OnboardingShell({
               type="button"
               onClick={onBack}
               aria-label={backLabel}
-              className="shrink-0 w-11 h-11 flex items-center justify-center rounded-full bg-dark-700 text-ink active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-dark-900"
+              className="shrink-0 w-11 h-11 flex items-center justify-center rounded-[14px] bg-dark-400 text-ink active:scale-95 transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-dark-900"
             >
               <ChevronLeft size={20} aria-hidden="true" />
             </button>
@@ -93,7 +93,7 @@ function OnboardingShell({
           <h1
             ref={headingRef}
             tabIndex={-1}
-            className="text-title font-bold text-ink mb-1 leading-snug outline-none"
+            className="text-[24px] font-extrabold tracking-[-0.01em] text-ink mb-1 leading-tight outline-none"
           >
             {heading}
           </h1>

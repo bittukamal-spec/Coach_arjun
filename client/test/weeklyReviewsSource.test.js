@@ -89,7 +89,9 @@ test('WeeklyReviewsPage: reads the EXISTING weekly-reports contract read-only, b
 
 test('WeeklyReviewsPage: renders reports in server order (newest first) — no client-side reordering', () => {
   assert.doesNotMatch(reviewsPage, /\.sort\(|\.reverse\(/);
-  assert.match(reviewsPage, /const isNewest = i === 0;/);
+  // The newest (server's first) review is the blue block; the rest follow in order.
+  assert.match(reviewsPage, /reports\[0\]/);
+  assert.match(reviewsPage, /reports\.slice\(1\)\.map/);
 });
 
 test('WeeklyReviewsPage: not a generic chat-history page — no messages, sessions, or transcripts are fetched', () => {
@@ -106,7 +108,7 @@ test('translations: weeklyReviews namespace exists in English and Hindi with the
     }
     assert.ok(block.includes('weeklyReviewsLabel:'), 'chat header label missing in a language');
   }
-  assert.ok(enBlock.includes('Your weekly coaching summaries, patterns, and next focus.'));
+  assert.ok(enBlock.includes('Arjun looks back on each coaching week.'));
   assert.ok(enBlock.includes('No weekly reviews yet.'));
   assert.ok(enBlock.includes('Your first review will appear after a completed coaching week.'));
 });

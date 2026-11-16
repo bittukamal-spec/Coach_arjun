@@ -331,7 +331,7 @@ export default function OnboardingPage() {
         type="button"
         onClick={onContinue}
         disabled={!screenValid || saveState === 'saving'}
-        className="btn-primary w-full justify-center text-base disabled:opacity-40"
+        className="w-full min-h-[56px] rounded-[18px] bg-sun text-inkblock text-[16px] font-extrabold disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
       >
         {saveState === 'saving' ? ui.saving : isLast ? ui.finish : ui.continue}
       </button>

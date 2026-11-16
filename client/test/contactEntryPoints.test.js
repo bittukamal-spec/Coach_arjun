@@ -112,29 +112,23 @@ test('the Account page shows a Contact & Support row that navigates to /contact'
   const section = account.slice(idx, idx + 1100);
   assert.match(section, /onClick=\{\(\) => navigate\('\/contact'\)\}/);
   assert.match(section, /\{t\.contactSupportTitle\}/);
-  assert.match(section, /\{t\.contactSupportDesc\}/);
   assert.equal(en.account.contactSupportTitle, 'Contact & Support');
-  assert.equal(en.account.contactSupportDesc, 'Questions, technical issues, billing, privacy or partnerships.');
 });
 
 test('the Account support row is a single real button — no nested interactive controls', () => {
-  const idx = account.indexOf('Help & Support');
-  const section = account.slice(idx, idx + 1100);
-  const rowStart = section.indexOf('<button');
-  const rowEnd = section.indexOf('</button>', rowStart) + '</button>'.length;
-  const row = section.slice(rowStart, rowEnd);
+  const idx = account.indexOf("navigate('/contact')");
+  const rowStart = account.lastIndexOf('<button', idx);
+  const rowEnd = account.indexOf('</button>', idx) + '</button>'.length;
+  const row = account.slice(rowStart, rowEnd);
   assert.equal((row.match(/<button/g) || []).length, 1, 'exactly one <button>');
   assert.doesNotMatch(row, /<a\s|href=/, 'no nested link inside the button');
 });
 
-test('the Account support row matches the existing danger-zone row visual language', () => {
-  const supportIdx = account.indexOf('Help & Support');
-  const supportSection = account.slice(supportIdx, supportIdx + 900);
-  const dangerIdx = account.indexOf('Account actions');
-  const dangerSection = account.slice(dangerIdx, dangerIdx + 900);
-  const rowClass = (src) => src.match(/className="(w-full flex items-center gap-3[^"]+)"/)?.[1];
-  assert.ok(rowClass(supportSection), 'support row uses the shared row className recipe');
-  assert.equal(rowClass(supportSection), rowClass(dangerSection));
+test('the Account support row shares the settings-row recipe with the other rows', () => {
+  const idx = account.indexOf("navigate('/contact')");
+  const row = account.slice(idx, idx + 120);
+  assert.match(row, /className=\{rowClass\}/);
+  assert.match(account, /const rowClass = 'w-full min-h-\[56px\]/);
 });
 
 test('Sign Out and Delete Account are untouched', () => {

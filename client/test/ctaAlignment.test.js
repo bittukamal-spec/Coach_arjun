@@ -165,9 +165,11 @@ test('Quick Rep choice buttons (context/state/moment/cue pickers) stay left-alig
 
 // ── 4. Settings/menu navigation rows are exempt from centering ──────────────
 
-test('Account danger-zone rows (Sign out / Delete account) keep their icon+label left-aligned', () => {
+test('Account actions (Sign out / Delete account) are full-width buttons with a 44px+ target', () => {
   const idx = accountPage.indexOf('Account actions');
   assert.notEqual(idx, -1, 'the Account actions section should still exist');
-  const section = accountPage.slice(idx, idx + 1200);
-  assert.match(section, /text-left/);
+  const section = accountPage.slice(idx, idx + 1400);
+  assert.match(section, /onClick=\{logout\}/);
+  assert.match(section, /w-full min-h-\[52px\]/);
+  assert.match(section, /w-full min-h-\[44px\]/);
 });

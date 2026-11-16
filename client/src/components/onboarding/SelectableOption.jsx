@@ -16,15 +16,16 @@
 // either way, so choosing an answer never reflows the label beside it.
 
 const BASE =
-  'border transition-colors active:scale-[0.99] focus-visible:outline-none ' +
+  'transition-colors active:scale-[0.99] focus-visible:outline-none ' +
   'focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 ' +
   'focus-visible:ring-offset-dark-900';
 
 function stateClasses(selected, disabled) {
-  if (selected) return 'border-brand-500 bg-brand-500/10';
+  // Playbook: answers are card-surface tiles; the chosen one turns brand blue.
+  if (selected) return 'bg-brand-500';
   // Approved ~55% dim: unavailable, but still readable rather than erased.
-  if (disabled) return 'border-dark-600 bg-dark-800 opacity-[0.55] cursor-not-allowed';
-  return 'border-dark-600 bg-dark-800 hover:border-dark-400';
+  if (disabled) return 'bg-dark-400 opacity-[0.55] cursor-not-allowed';
+  return 'bg-dark-400';
 }
 
 function SelectableOption({
@@ -50,7 +51,7 @@ function SelectableOption({
     return (
       <button
         {...commonProps}
-        className={`relative w-full h-full min-h-[76px] flex flex-col items-center justify-center gap-1.5 px-2 py-3 rounded-2xl text-center ${BASE} ${stateClasses(selected, disabled)}`}
+        className={`relative w-full h-full min-h-[76px] flex flex-col items-center justify-center gap-1.5 px-2 py-3 rounded-[18px] text-center ${BASE} ${stateClasses(selected, disabled)}`}
       >
         {icon && (
           <span className="text-2xl leading-none" aria-hidden="true">
@@ -60,15 +61,15 @@ function SelectableOption({
         {/* 18px reserved either side so a wrapped line never runs under the
             top-right check badge. Labels WRAP rather than truncate —
             Devanagari in particular must never be clipped. */}
-        <span className="text-sm font-semibold text-ink leading-tight px-[18px] [text-wrap:pretty]">
+        <span className={`text-sm font-bold leading-tight px-[18px] [text-wrap:pretty] ${selected ? 'text-white' : 'text-ink'}`}>
           {label}
         </span>
         {selected && (
           <span
             aria-hidden="true"
-            className="absolute top-2 right-2 w-4 h-4 flex items-center justify-center rounded-full bg-brand-500"
+            className="absolute top-2 right-2 w-4 h-4 flex items-center justify-center rounded-full bg-white"
           >
-            <span className="text-white text-[9px] font-bold">✓</span>
+            <span className="text-brand-500 text-[9px] font-bold">✓</span>
           </span>
         )}
       </button>
@@ -78,7 +79,7 @@ function SelectableOption({
   return (
     <button
       {...commonProps}
-      className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-left min-h-[52px] ${BASE} ${stateClasses(selected, disabled)}`}
+      className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-[18px] text-left min-h-[56px] ${BASE} ${stateClasses(selected, disabled)}`}
     >
       {icon && (
         <span className="text-2xl leading-none shrink-0" aria-hidden="true">
@@ -86,9 +87,9 @@ function SelectableOption({
         </span>
       )}
       <span className="flex-1 min-w-0">
-        <span className="block font-semibold text-ink leading-tight [text-wrap:pretty]">{label}</span>
+        <span className={`block font-bold leading-tight [text-wrap:pretty] ${selected ? 'text-white' : 'text-ink'}`}>{label}</span>
         {sublabel && (
-          <span className="block text-caption text-slt mt-0.5 leading-snug">{sublabel}</span>
+          <span className={`block text-caption mt-0.5 leading-snug ${selected ? 'text-white/90' : 'text-slt'}`}>{sublabel}</span>
         )}
       </span>
       {/* Slot is always reserved. A single-select renders nothing inside it
@@ -99,11 +100,11 @@ function SelectableOption({
           'shrink-0 w-5 h-5 flex items-center justify-center rounded-full transition-colors',
           multi ? 'rounded-md border-2' : '',
           multi
-            ? (selected ? 'border-brand-500 bg-brand-500' : 'border-dark-500')
-            : (selected ? 'border-2 border-brand-500 bg-brand-500' : ''),
+            ? (selected ? 'border-white bg-white' : 'border-dark-500')
+            : (selected ? 'border-2 border-white bg-white' : 'border-2 border-dark-600'),
         ].join(' ')}
       >
-        {selected && <span className="text-white text-[10px] font-bold">✓</span>}
+        {selected && <span className="text-brand-500 text-[10px] font-bold">✓</span>}
       </span>
     </button>
   );
