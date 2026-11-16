@@ -160,7 +160,7 @@ describe('Weekly Reviews page', () => {
     renderPage();
 
     // Newest report: expanded, marked as latest, body visible.
-    expect(await screen.findByText('Latest review')).toBeTruthy();
+    expect(await screen.findByText('Latest week')).toBeTruthy();
     const newestBody = await screen.findByText(/NEWEST-WEEK-BODY/);
     expect(newestBody).toBeTruthy();
     // Bold section heading is rendered as a real <strong>.
@@ -190,7 +190,9 @@ describe('Weekly Reviews page', () => {
     renderPage();
     await screen.findByText('No weekly reviews yet.');
 
-    const header = screen.getByText('Weekly Reviews').closest('header');
+    // The title is now the page's own heading; the header bar holds only Back.
+    expect(screen.getByRole('heading', { level: 1, name: 'Weekly reviews' })).toBeTruthy();
+    const header = document.querySelector('header');
     const back = within(header).getByRole('link');
     expect(back.getAttribute('href')).toBe('/coaching');
   });

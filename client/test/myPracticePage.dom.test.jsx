@@ -14,6 +14,7 @@ const { default: MyPracticePage, collectCues } = await import('../src/pages/MyPr
 
 const FULL = {
   weekRepCount: 2,
+  thisWeek: { practices: 3, reflections: 1, triedCount: 2, helpedCount: 1, activityAt: [] },
   weekResetCount: 1,
   focusCards: [{ id: 'c1', focusWord: 'Watch the ball', resetWord: 'Next ball' }],
   savedCues: [{ cue: 'next ball' }, { cue: 'Early eyes' }],
@@ -42,7 +43,10 @@ describe('MyPracticePage', () => {
     expect(screen.getByText('For: the first over')).toBeTruthy();
     expect(screen.getByText('It helped')).toBeTruthy();
     expect(screen.getByText('Slow exhale settled my hands.')).toBeTruthy();
-    expect(screen.getByText('2 Quick Reps · 1 Pressure Reset')).toBeTruthy();
+    const week = screen.getByTestId('mp-week');
+    expect(week.textContent).toContain('3');
+    expect(week.textContent).toContain('Practices this week');
+    expect(week.textContent).toContain('1 of 2');
     expect(screen.getByText('Watch the ball')).toBeTruthy();
     expect(screen.getByText('Early eyes')).toBeTruthy();
     expect(screen.getByText('Start slower in warm-up.')).toBeTruthy();

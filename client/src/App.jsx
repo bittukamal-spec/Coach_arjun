@@ -168,6 +168,15 @@ function App() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/account/profile"
+        element={
+          <ProtectedRoute requireOnboarding={true}>
+            <AccountPage view="profile" />
+            <BottomNav />
+          </ProtectedRoute>
+        }
+      />
 
       {/* Before You Play + Bounce Back removed — retired for MVP, redirect to Train */}
       <Route path="/bounce-back" element={<Navigate to="/train" replace />} />

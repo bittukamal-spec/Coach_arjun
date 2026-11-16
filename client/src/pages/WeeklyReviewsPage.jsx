@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { ChevronDown, ChevronUp, CalendarRange } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
-import { Card, PageHeader } from '../components/ui';
+import { PageHeader, SectionLabel } from '../components/ui';
 
 // ─── Weekly Reviews — weekly coaching summaries OUTSIDE the live chat ────────
 // Read-only over the existing GET /api/weekly-reports contract (which also
@@ -14,10 +15,10 @@ import { Card, PageHeader } from '../components/ui';
 // diagnostic framing anywhere; report text renders its **bold** section
 // headings and nothing else.
 
-function renderBoldHeadings(text) {
-  return text.split(/(\*\*[^*]+\*\*)/).map((part, i) =>
+function renderBoldHeadings(text, headingClass = 'font-bold text-ink') {
+  return String(text || '').split(/(\*\*[^*]+\*\*)/).map((part, i) =>
     part.startsWith('**') && part.endsWith('**')
-      ? <strong key={i} className="font-bold text-ink block mt-3 first:mt-0 mb-0.5">{part.slice(2, -2)}</strong>
+      ? <strong key={i} className={`${headingClass} block mt-3 first:mt-0 mb-0.5`}>{part.slice(2, -2)}</strong>
       : <span key={i}>{part}</span>
   );
 }
@@ -48,14 +49,15 @@ export default function WeeklyReviewsPage() {
   return (
     <div className="min-h-screen bg-dark-900 pb-[calc(7.5rem+env(safe-area-inset-bottom))]">
       {/* Back goes to Coach — this page is reached from the Chat header. */}
-      <PageHeader backTo="/coaching" title={t.title} />
+      <PageHeader backTo="/coaching" barClass="bg-dark-900" />
 
-      <main className="px-page pt-4 max-w-lg mx-auto">
-        <p className="text-body text-slt leading-relaxed mb-6">{t.intro}</p>
+      <main className="px-page pt-1 max-w-lg mx-auto animate-fade-in">
+        <h1 className="text-[30px] leading-[1.1] font-extrabold tracking-tight text-ink">{t.title}</h1>
+        <p className="text-[14px] text-slt leading-relaxed mt-1 mb-5">{t.intro}</p>
 
         {/* Loading */}
         {reports === null && (
-          <div className="flex justify-center pt-16">
+          <div className="flex justify-center pt-16" role="status" aria-label={t.loading}>
             <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
           </div>
         )}
@@ -67,51 +69,83 @@ export default function WeeklyReviewsPage() {
 
         {/* Empty state — no completed weekly review yet */}
         {Array.isArray(reports) && reports.length === 0 && (
-          <Card className="p-5 text-center">
-            <div className="w-11 h-11 rounded-xl bg-brand-500/15 flex items-center justify-center mx-auto mb-3">
-              <CalendarRange size={20} className="text-brand-400" aria-hidden="true" />
-            </div>
-            <p className="text-body font-bold text-ink mb-1">{t.empty}</p>
+          <section className="text-center pt-6">
+            <WeekArt className="mx-auto mb-4" />
+            <p className="text-[18px] font-extrabold text-ink mb-1">{t.empty}</p>
             <p className="text-caption text-slt leading-relaxed">{t.emptySub}</p>
-          </Card>
+          </section>
         )}
 
-        {/* Reviews — newest first, exactly as the server returns them. The
-            newest is always expanded; older ones expand on tap. */}
-        {Array.isArray(reports) && reports.map((r, i) => {
-          const isNewest = i === 0;
-          const isOpen = isNewest || expandedId === r.id;
-          return (
-            <Card key={r.id} className={`mb-3 overflow-hidden ${isNewest ? 'border-brand-500/40' : ''}`}>
-              {isNewest ? (
-                <div className="px-4 pt-4">
-                  <p className="text-micro font-bold text-brand-400 uppercase mb-0.5">{t.latestLabel}</p>
-                  <p className="text-body font-bold text-ink">{formatWeekRange(r.weekStart, r.weekEnd, hi)}</p>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setExpandedId(isOpen ? null : r.id)}
-                  aria-expanded={isOpen}
-                  className="w-full min-h-[48px] px-4 py-3 flex items-center justify-between gap-2 text-left active:opacity-70"
-                >
-                  <span className="text-body font-semibold text-ink">{formatWeekRange(r.weekStart, r.weekEnd, hi)}</span>
-                  {isOpen
-                    ? <ChevronUp size={16} className="text-muted shrink-0" aria-hidden="true" />
-                    : <ChevronDown size={16} className="text-muted shrink-0" aria-hidden="true" />}
-                </button>
-              )}
-              {isOpen && (
-                <div className="px-4 pb-4 pt-2">
-                  <p className="text-body text-slt leading-relaxed whitespace-pre-wrap break-words">
-                    {renderBoldHeadings(r.content)}
-                  </p>
-                </div>
-              )}
-            </Card>
-          );
-        })}
+        {/* Newest review — the blue block, always open. */}
+        {Array.isArray(reports) && reports[0] && (
+          <section data-testid="wr-latest" className="relative mb-6 rounded-[28px] bg-brand-500 text-white p-5 overflow-hidden">
+            <WeekArt className="absolute -right-2 -top-1" />
+            <p className="relative self-start inline-block rounded-full bg-white text-brand-700 text-[11px] font-bold tracking-[0.1em] uppercase px-3 py-1">
+              {t.latestLabel}
+            </p>
+            <h2 className="relative mt-3 text-[22px] leading-tight font-extrabold max-w-[14rem]">
+              {formatWeekRange(reports[0].weekStart, reports[0].weekEnd, hi)}
+            </h2>
+            <p className="relative mt-3 text-[14px] leading-relaxed whitespace-pre-wrap break-words text-white">
+              {renderBoldHeadings(reports[0].content, 'text-[12px] font-extrabold uppercase tracking-wide text-sun')}
+            </p>
+            <Link
+              to="/coaching"
+              state={{ prefillMsg: t.talkPrefill }}
+              className="relative mt-4 flex items-center justify-center min-h-[52px] rounded-[18px] bg-sun text-inkblock text-[15px] font-extrabold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
+              {t.talkCta}
+            </Link>
+          </section>
+        )}
+
+        {/* Earlier weeks — rows that open on tap. */}
+        {Array.isArray(reports) && reports.length > 1 && (
+          <section>
+            <SectionLabel>{t.earlierLabel}</SectionLabel>
+            <ul className="space-y-2.5">
+              {reports.slice(1).map(r => {
+                const isOpen = expandedId === r.id;
+                return (
+                  <li key={r.id} className="rounded-[18px] bg-dark-400 overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setExpandedId(isOpen ? null : r.id)}
+                      aria-expanded={isOpen}
+                      className="w-full min-h-[56px] px-4 py-3 flex items-center justify-between gap-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-[18px]"
+                    >
+                      <span className="text-[15px] font-bold text-ink">{formatWeekRange(r.weekStart, r.weekEnd, hi)}</span>
+                      {isOpen
+                        ? <ChevronUp size={18} className="text-slt shrink-0" aria-hidden="true" />
+                        : <ChevronDown size={18} className="text-slt shrink-0" aria-hidden="true" />}
+                    </button>
+                    {isOpen && (
+                      <p className="px-4 pb-4 text-[14px] text-slt leading-relaxed whitespace-pre-wrap break-words">
+                        {renderBoldHeadings(r.content)}
+                      </p>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
       </main>
     </div>
+  );
+}
+
+// Calendar drawing for the latest-week block and the empty state.
+function WeekArt({ className = '' }) {
+  return (
+    <svg aria-hidden="true" width="104" height="104" viewBox="0 0 110 110" className={className}>
+      <circle cx="62" cy="48" r="44" className="fill-brand-300" />
+      <rect x="40" y="26" width="44" height="50" rx="8" fill="#FFFFFF" />
+      <rect x="40" y="26" width="44" height="12" rx="6" fill="#FFC629" />
+      <circle cx="52" cy="52" r="4" fill="#1B4DFF" />
+      <circle cx="64" cy="52" r="4" fill="#1B4DFF" />
+      <circle cx="76" cy="52" r="4" fill="#9DB4FF" />
+      <circle cx="52" cy="64" r="4" fill="#9DB4FF" />
+    </svg>
   );
 }

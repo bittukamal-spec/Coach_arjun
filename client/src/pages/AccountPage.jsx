@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import Navbar from '../components/Navbar';
+import { PageHeader } from '../components/ui';
+import HelplineList from '../components/HelplineList';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { HINDI_ENABLED } from '../i18n/languages';
@@ -8,7 +9,6 @@ import { apiFetch } from '../api';
 import { LogOut, Trash2, ChevronRight, Shield, User, Zap, Award, Camera, Star, MessageCircle, Mail, Sparkles, Sun, MessageSquare, FileX, RefreshCw, Tag, BarChart2, Layers, Bell, ListChecks } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
 import { usePushNotifications } from '../hooks/usePushNotifications';
-import { ACHIEVEMENTS, ALL_ACHIEVEMENT_KEYS } from '../data/achievements';
 
 const EXPERIENCE_LEVELS = ['beginner', 'amateur', 'competitive', 'professional'];
 const COMPETITION_LEVELS = ['recreational', 'local', 'state', 'national', 'international'];
@@ -30,7 +30,20 @@ function getTrialDaysRemaining(user) {
   return Math.max(0, TRIAL_DAYS - daysSince);
 }
 
-function AccountPage() {
+function chipClass(on) {
+  return `min-h-[44px] px-3.5 rounded-[14px] text-[13.5px] font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${on ? 'bg-brand-500 text-white' : 'bg-dark-400 text-ink'}`;
+}
+
+function getInitials(name = '') {
+  const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return (parts[0]?.[0] || '?').toUpperCase();
+}
+
+// view: 'main' = the short settings list (/account); 'profile' = the
+// Edit profile screen (/account/profile). Same component, so the profile
+// save, photo, privacy and delete logic is shared and unchanged.
+function AccountPage({ view = 'main' }) {
   const { user, token, language, logout, updateUser, avatarUrl, updateAvatar } = useAuth();
   const t        = translations[language].account;
   const tp       = translations[language].pricing;
@@ -67,6 +80,7 @@ function AccountPage() {
 
   // Subscription management state
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [showHelplines, setShowHelplines] = useState(false);
   const [cancelLoading,     setCancelLoading]     = useState(false);
   const [cancelSuccess,     setCancelSuccess]     = useState(false);
 
@@ -257,575 +271,319 @@ function AccountPage() {
     }
   }
 
-  const [earnedAchievements, setEarnedAchievements] = useState(null);
-
-  useEffect(() => {
-    apiFetch('/api/achievements/me', { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.ok ? r.json() : null)
-      .then(data => setEarnedAchievements(data?.achievements ?? []))
-      .catch(() => setEarnedAchievements([]));
-  }, [token]);
 
   const memberSince = user?.createdAt
     ? new Date(user.createdAt).toLocaleDateString(language === 'hi' ? 'hi-IN' : 'en-IN', { month: 'long', year: 'numeric' })
     : '';
 
+  const isProfileView = view === 'profile';
+  const rowClass = 'w-full min-h-[56px] px-4 flex items-center justify-between gap-3 text-left text-[15px] font-bold text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500';
+
   return (
-    <div className="min-h-screen bg-dark-900">
-      <Navbar />
+    <div className="min-h-screen bg-dark-900 pb-[calc(7.5rem+env(safe-area-inset-bottom))]">
+      <PageHeader
+        backTo={isProfileView ? '/account' : undefined}
+        onBack={isProfileView ? undefined : () => navigate(-1)}
+        barClass="bg-dark-900"
+      />
 
-      <main className="max-w-2xl mx-auto px-4 pt-20 pb-28 animate-fade-in">
+      <main className="max-w-lg mx-auto px-page pt-1 animate-fade-in">
+      {isProfileView ? (
+        <>
+          <h1 className="text-[30px] leading-[1.1] font-extrabold tracking-tight text-ink mb-5">{t.editProfile}</h1>
 
-        {/* Profile header with photo upload */}
-        <div className="flex items-center gap-4 mb-8">
-          <div className="flex flex-col items-center gap-2 flex-shrink-0">
-            <div className="relative">
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                className="w-16 h-16 rounded-full bg-brand-500 text-white text-2xl font-bold flex items-center justify-center ring-2 ring-brand-600/40 cursor-pointer overflow-hidden"
-              >
-                {(pendingAvatar || avatarUrl)
-                  ? <img src={pendingAvatar || avatarUrl} alt="avatar" className="w-16 h-16 object-cover" />
-                  : user?.name?.charAt(0)?.toUpperCase()
-                }
-              </div>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-dark-700 border border-dark-500 flex items-center justify-center hover:bg-dark-600 transition-colors"
-                title={t.uploadPhoto}
-              >
-                <Camera size={12} className="text-slt" />
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handlePhotoUpload}
-              />
-            </div>
-            {pendingAvatar ? (
-              <button
-                onClick={handleSavePhoto}
-                className="text-[11px] font-bold text-white bg-brand-500 hover:bg-brand-600 px-3 py-1 rounded-full transition-colors"
-              >
-                {hi ? 'सेव करें' : 'Save photo'}
-              </button>
-            ) : photoSaved ? (
-              <p className="text-[11px] text-win-400 font-semibold">{hi ? 'सेव हो गया ✓' : 'Saved ✓'}</p>
-            ) : null}
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-ink">{user?.name}</h1>
-            <p className="text-slt text-sm">{user?.email}</p>
-            {user?.sport && (
-              <p className="text-slt text-xs mt-0.5 capitalize">{user.sport}{user?.competitionLevel ? ` · ${COMPETITION_LABELS[user.competitionLevel] || user.competitionLevel}` : ''}</p>
-            )}
-            {memberSince && (
-              <p className="text-slt text-xs mt-0.5">{t.memberSince} {memberSince}</p>
-            )}
-            {user?.xp !== undefined && (
-              <div className="flex items-center gap-1.5 mt-1.5">
-                <Zap size={13} className="text-brand-400" />
-                <span className="text-brand-400 text-xs font-semibold">{user.xp} MXP</span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Subscription card */}
-        <section className="mb-6">
-          <div className="flex items-center gap-2 mb-3">
-            <Shield size={16} className="text-brand-400" />
-            <h2 className="text-sm font-semibold text-slt uppercase tracking-wide">{t.subscription}</h2>
-          </div>
-          <div className="card p-5">
-            {isPremium ? (
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <p className="font-semibold text-ink flex items-center gap-1.5">
-                      <Star size={14} className="text-fire-500" /> {t.premiumSince}
-                    </p>
-                    {user?.subscriptionPlanType && (
-                      <p className="text-slt text-sm">
-                        {user.subscriptionPlanType === 'yearly' ? tp.planYearly : tp.planMonthly}
-                      </p>
-                    )}
-                    {user?.subscriptionStartDate && (
-                      <p className="text-slt text-xs mt-0.5">
-                        {tp.activeSince} {new Date(user.subscriptionStartDate).toLocaleDateString(hi ? 'hi-IN' : 'en-IN', { month: 'short', year: 'numeric' })}
-                      </p>
-                    )}
-                  </div>
-                  <span className="text-xs font-bold bg-fire-500/20 text-fire-400 border border-fire-500/30 px-3 py-1 rounded-full">Active</span>
-                </div>
-                {cancelSuccess ? (
-                  <p className="text-sm text-win-400 text-center py-2">{tp.cancelSuccess}</p>
-                ) : (
-                  <button
-                    onClick={() => setShowCancelConfirm(true)}
-                    className="w-full py-2.5 rounded-xl border border-dark-500 bg-dark-700 hover:bg-dark-600 text-slt text-xs font-semibold transition-colors"
-                  >
-                    {tp.cancelSub}
-                  </button>
-                )}
-              </div>
-            ) : (
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <p className="font-semibold text-ink">🆓 Free Trial</p>
-                    <p className="text-slt text-sm">
-                      {trialDaysRemaining === 0
-                        ? 'Your trial has ended'
-                        : t.trialDaysLeft(trialDaysRemaining)}
-                    </p>
-                  </div>
-                  {trialDaysRemaining !== null && trialDaysRemaining > 0 && (
-                    <div className="w-16 h-16 relative flex-shrink-0">
-                      <svg viewBox="0 0 36 36" className="w-16 h-16 -rotate-90">
-                        <circle cx="18" cy="18" r="15.9" fill="none" stroke="#2B4157" strokeWidth="3" />
-                        <circle cx="18" cy="18" r="15.9" fill="none" stroke="#1B4DFF" strokeWidth="3"
-                          strokeDasharray={`${(trialDaysRemaining / TRIAL_DAYS) * 100} 100`}
-                          strokeLinecap="round" />
-                      </svg>
-                      <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-ink">{trialDaysRemaining}d</span>
-                    </div>
-                  )}
-                </div>
-                <button onClick={() => navigate('/pricing')} className="btn-primary w-full">
-                  {t.upgradeBtn} — ₹299/mo
-                </button>
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* Appearance */}
-        <section className="mb-6">
-          <div className="flex items-center gap-2 mb-3">
-            <Sun size={16} className="text-brand-400" />
-            <h2 className="text-sm font-semibold text-slt uppercase tracking-wide">{t.appearance}</h2>
-          </div>
-          <div className="card p-5">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium text-ink">{t.appearance}</p>
-                <p className="text-xs text-slt mt-0.5">{t.appearanceSub}</p>
-              </div>
-              <div className="flex gap-1 bg-dark-700 rounded-lg p-1 shrink-0">
-                {[
-                  { v: 'system', label: t.themeAuto  },
-                  { v: 'light',  label: t.themeLight },
-                  { v: 'dark',   label: t.themeDark  },
-                ].map(opt => (
-                  <button
-                    key={opt.v}
-                    onClick={() => setTheme(opt.v)}
-                    className={`px-2.5 py-1 text-xs rounded-md font-medium transition-colors ${
-                      theme === opt.v ? 'bg-dark-400 text-ink shadow-sm' : 'text-slt hover:text-ink'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Push Notifications v1 — id="notifications" is the anchor target
-            for the Home quick-settings shortcut (Navbar.jsx). tabIndex={-1}
-            lets it receive programmatic focus on arrival without joining
-            the normal Tab order. */}
-        <section id="notifications" ref={notificationsSectionRef} tabIndex={-1} className="mb-6 outline-none">
-          <div className="flex items-center gap-2 mb-3">
-            <Bell size={16} className="text-brand-400" />
-            <h2 className="text-sm font-semibold text-slt uppercase tracking-wide">{tpush.title}</h2>
-          </div>
-          <div className="card p-5">
-            {push.status === 'loading' ? null : push.status === 'unsupported' ? (
-              <p className="text-sm text-slt">{tpush.unsupported}</p>
-            ) : push.status === 'ios-unsupported' ? (
-              <p className="text-sm text-slt">{tpush.iosUnsupported}</p>
-            ) : push.status === 'consent-required' ? (
-              <div>
-                <p className="text-sm font-medium text-ink mb-1">{tpush.consentRequiredTitle}</p>
-                <p className="text-xs text-slt">{tpush.consentRequiredBody}</p>
-              </div>
-            ) : push.status === 'denied' ? (
-              <div>
-                <p className="text-sm font-medium text-ink mb-1">{tpush.deniedTitle}</p>
-                <p className="text-xs text-slt">{tpush.deniedBody}</p>
-              </div>
-            ) : (
-              // 'default' or 'enabled' — a single always-visible toggle row.
-              // No reminder-time picker (v1 uses one fixed, system-defined
-              // local time — see usePushNotifications.js) and no separate
-              // Enable/Disable button: the switch itself IS the action.
-              <div>
-                <label className="flex items-center justify-between gap-3 cursor-pointer min-h-[44px]">
-                  <span className="flex-1 min-w-0 pr-2">
-                    <span className="block text-sm font-semibold text-ink">{tpush.promptTitle}</span>
-                    <span className="block text-xs text-slt mt-0.5">{tpush.promptBody}</span>
-                  </span>
-                  <span className="relative inline-flex items-center shrink-0">
-                    <input
-                      type="checkbox"
-                      role="switch"
-                      checked={push.status === 'enabled'}
-                      disabled={push.busy}
-                      onChange={handleTogglePush}
-                      aria-label={tpush.promptTitle}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed z-10"
-                    />
-                    <span
-                      className={`w-11 h-6 rounded-full transition-colors pointer-events-none ${push.busy ? 'opacity-60' : ''} ${
-                        push.status === 'enabled' ? 'bg-brand-500' : 'bg-dark-600'
-                      }`}
-                      aria-hidden="true"
-                    />
-                    <span
-                      className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-dark-400 border border-dark-600 shadow-sm transition-transform pointer-events-none ${
-                        push.status === 'enabled' ? 'translate-x-5' : 'translate-x-0'
-                      }`}
-                      aria-hidden="true"
-                    />
-                  </span>
-                </label>
-                {/* State in words as well as switch position, so it's never carried by color alone. */}
-                <p className="text-[11px] font-semibold text-slt mt-1.5">
-                  {push.status === 'enabled' ? tpush.onLabel : tpush.offLabel}
-                </p>
-              </div>
-            )}
-            {push.error && <p className="text-red-400 text-xs mt-3">{tpush.error}</p>}
-          </div>
-        </section>
-
-        {/* Profile edit section */}
-        <section className="mb-6">
-          <div className="flex items-center gap-2 mb-3">
-            <User size={16} className="text-brand-400" />
-            <h2 className="text-sm font-semibold text-slt uppercase tracking-wide">{t.editProfile}</h2>
-          </div>
-          <div className="card p-5 space-y-4">
-            {/* Name */}
+          <div className="space-y-4">
             <div>
-              <label className="text-xs text-slt font-medium block mb-1">{t.nameLabel}</label>
-              <input
-                type="text"
-                value={profileName}
-                onChange={e => setProfileName(e.target.value)}
-                className="input-field"
-                placeholder={user?.name}
-              />
+              <label htmlFor="acc-name" className="text-[13px] text-slt font-bold block mb-1.5">{t.nameLabel}</label>
+              <input id="acc-name" type="text" value={profileName} onChange={e => setProfileName(e.target.value)}
+                className="w-full min-h-[52px] rounded-2xl bg-dark-400 px-4 text-[15px] text-ink placeholder:text-slt focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                placeholder={user?.name} />
             </div>
 
-            {/* Age + Sport row */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-slt font-medium block mb-1">{t.ageLabel}</label>
-                <input
-                  type="number"
-                  value={profileAge}
-                  onChange={e => setProfileAge(e.target.value)}
-                  className="input-field"
-                  placeholder={t.agePlaceholder}
-                  min="8" max="80"
-                />
+                <label htmlFor="acc-age" className="text-[13px] text-slt font-bold block mb-1.5">{t.ageLabel}</label>
+                <input id="acc-age" type="number" value={profileAge} onChange={e => setProfileAge(e.target.value)}
+                  className="w-full min-h-[52px] rounded-2xl bg-dark-400 px-4 text-[15px] text-ink placeholder:text-slt focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                  placeholder={t.agePlaceholder} min="8" max="80" />
               </div>
               <div>
-                <label className="text-xs text-slt font-medium block mb-1">{t.sportLabel}</label>
-                <input
-                  type="text"
-                  value={profileSport}
-                  onChange={e => setProfileSport(e.target.value)}
-                  className="input-field"
-                  placeholder={t.sportPlaceholder}
-                />
+                <label htmlFor="acc-sport" className="text-[13px] text-slt font-bold block mb-1.5">{t.sportLabel}</label>
+                <input id="acc-sport" type="text" value={profileSport} onChange={e => setProfileSport(e.target.value)}
+                  className="w-full min-h-[52px] rounded-2xl bg-dark-400 px-4 text-[15px] text-ink placeholder:text-slt focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                  placeholder={t.sportPlaceholder} />
               </div>
             </div>
 
-            {/* Position */}
             <div>
-              <label className="text-xs text-slt font-medium block mb-1">{t.positionLabel}</label>
-              <input
-                type="text"
-                value={profilePosition}
-                onChange={e => setProfilePosition(e.target.value)}
-                className="input-field"
-                placeholder={t.positionPlaceholder}
-              />
+              <label htmlFor="acc-position" className="text-[13px] text-slt font-bold block mb-1.5">{t.positionLabel}</label>
+              <input id="acc-position" type="text" value={profilePosition} onChange={e => setProfilePosition(e.target.value)}
+                className="w-full min-h-[52px] rounded-2xl bg-dark-400 px-4 text-[15px] text-ink placeholder:text-slt focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                placeholder={t.positionPlaceholder} />
             </div>
 
-            {/* Experience level */}
-            <div>
-              <label className="text-xs text-slt font-medium block mb-2">{t.levelLabel}</label>
-              <div className="grid grid-cols-2 gap-2">
+            <fieldset>
+              <legend className="text-[13px] text-slt font-bold mb-2">{t.levelLabel}</legend>
+              <div className="flex flex-wrap gap-2">
                 {EXPERIENCE_LEVELS.map(lv => (
-                  <button
-                    key={lv}
-                    onClick={() => setProfileExperience(lv)}
-                    className={`py-2 rounded-xl text-xs font-semibold border transition-all ${
-                      profileExperience === lv ? 'bg-brand-500 text-white border-brand-500' : 'bg-dark-700 text-slt border-dark-500 hover:border-brand-600'
-                    }`}
-                  >
+                  <button key={lv} type="button" aria-pressed={profileExperience === lv} onClick={() => setProfileExperience(lv)}
+                    className={chipClass(profileExperience === lv)}>
                     {EXPERIENCE_LABELS[lv]}
                   </button>
                 ))}
               </div>
-            </div>
+            </fieldset>
 
-            {/* Competition level */}
-            <div>
-              <label className="text-xs text-slt font-medium block mb-2">{t.competitionLabel}</label>
-              <div className="grid grid-cols-2 gap-2">
+            <fieldset>
+              <legend className="text-[13px] text-slt font-bold mb-2">{t.competitionLabel}</legend>
+              <div className="flex flex-wrap gap-2">
                 {COMPETITION_LEVELS.map(lv => (
-                  <button
-                    key={lv}
-                    onClick={() => setProfileCompetition(lv)}
-                    className={`py-2 rounded-xl text-xs font-semibold border transition-all ${
-                      profileCompetition === lv ? 'bg-brand-500 text-white border-brand-500' : 'bg-dark-700 text-slt border-dark-500 hover:border-brand-600'
-                    }`}
-                  >
+                  <button key={lv} type="button" aria-pressed={profileCompetition === lv} onClick={() => setProfileCompetition(lv)}
+                    className={chipClass(profileCompetition === lv)}>
                     {COMPETITION_LABELS[lv]}
                   </button>
                 ))}
               </div>
-            </div>
+            </fieldset>
 
-            {/* Goals */}
-            <div>
-              <label className="text-xs text-slt font-medium block mb-2">{t.goalsLabel}</label>
+            <fieldset>
+              <legend className="text-[13px] text-slt font-bold mb-2">{t.goalsLabel}</legend>
               <div className="flex flex-wrap gap-2">
                 {GOAL_OPTIONS.map(g => (
-                  <button
-                    key={g}
-                    onClick={() => toggleGoal(g)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                      profileGoals.includes(g) ? 'bg-brand-500 text-white border-brand-500' : 'bg-dark-700 text-slt border-dark-500 hover:border-brand-600'
-                    }`}
-                  >
+                  <button key={g} type="button" aria-pressed={profileGoals.includes(g)} onClick={() => toggleGoal(g)}
+                    className={chipClass(profileGoals.includes(g))}>
                     {GOAL_LABELS_MAP[g]}
                   </button>
                 ))}
               </div>
-            </div>
+            </fieldset>
 
             {/* Language — hidden while Hindi is switched off (i18n/languages.js) */}
             {HINDI_ENABLED && (
-              <div>
-                <label className="text-xs text-slt font-medium block mb-2">
+              <fieldset>
+                <legend className="text-[13px] text-slt font-bold mb-2">
                   {language === 'hi' ? 'कोचिंग भाषा' : 'Coaching language'}
-                </label>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => handleLanguageChange('en')}
-                    disabled={saving}
-                    className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
-                      user?.language === 'en' ? 'bg-brand-500 text-white border-brand-500' : 'bg-dark-700 text-slt border-dark-500 hover:border-brand-600'
-                    }`}
-                  >
-                    English
-                  </button>
-                  <button
-                    onClick={() => handleLanguageChange('hi')}
-                    disabled={saving}
-                    className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
-                      user?.language === 'hi' ? 'bg-brand-500 text-white border-brand-500' : 'bg-dark-700 text-slt border-dark-500 hover:border-brand-600'
-                    }`}
-                  >
-                    हिंदी
-                  </button>
+                </legend>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => handleLanguageChange('en')} disabled={saving} aria-pressed={user?.language === 'en'} className={chipClass(user?.language === 'en')}>English</button>
+                  <button type="button" onClick={() => handleLanguageChange('hi')} disabled={saving} aria-pressed={user?.language === 'hi'} className={chipClass(user?.language === 'hi')}>हिंदी</button>
                 </div>
-                {savedMsg && <p className="text-win-400 text-xs mt-2 text-center">{savedMsg}</p>}
-              </div>
+                {savedMsg && <p className="text-win-400 text-xs mt-2">{savedMsg}</p>}
+              </fieldset>
             )}
 
-            {profileError && <p className="text-red-400 text-xs">{profileError}</p>}
-            {profileSaved && <p className="text-win-400 text-xs text-center">{profileSaved}</p>}
+            {profileError && <p className="text-red-500 text-[13px]" role="alert">{profileError}</p>}
+            {profileSaved && <p className="text-ink text-[13px] font-bold text-center" role="status">{profileSaved}</p>}
 
             <button
+              type="button"
               onClick={handleSaveProfile}
               disabled={profileSaving}
-              className="btn-primary w-full justify-center py-3 disabled:opacity-50"
+              className="w-full min-h-[56px] rounded-[18px] bg-sun text-inkblock text-[16px] font-extrabold disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
             >
               {profileSaving ? t.saving : t.saveProfile}
             </button>
           </div>
-        </section>
-
-        {/* Starting Performance Profile link */}
-        {user?.onboardingDone && (
-          <section className="mb-6">
-            <div className="flex items-center gap-2 mb-3">
-              <Sparkles size={16} className="text-brand-400" />
-              <h2 className="text-sm font-semibold text-slt uppercase tracking-wide">
-                {language === 'hi' ? 'मानसिक खेल प्रोफाइल' : 'Mental Game Profile'}
-              </h2>
+        </>
+      ) : (
+        <>
+        {/* Name, sport and photo */}
+        <div className="flex items-center gap-4 mb-5">
+          <div className="flex flex-col items-center gap-2 shrink-0">
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                aria-label={t.uploadPhoto}
+                className="w-16 h-16 rounded-[22px] bg-sun text-inkblock text-[22px] font-extrabold flex items-center justify-center overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+              >
+                {(pendingAvatar || avatarUrl)
+                  ? <img src={pendingAvatar || avatarUrl} alt="" className="w-16 h-16 object-cover" />
+                  : getInitials(user?.name)}
+              </button>
+              <span className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-brand-500 flex items-center justify-center pointer-events-none" aria-hidden="true">
+                <Camera size={12} className="text-white" />
+              </span>
+              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
             </div>
-            <Link
-              to="/starting-profile"
-              state={{ entryMode: 'saved-profile' }}
-              className="card p-5 flex items-center justify-between hover:border-brand-500/40 transition-colors"
-            >
-              <div>
-                <p className="text-sm font-semibold text-ink mb-0.5">
-                  {language === 'hi' ? 'आपका शुरुआती प्रोफाइल' : 'Your starting profile'}
-                </p>
-                <p className="text-xs text-slt">
-                  {language === 'hi' ? 'अर्जुन का पहला आकलन देखें' : 'See Arjun\'s first read on you'}
-                </p>
-              </div>
-              <ChevronRight size={18} className="text-slt shrink-0" />
-            </Link>
-          </section>
-        )}
-
-        {/* My Focus Deck */}
-        <section className="mb-6">
-          <button
-            onClick={() => navigate('/focus-deck')}
-            className="card w-full p-4 flex items-center gap-3 hover:border-brand-500/40 transition-colors text-left"
-          >
-            <div className="w-9 h-9 rounded-xl bg-dark-700 flex items-center justify-center flex-shrink-0">
-              <Layers size={16} className="text-brand-400" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-ink">{hi ? 'मेरा Focus Deck' : 'My Focus Deck'}</p>
-              <p className="text-xs text-slt">{hi ? 'अपने saved Focus Cards देखो' : 'View your saved Focus Cards'}</p>
-            </div>
-            <ChevronRight size={18} className="text-slt shrink-0" />
-          </button>
-        </section>
-
-        {/* Pressure Reset History */}
-        <section className="mb-6">
-          <button
-            onClick={() => navigate('/body-reset/history')}
-            className="card w-full p-4 flex items-center gap-3 hover:border-teal-500/30 transition-colors text-left"
-          >
-            <div className="w-9 h-9 rounded-xl bg-dark-700 flex items-center justify-center flex-shrink-0">
-              <RefreshCw size={16} className="text-teal-400" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-ink">{hi ? 'Pressure Reset History' : 'Pressure Reset History'}</p>
-              <p className="text-xs text-slt">{hi ? 'पिछले breathing resets देखो' : 'View past breathing resets'}</p>
-            </div>
-            <ChevronRight size={18} className="text-slt shrink-0" />
-          </button>
-        </section>
-
-
-        {/* Privacy & Data — single row, opens bottom sheet */}
-        <section className="mb-6">
-          <div className="card">
-            <button
-              onClick={() => setShowPrivacySheet(true)}
-              className="w-full flex items-center gap-3 px-3 py-3 rounded-2xl hover:bg-dark-700 transition-colors text-left"
-            >
-              <div className="w-9 h-9 rounded-xl bg-dark-700 flex items-center justify-center flex-shrink-0">
-                <Shield size={16} className="text-slt" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-ink">{tprivacy.sectionTitle}</p>
-                <p className="text-xs text-slt">{hi ? 'डेटा देखें और हटाएं' : 'View and delete your data'}</p>
-              </div>
-              <ChevronRight size={16} className="text-slt flex-shrink-0" />
-            </button>
+            {pendingAvatar ? (
+              <button onClick={handleSavePhoto} className="text-[11px] font-bold text-white bg-brand-500 px-3 py-1 rounded-full">
+                {hi ? 'सेव करें' : 'Save photo'}
+              </button>
+            ) : photoSaved ? (
+              <p className="text-[11px] text-ink font-bold">{hi ? 'सेव हो गया ✓' : 'Saved ✓'}</p>
+            ) : null}
           </div>
+          <div className="min-w-0">
+            <h1 className="text-[24px] leading-[1.1] font-extrabold tracking-tight text-ink break-words">{user?.name}</h1>
+            <p className="text-[13px] text-slt mt-1 capitalize">
+              {[user?.sport, memberSince ? `${t.memberSince} ${memberSince}` : ''].filter(Boolean).join(' · ')}
+            </p>
+            <p className="text-[12px] text-slt truncate">{user?.email}</p>
+          </div>
+        </div>
+
+        {/* Plan — the blue block */}
+        <section aria-label={t.subscription} className="mb-3 rounded-[22px] bg-brand-500 text-white p-4">
+          {isPremium ? (
+            <div className="flex items-center gap-3">
+              <span className="flex-1 min-w-0">
+                <span className="block text-[15px] font-extrabold">{t.premiumSince}</span>
+                <span className="block text-[12.5px] text-white/90">
+                  {[user?.subscriptionPlanType ? (user.subscriptionPlanType === 'yearly' ? tp.planYearly : tp.planMonthly) : '',
+                    user?.subscriptionStartDate ? `${tp.activeSince} ${new Date(user.subscriptionStartDate).toLocaleDateString(hi ? 'hi-IN' : 'en-IN', { month: 'short', year: 'numeric' })}` : '']
+                    .filter(Boolean).join(' · ')}
+                </span>
+              </span>
+              {cancelSuccess ? (
+                <span className="text-[12px] font-bold">{tp.cancelSuccess}</span>
+              ) : (
+                <button onClick={() => setShowCancelConfirm(true)} className="min-h-[44px] px-3.5 rounded-[14px] bg-white text-brand-700 text-[13px] font-extrabold">
+                  {tp.cancelSub}
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              <span className="flex-1 min-w-0">
+                <span className="block text-[15px] font-extrabold">{t.freeTrial}</span>
+                <span className="block text-[12.5px] text-white/90">
+                  {trialDaysRemaining === 0 ? t.trialEnded : t.trialDaysLeft(trialDaysRemaining)}
+                </span>
+              </span>
+              <button onClick={() => navigate('/pricing')} className="min-h-[44px] px-3.5 rounded-[14px] bg-white text-brand-700 text-[13px] font-extrabold">
+                {t.planDetails}
+              </button>
+            </div>
+          )}
         </section>
 
-        {/* Achievements */}
-        <section className="mb-6">
-          <div className="flex items-center gap-2 mb-3">
-            <Award size={16} className="text-brand-400" />
-            <h2 className="text-sm font-semibold text-slt uppercase tracking-wide">
-              {language === 'hi' ? 'बैज' : 'Badges'}
-            </h2>
-            {earnedAchievements && (
-              <span className="text-xs text-slt">{earnedAchievements.length}/{ALL_ACHIEVEMENT_KEYS.length}</span>
-            )}
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            {ALL_ACHIEVEMENT_KEYS.map(key => {
-              const def = ACHIEVEMENTS[key];
-              const earned = earnedAchievements?.find(a => a.key === key);
-              return (
-                <div
-                  key={key}
-                  className={`card p-4 flex flex-col items-center text-center gap-1.5 transition-all ${
-                    earned
-                      ? 'border-brand-600/40 bg-brand-500/5 animate-badge-pop'
-                      : 'opacity-35 grayscale'
+        {/* Settings rows */}
+        <div className="mb-3 rounded-[22px] bg-dark-400 overflow-hidden divide-y divide-dark-600">
+          <Link to="/account/profile" className={rowClass}>
+            {t.editProfile}
+            <ChevronRight size={18} className="text-slt shrink-0" aria-hidden="true" />
+          </Link>
+          <div className="min-h-[56px] px-4 flex items-center justify-between gap-3">
+            <span className="text-[15px] font-bold text-ink">{t.appearance}</span>
+            <div className="flex gap-0.5 bg-dark-900 rounded-xl p-[3px] shrink-0" role="group" aria-label={t.appearance}>
+              {[
+                { v: 'system', label: t.themeAuto  },
+                { v: 'light',  label: t.themeLight },
+                { v: 'dark',   label: t.themeDark  },
+              ].map(opt => (
+                <button
+                  key={opt.v}
+                  type="button"
+                  aria-pressed={theme === opt.v}
+                  onClick={() => setTheme(opt.v)}
+                  className={`min-h-[36px] px-2.5 text-[12px] rounded-[9px] font-bold transition-colors ${
+                    theme === opt.v ? 'bg-brand-500 text-white' : 'text-slt'
                   }`}
                 >
-                  <span className="text-3xl">{def.icon}</span>
-                  <p className="text-xs font-semibold text-ink leading-tight">{def.name}</p>
-                  {earned ? (
-                    <span className="text-[10px] text-brand-400 font-medium">+{def.xp} XP</span>
-                  ) : (
-                    <p className="text-[10px] text-slt leading-tight">{def.desc}</p>
-                  )}
-                </div>
-              );
-            })}
+                  {opt.label}
+                </button>
+              ))}
+            </div>
           </div>
-        </section>
+          {/* Push Notifications v1 — id="notifications" is the anchor target
+              for the Home quick-settings shortcut (Navbar.jsx). */}
+          <section id="notifications" ref={notificationsSectionRef} tabIndex={-1} aria-label={tpush.title} className="px-4 py-3 outline-none">
+            {push.status === 'loading' ? (
+              <p className="text-[15px] font-bold text-ink">{tpush.title}</p>
+            ) : push.status === 'unsupported' ? (
+              <><p className="text-[15px] font-bold text-ink">{tpush.title}</p><p className="text-[12.5px] text-slt mt-0.5">{tpush.unsupported}</p></>
+            ) : push.status === 'ios-unsupported' ? (
+              <><p className="text-[15px] font-bold text-ink">{tpush.title}</p><p className="text-[12.5px] text-slt mt-0.5">{tpush.iosUnsupported}</p></>
+            ) : push.status === 'consent-required' ? (
+              <><p className="text-[15px] font-bold text-ink">{tpush.consentRequiredTitle}</p><p className="text-[12.5px] text-slt mt-0.5">{tpush.consentRequiredBody}</p></>
+            ) : push.status === 'denied' ? (
+              <><p className="text-[15px] font-bold text-ink">{tpush.deniedTitle}</p><p className="text-[12.5px] text-slt mt-0.5">{tpush.deniedBody}</p></>
+            ) : (
+              <label className="flex items-center justify-between gap-3 cursor-pointer min-h-[44px]">
+                <span className="flex-1 min-w-0 pr-2">
+                  <span className="block text-[15px] font-bold text-ink">{tpush.promptTitle}</span>
+                  <span className="block text-[12.5px] text-slt mt-0.5">{tpush.promptBody}</span>
+                  <span className="block text-[11px] font-bold text-slt mt-0.5">
+                    {push.status === 'enabled' ? tpush.onLabel : tpush.offLabel}
+                  </span>
+                </span>
+                <span className="relative inline-flex items-center shrink-0">
+                  <input
+                    type="checkbox"
+                    role="switch"
+                    checked={push.status === 'enabled'}
+                    disabled={push.busy}
+                    onChange={handleTogglePush}
+                    aria-label={tpush.promptTitle}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed z-10"
+                  />
+                  <span className={`w-11 h-6 rounded-full transition-colors pointer-events-none ${push.busy ? 'opacity-60' : ''} ${push.status === 'enabled' ? 'bg-brand-500' : 'bg-dark-600'}`} aria-hidden="true" />
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform pointer-events-none ${push.status === 'enabled' ? 'translate-x-5' : 'translate-x-0'}`} aria-hidden="true" />
+                </span>
+              </label>
+            )}
+            {push.error && <p className="text-red-500 text-xs mt-2">{tpush.error}</p>}
+          </section>
+        </div>
 
-        {/* Help & Support */}
-        <section className="mb-6">
-          <div className="flex items-center gap-2 mb-3">
-            <MessageCircle size={16} className="text-slt" />
-            <h2 className="text-sm font-semibold text-slt uppercase tracking-wide">
-              {language === 'hi' ? 'सहायता' : 'Help & Support'}
-            </h2>
-          </div>
-          <div className="card space-y-1">
-            <button
-              type="button"
-              onClick={() => navigate('/contact')}
-              className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-dark-700 transition-colors text-left"
-            >
-              <Mail size={18} className="text-slt flex-shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-ink text-sm font-medium">{t.contactSupportTitle}</p>
-                <p className="text-xs text-slt">{t.contactSupportDesc}</p>
-              </div>
-              <ChevronRight size={18} className="text-slt flex-shrink-0" />
-            </button>
-          </div>
-        </section>
+        <div className="mb-3 rounded-[22px] bg-dark-400 overflow-hidden divide-y divide-dark-600">
+          {user?.onboardingDone && (
+            <Link to="/starting-profile" state={{ entryMode: 'saved-profile' }} className={rowClass}>
+              {language === 'hi' ? 'आपका शुरुआती प्रोफाइल' : 'Your starting profile'}
+              <ChevronRight size={18} className="text-slt shrink-0" aria-hidden="true" />
+            </Link>
+          )}
+          <Link to="/focus-deck" className={rowClass}>
+            {hi ? 'मेरा Focus Deck' : 'My Focus Deck'}
+            <ChevronRight size={18} className="text-slt shrink-0" aria-hidden="true" />
+          </Link>
+          <Link to="/body-reset/history" className={rowClass}>
+            Pressure Reset History
+            <ChevronRight size={18} className="text-slt shrink-0" aria-hidden="true" />
+          </Link>
+        </div>
 
-        {/* Account actions */}
-        <section className="mb-6">
-          <div className="flex items-center gap-2 mb-3">
-            <Shield size={16} className="text-slt" />
-            <h2 className="text-sm font-semibold text-slt uppercase tracking-wide">{t.dangerZone}</h2>
-          </div>
-          <div className="card space-y-1">
-            <button
-              onClick={logout}
-              className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-dark-700 transition-colors text-left"
-            >
-              <LogOut size={18} className="text-slt flex-shrink-0" />
-              <span className="text-ink text-sm font-medium">{t.signOut}</span>
-            </button>
-            <div className="border-t border-dark-600" />
-            <button
-              onClick={() => { setShowDeleteModal(true); setDeleteStep(1); setDeleteConfirm(''); setDeleteError(''); }}
-              className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-red-500/10 transition-colors text-left"
-            >
-              <Trash2 size={18} className="text-red-500 flex-shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-red-400 text-sm font-medium">{tprivacy.account.label}</p>
-                <p className="text-xs text-slt">{tprivacy.account.sub}</p>
-              </div>
-            </button>
-          </div>
-        </section>
+        {/* Help & Support — privacy, contact, support contacts */}
+        <div className="mb-3 rounded-[22px] bg-dark-400 overflow-hidden divide-y divide-dark-600">
+          <button type="button" onClick={() => setShowPrivacySheet(true)} className={rowClass}>
+            {tprivacy.sectionTitle}
+            <ChevronRight size={18} className="text-slt shrink-0" aria-hidden="true" />
+          </button>
+          <button type="button" onClick={() => navigate('/contact')} className={rowClass}>
+            {t.contactSupportTitle}
+            <ChevronRight size={18} className="text-slt shrink-0" aria-hidden="true" />
+          </button>
+          <button type="button" aria-expanded={showHelplines} onClick={() => setShowHelplines(v => !v)} className={rowClass}>
+            {t.helplinesTitle}
+            <ChevronRight size={18} className={`text-slt shrink-0 transition-transform ${showHelplines ? 'rotate-90' : ''}`} aria-hidden="true" />
+          </button>
+          {showHelplines && (
+            <div className="px-4 py-3">
+              <p className="text-[12.5px] text-slt mb-2">{t.helplinesSub}</p>
+              <HelplineList />
+            </div>
+          )}
+        </div>
+
+        {/* Account actions — sign out, delete account */}
+        <button
+          type="button"
+          onClick={logout}
+          className="w-full min-h-[52px] rounded-[18px] bg-dark-400 text-ink text-[15px] font-bold flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+        >
+          <LogOut size={18} aria-hidden="true" />
+          {t.signOut}
+        </button>
+        <button
+          type="button"
+          onClick={() => { setShowDeleteModal(true); setDeleteStep(1); setDeleteConfirm(''); setDeleteError(''); }}
+          className="w-full min-h-[44px] mt-2 text-[13px] font-bold text-red-600 dark:text-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-xl"
+        >
+          {tprivacy.account.label}
+        </button>
+        </>
+      )}
       </main>
 
       {/* Cancel subscription confirmation */}

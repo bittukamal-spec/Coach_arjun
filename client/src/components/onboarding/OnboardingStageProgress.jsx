@@ -26,8 +26,8 @@ function OnboardingStageProgress({ stages, currentStageKey, progressLabel, class
         {stages.map((stage, i) => (
           <span
             key={stage.key}
-            className={`h-1.5 flex-1 rounded-full transition-colors ${
-              i <= currentIndex ? 'bg-brand-500' : 'bg-dark-700'
+            className={`h-2 flex-1 rounded-full transition-colors ${
+              i <= currentIndex ? 'bg-brand-500' : 'bg-dark-600'
             }`}
           />
         ))}
