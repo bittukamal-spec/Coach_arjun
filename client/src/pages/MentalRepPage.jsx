@@ -1,3 +1,4 @@
+import { RepArt } from '../components/visuals/TrainArt';
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Zap, Wind, Target, CheckCircle2 } from 'lucide-react';
@@ -226,7 +227,8 @@ export default function MentalRepPage() {
       onBack={goBack}
       headerTitle={headerTitle}
       icon={Zap}
-      variant="blue"
+      tone="sun"
+      Art={RepArt}
       tag={hi ? '4 मिनट' : '4 min'}
       title="Quick Rep"
       desc={hi

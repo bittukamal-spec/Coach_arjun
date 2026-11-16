@@ -60,7 +60,7 @@ export default function ResetHistoryPage() {
     if (s.tensionBefore == null || s.tensionAfter == null) return null;
     const diff = s.tensionBefore - s.tensionAfter;
     const arrow = diff > 0 ? '↓' : diff < 0 ? '↑' : '→';
-    const color = diff > 0 ? 'text-teal-400' : diff < 0 ? 'text-red-400' : 'text-slt';
+    const color = diff > 0 ? 'text-[color:var(--accent-teal)]' : diff < 0 ? 'text-red-400' : 'text-slt';
     return { label: `${s.tensionBefore} → ${s.tensionAfter} ${arrow}`, color };
   }
 
@@ -72,7 +72,7 @@ export default function ResetHistoryPage() {
 
   if (loading) return (
     <div className="min-h-screen bg-dark-900 flex items-center justify-center">
-      <div className="w-8 h-8 border-2 border-teal-400 border-t-transparent rounded-full animate-spin" />
+      <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
     </div>
   );
 
@@ -89,13 +89,13 @@ export default function ResetHistoryPage() {
       {/* Empty state */}
       {sessions.length === 0 && (
         <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
-          <div className="w-14 h-14 bg-teal-500/15 rounded-2xl flex items-center justify-center mb-4">
-            <Wind size={24} className="text-teal-400" />
+          <div className="w-16 h-16 bg-mint rounded-3xl flex items-center justify-center mb-4">
+            <Wind size={28} className="text-inkblock" />
           </div>
           <h3 className="text-base font-bold text-ink mb-2">{t.history.emptyTitle}</h3>
           <button
             onClick={() => navigate('/body-reset')}
-            className="mt-4 bg-teal-500 text-white font-bold py-3 px-8 rounded-2xl active:scale-95"
+            className="mt-4 bg-sun text-inkblock font-extrabold py-3 px-8 rounded-[18px] min-h-[48px] active:scale-95"
           >
             {t.history.emptyBtn}
           </button>
@@ -109,7 +109,7 @@ export default function ResetHistoryPage() {
           const delta = tensionDelta(session);
           const dur = formatDuration(session.durationSeconds);
           const modeBadge = session.mode === 'quick' ? t.history.modeQuick : t.history.modeTraining;
-          const modeBadgeColor = session.mode === 'quick' ? 'text-teal-400 bg-teal-500/15' : 'text-brand-400 bg-brand-500/15';
+          const modeBadgeColor = session.mode === 'quick' ? 'text-inkblock bg-mint' : 'text-inkblock bg-sky';
 
           return (
             <div key={session.id} className="bg-dark-800 border border-dark-600 rounded-2xl overflow-hidden">
@@ -146,7 +146,7 @@ export default function ResetHistoryPage() {
                   {session.focusWordUsed && (
                     <div>
                       <p className="text-[10px] font-semibold text-slt uppercase tracking-wider mb-0.5">{t.card.focusWordLabel}</p>
-                      <p className="text-sm font-bold text-teal-400">{session.focusWordUsed}</p>
+                      <p className="text-sm font-bold text-[color:var(--accent-teal)]">{session.focusWordUsed}</p>
                     </div>
                   )}
                   {session.arjunNote && (
