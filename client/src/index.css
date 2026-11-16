@@ -119,6 +119,15 @@
   --journal-border:     #DDD6FE;              /* violet hairline */
   --journal-hero-from:  #7C3AED;
   --journal-hero-to:    #4C1D95;
+
+  /* Feature page backgrounds (Playbook, founder decision Nov 2026): each
+     feature's screens sit on its own colour. Light theme = the block colour;
+     dark theme = a deep tint of the same hue, so a full page never glares.
+     Text on them uses the ordinary ink/slt tokens. */
+  --tone-mint-page:  #7FE3C4;
+  --tone-sky-page:   #B7C8FF;
+  --tone-sun-page:   #FFC629;
+  --tone-coral-page: #FF6B4A;
 }
 
 /* OS prefers dark — applies when arjun_theme = 'system' (no data-theme attr) */
@@ -172,6 +181,10 @@
     --journal-accent:    #C4B5FD;
     --journal-surface:   #221C3A;
     --journal-border:    #3B3168;
+    --tone-mint-page:  #0E3A31;
+    --tone-sky-page:   #1A2560;
+    --tone-sun-page:   #3A2E07;
+    --tone-coral-page: #3E1A12;
   }
 }
 
@@ -224,6 +237,10 @@
   --journal-accent:    #C4B5FD;
   --journal-surface:   #221C3A;
   --journal-border:    #3B3168;
+  --tone-mint-page:  #0E3A31;
+  --tone-sky-page:   #1A2560;
+  --tone-sun-page:   #3A2E07;
+  --tone-coral-page: #3E1A12;
 }
 
 @layer utilities {

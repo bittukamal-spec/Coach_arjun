@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ArrowLeft, ChevronDown, CheckCircle2 } from 'lucide-react';
+import TonePage from '../ui/TonePage';
 
 // Shared Intro → Practice → Completion shell for mental-training tools
 // (proven first on Quick Rep, Stage 6). Each practice keeps its own step
@@ -32,92 +33,85 @@ export function PracticeHeader({ onBack, title, progress, canGoBack = true }) {
   );
 }
 
-// Playbook redesign: the intro opens with ONE flat colour block — the
-// practice's own colour, its drawing, the time tag, title and one line —
-// then plain card-surface facts, an optional "why this works" disclosure,
-// and one sun-coloured Start action. No gradients. Blocks are identical in
-// light and dark, so everything on them uses dark ink.
-const TONE_BLOCK = { mint: 'bg-mint', sky: 'bg-sky', sun: 'bg-sun', coral: 'bg-coral' };
-// Older callers still pass the gradient-era `variant`; map it to a block.
+// Playbook redesign, founder layout (Nov 2026): the whole intro sits on the
+// feature's own page colour — no separate hero box and no boxes around the
+// details. Everything is centred, in this order: drawing, title, one line,
+// the time tag; then "What to expect"; then "Why this works" (a quiet
+// disclosure). The old Duration / Best for / Goal tiles are gone; the time
+// tag carries the duration. One Start action at the bottom.
 const VARIANT_TONE = { teal: 'mint', blue: 'sky', amber: 'sun', purple: 'sky' };
+// The main action must stand out from the page: sun everywhere except on the
+// sun page itself, where it is brand blue.
+const START_CLASS = {
+  sun: 'bg-brand-500 text-white',
+  default: 'bg-sun text-inkblock',
+};
 
 export function PracticeIntro({
   onBack, headerTitle,
-  icon: Icon, variant = 'blue', tone, Art, tag, title, desc, stats, checklist,
+  icon: Icon, variant = 'blue', tone, Art, tag, title, desc, checklist,
   whyLabel, whyBody,
   onStart, startLabel,
   secondaryLabel, onSecondary,
 }) {
   const [whyOpen, setWhyOpen] = useState(false);
-  const block = TONE_BLOCK[tone || VARIANT_TONE[variant]] || TONE_BLOCK.sky;
+  const pageTone = tone || VARIANT_TONE[variant] || 'sky';
+  const startClass = START_CLASS[pageTone] || START_CLASS.default;
   return (
-    <div className="min-h-screen bg-dark-900 flex flex-col">
+    <TonePage tone={pageTone} className="flex flex-col">
       <PracticeHeader onBack={onBack} title={headerTitle} />
-      <div className="flex-1 px-4 pt-2 pb-6 overflow-y-auto max-w-lg mx-auto w-full">
-        <section className={`relative overflow-hidden rounded-[28px] p-5 text-inkblock ${block}`}>
-          <div className="flex items-start justify-between gap-3">
-            {tag && (
-              <span className="rounded-full bg-inkblock text-white text-micro font-bold uppercase px-3 py-1">{tag}</span>
+      <div className="flex-1 px-6 pt-2 pb-6 overflow-y-auto max-w-lg mx-auto w-full text-center">
+        <section>
+          {Art
+            ? <Art className="h-[clamp(84px,14dvh,128px)] w-auto mx-auto" />
+            : Icon && (
+              <span className="w-16 h-16 rounded-3xl bg-dark-400 text-ink flex items-center justify-center mx-auto" aria-hidden="true">
+                <Icon size={28} />
+              </span>
             )}
-            {Art
-              ? <Art className="h-[clamp(72px,12dvh,104px)] w-auto shrink-0 -mt-1 -mr-1" />
-              : Icon && (
-                <span className="w-14 h-14 rounded-2xl bg-white/70 flex items-center justify-center shrink-0" aria-hidden="true">
-                  <Icon size={26} />
-                </span>
-              )}
-          </div>
-          <h2 className="mt-2 text-[26px] leading-[1.12] font-extrabold">{title}</h2>
-          {desc && <p className="mt-1.5 text-[14px] leading-relaxed text-inkblock/80">{desc}</p>}
+          <h2 className="mt-4 text-[28px] leading-[1.12] font-extrabold text-ink">{title}</h2>
+          {desc && <p className="mt-2 text-[15px] leading-relaxed text-slt">{desc}</p>}
+          {tag && (
+            <span className="mt-4 inline-block rounded-full bg-inkblock text-white text-micro font-bold uppercase px-3.5 py-1.5">{tag}</span>
+          )}
         </section>
 
-        {stats && stats.length > 0 && (
-          <div className="grid grid-cols-3 gap-2 mt-3">
-            {stats.map(st => (
-              <div key={st.label} className="rounded-2xl bg-dark-400 px-3 py-3">
-                <p className="text-micro font-bold uppercase text-slt">{st.label}</p>
-                <p className="mt-1 text-[13px] font-bold leading-snug text-ink">{st.value}</p>
-              </div>
-            ))}
-          </div>
-        )}
-
         {checklist && (
-          <div className="rounded-3xl bg-dark-400 p-4 mt-3">
-            {checklist.title && <p className="text-[14px] font-extrabold text-ink mb-3">{checklist.title}</p>}
+          <section className="mt-8">
+            {checklist.title && <h3 className="text-[16px] font-extrabold text-ink mb-3">{checklist.title}</h3>}
             <ul className="space-y-2.5">
               {checklist.items.map((item, i) => (
-                <li key={i} className="flex items-start gap-2.5">
-                  <CheckCircle2 size={18} className="text-brand-500 shrink-0 mt-0.5" aria-hidden="true" />
-                  <span className="text-sm text-ink leading-snug">{item}</span>
+                <li key={i} className="flex items-start justify-center gap-2 text-[14.5px] text-ink leading-snug">
+                  <CheckCircle2 size={18} className="shrink-0 mt-0.5" aria-hidden="true" />
+                  <span className="text-left">{item}</span>
                 </li>
               ))}
             </ul>
-          </div>
+          </section>
         )}
 
         {whyBody && (
-          <div className="rounded-3xl bg-dark-400 overflow-hidden mt-3">
+          <section className="mt-6">
             <button
               onClick={() => setWhyOpen(o => !o)}
-              className="w-full min-h-[52px] flex items-center justify-between px-4 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-3xl"
+              className="min-h-[48px] inline-flex items-center justify-center gap-1.5 px-3 rounded-2xl text-[16px] font-extrabold text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
               aria-expanded={whyOpen}
             >
-              <p className="text-[14px] font-extrabold text-ink">{whyLabel}</p>
-              <ChevronDown size={18} className={`text-slt shrink-0 transition-transform ${whyOpen ? 'rotate-180' : ''}`} />
+              {whyLabel}
+              <ChevronDown size={18} className={`shrink-0 transition-transform ${whyOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
             </button>
             {whyOpen && (
-              <div className="px-4 pb-4 text-sm text-slt leading-relaxed">
+              <div className="mt-1 text-[14.5px] text-slt leading-relaxed">
                 {whyBody}
               </div>
             )}
-          </div>
+          </section>
         )}
       </div>
       <div className="px-4 pb-8 pt-2 max-w-lg mx-auto w-full">
         <button
           onClick={onStart}
-          className="w-full min-h-[56px] rounded-[18px] bg-sun text-inkblock text-base font-extrabold active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+          className={`w-full min-h-[56px] rounded-[18px] text-base font-extrabold active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 ${startClass}`}
         >
           {startLabel}
         </button>
@@ -127,38 +121,40 @@ export function PracticeIntro({
         {secondaryLabel && (
           <button
             onClick={onSecondary}
-            className="w-full min-h-[44px] flex items-center justify-center text-center text-sm text-slt font-semibold mt-2 rounded active:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+            className="w-full min-h-[44px] flex items-center justify-center text-center text-sm text-ink font-semibold mt-2 rounded active:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
           >
             {secondaryLabel}
           </button>
         )}
       </div>
-    </div>
+    </TonePage>
   );
 }
 
-// One step of the practice itself — the same header + title/sub/children
-// shape every practice already used locally before this shell existed.
-export function PracticeScreen({ onBack, headerTitle, progress, canGoBack = true, title, sub, children }) {
-  return (
-    <div className="min-h-screen bg-dark-900 flex flex-col">
+// One step of the practice itself. With a `tone`, the step sits on the
+// feature's page colour like its intro; without one, on the ordinary page.
+export function PracticeScreen({ onBack, headerTitle, progress, canGoBack = true, title, sub, tone, children }) {
+  const body = (
+    <>
       <PracticeHeader onBack={onBack} title={headerTitle} progress={progress} canGoBack={canGoBack} />
       <div className="flex-1 px-4 pt-4 pb-8 max-w-lg mx-auto w-full">
         {title && <h1 className="text-[22px] font-extrabold text-ink mb-2 leading-snug">{title}</h1>}
         {sub && <p className="text-sm text-slt mb-6 leading-relaxed">{sub}</p>}
         {children}
       </div>
-    </div>
+    </>
   );
+  return tone
+    ? <TonePage tone={tone} className="flex flex-col">{body}</TonePage>
+    : <div className="min-h-screen bg-dark-900 flex flex-col">{body}</div>;
 }
 
 // Consistent full-screen completion frame. The practice supplies its own
 // completion content (icon, summary, save/exit actions) unchanged — only
 // the surrounding frame is shared.
-export function PracticeCompletion({ children }) {
-  return (
-    <div className="min-h-screen bg-dark-900 flex flex-col items-center justify-center px-4 text-center">
-      {children}
-    </div>
-  );
+export function PracticeCompletion({ tone, children }) {
+  const cls = 'flex flex-col items-center justify-center px-4 text-center';
+  return tone
+    ? <TonePage tone={tone} className={cls}>{children}</TonePage>
+    : <div className={`min-h-screen bg-dark-900 ${cls}`}>{children}</div>;
 }

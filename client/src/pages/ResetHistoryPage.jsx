@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Wind } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiFetch } from '../api';
+import TonePage from '../components/ui/TonePage';
 import { translations } from '../i18n/translations';
 
 export default function ResetHistoryPage() {
@@ -71,16 +72,16 @@ export default function ResetHistoryPage() {
   }
 
   if (loading) return (
-    <div className="min-h-screen bg-dark-900 flex items-center justify-center">
+    <TonePage tone="mint" className="flex items-center justify-center">
       <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
-    </div>
+    </TonePage>
   );
 
   return (
-    <div className="min-h-screen bg-dark-900 pb-[calc(7.5rem+env(safe-area-inset-bottom))]">
+    <TonePage tone="mint" className="pb-[calc(7.5rem+env(safe-area-inset-bottom))]">
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 pt-4 pb-3 sticky top-0 bg-dark-900/95 backdrop-blur z-10">
-        <button onClick={() => navigate('/train')} className="w-9 h-9 flex items-center justify-center rounded-full bg-dark-700 active:scale-95">
+      <div className="flex items-center gap-3 px-4 pt-4 pb-3 sticky top-0 bg-tonepage-mint z-10">
+        <button onClick={() => navigate('/train')} aria-label="Back" className="w-11 h-11 flex items-center justify-center rounded-2xl bg-dark-400 active:scale-95">
           <ArrowLeft size={18} className="text-ink" />
         </button>
         <h1 className="text-xl font-bold text-ink flex-1">{t.history.title}</h1>
@@ -89,8 +90,8 @@ export default function ResetHistoryPage() {
       {/* Empty state */}
       {sessions.length === 0 && (
         <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
-          <div className="w-16 h-16 bg-mint rounded-3xl flex items-center justify-center mb-4">
-            <Wind size={28} className="text-inkblock" />
+          <div className="w-16 h-16 bg-dark-400 rounded-3xl flex items-center justify-center mb-4">
+            <Wind size={28} className="text-ink" />
           </div>
           <h3 className="text-base font-bold text-ink mb-2">{t.history.emptyTitle}</h3>
           <button
@@ -112,7 +113,7 @@ export default function ResetHistoryPage() {
           const modeBadgeColor = session.mode === 'quick' ? 'text-inkblock bg-mint' : 'text-inkblock bg-sky';
 
           return (
-            <div key={session.id} className="bg-dark-800 border border-dark-600 rounded-2xl overflow-hidden">
+            <div key={session.id} className="bg-dark-400 rounded-3xl overflow-hidden">
               <button
                 className="w-full text-left px-4 py-3.5"
                 onClick={() => setExpandedId(isExpanded ? null : session.id)}
@@ -191,6 +192,6 @@ export default function ResetHistoryPage() {
           );
         })}
       </div>
-    </div>
+    </TonePage>
   );
 }

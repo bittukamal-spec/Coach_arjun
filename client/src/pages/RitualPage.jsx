@@ -9,6 +9,7 @@ import { apiFetch } from '../api';
 import { Button, Card, PageHeader, SectionLabel } from '../components/ui';
 import { SafetyGuidanceCard } from './mindJournal/shared';
 import { RitualArt } from '../components/visuals/TrainArt';
+import TonePage from '../components/ui/TonePage';
 import RoutineRun from '../components/ritual/RoutineRun';
 
 // ─── Ritual rebuild (PR 3) — the athlete's saved routines. /ritual now reads
@@ -229,11 +230,11 @@ function Builder({ initial, onSubmit, onSuggest, onCancel, t }) {
                 aria-checked={selected}
                 onClick={() => setCategory(c)}
                 className={`text-left rounded-2xl border px-4 py-3 min-h-[48px] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
-                  selected ? `${categoryStyle(c).block} border-transparent text-inkblock` : 'bg-dark-400 border-transparent text-ink'
+                  selected ? 'bg-brand-500 border-transparent text-white' : 'bg-dark-400 border-transparent text-ink'
                 }`}
               >
                 <span className="block text-sm font-bold">{t.categories[c]}</span>
-                <span className={`block text-caption mt-0.5 ${selected ? 'text-inkblock/80' : 'text-slt'}`}>{t.categoryHints[c]}</span>
+                <span className={`block text-caption mt-0.5 ${selected ? 'text-white/85' : 'text-slt'}`}>{t.categoryHints[c]}</span>
               </button>
             );
           })}
@@ -366,10 +367,10 @@ function categoryStyle(category) {
   return CATEGORY_STYLE[category] || CATEGORY_STYLE.own_situation;
 }
 
-function CategoryTile({ category }) {
+function CategoryTile({ category, onPage = false }) {
   const { Icon, block } = categoryStyle(category);
   return (
-    <div className={`w-11 h-11 rounded-2xl ${block} text-inkblock flex items-center justify-center shrink-0`} aria-hidden="true">
+    <div className={`w-11 h-11 rounded-2xl ${onPage ? 'bg-dark-400 text-ink' : `${block} text-inkblock`} flex items-center justify-center shrink-0`} aria-hidden="true">
       <Icon size={20} />
     </div>
   );
@@ -384,20 +385,19 @@ function arjunDraft(routine, t) {
   return t.arjunPrefill(routineTitle(routine, t), category, steps);
 }
 
-// The list's one hero moment: the sky block (Ritual's Train colour) with its
-// drawing, what routines are for, and how many are used.
+// The list's opening (founder layout, Nov 2026): straight on the sky page —
+// no box — centred: the Ritual drawing, what routines are for, and how many
+// are used.
 function RoutinesHero({ count, limit, t }) {
   return (
-    <div className="relative overflow-hidden rounded-[28px] bg-sky text-inkblock p-5 mb-6">
-      <RitualArt className="absolute right-3 top-3 h-[88px] w-auto pointer-events-none" />
-      <div className="relative pr-24">
-        <h2 className="text-[20px] font-extrabold leading-tight mb-1">{t.heroTitle}</h2>
-        <p className="text-[13.5px] leading-snug text-inkblock/80 mb-3">{t.subtitle}</p>
-        <span className="inline-flex items-center rounded-full bg-inkblock px-3 py-1 text-xs font-bold text-white">
-          {t.savedCount(count, limit)}
-        </span>
-      </div>
-    </div>
+    <section className="text-center mb-8">
+      <RitualArt className="h-[clamp(84px,14dvh,120px)] w-auto mx-auto" />
+      <h2 className="mt-4 text-[26px] font-extrabold leading-tight text-ink">{t.heroTitle}</h2>
+      <p className="mt-2 text-[15px] leading-relaxed text-slt">{t.subtitle}</p>
+      <span className="mt-4 inline-flex items-center rounded-full bg-inkblock px-3.5 py-1.5 text-xs font-bold text-white">
+        {t.savedCount(count, limit)}
+      </span>
+    </section>
   );
 }
 
@@ -429,66 +429,55 @@ function RoutineCard({ routine, t, onOpen }) {
   );
 }
 
-// Steps as a numbered vertical timeline.
+// Steps as numbered rows; each row is a card so its category-coloured number
+// never sits directly on a page of the same colour.
 function StepTimeline({ steps, block }) {
   return (
-    <ol className="mb-6">
-      {steps.map((step, i) => {
-        const last = i === steps.length - 1;
-        return (
-          <li key={step.id || i} className="relative flex gap-4 pb-4 last:pb-0">
-            {!last && <span className="absolute left-[17px] top-9 bottom-0 w-0.5 bg-dark-600" aria-hidden="true" />}
-            <span
-              className={`relative z-10 w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-sm font-extrabold text-inkblock ${block}`}
-              aria-hidden="true"
-            >
-              {i + 1}
-            </span>
-            <div className="min-w-0 flex-1 bg-dark-400 rounded-2xl px-4 py-3">
-              <p className="text-body font-medium text-ink leading-snug">{step.instruction}</p>
-              {step.cue && <p className="text-caption text-slt mt-0.5">“{step.cue}”</p>}
-            </div>
-          </li>
-        );
-      })}
+    <ol className="mb-6 flex flex-col gap-2.5">
+      {steps.map((step, i) => (
+        <li key={step.id || i} className="flex items-start gap-3 bg-dark-400 rounded-2xl px-3 py-3">
+          <span
+            className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-sm font-extrabold text-inkblock ${block}`}
+            aria-hidden="true"
+          >
+            {i + 1}
+          </span>
+          <div className="min-w-0 flex-1 pt-1.5">
+            <p className="text-body font-semibold text-ink leading-snug">{step.instruction}</p>
+            {step.cue && <p className="text-caption text-slt mt-0.5">“{step.cue}”</p>}
+          </div>
+        </li>
+      ))}
     </ol>
   );
 }
 
 function UseTips({ routine, t }) {
   return (
-    <>
-      <div className="rounded-3xl bg-dark-400 p-4 mb-3">
-        <div className="flex items-start gap-3">
-          <Lightbulb size={20} className="text-brand-500 shrink-0 mt-0.5" aria-hidden="true" />
-          <div>
-            <h2 className="text-body font-semibold text-ink mb-1">{t.tipTitle}</h2>
-            <p className="text-sm text-slt leading-relaxed">
-              {t.useWhen[routine.category] || t.useWhen.own_situation} {t.practiseTip}
-            </p>
-          </div>
-        </div>
-      </div>
+    <div className="text-center">
+      <section className="mb-8">
+        <Lightbulb size={22} className="text-ink mx-auto mb-2" aria-hidden="true" />
+        <h2 className="text-[16px] font-extrabold text-ink mb-1.5">{t.tipTitle}</h2>
+        <p className="text-[14.5px] text-slt leading-relaxed">
+          {t.useWhen[routine.category] || t.useWhen.own_situation} {t.practiseTip}
+        </p>
+      </section>
 
-      <div className="rounded-3xl bg-dark-400 p-4 mb-8">
-        <div className="flex items-start gap-3">
-          <MessageCircle size={20} className="text-brand-500 shrink-0 mt-0.5" aria-hidden="true" />
-          <div className="min-w-0">
-            <h2 className="text-body font-semibold text-ink mb-1">{t.arjunTitle}</h2>
-            <p className="text-sm text-slt leading-relaxed mb-3">{t.arjunBody}</p>
-            <Link
-              to="/coaching"
-              // routineId links the Coach conversation to this routine, so
-              // Arjun can offer an improved version with a Save card.
-              state={{ prefillMsg: arjunDraft(routine, t), routineId: routine.id }}
-              className="inline-flex items-center justify-center min-h-[48px] px-5 rounded-[18px] bg-sun text-inkblock text-sm font-extrabold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
-            >
-              {t.askArjun}
-            </Link>
-          </div>
-        </div>
-      </div>
-    </>
+      <section className="mb-8">
+        <MessageCircle size={22} className="text-ink mx-auto mb-2" aria-hidden="true" />
+        <h2 className="text-[16px] font-extrabold text-ink mb-1.5">{t.arjunTitle}</h2>
+        <p className="text-[14.5px] text-slt leading-relaxed mb-4">{t.arjunBody}</p>
+        <Link
+          to="/coaching"
+          // routineId links the Coach conversation to this routine, so
+          // Arjun can offer an improved version with a Save card.
+          state={{ prefillMsg: arjunDraft(routine, t), routineId: routine.id }}
+          className="inline-flex items-center justify-center min-h-[48px] px-5 rounded-[18px] bg-sun text-inkblock text-sm font-extrabold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+        >
+          {t.askArjun}
+        </Link>
+      </section>
+    </div>
   );
 }
 
@@ -689,12 +678,12 @@ function RitualPage() {
 
   if (view.name === 'loading') {
     return (
-      <div className="min-h-screen bg-dark-900 pb-[calc(7.5rem+env(safe-area-inset-bottom))]">
-        <PageHeader backTo="/train" title={t.title} />
+      <TonePage tone="sky" className="pb-[calc(7.5rem+env(safe-area-inset-bottom))]">
+        <PageHeader barClass="bg-tonepage-sky" backTo="/train" title={t.title} />
         <div className="flex items-center justify-center py-24">
           <div className="w-8 h-8 border-4 border-brand-600 border-t-transparent rounded-full animate-spin" />
         </div>
-      </div>
+      </TonePage>
     );
   }
 
@@ -702,15 +691,15 @@ function RitualPage() {
 
   if (view.name === 'error') {
     return (
-      <div className="min-h-screen bg-dark-900 pb-[calc(7.5rem+env(safe-area-inset-bottom))]">
-        <PageHeader backTo="/train" title={t.title} />
+      <TonePage tone="sky" className="pb-[calc(7.5rem+env(safe-area-inset-bottom))]">
+        <PageHeader barClass="bg-tonepage-sky" backTo="/train" title={t.title} />
         <main className="max-w-lg mx-auto px-page py-8">
           <Card className="p-5">
             <p className="text-body text-slt mb-4">{t.errLoad}</p>
             <Button type="button" onClick={load}>{t.retry}</Button>
           </Card>
         </main>
-      </div>
+      </TonePage>
     );
   }
 
@@ -720,8 +709,8 @@ function RitualPage() {
     const editing = view.id ? current : null;
     const back = editing ? () => setView({ name: 'detail', id: editing.id }) : goList;
     return (
-      <div className="min-h-screen bg-dark-900 pb-[calc(7.5rem+env(safe-area-inset-bottom))]">
-        <PageHeader onBack={back} title={editing ? t.editTitle : t.newTitle} />
+      <TonePage tone="sky" className="pb-[calc(7.5rem+env(safe-area-inset-bottom))]">
+        <PageHeader barClass="bg-tonepage-sky" onBack={back} title={editing ? t.editTitle : t.newTitle} />
         <main className="max-w-lg mx-auto px-page py-6">
           <Builder
             key={view.id || 'new'}
@@ -732,7 +721,7 @@ function RitualPage() {
             t={t}
           />
         </main>
-      </div>
+      </TonePage>
     );
   }
 
@@ -756,8 +745,8 @@ function RitualPage() {
   if (view.name === 'detail' && current) {
     const { block } = categoryStyle(current.category);
     return (
-      <div className="min-h-screen bg-dark-900 pb-[calc(7.5rem+env(safe-area-inset-bottom))]">
-        <PageHeader onBack={goList} title={routineTitle(current, t)} />
+      <TonePage tone="sky" className="pb-[calc(7.5rem+env(safe-area-inset-bottom))]">
+        <PageHeader barClass="bg-tonepage-sky" onBack={goList} title={routineTitle(current, t)} />
         <main className="max-w-lg mx-auto px-page py-6 animate-fade-in">
           {savedMsg && (
             <p role="status" className="mb-4 text-center text-win-400 text-sm font-semibold animate-fade-in">
@@ -765,8 +754,8 @@ function RitualPage() {
             </p>
           )}
 
-          <div className="flex items-center gap-3 mb-6">
-            <CategoryTile category={current.category} />
+          <div className="flex flex-col items-center text-center gap-2 mb-6">
+            <CategoryTile category={current.category} onPage />
             <div>
               <p className="text-body font-bold text-ink">
                 {t.categories[current.category] || t.categories.own_situation}
@@ -814,15 +803,15 @@ function RitualPage() {
             onConfirm={handleDelete}
           />
         )}
-      </div>
+      </TonePage>
     );
   }
 
   // ── List (also the fallback when a detail routine is gone) ───────────────
 
   return (
-    <div className="min-h-screen bg-dark-900 pb-[calc(7.5rem+env(safe-area-inset-bottom))]">
-      <PageHeader backTo="/train" title={t.title} />
+    <TonePage tone="sky" className="pb-[calc(7.5rem+env(safe-area-inset-bottom))]">
+      <PageHeader barClass="bg-tonepage-sky" backTo="/train" title={t.title} />
       <main className="max-w-lg mx-auto px-page py-6 animate-fade-in">
         {importSafety && (
           <SafetyGuidanceCard guidance={importSafety.guidance} onDismiss={() => setImportSafety(null)} />
@@ -854,14 +843,14 @@ function RitualPage() {
           <button
             type="button"
             onClick={() => setView({ name: 'build', id: null })}
-            className="w-full min-h-[64px] flex items-center justify-center gap-2 rounded-3xl border-2 border-dashed border-dark-500 text-ink font-bold hover:bg-dark-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+            className="w-full min-h-[64px] flex items-center justify-center gap-2 rounded-3xl border-2 border-dashed border-ink/30 text-ink font-bold hover:bg-dark-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
           >
             <Plus size={18} aria-hidden="true" />
             {t.newRoutine}
           </button>
         )}
       </main>
-    </div>
+    </TonePage>
   );
 }
 

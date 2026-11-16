@@ -10,11 +10,20 @@ const PAGE_BG = { light: '#EEF3FF', dark: '#0D1026' };
 // the screen reads as one surface with no band or edge above the app bar.
 // Read from the live --bg token rather than hard-coded, so a palette change
 // can never leave the status bar on an old colour again.
-function syncStatusBar(isDark) {
+// A feature-coloured page (components/ui/TonePage) can claim the status bar
+// for as long as it is on screen by setting data-status-bar on <html>; that
+// colour wins over the page background.
+export function syncStatusBar(isDark) {
   const meta = document.querySelector('meta[name="theme-color"]');
   if (!meta) return;
-  const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
-  meta.content = bg || (isDark ? PAGE_BG.dark : PAGE_BG.light);
+  const html = document.documentElement;
+  const claimed = html.dataset.statusBar;
+  const bg = getComputedStyle(html).getPropertyValue('--bg').trim();
+  const dark = typeof isDark === 'boolean'
+    ? isDark
+    : html.getAttribute('data-theme') === 'dark'
+      || (!html.hasAttribute('data-theme') && window.matchMedia?.('(prefers-color-scheme: dark)').matches);
+  meta.content = claimed || bg || (dark ? PAGE_BG.dark : PAGE_BG.light);
 }
 
 export function useTheme() {

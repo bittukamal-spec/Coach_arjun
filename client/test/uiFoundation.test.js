@@ -75,9 +75,11 @@ test('barrel exports exactly the shared primitives', () => {
   // SaveStatus joined the barrel in Stage I: it moved out of components/
   // onboarding so Mind Journal could reuse it instead of hand-rolling a
   // second saving/saved/error treatment.
-  const expected = ['Button', 'Card', 'PageHeader', 'SectionLabel', 'SaveStatus'];
+  // TonePage joined in Nov 2026: the feature-coloured page (Pressure Reset,
+  // Ritual, Quick Rep) that also keeps the phone's status bar in step.
+  const expected = ['Button', 'Card', 'PageHeader', 'SectionLabel', 'SaveStatus', 'TonePage'];
   for (const name of expected) {
-    assert.match(barrel, new RegExp(`export \\{ default as ${name} \\}`));
+    assert.match(barrel, new RegExp(`export \\{ default as ${name}\\b`));
   }
   assert.equal((barrel.match(/export/g) || []).length, expected.length);
 });

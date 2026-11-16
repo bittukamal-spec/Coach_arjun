@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Check } from 'lucide-react';
-import { Button, PageHeader } from '../ui';
+import { Button, PageHeader, TonePage } from '../ui';
 
 // Rehearsal walkthrough for one saved routine — one step per screen.
 //
@@ -17,8 +17,8 @@ export default function RoutineRun({ routine, title, block = 'bg-sky', t, onExit
   const back = () => (index === 0 ? onExit() : setIndex(i => i - 1));
 
   return (
-    <div className="min-h-screen bg-dark-900 flex flex-col pb-[calc(7.5rem+env(safe-area-inset-bottom))]">
-      <PageHeader onBack={back} title={title} />
+    <TonePage tone="sky" className="flex flex-col pb-[calc(7.5rem+env(safe-area-inset-bottom))]">
+      <PageHeader barClass="bg-tonepage-sky" onBack={back} title={title} />
       <main className="flex-1 max-w-lg w-full mx-auto px-page py-6 flex flex-col animate-fade-in">
         {!finished && (
           <>
@@ -58,7 +58,7 @@ export default function RoutineRun({ routine, title, block = 'bg-sky', t, onExit
         {finished && (
           <div className="flex-1 flex flex-col justify-center text-center">
             <div
-              className={`w-20 h-20 rounded-3xl mx-auto mb-5 flex items-center justify-center text-inkblock ${block}`}
+              className="w-20 h-20 rounded-3xl mx-auto mb-5 flex items-center justify-center text-ink bg-dark-400"
               aria-hidden="true"
             >
               <Check size={30} />
@@ -80,6 +80,6 @@ export default function RoutineRun({ routine, title, block = 'bg-sky', t, onExit
           </div>
         )}
       </main>
-    </div>
+    </TonePage>
   );
 }
