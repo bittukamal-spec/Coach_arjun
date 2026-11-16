@@ -42,8 +42,9 @@ test('the main action is Start free, which opens sign-up', () => {
   assert.match(landing, /onClick=\{startFree\}/);
 });
 
-test('sign-in stays one tap away in the header', () => {
-  assert.match(landing, /to="\/auth\?tab=signin"/);
+test('sign-in is in the header menu (no separate header button)', () => {
+  assert.match(landing, /onClick=\{\(\) => navigate\('\/auth\?tab=signin'\)\} className=\{menuItem\}/);
+  assert.doesNotMatch(landing, /<Link to="\/auth\?tab=signin"/);
 });
 
 test('the five icon tags avoid claims we cannot back', () => {
@@ -52,7 +53,7 @@ test('the five icon tags avoid claims we cannot back', () => {
 });
 
 test('the hero is the app on a phone, rotating through three real screens', () => {
-  assert.match(landing, /<PhoneFrame>\{heroScreens\[screen\]\}<\/PhoneFrame>/);
+  assert.match(landing, /<PhoneFrame maxWidth=\{250\} share=\{0\.56\}>\{heroScreens\[screen\]\}<\/PhoneFrame>/);
   assert.match(landing, /prefers-reduced-motion: reduce/);
   assert.match(landing, /onClick=\{\(\) => \{ setScreen\(n\); setPaused\(true\); \}\}/);
 });

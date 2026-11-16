@@ -157,6 +157,7 @@ export default {
       animation: {
         'fade-in':      'fadeIn 0.4s ease-out',
         'launch-dot':   'launchDot 1.2s ease-in-out infinite',
+        'breathe':      'breathe 6s ease-in-out infinite',
         'badge-pop':    'badgePop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
         'flame-pulse':  'flamePulse 2s ease-in-out infinite',
         'xp-float':     'xpFloat 1s ease-out forwards',
@@ -164,6 +165,10 @@ export default {
         'pulse-slow':   'pulse 3s ease-in-out infinite',
       },
       keyframes: {
+        breathe: {
+          '0%, 100%': { transform: 'scale(0.9)' },
+          '45%':      { transform: 'scale(1)' },
+        },
         launchDot: {
           '0%, 80%, 100%': { opacity: '0.25', transform: 'scale(0.8)' },
           '40%':           { opacity: '1', transform: 'scale(1)' },

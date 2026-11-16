@@ -90,12 +90,9 @@ function LandingPage() {
         <nav aria-label="Site" className="flex items-center gap-2">
           <a href="#how" className="hidden lg:flex min-h-[44px] items-center px-3 text-[15px]">{t.howTitle}</a>
           <a href="#faq" className="hidden lg:flex min-h-[44px] items-center px-3 text-[15px]">{t.faqTitle}</a>
-          <button type="button" onClick={startFree} className="flex min-h-[44px] items-center rounded-[14px] bg-sun px-3.5 text-[14px] font-extrabold text-inkblock focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
+          <button type="button" onClick={startFree} className="flex min-h-[44px] items-center whitespace-nowrap rounded-[14px] bg-sun px-4 text-[14px] font-extrabold text-inkblock focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
             {t.startFree}
           </button>
-          <Link to="/auth?tab=signin" className="flex min-h-[44px] items-center rounded-[14px] bg-dark-400 px-3.5 text-[14px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
-            {t.signIn}
-          </Link>
           <div className="relative" ref={menuRef}>
             <button
               type="button"
@@ -109,6 +106,7 @@ function LandingPage() {
             </button>
             {menuOpen && (
               <div id="site-menu" className="absolute right-0 top-[52px] z-30 w-56 rounded-2xl bg-dark-400 p-2 shadow-card">
+                <button type="button" onClick={() => navigate('/auth?tab=signin')} className={menuItem}>{t.signIn}</button>
                 {installPrompt && <button type="button" onClick={handleInstall} className={menuItem}>{t.installApp}</button>}
                 <button type="button" onClick={() => navigate('/privacy')} className={menuItem}>{t.footerPrivacy}</button>
                 <button type="button" onClick={() => navigate('/terms')} className={menuItem}>{t.footerTerms}</button>
@@ -138,11 +136,11 @@ function LandingPage() {
 
           <div className="mt-6 flex flex-col items-center lg:mt-0">
             <div className="relative" role="img" aria-label={t.phoneLabel} data-testid="site-hero-phone" data-screen={screen}>
-              <PhoneFrame>{heroScreens[screen]}</PhoneFrame>
+              <PhoneFrame maxWidth={250} share={0.56}>{heroScreens[screen]}</PhoneFrame>
               <button
                 type="button"
                 onClick={startFree}
-                className="absolute -left-10 bottom-[120px] flex min-h-[44px] items-center rounded-[22px] bg-brand-500 px-4 text-[14px] font-bold text-white shadow-[0_10px_24px_rgba(27,77,255,0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+                className="absolute -left-[18%] bottom-[22%] flex min-h-[44px] items-center whitespace-nowrap rounded-[22px] bg-brand-500 px-4 text-[14px] font-bold text-white shadow-[0_10px_24px_rgba(27,77,255,0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
               >
                 {t.sayHi}
               </button>
@@ -167,7 +165,7 @@ function LandingPage() {
           <button
             type="button"
             onClick={startFree}
-            className="mt-5 flex w-full min-h-[56px] items-center justify-center gap-2 rounded-[18px] bg-sun text-[16px] font-extrabold text-inkblock focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 lg:hidden"
+            className="mt-5 flex w-full max-w-sm min-h-[56px] items-center justify-center gap-2 rounded-[18px] bg-sun text-[16px] font-extrabold text-inkblock focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 lg:hidden"
           >
             {t.startFree}
             <ArrowRight size={18} strokeWidth={2.6} aria-hidden="true" />
@@ -200,7 +198,7 @@ function LandingPage() {
               { key: 'week', el: <WeekScreen t={s.week} />, label: s.week.label },
             ].map((step, i) => (
               <li key={step.key} className="flex shrink-0 snap-center flex-col items-center gap-3">
-                <div aria-hidden="true"><PhoneFrame>{step.el}</PhoneFrame></div>
+                <div aria-hidden="true"><PhoneFrame maxWidth={236} share={0.6}>{step.el}</PhoneFrame></div>
                 <p className="flex items-center gap-2 text-[17px] font-semibold">
                   <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-500 text-[13px] font-bold text-white" aria-hidden="true">{i + 1}</span>
                   {step.label}
@@ -247,8 +245,9 @@ function LandingPage() {
         </section>
 
         {/* ── Is AI coaching safe? ──────────────────────────────────────── */}
-        <section className="bg-[#DDF7EE] py-10 text-inkblock lg:py-16">
-          <div className="mx-auto max-w-3xl px-5">
+        <section className="relative overflow-hidden bg-[#DDF7EE] py-10 text-inkblock lg:py-16">
+          <span className="absolute -right-10 -top-12 h-40 w-40 rounded-full bg-mint" aria-hidden="true" />
+          <div className="relative mx-auto max-w-3xl px-5">
             <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-mint" aria-hidden="true">
               <ShieldCheck size={26} strokeWidth={2.2} />
             </span>
@@ -265,8 +264,7 @@ function LandingPage() {
         </section>
 
         {/* ── Start for free (its own section, no price) — same mint as the safety band, split by a line ── */}
-        <section className="relative overflow-hidden border-t border-[#B9EBDA] bg-[#DDF7EE] py-12 text-inkblock lg:py-16">
-          <span className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-mint" aria-hidden="true" />
+        <section className="relative overflow-hidden bg-[#DDF7EE] pb-12 pt-4 text-inkblock lg:pb-16">
           <span className="absolute -bottom-12 -left-8 h-[120px] w-[120px] rounded-full bg-mint" aria-hidden="true" />
           <div className="relative mx-auto flex max-w-md flex-col items-center gap-4 px-5 text-center" data-testid="site-free-section">
             <span className="flex h-14 w-14 items-center justify-center" aria-hidden="true"><ArjunLogo size={56} /></span>
