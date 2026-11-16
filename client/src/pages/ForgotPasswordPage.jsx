@@ -1,9 +1,17 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { KeyRound } from 'lucide-react';
 import { apiFetch } from '../api';
+import { useAuth } from '../contexts/AuthContext';
+import { translations } from '../i18n/translations';
+import { HelpPageShell, HELP_INPUT, HELP_LABEL, HELP_MAIN_BTN, HELP_LINK, HELP_ERROR } from '../components/site/HelpPageShell';
 
+// Forgot password (Playbook redesign, Nov 2026): one email box, then a calm
+// mint "check your email" screen. The request itself is unchanged.
 function ForgotPasswordPage() {
   const navigate = useNavigate();
+  const { language } = useAuth();
+  const t = translations[language]?.passwordHelp || translations.en.passwordHelp;
   const [email, setEmail]     = useState('');
   const [busy, setBusy]       = useState(false);
   const [success, setSuccess] = useState(false);
@@ -24,102 +32,67 @@ function ForgotPasswordPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || 'Something went wrong. Please try again.');
+        setError(data.error || t.generic);
         return;
       }
 
       setSuccess(true);
     } catch {
-      setError('Something went wrong. Please try again.');
+      setError(t.generic);
     } finally {
       setBusy(false);
     }
   }
 
+  if (success) {
+    return (
+      <HelpPageShell tone="mint" backTo={null}>
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center" role="status">
+          <svg aria-hidden="true" width="120" height="100" viewBox="0 0 120 100">
+            <circle cx="60" cy="54" r="44" fill="#7FE3C4" />
+            <rect x="26" y="30" width="68" height="46" rx="8" fill="#FFFFFF" />
+            <path d="M28 34l32 22 32-22" fill="none" stroke="#1B4DFF" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+            <circle cx="92" cy="28" r="12" fill="#FFC629" />
+            <path d="M87 28l3.5 3.5L97 25" fill="none" stroke="#101533" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <h1 className="text-[24px] font-extrabold leading-tight tracking-[-0.02em]">{t.sentTitle}</h1>
+          <p className="text-[15px] leading-relaxed text-[#1C3B33]">{t.sentBody(email.trim())}</p>
+        </div>
+        <button type="button" onClick={() => navigate('/auth?tab=signin')} className={HELP_MAIN_BTN}>{t.back}</button>
+        <button type="button" onClick={() => setSuccess(false)} className={`${HELP_LINK} text-inkblock`}>{t.sendAgain}</button>
+      </HelpPageShell>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-dark-900 flex flex-col">
-      {/* Top bar */}
-      <header className="max-w-5xl mx-auto px-4 py-5 flex items-center justify-between w-full">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center">
-            <span className="text-white font-bold text-sm">A</span>
-          </div>
-          <span className="font-bold text-ink text-lg tracking-tight">Arjun</span>
+    <HelpPageShell backLabel={t.back}>
+      <div className="mt-5 flex flex-col items-center gap-2.5 text-center">
+        <span className="flex h-16 w-16 items-center justify-center rounded-[20px] bg-sky text-inkblock" aria-hidden="true">
+          <KeyRound size={30} strokeWidth={2} />
+        </span>
+        <h1 className="mt-1 text-[24px] font-extrabold leading-tight tracking-[-0.02em]">{t.forgotTitle}</h1>
+        <p className="text-[15px] leading-relaxed text-slt">{t.forgotSub}</p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+        <div>
+          <label htmlFor="forgot-email" className={HELP_LABEL}>{t.emailLabel}</label>
+          <input
+            id="forgot-email"
+            type="email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            placeholder={t.emailPlaceholder}
+            required
+            autoComplete="email"
+            className={HELP_INPUT}
+          />
         </div>
-      </header>
-
-      <main className="flex-1 flex items-center justify-center px-4">
-        <div className="w-full max-w-sm">
-          <div className="card shadow-xl border border-dark-600">
-            <div className="mb-6">
-              <h1 className="text-2xl font-bold text-ink mb-1">Forgot password?</h1>
-              <p className="text-sm text-slt">
-                We'll send a reset link to your email
-              </p>
-            </div>
-
-            {success ? (
-              <div className="text-center py-4">
-                <div className="w-12 h-12 bg-win-500/15 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-win-500 text-xl font-bold">✓</span>
-                </div>
-                <p className="text-sm font-semibold text-win-500 mb-1">Check your email</p>
-                <p className="text-xs text-slt mb-6">
-                  If that email is registered, we've sent a reset link. Check your inbox (and spam folder).
-                </p>
-                <button
-                  onClick={() => navigate('/')}
-                  className="text-sm font-medium text-brand-500 hover:text-brand-600 transition-colors"
-                >
-                  ← Back to sign in
-                </button>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slt mb-1">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    required
-                    autoComplete="email"
-                    className="w-full border border-dark-600 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition text-ink bg-dark-700 placeholder-slt"
-                  />
-                </div>
-
-                {error && (
-                  <p className="text-xs text-alert bg-red-50 border border-red-100 rounded-lg px-3 py-2">
-                    {error}
-                  </p>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={busy}
-                  className="btn-primary w-full justify-center py-3 text-sm"
-                >
-                  {busy ? 'Sending…' : 'Send Reset Link'}
-                </button>
-
-                <p className="text-center text-xs text-slt pt-1">
-                  <button
-                    type="button"
-                    onClick={() => navigate('/')}
-                    className="text-brand-500 hover:text-brand-600 font-medium transition-colors"
-                  >
-                    ← Back to sign in
-                  </button>
-                </p>
-              </form>
-            )}
-          </div>
-        </div>
-      </main>
-    </div>
+        {error && <p role="alert" className={HELP_ERROR}>{error}</p>}
+        <button type="submit" disabled={busy} className={HELP_MAIN_BTN}>{busy ? t.sending : t.sendLink}</button>
+      </form>
+      <button type="button" onClick={() => navigate('/auth?tab=signin')} className={HELP_LINK}>{t.back}</button>
+    </HelpPageShell>
   );
 }
 

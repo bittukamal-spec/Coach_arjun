@@ -1,20 +1,22 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertCircle, CheckCircle2, ChevronDown } from 'lucide-react';
+import { AlertCircle, CheckCircle2, ChevronLeft, LifeBuoy } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
-import { ArjunWordmark } from '../components/ArjunLogo';
+import { ArjunLogo } from '../components/ArjunLogo';
+import { HELPLINES } from '../constants/helplines';
 
 // Same light system as AuthPage/LandingPage — hard-coded to this page (not
 // the shared dark-* tokens) so a visitor arriving from the public homepage
 // never crosses a theme wall, and an OS dark preference can't flip a public
 // screen. See LandingPage.jsx's note on the same choice.
-const BODY = 'text-[#5A6B80]';
+const BODY = 'text-slt';
 const ERROR_TEXT = 'text-[#B4443C]';
+const LABEL = 'mb-1.5 block text-[13px] text-slt';
 
 const INPUT =
-  'w-full min-h-[48px] rounded-xl border border-[#D9E1EC] bg-white px-3.5 text-[15px] text-[#0F172A] placeholder-[#9AA7B8] focus:border-[#1B4DFF] focus:outline-none focus:ring-2 focus:ring-[#1B4DFF]/25 transition-colors';
+  'w-full min-h-[48px] rounded-[14px] bg-dark-400 px-3.5 text-[15px] text-ink placeholder:text-slt focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors';
 
 // Value must match the server's REASONS enum (server/src/routes/contact.js)
 // exactly — the server rejects anything else.
@@ -106,43 +108,49 @@ function ContactPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#FAFBFD] text-[#0F172A]">
+    <div className="flex min-h-screen flex-col bg-dark-900 text-ink">
 
       {/* Header */}
-      <header className="mx-auto flex w-full max-w-md items-center px-5 py-5">
+      <header className="mx-auto flex h-14 w-full max-w-md items-center justify-between px-5">
         <button
-          onClick={() => navigate('/')}
-          className="flex items-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4DFF] focus-visible:ring-offset-2"
+          type="button"
+          onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/'))}
+          aria-label={t.back}
+          className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-dark-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
         >
-          <ArjunWordmark size="hero" />
+          <ChevronLeft size={20} aria-hidden="true" />
         </button>
+        <button type="button" onClick={() => navigate('/')} aria-label="Arjun home" className="rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
+          <ArjunLogo size={28} />
+        </button>
+        <span className="w-11" aria-hidden="true" />
       </header>
 
-      <main className="flex flex-1 items-start justify-center px-5 pb-14 sm:items-center">
+      <main className="flex flex-1 items-start justify-center px-5 pb-14 pt-3">
         <div className="w-full max-w-md">
           {status === 'success' ? (
             <div
-              className="rounded-3xl border border-[#E4E9F2] bg-white p-6 text-center shadow-[0_6px_24px_rgba(15,23,42,0.07)] sm:p-8"
+              className="pt-10 text-center"
               role="status"
               aria-live="polite"
             >
-              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#E2F2E6]">
-                <CheckCircle2 size={28} className="text-[#1F7A46]" aria-hidden="true" />
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-[20px] bg-mint">
+                <CheckCircle2 size={30} className="text-inkblock" aria-hidden="true" />
               </div>
-              <h1 className="text-[22px] font-black leading-tight tracking-tight">{t.successTitle}</h1>
-              <p className={`mt-2 text-[14.5px] leading-relaxed ${BODY}`}>{t.successBody}</p>
+              <h1 className="text-[24px] font-extrabold leading-tight tracking-[-0.02em]">{t.successTitle}</h1>
+              <p className={`mt-2 text-[15px] leading-relaxed ${BODY}`}>{t.successBody}</p>
               <div className="mt-6 flex flex-col gap-2.5">
                 <button
                   type="button"
                   onClick={() => navigate('/')}
-                  className="inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-[#1B4DFF] text-[15.5px] font-bold text-white shadow-[0_6px_18px_rgba(27, 77, 255,0.25)] transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4DFF] focus-visible:ring-offset-2"
+                  className="inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-sun text-[15px] font-bold text-inkblock transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
                 >
                   {t.backHome}
                 </button>
                 <button
                   type="button"
                   onClick={sendAnother}
-                  className="min-h-[44px] rounded-lg text-[14px] font-bold text-[#1B4DFF] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4DFF] focus-visible:ring-offset-2"
+                  className="min-h-[44px] rounded-lg text-[14px] text-brand-500 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
                 >
                   {t.sendAnother}
                 </button>
@@ -150,13 +158,12 @@ function ContactPage() {
             </div>
           ) : (
             <>
-              <div className="mb-6">
-                <p className="mb-2 text-[12.5px] font-bold uppercase tracking-wide text-[#1B4DFF]">{t.eyebrow}</p>
-                <h1 className="text-[28px] font-black leading-tight tracking-tight">{t.title}</h1>
-                <p className={`mt-1.5 text-[14.5px] ${BODY}`}>{t.subtitle}</p>
+              <div className="mb-5">
+                <h1 className="text-[24px] font-extrabold leading-tight tracking-[-0.02em]">{t.title}</h1>
+                <p className={`mt-1.5 text-[15px] ${BODY}`}>{t.subtitle}</p>
               </div>
 
-              <div className="rounded-3xl border border-[#E4E9F2] bg-white p-5 shadow-[0_6px_24px_rgba(15,23,42,0.07)] sm:p-6">
+              <div>
                 <form onSubmit={handleSubmit} noValidate className="space-y-4">
 
                   {/* Honeypot field. Off-screen and out of both the tab order
@@ -177,7 +184,7 @@ function ContactPage() {
                   </div>
 
                   <div>
-                    <label htmlFor="contact-name" className="mb-1.5 block text-[12.5px] font-bold text-[#5A6B80]">
+                    <label htmlFor="contact-name" className={LABEL}>
                       {t.nameLabel}
                     </label>
                     <input
@@ -202,7 +209,7 @@ function ContactPage() {
                   </div>
 
                   <div>
-                    <label htmlFor="contact-email" className="mb-1.5 block text-[12.5px] font-bold text-[#5A6B80]">
+                    <label htmlFor="contact-email" className={LABEL}>
                       {t.emailLabel}
                     </label>
                     <input
@@ -226,29 +233,22 @@ function ContactPage() {
                   </div>
 
                   <div>
-                    <label htmlFor="contact-reason" className="mb-1.5 block text-[12.5px] font-bold text-[#5A6B80]">
+                    <p id="contact-reason-label" className={LABEL}>
                       {t.reasonLabel}
-                    </label>
-                    <div className="relative">
-                      <select
-                        id="contact-reason"
-                        value={reason}
-                        onChange={e => setReason(e.target.value)}
-                        required
-                        aria-invalid={!!fieldErrors.reason}
-                        aria-describedby={fieldErrors.reason ? 'contact-reason-error' : undefined}
-                        className={`${INPUT} appearance-none pr-10`}
-                      >
-                        <option value="" disabled>{t.reasonPlaceholder}</option>
-                        {REASONS.map(r => (
-                          <option key={r.value} value={r.value}>{t[r.labelKey]}</option>
-                        ))}
-                      </select>
-                      <ChevronDown
-                        size={18}
-                        className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[#5A6B80]"
-                        aria-hidden="true"
-                      />
+                    </p>
+                    <div role="radiogroup" aria-labelledby="contact-reason-label" aria-invalid={!!fieldErrors.reason} aria-describedby={fieldErrors.reason ? 'contact-reason-error' : undefined} className="flex flex-wrap gap-2">
+                      {REASONS.map(r => (
+                        <button
+                          key={r.value}
+                          type="button"
+                          role="radio"
+                          aria-checked={reason === r.value}
+                          onClick={() => setReason(r.value)}
+                          className={`min-h-[44px] rounded-xl px-3.5 text-[14px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${reason === r.value ? 'bg-brand-500 text-white' : 'bg-dark-400 text-ink'}`}
+                        >
+                          {t[r.labelKey]}
+                        </button>
+                      ))}
                     </div>
                     {fieldErrors.reason && (
                       <p id="contact-reason-error" className={`mt-1.5 text-[12.5px] font-semibold ${ERROR_TEXT}`}>
@@ -258,7 +258,7 @@ function ContactPage() {
                   </div>
 
                   <div>
-                    <label htmlFor="contact-message" className="mb-1.5 block text-[12.5px] font-bold text-[#5A6B80]">
+                    <label htmlFor="contact-message" className={LABEL}>
                       {t.messageLabel}
                     </label>
                     <textarea
@@ -294,12 +294,18 @@ function ContactPage() {
                   <button
                     type="submit"
                     disabled={status === 'sending'}
-                    className="inline-flex min-h-[54px] w-full items-center justify-center gap-2 rounded-2xl bg-[#1B4DFF] text-[16px] font-bold text-white shadow-[0_6px_18px_rgba(27, 77, 255,0.25)] transition-transform active:scale-[0.98] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4DFF] focus-visible:ring-offset-2"
+                    className="inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-sun text-[15px] font-bold text-inkblock transition-transform active:scale-[0.98] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
                   >
                     {status === 'sending' ? t.sending : t.sendBtn}
                   </button>
                 </form>
               </div>
+
+              {/* Urgent help is never behind a form. */}
+              <p className="mt-5 flex items-start gap-2.5 rounded-2xl bg-[#DDF7EE] px-3.5 py-3 text-[13px] leading-relaxed text-inkblock" data-testid="contact-helplines">
+                <LifeBuoy size={18} className="mt-0.5 shrink-0 text-[#0E5A45]" aria-hidden="true" />
+                <span>{t.urgentHelp(HELPLINES)}</span>
+              </p>
             </>
           )}
         </div>

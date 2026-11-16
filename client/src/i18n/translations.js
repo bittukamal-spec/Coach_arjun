@@ -9,6 +9,36 @@ export const translations = {
     // ── Public website (Playbook redesign, Nov 2026). English only (Hindi UI
     // is off); pages fall back to translations.en.site. Prices live in
     // constants/plans.js, never in copy.
+    // ── Forgot / reset password (Playbook redesign, Nov 2026) ──
+    passwordHelp: {
+      back: 'Back to sign in',
+      forgotTitle: 'Forgot your password?',
+      forgotSub: "Enter your email. We'll send you a link to set a new one.",
+      emailLabel: 'Email',
+      emailPlaceholder: 'you@example.com',
+      sendLink: 'Send reset link',
+      sending: 'Sending…',
+      sentTitle: 'Check your email',
+      sentBody: (email) => `If an account uses ${email}, a reset link is on its way. It works for 1 hour. Check your spam folder too.`,
+      sendAgain: "Didn't get it? Send again",
+      resetTitle: 'Set a new password',
+      resetSub: 'Use at least 8 characters.',
+      newLabel: 'New password',
+      newPlaceholder: 'At least 8 characters',
+      confirmLabel: 'Type it again',
+      confirmPlaceholder: 'Same password',
+      save: 'Save new password',
+      saving: 'Saving…',
+      doneTitle: 'Password updated',
+      doneBody: 'You can sign in with your new password now.',
+      signInNow: 'Sign in now',
+      badLinkTitle: 'This link does not work',
+      badLinkBody: 'The reset link is missing or incomplete. Ask for a new one.',
+      newLink: 'Get a new link',
+      mismatch: 'The two passwords do not match.',
+      tooShort: 'Use at least 8 characters.',
+      generic: 'Something went wrong. Please try again.',
+    },
     site: {
       signIn: 'Sign in',
       menuOpen: 'Open menu',
@@ -2274,7 +2304,7 @@ export const translations = {
       namePlaceholder: 'Your name',
       emailLabel: 'Email',
       emailPlaceholder: 'you@example.com',
-      reasonLabel: 'Reason',
+      reasonLabel: 'What is it about?',
       reasonPlaceholder: 'Choose a reason',
       reasonGeneral: 'General',
       reasonTechnical: 'Technical issue',
@@ -2295,6 +2325,8 @@ export const translations = {
       successBody: "Thanks for contacting Arjun. We'll get back to you as soon as we can.",
       backHome: 'Back to home',
       sendAnother: 'Send another message',
+      back: 'Back',
+      urgentHelp: (lines) => `Need help right now? Call ${lines.map(l => `${l.label} ${l.number}`).join(', ')}.`,
     },
     bodyReset: {
       learn: {
@@ -4543,6 +4575,8 @@ export const translations = {
       successBody: 'Arjun से संपर्क करने के लिए धन्यवाद। हम जल्द से जल्द जवाब देंगे।',
       backHome: 'होम पर वापस जाएं',
       sendAnother: 'एक और संदेश भेजें',
+      back: 'Back',
+      urgentHelp: (lines) => `Need help right now? Call ${lines.map(l => `${l.label} ${l.number}`).join(', ')}.`,
     },
     bodyReset: {
       learn: {

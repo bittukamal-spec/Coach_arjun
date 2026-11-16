@@ -36,7 +36,7 @@ const VALID = {
 async function fillValidForm(user) {
   await user.type(screen.getByLabelText('Name'), VALID.name);
   await user.type(screen.getByLabelText('Email'), VALID.email);
-  await user.selectOptions(screen.getByLabelText('Reason'), VALID.reason);
+  await user.click(within(screen.getByRole('radiogroup', { name: 'What is it about?' })).getByRole('radio', { name: VALID.reason }));
   await user.type(screen.getByLabelText('Message'), VALID.message);
 }
 
@@ -58,7 +58,7 @@ describe('field requirements', () => {
     const user = userEvent.setup();
     renderContact();
     await user.type(screen.getByLabelText('Email'), VALID.email);
-    await user.selectOptions(screen.getByLabelText('Reason'), VALID.reason);
+    await user.click(within(screen.getByRole('radiogroup', { name: 'What is it about?' })).getByRole('radio', { name: VALID.reason }));
     await user.type(screen.getByLabelText('Message'), VALID.message);
     await user.click(screen.getByRole('button', { name: 'Send message' }));
     expect(await screen.findByText(/Please enter your name/)).toBeTruthy();
@@ -69,7 +69,7 @@ describe('field requirements', () => {
     const user = userEvent.setup();
     renderContact();
     await user.type(screen.getByLabelText('Name'), VALID.name);
-    await user.selectOptions(screen.getByLabelText('Reason'), VALID.reason);
+    await user.click(within(screen.getByRole('radiogroup', { name: 'What is it about?' })).getByRole('radio', { name: VALID.reason }));
     await user.type(screen.getByLabelText('Message'), VALID.message);
     await user.click(screen.getByRole('button', { name: 'Send message' }));
     expect(await screen.findByText(/Please enter a valid email/)).toBeTruthy();
@@ -81,7 +81,7 @@ describe('field requirements', () => {
     renderContact();
     await user.type(screen.getByLabelText('Name'), VALID.name);
     await user.type(screen.getByLabelText('Email'), 'not-an-email');
-    await user.selectOptions(screen.getByLabelText('Reason'), VALID.reason);
+    await user.click(within(screen.getByRole('radiogroup', { name: 'What is it about?' })).getByRole('radio', { name: VALID.reason }));
     await user.type(screen.getByLabelText('Message'), VALID.message);
     await user.click(screen.getByRole('button', { name: 'Send message' }));
     expect(await screen.findByText(/Please enter a valid email/)).toBeTruthy();
@@ -104,7 +104,7 @@ describe('field requirements', () => {
     renderContact();
     await user.type(screen.getByLabelText('Name'), VALID.name);
     await user.type(screen.getByLabelText('Email'), VALID.email);
-    await user.selectOptions(screen.getByLabelText('Reason'), VALID.reason);
+    await user.click(within(screen.getByRole('radiogroup', { name: 'What is it about?' })).getByRole('radio', { name: VALID.reason }));
     await user.click(screen.getByRole('button', { name: 'Send message' }));
     expect(await screen.findByText(/Please write a message/)).toBeTruthy();
     expect(apiFetch).not.toHaveBeenCalled();
@@ -115,7 +115,7 @@ describe('field requirements', () => {
     renderContact();
     await user.type(screen.getByLabelText('Name'), VALID.name);
     await user.type(screen.getByLabelText('Email'), VALID.email);
-    await user.selectOptions(screen.getByLabelText('Reason'), VALID.reason);
+    await user.click(within(screen.getByRole('radiogroup', { name: 'What is it about?' })).getByRole('radio', { name: VALID.reason }));
     await user.type(screen.getByLabelText('Message'), 'too short');
     await user.click(screen.getByRole('button', { name: 'Send message' }));
     expect(await screen.findByText(/Please write a message/)).toBeTruthy();
@@ -124,10 +124,10 @@ describe('field requirements', () => {
 
   test('the reason options exactly match the approved set', () => {
     renderContact();
-    const select = screen.getByLabelText('Reason');
-    const options = within(select).getAllByRole('option').map((o) => o.textContent);
+    const group = screen.getByRole('radiogroup', { name: 'What is it about?' });
+    const options = within(group).getAllByRole('radio').map((o) => o.textContent);
     expect(options).toEqual([
-      'Choose a reason', 'General', 'Technical issue', 'Subscription or billing', 'Safety or privacy', 'Partnership',
+      'General', 'Technical issue', 'Subscription or billing', 'Safety or privacy', 'Partnership',
     ]);
   });
 });
@@ -227,7 +227,7 @@ describe('EN/HI parity', () => {
     renderContact();
     await user.type(screen.getByLabelText('नाम'), VALID.name);
     await user.type(screen.getByLabelText('ईमेल'), VALID.email);
-    await user.selectOptions(screen.getByLabelText('कारण'), 'तकनीकी समस्या');
+    await user.click(screen.getAllByRole('radio')[1]);
     await user.type(screen.getByLabelText('संदेश'), VALID.message);
     await user.click(screen.getByRole('button', { name: 'संदेश भेजें' }));
     await screen.findByText('संदेश भेजा गया');
@@ -243,7 +243,7 @@ describe('accessibility', () => {
     renderContact();
     expect(screen.getByLabelText('Name')).toBeTruthy();
     expect(screen.getByLabelText('Email')).toBeTruthy();
-    expect(screen.getByLabelText('Reason')).toBeTruthy();
+    expect(screen.getByRole('radiogroup', { name: 'What is it about?' })).toBeTruthy();
     expect(screen.getByLabelText('Message')).toBeTruthy();
   });
 
