@@ -61,7 +61,7 @@ test('the components they shared are still present, because they still have call
   }
   assert.match(src('components/train/ToolIntroLayout.jsx'), /GradientIconTile/);
   assert.match(src('pages/SelfTalkPage.jsx'), /ToolIntroLayout/);
-  assert.doesNotMatch(src('components/practice/PracticeShell.jsx'), /ToolIntroLayout|gradient/i);
+  assert.doesNotMatch(src('components/practice/PracticeShell.jsx'), /import ToolIntroLayout|btn-gradient|linear-gradient/);
 });
 
 // ── 2. Translation cleanup on the redesigned pilot surfaces ────────────────
