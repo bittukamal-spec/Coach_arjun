@@ -96,6 +96,14 @@ Order: 1.6 → 1.1 → 1.3 → 1.2 → 1.4 → 1.7 → 1.5. Each is its own PR w
 | Hindi screens | Switch `HINDI_ENABLED` on | Athletes or guardians ask for it |
 | Parent summary | Opt-in, athlete-approved, non-private monthly note | Guardians ask what they are paying for |
 
+### Founder's future add-ons (noted Nov 2026 — not scheduled yet)
+
+| Add-on | Idea | Things to settle before building |
+|---|---|---|
+| Human sport psychologist sessions | Book a real, qualified sport psychologist as a separate paid add-on, alongside Arjun | Who the psychologists are and their qualifications; pricing and payment split; how Arjun hands over (athlete chooses what to share); safety and referral rules |
+| Coach portal | A coach assigned to an athlete (bought as a package) can see that athlete's data to counsel them | Athlete opt-in per coach, and guardian consent for under-18s; what is shared (summaries vs. raw chat/journal); the athlete can switch it off; India's DPDP Act. This replaces the earlier "coach sees nothing private" idea above, so it needs a clear consent screen |
+| Mental tests | Short check-ins the athlete, founder and coach can track over time (e.g. confidence, anxiety, focus) | Use published, validated sport-psychology questionnaires and show results as the athlete's own trend, not a score or rank. This changes the "no scores" rule below, so word it as tracking, not grading |
+
 **Not planned:** games on Train, streaks/XP/badges, scores or ratings of the athlete, leaderboards or any social comparison, a content library. The spec rules these out and the retention evidence does not support them.
 
 ---
