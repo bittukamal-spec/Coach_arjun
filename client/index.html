@@ -25,10 +25,30 @@
       rel="stylesheet"
     />
 
+
+    <!-- Launch splash: shows before the app's JavaScript loads. React replaces
+         it with the matching LaunchScreen component. -->
+    <style>
+      .arjun-splash{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:#EEF3FF;font-family:Sora,system-ui,sans-serif;text-align:center;padding:0 24px}
+      .arjun-splash__name{margin:0;font-size:30px;font-weight:800;letter-spacing:-0.02em;line-height:1;color:#1B4DFF}
+      .arjun-splash__line{margin:0;font-size:15px;font-weight:600;color:#4A5273}
+      @media (prefers-color-scheme: dark){
+        .arjun-splash{background:#0D1026}
+        .arjun-splash__name{color:#9DB4FF}
+        .arjun-splash__line{color:#B3BAD6}
+      }
+    </style>
+
     <title>Arjun — Mental Performance Coach for Athletes</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="arjun-splash" aria-label="Arjun is loading">
+        <img src="/brand/arjun/arjun-mark.svg" width="88" height="88" alt="" />
+        <p class="arjun-splash__name">Arjun</p>
+        <p class="arjun-splash__line">Train your mind like a pro</p>
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

@@ -82,11 +82,11 @@ describe('Coach — immersive shell', () => {
 
     const header = document.querySelector('header');
     expect(header).toBeTruthy();
-    // Playbook redesign: the header sits on the card surface with a rounded
-    // lower edge — still not the near-black nav surface, still no divider —
-    // and always states what Arjun is.
-    expect(header.className).toMatch(/bg-dark-400/);
-    expect(header.className).toMatch(/rounded-b-3xl/);
+    // Nov 2026: the header shares the page colour (no separate box, so it
+    // runs straight into the status bar), no divider, and always states
+    // what Arjun is.
+    expect(header.className).toMatch(/bg-dark-900/);
+    expect(header.className).not.toMatch(/rounded-b-3xl/);
     expect(within(header).getByText('AI coach · not a therapist')).toBeTruthy();
     expect(header.style.background).not.toContain('--nav-bar');
     expect(header.className).not.toMatch(/border-b/);

@@ -22,6 +22,31 @@ const OUTCOME_HISTORY_LIMIT = 10;
 // nothing here migrates, rewrites, or deletes a Debrief.
 const REFLECTION_HISTORY_LIMIT = 5;
 const NEUTRAL_PRACTICE_FALLBACK = 'Mental Rep';
+// Practices counted on Home's "This week" strip (finished practice tools).
+const WEEK_PRACTICE_TOOL_TYPES = new Set(['mental_rep', 'body_reset', 'self_talk_builder', 'visualization']);
+const HELPED_OUTCOMES = new Set(['HELPED', 'HELPED_A_LITTLE']);
+const TRIED_OUTCOMES = new Set(['HELPED', 'HELPED_A_LITTLE', 'DID_NOT_HELP']);
+
+// Home's "This week" strip: plain counts over the last 7 days plus the raw
+// activity timestamps, so the client can mark days in the athlete's own
+// time zone. No score, no streak, nothing that breaks or resets.
+function buildThisWeek({ weekReports, weekJournalDates, outcomes, weekAgo }) {
+  const practiceDates = weekReports
+    .filter(r => WEEK_PRACTICE_TOOL_TYPES.has(r.toolType))
+    .map(r => r.createdAt);
+  const journalDates = (weekJournalDates || []).map(e => e.createdAt);
+  const weekOutcomes = (outcomes || []).filter(o =>
+    o.outcomeRecordedAt && new Date(o.outcomeRecordedAt) >= weekAgo && TRIED_OUTCOMES.has(o.outcomeStatus));
+  return {
+    practices: practiceDates.length,
+    reflections: journalDates.length,
+    triedCount: weekOutcomes.length,
+    helpedCount: weekOutcomes.filter(o => HELPED_OUTCOMES.has(o.outcomeStatus)).length,
+    activityAt: [...practiceDates, ...journalDates]
+      .map(d => new Date(d).toISOString())
+      .sort(),
+  };
+}
 
 function parseDetails(raw) {
   try { return JSON.parse(raw || '{}'); } catch { return {}; }
@@ -72,7 +97,7 @@ router.get('/', authenticate, async (req, res) => {
     const weekAgo  = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-    const [reports, focusCards, journalReflections, legacyDebriefs, outcomePrescriptions] = await Promise.all([
+    const [reports, focusCards, journalReflections, legacyDebriefs, outcomePrescriptions, weekJournalDates] = await Promise.all([
       prisma.toolReport.findMany({
         where: { userId: req.userId, createdAt: { gte: monthAgo } },
         orderBy: { createdAt: 'desc' },
@@ -116,6 +141,12 @@ router.get('/', authenticate, async (req, res) => {
           outcomeRecordedAt: true,
           cycle: { select: { status: true } },
         },
+      }),
+      // Home's "This week" strip — every Mind Journal entry (reflections and
+      // quick notes) from the last 7 days, dates only, never the text.
+      prisma.mindJournalEntry.findMany({
+        where: { userId: req.userId, createdAt: { gte: weekAgo } },
+        select: { createdAt: true },
       }),
     ]);
 
@@ -185,6 +216,7 @@ router.get('/', authenticate, async (req, res) => {
       reflections,
       insight,
       practiceOutcomes,
+      thisWeek: buildThisWeek({ weekReports, weekJournalDates, outcomes: outcomePrescriptions, weekAgo }),
     });
   } catch (err) {
     console.error('[playbook] GET error:', err?.message);
@@ -200,3 +232,4 @@ module.exports = router;
 module.exports.practiceDisplayName = practiceDisplayName;
 module.exports.mergeReflectionHistory = mergeReflectionHistory;
 module.exports.REFLECTION_HISTORY_LIMIT = REFLECTION_HISTORY_LIMIT;
+module.exports.buildThisWeek = buildThisWeek;

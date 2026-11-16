@@ -118,9 +118,12 @@ describe('Dashboard problem shortcuts — real router integration', () => {
     // way the old /api/playbook call once did. The third is the mounted
     // CurrentPracticeCard reading the one practice Coach already gave
     // (read-only; it renders nothing until, and unless, one comes back).
+    // The fourth is the This week strip reading the same read-only data
+    // My practice uses; Home's sections never wait on it.
     const calledPaths = apiFetch.mock.calls.map((c) => c[0]);
     expect(calledPaths.sort()).toEqual([
       '/api/pilot-communications/next',
+      '/api/playbook',
       '/api/prescriptions/active',
       '/api/push-notifications/preferences',
     ]);

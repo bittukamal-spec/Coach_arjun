@@ -7,6 +7,7 @@ import { ArrowRight, ChevronRight } from 'lucide-react';
 import { TalkArt, JournalArt } from '../components/visuals/HomeArt';
 import PilotCommunicationPopup from '../components/pilotCommunications/PilotCommunicationPopup';
 import CurrentPracticeCard from '../components/home/CurrentPracticeCard';
+import ThisWeekStrip from '../components/home/ThisWeekStrip';
 
 // Problem shortcuts — all four enter Coach with a visible, unsent prefill
 // instead of jumping straight to a tool. Stable internal starter values,
@@ -52,28 +53,32 @@ export default function Dashboard() {
   // Arjun, blush = Mind Journal — then the four plain shortcuts.
   return (
     <div className="min-h-screen bg-dark-900">
-      <Navbar />
-
       {/* Pilot Communications v1 — at most one popup per app load, fetched
           and gated entirely by the component itself. Renders nothing when
           there is no eligible communication. */}
       <PilotCommunicationPopup />
 
-      <main className="max-w-lg mx-auto px-5 pt-14 pb-28 animate-fade-in">
+      <main className="max-w-lg mx-auto px-5 pt-[calc(1rem+env(safe-area-inset-top))] pb-28 animate-fade-in">
         {/* ── Guardian consent pending (under-18 accounts) ──────────────── */}
         <ConsentBanner />
 
         {/* ── 1. GREETING ───────────────────────────────────────────────── */}
-        {/* Profile/avatar access lives in the Navbar above — unchanged. The
-            greeting IS Home's page title, so it carries the <h1>. */}
-        <div className="pt-2 mb-4">
+        {/* No logo bar on Home: the greeting leads, with the account
+            button beside it. The greeting IS Home's page title (<h1>). */}
+        <div className="pt-1 mb-4 flex items-start justify-between gap-3">
+          <div className="min-w-0">
           <p className="text-[13px] font-semibold text-slt">
             {t.dayLine(weekday, t.partOfDay[partOfDay(now.getHours())])}
           </p>
           <h1 className="text-[30px] leading-[1.1] font-extrabold tracking-tight text-ink">
             {t.greeting(firstName)}
           </h1>
+          </div>
+          <Navbar bare />
         </div>
+
+        {/* ── THIS WEEK — plain counts, no streaks or scores ───────────── */}
+        <ThisWeekStrip />
 
         {/* ── YOUR PRACTICE FROM ARJUN — the blue block, only when Coach has
              already given a practice and no final result is reported yet.
