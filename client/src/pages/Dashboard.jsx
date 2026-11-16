@@ -88,14 +88,14 @@ export default function Dashboard() {
              touches any chat API. All of that stays inside Coach itself. */}
         <Link
           to="/coaching"
-          className="mb-3 flex items-center gap-3.5 min-h-[92px] rounded-3xl bg-sun text-inkblock px-5 active:scale-[0.99] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+          className="mb-3 flex items-center gap-4 min-h-[124px] rounded-[28px] bg-sun text-inkblock px-5 py-5 active:scale-[0.99] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
         >
-          <TalkArt />
+          <TalkArt size={76} />
           <span className="flex-1 min-w-0">
-            <span className="block text-[19px] leading-tight font-extrabold">{L.dashboard.openCoach}</span>
-            <span className="block text-[13px] leading-snug text-[#3A3206]">{t.heroSub}</span>
+            <span className="block text-[23px] leading-tight font-extrabold">{L.dashboard.openCoach}</span>
+            <span className="block mt-1 text-[14px] leading-snug text-[#3A3206]">{t.heroSub}</span>
           </span>
-          <ArrowRight size={22} strokeWidth={2.6} aria-hidden="true" />
+          <ArrowRight size={24} strokeWidth={2.6} aria-hidden="true" />
         </Link>
 
         {/* ── CONTINUE COACHING — intentionally not rendered. Its
@@ -110,14 +110,14 @@ export default function Dashboard() {
              /mind-journal route and nothing else. */}
         <Link
           to="/mind-journal"
-          className="mb-3 flex items-center gap-3.5 min-h-[72px] rounded-[22px] bg-blush text-inkblock px-4 py-3 active:scale-[0.99] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+          className="mb-3 flex items-center gap-4 min-h-[108px] rounded-[28px] bg-blush text-inkblock px-5 py-4 active:scale-[0.99] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
         >
-          <JournalArt />
+          <JournalArt size={64} />
           <span className="flex-1 min-w-0">
-            <span className="block text-[15px] font-extrabold">{t.journalTitle}</span>
-            <span className="block text-[12.5px] text-[#4A1238]">{t.journalShort}</span>
+            <span className="block text-[21px] leading-tight font-extrabold">{t.journalTitle}</span>
+            <span className="block mt-1 text-[14px] leading-snug text-[#4A1238]">{t.journalShort}</span>
           </span>
-          <ChevronRight size={18} strokeWidth={2.4} aria-hidden="true" />
+          <ChevronRight size={22} strokeWidth={2.6} aria-hidden="true" />
         </Link>
 
         {/* ── 4. PICK WHAT YOU NEED NOW — the last, quietest section. Every

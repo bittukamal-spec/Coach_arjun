@@ -77,7 +77,7 @@ test('Dashboard "Talk to Arjun" block: the whole sun-coloured row launches Coach
   assert.notEqual(idx, -1, 'the Talk to Arjun section should still exist');
   const hero = dashboard.slice(idx, idx + 1400);
   assert.match(hero, /bg-sun/, 'the sun colour block');
-  assert.match(hero, /<TalkArt \/>/, 'carries its drawing');
+  assert.match(hero, /<TalkArt size=\{\d+\} \/>/, 'carries its drawing');
   assert.match(hero, /openCoach/, 'still the same approved copy');
   assert.match(hero, /to="\/coaching"/, 'still the same route');
 });
@@ -108,7 +108,7 @@ test('Dashboard: no day-context dropdown or recommended-practice CTA remains to 
 // text column it wraps into the corner arrow badge at the ≥430px
 // breakpoint (confirmed by screenshot) — so the illustration is
 // intentionally omitted here.
-test('Dashboard "Mind Journal" block: a compact blush row with its drawing, opening /mind-journal', () => {
+test('Dashboard "Mind Journal" block: a blush row with its drawing, opening /mind-journal', () => {
   // Playbook redesign (founder-approved Nov 2026): Mind Journal is a compact
   // blush row under Talk to Arjun, not the large violet gradient card.
   const idx = dashboard.indexOf('MIND JOURNAL');
@@ -116,7 +116,7 @@ test('Dashboard "Mind Journal" block: a compact blush row with its drawing, open
   const card = dashboard.slice(idx, idx + 1300);
   assert.match(card, /to="\/mind-journal"/);
   assert.match(card, /bg-blush/, 'the Mind Journal colour block');
-  assert.match(card, /<JournalArt \/>/);
+  assert.match(card, /<JournalArt size=\{\d+\} \/>/);
   assert.match(card, /journalTitle/);
   assert.match(card, /journalShort/);
   assert.doesNotMatch(dashboard, /TrainGradientCard/, 'Home no longer uses the gradient card');

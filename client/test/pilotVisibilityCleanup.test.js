@@ -211,7 +211,7 @@ test('Train tiles are flat Playbook colour blocks, one tone and one drawing per 
 
   const code = stripComments(train);
   assert.match(code, /<PracticeBlock/, 'the practices render through the colour-block tile');
-  for (const tone of ['blue', 'mint', 'sun', 'coral']) {
+  for (const tone of ['sky', 'mint', 'sun', 'coral']) {
     assert.ok(train.includes(`tone: '${tone}'`), `the ${tone} block must be assigned to a practice`);
   }
   assert.doesNotMatch(code, /gradient|TrainGradientCard|PracticeTile/i, 'no gradient card or retired flat tile on Train');
