@@ -77,7 +77,7 @@ export default function ResetHistoryPage() {
   );
 
   return (
-    <div className="min-h-screen bg-dark-900 pb-24">
+    <div className="min-h-screen bg-dark-900 pb-[calc(7.5rem+env(safe-area-inset-bottom))]">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-4 pb-3 sticky top-0 bg-dark-900/95 backdrop-blur z-10">
         <button onClick={() => navigate('/train')} className="w-9 h-9 flex items-center justify-center rounded-full bg-dark-700 active:scale-95">

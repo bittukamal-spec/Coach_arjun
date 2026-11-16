@@ -46,7 +46,7 @@ export default function WeeklyReviewsPage() {
   }, [token]);
 
   return (
-    <div className="min-h-screen bg-dark-900 pb-24">
+    <div className="min-h-screen bg-dark-900 pb-[calc(7.5rem+env(safe-area-inset-bottom))]">
       {/* Back goes to Coach — this page is reached from the Chat header. */}
       <PageHeader backTo="/coaching" title={t.title} />
 
