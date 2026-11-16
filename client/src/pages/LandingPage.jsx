@@ -264,29 +264,29 @@ function LandingPage() {
           </div>
         </section>
 
-        {/* ── Start for free (its own section, no price) ────────────────── */}
-        <section className="relative overflow-hidden bg-brand-500 py-12 text-white lg:py-16">
-          <span className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-brand-300" aria-hidden="true" />
-          <span className="absolute -bottom-12 -left-8 h-[120px] w-[120px] rounded-full bg-brand-300" aria-hidden="true" />
+        {/* ── Start for free (its own section, no price) — same mint as the safety band, split by a line ── */}
+        <section className="relative overflow-hidden border-t border-[#B9EBDA] bg-[#DDF7EE] py-12 text-inkblock lg:py-16">
+          <span className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-mint" aria-hidden="true" />
+          <span className="absolute -bottom-12 -left-8 h-[120px] w-[120px] rounded-full bg-mint" aria-hidden="true" />
           <div className="relative mx-auto flex max-w-md flex-col items-center gap-4 px-5 text-center" data-testid="site-free-section">
-            <span className="flex h-14 w-14 items-center justify-center rounded-[18px] bg-white" aria-hidden="true"><ArjunLogo size={42} /></span>
+            <span className="flex h-14 w-14 items-center justify-center" aria-hidden="true"><ArjunLogo size={56} /></span>
             <h2 className="text-[32px] leading-[1.05] font-extrabold tracking-[-0.02em]">
               {t.freeTitleLead} <span className="rounded-xl bg-sun px-2 text-inkblock">{t.freeTitleWord}</span>
             </h2>
             <ul className="flex gap-4 text-[15px]">
               {t.freePoints.map(p => (
-                <li key={p} className="flex items-center gap-1.5"><CheckDot className="h-5 w-5" tone="sun" />{p}</li>
+                <li key={p} className="flex items-center gap-1.5"><CheckDot className="h-5 w-5" tone="mint" />{p}</li>
               ))}
             </ul>
             <button
               type="button"
               onClick={startFree}
-              className="flex w-full min-h-[58px] items-center justify-center gap-2 rounded-[18px] bg-sun text-[17px] font-extrabold text-inkblock focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-brand-500"
+              className="flex w-full min-h-[58px] items-center justify-center gap-2 rounded-[18px] bg-sun text-[17px] font-extrabold text-inkblock focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
             >
               {t.freeCta}
               <ArrowRight size={18} strokeWidth={2.6} aria-hidden="true" />
             </button>
-            <Link to="/premium" data-testid="site-premium-link" className="flex min-h-[44px] items-center px-2 text-[15px] underline underline-offset-4 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
+            <Link to="/premium" data-testid="site-premium-link" className="flex min-h-[44px] items-center px-2 text-[15px] underline underline-offset-4 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
               {t.freeMore}
             </Link>
           </div>
