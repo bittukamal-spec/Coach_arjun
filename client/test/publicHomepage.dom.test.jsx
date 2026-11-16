@@ -66,10 +66,10 @@ describe('website', () => {
     expect(container.textContent).not.toMatch(/₹/);
   });
 
-  test('the Premium box opens the Free vs Premium page', async () => {
+  test('"What\'s in Premium?" opens the Free vs Premium page', async () => {
     const user = userEvent.setup();
     renderAt('/');
-    await user.click(screen.getByTestId('site-premium-box'));
+    await user.click(screen.getByTestId('site-premium-link'));
     expect(await screen.findByRole('heading', { level: 1, name: 'Play with a calmer, sharper mind.' })).toBeTruthy();
   });
 
@@ -86,11 +86,14 @@ describe('website', () => {
     expect(second.getAttribute('aria-expanded')).toBe('false');
   });
 
-  test('a photo that fails to load shows the drawing instead', () => {
-    const { container } = renderAt('/');
-    const img = container.querySelector('img[src="/photos/hero.jpg"]');
-    expect(img).toBeTruthy();
-    img.dispatchEvent(new Event('error'));
+  test('the hero phone shows a screen and the dots switch screens', async () => {
+    const user = userEvent.setup();
+    renderAt('/');
+    const phone = screen.getByTestId('site-hero-phone');
+    expect(phone.getAttribute('data-screen')).toBe('0');
+    await user.click(screen.getByRole('button', { name: 'Show screen 3' }));
+    expect(phone.getAttribute('data-screen')).toBe('2');
+    expect(screen.getByRole('button', { name: 'Show screen 3' }).getAttribute('aria-pressed')).toBe('true');
   });
 });
 

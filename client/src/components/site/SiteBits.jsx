@@ -12,7 +12,7 @@ export function PhotoSlot({ src, alt, className = '', tone = 'blue' }) {
   return (
     <span className={`block overflow-hidden ${bg} ${className}`}>
       {!failed ? (
-        <img src={src} alt={alt} onError={() => setFailed(true)} className="h-full w-full object-cover" loading="lazy" />
+        <img src={src} alt={alt} onError={() => setFailed(true)} className="h-full w-full object-cover" />
       ) : (
         <svg role="img" aria-label={alt} viewBox="0 0 230 300" preserveAspectRatio="xMidYMax meet" className="h-full w-full">
           <circle cx="115" cy="300" r="120" fill={tone === 'sun' ? '#FFC629' : '#3A66FF'} />

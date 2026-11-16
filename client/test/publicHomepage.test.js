@@ -46,13 +46,19 @@ test('sign-in stays one tap away in the header', () => {
   assert.match(landing, /to="\/auth\?tab=signin"/);
 });
 
-test('the short trust tags avoid claims we cannot back', () => {
-  assert.deepEqual(site.tags, ['Science-backed', 'Built on sport psychology', 'Private to you', '2-minute reps', 'Talks Hinglish']);
+test('the five icon tags avoid claims we cannot back', () => {
+  assert.deepEqual(site.tags.map(t => t.label), ['Science backed', 'Any sport', '2-minute reps', 'Private to you', 'English & Hinglish']);
   assert.doesNotMatch(siteText, /made by sport psych|reviewed by a sport psych|used by .*athletes/i);
 });
 
-test('photos fall back to a drawing until the founder adds them', () => {
-  assert.match(landing, /src="\/photos\/hero\.jpg"/);
+test('the hero is the app on a phone, rotating through three real screens', () => {
+  assert.match(landing, /<PhoneFrame>\{heroScreens\[screen\]\}<\/PhoneFrame>/);
+  assert.match(landing, /prefers-reduced-motion: reduce/);
+  assert.match(landing, /onClick=\{\(\) => \{ setScreen\(n\); setPaused\(true\); \}\}/);
+});
+
+test('the final photo falls back to a drawing until the founder adds it', () => {
+  assert.match(landing, /src="\/photos\/cta\.jpg"/);
   assert.match(bits, /onError=\{\(\) => setFailed\(true\)\}/);
   assert.ok(existsSync(path.join(root, 'public/photos/README.txt')));
 });
@@ -74,9 +80,10 @@ test('no prices on the home page — prices live only on /premium and /plans', (
   assert.match(premium, /to="\/plans"/);
 });
 
-test('the comparison is honest: in-person sessions win for deep or personal issues', () => {
-  const best = site.whyRows.find(r => r.label === 'Best for');
-  assert.equal(best.inPerson, 'Deep or personal issues');
+test('the tick table is honest: in person wins for deep personal problems', () => {
+  const row = site.whyRows.find(r => r.label === 'Deep personal problems');
+  assert.equal(row.arjun, false);
+  assert.equal(row.inPerson, true);
 });
 
 test('the safety block names the real safeguards', () => {
@@ -94,14 +101,14 @@ test('nothing "coming soon" is advertised', () => {
 
 test('FAQ covers the questions parents and athletes ask', () => {
   const qs = site.faqs.map(f => f.q);
-  for (const q of ['Is Arjun therapy?', 'Does it actually work?', 'Who can see my chats?', 'Is it safe for under-18s?', 'Can I cancel or get a refund?']) {
+  for (const q of ['Is Arjun therapy?', 'Does it actually work?', 'Who can see my chats?', 'Is it safe for under-18s?', 'Can I cancel?']) {
     assert.ok(qs.includes(q), q);
   }
 });
 
 test('the cancel answer matches the implemented cancel-at-period-end behaviour', () => {
   assert.match(payments, /cancel_at_cycle_end: true/);
-  assert.match(site.faqs.find(f => f.q.startsWith('Can I cancel')).a, /until the end of the period you paid for/);
+  assert.match(site.faqs.find(f => f.q === 'Can I cancel?').a, /until the end of the period you paid for/);
 });
 
 test('FAQ rows are an accessible accordion', () => {
@@ -155,4 +162,10 @@ test('the website calls no API', () => {
 test('the old website pieces are gone', () => {
   assert.ok(!existsSync(path.join(root, 'src/components/landing')));
   assert.ok(translationsSrc.includes('site: {'));
+});
+
+test('small text matches the hero line and Start for free is its own section', () => {
+  assert.match(landing, /const BODY = 'text-\[15px\] leading-relaxed text-slt';/);
+  assert.match(landing, /data-testid="site-free-section"/);
+  assert.deepEqual(site.freePoints, ['14 days free', 'Cancel anytime']);
 });
