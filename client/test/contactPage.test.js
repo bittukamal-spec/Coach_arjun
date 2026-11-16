@@ -47,14 +47,17 @@ test('the homepage footer Support link routes to /contact, not a hard-coded mail
 // ── 4-9. Fields + validation ─────────────────────────────────────────────────
 
 test('all four required fields are present with matching ids and labels', () => {
-  for (const id of ['contact-name', 'contact-email', 'contact-reason', 'contact-message']) {
+  for (const id of ['contact-name', 'contact-email', 'contact-message']) {
     assert.match(contactPage, new RegExp(`id="${id}"`));
     assert.match(contactPage, new RegExp(`htmlFor="${id}"`));
   }
+  // Reason is a labelled radio group of tap chips (Nov 2026), not a dropdown.
+  assert.match(contactPage, /role="radiogroup" aria-labelledby="contact-reason-label"/);
+  assert.match(contactPage, /id="contact-reason-label"/);
   assert.match(contactPage, /<input\s+id="contact-name"/);
   const emailField = contactPage.slice(contactPage.indexOf('id="contact-email"') - 20, contactPage.indexOf('id="contact-email"') + 200);
   assert.match(emailField, /type="email"/);
-  assert.match(contactPage, /<select[\s\S]*?id="contact-reason"/);
+  assert.match(contactPage, /role="radio"\n\s+aria-checked=\{reason === r\.value\}/);
   assert.match(contactPage, /<textarea\s+id="contact-message"/);
 });
 
@@ -155,8 +158,9 @@ test('the success state is an announced live region, and the send error is an al
 });
 
 test('every control clears the 44px touch target', () => {
-  assert.match(contactPage, /min-h-\[48px\]/); // inputs/select
-  assert.match(contactPage, /min-h-\[54px\]/); // submit
+  assert.match(contactPage, /min-h-\[48px\]/); // inputs
+  assert.match(contactPage, /min-h-\[44px\] rounded-xl px-3\.5/); // reason chips
+  assert.match(contactPage, /min-h-\[52px\] w-full/); // submit
   assert.match(contactPage, /min-h-\[52px\]|min-h-\[44px\]/); // success actions
 });
 

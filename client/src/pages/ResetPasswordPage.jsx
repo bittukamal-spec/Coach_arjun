@@ -1,10 +1,18 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { CheckCircle2, Link2Off } from 'lucide-react';
 import { apiFetch } from '../api';
-import { ArjunWordmark } from '../components/ArjunLogo';
+import { useAuth } from '../contexts/AuthContext';
+import { translations } from '../i18n/translations';
+import { ArjunLogo } from '../components/ArjunLogo';
+import { HelpPageShell, HELP_INPUT, HELP_LABEL, HELP_MAIN_BTN, HELP_LINK, HELP_ERROR } from '../components/site/HelpPageShell';
 
+// Reset password (Playbook redesign, Nov 2026). Same token check, same
+// validation (match + 8 characters) and the same request as before.
 function ResetPasswordPage() {
   const navigate = useNavigate();
+  const { language } = useAuth();
+  const t = translations[language]?.passwordHelp || translations.en.passwordHelp;
   const token = new URLSearchParams(window.location.search).get('token');
 
   const [password, setPassword]         = useState('');
@@ -13,40 +21,19 @@ function ResetPasswordPage() {
   const [success, setSuccess]           = useState(false);
   const [error, setError]               = useState('');
 
-  const inputClass = 'w-full border border-dark-600 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition text-ink bg-dark-700 placeholder-slt';
-
   if (!token) {
     return (
-      <div className="min-h-screen bg-dark-900 flex flex-col">
-        <header className="max-w-5xl mx-auto px-4 py-5 flex items-center gap-2 w-full">
-          <ArjunWordmark size="hero" />
-        </header>
-        <main className="flex-1 flex items-center justify-center px-4">
-          <div className="w-full max-w-sm">
-            <div className="card shadow-xl border border-dark-600 text-center">
-              <div className="w-12 h-12 bg-alert/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-alert text-xl font-bold">✕</span>
-              </div>
-              <h1 className="text-lg font-bold text-ink mb-2">Invalid reset link</h1>
-              <p className="text-sm text-slt mb-6">
-                This link is missing a reset token. Please request a new password reset link.
-              </p>
-              <button
-                onClick={() => navigate('/forgot-password')}
-                className="btn-primary w-full justify-center py-3 text-sm"
-              >
-                Request new link
-              </button>
-              <button
-                onClick={() => navigate('/')}
-                className="block text-center text-xs text-brand-500 hover:text-brand-600 font-medium mt-4 transition-colors"
-              >
-                ← Back to sign in
-              </button>
-            </div>
-          </div>
-        </main>
-      </div>
+      <HelpPageShell backLabel={t.back}>
+        <div className="mt-10 flex flex-col items-center gap-2.5 text-center">
+          <span className="flex h-16 w-16 items-center justify-center rounded-[20px] bg-coral text-inkblock" aria-hidden="true">
+            <Link2Off size={30} strokeWidth={2} />
+          </span>
+          <h1 className="mt-1 text-[24px] font-extrabold leading-tight tracking-[-0.02em]">{t.badLinkTitle}</h1>
+          <p className="text-[15px] leading-relaxed text-slt">{t.badLinkBody}</p>
+        </div>
+        <button type="button" onClick={() => navigate('/forgot-password')} className={`mt-6 ${HELP_MAIN_BTN}`}>{t.newLink}</button>
+        <button type="button" onClick={() => navigate('/auth?tab=signin')} className={HELP_LINK}>{t.back}</button>
+      </HelpPageShell>
     );
   }
 
@@ -55,11 +42,11 @@ function ResetPasswordPage() {
     setError('');
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match.');
+      setError(t.mismatch);
       return;
     }
     if (password.length < 8) {
-      setError('Password must be at least 8 characters.');
+      setError(t.tooShort);
       return;
     }
 
@@ -74,111 +61,57 @@ function ResetPasswordPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || 'Something went wrong. Please try again.');
+        setError(data.error || t.generic);
         return;
       }
 
       setSuccess(true);
     } catch {
-      setError('Something went wrong. Please try again.');
+      setError(t.generic);
     } finally {
       setBusy(false);
     }
   }
 
-  return (
-    <div className="min-h-screen bg-dark-900 flex flex-col">
-      <header className="max-w-5xl mx-auto px-4 py-5 flex items-center gap-2 w-full">
-        <ArjunWordmark size="hero" />
-      </header>
-
-      <main className="flex-1 flex items-center justify-center px-4">
-        <div className="w-full max-w-sm">
-          <div className="card shadow-xl border border-dark-600">
-            <div className="mb-6">
-              <h1 className="text-2xl font-bold text-ink mb-1">Set new password</h1>
-              <p className="text-sm text-slt">
-                Choose a new password for your Arjun account
-              </p>
-            </div>
-
-            {success ? (
-              <div className="text-center py-4">
-                <div className="w-12 h-12 bg-win-500/15 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-win-500 text-xl font-bold">✓</span>
-                </div>
-                <p className="text-sm font-semibold text-win-500 mb-1">Password updated!</p>
-                <p className="text-xs text-slt mb-6">
-                  Your password has been changed successfully.
-                </p>
-                <button
-                  onClick={() => navigate('/')}
-                  className="btn-primary w-full justify-center py-3 text-sm"
-                >
-                  Sign in now
-                </button>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slt mb-1">
-                    New password
-                  </label>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    placeholder="Min. 8 characters"
-                    required
-                    autoComplete="new-password"
-                    className={inputClass}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slt mb-1">
-                    Confirm new password
-                  </label>
-                  <input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={e => setConfirm(e.target.value)}
-                    placeholder="Repeat your password"
-                    required
-                    autoComplete="new-password"
-                    className={inputClass}
-                  />
-                </div>
-
-                {error && (
-                  <p className="text-xs text-alert bg-red-50 border border-red-100 rounded-lg px-3 py-2">
-                    {error}
-                  </p>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={busy}
-                  className="btn-primary w-full justify-center py-3 text-sm"
-                >
-                  {busy ? 'Updating…' : 'Update Password'}
-                </button>
-
-                <p className="text-center text-xs text-slt pt-1">
-                  <button
-                    type="button"
-                    onClick={() => navigate('/')}
-                    className="text-brand-500 hover:text-brand-600 font-medium transition-colors"
-                  >
-                    ← Back to sign in
-                  </button>
-                </p>
-              </form>
-            )}
-          </div>
+  if (success) {
+    return (
+      <HelpPageShell tone="mint" backTo={null}>
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center" role="status">
+          <span className="flex h-16 w-16 items-center justify-center rounded-[20px] bg-mint" aria-hidden="true">
+            <CheckCircle2 size={30} strokeWidth={2.2} />
+          </span>
+          <h1 className="text-[24px] font-extrabold leading-tight tracking-[-0.02em]">{t.doneTitle}</h1>
+          <p className="text-[15px] leading-relaxed text-[#1C3B33]">{t.doneBody}</p>
         </div>
-      </main>
-    </div>
+        <button type="button" onClick={() => navigate('/auth?tab=signin')} className={HELP_MAIN_BTN}>{t.signInNow}</button>
+      </HelpPageShell>
+    );
+  }
+
+  return (
+    <HelpPageShell backLabel={t.back}>
+      <div className="mt-5 flex flex-col items-center gap-2.5 text-center">
+        <ArjunLogo size={56} />
+        <h1 className="mt-1 text-[24px] font-extrabold leading-tight tracking-[-0.02em]">{t.resetTitle}</h1>
+        <p className="text-[15px] leading-relaxed text-slt">{t.resetSub}</p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="mt-6 space-y-3">
+        <div>
+          <label htmlFor="reset-password" className={HELP_LABEL}>{t.newLabel}</label>
+          <input id="reset-password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={t.newPlaceholder} required autoComplete="new-password" className={HELP_INPUT} />
+        </div>
+        <div>
+          <label htmlFor="reset-confirm" className={HELP_LABEL}>{t.confirmLabel}</label>
+          <input id="reset-confirm" type="password" value={confirmPassword} onChange={e => setConfirm(e.target.value)} placeholder={t.confirmPlaceholder} required autoComplete="new-password" className={HELP_INPUT} />
+        </div>
+        {error && <p role="alert" className={HELP_ERROR}>{error}</p>}
+        <div className="pt-1">
+          <button type="submit" disabled={busy} className={HELP_MAIN_BTN}>{busy ? t.saving : t.save}</button>
+        </div>
+      </form>
+      <button type="button" onClick={() => navigate('/auth?tab=signin')} className={HELP_LINK}>{t.back}</button>
+    </HelpPageShell>
   );
 }
 

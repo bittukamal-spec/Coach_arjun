@@ -181,9 +181,9 @@ test('auth (sign in / create account) opens with the centred Arjun mark', () => 
   assert.match(auth, /<ArjunLogo size=\{56\} \/>/);
 });
 
-test('the password reset flow uses the canonical hero lockup on both screens', () => {
-  assert.match(resetPassword, /import \{ ArjunWordmark \} from '\.\.\/components\/ArjunLogo';/);
-  assert.equal((resetPassword.match(/<ArjunWordmark size="hero" \/>/g) || []).length, 2);
+test('the password reset screen opens with the centred Arjun mark', () => {
+  assert.match(resetPassword, /import \{ ArjunLogo \} from '\.\.\/components\/ArjunLogo';/);
+  assert.match(resetPassword, /<ArjunLogo size=\{56\} \/>/);
 });
 
 test('the Starting Profile (onboarding) header uses the canonical hero lockup', () => {
