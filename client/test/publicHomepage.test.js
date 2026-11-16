@@ -62,7 +62,7 @@ test('hero headline is the approved copy, with the closing phrase accented', () 
   assert.equal(en.headlineAccent, 'Perform under pressure.');
   assert.equal(hi.headlineAccent, 'दबाव में बेहतर खेलो।');
   assert.match(landing, /\{t\.headlineLead\}/);
-  assert.match(landing, /<span className="block text-\[#185FA5\]">\{t\.headlineAccent\}<\/span>/);
+  assert.match(landing, /<span className="block text-\[#1B4DFF\]">\{t\.headlineAccent\}<\/span>/);
   // Responsive wrapping, never hard-coded <br> in the headline.
   const h1 = landing.slice(landing.indexOf('<h1'), landing.indexOf('</h1>'));
   assert.doesNotMatch(h1, /<br|\\n/);
@@ -159,7 +159,7 @@ test('the screen scales with the device instead of being re-tuned per breakpoint
 });
 
 test('device screens use the app\'s real dark theme while the page stays light', () => {
-  for (const token of ['#07131F', '#132334', '#1B3044', '#1F3448', '#F8FAFC', '#5FA8DE']) {
+  for (const token of ['#07131F', '#132334', '#1B3044', '#1F3448', '#F8FAFC', '#9DB4FF']) {
     assert.ok(phoneFrame.includes(token), `missing dark-theme token ${token}`);
   }
   // The page itself is still the light canvas.
@@ -466,11 +466,11 @@ test('yearly is the visually preferred plan, monthly is not broken', () => {
   assert.match(yearly, /\{t\.planPopular\}/);
   assert.doesNotMatch(monthly, /planPopular/);
   // Yearly: brand border + tint + filled CTA. Monthly: neutral + outlined CTA.
-  assert.match(yearly, /border-2 border-\[#185FA5\]/);
+  assert.match(yearly, /border-2 border-\[#1B4DFF\]/);
   assert.match(yearly, /linear-gradient/);
-  assert.match(yearly, /bg-\[#185FA5\] text-\[15\.5px\] font-bold text-white/);
-  assert.match(monthly, /border-\[1\.5px\] border-\[#185FA5\] bg-white/, 'monthly keeps a clear outlined CTA');
-  assert.doesNotMatch(monthly, /border-2 border-\[#185FA5\]/);
+  assert.match(yearly, /bg-\[#1B4DFF\] text-\[15\.5px\] font-bold text-white/);
+  assert.match(monthly, /border-\[1\.5px\] border-\[#1B4DFF\] bg-white/, 'monthly keeps a clear outlined CTA');
+  assert.doesNotMatch(monthly, /border-2 border-\[#1B4DFF\]/);
 });
 
 test('pricing invents nothing — no third tier, struck-through price or urgency', () => {

@@ -477,7 +477,7 @@ export default function SelfTalkPage() {
           {/* Gradient crown band */}
           <div
             className="px-5 pt-5 pb-4 text-center text-white"
-            style={{ background: 'linear-gradient(135deg, #185FA5 0%, #8B5CF6 100%)' }}
+            style={{ background: 'linear-gradient(135deg, #1B4DFF 0%, #8B5CF6 100%)' }}
           >
             <p className="text-micro font-semibold text-white/80 uppercase mb-1">{t.card.focusWordLabel}</p>
             <p className="text-display font-black leading-tight">{card.focusWord}</p>

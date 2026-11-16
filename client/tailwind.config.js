@@ -48,6 +48,7 @@ export default {
         // Playbook colour blocks — identical in both themes; dark ink text on
         // sun/coral/mint/blush, white text on brand blue.
         sun:   '#FFC629',
+        sky:   '#B7C8FF', // Ritual tile — light blue so its title matches the others in dark ink
         coral: '#FF6B4A',
         mint:  '#7FE3C4',
         blush: '#FF8AD4', // Mind Journal

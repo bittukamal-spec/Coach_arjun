@@ -382,7 +382,8 @@ describe('TrainPage — Ritual entry, real router integration', () => {
 
     const ritualEntry = screen.getByRole('button', { name: /Ritual/i });
     expect(ritualEntry).toBeTruthy();
-    expect(screen.getByText('Your routine before you play.')).toBeTruthy();
+    // Founder decision (Nov 2026): tiles show the practice name only.
+    expect(screen.queryByText('Your routine before you play.')).toBeNull();
 
     await user.click(ritualEntry);
 
@@ -437,11 +438,11 @@ describe('TrainPage — Ritual entry, real router integration', () => {
     expect(screen.queryByText(/View history/i)).toBeNull();
   });
 
-  test('Ritual renders in Hindi with the approved support copy', async () => {
+  test('Ritual renders in Hindi, name only', async () => {
     authState.language = 'hi';
     render(<TrainApp />);
     expect(screen.getByRole('button', { name: /Ritual/i })).toBeTruthy();
-    expect(screen.getByText('खेलने से पहले की अपनी रूटीन।')).toBeTruthy();
+    expect(screen.queryByText('खेलने से पहले की अपनी रूटीन।')).toBeNull();
   });
 
   test('does not reintroduce Practice Focus, Next Play Reset, Games, Focus Lock, Reset Rally, Mental Playbook row, or skill-path links', async () => {

@@ -11,12 +11,13 @@ import { RitualArt, ResetArt, RepArt, FocusArt, PracticeLogArt } from '../compon
 // Routes are the existing ones.
 //
 // Playbook redesign: one flat colour block per practice in a single 2×2 grid,
-// each with its own drawing. The two group labels are gone — four tiles do
+// each with its own drawing and its name only — no description line
+// (founder decision, Nov 2026: athletes find out by opening the practice). The two group labels are gone — four tiles do
 // not need sorting — and reflection stays in the Mind Journal (its entry is
 // on Home), so it is deliberately NOT re-added here as a tile. Pressure
 // Reset's history link lives on the Pressure Reset intro screen itself.
 const PRACTICES = [
-  { key: 'ritual',    to: '/ritual',     tone: 'blue',  Art: RitualArt },
+  { key: 'ritual',    to: '/ritual',     tone: 'sky',   Art: RitualArt },
   { key: 'pressure',  to: '/body-reset', tone: 'mint',  Art: ResetArt },
   { key: 'quickRep',  to: '/mental-rep', tone: 'sun',   Art: RepArt },
   { key: 'focusCard', to: '/self-talk',  tone: 'coral', Art: FocusArt },
@@ -31,7 +32,7 @@ export default function TrainPage() {
     <div className="min-h-screen bg-dark-900">
       <Navbar />
 
-      <main className="max-w-lg md:max-w-2xl mx-auto px-5 pt-20 pb-28 animate-fade-in">
+      <main className="max-w-lg md:max-w-2xl mx-auto px-5 pt-14 pb-28 animate-fade-in">
 
         {/* Page header */}
         <div className="pt-2 mb-5">
@@ -47,7 +48,6 @@ export default function TrainPage() {
                 key={p.key}
                 tone={p.tone}
                 title={copy.name}
-                desc={copy.desc}
                 Art={p.Art}
                 onClick={() => navigate(p.to)}
               />

@@ -90,7 +90,7 @@ test('the support link sits outside the sign-in/sign-up tab branches — visible
 
 test('the support link is visually secondary — quiet colour, not the primary blue CTA styling', () => {
   const linkBlock = auth.slice(auth.indexOf('{t.auth.needHelp}') - 40, auth.indexOf('{t.auth.needHelp}') + 400);
-  assert.doesNotMatch(linkBlock, /bg-\[#185FA5\]/, 'not styled as a filled primary button');
+  assert.doesNotMatch(linkBlock, /bg-\[#1B4DFF\]/, 'not styled as a filled primary button');
   assert.match(linkBlock, /text-\[#7B8A9C\]|text-\[#5A6B80\]/, 'quiet secondary text colour');
 });
 

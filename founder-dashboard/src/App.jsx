@@ -46,7 +46,7 @@ function LoginScreen({ onAuth, expiredNotice }) {
   return (
     <div className="min-h-dvh flex flex-col items-center justify-center bg-[#0F172A] px-8">
       <div className="mb-8 text-center">
-        <div className="text-4xl font-bold text-[#1769AA] mb-1">Arjun</div>
+        <div className="text-4xl font-bold text-[#1B4DFF] mb-1">Arjun</div>
         <div className="text-sm text-[#64748B]">Founder Command Centre</div>
       </div>
 
@@ -63,8 +63,8 @@ function LoginScreen({ onAuth, expiredNotice }) {
               key={i}
               className="w-4 h-4 rounded-full border-2 transition-colors"
               style={{
-                borderColor: value.length > i ? '#1769AA' : '#334155',
-                background:  value.length > i ? '#1769AA' : 'transparent',
+                borderColor: value.length > i ? '#1B4DFF' : '#334155',
+                background:  value.length > i ? '#1B4DFF' : 'transparent',
               }}
             />
           ))}

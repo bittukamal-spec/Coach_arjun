@@ -19,9 +19,9 @@ Source of truth:
                                apple-touch-icon-180.png
 
 Colours (all in the Arjun blue/navy family — see --brand-logo in index.css):
-  Background         #185FA5  (var(--brand-logo) in the in-app component)
+  Background         #1B4DFF  (var(--brand-logo) in the in-app component)
   Primary strokes     #FFFFFF
-  Accent stroke       #8ECBFF  (solid, not translucent — stays clean at
+  Accent stroke       #9DB4FF  (solid, not translucent — stays clean at
                                  small sizes instead of reading muddy)
 
 Regenerating a raster file: open the relevant .svg above, render it at the

@@ -81,7 +81,7 @@ function EventDetail({ event, onBack, onReviewed }) {
       <div className="bg-[#1E293B] rounded-xl p-4 space-y-3">
         <div className="flex items-center gap-2 flex-wrap">
           <Badge color={RISK_COLORS[event.riskLevel] || '#94A3B8'}>{event.riskLevel || 'unknown'}</Badge>
-          <Badge color="#1769AA">{event.reviewStatus}</Badge>
+          <Badge color="#1B4DFF">{event.reviewStatus}</Badge>
         </div>
 
         <dl className="text-sm space-y-2">
@@ -110,9 +110,9 @@ function EventDetail({ event, onBack, onReviewed }) {
                 onClick={() => setOutcome(o)}
                 className="text-xs font-medium px-3 py-2 rounded-lg border transition-colors"
                 style={{
-                  borderColor: outcome === o ? '#1769AA' : '#334155',
-                  background:  outcome === o ? '#1769AA22' : 'transparent',
-                  color:       outcome === o ? '#1769AA' : '#94A3B8',
+                  borderColor: outcome === o ? '#1B4DFF' : '#334155',
+                  background:  outcome === o ? '#1B4DFF22' : 'transparent',
+                  color:       outcome === o ? '#1B4DFF' : '#94A3B8',
                 }}
               >
                 {o.replace(/_/g, ' ')}
@@ -123,7 +123,7 @@ function EventDetail({ event, onBack, onReviewed }) {
           <button
             onClick={submitReview}
             disabled={!outcome || saving}
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#1769AA] text-white text-sm font-semibold disabled:opacity-40 transition-opacity"
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#1B4DFF] text-white text-sm font-semibold disabled:opacity-40 transition-opacity"
           >
             <ShieldCheck size={16} />
             {saving ? 'Saving…' : 'Mark reviewed'}
@@ -183,7 +183,7 @@ export default function SafetyPanel() {
     if (!selected) {
       return (
         <div className="flex items-center justify-center py-16">
-          <RefreshCw size={24} className="animate-spin text-[#1769AA]" />
+          <RefreshCw size={24} className="animate-spin text-[#1B4DFF]" />
         </div>
       );
     }
@@ -216,9 +216,9 @@ export default function SafetyPanel() {
             onClick={() => setFilter(f)}
             className="text-xs font-medium px-3 py-1.5 rounded-full border transition-colors"
             style={{
-              borderColor: filter === f ? '#1769AA' : '#334155',
-              background:  filter === f ? '#1769AA22' : 'transparent',
-              color:       filter === f ? '#1769AA' : '#94A3B8',
+              borderColor: filter === f ? '#1B4DFF' : '#334155',
+              background:  filter === f ? '#1B4DFF22' : 'transparent',
+              color:       filter === f ? '#1B4DFF' : '#94A3B8',
             }}
           >
             {f === 'UNREVIEWED' ? 'Unreviewed' : 'All'}
@@ -234,7 +234,7 @@ export default function SafetyPanel() {
 
       {loading && !events && (
         <div className="flex items-center justify-center py-16">
-          <RefreshCw size={28} className="animate-spin text-[#1769AA]" />
+          <RefreshCw size={28} className="animate-spin text-[#1B4DFF]" />
         </div>
       )}
 

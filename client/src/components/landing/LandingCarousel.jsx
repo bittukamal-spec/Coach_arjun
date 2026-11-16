@@ -86,7 +86,7 @@ function LandingCarousel({
   }
 
   const arrowClass =
-    'hidden sm:flex absolute top-1/2 -translate-y-1/2 z-10 w-11 h-11 items-center justify-center rounded-full bg-white border border-[#E4E9F2] text-[#185FA5] shadow-[0_4px_14px_rgba(15,23,42,0.10)] disabled:opacity-0 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5] focus-visible:ring-offset-2';
+    'hidden sm:flex absolute top-1/2 -translate-y-1/2 z-10 w-11 h-11 items-center justify-center rounded-full bg-white border border-[#E4E9F2] text-[#1B4DFF] shadow-[0_4px_14px_rgba(15,23,42,0.10)] disabled:opacity-0 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4DFF] focus-visible:ring-offset-2';
 
   return (
     <div className={`relative ${className}`}>
@@ -112,7 +112,7 @@ function LandingCarousel({
         // `scroll-pl-5` matters: without it scroll-snap aligns the first card
         // to the scrollport edge and eats the 20px page gutter, so the cards
         // sit flush against the screen edge instead of under the heading.
-        className="no-scrollbar flex gap-4 overflow-x-auto snap-x snap-mandatory scroll-pl-5 px-5 pb-1 -mx-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5] focus-visible:ring-offset-4 focus-visible:ring-offset-[#FAFBFD] rounded-3xl"
+        className="no-scrollbar flex gap-4 overflow-x-auto snap-x snap-mandatory scroll-pl-5 px-5 pb-1 -mx-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4DFF] focus-visible:ring-offset-4 focus-visible:ring-offset-[#FAFBFD] rounded-3xl"
       >
         {slides.map((slide, i) => (
           <li
@@ -148,12 +148,12 @@ function LandingCarousel({
             onClick={() => scrollToIndex(i)}
             aria-label={`${label} — ${slideLabel(i, slides.length)}`}
             aria-current={active === i ? 'true' : undefined}
-            className="w-11 h-11 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5] rounded-full"
+            className="w-11 h-11 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4DFF] rounded-full"
           >
             <span
               aria-hidden="true"
               className={`block rounded-full transition-all ${
-                active === i ? 'w-5 h-1.5 bg-[#185FA5]' : 'w-1.5 h-1.5 bg-[#CBD5E1]'
+                active === i ? 'w-5 h-1.5 bg-[#1B4DFF]' : 'w-1.5 h-1.5 bg-[#CBD5E1]'
               }`}
             />
           </button>

@@ -10,14 +10,14 @@ import HelplineList from '../components/HelplineList';
 const C = {
   lightBg:   'var(--bg)',      // page bg follows theme
   darkBg:    '#0F1F35',        // step4 script screen — intentionally always dark
-  blue:      '#185FA5',
+  blue:      '#1B4DFF',
   amber:     '#D98B2B',
   textDark:  'var(--text-1)', // primary text follows theme
   textMuted: 'var(--text-2)', // secondary text follows theme
   textLight: '#F8FAFC',
   cardBg:    'var(--card)',    // card follows theme
-  selBorder: '#185FA5',
-  selBg:     'rgba(24,95,165,0.15)',
+  selBorder: '#1B4DFF',
+  selBg:     'rgba(27, 77, 255,0.15)',
 };
 
 function ArjunBubble({ children }) {
@@ -267,7 +267,7 @@ export default function VisualizationPage() {
   if (safetyMsg) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-6" style={{ background: C.lightBg }}>
-        <div className="w-full max-w-sm rounded-2xl border p-5" style={{ background: C.cardBg, borderColor: 'rgba(24,95,165,0.3)' }}>
+        <div className="w-full max-w-sm rounded-2xl border p-5" style={{ background: C.cardBg, borderColor: 'rgba(27, 77, 255,0.3)' }}>
           <p className="text-sm leading-relaxed mb-4" style={{ color: C.textDark }}>{safetyMsg}</p>
           <HelplineList />
           <button

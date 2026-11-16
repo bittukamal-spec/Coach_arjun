@@ -2,13 +2,15 @@
 // practice, not a sport, so one set serves every athlete. Fixed block-palette
 // colours, identical in light and dark. Decorative only.
 
+// `className` lets a caller size the drawing (CSS height overrides the
+// default width/height attributes; the viewBox keeps the proportions).
 const base = { 'aria-hidden': true, width: 104, height: 96, viewBox: '0 0 104 96' };
 
 // Ritual — steps climbed one at a time.
-export function RitualArt() {
+export function RitualArt({ className }) {
   return (
-    <svg {...base}>
-      <path d="M8 84h26V62h26V40h26V18" fill="none" stroke="#9DB4FF" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
+    <svg {...base} className={className}>
+      <path d="M8 84h26V62h26V40h26V18" fill="none" stroke="#1B4DFF" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
       <circle cx="21" cy="70" r="7" fill="#FFC629" />
       <circle cx="47" cy="48" r="7" fill="#FFC629" />
       <circle cx="73" cy="26" r="7" fill="#FFC629" />
@@ -18,9 +20,9 @@ export function RitualArt() {
 }
 
 // Pressure Reset — a breath settling to a still centre.
-export function ResetArt() {
+export function ResetArt({ className }) {
   return (
-    <svg {...base}>
+    <svg {...base} className={className}>
       <circle cx="52" cy="48" r="44" fill="#A8EFD8" />
       <circle cx="52" cy="48" r="30" fill="#D2F8EA" />
       <circle cx="52" cy="48" r="16" fill="#FFFFFF" />
@@ -30,9 +32,9 @@ export function ResetArt() {
 }
 
 // Quick Rep — a short, timed burst.
-export function RepArt() {
+export function RepArt({ className }) {
   return (
-    <svg {...base}>
+    <svg {...base} className={className}>
       <circle cx="52" cy="52" r="38" fill="#FFE08A" />
       <rect x="44" y="4" width="16" height="10" rx="4" fill="#101533" />
       <path d="M58 22L38 54h14l-6 26 22-34H54z" fill="#101533" />
@@ -41,9 +43,9 @@ export function RepArt() {
 }
 
 // Focus Card — a cue written on a card.
-export function FocusArt() {
+export function FocusArt({ className }) {
   return (
-    <svg {...base}>
+    <svg {...base} className={className}>
       <rect x="30" y="14" width="56" height="70" rx="10" fill="#D94A2B" transform="rotate(10 58 49)" />
       <rect x="16" y="12" width="56" height="70" rx="10" fill="#FFFFFF" />
       <rect x="26" y="26" width="26" height="6" rx="3" fill="#101533" />

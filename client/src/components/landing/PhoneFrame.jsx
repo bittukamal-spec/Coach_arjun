@@ -10,7 +10,7 @@ import { Dumbbell, Home, MessageCircle, User, Zap } from 'lucide-react';
 //   #1B3044  --card-muted / --surface-selected (athlete bubble)
 //   #1F3448  --border-soft / hairline
 //   #F8FAFC  --text-1           #AAB7C4  --text-2      #7E8A99  --text-3
-//   #5FA8DE  --brand-on-dark / --nav-fg-active
+//   #9DB4FF  --brand-on-dark / --nav-fg-active
 //
 // Nothing here shows audio, a waveform, a microphone, a score, a streak or a
 // progress graph — none of those exist in the product.
@@ -32,7 +32,7 @@ export const DARK = {
   ink: '#F8FAFC',
   sub: '#AAB7C4',
   dim: '#7E8A99',
-  accent: '#5FA8DE',
+  accent: '#9DB4FF',
 };
 
 // The device itself: 390/844 proportions, thin bezel, brushed outer rim,
@@ -182,7 +182,7 @@ export function MentalRepScreen({ t }) {
       <ScreenHeader title={t.title} />
       <div className="flex-1 px-[1em] py-[0.9em]">
         <div className="flex items-center gap-[0.5em]">
-          <span className="flex h-[1.7em] w-[1.7em] items-center justify-center rounded-[0.5em]" style={{ background: 'rgba(95,168,222,0.16)' }}>
+          <span className="flex h-[1.7em] w-[1.7em] items-center justify-center rounded-[0.5em]" style={{ background: 'rgba(157, 180, 255,0.16)' }}>
             <Zap className="h-[0.95em] w-[0.95em]" style={{ color: DARK.accent }} />
           </span>
           <span className="text-[0.85em] font-bold uppercase tracking-[0.1em] leading-none" style={{ color: DARK.dim }}>{t.meta}</span>
@@ -197,7 +197,7 @@ export function MentalRepScreen({ t }) {
             >
               <span
                 className="flex h-[1.4em] w-[1.4em] shrink-0 items-center justify-center rounded-full text-[0.8em] font-bold"
-                style={{ background: 'rgba(95,168,222,0.16)', color: DARK.accent }}
+                style={{ background: 'rgba(157, 180, 255,0.16)', color: DARK.accent }}
               >
                 {i + 1}
               </span>
@@ -238,7 +238,7 @@ export function PressureScreen({ t }) {
         ))}
         <p
           className="rounded-full px-[0.9em] py-[0.5em] text-center text-[0.85em] font-semibold"
-          style={{ background: 'rgba(95,168,222,0.12)', color: DARK.accent }}
+          style={{ background: 'rgba(157, 180, 255,0.12)', color: DARK.accent }}
         >
           {t.resetTime}
         </p>

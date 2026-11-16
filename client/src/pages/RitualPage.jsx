@@ -350,12 +350,12 @@ function Builder({ initial, onSubmit, onSuggest, onCancel, t }) {
 // Category identity: one icon + one accent per category, reusing the Train
 // card colour family. Colour is decoration only — the label always says it.
 const CATEGORY_STYLE = {
-  session_preparation: { Icon: Flag,    color: '#1F85D0' },
+  session_preparation: { Icon: Flag,    color: '#1B4DFF' },
   repeated_moment:     { Icon: Repeat,  color: '#158178' },
   pressure_moment:     { Icon: Zap,     color: '#D97F1E' },
   own_situation:       { Icon: Compass, color: '#6366F1' },
 };
-const HERO_GRADIENT = 'linear-gradient(135deg, #1F85D0 0%, #0C4D85 100%)';
+const HERO_GRADIENT = 'linear-gradient(135deg, #1B4DFF 0%, #1238C9 100%)';
 
 function categoryStyle(category) {
   return CATEGORY_STYLE[category] || CATEGORY_STYLE.own_situation;

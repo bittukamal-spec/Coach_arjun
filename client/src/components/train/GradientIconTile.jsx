@@ -5,7 +5,7 @@
 // applied everywhere.
 export const GRADIENT_VARIANTS = {
   teal:   { from: '#2E7D6B', to: '#22D3C5' },   // calm / reset / recovery
-  blue:   { from: '#185FA5', to: '#8B5CF6' },   // focus / mental skills
+  blue:   { from: '#1B4DFF', to: '#8B5CF6' },   // focus / mental skills
   amber:  { from: '#D97F1E', to: '#F5A62E' },   // reflection / after-training
   purple: { from: '#6366F1', to: '#8B5CF6' },   // visualization / imagery
 };

@@ -27,7 +27,7 @@ import {
 const INK = 'text-[#0F172A]';
 const BODY = 'text-[#5A6B80]';
 const BORDER = 'border-[#E4E9F2]';
-const BRAND = '#185FA5';
+const BRAND = '#1B4DFF';
 
 // The four use cases, each with its own restrained tint so the row doesn't
 // read as four identical white SaaS cards. Same four-accent family the
@@ -154,7 +154,7 @@ function LandingPage() {
   // only here, for the privacy tag — it reads as reassurance, not as a
   // product area.
   const benefitTags = [
-    { Icon: MessageCircle, label: t.tagTalk,    bg: '#E7F0FB', fg: '#185FA5' },
+    { Icon: MessageCircle, label: t.tagTalk,    bg: '#E7F0FB', fg: '#1B4DFF' },
     { Icon: Zap,           label: t.tagReps,    bg: '#DDF0EC', fg: '#13776F' },
     { Icon: Bookmark,      label: t.tagSave,    bg: '#FAEBD8', fg: '#9A5410' },
     { Icon: Globe,         label: t.tagLang,    bg: '#EAE6FC', fg: '#5546C9' },
@@ -177,10 +177,10 @@ function LandingPage() {
               type="button"
               onClick={toggleLanguage}
               aria-label={t.langLabel}
-              className={`flex h-10 shrink-0 items-center rounded-full border ${BORDER} bg-white p-[3px] text-[12px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5] focus-visible:ring-offset-2`}
+              className={`flex h-10 shrink-0 items-center rounded-full border ${BORDER} bg-white p-[3px] text-[12px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4DFF] focus-visible:ring-offset-2`}
             >
-              <span className={`rounded-full px-2.5 py-1.5 ${language === 'hi' ? 'bg-[#185FA5] text-white' : BODY}`}>हिंदी</span>
-              <span className={`rounded-full px-2 py-1.5 ${language === 'en' ? 'bg-[#185FA5] text-white' : BODY}`}>EN</span>
+              <span className={`rounded-full px-2.5 py-1.5 ${language === 'hi' ? 'bg-[#1B4DFF] text-white' : BODY}`}>हिंदी</span>
+              <span className={`rounded-full px-2 py-1.5 ${language === 'en' ? 'bg-[#1B4DFF] text-white' : BODY}`}>EN</span>
             </button>
           )}
 
@@ -194,7 +194,7 @@ function LandingPage() {
               type="button"
               onClick={handleInstall}
               aria-label={t.installApp}
-              className="flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-[#185FA5] px-3.5 text-[13px] font-bold text-white shadow-[0_3px_10px_rgba(24,95,165,0.25)] transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5] focus-visible:ring-offset-2 xs:px-4"
+              className="flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-[#1B4DFF] px-3.5 text-[13px] font-bold text-white shadow-[0_3px_10px_rgba(27, 77, 255,0.25)] transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4DFF] focus-visible:ring-offset-2 xs:px-4"
             >
               <Download size={16} aria-hidden="true" />
               <span className="hidden xs:inline">{t.installShort}</span>
@@ -208,7 +208,7 @@ function LandingPage() {
               aria-label={menuOpen ? t.menuClose : t.menuOpen}
               aria-expanded={menuOpen}
               aria-controls="landing-menu"
-              className={`flex h-10 w-10 items-center justify-center rounded-full border ${BORDER} bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5] focus-visible:ring-offset-2`}
+              className={`flex h-10 w-10 items-center justify-center rounded-full border ${BORDER} bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4DFF] focus-visible:ring-offset-2`}
             >
               {menuOpen
                 ? <X size={20} aria-hidden="true" />
@@ -256,7 +256,7 @@ function LandingPage() {
               type="button"
               onClick={() => setInstallHint(false)}
               aria-label={t.close}
-              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${BODY} hover:bg-[#F3F6FB] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5]`}
+              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${BODY} hover:bg-[#F3F6FB] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4DFF]`}
             >
               <X size={18} aria-hidden="true" />
             </button>
@@ -277,7 +277,7 @@ function LandingPage() {
                 its own line. Each half still wraps freely inside its column. */}
             <h1 className="text-[42px] font-black leading-[0.98] tracking-[-0.02em] [text-wrap:balance] xs:text-[48px] lg:text-[58px]">
               {t.headlineLead}
-              <span className="block text-[#185FA5]">{t.headlineAccent}</span>
+              <span className="block text-[#1B4DFF]">{t.headlineAccent}</span>
             </h1>
 
             <p className={`mt-4 text-[16px] leading-snug ${BODY}`}>{t.subtitle}</p>
@@ -286,7 +286,7 @@ function LandingPage() {
               <button
                 type="button"
                 onClick={primaryAction}
-                className="inline-flex min-h-[54px] w-full items-center justify-center gap-2 rounded-2xl bg-[#185FA5] px-8 text-[16.5px] font-bold text-white shadow-[0_6px_18px_rgba(24,95,165,0.25)] transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5] focus-visible:ring-offset-2 sm:w-auto"
+                className="inline-flex min-h-[54px] w-full items-center justify-center gap-2 rounded-2xl bg-[#1B4DFF] px-8 text-[16.5px] font-bold text-white shadow-[0_6px_18px_rgba(27, 77, 255,0.25)] transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4DFF] focus-visible:ring-offset-2 sm:w-auto"
               >
                 {primaryLabel}
                 <ArrowRight size={18} aria-hidden="true" />
@@ -514,7 +514,7 @@ function LandingPage() {
               <ul className="mt-5 flex-1 space-y-2.5">
                 {t.planBenefits.map((benefit) => (
                   <li key={benefit} className="flex items-start gap-2 text-[13.5px] leading-snug">
-                    <Check size={16} strokeWidth={3} className="mt-[2px] shrink-0 text-[#185FA5]" aria-hidden="true" />
+                    <Check size={16} strokeWidth={3} className="mt-[2px] shrink-0 text-[#1B4DFF]" aria-hidden="true" />
                     {benefit}
                   </li>
                 ))}
@@ -522,7 +522,7 @@ function LandingPage() {
               <button
                 type="button"
                 onClick={primaryAction}
-                className="mt-6 inline-flex min-h-[52px] w-full items-center justify-center rounded-2xl border-[1.5px] border-[#185FA5] bg-white text-[15.5px] font-bold text-[#185FA5] transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5] focus-visible:ring-offset-2"
+                className="mt-6 inline-flex min-h-[52px] w-full items-center justify-center rounded-2xl border-[1.5px] border-[#1B4DFF] bg-white text-[15.5px] font-bold text-[#1B4DFF] transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4DFF] focus-visible:ring-offset-2"
               >
                 {t.planChooseMonthly}
               </button>
@@ -530,13 +530,13 @@ function LandingPage() {
 
             {/* Yearly — preferred: brand border, light tint, badge, filled CTA */}
             <div
-              className="relative flex flex-col rounded-3xl border-2 border-[#185FA5] p-5 shadow-[0_8px_28px_rgba(24,95,165,0.12)]"
+              className="relative flex flex-col rounded-3xl border-2 border-[#1B4DFF] p-5 shadow-[0_8px_28px_rgba(27, 77, 255,0.12)]"
               style={{ background: 'linear-gradient(160deg, #EDF4FC 0%, #FFFFFF 72%)' }}
             >
-              <span className="absolute right-4 top-4 rounded-full bg-[#185FA5] px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-[0.08em] text-white">
+              <span className="absolute right-4 top-4 rounded-full bg-[#1B4DFF] px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-[0.08em] text-white">
                 {t.planPopular}
               </span>
-              <p className="text-[12px] font-bold uppercase tracking-[0.12em] text-[#185FA5]">{t.planYearly}</p>
+              <p className="text-[12px] font-bold uppercase tracking-[0.12em] text-[#1B4DFF]">{t.planYearly}</p>
               <div className="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1.5">
                 <p className="text-[28px] font-black leading-none">{t.planYearlyPrice}</p>
                 <span className="rounded-full bg-[#E2F2E6] px-2.5 py-1 text-[11.5px] font-bold text-[#1F7A46]">
@@ -546,7 +546,7 @@ function LandingPage() {
               <ul className="mt-5 flex-1 space-y-2.5">
                 {[...t.planBenefits, t.planYearlyExtra].map((benefit) => (
                   <li key={benefit} className="flex items-start gap-2 text-[13.5px] leading-snug">
-                    <Check size={16} strokeWidth={3} className="mt-[2px] shrink-0 text-[#185FA5]" aria-hidden="true" />
+                    <Check size={16} strokeWidth={3} className="mt-[2px] shrink-0 text-[#1B4DFF]" aria-hidden="true" />
                     {benefit}
                   </li>
                 ))}
@@ -554,7 +554,7 @@ function LandingPage() {
               <button
                 type="button"
                 onClick={primaryAction}
-                className="mt-6 inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-[#185FA5] text-[15.5px] font-bold text-white shadow-[0_6px_18px_rgba(24,95,165,0.25)] transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5] focus-visible:ring-offset-2"
+                className="mt-6 inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-[#1B4DFF] text-[15.5px] font-bold text-white shadow-[0_6px_18px_rgba(27, 77, 255,0.25)] transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4DFF] focus-visible:ring-offset-2"
               >
                 {t.planChooseYearly}
                 <ArrowRight size={17} aria-hidden="true" />
@@ -580,7 +580,7 @@ function LandingPage() {
                       aria-expanded={open}
                       aria-controls={`faq-panel-${i}`}
                       id={`faq-btn-${i}`}
-                      className="flex min-h-[56px] w-full items-center justify-between gap-3 px-4 py-3 text-left text-[14.5px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5] focus-visible:ring-offset-2 rounded-2xl"
+                      className="flex min-h-[56px] w-full items-center justify-between gap-3 px-4 py-3 text-left text-[14.5px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4DFF] focus-visible:ring-offset-2 rounded-2xl"
                     >
                       {item.q}
                       <ChevronDown
@@ -609,7 +609,7 @@ function LandingPage() {
         <section className="mx-auto max-w-5xl px-5 pt-16 lg:pt-24">
           <div
             className="relative overflow-hidden rounded-3xl px-6 py-9 text-white sm:flex sm:items-center sm:justify-between sm:gap-6"
-            style={{ background: 'linear-gradient(135deg, #1C6FBE 0%, #185FA5 46%, #10456F 100%)' }}
+            style={{ background: 'linear-gradient(135deg, #1C6FBE 0%, #1B4DFF 46%, #10456F 100%)' }}
           >
             {/* Abstract performance lines — decorative, no meaning carried. */}
             <svg
@@ -632,7 +632,7 @@ function LandingPage() {
               <button
                 type="button"
                 onClick={primaryAction}
-                className="inline-flex min-h-[54px] w-full items-center justify-center gap-2 rounded-2xl bg-white px-8 text-[16px] font-bold text-[#185FA5] shadow-[0_8px_24px_rgba(8,42,74,0.28)] transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#185FA5] sm:w-auto"
+                className="inline-flex min-h-[54px] w-full items-center justify-center gap-2 rounded-2xl bg-white px-8 text-[16px] font-bold text-[#1B4DFF] shadow-[0_8px_24px_rgba(8,42,74,0.28)] transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#1B4DFF] sm:w-auto"
               >
                 {primaryLabel}
                 <ArrowRight size={18} aria-hidden="true" />
@@ -649,7 +649,7 @@ function LandingPage() {
           <button
             type="button"
             onClick={primaryAction}
-            className={`inline-flex min-h-[44px] items-center gap-2 rounded-full border-[1.5px] border-[#185FA5] px-5 text-[14px] font-bold text-[#185FA5] transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5] focus-visible:ring-offset-2`}
+            className={`inline-flex min-h-[44px] items-center gap-2 rounded-full border-[1.5px] border-[#1B4DFF] px-5 text-[14px] font-bold text-[#1B4DFF] transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4DFF] focus-visible:ring-offset-2`}
           >
             {primaryLabel}
             <ArrowRight size={16} aria-hidden="true" />

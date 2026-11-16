@@ -14,7 +14,7 @@ const BODY = 'text-[#5A6B80]';
 const ERROR_TEXT = 'text-[#B4443C]';
 
 const INPUT =
-  'w-full min-h-[48px] rounded-xl border border-[#D9E1EC] bg-white px-3.5 text-[15px] text-[#0F172A] placeholder-[#9AA7B8] focus:border-[#185FA5] focus:outline-none focus:ring-2 focus:ring-[#185FA5]/25 transition-colors';
+  'w-full min-h-[48px] rounded-xl border border-[#D9E1EC] bg-white px-3.5 text-[15px] text-[#0F172A] placeholder-[#9AA7B8] focus:border-[#1B4DFF] focus:outline-none focus:ring-2 focus:ring-[#1B4DFF]/25 transition-colors';
 
 // Value must match the server's REASONS enum (server/src/routes/contact.js)
 // exactly — the server rejects anything else.
@@ -112,7 +112,7 @@ function ContactPage() {
       <header className="mx-auto flex w-full max-w-md items-center px-5 py-5">
         <button
           onClick={() => navigate('/')}
-          className="flex items-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5] focus-visible:ring-offset-2"
+          className="flex items-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4DFF] focus-visible:ring-offset-2"
         >
           <ArjunWordmark size="hero" />
         </button>
@@ -135,14 +135,14 @@ function ContactPage() {
                 <button
                   type="button"
                   onClick={() => navigate('/')}
-                  className="inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-[#185FA5] text-[15.5px] font-bold text-white shadow-[0_6px_18px_rgba(24,95,165,0.25)] transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5] focus-visible:ring-offset-2"
+                  className="inline-flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-[#1B4DFF] text-[15.5px] font-bold text-white shadow-[0_6px_18px_rgba(27, 77, 255,0.25)] transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4DFF] focus-visible:ring-offset-2"
                 >
                   {t.backHome}
                 </button>
                 <button
                   type="button"
                   onClick={sendAnother}
-                  className="min-h-[44px] rounded-lg text-[14px] font-bold text-[#185FA5] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5] focus-visible:ring-offset-2"
+                  className="min-h-[44px] rounded-lg text-[14px] font-bold text-[#1B4DFF] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4DFF] focus-visible:ring-offset-2"
                 >
                   {t.sendAnother}
                 </button>
@@ -151,7 +151,7 @@ function ContactPage() {
           ) : (
             <>
               <div className="mb-6">
-                <p className="mb-2 text-[12.5px] font-bold uppercase tracking-wide text-[#185FA5]">{t.eyebrow}</p>
+                <p className="mb-2 text-[12.5px] font-bold uppercase tracking-wide text-[#1B4DFF]">{t.eyebrow}</p>
                 <h1 className="text-[28px] font-black leading-tight tracking-tight">{t.title}</h1>
                 <p className={`mt-1.5 text-[14.5px] ${BODY}`}>{t.subtitle}</p>
               </div>
@@ -294,7 +294,7 @@ function ContactPage() {
                   <button
                     type="submit"
                     disabled={status === 'sending'}
-                    className="inline-flex min-h-[54px] w-full items-center justify-center gap-2 rounded-2xl bg-[#185FA5] text-[16px] font-bold text-white shadow-[0_6px_18px_rgba(24,95,165,0.25)] transition-transform active:scale-[0.98] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#185FA5] focus-visible:ring-offset-2"
+                    className="inline-flex min-h-[54px] w-full items-center justify-center gap-2 rounded-2xl bg-[#1B4DFF] text-[16px] font-bold text-white shadow-[0_6px_18px_rgba(27, 77, 255,0.25)] transition-transform active:scale-[0.98] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B4DFF] focus-visible:ring-offset-2"
                   >
                     {status === 'sending' ? t.sending : t.sendBtn}
                   </button>
