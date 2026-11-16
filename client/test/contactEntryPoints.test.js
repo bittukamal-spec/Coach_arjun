@@ -39,9 +39,10 @@ test('the website menu has a Contact item next to Privacy and Terms, styled the 
   assert.match(menu, /onClick=\{\(\) => navigate\('\/privacy'\)\} className=\{menuItem\}/);
 });
 
-test('sign-in stays in the header and the main action stays sign-up', () => {
+test('sign-in sits in the header menu and the main action stays sign-up', () => {
   const header = landing.slice(landing.indexOf('{/* ── Header'), landing.indexOf('</header>'));
-  assert.match(header, /to="\/auth\?tab=signin"/);
+  const menu = landing.slice(landing.indexOf('id="site-menu"'), landing.indexOf('</header>'));
+  assert.match(menu, /navigate\('\/auth\?tab=signin'\)/);
   assert.match(header, /onClick=\{startFree\}/);
 });
 

@@ -54,10 +54,11 @@ describe('website', () => {
     expect(await screen.findByText('ROUTE:/auth?tab=signup')).toBeTruthy();
   });
 
-  test('Sign in in the header opens sign-in', async () => {
+  test('Sign in in the menu opens sign-in', async () => {
     const user = userEvent.setup();
     renderAt('/');
-    await user.click(screen.getByRole('link', { name: 'Sign in' }));
+    await user.click(screen.getByRole('button', { name: 'Open menu' }));
+    await user.click(screen.getByRole('button', { name: 'Sign in' }));
     expect(await screen.findByText('ROUTE:/auth?tab=signin')).toBeTruthy();
   });
 
