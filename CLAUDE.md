@@ -184,6 +184,7 @@ Selective deletion (`DELETE /api/user/data/:type`): 6 types — `chat-history`, 
 3. `Message` has no index; no message retention job (§4, §9).
 4. Coach does not see the athlete's routine list. It sees the imported legacy routine (via `User.ritualName/ritualSteps`) and, since Nov 2026, the ONE routine linked by "Talk to Arjun" (`ChatSession.focusRoutineId`). Showing all routines would need founder approval.
 5. Old docs (`AUDIT.md`, `PROJECT.md`, `PRODUCT-AUDIT.md`, `PLAN.md`) are stale. Current plan: `docs/ROADMAP.md` (Nov 2026).
+6. **Active work: `docs/PREMIUM-PLAN.md`** — the step-by-step premium-look plan. Read it at the start of every session, work only on its current step, and tick boxes / update "Current step" as steps finish.
 
 Fixed since the July audit: quick-chat safety (now dormant + own safety blocks), age/guardian consent gate, safety-event logging + founder review, `checkin-history` deletion, broken `--color-dark-*` vars, webhook idempotency, CORS allow-all, KIRAN on all safety surfaces.
 
