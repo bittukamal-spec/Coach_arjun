@@ -138,3 +138,61 @@ export function WeekScreen({ t }) {
     </div>
   );
 }
+
+// "Practise" screen for How Arjun helps: the athlete's own focus card.
+export function FocusCardScreen({ t }) {
+  return (
+    <div className="flex h-full flex-col bg-[#FFBCAE] px-4">
+      <Notch />
+      <span className="mt-4 text-[11px] font-bold uppercase tracking-[0.1em]">{t.tag}</span>
+      <div className="mt-3 rounded-[22px] bg-white p-4 shadow-[0_6px_16px_rgba(16,21,51,0.08)]">
+        <span className="text-[11px] text-[#4A5273]">{t.title}</span>
+        <span className="mt-1 block text-[30px] font-extrabold leading-none tracking-[-0.02em] text-[#1B4DFF]">{t.cue}</span>
+        <ol className="mt-4 space-y-2.5">
+          {t.steps.map((step, i) => (
+            <li key={step} className="flex items-center gap-2.5 text-[12.5px]">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#FFC629] text-[11px] font-bold">{i + 1}</span>
+              {step}
+            </li>
+          ))}
+        </ol>
+      </div>
+      <span className="mx-auto mt-4 rounded-full bg-[#101533] px-3 py-1.5 text-[11px] font-semibold text-white">{t.done}</span>
+      <svg aria-hidden="true" width="120" height="90" viewBox="0 0 120 90" className="mx-auto mt-auto mb-6">
+        <rect x="30" y="10" width="56" height="70" rx="10" fill="#FF6B4A" transform="rotate(10 58 45)" />
+        <rect x="18" y="8" width="56" height="70" rx="10" fill="#FFFFFF" />
+        <rect x="28" y="22" width="26" height="6" rx="3" fill="#101533" />
+        <rect x="28" y="36" width="36" height="5" rx="2.5" fill="#FFBCAE" />
+        <circle cx="60" cy="64" r="6" fill="#FFC629" />
+      </svg>
+    </div>
+  );
+}
+
+// "See what works" screen: practices and how they went.
+export function ResultsScreen({ t }) {
+  const tones = { mint: 'bg-[#7FE3C4]', coral: 'bg-[#FF6B4A]', sky: 'bg-[#B7C8FF]' };
+  return (
+    <div className="flex h-full flex-col bg-[#EEF3FF] px-3">
+      <Notch />
+      <span className="mt-3 text-[20px] font-extrabold">{t.title}</span>
+      <span className="mt-0.5 text-[10px] text-[#4A5273]">{t.week}</span>
+      <div className="mt-3 space-y-2.5">
+        {t.items.map(it => (
+          <div key={it.name} className="flex items-center gap-2.5 rounded-[16px] bg-white p-2.5">
+            <span className={`h-9 w-9 shrink-0 rounded-[11px] ${tones[it.tone]}`} aria-hidden="true" />
+            <span className="flex min-w-0 flex-1 flex-col">
+              <span className="truncate text-[12px] font-bold">{it.name}</span>
+              <span className="text-[10px] text-[#4A5273]">{it.when}</span>
+            </span>
+            <span className={`shrink-0 rounded-full px-2 py-1 text-[9.5px] font-bold ${it.strong ? 'bg-[#1B4DFF] text-white' : 'bg-[#DCE5FF] text-[#1238C9]'}`}>{it.status}</span>
+          </div>
+        ))}
+      </div>
+      <div className="mt-4 rounded-[18px] bg-[#1B4DFF] p-3 text-white">
+        <span className="text-[10px] text-[#E3EAFF]">{t.helpedLabel}</span>
+        <span className="mt-0.5 flex items-end gap-1"><span className="text-[26px] font-extrabold leading-none">3</span><span className="mb-0.5 text-[12px] text-[#E3EAFF]">{t.helpedOf}</span></span>
+      </div>
+    </div>
+  );
+}
