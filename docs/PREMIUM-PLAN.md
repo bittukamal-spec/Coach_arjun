@@ -10,25 +10,25 @@ Owner key: **Claude** = done in code by Claude. **Founder** = done by you (thing
 
 ## Where we are now
 
-> **Current step:** Step 1 — decisions (Founder)
+> **Current step:** Step 4b — founder picks mascot A or B. Next for Claude: Step 2 mock-ups (gradients, website + app). Waiting on: founder's videos.
 > Last updated: 17 Nov 2026
 
 ---
 
 ## Step 0 — Close what is open (Claude + Founder)
 
-- [ ] Founder: merge PR #140 (see-through "Say hi" pill + app drawing in the final section)
+- [x] Founder: merge PR #140 (see-through "Say hi" pill + app drawing in the final section)
 
 ## Step 1 — Decisions (Founder)
 
 Answer these three, in one message. Claude will not start Step 2 without them.
 
-- [ ] **Videos:** send the screen recordings of the reference animations.
-- [ ] **Mascot route:** choose one
+- [ ] **Videos:** send the screen recordings of the reference animations. *(still to come — needed before Step 6)*
+- [x] **Mascot route:** decided 17 Nov — **try C first** (Claude's 2D mascot), and Claude gives AI-tool prompts so the founder can also try B.
   - A. Illustrator / 3D artist (Fiverr or Upwork) — best quality, ~1–2 weeks, ~₹5,000–25,000
   - B. AI image tool (Midjourney, ChatGPT image) — fast, you pick the best result
   - C. Claude draws a flat 2D mascot in code — free, today, but not 3D quality
-- [ ] **Gradients:** website only (app stays flat and clean) **or** website + app.
+- [x] **Gradients:** decided 17 Nov — **website + app**. (This replaces the old "no gradients" rule in CLAUDE.md §7 once Step 2 ships.)
 
 ## Step 2 — Premium foundations (Claude)
 
@@ -48,6 +48,9 @@ The single biggest upgrade.
 - [ ] Re-run the script whenever the app changes, so the website never shows an old screen.
 
 ## Step 4 — Mascot (Founder makes it, Claude places it)
+
+- [x] **4a (Claude, first):** flat 2D mascot drawn — Concept A (young athlete) and Concept B ("Teer", round arrow buddy), 6 poses each, on the "Arjun mascot" design canvas. Prompts for AI tools live in `docs/MASCOT-PROMPTS.md`.
+- [ ] **4b (Founder):** pick A or B (or ask for changes), and try the AI prompts for a 3D version.
 
 - [ ] Founder: get the mascot made using the brief below (route A or B), or Claude draws it (route C).
 - [ ] Founder: send the files.
