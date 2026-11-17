@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { ArjunLogo } from '../components/ArjunLogo';
 import { PhotoSlot, CheckDot } from '../components/site/SiteBits';
-import { PhoneFrame, ChatScreen, BreatheScreen, WeekScreen } from '../components/site/PhoneScreens';
+import { PhoneFrame, ChatScreen, BreatheScreen, WeekScreen, FocusCardScreen, ResultsScreen } from '../components/site/PhoneScreens';
 
 // ─── Public website (Playbook redesign, Nov 2026) ─────────────────────────────
 // Founder-approved mock-ups ("Arjun public pages"): a phone showing the real
@@ -140,9 +140,11 @@ function LandingPage() {
               <button
                 type="button"
                 onClick={startFree}
-                className="absolute -left-[18%] bottom-[22%] flex min-h-[44px] items-center whitespace-nowrap rounded-[22px] bg-brand-500 px-4 text-[14px] font-bold text-white shadow-[0_10px_24px_rgba(27,77,255,0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+                className="group absolute -left-[14%] bottom-[4%] flex min-h-[44px] items-center rounded-full focus-visible:outline-none"
               >
-                {t.sayHi}
+                <span className="flex h-9 items-center whitespace-nowrap rounded-full bg-brand-500 px-3.5 text-[13px] font-semibold text-white shadow-[0_8px_18px_rgba(27,77,255,0.32)] group-focus-visible:ring-2 group-focus-visible:ring-brand-500 group-focus-visible:ring-offset-2">
+                  {t.sayHi}
+                </span>
               </button>
             </div>
             <div className="mt-4 flex gap-1" role="group" aria-label={t.phoneLabel}>
@@ -194,8 +196,8 @@ function LandingPage() {
           <ol className="mt-6 flex snap-x snap-mandatory gap-5 overflow-x-auto px-5 pb-4 lg:mx-auto lg:max-w-5xl lg:justify-between lg:overflow-visible" aria-label={t.howTitle}>
             {[
               { key: 'chat', el: <ChatScreen t={s.talk} msgs={s.talk.msgs} />, label: s.talk.label },
-              { key: 'breathe', el: <BreatheScreen t={s.breathe} />, label: s.breathe.label },
-              { key: 'week', el: <WeekScreen t={s.week} />, label: s.week.label },
+              { key: 'card', el: <FocusCardScreen t={s.card} />, label: s.card.label },
+              { key: 'results', el: <ResultsScreen t={s.results} />, label: s.results.label },
             ].map((step, i) => (
               <li key={step.key} className="flex shrink-0 snap-center flex-col items-center gap-3">
                 <div aria-hidden="true"><PhoneFrame maxWidth={236} share={0.6}>{step.el}</PhoneFrame></div>
@@ -220,6 +222,7 @@ function LandingPage() {
         <section className="bg-[#DCE5FF] py-10 text-inkblock lg:py-16">
           <div className="mx-auto max-w-3xl px-5">
             <h2 className={H2}>{t.whyTitle}</h2>
+            <p className="mt-2 text-[15px] leading-relaxed text-[#4A5273]">{t.whySub}</p>
             <div className="relative mt-5 rounded-[24px] bg-white px-3.5 pb-2 pt-1">
               <span className="pointer-events-none absolute bottom-1.5 right-[84px] top-1.5 w-[70px] rounded-[35px] border-[3px] border-[#1B4DFF]" aria-hidden="true" />
               <table className="w-full border-collapse text-[15px]">
