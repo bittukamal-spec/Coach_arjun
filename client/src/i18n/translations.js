@@ -131,7 +131,7 @@ export const translations = {
         { q: 'Can I cancel?', a: 'Yes, any time from your account. You keep Premium until the end of the period you paid for. See our Refund policy for refunds.' },
       ],
       finalTitle: 'Ready to play your best?',
-      finalPhotoAlt: 'Athletes smiling after training',
+      finalPhotoAlt: 'Drawing of the Arjun app on a phone with sport gear around it',
       footerPrivacy: 'Privacy',
       footerTerms: 'Terms',
       footerRefund: 'Refund',

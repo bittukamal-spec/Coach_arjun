@@ -58,10 +58,14 @@ test('the hero is the app on a phone, rotating through three real screens', () =
   assert.match(landing, /onClick=\{\(\) => \{ setScreen\(n\); setPaused\(true\); \}\}/);
 });
 
-test('the final photo falls back to a drawing until the founder adds it', () => {
-  assert.match(landing, /src="\/photos\/cta\.jpg"/);
-  assert.match(bits, /onError=\{\(\) => setFailed\(true\)\}/);
-  assert.ok(existsSync(path.join(root, 'public/photos/README.txt')));
+test('the final section uses a drawing of the app, not a stock photo', () => {
+  assert.match(landing, /<FinalArt label=\{t\.finalPhotoAlt\}/);
+  assert.doesNotMatch(landing, /\/photos\//);
+  assert.match(bits, /export function FinalArt/);
+});
+
+test('the Say hi pill is see-through so it never hides the phone screen', () => {
+  assert.match(landing, /bg-brand-500\/55 [^"]*backdrop-blur-md/);
 });
 
 // ── 2. Content stays honest ─────────────────────────────────────────────────

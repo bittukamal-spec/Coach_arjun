@@ -4,7 +4,7 @@ import { ArrowRight, Menu, X, ChevronDown, ShieldCheck, FlaskConical, Globe, Tim
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { ArjunLogo } from '../components/ArjunLogo';
-import { PhotoSlot, CheckDot } from '../components/site/SiteBits';
+import { CheckDot, FinalArt } from '../components/site/SiteBits';
 import { PhoneFrame, ChatScreen, BreatheScreen, WeekScreen, FocusCardScreen, ResultsScreen } from '../components/site/PhoneScreens';
 
 // ─── Public website (Playbook redesign, Nov 2026) ─────────────────────────────
@@ -142,7 +142,7 @@ function LandingPage() {
                 onClick={startFree}
                 className="group absolute -left-[14%] bottom-[4%] flex min-h-[44px] items-center rounded-full focus-visible:outline-none"
               >
-                <span className="flex h-9 items-center whitespace-nowrap rounded-full bg-brand-500 px-3.5 text-[13px] font-semibold text-white shadow-[0_8px_18px_rgba(27,77,255,0.32)] group-focus-visible:ring-2 group-focus-visible:ring-brand-500 group-focus-visible:ring-offset-2">
+                <span className="flex h-9 items-center whitespace-nowrap rounded-full border border-white/50 bg-brand-500/55 px-3.5 text-[13px] font-semibold text-white shadow-[0_6px_14px_rgba(27,77,255,0.18)] backdrop-blur-md group-focus-visible:ring-2 group-focus-visible:ring-brand-500 group-focus-visible:ring-offset-2">
                   {t.sayHi}
                 </span>
               </button>
@@ -323,7 +323,7 @@ function LandingPage() {
         {/* ── Final call ─────────────────────────────────────────────────── */}
         <section className="bg-sun py-10 text-inkblock">
           <div className="mx-auto flex max-w-3xl flex-col items-center gap-4 px-5 text-center lg:flex-row lg:text-left">
-            <PhotoSlot src="/photos/cta.jpg" alt={t.finalPhotoAlt} className="h-[170px] w-full rounded-[22px] lg:h-[180px] lg:w-[320px]" tone="sun" />
+            <FinalArt label={t.finalPhotoAlt} className="h-[170px] w-full lg:h-[180px] lg:w-[320px]" />
             <div className="flex w-full flex-col gap-3 lg:pl-6">
               <h2 className="text-[26px] leading-tight font-extrabold">{t.finalTitle}</h2>
               <button
