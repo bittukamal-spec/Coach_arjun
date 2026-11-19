@@ -10,8 +10,8 @@ Owner key: **Claude** = done in code by Claude. **Founder** = done by you (thing
 
 ## Where we are now
 
-> **Current step:** Step 4b — founder picks mascot A or B. Next for Claude: Step 2 mock-ups (gradients, website + app). Waiting on: founder's videos.
-> Last updated: 17 Nov 2026
+> **Current step:** Founder reviews the premium mock-ups (3D Teer + backgrounds) on the "Arjun mascot" canvas. Then Claude builds Step 2 + places mascot/backgrounds. Waiting on: founder's videos (for Step 6).
+> Last updated: 19 Nov 2026
 
 ---
 
@@ -50,7 +50,9 @@ The single biggest upgrade.
 ## Step 4 — Mascot (Founder makes it, Claude places it)
 
 - [x] **4a (Claude, first):** flat 2D mascot drawn — Concept A (young athlete) and Concept B ("Teer", round arrow buddy), 6 poses each, on the "Arjun mascot" design canvas. Prompts for AI tools live in `docs/MASCOT-PROMPTS.md`.
-- [ ] **4b (Founder):** pick A or B (or ask for changes), and try the AI prompts for a 3D version.
+- [x] **4b (Founder):** picked B ("Teer"). 3D version made with an AI tool (19 Nov): 8 poses. Cut-outs in `docs/assets/premium/teer-*.png`.
+- [ ] Founder: send each pose as its own **bigger** image (at least 1000 px tall). The sheet gives ~360 px per pose — fine for small use, a bit soft on big screens.
+- [ ] Claude: 2D animated moods (big smile, confused, caring, etc.) are on the canvas — redo them in 3D style later if wanted.
 
 - [ ] Founder: get the mascot made using the brief below (route A or B), or Claude draws it (route C).
 - [ ] Founder: send the files.
@@ -67,7 +69,8 @@ The single biggest upgrade.
 
 ## Step 5 — Backgrounds (Founder supplies, Claude places)
 
-- [ ] Founder: get 3–4 soft, misty scene images (AI tool or stock you have rights to). Ideas: empty running track at sunrise · calm lake with mountains · indoor court in soft light · stadium lights at dusk. Landscape, at least **2400 px wide**, no people's faces, no logos, no text.
+- [x] Founder: 4 scenes received 19 Nov (track sunrise, indoor court, lake, stadium at dusk) → `docs/assets/premium/bg-*.jpg`. They are 1672 px wide (brief said 2400) — fine for phones; for big laptop screens a bigger copy would be sharper.
+- [ ] ~~Founder: get 3–4 soft, misty scene images (AI tool or stock you have rights to). Ideas: empty running track at sunrise · calm lake with mountains · indoor court in soft light · stadium lights at dusk. Landscape, at least **2400 px wide**, no people's faces, no logos, no text.~~
 - [ ] Claude: fade them behind the website sections, keep text readable, compress them so the page stays fast.
 
 ## Step 6 — Motion (Claude)
