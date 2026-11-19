@@ -6,6 +6,7 @@ import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
 import { ArjunLogo } from '../components/ArjunLogo';
 import { FocusArt } from '../components/visuals/TrainArt';
+import Teer from '../components/visuals/Teer';
 import ConsentBanner, { needsGuardianConsent } from '../components/ConsentBanner';
 import { parseArjunMessage, APP_TOOL_CONFIG } from '../utils/parseArjunMessage';
 import { shouldShowAiReminder, BREAK_REMINDER_MS } from '../utils/chatReminders';
@@ -1192,6 +1193,10 @@ function ChatPage() {
           {showStartScreen && !waitingForFirst && (
             <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 animate-fade-in">
               {consentPending && <div className="w-full"><ConsentBanner /></div>}
+              <div className="relative mb-4 flex h-[clamp(130px,24dvh,200px)] items-end justify-center">
+                <span aria-hidden="true" className="absolute bottom-0 aspect-square h-full rounded-full bg-[radial-gradient(circle,rgba(27,77,255,0.16)_0%,rgba(27,77,255,0)_70%)]" />
+                <Teer pose="think" fluid motion="float" eager className="relative h-[92%] w-auto drop-shadow-[0_12px_18px_rgba(16,21,51,0.15)]" />
+              </div>
               <h2 className="text-title font-bold text-ink mb-2 text-center">{t.entry.heading}</h2>
               <p className="text-body text-slt text-center mb-6 leading-relaxed max-w-xs">{t.entry.description}</p>
               <div className="w-full bg-dark-400 rounded-[22px] px-4 py-3.5 mb-6">

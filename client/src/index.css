@@ -511,3 +511,10 @@
     border-color: var(--journal-accent);
   }
 }
+
+/* Photo scenes (components/visuals/SceneBackdrop) — softer on the dark theme
+   so the text on top stays readable. */
+[data-theme="dark"] .scene-photo { opacity: 0.4; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .scene-photo { opacity: 0.4; }
+}

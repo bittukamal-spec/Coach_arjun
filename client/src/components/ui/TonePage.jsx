@@ -26,10 +26,17 @@ export function toneBg(tone) {
 // show a band of a different colour. Both are released on unmount.
 // Use it directly in pages with many screens that each set `bg-tonepage-*`.
 export function useToneStatusBar(tone) {
+  useStatusBarColour(tone ? { tone } : null);
+}
+
+// Same claim for a fixed colour (e.g. a dark photo page): pass { colour: '#101533' }.
+export function useStatusBarColour(spec) {
+  const tone = spec?.tone;
+  const fixed = spec?.colour;
   useEffect(() => {
-    if (!tone || typeof getComputedStyle !== 'function') return undefined;
+    if ((!tone && !fixed) || typeof getComputedStyle !== 'function') return undefined;
     const html = document.documentElement;
-    const colour = getComputedStyle(html).getPropertyValue(`--tone-${tone}-page`).trim();
+    const colour = fixed || getComputedStyle(html).getPropertyValue(`--tone-${tone}-page`).trim();
     if (!colour) return undefined;
     const prevBody = document.body.style.backgroundColor;
     html.dataset.statusBar = colour;
@@ -40,7 +47,7 @@ export function useToneStatusBar(tone) {
       document.body.style.backgroundColor = prevBody;
       syncStatusBar();
     };
-  }, [tone]);
+  }, [tone, fixed]);
 }
 
 export default function TonePage({ tone = 'sky', className = '', children }) {

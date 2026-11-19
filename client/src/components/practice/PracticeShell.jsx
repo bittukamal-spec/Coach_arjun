@@ -1,6 +1,19 @@
 import { useState } from 'react';
 import { ArrowLeft, ChevronDown, CheckCircle2 } from 'lucide-react';
-import TonePage from '../ui/TonePage';
+import TonePage, { useStatusBarColour } from '../ui/TonePage';
+import Teer from '../visuals/Teer';
+import SceneBackdrop from '../visuals/SceneBackdrop';
+
+// Photo scenes fade into the feature's page colour (literal classes for Tailwind).
+const SCENE_FADE = {
+  mint: 'to-tonepage-mint', sky: 'to-tonepage-sky', sun: 'to-tonepage-sun',
+  coral: 'to-tonepage-coral', blush: 'to-tonepage-blush',
+};
+const GLOW = {
+  mint: 'bg-[radial-gradient(circle,rgba(127,227,196,0.95)_0%,rgba(127,227,196,0)_70%)]',
+  default: 'bg-[radial-gradient(circle,rgba(255,255,255,0.8)_0%,rgba(255,255,255,0)_70%)]',
+};
+const MASCOT_MOTION = { breathe: 'calm', cheer: 'hop' };
 
 // Shared Intro → Practice → Completion shell for mental-training tools
 // (proven first on Quick Rep, Stage 6). Each practice keeps its own step
@@ -49,7 +62,7 @@ const START_CLASS = {
 
 export function PracticeIntro({
   onBack, headerTitle,
-  icon: Icon, variant = 'blue', tone, Art, tag, title, desc, checklist,
+  icon: Icon, variant = 'blue', tone, Art, mascot, scene, tag, title, desc, checklist,
   whyLabel, whyBody,
   onStart, startLabel,
   secondaryLabel, onSecondary,
@@ -58,11 +71,19 @@ export function PracticeIntro({
   const pageTone = tone || VARIANT_TONE[variant] || 'sky';
   const startClass = START_CLASS[pageTone] || START_CLASS.default;
   return (
-    <TonePage tone={pageTone} className="flex flex-col">
-      <PracticeHeader onBack={onBack} title={headerTitle} />
-      <div className="flex-1 px-6 pt-2 pb-6 overflow-y-auto max-w-lg mx-auto w-full text-center">
+    <TonePage tone={pageTone} className="relative flex flex-col">
+      {scene && <SceneBackdrop scene={scene} height="h-[min(62dvh,560px)]" fadeVia="via-transparent" fadeTo={SCENE_FADE[pageTone] || 'to-dark-900'} />}
+      <div className="relative"><PracticeHeader onBack={onBack} title={headerTitle} /></div>
+      <div className="relative flex-1 px-6 pt-2 pb-6 overflow-y-auto max-w-lg mx-auto w-full text-center">
         <section>
-          {Art
+          {mascot
+            ? (
+              <div className="relative mx-auto flex h-[clamp(130px,23dvh,200px)] items-end justify-center">
+                <span aria-hidden="true" className={`absolute bottom-0 aspect-square h-[105%] rounded-full motion-safe:animate-glow ${GLOW[pageTone] || GLOW.default}`} />
+                <Teer pose={mascot} fluid motion={MASCOT_MOTION[mascot] || 'float'} eager className="relative h-[92%] w-auto drop-shadow-[0_12px_18px_rgba(16,21,51,0.15)]" />
+              </div>
+            )
+            : Art
             ? <Art className="h-[clamp(84px,14dvh,128px)] w-auto mx-auto" />
             : Icon && (
               <span className="w-16 h-16 rounded-3xl bg-dark-400 text-ink flex items-center justify-center mx-auto" aria-hidden="true">
@@ -152,9 +173,31 @@ export function PracticeScreen({ onBack, headerTitle, progress, canGoBack = true
 // Consistent full-screen completion frame. The practice supplies its own
 // completion content (icon, summary, save/exit actions) unchanged — only
 // the surrounding frame is shared.
-export function PracticeCompletion({ tone, children }) {
+//
+// With `scene`, the completion is a celebration: a dark photo scene (e.g. a
+// stadium at dusk) with white text — the practice passes light-on-dark content.
+export function PracticeCompletion({ tone, scene, children }) {
   const cls = 'flex flex-col items-center justify-center px-4 text-center';
+  if (scene) return <SceneCompletion scene={scene} className={cls}>{children}</SceneCompletion>;
   return tone
     ? <TonePage tone={tone} className={cls}>{children}</TonePage>
     : <div className={`min-h-screen bg-dark-900 ${cls}`}>{children}</div>;
+}
+
+const NIGHT = '#101533';
+function SceneCompletion({ scene, className, children }) {
+  useStatusBarColour({ colour: NIGHT });
+  return (
+    <div className={`relative min-h-screen overflow-hidden bg-inkblock text-white ${className}`}>
+      <SceneBackdrop scene={scene} height="h-full" position="12% 50%" dim fadeVia="via-inkblock/10" fadeTo="to-inkblock/90" />
+      <div className="relative flex w-full max-w-lg flex-col items-center pb-[calc(2rem+env(safe-area-inset-bottom))] pt-10">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// Teer celebrating, for a scene completion.
+export function CompletionMascot({ pose = 'cheer' }) {
+  return <Teer pose={pose} height={210} motion={MASCOT_MOTION[pose] || 'float'} eager className="mb-5 drop-shadow-[0_16px_24px_rgba(0,0,0,0.35)]" />;
 }
