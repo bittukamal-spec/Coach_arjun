@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, Menu, X, ChevronDown, ShieldCheck, FlaskConical, Globe, Timer, Lock, MessageCircle, Check } from 'lucide-react';
+import { ArrowRight, Menu, X, ChevronDown, FlaskConical, Globe, Timer, Lock, MessageCircle, Check } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { ArjunLogo } from '../components/ArjunLogo';
 import { CheckDot, FinalArt } from '../components/site/SiteBits';
+import Teer from '../components/visuals/Teer';
+import SceneBackdrop from '../components/visuals/SceneBackdrop';
 import { PhoneFrame, ChatScreen, BreatheScreen, WeekScreen, FocusCardScreen, ResultsScreen } from '../components/site/PhoneScreens';
 
 // ─── Public website (Playbook redesign, Nov 2026) ─────────────────────────────
@@ -80,9 +82,11 @@ function LandingPage() {
   ];
 
   return (
-    <div className="min-h-screen overflow-x-clip bg-dark-900 text-ink">
+    <div className="relative min-h-screen overflow-x-clip bg-dark-900 text-ink">
+      {/* Soft sunrise track behind the header and hero, fading into the page */}
+      <SceneBackdrop scene="track-sunrise" height="h-[600px] lg:h-[680px]" position="30% 60%" fadeVia="via-dark-900/10" />
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <header className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-5 py-3">
+      <header className="relative mx-auto flex max-w-5xl items-center justify-between gap-2 px-5 py-3">
         <Link to="/" className="flex items-center gap-2 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500" aria-label="Arjun home">
           <ArjunLogo size={28} />
           <span className="text-[19px] font-extrabold tracking-[-0.02em]">Arjun</span>
@@ -119,7 +123,7 @@ function LandingPage() {
 
       <main>
         {/* ── Hero: the app on a phone ──────────────────────────────────── */}
-        <section className="mx-auto flex max-w-5xl flex-col items-center px-5 pb-10 pt-4 text-center lg:grid lg:grid-cols-2 lg:items-center lg:gap-10 lg:pt-10 lg:text-left">
+        <section className="relative mx-auto flex max-w-5xl flex-col items-center px-5 pb-10 pt-4 text-center lg:grid lg:grid-cols-2 lg:items-center lg:gap-10 lg:pt-10 lg:text-left">
           <div className="flex flex-col items-center lg:items-start">
             <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-brand-500">{t.heroEyebrow}</p>
             <h1 className="mt-2.5 text-[36px] leading-[1.05] font-extrabold tracking-[-0.03em] [text-wrap:balance] lg:text-[60px]">{t.heroTitle}</h1>
@@ -137,10 +141,11 @@ function LandingPage() {
           <div className="mt-6 flex flex-col items-center lg:mt-0">
             <div className="relative" role="img" aria-label={t.phoneLabel} data-testid="site-hero-phone" data-screen={screen}>
               <PhoneFrame maxWidth={250} share={0.56}>{heroScreens[screen]}</PhoneFrame>
+              <Teer pose="wave" height={128} motion="float" eager className="pointer-events-none absolute -left-[30%] -bottom-[3%] drop-shadow-[0_12px_18px_rgba(16,21,51,0.18)]" />
               <button
                 type="button"
                 onClick={startFree}
-                className="group absolute -left-[14%] bottom-[4%] flex min-h-[44px] items-center rounded-full focus-visible:outline-none"
+                className="group absolute -left-[24%] bottom-[29%] flex min-h-[44px] items-center rounded-full focus-visible:outline-none"
               >
                 <span className="flex h-9 items-center whitespace-nowrap rounded-full border border-white/50 bg-brand-500/55 px-3.5 text-[13px] font-semibold text-white shadow-[0_6px_14px_rgba(27,77,255,0.18)] backdrop-blur-md group-focus-visible:ring-2 group-focus-visible:ring-brand-500 group-focus-visible:ring-offset-2">
                   {t.sayHi}
@@ -249,15 +254,13 @@ function LandingPage() {
 
         {/* ── Is AI coaching safe? ──────────────────────────────────────── */}
         <section className="relative overflow-hidden bg-[#DDF7EE] py-10 text-inkblock lg:py-16">
-          <span className="absolute -right-10 -top-12 h-40 w-40 rounded-full bg-mint" aria-hidden="true" />
-          <div className="relative mx-auto max-w-3xl px-5">
-            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-mint" aria-hidden="true">
-              <ShieldCheck size={26} strokeWidth={2.2} />
-            </span>
+          <SceneBackdrop scene="court" height="h-[340px] lg:h-[420px]" position="40% 50%" fadeVia="via-[#DDF7EE]/70" fadeTo="to-[#DDF7EE]" className="[&_.scene-photo]:!opacity-70" />
+          <div className="relative mx-auto flex max-w-3xl flex-col items-center px-5 text-center">
+            <Teer pose="notes" height={168} motion="float" className="drop-shadow-[0_12px_18px_rgba(16,21,51,0.15)]" />
             <h2 className={`mt-3 ${H2}`}>{t.safeTitle}</h2>
-            <ul className="mt-4 space-y-3">
+            <ul className="mt-5 w-full space-y-2.5 text-left">
               {t.safePoints.map(p => (
-                <li key={p} className="flex items-start gap-2.5 text-[15px] leading-snug">
+                <li key={p} className="flex items-start gap-2.5 rounded-[18px] border border-white bg-white/80 px-3.5 py-3 text-[15px] leading-snug backdrop-blur-md">
                   <CheckDot className="mt-px h-[22px] w-[22px] shrink-0" tone="mint" />
                   {p}
                 </li>

@@ -10,7 +10,7 @@ Owner key: **Claude** = done in code by Claude. **Founder** = done by you (thing
 
 ## Where we are now
 
-> **Current step:** Founder reviews the premium mock-ups (3D Teer + backgrounds) on the "Arjun mascot" canvas. Then Claude builds Step 2 + places mascot/backgrounds. Waiting on: founder's videos (for Step 6).
+> **Current step:** Founder checks the premium PR preview (Teer + scenes on launch, website, Coach, Pressure Reset). Next: Step 3 (real app screenshots in the website phones), then more screens. Waiting on: founder's videos (Step 6), bigger mascot exports.
 > Last updated: 19 Nov 2026
 
 ---
@@ -56,7 +56,7 @@ The single biggest upgrade.
 
 - [ ] Founder: get the mascot made using the brief below (route A or B), or Claude draws it (route C).
 - [ ] Founder: send the files.
-- [ ] Claude: place it on the website hero, launch screen, empty screens (no chats yet, no journal yet), and the "Say hi to Arjun" button.
+- [x] Claude: placed on launch screen, website hero (beside the phone + "Say hi"), website safety section, Coach entry screen, Pressure Reset intro + done (PR, 19 Nov). Still to do: Mind Journal / other empty screens.
 
 **Mascot brief (copy-paste this to the artist or AI tool):**
 - An **original** friendly character for "Arjun", an AI mental coach for young Indian athletes (14–25). Arjun is named after the great archer from the Mahabharata — calm, focused, never misses.
@@ -71,7 +71,7 @@ The single biggest upgrade.
 
 - [x] Founder: 4 scenes received 19 Nov (track sunrise, indoor court, lake, stadium at dusk) → `docs/assets/premium/bg-*.jpg`. They are 1672 px wide (brief said 2400) — fine for phones; for big laptop screens a bigger copy would be sharper.
 - [ ] ~~Founder: get 3–4 soft, misty scene images (AI tool or stock you have rights to). Ideas: empty running track at sunrise · calm lake with mountains · indoor court in soft light · stadium lights at dusk. Landscape, at least **2400 px wide**, no people's faces, no logos, no text.~~
-- [ ] Claude: fade them behind the website sections, keep text readable, compress them so the page stays fast.
+- [x] Claude: track (website hero), court (website safety), lake (Pressure Reset), stadium at dusk (practice done). Compressed to 15–80 KB webp.
 
 ## Step 6 — Motion (Claude)
 

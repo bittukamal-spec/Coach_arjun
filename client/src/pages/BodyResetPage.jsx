@@ -9,7 +9,7 @@ import { apiFetch } from '../api';
 import { createBreathCues, cuesPreferred, rememberCues } from '../utils/breathCues';
 import { translations } from '../i18n/translations';
 import HelplineList from '../components/HelplineList';
-import { PracticeIntro, PracticeScreen, PracticeCompletion } from '../components/practice/PracticeShell';
+import { PracticeIntro, PracticeScreen, PracticeCompletion, CompletionMascot } from '../components/practice/PracticeShell';
 
 const CRISIS_KEYWORDS = [
   'suicide', 'kill myself', 'end my life', 'self harm', 'hurt myself',
@@ -453,6 +453,8 @@ export default function BodyResetPage() {
         icon={Wind}
         tone="mint"
         Art={ResetArt}
+        mascot="breathe"
+        scene="lake"
         tag={t.learn.duration}
         title={t.learn.title}
         desc={t.learn.desc}
@@ -941,13 +943,11 @@ export default function BodyResetPage() {
   if (screen === 'done') {
     const delta = tensionDelta();
     return (
-      <PracticeCompletion tone="mint">
-        <div className="w-20 h-20 rounded-3xl bg-dark-400 flex items-center justify-center mb-4">
-          <Wind size={32} className="text-ink" />
-        </div>
-        <h2 className="text-xl font-bold text-ink mb-2 text-center">{t.done.heading}</h2>
+      <PracticeCompletion tone="mint" scene="stadium-dusk">
+        <CompletionMascot pose="cheer" />
+        <h2 className="text-[28px] font-extrabold text-white mb-2 text-center">{t.done.heading}</h2>
         {delta && (
-          <p className={`text-base font-bold mb-6 ${delta.color}`}>
+          <p className="text-base font-bold mb-6 text-white/85">
             {t.card.tensionLabel}: {delta.label}
           </p>
         )}
@@ -960,13 +960,13 @@ export default function BodyResetPage() {
           </button>
           <button
             onClick={() => navigate('/body-reset/history')}
-            className="w-full min-h-[52px] bg-dark-400 text-ink font-bold rounded-[18px] active:scale-95"
+            className="w-full min-h-[52px] border border-white/30 bg-white/15 text-white font-bold rounded-[18px] backdrop-blur-md active:scale-95"
           >
             {t.done.historyBtn}
           </button>
           <button
             onClick={() => navigate('/train')}
-            className="w-full text-sm text-muted py-2 active:opacity-70"
+            className="w-full min-h-[44px] text-sm text-white/80 py-2 active:opacity-70"
           >
             {t.done.trainBtn}
           </button>
