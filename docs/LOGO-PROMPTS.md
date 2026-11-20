@@ -82,3 +82,27 @@ Then add ONE of these lines:
 - **K4 Bullseye mark:** `a small white-and-coral target symbol on the forehead`
 - **K5 Target eyes:** `the pupils are tiny bullseye targets (dark ring, white ring, coral centre) — laser focus`
 - **K6 Quiver feathers:** `three coral arrow feathers peek over the top-right of the head from a quiver on the back`
+
+---
+
+## Teer logo — expressions (founder picked the original Teer, 20 Nov)
+
+Upload the 3D Teer head image as the reference, then use:
+```
+Flat vector app icon of this exact mascot head: round royal-blue (#1B4DFF) head,
+thick sun-yellow (#FFC629) sweatband on the upper head with a white arrow pointing
+right, a golden feather with a white tip tucked in at the top right, big eyes with
+brown irises and white highlights, small dark eyebrows. Flat design, bold simple
+shapes, no gradients, no 3D, no blush, no text, centered on a plain white
+rounded-square background, clear at very small sizes, vector, minimal.
+Expression: [EXPRESSION]
+```
+Replace `[EXPRESSION]` with one of:
+- **Calm smile:** `gentle closed-mouth smile, relaxed eyebrows`
+- **Big smile:** `big open happy smile showing a little tongue`
+- **Wink:** `winking with the left eye, small confident smile`
+- **Focused:** `eyebrows angled down with determination, small confident half-smile`
+- **Zen:** `eyes peacefully closed, tiny calm smile`
+- **Joy:** `happy closed eyes like upside-down U shapes, big open smile`
+- **Curious:** `eyes looking up and to the side, eyebrows raised, small calm mouth`
+- **Confident:** `eyes glancing to the side, one eyebrow raised, smirk`
