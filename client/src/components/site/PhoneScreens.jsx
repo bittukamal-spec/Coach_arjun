@@ -196,3 +196,23 @@ export function ResultsScreen({ t }) {
     </div>
   );
 }
+
+// A real screenshot of the app (public/site-screens/, made by
+// scripts/site-screens.cjs) under the drawn status bar. `bg` is the top
+// colour of that screen, so the status bar blends into it.
+export function RealScreen({ src, bg = '#EEF3FF', eager = false }) {
+  return (
+    <div className="flex h-full flex-col" style={{ background: bg }}>
+      <Notch />
+      <img
+        src={src}
+        alt=""
+        width={268}
+        height={526}
+        loading={eager ? 'eager' : 'lazy'}
+        decoding="async"
+        className="block min-h-0 w-full flex-1 object-cover object-top"
+      />
+    </div>
+  );
+}
