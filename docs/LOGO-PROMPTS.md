@@ -62,3 +62,23 @@ Note: AI tools often misspell words — check every letter. Ideogram is the most
 ## What Claude does with it
 
 Turns the chosen design into a clean SVG in code, then updates every place at once: app icon (all sizes), browser tab icon, website header/footer, sign-in, Coach header, Founder Dashboard, emails.
+
+---
+
+## L2 variations — Arjun symbols (founder asked 20 Nov)
+
+Base for all of these (no cheeks, no headband):
+```
+Flat vector app icon: a cute round royal-blue (#1B4DFF) mascot head with two big
+friendly eyes with white highlights and a small calm smile, on a rounded-square
+sun-yellow (#FFC629) background. Flat design, bold simple shapes, thin dark navy
+(#101533) outlines on small details, no gradients, no 3D, no shadows, no text,
+no blush on the cheeks, clear at very small sizes, vector, minimal.
+```
+Then add ONE of these lines:
+- **K1 Kirita crown:** `wearing a small simple golden crown on top of the head, like an ancient Indian prince's crown`
+- **K2 Bow over the head:** `a golden archer's bow arches over the top of the head like headphones, string ends at both sides`
+- **K3 Arrow behind:** `a single arrow passes diagonally behind the head, coral feathers at top-left, white arrowhead at bottom-right`
+- **K4 Bullseye mark:** `a small white-and-coral target symbol on the forehead`
+- **K5 Target eyes:** `the pupils are tiny bullseye targets (dark ring, white ring, coral centre) — laser focus`
+- **K6 Quiver feathers:** `three coral arrow feathers peek over the top-right of the head from a quiver on the back`
