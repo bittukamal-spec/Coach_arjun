@@ -10,7 +10,7 @@ Owner key: **Claude** = done in code by Claude. **Founder** = done by you (thing
 
 ## Where we are now
 
-> **Current step:** Founder checks the premium PR preview (Teer + scenes on launch, website, Coach, Pressure Reset). Next: Step 3 (real app screenshots in the website phones), then more screens. Waiting on: founder's videos (Step 6), bigger mascot exports.
+> **Current step:** Step 3 — founder reviews the real-screens mock-up ("Step 3 — real screens" on the Arjun mascot canvas). Then Claude swaps them into the website phones. Waiting on: founder's videos (Step 6), bigger mascot exports.
 > Last updated: 19 Nov 2026
 
 ---
@@ -43,7 +43,7 @@ Mock-ups first, then build.
 
 The single biggest upgrade.
 
-- [ ] A script in the repo that opens the real app with demo data and saves clean screenshots (Home, Coach chat, Pressure Reset, Focus Card, My practice) in light and dark.
+- [x] A script in the repo that opens the real app with demo data and saves clean screenshots (Home, Coach chat, Pressure Reset, Focus Card, My practice): `client/scripts/site-screens.cjs` → `client/public/site-screens/*.jpg` (light only for now).
 - [ ] Put the real screenshots in the website phones (hero + How Arjun helps). Remove the hand-drawn phone screens.
 - [ ] Re-run the script whenever the app changes, so the website never shows an old screen.
 
