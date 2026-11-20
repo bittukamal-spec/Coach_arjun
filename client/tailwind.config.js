@@ -162,6 +162,7 @@ export default {
         'hop':          'hop 1.4s cubic-bezier(.3,0,.3,1) infinite',
         'glow':         'glow 5s ease-in-out infinite',
         'calm':         'calm 5s ease-in-out infinite',
+        'nudge-twice':  'nudge 1.3s ease-in-out 0.4s 2 both',
         'badge-pop':    'badgePop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
         'flame-pulse':  'flamePulse 2s ease-in-out infinite',
         'xp-float':     'xpFloat 1s ease-out forwards',
@@ -169,6 +170,12 @@ export default {
         'pulse-slow':   'pulse 3s ease-in-out infinite',
       },
       keyframes: {
+        nudge: {
+          '0%, 100%': { transform: 'translateY(0) rotate(0deg)' },
+          '25%':      { transform: 'translateY(-6px) rotate(-7deg)' },
+          '50%':      { transform: 'translateY(0) rotate(0deg)' },
+          '75%':      { transform: 'translateY(-3px) rotate(5deg)' },
+        },
         float: {
           '0%, 100%': { transform: 'translateY(0)' },
           '50%':      { transform: 'translateY(-10px)' },

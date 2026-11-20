@@ -600,3 +600,31 @@ describe('Coach — scroll settles after the reveal and the composer returns', (
     await waitFor(() => expect(calls.length).toBeGreaterThan(0), { timeout: 4000 });
   });
 });
+
+describe('Coach — Home shortcuts send straight away', () => {
+  beforeEach(() => setReducedMotion(true));
+
+  test('a shortcut with autoSend sends its message once, without waiting in the composer', async () => {
+    const stream = makeStream();
+    mockApi({ stream, history: historyTurns() });
+    render(AppWithState({ prefillMsg: "I'm feeling nervous.", autoSend: true }));
+    await waitFor(() => {
+      const sent = apiFetch.mock.calls.filter(([p]) => p === '/api/chat/message').map(([, i]) => JSON.parse(i.body));
+      expect(sent.map(m => m.content)).toEqual(["I'm feeling nervous."]);
+    });
+    stream.push({ t: 'd', c: 'That makes sense.' });
+    stream.push({ t: 'end', id: 'm1' });
+    stream.finish();
+    expect((await screen.findAllByText('That makes sense.')).length).toBeGreaterThan(0);
+    const sent = apiFetch.mock.calls.filter(([p]) => p === '/api/chat/message');
+    expect(sent).toHaveLength(1);
+  });
+
+  test('without autoSend the prefill only waits in the composer', async () => {
+    const stream = makeStream();
+    mockApi({ stream, history: historyTurns() });
+    render(AppWithState({ prefillMsg: "I'm feeling nervous." }));
+    expect(await screen.findByDisplayValue("I'm feeling nervous.")).toBeTruthy();
+    expect(apiFetch.mock.calls.filter(([p]) => p === '/api/chat/message')).toHaveLength(0);
+  });
+});

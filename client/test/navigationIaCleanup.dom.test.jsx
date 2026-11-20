@@ -83,7 +83,7 @@ describe('BottomNav — four destinations, real router integration', () => {
     const links = within(nav).getAllByRole('link');
     const labels = links.map((l) => l.textContent);
 
-    expect(labels).toEqual(['Home', 'Train', 'Coach', 'Profile']);
+    expect(labels).toEqual(['Home', 'Train', 'Arjun', 'Profile']);
     expect(within(nav).queryByText('Playbook')).toBeNull();
     expect(within(nav).queryByText('Progress')).toBeNull();
     expect(nav.innerHTML).not.toMatch(/\/playbook/);
@@ -93,7 +93,7 @@ describe('BottomNav — four destinations, real router integration', () => {
     render(<BottomNavApp initialEntries={['/dashboard']} />);
     const nav = screen.getByRole('navigation');
     const links = within(nav).getAllByRole('link');
-    expect(links[2].textContent).toBe('Coach');
+    expect(links[2].textContent).toBe('Arjun');
     // Equal distribution comes from flex-1 per item, so dropping the fifth
     // item cannot leave a gap or an off-centre row at any width.
     for (const link of links) expect(link.className).toMatch(/(^|\s)flex-1(\s|$)/);
@@ -104,7 +104,7 @@ describe('BottomNav — four destinations, real router integration', () => {
     const cases = [
       [/Home/i, '/dashboard'],
       [/Train/i, '/train'],
-      [/Coach/i, '/coaching'],
+      [/^Arjun$/i, '/coaching'],
       [/Profile/i, '/starting-profile'],
     ];
     for (const [name, href] of cases) {

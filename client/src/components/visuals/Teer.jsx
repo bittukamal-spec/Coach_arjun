@@ -15,6 +15,8 @@ const MOTION = {
   float: 'motion-safe:animate-float',
   hop: 'motion-safe:animate-hop origin-bottom',
   calm: 'motion-safe:animate-calm origin-bottom',
+  // A small wave/bob that plays twice, then stops (Home's Talk to Arjun card).
+  twice: 'motion-safe:animate-nudge-twice origin-bottom',
   none: '',
 };
 

@@ -4,7 +4,8 @@ import ConsentBanner from '../components/ConsentBanner';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { ArrowRight, ChevronRight } from 'lucide-react';
-import { TalkArt, JournalArt } from '../components/visuals/HomeArt';
+import { JournalArt } from '../components/visuals/HomeArt';
+import Teer from '../components/visuals/Teer';
 import PilotCommunicationPopup from '../components/pilotCommunications/PilotCommunicationPopup';
 import CurrentPracticeCard from '../components/home/CurrentPracticeCard';
 import ThisWeekStrip from '../components/home/ThisWeekStrip';
@@ -95,7 +96,7 @@ export default function Dashboard() {
           to="/coaching"
           className="mb-3 flex items-center gap-4 min-h-[124px] rounded-[28px] bg-sun text-inkblock px-5 py-5 active:scale-[0.99] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
         >
-          <TalkArt size={76} />
+          <Teer pose="wave" height={92} motion="twice" eager className="-my-2 shrink-0 drop-shadow-[0_8px_12px_rgba(16,21,51,0.18)]" />
           <span className="flex-1 min-w-0">
             <span className="block text-[23px] leading-tight font-extrabold">{L.dashboard.openCoach}</span>
             <span className="block mt-1 text-[14px] leading-snug text-[#3A3206]">{t.heroSub}</span>
@@ -126,8 +127,9 @@ export default function Dashboard() {
         </Link>
 
         {/* ── 4. PICK WHAT YOU NEED NOW — the last, quietest section. Every
-             route, prefill and behaviour is unchanged: real <Link> elements
-             to /coaching carrying a visible, unsent prefill. */}
+             route stays a real <Link> to /coaching. The shortcut's message is
+             sent straight away (founder decision, Nov 2026) — one tap and
+             Arjun starts replying; see ChatPage's autoSend handling. */}
         <div>
           <h2 className="sr-only">{t.helpLabel}</h2>
           <div className="grid grid-cols-2 gap-2">
@@ -135,7 +137,7 @@ export default function Dashboard() {
               <Link
                 key={q.id}
                 to="/coaching"
-                state={{ prefillMsg: q.prefill[hi ? 'hi' : 'en'] }}
+                state={{ prefillMsg: q.prefill[hi ? 'hi' : 'en'], autoSend: true }}
                 className="rounded-2xl bg-dark-400 flex items-center gap-2 px-3 min-h-[48px] active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
               >
                 <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${q.dot}`} aria-hidden="true" />

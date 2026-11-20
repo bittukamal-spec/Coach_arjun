@@ -426,6 +426,11 @@ function ChatPage() {
   const fullStreamText          = useRef('');
   const arjunMsgCountRef        = useRef(0);
   const prefillMsgRef           = useRef(location.state?.prefillMsg ?? null);
+  // Home's shortcuts ("I'm nervous" …) ask for their message to be sent
+  // straight away (founder decision, Nov 2026). Only into an existing
+  // conversation; with no conversation yet, the text waits in the composer.
+  const autoSendRef             = useRef(!!location.state?.autoSend);
+  const [autoSendText, setAutoSendText] = useState(null);
   // Set by "Talk to Arjun" on a Ritual routine; sent once with the next
   // message so the server links this conversation to that routine.
   const routineIdRef            = useRef(location.state?.routineId ?? null);
@@ -523,8 +528,15 @@ function ChatPage() {
         }
 
         if (prefillMsgRef.current) {
-          setInput(prefillMsgRef.current);
+          if (autoSendRef.current && sessionLoaded && !consentPending) {
+            setAutoSendText(prefillMsgRef.current);
+          } else {
+            setInput(prefillMsgRef.current);
+          }
           prefillMsgRef.current = null;
+          autoSendRef.current = false;
+          // Forget the one-time state so a reload or Back never sends it again.
+          navigate(location.pathname, { replace: true, state: null });
         }
       } catch (err) {
         // Last-resort net for something truly unexpected outside the two
@@ -939,6 +951,14 @@ function ChatPage() {
     }
   }, [input, streaming, token, t.errorRetry, activeSession, language, chatSessionId]);
 
+  // Send a shortcut's message once the conversation is loaded and idle.
+  useEffect(() => {
+    if (!autoSendText || loading || !chatSessionId || busy) return;
+    const text = autoSendText;
+    setAutoSendText(null);
+    sendMessage(text);
+  }, [autoSendText, loading, chatSessionId, busy, sendMessage]);
+
   // ── Progressive reveal ────────────────────────────────────────────────────
   // Presentation only. `reveal` is set exclusively by the stream's `end`
   // handler, AFTER the existing content checks have passed, so nothing
@@ -1102,7 +1122,7 @@ function ChatPage() {
             >
               <ChevronLeft size={20} aria-hidden="true" />
             </button>
-            <ArjunLogo size={24} ariaLabel="Arjun logo" className="shrink-0" />
+            <ArjunLogo size={34} ariaLabel="Arjun logo" className="shrink-0" />
             <div className="min-w-0">
               <h1 className="text-[17px] font-extrabold leading-none tracking-[-0.01em] text-ink">{t.title}</h1>
               <p className="mt-1 text-[12px] leading-none text-slt truncate">{t.headerSub}</p>
