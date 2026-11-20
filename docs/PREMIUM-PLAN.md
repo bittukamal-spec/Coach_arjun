@@ -67,6 +67,12 @@ The single biggest upgrade.
 - Files: PNG with **transparent background**, at least **2000 × 2000 px** each. Also one plain front-facing head for small icons.
 - Rights: you must own full commercial rights (written in the contract or tool's terms).
 
+## Step 4c — New logo (founder asked 19 Nov)
+
+- [x] Claude: flat Teer logo options (L1 face, L2 on sun, L3 minimal, L4 word only) on the "Arjun mascot" canvas; AI prompts in `docs/LOGO-PROMPTS.md`.
+- [x] Founder: picked the original Teer, "Calm smile" expression (20 Nov).
+- [x] Claude: logo swapped everywhere in one PR (app icon, browser tab, website, sign-in, Coach header, Founder Dashboard, emails).
+
 ## Step 5 — Backgrounds (Founder supplies, Claude places)
 
 - [x] Founder: 4 scenes received 19 Nov (track sunrise, indoor court, lake, stadium at dusk) → `docs/assets/premium/bg-*.jpg`. They are 1672 px wide (brief said 2400) — fine for phones; for big laptop screens a bigger copy would be sharper.

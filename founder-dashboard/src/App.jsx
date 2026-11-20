@@ -46,6 +46,7 @@ function LoginScreen({ onAuth, expiredNotice }) {
   return (
     <div className="min-h-dvh flex flex-col items-center justify-center bg-[#0F172A] px-8">
       <div className="mb-8 text-center">
+        <img src="/teer-mark.svg" width="72" height="72" alt="" className="mx-auto mb-3" />
         <div className="text-4xl font-bold text-[#1B4DFF] mb-1">Arjun</div>
         <div className="text-sm text-[#64748B]">Founder Command Centre</div>
       </div>

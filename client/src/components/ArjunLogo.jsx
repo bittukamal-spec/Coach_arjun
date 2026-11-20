@@ -1,14 +1,8 @@
-// Arjun's brand mark: a bow-and-arrow / brain-arc symbol. This is the
-// original pre-refresh symbol, restored from git history — same path/line/
-// polygon geometry, unchanged. Only the colour treatment changed: one
-// consistent Arjun-blue family everywhere (this component, the favicon, the
-// PWA/install icons, the Apple touch icon — previously the in-app mark was
-// blue while the favicon/PWA set was a mismatched purple), and a solid
-// light-blue accent stroke in place of the old translucent one, which
-// read as washed out rather than a deliberate second colour.
-//
-// `--brand-logo` (index.css) is the one CSS variable reserved for this
-// mark's fill — never reused as a general UI colour.
+// Arjun's brand mark: Teer's head (the mascot), drawn flat so it stays sharp
+// from a 16px browser tab to a 512px app icon — founder picked "Calm smile",
+// Nov 2026 (docs/PREMIUM-PLAN.md, Step 4c). Same drawing as the favicon /
+// PWA / Apple-touch / email icons in public/brand/arjun/ (teer-mark.svg).
+// The 3D renders of Teer (components/visuals/Teer.jsx) are for illustrations.
 //
 // `alt`/`ariaLabel` give the mark an accessible name when it's the only
 // label present (e.g. the Coach chat header passes ariaLabel="Arjun logo");
@@ -18,34 +12,51 @@
 // `responsive` drops the pixel width/height so a caller's own `w-*/h-*`
 // Tailwind classes (with breakpoint variants) control the rendered size —
 // used by the `header` wordmark preset, which grows the icon at 360px.
+export const TEER_MARK = {
+  blue: '#1B4DFF', shade: '#1238C9', sun: '#FFC629', sunEdge: '#E3A600',
+  quill: '#C98A12', ink: '#101533', iris: '#6B3A1E', white: '#FFFFFF',
+};
+
 export function ArjunLogo({ size = 32, className = '', alt = '', ariaLabel, responsive = false }) {
   const label = ariaLabel || alt || undefined;
+  const c = TEER_MARK;
   return (
     <svg
       {...(responsive ? {} : { width: size, height: size })}
-      viewBox="0 0 512 512"
+      viewBox="2 4 96 96"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
       style={responsive ? undefined : { width: size, height: size }}
       {...(label ? { role: 'img', 'aria-label': label } : { 'aria-hidden': 'true' })}
     >
-      {/* Rounded-square field — the artwork's own corner radius, so it
-          stays crisp at every rendered size with no CSS clipping needed. */}
-      <rect width="512" height="512" rx="96" fill="var(--brand-logo)" />
-      {/* Bow arc — curves right like a brain hemisphere. */}
-      <path d="M 168 92 C 430 92 430 420 168 420"
-            stroke="#FFFFFF" strokeWidth="28" fill="none" strokeLinecap="round" />
-      {/* Brain-fold hint — a solid light-blue accent, not a translucent
-          overlay, so it stays a clean, deliberate second colour. */}
-      <path d="M 196 182 C 268 202 268 308 196 328"
-            stroke="#9DB4FF" strokeWidth="14" fill="none" strokeLinecap="round" />
-      {/* Arrow shaft */}
-      <line x1="86" y1="256" x2="376" y2="256" stroke="#FFFFFF" strokeWidth="22" strokeLinecap="round" />
-      {/* Arrowhead */}
-      <polygon points="364,226 422,256 364,286" fill="#FFFFFF" />
-      {/* Fletching */}
-      <line x1="112" y1="256" x2="80" y2="220" stroke="#FFFFFF" strokeWidth="16" strokeLinecap="round" />
-      <line x1="112" y1="256" x2="80" y2="292" stroke="#FFFFFF" strokeWidth="16" strokeLinecap="round" />
+      {/* Feather tucked into the band */}
+      <g transform="translate(-2 9) rotate(26 70 26)">
+        <path d="M70 2 C77 8 78 19 73 28 L67 28 C62 19 63 8 70 2Z" fill={c.sun} stroke={c.sunEdge} strokeWidth="1" />
+        <path d="M70 2 C73.5 5 74.5 9.5 74 13 L66 13 C65.5 9.5 66.5 5 70 2Z" fill={c.white} />
+        <path d="M70 9 V34" stroke={c.quill} strokeWidth="2" strokeLinecap="round" />
+        <path d="M70 17 l-4 -3 M70 22 l-4 -3 M70 17 l4 -3 M70 22 l4 -3" stroke={c.quill} strokeWidth="1.4" strokeLinecap="round" />
+      </g>
+      {/* Head */}
+      <circle cx="50" cy="60" r="36" fill={c.blue} />
+      <path d="M14.5 66 A36 36 0 0 0 85.5 66 A38 32 0 0 1 14.5 66Z" fill={c.shade} opacity=".45" />
+      {/* Sweatband with the arrow */}
+      <path d="M12 51 Q14 33 50 30 Q86 33 88 51 Q88 56 83 57 Q50 44 17 57 Q12 56 12 51Z" fill={c.sun} />
+      <path d="M17 57 Q50 44 83 57" fill="none" stroke={c.sunEdge} strokeWidth="1.6" opacity=".8" />
+      <path d="M42 41 h15 m-5 -4.5 l5 4.5 -5 4.5" fill="none" stroke={c.white} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+      {/* Calm smile */}
+      <g transform="translate(0 6)">
+        <path d="M30 51 q6 -3 12 -1" fill="none" stroke={c.ink} strokeWidth="2.4" strokeLinecap="round" />
+        <path d="M58 50 q6 -2 12 1" fill="none" stroke={c.ink} strokeWidth="2.4" strokeLinecap="round" />
+        {[37, 63].map(x => (
+          <g key={x}>
+            <ellipse cx={x} cy="63" rx="8.5" ry="10" fill={c.white} />
+            <circle cx={x} cy="64" r="6.2" fill={c.iris} />
+            <circle cx={x} cy="64" r="3.4" fill={c.ink} />
+            <circle cx={x + 2.2} cy="61.4" r="1.9" fill={c.white} />
+          </g>
+        ))}
+        <path d="M44 78 q6 5 12 0" fill="none" stroke={c.ink} strokeWidth="2.6" strokeLinecap="round" />
+      </g>
     </svg>
   );
 }

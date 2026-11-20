@@ -105,36 +105,32 @@ test('the apple touch icon uses the 180px asset at the same established path', (
   assert.ok(exists('public/brand/arjun/apple-touch-icon-180.png'), 'missing apple-touch-icon-180.png on disk');
 });
 
-// ── 6. The restored symbol, unmodified ────────────────────────────────────
+// ── 6. The mark is Teer's head (founder pick "Calm smile", Nov 2026) ─────
 
-test('ArjunLogo is an inline SVG again, restoring the pre-refresh bow-and-arrow symbol', () => {
+test('ArjunLogo is the flat Teer head — the same drawing as the icon files', () => {
   assert.match(arjunLogo, /<svg/);
-  // Exact geometry from the pre-refresh component (git history) — the
-  // symbol itself was not redrawn, only recoloured.
-  assert.match(arjunLogo, /viewBox="0 0 512 512"/);
-  assert.match(arjunLogo, /<rect width="512" height="512" rx="96"/);
-  assert.match(arjunLogo, /M 168 92 C 430 92 430 420 168 420/, 'bow arc path unchanged');
-  assert.match(arjunLogo, /M 196 182 C 268 202 268 308 196 328/, 'brain-fold path unchanged');
-  assert.match(arjunLogo, /x1="86" y1="256" x2="376" y2="256"/, 'arrow shaft unchanged');
-  assert.match(arjunLogo, /points="364,226 422,256 364,286"/, 'arrowhead unchanged');
-  assert.match(arjunLogo, /x1="112" y1="256" x2="80" y2="220"/, 'fletching (top) unchanged');
-  assert.match(arjunLogo, /x1="112" y1="256" x2="80" y2="292"/, 'fletching (bottom) unchanged');
+  assert.match(arjunLogo, /viewBox="2 4 96 96"/);
+  assert.match(arjunLogo, /<circle cx="50" cy="60" r="36" fill=\{c\.blue\} \/>/, 'round blue head');
+  assert.match(arjunLogo, /M12 51 Q14 33 50 30 Q86 33 88 51/, 'sweatband');
+  assert.match(arjunLogo, /M42 41 h15/, 'arrow on the band');
+  assert.match(arjunLogo, /M44 78 q6 5 12 0/, 'calm smile');
+  // The icon files are drawn from the same geometry.
+  const mark = read('public/brand/arjun/teer-mark.svg');
+  for (const part of ['M12 51 Q14 33 50 30 Q86 33 88 51', 'M42 41 h15', 'M44 78 q6 5 12 0']) {
+    assert.ok(mark.includes(part), `teer-mark.svg has ${part}`);
+  }
+  assert.match(read('public/brand/arjun/arjun-mark.svg'), /M44 78 q6 5 12 0/);
+  assert.match(read('public/brand/arjun/arjun-mark-maskable.svg'), /M44 78 q6 5 12 0/);
 });
 
-test('the colour treatment is refined — one consistent blue family, no translucent muddiness, no purple', () => {
-  // Background uses the dedicated design-system token, not a hardcoded
-  // duplicate or a different blue.
-  assert.match(arjunLogo, /fill="var\(--brand-logo\)"/);
+test('the mark uses the brand palette — Arjun blue + sun, no purple', () => {
+  assert.match(arjunLogoCode, /blue: '#1B4DFF'/);
+  assert.match(arjunLogoCode, /sun: '#FFC629'/);
   assert.match(indexCss, /--brand-logo:\s*#1B4DFF;/, 'the reserved logo-only token stays #1B4DFF');
-  // Primary strokes are solid white for maximum contrast.
-  assert.equal((arjunLogo.match(/stroke="#FFFFFF"/g) || []).length, 4, 'bow arc, arrow shaft, both fletching lines');
-  assert.match(arjunLogo, /fill="#FFFFFF"/, 'arrowhead');
-  // The accent line is a solid colour, not the old translucent overlay.
-  assert.match(arjunLogo, /stroke="#9DB4FF"/);
-  assert.doesNotMatch(arjunLogo, /opacity="0\.5"|opacity=\{0\.5\}/, 'no more translucent (muddy) accent stroke');
-  // No purple anywhere in the mark's actual code (comments may reference
-  // the old purple asset by way of explaining the change).
   assert.doesNotMatch(arjunLogoCode, /#7C3AED|#8B5CF6|purple/i);
+  // No ids (clip paths, gradients): several logos on one page can never clash,
+  // and the markup is identical on every render.
+  assert.doesNotMatch(arjunLogoCode, /\bid=|useId/);
 });
 
 // ── 7. Every call site still carries the mark ─────────────────────────────
