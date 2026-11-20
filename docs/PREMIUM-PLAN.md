@@ -70,8 +70,8 @@ The single biggest upgrade.
 ## Step 4c — New logo (founder asked 19 Nov)
 
 - [x] Claude: flat Teer logo options (L1 face, L2 on sun, L3 minimal, L4 word only) on the "Arjun mascot" canvas; AI prompts in `docs/LOGO-PROMPTS.md`.
-- [ ] Founder: pick one (or send an AI-made logo).
-- [ ] Claude: one PR that swaps the logo everywhere (app icon, browser tab, website, sign-in, Coach header, Founder Dashboard, emails).
+- [x] Founder: picked the original Teer, "Calm smile" expression (20 Nov).
+- [x] Claude: logo swapped everywhere in one PR (app icon, browser tab, website, sign-in, Coach header, Founder Dashboard, emails).
 
 ## Step 5 — Backgrounds (Founder supplies, Claude places)
 
