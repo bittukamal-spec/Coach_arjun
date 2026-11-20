@@ -6,6 +6,7 @@ import { translations } from '../i18n/translations';
 import { ArjunLogo } from '../components/ArjunLogo';
 import { CheckDot, FinalArt } from '../components/site/SiteBits';
 import Teer from '../components/visuals/Teer';
+import { useStatusBarColour } from '../components/ui/TonePage';
 import SceneBackdrop from '../components/visuals/SceneBackdrop';
 import { PhoneFrame, RealScreen } from '../components/site/PhoneScreens';
 
@@ -82,6 +83,9 @@ function LandingPage() {
     setMenuOpen(false);
   }
 
+  // The phone's status bar takes the photo's sky colour on this page.
+  useStatusBarColour({ cssVar: '--site-top' });
+
   const startFree = () => navigate('/auth?tab=signup');
   const menuItem = 'flex min-h-[44px] w-full items-center rounded-xl px-3 text-left text-[15px] text-ink hover:bg-dark-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500';
 
@@ -95,11 +99,14 @@ function LandingPage() {
     <div className="relative min-h-screen overflow-x-clip bg-dark-900 text-ink">
       {/* Soft sunrise track behind the header and hero, fading into the page */}
       <SceneBackdrop scene="track-sunrise" height="h-[600px] lg:h-[680px]" position="30% 60%" fadeVia="via-dark-900/10" />
+      {/* The photo's sky colour runs up into the phone's status bar. */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-[color:var(--site-top)] to-transparent" />
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <header className="relative mx-auto flex max-w-5xl items-center justify-between gap-2 px-5 py-3">
-        <Link to="/" className="flex items-center gap-2 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500" aria-label="Arjun home">
+        {/* Frosted pill, like the menu button, so the name stands out on the photo. */}
+        <Link to="/" className="flex h-11 items-center gap-2 rounded-[14px] bg-dark-400/75 pl-2 pr-3.5 shadow-[0_4px_14px_rgba(16,21,51,0.08)] backdrop-blur-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500" aria-label="Arjun home">
           <ArjunLogo size={28} />
-          <span className="text-[19px] font-extrabold tracking-[-0.02em]">Arjun</span>
+          <span className="text-[20px] font-extrabold tracking-[-0.02em] text-ink">Arjun</span>
         </Link>
         <nav aria-label="Site" className="flex items-center gap-2">
           <a href="#how" className="hidden lg:flex min-h-[44px] items-center px-3 text-[15px]">{t.howTitle}</a>
@@ -334,7 +341,7 @@ function LandingPage() {
         </section>
 
         {/* ── Final call ─────────────────────────────────────────────────── */}
-        <section className="bg-sun py-10 text-inkblock">
+        <section className="bg-sun pb-8 pt-10 text-inkblock">
           <div className="mx-auto flex max-w-3xl flex-col items-center gap-4 px-5 text-center lg:flex-row lg:text-left">
             <FinalArt label={t.finalPhotoAlt} className="h-[170px] w-full lg:h-[180px] lg:w-[320px]" />
             <div className="flex w-full flex-col gap-3 lg:pl-6">
@@ -351,16 +358,24 @@ function LandingPage() {
         </section>
       </main>
 
-      {/* ── Footer ─────────────────────────────────────────────────────── */}
-      <footer className="mx-auto max-w-5xl px-5 pb-10 pt-6">
-        <nav aria-label="Legal" className="flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-slt">
-          <Link to="/privacy" className="flex min-h-[32px] items-center">{t.footerPrivacy}</Link>
-          <Link to="/terms" className="flex min-h-[32px] items-center">{t.footerTerms}</Link>
-          <Link to="/terms#ai-child-safety" className="flex min-h-[32px] items-center">{t.footerChildSafety}</Link>
-          <Link to="/refund" className="flex min-h-[32px] items-center">{t.footerRefund}</Link>
-          <Link to="/contact" className="flex min-h-[32px] items-center">{t.footerContact}</Link>
-        </nav>
-        <p className="mt-3 text-[12px] text-slt">{t.copyright(new Date().getFullYear())}</p>
+      {/* ── Footer — the same sun block as the last section, one piece ─── */}
+      <footer className="bg-sun text-inkblock">
+        <div className="mx-auto max-w-3xl px-5 pb-[calc(2rem+env(safe-area-inset-bottom))]">
+          <div className="flex items-start justify-between gap-6 border-t border-inkblock/15 pt-7">
+            <Link to="/" className="flex items-center gap-2 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inkblock" aria-label="Arjun home">
+              <ArjunLogo size={40} />
+              <span className="text-[22px] font-extrabold tracking-[-0.02em]">Arjun</span>
+            </Link>
+            <nav aria-label="Legal" className="flex flex-col items-end text-[15px] text-inkblock/80">
+              <Link to="/privacy" className="flex min-h-[36px] items-center">{t.footerPrivacy}</Link>
+              <Link to="/terms" className="flex min-h-[36px] items-center">{t.footerTerms}</Link>
+              <Link to="/terms#ai-child-safety" className="flex min-h-[36px] items-center">{t.footerChildSafety}</Link>
+              <Link to="/refund" className="flex min-h-[36px] items-center">{t.footerRefund}</Link>
+              <Link to="/contact" className="flex min-h-[36px] items-center">{t.footerContact}</Link>
+            </nav>
+          </div>
+          <p className="mt-6 text-[13px] text-inkblock/70">{t.copyright(new Date().getFullYear())}</p>
+        </div>
       </footer>
     </div>
   );

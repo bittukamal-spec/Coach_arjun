@@ -29,14 +29,16 @@ export function useToneStatusBar(tone) {
   useStatusBarColour(tone ? { tone } : null);
 }
 
-// Same claim for a fixed colour (e.g. a dark photo page): pass { colour: '#101533' }.
+// Same claim for a fixed colour (e.g. a dark photo page): pass { colour: '#101533' },
+// or a theme-aware CSS variable: { cssVar: '--site-top' }.
 export function useStatusBarColour(spec) {
   const tone = spec?.tone;
   const fixed = spec?.colour;
+  const cssVar = spec?.cssVar;
   useEffect(() => {
-    if ((!tone && !fixed) || typeof getComputedStyle !== 'function') return undefined;
+    if ((!tone && !fixed && !cssVar) || typeof getComputedStyle !== 'function') return undefined;
     const html = document.documentElement;
-    const colour = fixed || getComputedStyle(html).getPropertyValue(`--tone-${tone}-page`).trim();
+    const colour = fixed || getComputedStyle(html).getPropertyValue(cssVar || `--tone-${tone}-page`).trim();
     if (!colour) return undefined;
     const prevBody = document.body.style.backgroundColor;
     html.dataset.statusBar = colour;
@@ -47,7 +49,7 @@ export function useStatusBarColour(spec) {
       document.body.style.backgroundColor = prevBody;
       syncStatusBar();
     };
-  }, [tone, fixed]);
+  }, [tone, fixed, cssVar]);
 }
 
 export default function TonePage({ tone = 'sky', className = '', children }) {
