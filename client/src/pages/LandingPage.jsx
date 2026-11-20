@@ -7,7 +7,17 @@ import { ArjunLogo } from '../components/ArjunLogo';
 import { CheckDot, FinalArt } from '../components/site/SiteBits';
 import Teer from '../components/visuals/Teer';
 import SceneBackdrop from '../components/visuals/SceneBackdrop';
-import { PhoneFrame, ChatScreen, BreatheScreen, WeekScreen, FocusCardScreen, ResultsScreen } from '../components/site/PhoneScreens';
+import { PhoneFrame, RealScreen } from '../components/site/PhoneScreens';
+
+// Real screenshots of the app with a demo athlete (scripts/site-screens.cjs).
+// `bg` = each screen's top colour, so the drawn status bar blends in.
+const SCREENS = {
+  coach:    { src: '/site-screens/coach.jpg',    bg: '#EFF3FF' },
+  home:     { src: '/site-screens/home.jpg',     bg: '#EFF3FF' },
+  reset:    { src: '/site-screens/reset.jpg',    bg: '#B4C3E4' },
+  focus:    { src: '/site-screens/focus.jpg',    bg: '#FFBBAE' },
+  practice: { src: '/site-screens/practice.jpg', bg: '#EFF3FF' },
+};
 
 // ─── Public website (Playbook redesign, Nov 2026) ─────────────────────────────
 // Founder-approved mock-ups ("Arjun public pages"): a phone showing the real
@@ -76,9 +86,9 @@ function LandingPage() {
   const menuItem = 'flex min-h-[44px] w-full items-center rounded-xl px-3 text-left text-[15px] text-ink hover:bg-dark-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500';
 
   const heroScreens = [
-    <ChatScreen key="chat" t={s.talk} msgs={s.heroTalk.msgs} card={{ tag: s.heroTalk.cardTag, title: s.heroTalk.cardTitle, cta: s.heroTalk.cardCta }} />,
-    <BreatheScreen key="breathe" t={s.breathe} />,
-    <WeekScreen key="week" t={s.week} />,
+    <RealScreen key="coach" {...SCREENS.coach} eager />,
+    <RealScreen key="home" {...SCREENS.home} />,
+    <RealScreen key="reset" {...SCREENS.reset} />,
   ];
 
   return (
@@ -200,9 +210,9 @@ function LandingPage() {
           </div>
           <ol className="mt-6 flex snap-x snap-mandatory gap-5 overflow-x-auto px-5 pb-4 lg:mx-auto lg:max-w-5xl lg:justify-between lg:overflow-visible" aria-label={t.howTitle}>
             {[
-              { key: 'chat', el: <ChatScreen t={s.talk} msgs={s.talk.msgs} />, label: s.talk.label },
-              { key: 'card', el: <FocusCardScreen t={s.card} />, label: s.card.label },
-              { key: 'results', el: <ResultsScreen t={s.results} />, label: s.results.label },
+              { key: 'chat', el: <RealScreen {...SCREENS.coach} />, label: s.talk.label },
+              { key: 'card', el: <RealScreen {...SCREENS.focus} />, label: s.card.label },
+              { key: 'results', el: <RealScreen {...SCREENS.practice} />, label: s.results.label },
             ].map((step, i) => (
               <li key={step.key} className="flex shrink-0 snap-center flex-col items-center gap-3">
                 <div aria-hidden="true"><PhoneFrame maxWidth={236} share={0.6}>{step.el}</PhoneFrame></div>

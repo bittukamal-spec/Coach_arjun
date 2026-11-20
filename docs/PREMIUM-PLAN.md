@@ -10,7 +10,7 @@ Owner key: **Claude** = done in code by Claude. **Founder** = done by you (thing
 
 ## Where we are now
 
-> **Current step:** Step 3 — founder reviews the real-screens mock-up ("Step 3 — real screens" on the Arjun mascot canvas). Then Claude swaps them into the website phones. Waiting on: founder's videos (Step 6), bigger mascot exports.
+> **Current step:** Step 3 PR (real screens on the website) waiting for the founder to merge. Next: Teer on more empty screens (Step 7) / motion once the videos arrive (Step 6). Waiting on: founder's videos, bigger mascot exports.
 > Last updated: 19 Nov 2026
 
 ---
@@ -44,7 +44,7 @@ Mock-ups first, then build.
 The single biggest upgrade.
 
 - [x] A script in the repo that opens the real app with demo data and saves clean screenshots (Home, Coach chat, Pressure Reset, Focus Card, My practice): `client/scripts/site-screens.cjs` → `client/public/site-screens/*.jpg` (light only for now).
-- [ ] Put the real screenshots in the website phones (hero + How Arjun helps). Remove the hand-drawn phone screens.
+- [x] Put the real screenshots in the website phones (hero + How Arjun helps), zoomed (narrow capture) so the writing is bigger — founder approved 20 Nov.
 - [ ] Re-run the script whenever the app changes, so the website never shows an old screen.
 
 ## Step 4 — Mascot (Founder makes it, Claude places it)

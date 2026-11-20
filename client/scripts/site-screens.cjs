@@ -9,6 +9,11 @@
 //   node scripts/site-screens.cjs            # or: node scripts/site-screens.cjs http://localhost:4173
 //
 // Needs Playwright with Chromium (pre-installed in Claude's cloud sessions).
+//
+// The viewport is a narrow phone (320 × 628) on purpose: the website phone
+// shows the screen at ~268px wide, so a narrower capture keeps the app's
+// writing bigger and easier to read (founder asked for it, Nov 2026). 628 =
+// the phone's screen area below its drawn status bar (268 × 526, scaled).
 const path = require('path');
 const { chromium } = require('playwright');
 
@@ -55,7 +60,7 @@ const CHAT = { messages: [
 
 async function main() {
   const browser = await chromium.launch();
-  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, serviceWorkers: 'block', colorScheme: 'light', reducedMotion: 'reduce' });
+  const ctx = await browser.newContext({ viewport: { width: 320, height: 628 }, deviceScaleFactor: 2, serviceWorkers: 'block', colorScheme: 'light', reducedMotion: 'reduce' });
   await ctx.addInitScript(u => {
     localStorage.setItem('mg_token', 'demo');
     localStorage.setItem('mg_user', JSON.stringify(u));
