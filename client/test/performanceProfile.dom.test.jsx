@@ -1108,7 +1108,7 @@ test('the saved profile carries no Continue coaching action at all — Coach sta
   renderPage({ server: s });
   await screen.findByRole('heading', { level: 1, name: 'Your Performance Profile' });
   expect(screen.queryByRole('button', { name: /Continue coaching/ })).toBeNull();
-  expect(screen.getByRole('link', { name: /Coach/ })).toBeTruthy();
+  expect(screen.getByRole('link', { name: /^Arjun$/ })).toBeTruthy();
 });
 
 test('merely loading the saved profile never starts a conversation', async () => {

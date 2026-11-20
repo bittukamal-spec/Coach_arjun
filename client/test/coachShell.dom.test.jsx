@@ -87,7 +87,7 @@ describe('Coach — immersive shell', () => {
     // what Arjun is.
     expect(header.className).toMatch(/bg-dark-900/);
     expect(header.className).not.toMatch(/rounded-b-3xl/);
-    expect(within(header).getByText('AI coach · not a therapist')).toBeTruthy();
+    expect(within(header).getByText('Your AI mental coach')).toBeTruthy();
     expect(header.style.background).not.toContain('--nav-bar');
     expect(header.className).not.toMatch(/border-b/);
     expect(within(header).getByLabelText('Go back')).toBeTruthy();

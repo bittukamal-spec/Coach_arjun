@@ -489,7 +489,7 @@ describe('Starting Performance Profile — first-time vs saved modes', () => {
     render(<App />);
     await screen.findByText('Your Performance Profile');
     expect(screen.queryByRole('button', { name: 'Continue coaching' })).toBeNull();
-    expect(screen.getByRole('link', { name: /Coach/ })).toBeTruthy();
+    expect(screen.getByRole('link', { name: /^Arjun$/ })).toBeTruthy();
   });
 
   test('a consent-pending athlete keeps the consent notice in the saved view, and is not offered coaching', async () => {

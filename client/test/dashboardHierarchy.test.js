@@ -114,11 +114,12 @@ test('the removed day-context and recommendation copy is gone from both language
 
 // ── 3. Need-help shortcuts keep their own treatment ────────────────────────
 
-test('all four problem shortcuts are real Links to /coaching with unsent prefill state, in their own section', () => {
+test('all four problem shortcuts are real Links to /coaching that ask Coach to send their message, in their own section', () => {
   const block = src.slice(src.indexOf('PROBLEM_SHORTCUTS.map'));
   assert.match(block, /to="\/coaching"/);
-  assert.match(block, /state=\{\{ prefillMsg: q\.prefill\[hi \? 'hi' : 'en'\] \}\}/);
-  assert.doesNotMatch(block, /sendMessage|autoSend|method: 'POST'/, 'shortcuts must never auto-send');
+  assert.match(block, /state=\{\{ prefillMsg: q\.prefill\[hi \? 'hi' : 'en'\], autoSend: true \}\}/);
+  // Home itself never calls the chat API — Coach sends the message.
+  assert.doesNotMatch(block, /sendMessage|method: 'POST'/);
   for (const id of ['nervous', 'mistake', 'focus', 'confidence']) {
     assert.ok(src.includes(`id: '${id}'`), `shortcut ${id} must survive`);
   }

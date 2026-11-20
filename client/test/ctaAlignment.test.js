@@ -77,7 +77,7 @@ test('Dashboard "Talk to Arjun" block: the whole sun-coloured row launches Coach
   assert.notEqual(idx, -1, 'the Talk to Arjun section should still exist');
   const hero = dashboard.slice(idx, idx + 1400);
   assert.match(hero, /bg-sun/, 'the sun colour block');
-  assert.match(hero, /<TalkArt size=\{\d+\} \/>/, 'carries its drawing');
+  assert.match(hero, /<Teer pose="wave"[^>]*motion="twice"/, 'carries Teer, who waves twice then stops');
   assert.match(hero, /openCoach/, 'still the same approved copy');
   assert.match(hero, /to="\/coaching"/, 'still the same route');
 });

@@ -638,7 +638,7 @@ export const translations = {
       signOut: 'Sign Out',
       home: 'Home',
       checkin: 'Check-in',
-      coach: 'Coach',
+      coach: 'Arjun',
       games: 'Games',
       train: 'Train',
       profile: 'Profile',
@@ -901,7 +901,7 @@ export const translations = {
       goalInjury: 'Dealing with Injuries',
     },
     chat: {
-      headerSub: 'AI coach · not a therapist',
+      headerSub: 'Your AI mental coach',
       practiceCardLabel: 'Your practice',
       retryBtn: 'Retry',
       title: 'Arjun',

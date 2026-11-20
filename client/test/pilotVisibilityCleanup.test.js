@@ -87,12 +87,12 @@ test('Dashboard: no visible games or skill-path entry points', () => {
 
 // ── 2. Dashboard: all four problem shortcuts enter Coach with a prefill ────
 
-test('Dashboard: all four problem shortcuts are real <Link> elements to /coaching with a visible, unsent prefill', () => {
+test('Dashboard: all four problem shortcuts are real <Link> elements to /coaching that send their message', () => {
   const idx = dashboard.indexOf('PROBLEM_SHORTCUTS');
   assert.ok(idx !== -1, 'expected a PROBLEM_SHORTCUTS definition');
   // A real <Link>, not onClick+navigate — see hotfix/dashboard-shortcut-navigation.
   assert.match(dashboard, /import \{ Link \} from 'react-router-dom'/);
-  assert.match(dashboard, /<Link[\s\S]{0,80}to="\/coaching"[\s\S]{0,80}state=\{\{ prefillMsg: q\.prefill\[hi \? 'hi' : 'en'\] \}\}/);
+  assert.match(dashboard, /<Link[\s\S]{0,80}to="\/coaching"[\s\S]{0,80}state=\{\{ prefillMsg: q\.prefill\[hi \? 'hi' : 'en'\], autoSend: true \}\}/);
   // Exactly 4 stable shortcut ids, matching the approved product decision.
   for (const id of ['nervous', 'mistake', 'focus', 'confidence']) {
     assert.match(dashboard, new RegExp(`id:\\s*'${id}'`));
@@ -104,15 +104,16 @@ test('Dashboard: problem shortcuts no longer navigate directly to games, Pressur
   assert.doesNotMatch(shortcutsBlock, /\/games\/|\/skills\/|\/body-reset|\/self-talk/);
 });
 
-test('ChatPage: the prefillMsg mechanism sets the composer but never auto-sends', () => {
+test('ChatPage: a prefill is sent only when asked (autoSend) and only into an existing conversation; otherwise it waits in the composer', () => {
   assert.match(chatPage, /prefillMsgRef\s*=\s*useRef\(location\.state\?\.prefillMsg/);
+  assert.match(chatPage, /autoSendRef\s*=\s*useRef\(!!location\.state\?\.autoSend\)/);
+  assert.match(chatPage, /if \(autoSendRef\.current && sessionLoaded && !consentPending\)/);
   assert.match(chatPage, /setInput\(prefillMsgRef\.current\)/);
-  // Consumed once so it can't repeatedly overwrite later athlete input.
+  // Consumed once, and the one-time state is cleared so a reload never re-sends.
   assert.match(chatPage, /prefillMsgRef\.current\s*=\s*null/);
-  // No auto-send: the prefill effect never calls a send/submit function itself.
-  const idx = chatPage.indexOf('if (prefillMsgRef.current)');
-  const block = chatPage.slice(idx, idx + 200);
-  assert.doesNotMatch(block, /handleSend|sendMessage|submit\(/i);
+  assert.match(chatPage, /navigate\(location\.pathname, \{ replace: true, state: null \}\)/);
+  // The send waits until the conversation is loaded and Arjun is idle.
+  assert.match(chatPage, /if \(!autoSendText \|\| loading \|\| !chatSessionId \|\| busy\) return;/);
 });
 
 // ── 3. Train: obsolete entries removed, retained tools still render ────────
