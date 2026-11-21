@@ -50,3 +50,22 @@ test('Teer and the scenes appear where the founder approved them', () => {
   const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
   assert.match(html, /\/brand\/teer\/teer-wave\.webp/);
 });
+
+test('Teer leads the feature, empty and done screens (Premium plan Step 7)', () => {
+  assert.match(src('pages/RitualPage.jsx'), /<MascotArt pose="point" \/>/);
+  assert.match(src('pages/MindJournalPage.jsx'), /<MascotArt pose="notes" \/>/);
+  assert.match(src('pages/WeeklyReviewsPage.jsx'), /<MascotArt pose="notes"/);
+  assert.match(src('pages/MyPracticePage.jsx'), /<MascotArt pose="wave"/);
+  assert.match(src('pages/mindJournal/ReflectionSavedPage.jsx'), /<MascotArt pose="cheer"/);
+  assert.match(src('components/ritual/RoutineRun.jsx'), /<MascotArt pose="cheer"/);
+  const focus = src('pages/SelfTalkPage.jsx');
+  assert.match(focus, /mascot="point"/);
+  assert.equal((focus.match(/<MascotArt pose="cheer"/g) || []).length, 2, 'saved + practice done');
+  const rep = src('pages/MentalRepPage.jsx');
+  assert.match(rep, /mascot="think"/);
+  // No photo on the sun page: a busy scene made the writing hard to read.
+  assert.doesNotMatch(rep, /scene="court"/);
+  assert.match(rep, /<PracticeCompletion tone="sun" scene="stadium-dusk">/);
+  // The glow + Teer only moves for people who allow motion.
+  assert.match(src('components/visuals/MascotArt.jsx'), /motion-safe:animate-glow/);
+});

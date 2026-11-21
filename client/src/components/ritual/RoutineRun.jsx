@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check } from 'lucide-react';
+import MascotArt from '../visuals/MascotArt';
 import { Button, PageHeader, TonePage } from '../ui';
 
 // Rehearsal walkthrough for one saved routine — one step per screen.
@@ -57,12 +57,7 @@ export default function RoutineRun({ routine, title, block = 'bg-sky', t, onExit
 
         {finished && (
           <div className="flex-1 flex flex-col justify-center text-center">
-            <div
-              className="w-20 h-20 rounded-3xl mx-auto mb-5 flex items-center justify-center text-ink bg-dark-400"
-              aria-hidden="true"
-            >
-              <Check size={30} />
-            </div>
+            <MascotArt pose="cheer" className="mb-5 h-[clamp(130px,23dvh,200px)]" />
             <h2 className="text-title font-black text-ink mb-2">{t.runDoneTitle}</h2>
             <p className="text-body text-slt leading-relaxed mb-8">{t.runDoneBody}</p>
             <div className="flex flex-col gap-3">

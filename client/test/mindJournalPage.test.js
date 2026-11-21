@@ -752,7 +752,7 @@ test('home: the hero sits on the journal page with no box, and is one accessible
   const hero = home.slice(heroStart, home.indexOf('</Link>', heroStart));
   assert.match(hero, /aria-label=\{mj\.hero\.heading\}/, 'one coherent accessible name');
   assert.match(hero, /text-center/);
-  assert.match(hero, /<JournalArt/);
+  assert.match(hero, /<MascotArt pose="notes"/, 'Teer with notes leads the hero');
   assert.match(home, /min-h-screen bg-tonepage-blush/, 'the page carries the journal colour');
   assert.doesNotMatch(hero, /#[0-9A-Fa-f]{6}|linear-gradient|card-hero/, 'no hard-coded hex or gradient');
   assert.doesNotMatch(hero, /<button|<Link/, 'no nested interactive controls inside the hero');

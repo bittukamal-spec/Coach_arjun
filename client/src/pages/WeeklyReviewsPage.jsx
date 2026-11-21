@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import MascotArt from '../components/visuals/MascotArt';
 import { Link } from 'react-router-dom';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -70,7 +71,7 @@ export default function WeeklyReviewsPage() {
         {/* Empty state — no completed weekly review yet */}
         {Array.isArray(reports) && reports.length === 0 && (
           <section className="text-center pt-6">
-            <WeekArt className="mx-auto mb-4" />
+            <MascotArt pose="notes" className="mb-4 h-[clamp(120px,20dvh,170px)]" />
             <p className="text-[18px] font-extrabold text-ink mb-1">{t.empty}</p>
             <p className="text-caption text-slt leading-relaxed">{t.emptySub}</p>
           </section>

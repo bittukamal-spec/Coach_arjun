@@ -1,4 +1,5 @@
 import useScrollTopOnChange from '../hooks/useScrollTopOnChange';
+import MascotArt from '../components/visuals/MascotArt';
 import { useState, useEffect, useCallback, useRef, useId } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -9,7 +10,6 @@ import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
 import { Button, Card, PageHeader, SectionLabel } from '../components/ui';
 import { SafetyGuidanceCard } from './mindJournal/shared';
-import { RitualArt } from '../components/visuals/TrainArt';
 import TonePage from '../components/ui/TonePage';
 import RoutineRun from '../components/ritual/RoutineRun';
 
@@ -392,7 +392,7 @@ function arjunDraft(routine, t) {
 function RoutinesHero({ count, limit, t }) {
   return (
     <section className="text-center mb-8">
-      <RitualArt className="h-[clamp(84px,14dvh,120px)] w-auto mx-auto" />
+      <MascotArt pose="point" />
       <h2 className="mt-4 text-[26px] font-extrabold leading-tight text-ink">{t.heroTitle}</h2>
       <p className="mt-2 text-[15px] leading-relaxed text-slt">{t.subtitle}</p>
       <span className="mt-4 inline-flex items-center rounded-full bg-inkblock px-3.5 py-1.5 text-xs font-bold text-white">

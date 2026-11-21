@@ -10,7 +10,7 @@ Owner key: **Claude** = done in code by Claude. **Founder** = done by you (thing
 
 ## Where we are now
 
-> **Current step:** Website footer + header polish PR waiting for the founder. Next: Teer on the remaining empty screens (Step 7), then the final check (Step 8). Later: bigger mascot exports from the founder.
+> **Current step:** Teer-everywhere PR waiting for the founder. Next: Step 8 — final check on all screen sizes, light and dark. Later: bigger mascot exports.
 > Last updated: 19 Nov 2026
 
 ---
@@ -89,7 +89,7 @@ The single biggest upgrade.
 Only the parts the founder chose in Step 1.
 
 - [ ] Launch screen with the mascot.
-- [ ] Mascot on empty screens and in Coach.
+- [x] Mascot on empty screens and in Coach — plus Ritual, Mind Journal, Quick Rep, Focus Cards, My practice, Weekly reviews and the done screens (21 Nov).
 - [ ] (If chosen) soft gradient headers on Home and practice intros.
 
 ## Step 8 — Final check (Claude + Founder)
