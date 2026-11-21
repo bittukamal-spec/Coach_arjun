@@ -10,7 +10,7 @@ Owner key: **Claude** = done in code by Claude. **Founder** = done by you (thing
 
 ## Where we are now
 
-> **Current step:** Step 3 PR (real screens on the website) waiting for the founder to merge. Next: Teer on more empty screens (Step 7) / motion once the videos arrive (Step 6). Waiting on: founder's videos, bigger mascot exports.
+> **Current step:** Website footer + header polish PR waiting for the founder. Next: Teer on the remaining empty screens (Step 7), then the final check (Step 8). Later: bigger mascot exports from the founder.
 > Last updated: 19 Nov 2026
 
 ---
@@ -23,7 +23,7 @@ Owner key: **Claude** = done in code by Claude. **Founder** = done by you (thing
 
 Answer these three, in one message. Claude will not start Step 2 without them.
 
-- [ ] **Videos:** send the screen recordings of the reference animations. *(still to come — needed before Step 6)*
+- [x] **Videos:** not needed — founder is happy with the current movement (20 Nov). Bigger mascot exports: later.
 - [x] **Mascot route:** decided 17 Nov — **try C first** (Claude's 2D mascot), and Claude gives AI-tool prompts so the founder can also try B.
   - A. Illustrator / 3D artist (Fiverr or Upwork) — best quality, ~1–2 weeks, ~₹5,000–25,000
   - B. AI image tool (Midjourney, ChatGPT image) — fast, you pick the best result

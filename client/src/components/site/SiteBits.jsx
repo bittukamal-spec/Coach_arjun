@@ -1,3 +1,4 @@
+import { ArjunLogo } from '../ArjunLogo';
 import { useState } from 'react';
 
 // Small shared pieces for the public website pages.
@@ -67,11 +68,8 @@ export function FinalArt({ label, className = '' }) {
       <rect x="130" y="108" width="60" height="30" rx="9" fill="#FFC629" />
       <rect x="137" y="115" width="30" height="5" rx="2.5" fill="#101533" />
       <rect x="137" y="125" width="18" height="7" rx="3.5" fill="#101533" />
-      {/* Arjun mark */}
-      <rect x="208" y="26" width="34" height="34" rx="9" fill="#1B4DFF" />
-      <path d="M219 33c13 0 13 20 0 20" fill="none" stroke="#FFFFFF" strokeWidth="2.6" strokeLinecap="round" />
-      <path d="M213 43h20" stroke="#FFFFFF" strokeWidth="2.4" strokeLinecap="round" />
-      <path d="M231 40l4 3-4 3z" fill="#FFFFFF" />
+      {/* Arjun mark (Teer) */}
+      <g transform="translate(204 20)"><ArjunLogo size={42} /></g>
       {/* helped tick */}
       <circle cx="90" cy="60" r="20" fill="#7FE3C4" />
       <path d="M81 60l6 6 12-12" fill="none" stroke="#101533" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round" />

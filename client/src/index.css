@@ -518,3 +518,12 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .scene-photo { opacity: 0.4; }
 }
+
+/* Website hero: the sky colour at the very top of the sunrise-track photo, so
+   the phone's status bar (theme-color) and the photo meet without a band.
+   Dark: the same sky dimmed over the dark page (.scene-photo at 0.4). */
+:root { --site-top: #BAC2D8; }
+[data-theme="dark"] { --site-top: #52596F; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --site-top: #52596F; }
+}
