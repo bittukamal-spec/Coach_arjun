@@ -1,5 +1,5 @@
 import { useToneStatusBar } from '../components/ui/TonePage';
-import { JournalArt } from '../components/visuals/HomeArt';
+import MascotArt from '../components/visuals/MascotArt';
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { ArrowRight, ChevronRight } from 'lucide-react';
@@ -191,7 +191,7 @@ export default function MindJournalPage() {
           aria-label={mj.hero.heading}
           className="block text-center rounded-3xl py-2 active:scale-[0.99] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
         >
-          <JournalArt size={96} className="mx-auto" />
+          <MascotArt pose="notes" />
           <p className="mt-4 text-[26px] font-extrabold text-ink leading-tight" aria-hidden="true">{mj.hero.heading}</p>
           <p className="mt-2 text-[15px] text-slt leading-relaxed">{mj.hero.sub}</p>
           <p className="mt-3 text-micro font-bold text-ink" data-testid="mj-hero-effort">{mj.hero.effort}</p>

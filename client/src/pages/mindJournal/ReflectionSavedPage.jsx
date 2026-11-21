@@ -1,6 +1,6 @@
 import { useToneStatusBar } from '../../components/ui/TonePage';
+import MascotArt from '../../components/visuals/MascotArt';
 import { useNavigate, useLocation, Navigate, Link } from 'react-router-dom';
-import { CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { translations } from '../../i18n/translations';
 import { Card, PageHeader, Button } from '../../components/ui';
@@ -53,12 +53,7 @@ export default function ReflectionSavedPage() {
 
       <div className="px-page pt-8 max-w-lg mx-auto">
         <div className="flex flex-col items-center text-center mb-7">
-          <span
-            className="w-16 h-16 rounded-full bg-brand-50 text-brand-500 flex items-center justify-center mb-4 elevation-row"
-            aria-hidden="true"
-          >
-            <CheckCircle2 size={32} strokeWidth={1.75} />
-          </span>
+          <MascotArt pose="cheer" className="mb-4 h-[clamp(120px,20dvh,170px)]" />
           <h2 className="text-title font-bold text-ink mb-2">{isReflection ? r.review.heading : saved.heading}</h2>
           <p className="text-body text-slt leading-relaxed max-w-sm">{isReflection ? r.review.body : saved.body}</p>
         </div>

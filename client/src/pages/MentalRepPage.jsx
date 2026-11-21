@@ -1,11 +1,12 @@
 import useScrollTopOnChange from '../hooks/useScrollTopOnChange';
+import MascotArt from '../components/visuals/MascotArt';
 import { RepArt } from '../components/visuals/TrainArt';
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Zap, Wind, Target, CheckCircle2 } from 'lucide-react';
+import { Zap, Wind } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiFetch } from '../api';
-import { PracticeIntro, PracticeScreen, PracticeCompletion } from '../components/practice/PracticeShell';
+import { PracticeIntro, PracticeScreen, PracticeCompletion, CompletionMascot } from '../components/practice/PracticeShell';
 
 // ─── Quick Rep (Daily Mental Rep) — the core Healthy Hook habit ────────────
 // Flow: intro → context → state → moment → short guided rep → one cue →
@@ -231,6 +232,7 @@ export default function MentalRepPage() {
       icon={Zap}
       tone="sun"
       Art={RepArt}
+      mascot="think"
       tag={hi ? '4 मिनट' : '4 min'}
       title="Quick Rep"
       desc={hi
@@ -385,7 +387,7 @@ export default function MentalRepPage() {
   // ── STEP: Save ─────────────────────────────────────────────────────────────
   if (step === 'save') return (
     <PracticeCompletion tone="sun">
-      <span className="w-16 h-16 rounded-3xl mb-5 bg-dark-400 text-ink flex items-center justify-center" aria-hidden="true"><Target size={26} /></span>
+      <MascotArt pose="point" className="mb-5 h-[clamp(110px,18dvh,150px)]" />
       <p className="text-xs font-bold text-slt uppercase tracking-widest mb-2">{hi ? 'तुम्हारा cue' : 'Your cue'}</p>
       <p className="text-3xl font-black text-ink mb-8">"{cue}"</p>
       {/* Copy only: the cue is still saved by exactly the same call, but the
@@ -411,14 +413,12 @@ export default function MentalRepPage() {
 
   // ── STEP: Exit ─────────────────────────────────────────────────────────────
   if (step === 'done') return (
-    <PracticeCompletion tone="sun">
-      <div className="w-16 h-16 rounded-3xl bg-dark-400 flex items-center justify-center mb-5">
-        <CheckCircle2 size={28} className="text-ink" />
-      </div>
-      <h1 className="text-xl font-bold text-ink mb-6">{hi ? 'रेप पूरा।' : 'Rep complete.'}</h1>
-      <p className="text-xs font-bold text-slt uppercase tracking-widest mb-2">{hi ? 'आज का cue' : "Today's cue"}</p>
-      <p className="text-3xl font-black text-ink mb-8">"{cue}"</p>
-      <p className="text-sm text-slt mb-10 max-w-xs leading-relaxed">
+    <PracticeCompletion tone="sun" scene="stadium-dusk">
+      <CompletionMascot pose="cheer" />
+      <h1 className="text-[28px] font-extrabold text-white mb-6">{hi ? 'रेप पूरा।' : 'Rep complete.'}</h1>
+      <p className="text-xs font-bold text-white/75 uppercase tracking-widest mb-2">{hi ? 'आज का cue' : "Today's cue"}</p>
+      <p className="text-3xl font-black text-sun mb-8">"{cue}"</p>
+      <p className="text-sm text-white/85 mb-10 max-w-xs leading-relaxed">
         {context === 'match'
           ? (hi ? 'इसे मैच में लेकर जाओ। फोन रखो और खेलने चलो।' : 'Take this into the match. Put the phone away and go play.')
           : (hi ? 'इसे ट्रेनिंग में लेकर जाओ। फोन रखो और काम पर लगो।' : 'Take this into training. Put the phone away and get to work.')}

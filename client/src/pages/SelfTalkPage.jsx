@@ -1,4 +1,5 @@
 import { useToneStatusBar } from '../components/ui/TonePage';
+import MascotArt from '../components/visuals/MascotArt';
 import useScrollTopOnChange from '../hooks/useScrollTopOnChange';
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -150,6 +151,7 @@ export default function SelfTalkPage() {
       onBack={goBack}
       tone="coral"
       Art={FocusArt}
+      mascot="point"
       icon={MessageSquare}
       tag={t.learn.duration}
       title={t.learn.title}
@@ -525,9 +527,7 @@ export default function SelfTalkPage() {
   if (screen === 7 && card) return (
     <div className="min-h-screen bg-tonepage-coral flex flex-col items-center justify-center px-4">
       <div className="text-center mb-8">
-        <div className="w-16 h-16 bg-dark-400 rounded-3xl flex items-center justify-center mx-auto mb-4">
-          <span className="text-3xl">✦</span>
-        </div>
+        <MascotArt pose="cheer" className="mb-4 h-[clamp(130px,23dvh,200px)]" />
         <h2 className="text-2xl font-bold text-ink mb-2">{t.saved.heading}</h2>
         <p className="text-sm text-slt">{hi ? 'तुम्हारा Focus Card save हो गया।' : 'Your Focus Card is saved.'}</p>
       </div>
@@ -559,7 +559,7 @@ export default function SelfTalkPage() {
     if (practiceDone) return (
       <div className="min-h-screen bg-tonepage-coral flex flex-col items-center justify-center px-4">
         <div className="text-center mb-8">
-          <div className="text-5xl mb-4">⚡</div>
+          <MascotArt pose="cheer" className="mb-4 h-[clamp(130px,23dvh,200px)]" />
           <h2 className="text-title font-bold text-ink mb-2">{t.practice.doneMsg}</h2>
         </div>
         <button onClick={() => navigate('/focus-deck')} className="w-full min-h-[56px] rounded-[18px] bg-sun text-inkblock font-extrabold active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2">
