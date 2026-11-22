@@ -18,10 +18,10 @@ export default function MindChallengeHomeCard() {
       className={`relative mb-3 flex items-center gap-3 overflow-hidden rounded-[28px] p-5 active:scale-[0.99] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 ${rematch ? 'bg-sun text-inkblock' : 'bg-inkblock text-white'}`}
     >
       <span className="min-w-0 flex-1">
-        <span className={`inline-block rounded-full px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-[0.08em] ${rematch ? 'bg-inkblock text-sun' : 'bg-sun text-inkblock'}`}>
+        <span className={`block text-[11px] font-medium uppercase tracking-[0.12em] ${rematch ? 'text-inkblock/70' : 'text-sun'}`}>
           {rematch ? t.homeCard.rematchTag : t.homeCard.newTag}
         </span>
-        <span className="mt-2 block text-[21px] font-extrabold leading-tight">{rematch ? t.homeCard.rematchTitle(state.latest.mindLevel) : t.homeCard.newTitle}</span>
+        <span className="mt-1.5 block text-[21px] font-extrabold leading-tight">{rematch ? t.homeCard.rematchTitle(state.latest.mindLevel) : t.homeCard.newTitle}</span>
         <span className={`mt-1 block text-[14px] ${rematch ? 'text-inkblock/80' : 'text-white/80'}`}>
           {rematch ? t.homeCard.rematchLine(t.skills[state.latest.focusSkill || state.latest.growFirst]) : t.homeCard.newLine}
         </span>

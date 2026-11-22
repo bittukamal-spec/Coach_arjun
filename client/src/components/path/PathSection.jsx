@@ -60,49 +60,7 @@ export default function PathSection() {
       </div>
       <p className="mt-1 text-[14px] text-slt">{t.startsWith}</p>
 
-      <ol className="mt-3 rounded-[26px] bg-dark-400 p-3 flex flex-col gap-1">
-        {path.chapters.map((c, i) => {
-          const ch = t.chapters[c.key];
-          const { Icon, block } = CHAPTER_LOOK[c.key] || CHAPTER_LOOK.calm;
-          if (c.status === 'current') {
-            const stepIndex = STEP_ORDER.indexOf(path.next.stepKey);
-            return (
-              <li key={c.key}>
-                <Link
-                  to={`/path/${c.key}`}
-                  data-testid="path-current"
-                  className="flex items-center gap-3 rounded-[20px] border-2 border-sun bg-sun/15 p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
-                >
-                  <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${block} text-inkblock shadow-[0_4px_0_rgba(16,21,51,0.18)]`} aria-hidden="true"><Icon size={22} /></span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-[11px] font-extrabold uppercase tracking-[0.08em] text-slt">{t.youAreHere} · {t.stepOf(stepIndex + 1)}</span>
-                    <span className="block text-[17px] font-extrabold text-ink">{ch.title}</span>
-                    <span className="mt-1.5 grid grid-cols-4 gap-1" aria-hidden="true">
-                      {STEP_ORDER.map(st => <span key={st} className={`h-1.5 rounded-full ${c.steps[st].done ? 'bg-brand-500' : 'bg-dark-600'}`} />)}
-                    </span>
-                  </span>
-                  <Teer pose="point" height={64} className="shrink-0" />
-                </Link>
-              </li>
-            );
-          }
-          const done = c.status === 'done';
-          return (
-            <li key={c.key} className={`flex items-center gap-3 px-1 py-1.5 ${done ? '' : 'opacity-60'}`}>
-              <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${done ? block : 'bg-dark-700'} text-inkblock`} aria-hidden="true">
-                {done ? <Check size={18} strokeWidth={3} /> : <Lock size={15} className="text-slt" />}
-              </span>
-              <span className="flex-1 text-[15px] font-bold text-ink">
-                <span className="sr-only">{t.chapterLabel(i + 1)}: </span>{ch.title}
-              </span>
-              {done && c.steps.play.outcome && (
-                <span className="text-[12px] font-bold text-slt">{c.steps.play.outcome === 'helped' ? t.helpedNote : t.triedNote}</span>
-              )}
-              {!done && <span className="sr-only">{t.locked}</span>}
-            </li>
-          );
-        })}
-      </ol>
+      <PathRoad path={path} t={t} />
 
       {path.finished ? (
         <div className="mt-3 rounded-[20px] bg-mint p-4 text-inkblock">
@@ -110,6 +68,22 @@ export default function PathSection() {
           <p className="mt-1 text-[14px]">{t.finishedLine}</p>
         </div>
       ) : (
+        <div className="mt-2 rounded-[24px] bg-dark-400 p-4">
+          {(() => {
+            const cur = path.chapters.find(c => c.key === path.currentKey);
+            const stepIndex = STEP_ORDER.indexOf(path.next.stepKey);
+            return (
+              <>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[14px] font-extrabold text-ink">{t.chapters[cur.key].title} · {t.stepOf(stepIndex + 1).toLowerCase()}</span>
+                  <span className="text-[12px] text-slt">{STEP_ORDER.map(st => `${t.steps[st]}${cur.steps[st].done ? ' ✓' : ''}`).join(' · ')}</span>
+                </div>
+                <div className="mt-2 h-2 rounded-full bg-dark-600" aria-hidden="true">
+                  <div className="h-2 rounded-full bg-brand-500" style={{ width: `${(STEP_ORDER.filter(st => cur.steps[st].done).length / 4) * 100}%` }} />
+                </div>
+              </>
+            );
+          })()}
         <Link
           to={nextHref(path.next.chapterKey, path.next.stepKey, t)}
           data-testid="path-next"
@@ -118,7 +92,75 @@ export default function PathSection() {
           {nextLabel(path.next.chapterKey, path.next.stepKey, t)}
           <ChevronRight size={18} strokeWidth={2.6} aria-hidden="true" />
         </Link>
+        </div>
       )}
     </section>
+  );
+}
+
+// The path as a winding road (founder mock-up, Nov 2026): one node per
+// chapter, zig-zagging down; solid blue up to the current chapter, dotted
+// after it. Done and current chapters link to their chapter page.
+const ROAD_X = [50, 76, 28, 70, 30, 58];
+const ROAD_GAP = 128;
+
+function PathRoad({ path, t }) {
+  const n = path.chapters.length;
+  const height = 80 + (n - 1) * ROAD_GAP + 70;
+  const pts = path.chapters.map((_, i) => ({ x: ROAD_X[i % ROAD_X.length], y: 80 + i * ROAD_GAP }));
+  const seg = (a, b) => `C ${a.x} ${a.y + ROAD_GAP / 2}, ${b.x} ${b.y - ROAD_GAP / 2}, ${b.x} ${b.y}`;
+  const curIdx = Math.max(0, path.chapters.findIndex(c => c.key === path.currentKey));
+  const doneEnd = path.finished ? n - 1 : curIdx;
+  const solid = pts.slice(0, doneEnd + 1).reduce((d, p, i) => (i === 0 ? `M ${p.x} ${p.y}` : `${d} ${seg(pts[i - 1], p)}`), '');
+  const dotted = pts.slice(doneEnd).reduce((d, p, i, arr) => (i === 0 ? `M ${p.x} ${p.y}` : `${d} ${seg(arr[i - 1], p)}`), '');
+  return (
+    <div className="relative mt-3" style={{ height }} data-testid="path-road">
+      <svg className="absolute inset-0 h-full w-full" viewBox={`0 0 100 ${height}`} preserveAspectRatio="none" aria-hidden="true">
+        {doneEnd < n - 1 && <path d={dotted} fill="none" className="stroke-dark-600" strokeWidth="9" strokeLinecap="round" strokeDasharray="1 16" vectorEffect="non-scaling-stroke" />}
+        {doneEnd > 0 && <path d={solid} fill="none" className="stroke-brand-500" strokeWidth="9" strokeLinecap="round" vectorEffect="non-scaling-stroke" />}
+      </svg>
+      <ol>
+        {path.chapters.map((c, i) => {
+          const ch = t.chapters[c.key];
+          const { Icon, block } = CHAPTER_LOOK[c.key] || CHAPTER_LOOK.calm;
+          const p = pts[i];
+          const current = c.status === 'current';
+          const done = c.status === 'done';
+          const size = current ? 84 : 64;
+          const node = (
+            <span className="flex flex-col items-center gap-1.5">
+              <span
+                className={`flex items-center justify-center rounded-full ${current ? 'bg-sun ring-8 ring-sun/30 shadow-[0_6px_0_rgba(16,21,51,0.25)]' : done ? `${block} shadow-[0_5px_0_rgba(16,21,51,0.2)]` : 'bg-dark-700 shadow-[0_5px_0_rgba(16,21,51,0.1)]'} text-inkblock`}
+                style={{ width: size, height: size }}
+                aria-hidden="true"
+              >
+                {done ? <Check size={26} strokeWidth={3} /> : current ? <Icon size={34} /> : <Lock size={18} className="text-slt" />}
+              </span>
+              <span className={`whitespace-nowrap rounded-full bg-dark-900/90 px-2 text-[13px] font-bold ${current ? 'text-ink text-[15px] font-extrabold' : done ? 'text-ink' : 'text-slt'}`}>{ch.title}</span>
+            </span>
+          );
+          const teerRight = p.x < 55;
+          return (
+            <li key={c.key} className="absolute -translate-x-1/2" style={{ left: `${p.x}%`, top: p.y - size / 2 }}>
+              <span className="sr-only">{t.chapterLabel(i + 1)}: {ch.title}, {done ? t.done : current ? t.youAreHere : t.locked}</span>
+              {done || current ? (
+                <Link to={`/path/${c.key}`} data-testid={current ? 'path-current' : undefined} aria-label={`${ch.title}${current ? ` — ${t.youAreHere}` : ''}`} className="block rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">{node}</Link>
+              ) : node}
+              {current && (
+                <span className={`pointer-events-none absolute top-[-4px] flex flex-col items-center ${teerRight ? 'left-[104px]' : 'right-[104px]'}`} aria-hidden="true">
+                  <span className="mb-1 whitespace-nowrap rounded-full bg-inkblock px-2.5 py-1 text-[11px] font-bold text-white">{t.youAreHere}</span>
+                  <Teer pose="point" height={88} className={teerRight ? '' : '-scale-x-100'} />
+                </span>
+              )}
+              {done && c.steps.play.outcome && (
+                <span className="absolute left-1/2 top-[-8px] -translate-x-1/2 whitespace-nowrap rounded-full bg-dark-400 px-2 py-0.5 text-[10px] font-bold text-slt shadow-sm" aria-hidden="true">
+                  {c.steps.play.outcome === 'helped' ? t.helpedNote : t.triedNote}
+                </span>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </div>
   );
 }
