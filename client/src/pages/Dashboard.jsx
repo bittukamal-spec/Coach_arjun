@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import PathNextCard from '../components/home/PathNextCard';
 import MindChallengeHomeCard from '../components/home/MindChallengeHomeCard';
 import Navbar from '../components/Navbar';
 import ConsentBanner from '../components/ConsentBanner';
@@ -84,6 +85,9 @@ export default function Dashboard() {
 
         {/* ── MIND CHALLENGE — Hook Model trigger; only when one can be played */}
         <MindChallengeHomeCard />
+
+        {/* ── YOUR NEXT STEP on the path (hidden while the challenge card shows) */}
+        <PathNextCard />
 
         {/* ── YOUR PRACTICE FROM ARJUN — the blue block, only when Coach has
              already given a practice and no final result is reported yet.

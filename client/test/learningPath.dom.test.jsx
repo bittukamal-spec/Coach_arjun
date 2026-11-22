@@ -86,3 +86,30 @@ describe('Lesson page', () => {
     expect(JSON.parse(post[1].body)).toEqual({ chapterKey: 'calm', stepKey: 'learn' });
   });
 });
+
+describe('Hook fix 1: next step on Home + chapter unlocked', () => {
+  test('takeNewlyFinished celebrates only chapters finished after the first look', async () => {
+    const { takeNewlyFinished } = await import('../src/components/path/pathData');
+    localStorage.removeItem('arjun_path_seen');
+    const p1 = makePath();
+    expect(takeNewlyFinished(p1)).toBe(null); // first run: calm already done, not celebrated
+    const p2 = { ...p1, chapters: p1.chapters.map(c => (c.key === 'focus' ? { ...c, status: 'done' } : c)) };
+    expect(takeNewlyFinished(p2)).toBe('focus');
+    expect(takeNewlyFinished(p2)).toBe(null); // only once
+  });
+
+  test('Home shows the next step only when the Mind Challenge card is not showing', async () => {
+    const { default: PathNextCard } = await import('../src/components/home/PathNextCard');
+    localStorage.setItem('arjun_path_seen', JSON.stringify({ done: ['calm'] }));
+    apiFetch.mockImplementation((url) => Promise.resolve(respond(url === '/api/path' ? makePath() : { latest: { mindLevel: 2 }, canTake: false })));
+    render(<MemoryRouter><PathNextCard /></MemoryRouter>);
+    const card = await screen.findByTestId('home-path-next');
+    expect(card.textContent).toMatch(/Your next step · Focus 3\/4/);
+    expect(card.getAttribute('href')).toBe('/path/focus');
+    cleanup();
+    apiFetch.mockImplementation((url) => Promise.resolve(respond(url === '/api/path' ? makePath() : { latest: null, canTake: true })));
+    render(<MemoryRouter><PathNextCard /></MemoryRouter>);
+    await new Promise(r => setTimeout(r, 0));
+    expect(screen.queryByTestId('home-path-next')).toBeNull();
+  });
+});

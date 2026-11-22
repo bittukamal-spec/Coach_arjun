@@ -67,3 +67,30 @@ export function usePath() {
 
   return { path, error, reload: load, markStep };
 }
+
+// "Chapter unlocked!" moment (Hook Model reward): remembers which finished
+// chapters this browser has already celebrated. The first time it ever runs
+// it only records what is already done, so old progress is never celebrated.
+const SEEN_KEY = 'arjun_path_seen';
+export function takeNewlyFinished(path) {
+  if (!path?.chapters) return null;
+  const done = path.chapters.filter(c => c.status === 'done').map(c => c.key);
+  let seen = null;
+  try { seen = JSON.parse(localStorage.getItem(SEEN_KEY) || 'null'); } catch { seen = null; }
+  const save = (list) => { try { localStorage.setItem(SEEN_KEY, JSON.stringify({ done: list })); } catch { /* optional */ } };
+  if (!seen || !Array.isArray(seen.done)) { save(done); return null; }
+  const fresh = done.filter(k => !seen.done.includes(k));
+  if (!fresh.length) return null;
+  save([...seen.done, ...fresh]);
+  return fresh[fresh.length - 1];
+}
+
+// What the next step asks for, in a few words (Home's "Your next step" card).
+export function nextStepText(chapterKey, stepKey, t) {
+  const ch = t.chapters[chapterKey];
+  if (!ch) return '';
+  if (stepKey === 'learn') return ch.lesson.title;
+  if (stepKey === 'practise') return ch.practise;
+  if (stepKey === 'play') return ch.play;
+  return t.homeNextReflect;
+}
