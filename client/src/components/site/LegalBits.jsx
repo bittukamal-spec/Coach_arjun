@@ -27,7 +27,7 @@ export function LegalHeader({ backLabel = 'Back' }) {
       >
         <ChevronLeft size={20} aria-hidden="true" />
       </button>
-      <button type="button" onClick={() => navigate('/')} aria-label="Arjun home" className="rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
+      <button type="button" onClick={() => navigate('/')} aria-label="Arjun home" className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
         <ArjunLogo size={28} />
       </button>
       <span className="w-11" aria-hidden="true" />
