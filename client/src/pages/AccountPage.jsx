@@ -523,6 +523,30 @@ function AccountPage({ view = 'main' }) {
                 </span>
               </label>
             )}
+            {push.status === 'enabled' && tpush.kinds && (
+              <div className="mt-3 rounded-[16px] bg-dark-700/60 px-3 py-2" data-testid="push-kinds">
+                <p className="pt-1 text-[12.5px] font-bold text-ink">{tpush.kinds.title}</p>
+                {['match', 'rematch', 'weekly'].map(kind => {
+                  const key = `${kind}Reminders`;
+                  const on = push.preference?.[key] !== false;
+                  return (
+                    <label key={kind} className="flex min-h-[48px] cursor-pointer items-center justify-between gap-3">
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[14px] font-semibold text-ink">{tpush.kinds[kind]}</span>
+                        <span className="block text-[12px] text-slt">{tpush.kinds[`${kind}Hint`]}</span>
+                      </span>
+                      <span className="relative inline-flex shrink-0 items-center">
+                        <input type="checkbox" role="switch" checked={on} onChange={() => push.setKind(key, !on)} aria-label={tpush.kinds[kind]}
+                          className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0" />
+                        <span className={`pointer-events-none h-6 w-11 rounded-full transition-colors ${on ? 'bg-brand-500' : 'bg-dark-600'}`} aria-hidden="true" />
+                        <span className={`pointer-events-none absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${on ? 'translate-x-5' : 'translate-x-0'}`} aria-hidden="true" />
+                      </span>
+                    </label>
+                  );
+                })}
+                <p className="pb-1 text-[11.5px] text-slt">{tpush.kinds.note}</p>
+              </div>
+            )}
             {push.error && <p className="text-red-500 text-xs mt-2">{tpush.error}</p>}
           </section>
         </div>

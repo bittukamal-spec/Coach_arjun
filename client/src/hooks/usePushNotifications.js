@@ -180,5 +180,23 @@ export function usePushNotifications() {
     }
   }, [token, busy, supported]);
 
-  return { status, preference, busy, error, enable, disable };
+  // Hook fix 4: switch one kind of moment reminder on or off.
+  const setKind = useCallback(async (key, value) => {
+    const prev = preference;
+    setPreference(p => ({ ...(p || {}), [key]: value }));
+    try {
+      const res = await apiFetch('/api/push-notifications/preferences', {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [key]: value }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.preference) setPreference(data.preference);
+      else { setPreference(prev); setError(data.error || 'error'); }
+    } catch {
+      setPreference(prev); setError('error');
+    }
+  }, [token, preference]);
+
+  return { status, preference, busy, error, enable, disable, setKind };
 }

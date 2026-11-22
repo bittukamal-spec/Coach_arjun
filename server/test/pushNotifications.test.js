@@ -353,7 +353,7 @@ test('GET preferences: returns disabled defaults before any subscribe has happen
     });
     assert.equal(res.status, 200);
     const body = await res.json();
-    assert.deepEqual(body.preference, { enabled: false, reminderTime: null, timezone: null });
+    assert.deepEqual(body.preference, { enabled: false, reminderTime: null, timezone: null, matchReminders: true, rematchReminders: true, weeklyReminders: true });
   });
 });
 

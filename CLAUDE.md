@@ -87,7 +87,7 @@ Mounted in `server/src/index.js`. All need JWT (`authenticate` → `req.userId`)
 | `/api/safety` | POST event | client-detected safety events (Pressure Reset keyword hit); metadata only |
 | `/api/activity` | POST presence | heartbeat for "Live now / Seen X ago" |
 | `/api/pilot-communications` | GET next, POST :id/seen · dismiss · not-now · respond | in-app founder messages |
-| `/api/push-notifications` | GET/PATCH preferences, POST subscribe, POST unsubscribe | |
+| `/api/push-notifications` | GET/PATCH preferences, POST subscribe, POST unsubscribe | PATCH also takes `matchReminders` / `rematchReminders` / `weeklyReminders` booleans (Hook fix 4) |
 | `/api/contact` | POST | public, rate-limited |
 | `/api/founder/*` | auth (login/session), pulse, safety-events (list/get/review), pilot-overview, pilot-access (grant/revoke), pilot-communications, email (athletes/test/send/list), push-test | **founder auth** (`founderAuthenticate`), not athlete JWT |
 | `/api/health` | GET | public |
@@ -162,7 +162,7 @@ Retired → redirects: `/bounce-back`, `/before-you-play`, `/games` → `/train`
 - Model settings: `coachRequestSettings()` / `buildCoachSystem()` in `services/coaching/coachModel.js` (system prompt sent as blocks: stable part cached, language/clarification notes uncached after it). The in-loop recovery request strips thinking blocks (`stripThinking`) because it changes the system prompt and tools.
 - **Routines in Coach** (Nov 2026): "Talk to Arjun" on a routine passes `routineId` once → `ChatSession.focusRoutineId` (owner-checked; cleared by Start fresh) → an internal note with that routine (`services/coaching/routineFocus.js`). Tool `propose_routine` (not a coaching-state transition; never blocked by/blocking one) stages a card → SSE `routine_proposal` after the reply commits → `components/coach/RoutineProposalCard.jsx`: Save = PATCH (linked routine) or POST (new) on `/api/routines` (validated + safety-screened). Coach never writes routines itself.
 - **Start fresh** (Nov 2026): Coach ⋮ menu → confirm → `POST /api/sessions/:id/fresh-start` sets `ChatSession.freshStartAt`. Coach's history and the chat screen then only use messages from that moment; nothing is deleted, the Weekly Review still reads the whole 7-day cycle, and memories / coaching state / practices carry on. No chat list by design.
-- ⚠️ No retention job: messages are never deleted on a schedule. The only background job is the push scheduler.
+- ⚠️ No retention job: messages are never deleted on a schedule. The only background job is the push scheduler: at most one reminder per athlete per local day (~18:00). Since Hook fix 4 (Nov 2026) that reminder is specific on days that matter (`services/pushMoments.js` `pickMoment`: match tomorrow → "how did your match go?" for 3 days → Mind Challenge rematch for its first 3 days → Mondays "your week with Arjun" if they chatted that week), else the generic rotation. Fixed copy, no athlete text. Per-kind switches `matchReminders` / `rematchReminders` / `weeklyReminders` on `PushNotificationPreference` (default on), shown in Settings under the notifications switch. Service-worker allowlist: /mental-rep, /dashboard, /mind-challenge, /weekly-reviews.
 
 ## 10. SAFETY RULES
 
