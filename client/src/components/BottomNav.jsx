@@ -1,17 +1,17 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Dumbbell, MessageCircle, User } from 'lucide-react';
+import { Home, Dumbbell, MessageCircle, LayoutGrid } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 
-// Order is fixed: Home · Train · Coach · Profile.
-// Profile points at the athlete's Performance Profile (`/starting-profile`),
-// not Account/Settings — Account stays reachable from the Navbar avatar menu
-// and its route is unchanged.
+// Order is fixed: Home · Train · Arjun · Tools (founder, Nov 2026).
+// Train = the guided path; Tools = the practices to repeat on your own.
+// Profile (`/starting-profile`) and Settings (`/account`) open from the
+// round account button at the top of Home / Train / Tools.
 const NAV_ITEMS = [
   { icon: Home,          labelKey: 'home',    path: '/dashboard'        },
   { icon: Dumbbell,      labelKey: 'train',   path: '/train'            },
   { icon: MessageCircle, labelKey: 'coach',   path: '/coaching'         },
-  { icon: User,          labelKey: 'profile', path: '/starting-profile' },
+  { icon: LayoutGrid,    labelKey: 'tools',   path: '/tools'            },
 ];
 
 function BottomNav() {

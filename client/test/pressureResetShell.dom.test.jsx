@@ -35,6 +35,7 @@ function TestApp({ initialEntries = [{ pathname: '/body-reset' }] }) {
       <Routes>
         <Route path="/body-reset" element={<BodyResetPage />} />
         <Route path="/train" element={<RouteProbe label="train" />} />
+        <Route path="/tools" element={<RouteProbe label="tools" />} />
         <Route path="/body-reset/history" element={<RouteProbe label="history" />} />
       </Routes>
     </MemoryRouter>
@@ -110,7 +111,21 @@ describe('Pressure Reset — shared practice shell (Stage 7)', () => {
     expect(historyBtn.querySelector('a, button')).toBeNull();
   });
 
-  test('back from intro exits to /train, matching the pre-shell exit destination', async () => {
+  test('back from intro exits to Tools when opened from Tools', async () => {
+    sessionStorage.clear();
+    render(<TestApp />);
+    const user = userEvent.setup();
+
+    const backButtons = screen.getAllByRole('button');
+    const backButton = backButtons.find(b => b.querySelector('svg') && !b.textContent.trim());
+    await user.click(backButton);
+
+    expect(await screen.findByTestId('route-probe')).toHaveProperty('textContent', 'tools:/tools');
+  });
+
+  test('opened from the path, it returns to the path on Train (founder feedback: keep the flow)', async () => {
+    const { markFromPath } = await import('../src/utils/practiceReturn');
+    markFromPath();
     render(<TestApp />);
     const user = userEvent.setup();
 
@@ -119,6 +134,7 @@ describe('Pressure Reset — shared practice shell (Stage 7)', () => {
     await user.click(backButton);
 
     expect(await screen.findByTestId('route-probe')).toHaveProperty('textContent', 'train:/train');
+    sessionStorage.clear();
   });
 
   test('a crisis keyword in the custom feeling text still routes to the safety screen with HelplineList and reports the event', async () => {

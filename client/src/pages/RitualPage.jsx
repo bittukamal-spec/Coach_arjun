@@ -12,6 +12,7 @@ import { Button, Card, PageHeader, SectionLabel } from '../components/ui';
 import { SafetyGuidanceCard } from './mindJournal/shared';
 import TonePage from '../components/ui/TonePage';
 import RoutineRun from '../components/ritual/RoutineRun';
+import { practiceHome } from '../utils/practiceReturn';
 
 // ─── Ritual rebuild (PR 3) — the athlete's saved routines. /ritual now reads
 // and writes /api/routines (up to 5 routines) instead of the legacy single
@@ -681,7 +682,7 @@ function RitualPage() {
   if (view.name === 'loading') {
     return (
       <TonePage tone="sky" className="pb-[calc(7.5rem+env(safe-area-inset-bottom))]">
-        <PageHeader barClass="bg-tonepage-sky" backTo="/train" title={t.title} />
+        <PageHeader barClass="bg-tonepage-sky" backTo={practiceHome()} title={t.title} />
         <div className="flex items-center justify-center py-24">
           <div className="w-8 h-8 border-4 border-brand-600 border-t-transparent rounded-full animate-spin" />
         </div>
@@ -694,7 +695,7 @@ function RitualPage() {
   if (view.name === 'error') {
     return (
       <TonePage tone="sky" className="pb-[calc(7.5rem+env(safe-area-inset-bottom))]">
-        <PageHeader barClass="bg-tonepage-sky" backTo="/train" title={t.title} />
+        <PageHeader barClass="bg-tonepage-sky" backTo={practiceHome()} title={t.title} />
         <main className="max-w-lg mx-auto px-page py-8">
           <Card className="p-5">
             <p className="text-body text-slt mb-4">{t.errLoad}</p>
@@ -813,7 +814,7 @@ function RitualPage() {
 
   return (
     <TonePage tone="sky" className="pb-[calc(7.5rem+env(safe-area-inset-bottom))]">
-      <PageHeader barClass="bg-tonepage-sky" backTo="/train" title={t.title} />
+      <PageHeader barClass="bg-tonepage-sky" backTo={practiceHome()} title={t.title} />
       <main className="max-w-lg mx-auto px-page py-6 animate-fade-in">
         {importSafety && (
           <SafetyGuidanceCard guidance={importSafety.guidance} onDismiss={() => setImportSafety(null)} />

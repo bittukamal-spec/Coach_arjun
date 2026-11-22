@@ -6,6 +6,7 @@ import { apiFetch } from '../api';
 import { VIZ_FALLBACKS } from '../data/vizFallbacks';
 import { Zap, AlertCircle, HelpCircle, Battery, Brain, CheckCircle2, Eye } from 'lucide-react';
 import HelplineList from '../components/HelplineList';
+import { practiceHome } from '../utils/practiceReturn';
 
 const C = {
   lightBg:   'var(--bg)',      // page bg follows theme
@@ -201,8 +202,8 @@ export default function VisualizationPage() {
 
   // ── Back navigation ──────────────────────────────────────────────────────────
   function goBack() {
-    if (showInfo) { navigate('/train'); return; }
-    if (screen === 'entry') navigate('/train');
+    if (showInfo) { navigate(practiceHome()); return; }
+    if (screen === 'entry') navigate(practiceHome());
     else if (screen === 'step1') setScreen('entry');
     else if (screen === 'step2') setScreen('step1');
     else if (screen === 'step3') setScreen('step2');
@@ -214,7 +215,7 @@ export default function VisualizationPage() {
       <div style={{ minHeight: '100vh', background: C.lightBg, padding: '0 16px 40px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0' }}>
           <button
-            onClick={() => navigate('/train')}
+            onClick={() => navigate(practiceHome())}
             style={{ color: C.textMuted, fontSize: 14, background: 'none', border: 'none', cursor: 'pointer' }}
           >
             ← Back
@@ -271,11 +272,11 @@ export default function VisualizationPage() {
           <p className="text-sm leading-relaxed mb-4" style={{ color: C.textDark }}>{safetyMsg}</p>
           <HelplineList />
           <button
-            onClick={() => navigate('/train')}
+            onClick={() => navigate(practiceHome())}
             className="mt-5 w-full py-3 rounded-xl font-semibold text-sm text-white"
             style={{ background: C.blue }}
           >
-            {language === 'hi' ? 'वापस जाओ' : 'Back to Train'}
+            {language === 'hi' ? 'वापस जाओ' : 'Back'}
           </button>
         </div>
       </div>
@@ -606,7 +607,7 @@ export default function VisualizationPage() {
             </button>
             {/* Exit */}
             <button
-              onClick={() => navigate('/train')}
+              onClick={() => navigate(practiceHome())}
               style={{ color: '#94A3B8', fontSize: 14, background: 'none', border: 'none', cursor: 'pointer' }}
             >
               ✕
@@ -710,7 +711,7 @@ export default function VisualizationPage() {
         {/* Top bar */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '16px 0' }}>
           <button
-            onClick={() => navigate('/train')}
+            onClick={() => navigate(practiceHome())}
             style={{ color: C.textMuted, fontSize: 14, background: 'none', border: 'none', cursor: 'pointer' }}
           >
             ✕ Exit
@@ -789,7 +790,7 @@ export default function VisualizationPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {/* Primary */}
             <button
-              onClick={() => navigate('/train')}
+              onClick={() => navigate(practiceHome())}
               style={{
                 width: '100%',
                 height: 52,

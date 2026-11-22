@@ -79,7 +79,7 @@ export default function MindChallengePage() {
     if (!goalSkill) return;
     setBusy(true);
     try { await setGoal(goalSkill, nextMatch); } catch { /* the card is saved; the goal can be set later */ }
-    navigate('/starting-profile', { replace: true });
+    navigate('/train', { replace: true });
   }
 
   const shell = (children, { closeTo = -1 } = {}) => (

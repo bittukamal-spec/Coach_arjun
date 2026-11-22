@@ -882,7 +882,9 @@ export const translations = {
       coach: 'Arjun',
       games: 'Games',
       train: 'Train',
+      tools: 'Tools',
       profile: 'Profile',
+      myProfile: 'My profile',
       // Avatar-menu item that opens /account. Kept distinct from the
       // bottom-nav "Profile" label above, which now points at
       // /starting-profile — the two must never read as the same action.
@@ -950,6 +952,15 @@ export const translations = {
     // The five real practices only — no invented categories, no practice
     // counts (there is no count data to render). Names and descriptions are
     // the existing approved wording, moved out of inline JSX conditionals.
+    toolsPage: {
+      title: 'Tools',
+      subtitle: 'Do any practice again, any time.',
+      weekly: { name: 'Weekly reviews', desc: 'Your week with Arjun.' },
+    },
+    trainHome: {
+      title: 'Train',
+      subtitle: 'Your path, one step at a time.',
+    },
     trainPage: {
       title: 'Train',
       subtitle: 'Short reps for your head. Pick one and go.',
@@ -3156,7 +3167,9 @@ export const translations = {
       coach: 'कोच',
       games: 'गेम्स',
       train: 'ट्रेन',
+      tools: 'Tools',
       profile: 'प्रोफाइल',
+      myProfile: 'मेरी प्रोफाइल',
       // Avatar-menu item that opens /account. Kept distinct from the
       // bottom-nav "Profile" label above, which now points at
       // /starting-profile — the two must never read as the same action.

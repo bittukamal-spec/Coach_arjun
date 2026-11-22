@@ -10,7 +10,6 @@ import { JournalArt } from '../components/visuals/HomeArt';
 import Teer from '../components/visuals/Teer';
 import PilotCommunicationPopup from '../components/pilotCommunications/PilotCommunicationPopup';
 import CurrentPracticeCard from '../components/home/CurrentPracticeCard';
-import ThisWeekStrip from '../components/home/ThisWeekStrip';
 
 // Problem shortcuts — all four enter Coach with a visible, unsent prefill
 // instead of jumping straight to a tool. Stable internal starter values,
@@ -79,9 +78,6 @@ export default function Dashboard() {
           </div>
           <Navbar bare />
         </div>
-
-        {/* ── THIS WEEK — plain counts, no streaks or scores ───────────── */}
-        <ThisWeekStrip />
 
         {/* ── MIND CHALLENGE — Hook Model trigger; only when one can be played */}
         <MindChallengeHomeCard />

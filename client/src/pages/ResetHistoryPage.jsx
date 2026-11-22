@@ -81,7 +81,7 @@ export default function ResetHistoryPage() {
     <TonePage tone="mint" className="pb-[calc(7.5rem+env(safe-area-inset-bottom))]">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-4 pb-3 sticky top-0 bg-tonepage-mint z-10">
-        <button onClick={() => navigate('/train')} aria-label="Back" className="w-11 h-11 flex items-center justify-center rounded-2xl bg-dark-400 active:scale-95">
+        <button onClick={() => navigate('/tools')} aria-label="Back" className="w-11 h-11 flex items-center justify-center rounded-2xl bg-dark-400 active:scale-95">
           <ArrowLeft size={18} className="text-ink" />
         </button>
         <h1 className="text-xl font-bold text-ink flex-1">{t.history.title}</h1>

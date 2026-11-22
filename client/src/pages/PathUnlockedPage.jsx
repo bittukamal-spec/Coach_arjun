@@ -21,7 +21,7 @@ export default function PathUnlockedPage() {
   const { path } = usePath();
   useStatusBarColour({ colour: '#101533' });
   const ch = t.chapters[chapterKey];
-  if (!ch) return <Navigate to="/starting-profile" replace />;
+  if (!ch) return <Navigate to="/train" replace />;
 
   const index = path ? path.chapters.findIndex(c => c.key === chapterKey) : -1;
   const next = path && !path.finished ? path.chapters.find(c => c.key === path.currentKey) : null;
@@ -54,7 +54,7 @@ export default function PathUnlockedPage() {
         )}
         <div className="flex-1" />
         <Link
-          to={next ? `/path/${next.key}` : '/starting-profile'}
+          to={next ? `/path/${next.key}` : '/train'}
           className="mt-6 flex min-h-[56px] w-full items-center justify-center rounded-[18px] bg-sun text-[16px] font-extrabold text-inkblock focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
         >
           {next ? t.unlocked.start(nextIndex + 1) : t.unlocked.backToProfile}

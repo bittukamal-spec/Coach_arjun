@@ -82,7 +82,7 @@ export default function MyPracticePage() {
 
   return (
     <div className="min-h-screen bg-dark-900 pb-[calc(7.5rem+env(safe-area-inset-bottom))]">
-      <PageHeader backTo="/train" barClass="bg-dark-900" />
+      <PageHeader backTo="/tools" barClass="bg-dark-900" />
 
       <main className="px-page pt-1 max-w-lg mx-auto animate-fade-in">
         <h1 className="text-[30px] leading-[1.1] font-extrabold tracking-tight text-ink">{t.title}</h1>

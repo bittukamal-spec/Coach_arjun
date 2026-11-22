@@ -22,6 +22,7 @@ export const ACTIVE_TOOL_ROUTES = [
   '/games/reset-rally',
   '/coaching',
   '/train',
+  '/tools',
   '/skills/focus-self-talk',
   '/skills/pressure-reset',
   '/mental-rep',

@@ -593,7 +593,7 @@ test('saved screen: quiet confirmation, showing Take forward when there is one',
   assert.match(savedScreen, /\{saved\.doneBtn\}/);
   assert.match(savedScreen, /\{saved\.viewBtn\}/);
   assert.match(savedScreen, /data-testid="mj-saved-summary"/);
-  assert.match(savedScreen, /navigate\('\/mind-journal', \{ replace: true \}\)/);
+  assert.match(savedScreen, /navigate\(fromPath\(\) \? '\/train' : '\/mind-journal', \{ replace: true \}\)/);
 });
 
 test('saved screen: a direct hit with no saved entry returns to the journal instead of claiming a save', () => {

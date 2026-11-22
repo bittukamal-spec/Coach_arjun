@@ -45,7 +45,7 @@ export default function FocusSelfTalkSkillPath() {
   }, [token]);
 
   function goBack() {
-    navigate('/train');
+    navigate('/tools');
   }
 
   // Leaves the learning loop and hands the athlete straight to the tool —

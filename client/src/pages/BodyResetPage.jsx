@@ -10,6 +10,7 @@ import { createBreathCues, cuesPreferred, rememberCues } from '../utils/breathCu
 import { translations } from '../i18n/translations';
 import HelplineList from '../components/HelplineList';
 import { PracticeIntro, PracticeScreen, PracticeCompletion, CompletionMascot } from '../components/practice/PracticeShell';
+import { practiceHome } from '../utils/practiceReturn';
 
 const CRISIS_KEYWORDS = [
   'suicide', 'kill myself', 'end my life', 'self harm', 'hurt myself',
@@ -175,9 +176,9 @@ export default function BodyResetPage() {
 
   // ── Back navigation ──────────────────────────────────────────────────────────
   function goBack() {
-    if (screen === 'intro' || screen === 'safety') { navigate('/train'); return; }
+    if (screen === 'intro' || screen === 'safety') { navigate(practiceHome()); return; }
     const idx = STEP_ORDER.indexOf(screen);
-    if (idx <= 0) { navigate('/train'); return; }
+    if (idx <= 0) { navigate(practiceHome()); return; }
     setScreen(STEP_ORDER[idx - 1]);
   }
 
@@ -432,7 +433,7 @@ export default function BodyResetPage() {
             <HelplineList />
           </div>
           <button
-            onClick={() => navigate('/train')}
+            onClick={() => navigate(practiceHome())}
             className="w-full min-h-[52px] bg-dark-400 text-ink font-bold rounded-[18px] active:scale-95"
           >
             {t.safety.backBtn}
@@ -965,7 +966,7 @@ export default function BodyResetPage() {
             {t.done.historyBtn}
           </button>
           <button
-            onClick={() => navigate('/train')}
+            onClick={() => navigate(practiceHome())}
             className="w-full min-h-[44px] text-sm text-white/80 py-2 active:opacity-70"
           >
             {t.done.trainBtn}

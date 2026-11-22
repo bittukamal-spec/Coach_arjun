@@ -17,7 +17,7 @@ export default function PathLessonPage() {
   const [card, setCard] = useState(0);
   const [saving, setSaving] = useState(false);
   const ch = t.chapters[chapterKey];
-  if (!ch) return <Navigate to="/starting-profile" replace />;
+  if (!ch) return <Navigate to="/train" replace />;
 
   const cards = ch.lesson.cards;
   const last = card === cards.length - 1;

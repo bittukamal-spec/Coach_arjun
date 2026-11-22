@@ -331,13 +331,13 @@ test('Home and Train have no logo bar: the account button sits beside the page t
   assert.match(src('components/Navbar.jsx'), /\{!bare && <ArjunWordmark size="compact" \/>\}/);
 });
 
-test('Home\'s This week strip shows plain counts only — no streaks, points or scores', () => {
+test('Train\'s This week strip shows plain counts only — no streaks, points or scores', () => {
   const strip = src('components/home/ThisWeekStrip.jsx');
   assert.match(strip, /\/api\/playbook/);
   assert.match(strip, /to="\/my-practice"/);
   const code = strip.replace(/\/\/.*$/gm, '');
   assert.doesNotMatch(code, /\b(streak|xp|points?|scores?)\b/i);
-  assert.match(src('pages/Dashboard.jsx'), /<ThisWeekStrip \/>/);
+  assert.match(src('pages/TrainPage.jsx'), /<ThisWeekStrip \/>/);
 });
 
 test('the Coach header shares the page colour — no separate white box', () => {

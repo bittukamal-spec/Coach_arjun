@@ -27,5 +27,5 @@ test('VisualizationPage: safety screen renders helplines and a way back', () => 
   // button handler; the render branch is the last occurrence.
   const screen = src.slice(src.indexOf('if (safetyMsg)'), src.lastIndexOf("if (screen === 'entry')"));
   assert.match(screen, /<HelplineList \/>/);
-  assert.match(screen, /navigate\('\/train'\)/);
+  assert.match(screen, /navigate\(practiceHome\(\)\)/);
 });
