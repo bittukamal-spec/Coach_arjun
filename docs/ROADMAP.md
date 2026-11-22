@@ -124,3 +124,7 @@ Order: 1.6 → 1.1 → 1.3 → 1.2 → 1.4 → 1.7 → 1.5. Each is its own PR w
 - Restoic — https://apps.apple.com/app/id1557936632 · Perform — https://apps.apple.com/us/app/perform-ai-sport-psychology/id6504174336 · Optimize Mind — https://apps.apple.com/us/app/id1633065262 · Focus 5 — https://apps.apple.com/us/app/id1613789297
 - Samiksha Sports — https://samikshasports.dev.seraphic.io · Mindsports — https://influentialcoaches.com/?p=10757
 - DPDP Rules 2025 — https://www.legal500.com/firms/237811-saga-legal/c-india/news-and-developments/the-privacy-timer-starts-now-analysing-the-dpdp-rules-and-its-18-month-countdown · https://www.orfonline.org/expert-speak/dpdp-rules-and-the-future-of-child-data-safety
+
+## Learning path + Mind Challenge (Nov 2026)
+
+See `docs/PATH-STRATEGY.md` — one guided path (Mind Challenge → Learn → Practise → Use in play → Reflect → level up). Not started; starts after the premium plan finishes.
