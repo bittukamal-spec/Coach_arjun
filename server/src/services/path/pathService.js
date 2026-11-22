@@ -66,6 +66,21 @@ function stepsToRecord(path, evidence) {
   return out;
 }
 
+// Moves `chapterKey` to be the next chapter the athlete works on: first if
+// nothing has been started, otherwise right after the current chapter. Done
+// and current chapters never move.
+function reorderForGoal(order, steps, chapterKey) {
+  const path = buildPath({ order, steps });
+  const keys = path.chapters.map(c => c.key);
+  const target = path.chapters.find(c => c.key === chapterKey);
+  if (!target || target.status !== 'locked') return keys;
+  const started = (steps || []).length > 0;
+  const rest = keys.filter(k => k !== chapterKey);
+  if (!started) return [chapterKey, ...rest];
+  const at = rest.indexOf(path.currentKey) + 1;
+  return [...rest.slice(0, at), chapterKey, ...rest.slice(at)];
+}
+
 function createPathStore(prisma) {
   async function priorityFor(userId) {
     const profile = await prisma.startingPerformanceProfile.findFirst({
@@ -128,7 +143,14 @@ function createPathStore(prisma) {
     return path;
   }
 
-  return { getPath, record, ensureProgress };
+  async function prioritise(userId, chapterKey) {
+    const progress = await ensureProgress(userId);
+    const steps = await loadSteps(userId);
+    const order = reorderForGoal(progress.order, steps, chapterKey);
+    await prisma.pathProgress.update({ where: { userId }, data: { order } });
+  }
+
+  return { getPath, record, ensureProgress, prioritise };
 }
 
-module.exports = { buildPath, stepsToRecord, validOrder, createPathStore };
+module.exports = { buildPath, stepsToRecord, validOrder, reorderForGoal, createPathStore };

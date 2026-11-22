@@ -164,6 +164,7 @@ model User {
   routines                    Routine[]
   pathProgress                PathProgress?
   pathSteps                   PathStep[]
+  mindChallenges              MindChallengeResult[]
   ritualLegacyImport          RitualLegacyImport?
   pushNotificationPreference  PushNotificationPreference?
   pushSubscriptions           PushSubscription[]
@@ -1391,4 +1392,21 @@ model PathStep {
 
   @@unique([userId, chapterKey, stepKey])
   @@index([userId])
+}
+
+// Mind Challenge (docs/PATH-STRATEGY.md): one row per finished challenge.
+// `points` = raw round points per skill (0–6), `levels` = Level 1–5 per skill.
+// Self-assessment for training, never a diagnosis. Additive only.
+model MindChallengeResult {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  points     Json
+  levels     Json
+  mindLevel  Int
+  focusSkill String?  // the skill the athlete chose to level up first
+  nextMatch  String?  // this_week | next_week | not_sure
+  createdAt  DateTime @default(now())
+
+  @@index([userId, createdAt])
 }

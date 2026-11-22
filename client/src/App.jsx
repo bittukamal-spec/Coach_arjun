@@ -48,6 +48,7 @@ import WeeklyReviewsPage from './pages/WeeklyReviewsPage';
 import MyPracticePage from './pages/MyPracticePage';
 import PathChapterPage from './pages/PathChapterPage';
 import PathLessonPage from './pages/PathLessonPage';
+import MindChallengePage from './pages/MindChallengePage';
 import ProtectedRoute from './components/ProtectedRoute';
 import BottomNav from './components/BottomNav';
 import AppUpdatePrompt from './components/AppUpdatePrompt';
@@ -383,6 +384,14 @@ function App() {
         element={
           <ProtectedRoute requireOnboarding={true}>
             <PathChapterPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/mind-challenge"
+        element={
+          <ProtectedRoute requireOnboarding={true}>
+            <MindChallengePage />
           </ProtectedRoute>
         }
       />
