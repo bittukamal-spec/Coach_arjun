@@ -10,7 +10,7 @@ Owner key: **Claude** = done in code by Claude. **Founder** = done by you (thing
 
 ## Where we are now
 
-> **Current step:** Step 8 — founder checks on their own phone and says done. Then the premium plan is finished; next is the learning path (`docs/PATH-STRATEGY.md`). Later: bigger mascot exports.
+> **Current step:** ✅ Premium plan finished (22 Nov 2026). Leftovers: bigger mascot exports from the founder (later). Active work moved to `docs/PATH-STRATEGY.md`.
 > Last updated: 19 Nov 2026
 
 ---
@@ -95,7 +95,7 @@ Only the parts the founder chose in Step 1.
 ## Step 8 — Final check (Claude + Founder)
 
 - [x] Claude: checked 19 screens (website + app) on small phone (360), phone (390), big phone (430) and laptop (1280), light and dark — no sideways scrolling, no errors. Fixed: Focus Cards too wide on laptop, small buttons on Focus Cards, small logo tap area on Contact/legal pages (22 Nov).
-- [ ] Founder: check on your own phone and say done.
+- [x] Founder: checked on their own phone and said done (22 Nov 2026).
 
 ---
 
