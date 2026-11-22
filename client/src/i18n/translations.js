@@ -125,7 +125,7 @@ export const translations = {
       faqs: [
         { q: 'Is Arjun therapy?', a: 'No. Arjun is a mind coach for sport. If something feels bigger than sport, it points you to people who can help, like iCall and KIRAN.' },
         { q: 'Does it actually work?', a: 'Arjun uses methods sport psychology research supports: breathing resets, cue words, routines and reflection. Like any training, it works when you practise, and Arjun checks what helps you.' },
-        { q: 'Who can see my chats?', a: 'Only you. Your messages go to our AI provider so Arjun can reply. We never sell your data and there are no ads. Delete your chats or account any time.' },
+        { q: 'Who can see my chats?', a: 'Only you. Your messages go to our AI provider so Arjun can reply. We never sell your data. Delete your chats or account any time.' },
         { q: 'Is it safe for under-18s?', a: 'Athletes must be 13 or older. Under 18, a parent or guardian gets an email and must say yes first. If Arjun sees signs you might be unsafe, it shows helplines.' },
         { q: 'Which sports?', a: 'Any sport. Arjun asks about your sport, position and level, and fits its advice to you.' },
         { q: 'Can I talk in Hinglish?', a: 'Yes. Write in English or Hinglish and Arjun replies the same way.' },
