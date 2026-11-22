@@ -19,7 +19,7 @@ Legend: ✅ already there · 🟡 partly · ❌ missing → proposal.
 | **Website** | ✅ ads/search → hero | ✅ Start free | 🟡 real app screens | — | After sign-up, go straight into the **Mind Challenge** as the first experience (reward in the first 5 minutes) |
 
 ## Proposed order (each a small PR, mock-ups first)
-1. **Home "Your next step" line** from the path + "Chapter unlocked!" moment. (cheap, every visit)
+1. ✅ **Home "Your next step" card** from the path + "Chapter unlocked!" moment — built (Nov 2026).
 2. **Arjun knows the path + next match** (path step 4): pre-match check-in, chapter-aware coaching.
 3. **"Use it in play" hand-off** at the end of Pressure Reset / Quick Rep / Ritual → path Play step.
 4. **Reminders** (push, athlete controls them): rematch ready · day before a match · weekly review ready.

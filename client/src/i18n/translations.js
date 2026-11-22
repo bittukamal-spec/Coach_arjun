@@ -180,6 +180,17 @@ export const translations = {
       lessonDone: 'Got it',
       lessonCardOf: (n, total) => `${n} of ${total}`,
       talkToArjun: 'Talk to Arjun about it',
+      homeNextTag: (chapter, n) => `Your next step · ${chapter} ${n}/4`,
+      homeNextReflect: 'Write one line about how it went',
+      unlocked: {
+        complete: (n) => `Chapter ${n} complete`,
+        line: 'You learned it, practised it and used it in play.',
+        nextTag: (n) => `Unlocked · Chapter ${n}`,
+        start: (n) => `Start chapter ${n}`,
+        allDoneTitle: 'Path complete!',
+        allDoneLine: 'You finished every chapter. Keep using what works.',
+        backToProfile: 'See my path',
+      },
       chapters: {
         calm: {
           title: 'Calm body', line: 'Settle your nerves before you play',

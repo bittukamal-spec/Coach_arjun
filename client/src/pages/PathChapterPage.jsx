@@ -3,7 +3,7 @@ import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { Check, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import MascotArt from '../components/visuals/MascotArt';
-import { usePath, pathText, STEP_ORDER, nextHref } from '../components/path/pathData';
+import { usePath, pathText, STEP_ORDER, nextHref, takeNewlyFinished } from '../components/path/pathData';
 
 // One chapter of the learning path: its 4 steps (Learn · Practise · Play ·
 // Reflect). Learn and Practise link to the lesson and the drill; Play is
@@ -24,7 +24,11 @@ export default function PathChapterPage() {
 
   async function markPlay(outcome) {
     setSaving(true);
-    try { await markStep(chapterKey, 'play', outcome); } finally { setSaving(false); }
+    try {
+      const next = await markStep(chapterKey, 'play', outcome);
+      const fresh = takeNewlyFinished(next);
+      if (fresh) navigate(`/path/unlocked/${fresh}`);
+    } finally { setSaving(false); }
   }
 
   const stepTitle = {

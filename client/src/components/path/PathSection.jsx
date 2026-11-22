@@ -1,8 +1,9 @@
-import { Link } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Check, Lock, ChevronRight } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import Teer from '../visuals/Teer';
-import { usePath, pathText, CHAPTER_LOOK, STEP_ORDER, nextHref, nextLabel } from './pathData';
+import { usePath, pathText, CHAPTER_LOOK, STEP_ORDER, nextHref, nextLabel, takeNewlyFinished } from './pathData';
 import { SKILLS, SKILL_BAR, challengeText, daysUntil, useMindChallenge } from './mindChallengeData';
 
 // "Your path" on the Profile page: the chapters as a short road, the current
@@ -13,6 +14,11 @@ export default function PathSection() {
   const { path, error, reload } = usePath();
   const c = challengeText(language);
   const { state: mc } = useMindChallenge();
+  const navigate = useNavigate();
+  useEffect(() => {
+    const fresh = takeNewlyFinished(path);
+    if (fresh) navigate(`/path/unlocked/${fresh}`);
+  }, [path, navigate]);
 
   if (error) {
     return (
