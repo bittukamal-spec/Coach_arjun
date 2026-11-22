@@ -7,6 +7,7 @@ import { Zap, Wind } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiFetch } from '../api';
 import { PracticeIntro, PracticeScreen, PracticeCompletion, CompletionMascot } from '../components/practice/PracticeShell';
+import { practiceHome } from '../utils/practiceReturn';
 
 // ─── Quick Rep (Daily Mental Rep) — the core Healthy Hook habit ────────────
 // Flow: intro → context → state → moment → short guided rep → one cue →
@@ -173,7 +174,7 @@ export default function MentalRepPage() {
     const order = ['intro', 'context', 'state', 'moment', 'rep', 'cue', 'save'];
     const idx = order.indexOf(step);
     if (step === 'done') return; // exit screen has its own single way out
-    if (idx <= 0) { navigate('/dashboard'); return; }
+    if (idx <= 0) { navigate(practiceHome('/dashboard')); return; }
     // Context was pre-answered by Dashboard's context picker, so 'context'
     // was skipped on the way in — back from 'state' returns to 'intro',
     // not to a screen that was never shown this session.
@@ -424,7 +425,7 @@ export default function MentalRepPage() {
           : (hi ? 'इसे ट्रेनिंग में लेकर जाओ। फोन रखो और काम पर लगो।' : 'Take this into training. Put the phone away and get to work.')}
       </p>
       <button
-        onClick={() => navigate('/dashboard')}
+        onClick={() => navigate(practiceHome('/dashboard'))}
         className="w-full max-w-xs text-base min-h-[52px] rounded-[18px] bg-brand-500 text-white font-extrabold active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
         style={{ minHeight: '56px' }}
       >

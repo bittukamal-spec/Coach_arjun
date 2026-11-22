@@ -5,9 +5,11 @@ import { useAuth } from '../../contexts/AuthContext';
 import Teer from '../visuals/Teer';
 import { usePath, pathText, CHAPTER_LOOK, STEP_ORDER, nextHref, nextLabel, takeNewlyFinished } from './pathData';
 import { SKILLS, SKILL_BAR, challengeText, daysUntil, useMindChallenge } from './mindChallengeData';
+import { markFromPath } from '../../utils/practiceReturn';
 
-// "Your path" on the Profile page: the chapters as a short road, the current
+// "Your path" on the Train tab: the chapters as a winding road, the current
 // chapter with its 4 steps, and one Next button (docs/PATH-STRATEGY.md).
+// Steps opened from here return to Train when they end (utils/practiceReturn).
 export default function PathSection() {
   const { language } = useAuth();
   const t = pathText(language);
@@ -15,6 +17,9 @@ export default function PathSection() {
   const c = challengeText(language);
   const { state: mc } = useMindChallenge();
   const navigate = useNavigate();
+  // The Mind Challenge card above shows when one can be played; the stats
+  // mini card shows the rest of the time.
+  const showStats = !!(mc?.latest && !mc.canTake);
   useEffect(() => {
     const fresh = takeNewlyFinished(path);
     if (fresh) navigate(`/path/unlocked/${fresh}`);
@@ -34,39 +39,13 @@ export default function PathSection() {
   const currentIndex = path.chapters.findIndex(c => c.key === path.currentKey);
 
   return (
-    <section aria-labelledby="path-title" data-testid="profile-path">
-      {mc && (
-        <Link to="/mind-challenge" data-testid="profile-mind-stats" className="mb-5 flex items-center gap-3 rounded-[22px] bg-inkblock px-4 py-3.5 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
-          {mc.latest ? (
-            <>
-              <span className="min-w-0 flex-1">
-                <span className="block text-[11px] font-bold uppercase tracking-[0.12em] text-sun">Mind Stats</span>
-                <span className="block text-[18px] font-extrabold">{c.card.mindLevel} {mc.latest.mindLevel}</span>
-                <span className="mt-1.5 grid h-[30px] grid-cols-6 items-end gap-1.5" aria-hidden="true">
-                  {SKILLS.map(s => <span key={s} className={`rounded-[4px] ${SKILL_BAR[s]}`} style={{ height: `${mc.latest.levels[s] * 20}%` }} />)}
-                </span>
-              </span>
-              <span className="text-right text-[13px] font-bold">{c.card.nextIn(daysUntil(mc.nextAt))}</span>
-            </>
-          ) : (
-            <>
-              <span className="min-w-0 flex-1">
-                <span className="block text-[11px] font-bold uppercase tracking-[0.12em] text-sun">{c.name}</span>
-                <span className="block text-[17px] font-extrabold leading-snug">{c.profileUnlock}</span>
-                <span className="block text-[13px] text-white/75">{c.profileUnlockLine}</span>
-              </span>
-              <Teer pose="point" height={76} className="shrink-0" />
-            </>
-          )}
-        </Link>
-      )}
+    <section aria-labelledby="path-title" data-testid="train-path">
+      {showStats && <MindStatsMini mc={mc} c={c} />}
       <div className="flex items-baseline justify-between">
         <h2 id="path-title" className="text-[20px] font-extrabold text-ink">{t.title}</h2>
         {!path.finished && <span className="text-[13px] text-slt">{t.chapterOf(currentIndex + 1, total)}</span>}
       </div>
       <p className="mt-1 text-[14px] text-slt">{t.startsWith}</p>
-
-      <PathRoad path={path} t={t} />
 
       {path.finished ? (
         <div className="mt-3 rounded-[20px] bg-mint p-4 text-inkblock">
@@ -74,7 +53,7 @@ export default function PathSection() {
           <p className="mt-1 text-[14px]">{t.finishedLine}</p>
         </div>
       ) : (
-        <div className="mt-2 rounded-[24px] bg-dark-400 p-4">
+        <div className="mt-3 rounded-[24px] bg-dark-400 p-4">
           {(() => {
             const cur = path.chapters.find(c => c.key === path.currentKey);
             const stepIndex = STEP_ORDER.indexOf(path.next.stepKey);
@@ -92,6 +71,7 @@ export default function PathSection() {
           })()}
         <Link
           to={nextHref(path.next.chapterKey, path.next.stepKey, t)}
+          onClick={markFromPath}
           data-testid="path-next"
           className="mt-3 flex min-h-[56px] items-center justify-center gap-2 rounded-[18px] bg-sun px-4 text-center text-[15px] font-extrabold text-inkblock active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
         >
@@ -100,6 +80,8 @@ export default function PathSection() {
         </Link>
         </div>
       )}
+
+      <PathRoad path={path} t={t} />
     </section>
   );
 }
@@ -168,5 +150,62 @@ function PathRoad({ path, t }) {
         })}
       </ol>
     </div>
+  );
+}
+
+// Mind Stats mini card (Train + Profile): the athlete's Mind Level, or an
+// invitation to unlock it with the first Mind Challenge.
+export function MindStatsMini({ mc, c, className = 'mb-5' }) {
+  if (!mc) return null;
+  return (
+        <Link to="/mind-challenge" data-testid="profile-mind-stats" className={`${className} flex items-center gap-3 rounded-[22px] bg-inkblock px-4 py-3.5 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500`}>
+          {mc.latest ? (
+            <>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[11px] font-bold uppercase tracking-[0.12em] text-sun">Mind Stats</span>
+                <span className="block text-[18px] font-extrabold">{c.card.mindLevel} {mc.latest.mindLevel}</span>
+                <span className="mt-1.5 grid h-[30px] grid-cols-6 items-end gap-1.5" aria-hidden="true">
+                  {SKILLS.map(s => <span key={s} className={`rounded-[4px] ${SKILL_BAR[s]}`} style={{ height: `${mc.latest.levels[s] * 20}%` }} />)}
+                </span>
+              </span>
+              <span className="text-right text-[13px] font-bold">{c.card.nextIn(daysUntil(mc.nextAt))}</span>
+            </>
+          ) : (
+            <>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[11px] font-bold uppercase tracking-[0.12em] text-sun">{c.name}</span>
+                <span className="block text-[17px] font-extrabold leading-snug">{c.profileUnlock}</span>
+                <span className="block text-[13px] text-white/75">{c.profileUnlockLine}</span>
+              </span>
+              <Teer pose="point" height={76} className="shrink-0" />
+            </>
+          )}
+        </Link>
+  );
+}
+
+// Profile: the Mind Stats card and one row that opens the path on Train.
+export function ProfilePathLink() {
+  const { language } = useAuth();
+  const t = pathText(language);
+  const c = challengeText(language);
+  const { state: mc } = useMindChallenge();
+  const { path } = usePath();
+  const idx = path ? path.chapters.findIndex(ch => ch.key === path.currentKey) : -1;
+  return (
+    <section data-testid="profile-path">
+      <MindStatsMini mc={mc} c={c} className="mb-3" />
+      <Link to="/train" data-testid="profile-path-link" className="flex min-h-[60px] items-center gap-3 rounded-[22px] bg-dark-400 px-4 py-3 text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
+        <span className="min-w-0 flex-1">
+          <span className="block text-[15px] font-extrabold">{t.title}</span>
+          {path && (
+            <span className="block text-[12.5px] text-slt">
+              {path.finished ? t.finishedTitle : `${t.chapters[path.currentKey]?.title} · ${t.chapterOf(idx + 1, path.chapters.length)}`}
+            </span>
+          )}
+        </span>
+        <ChevronRight size={18} strokeWidth={2.4} aria-hidden="true" />
+      </Link>
+    </section>
   );
 }

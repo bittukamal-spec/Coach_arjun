@@ -15,7 +15,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, '..');
 
 const dashboard = readFileSync(path.join(root, 'src/pages/Dashboard.jsx'), 'utf8');
-const train = readFileSync(path.join(root, 'src/pages/TrainPage.jsx'), 'utf8');
+const train = readFileSync(path.join(root, 'src/pages/ToolsPage.jsx'), 'utf8');
 const bodyReset = readFileSync(path.join(root, 'src/pages/BodyResetPage.jsx'), 'utf8');
 const selfTalk = readFileSync(path.join(root, 'src/pages/SelfTalkPage.jsx'), 'utf8');
 const chatPage = readFileSync(path.join(root, 'src/pages/ChatPage.jsx'), 'utf8');

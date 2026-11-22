@@ -4,6 +4,7 @@ import { Check, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import MascotArt from '../components/visuals/MascotArt';
 import { usePath, pathText, STEP_ORDER, nextHref, takeNewlyFinished } from '../components/path/pathData';
+import { markFromPath } from '../utils/practiceReturn';
 
 // One chapter of the learning path: its 4 steps (Learn · Practise · Play ·
 // Reflect). Learn and Practise link to the lesson and the drill; Play is
@@ -16,11 +17,11 @@ export default function PathChapterPage() {
   const { path, error, reload, markStep } = usePath();
   const [saving, setSaving] = useState(false);
   const ch = t.chapters[chapterKey];
-  if (!ch) return <Navigate to="/starting-profile" replace />;
+  if (!ch) return <Navigate to="/train" replace />;
 
   const chapter = path?.chapters.find(c => c.key === chapterKey);
   const index = path ? path.chapters.findIndex(c => c.key === chapterKey) : -1;
-  if (chapter?.status === 'locked') return <Navigate to="/starting-profile" replace />;
+  if (chapter?.status === 'locked') return <Navigate to="/train" replace />;
 
   async function markPlay(outcome) {
     setSaving(true);
@@ -80,10 +81,10 @@ export default function PathChapterPage() {
                     </div>
                   </div>
                   {isNext && st === 'learn' && (
-                    <Link to={nextHref(chapterKey, 'learn', t)} className="mt-3 flex min-h-[48px] items-center justify-center rounded-[14px] bg-sun text-[15px] font-extrabold text-inkblock">{t.learnNow}</Link>
+                    <Link to={nextHref(chapterKey, 'learn', t)} onClick={markFromPath} className="mt-3 flex min-h-[48px] items-center justify-center rounded-[14px] bg-sun text-[15px] font-extrabold text-inkblock">{t.learnNow}</Link>
                   )}
                   {isNext && st === 'practise' && (
-                    <Link to={nextHref(chapterKey, 'practise', t)} className="mt-3 flex min-h-[48px] items-center justify-center rounded-[14px] bg-sun text-[15px] font-extrabold text-inkblock">{t.practiseNow}</Link>
+                    <Link to={nextHref(chapterKey, 'practise', t)} onClick={markFromPath} className="mt-3 flex min-h-[48px] items-center justify-center rounded-[14px] bg-sun text-[15px] font-extrabold text-inkblock">{t.practiseNow}</Link>
                   )}
                   {isNext && st === 'play' && (
                     <div className="mt-3" role="group" aria-label={t.playQuestion}>
@@ -96,7 +97,7 @@ export default function PathChapterPage() {
                     </div>
                   )}
                   {isNext && st === 'reflect' && (
-                    <Link to="/mind-journal/new" className="mt-3 flex min-h-[48px] items-center justify-center rounded-[14px] bg-sun text-[15px] font-extrabold text-inkblock">{t.writeReflection}</Link>
+                    <Link to="/mind-journal/new" onClick={markFromPath} className="mt-3 flex min-h-[48px] items-center justify-center rounded-[14px] bg-sun text-[15px] font-extrabold text-inkblock">{t.writeReflection}</Link>
                   )}
                 </li>
               );

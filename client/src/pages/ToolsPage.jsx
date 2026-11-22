@@ -1,0 +1,94 @@
+import { useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { ChevronRight } from 'lucide-react';
+import Navbar from '../components/Navbar';
+import { useAuth } from '../contexts/AuthContext';
+import { translations } from '../i18n/translations';
+import PracticeBlock from '../components/train/PracticeBlock';
+import { RitualArt, ResetArt, RepArt, FocusArt, PracticeLogArt } from '../components/visuals/TrainArt';
+import { clearFromPath } from '../utils/practiceReturn';
+
+// Tools tab (Nov 2026): the practices to repeat on your own. The guided
+// path lives on Train; this is the toolbox.
+//
+// The FOUR real practices Arjun actually ships — nothing else. There is no
+// practice-count metadata anywhere in the product, so none is rendered here.
+// Routes are the existing ones.
+//
+// Playbook redesign: one flat colour block per practice in a single 2×2 grid,
+// each with its own drawing and its name only — no description line
+// (founder decision, Nov 2026: athletes find out by opening the practice). The two group labels are gone — four tiles do
+// not need sorting — and reflection stays in the Mind Journal (its entry is
+// on Home), so it is deliberately NOT re-added here as a tile. Pressure
+// Reset's history link lives on the Pressure Reset intro screen itself.
+const PRACTICES = [
+  { key: 'ritual',    to: '/ritual',     tone: 'sky',   Art: RitualArt },
+  { key: 'pressure',  to: '/body-reset', tone: 'mint',  Art: ResetArt },
+  { key: 'quickRep',  to: '/mental-rep', tone: 'sun',   Art: RepArt },
+  { key: 'focusCard', to: '/self-talk',  tone: 'coral', Art: FocusArt },
+];
+
+export default function ToolsPage() {
+  const navigate = useNavigate();
+  const { language } = useAuth();
+  const t = (translations[language] || translations.en).trainPage;
+  const tt = (translations[language] || translations.en).toolsPage || translations.en.toolsPage;
+  useEffect(() => { clearFromPath(); }, []);
+
+  return (
+    <div className="min-h-screen bg-dark-900">
+      <main className="max-w-lg md:max-w-2xl mx-auto px-5 pt-[calc(1rem+env(safe-area-inset-top))] pb-[calc(7.5rem+env(safe-area-inset-bottom))] animate-fade-in">
+
+        {/* Page header */}
+        <div className="pt-1 mb-5 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-[32px] leading-[1.1] font-extrabold tracking-tight text-ink">{tt.title}</h1>
+            <p className="text-sm text-slt mt-1">{tt.subtitle}</p>
+          </div>
+          <Navbar bare />
+        </div>
+
+        <div className="grid grid-cols-2 gap-2.5 items-stretch">
+          {PRACTICES.map(p => {
+            const copy = t.practices[p.key];
+            return (
+              <PracticeBlock
+                key={p.key}
+                tone={p.tone}
+                title={copy.name}
+                Art={p.Art}
+                onClick={() => navigate(p.to)}
+              />
+            );
+          })}
+        </div>
+
+        {/* Look back — one row to "My practice" (what the athlete has done
+            and how it went; Weekly Reviews are reached from there). */}
+        <Link
+          to="/my-practice"
+          className="mt-3 flex items-center gap-3.5 min-h-[68px] rounded-[22px] bg-[#1B3FD1] text-white px-4 py-2.5 active:scale-[0.99] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+        >
+          <PracticeLogArt />
+          <span className="flex-1 min-w-0">
+            <span className="block text-[15px] font-extrabold">{t.myPractice.name}</span>
+            <span className="block text-[12.5px] text-white/90">{t.myPractice.desc}</span>
+          </span>
+          <ChevronRight size={18} strokeWidth={2.4} aria-hidden="true" />
+        </Link>
+
+        <Link
+          to="/weekly-reviews"
+          className="mt-2.5 flex items-center gap-3.5 min-h-[60px] rounded-[22px] bg-dark-400 text-ink px-4 py-2.5 active:scale-[0.99] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+        >
+          <span className="flex-1 min-w-0">
+            <span className="block text-[15px] font-extrabold">{tt.weekly.name}</span>
+            <span className="block text-[12.5px] text-slt">{tt.weekly.desc}</span>
+          </span>
+          <ChevronRight size={18} strokeWidth={2.4} aria-hidden="true" />
+        </Link>
+
+      </main>
+    </div>
+  );
+}

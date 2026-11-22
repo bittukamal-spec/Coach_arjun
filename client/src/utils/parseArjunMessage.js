@@ -83,14 +83,14 @@ const RAW_APP_TOOL_CONFIG = {
     route: '/focus-deck',
   },
   'train': {
-    label: 'Train',
+    label: 'Tools',
     sub: 'Your mental training toolkit',
     why: 'Find the right tool for what you need right now.',
-    cta: 'Open Train',
+    cta: 'Open Tools',
     icon: 'Dumbbell',
     iconColor: '#1B4DFF',
     bgColor: '#EBF3FC',
-    route: '/train',
+    route: '/tools',
   },
   'skill-focus-self-talk': {
     label: 'Focus / Focus Words',

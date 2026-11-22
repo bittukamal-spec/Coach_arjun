@@ -18,6 +18,7 @@ import RitualPage from './pages/RitualPage';
 import StartingProfilePage from './pages/StartingProfilePage';
 import PerformanceCheckinPage from './pages/PerformanceCheckinPage';
 import TrainPage from './pages/TrainPage';
+import ToolsPage from './pages/ToolsPage';
 import DebriefRedirect from './pages/DebriefRedirect';
 import FocusLockGame from './pages/games/FocusLockGame';
 import ResetRallyGame from './pages/games/ResetRallyGame';
@@ -187,8 +188,8 @@ function App() {
       />
 
       {/* Before You Play + Bounce Back removed — retired for MVP, redirect to Train */}
-      <Route path="/bounce-back" element={<Navigate to="/train" replace />} />
-      <Route path="/before-you-play" element={<Navigate to="/train" replace />} />
+      <Route path="/bounce-back" element={<Navigate to="/tools" replace />} />
+      <Route path="/before-you-play" element={<Navigate to="/tools" replace />} />
       {/* Standalone Breathing tool folded into Pressure Reset (Body Reset) — redirect to keep old links/bookmarks alive */}
       <Route path="/breathing" element={<Navigate to="/body-reset" replace />} />
       <Route
@@ -206,7 +207,7 @@ function App() {
           the reflection flow, everything else lands on the journal. */}
       <Route path="/debrief" element={<DebriefRedirect />} />
       {/* Games hub folded into Train — redirect to keep old links/bookmarks alive */}
-      <Route path="/games" element={<Navigate to="/train" replace />} />
+      <Route path="/games" element={<Navigate to="/tools" replace />} />
       {/* Mental Reps games — full screen, no BottomNav */}
       <Route
         path="/games/focus-lock"
@@ -318,6 +319,17 @@ function App() {
         element={
           <ProtectedRoute requireOnboarding={true}>
             <TrainPage />
+            <BottomNav />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Tools tab — the practices to repeat on your own (Nov 2026) */}
+      <Route
+        path="/tools"
+        element={
+          <ProtectedRoute requireOnboarding={true}>
+            <ToolsPage />
             <BottomNav />
           </ProtectedRoute>
         }

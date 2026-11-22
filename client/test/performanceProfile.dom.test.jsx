@@ -1037,19 +1037,17 @@ test('the saved profile mounts the app navigation, exactly once', async () => {
   expect(screen.getAllByRole('navigation')).toHaveLength(1);
 });
 
-test('the Profile item is the active one while on /starting-profile', async () => {
+test('no tab is active on /starting-profile — Profile opens from the account menu', async () => {
   renderPage();
   await screen.findByRole('heading', { level: 1, name: 'Your Performance Profile' });
-  const current = within(navBar()).getByRole('link', { current: 'page' });
-  expect(current.getAttribute('href')).toBe('/starting-profile');
-  expect(current.textContent).toContain('Profile');
+  expect(within(navBar()).queryByRole('link', { current: 'page' })).toBeNull();
 });
 
 test('the navigation keeps its four destinations, and Settings is not one of them', async () => {
   renderPage();
   await screen.findByRole('heading', { level: 1, name: 'Your Performance Profile' });
   const hrefs = within(navBar()).getAllByRole('link').map((a) => a.getAttribute('href'));
-  expect(hrefs).toEqual(['/dashboard', '/train', '/coaching', '/starting-profile']);
+  expect(hrefs).toEqual(['/dashboard', '/train', '/coaching', '/tools']);
   // Account/Settings stays in the avatar menu, never promoted into the bar.
   expect(hrefs).not.toContain('/account');
   expect(hrefs).not.toContain('/playbook');
@@ -1061,7 +1059,7 @@ test('consent-pending keeps the navigation but drops the coaching action from th
   await screen.findByText('Waiting for parent/guardian consent');
   // The bar is a property of being on a saved profile, not of consent.
   expect(navBar()).toBeTruthy();
-  expect(within(navBar()).getByRole('link', { current: 'page' }).getAttribute('href')).toBe('/starting-profile');
+  expect(within(navBar()).getAllByRole('link')).toHaveLength(4);
   // No coaching route at all — absent, never a disabled control.
   expect(screen.queryByRole('button', { name: 'Continue coaching' })).toBeNull();
   expect(screen.queryByRole('button', { name: 'Start with Arjun' })).toBeNull();

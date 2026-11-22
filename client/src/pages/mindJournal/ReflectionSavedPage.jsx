@@ -6,6 +6,7 @@ import { translations } from '../../i18n/translations';
 import { Card, PageHeader, Button } from '../../components/ui';
 import { guidedPreview, stateTagsForEntry, contextLabelForEntry } from './constants';
 import { useMindJournalBack } from './shared';
+import { fromPath } from '../../utils/practiceReturn';
 
 // ─── Reflection saved — a plain confirmation, deliberately quiet. No score,
 // no rank, no comparison to last time, no reward animation: the reflection
@@ -130,7 +131,7 @@ export default function ReflectionSavedPage() {
         </Card>
 
         <Button
-          onClick={() => navigate('/mind-journal', { replace: true })}
+          onClick={() => navigate(fromPath() ? '/train' : '/mind-journal', { replace: true })}
           className="w-full mb-3"
         >
           {saved.doneBtn}

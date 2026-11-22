@@ -4,6 +4,7 @@ import { ChevronRight } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePath, pathText, CHAPTER_LOOK, STEP_ORDER, nextHref, nextStepText, takeNewlyFinished } from '../path/pathData';
 import { useMindChallenge } from '../path/mindChallengeData';
+import { markFromPath } from '../../utils/practiceReturn';
 
 // Home "Your next step" (Hook Model trigger + one-tap action): the one thing
 // to do next on the athlete's path. Hidden while the Mind Challenge card is
@@ -27,6 +28,7 @@ export default function PathNextCard() {
   return (
     <Link
       to={nextHref(chapterKey, stepKey, t)}
+      onClick={markFromPath}
       data-testid="home-path-next"
       className="mb-3 flex items-center gap-3 rounded-[22px] border-2 border-sun bg-dark-400 px-3.5 py-3 active:scale-[0.99] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
     >

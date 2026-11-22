@@ -75,7 +75,7 @@ function GameResult({ score, stats = [], insight, limitReached, onPlayAgain, xpE
             </button>
           )}
           <Link
-            to="/train"
+            to="/tools"
             className="block w-full text-center font-semibold py-4 rounded-xl bg-dark-700 text-ink active:scale-[0.98] transition-transform"
             style={{ minHeight: '56px' }}
           >

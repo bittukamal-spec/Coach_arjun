@@ -10,6 +10,7 @@ import { translations } from '../i18n/translations';
 import HelplineList from '../components/HelplineList';
 import { PracticeHeader, PracticeIntro } from '../components/practice/PracticeShell';
 import { FocusArt } from '../components/visuals/TrainArt';
+import { practiceHome } from '../utils/practiceReturn';
 
 export default function SelfTalkPage() {
   const { user, token, language } = useAuth();
@@ -100,7 +101,7 @@ export default function SelfTalkPage() {
   }, [screen, practiceStep]);
 
   const goBack = () => {
-    if (screen === 1) { navigate('/train'); return; }
+    if (screen === 1) { navigate(practiceHome()); return; }
     if (screen === 'practice') { setScreen(7); return; }
     if (screen === 'done') { setScreen('practice'); return; }
     if (typeof screen === 'number') setScreen(s => s - 1);
@@ -418,7 +419,7 @@ export default function SelfTalkPage() {
           <div className="mb-6">
             <HelplineList />
           </div>
-          <button onClick={() => navigate('/train')} className="w-full min-h-[52px] bg-dark-400 text-ink font-bold rounded-[18px] active:scale-95">
+          <button onClick={() => navigate(practiceHome())} className="w-full min-h-[52px] bg-dark-400 text-ink font-bold rounded-[18px] active:scale-95">
             {t.safety.backBtn}
           </button>
         </div>

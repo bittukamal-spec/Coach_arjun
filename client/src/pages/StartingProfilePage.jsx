@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import PathSection from '../components/path/PathSection';
+import { ProfilePathLink } from '../components/path/PathSection';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   ChevronLeft, ChevronRight, ArrowRight, Activity, User as UserIcon, Trophy,
@@ -251,8 +251,8 @@ export default function StartingProfilePage() {
           </div>
         )}
 
-        {/* Learning path — the athlete's road and next step (docs/PATH-STRATEGY.md) */}
-        {savedMode && <div className="mb-6"><PathSection /></div>}
+        {/* Mind Stats + a row to the learning path, which lives on Train */}
+        {savedMode && <div className="mb-6"><ProfilePathLink /></div>}
 
         <h1 className={savedMode ? 'text-[14px] font-extrabold text-ink mb-2' : 'text-title font-bold text-ink mb-3'}>
           {savedMode ? t.savedTitleShort : t.summaryTitle}

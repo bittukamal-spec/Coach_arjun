@@ -6,7 +6,7 @@ import { usePushNotifications } from '../hooks/usePushNotifications';
 import { translations } from '../i18n/translations';
 import { HINDI_ENABLED } from '../i18n/languages';
 import { ArjunWordmark } from './ArjunLogo';
-import { User, ChevronDown, Bell } from 'lucide-react';
+import { User, ChevronDown, Bell, UserCircle } from 'lucide-react';
 
 function getInitials(name = '') {
   const parts = name.trim().split(/\s+/);
@@ -96,6 +96,15 @@ function Navbar({ bare = false }) {
 
             {menuOpen && (
               <div className="absolute right-0 top-full mt-2 bg-dark-800 border border-dark-600 rounded-2xl shadow-card w-52 z-50 overflow-hidden animate-fade-in">
+                {/* My profile — the Performance Profile moved here from the
+                    bottom nav (Nov 2026: Home · Train · Arjun · Tools). */}
+                <button
+                  onClick={() => { navigate('/starting-profile', { state: { entryMode: 'saved-profile' } }); setMenuOpen(false); }}
+                  className="w-full px-4 py-3 text-left text-sm font-bold text-ink hover:bg-dark-700 transition-colors flex items-center gap-3 border-b border-dark-700"
+                >
+                  <UserCircle size={14} className="text-slt shrink-0" />
+                  {t.myProfile}
+                </button>
                 {/* Language toggle — hidden while Hindi is switched off (i18n/languages.js) */}
                 {HINDI_ENABLED && (
                   <div className="px-4 py-3 border-b border-dark-700">
