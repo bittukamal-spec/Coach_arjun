@@ -10,6 +10,7 @@ Read at the start of every session. Verified against the code on **2026-10-21** 
 - Live URL: `coacharjun.in`. Currently in a **free pilot** (founder grants pilot access per athlete).
 - Solo non-technical founder. India market. ₹299/month after the pilot.
 - Explain things to the founder in plain language, short, with tables/lists.
+- **Design rule (founder, Nov 2026): build everything with the Hook Model** (Trigger → Action → Variable reward → Investment → next trigger). Guard rails: no streaks/rankings/fake urgency; habit for training, not screen time. Details: `docs/PATH-STRATEGY.md`.
 - **Language (decided Nov 2026): English-first, India only.** Screens are English; Coach understands Hinglish and replies in Hinglish (English letters) when the athlete writes that way. Hindi UI is switched off via `client/src/i18n/languages.js` (`HINDI_ENABLED = false`) — Hindi strings stay in translations.js but **new features need English copy only**; keep Hindi keys working only where tests require parity. Safety detection stays Hinglish-aware.
 
 ## 2. TECH STACK

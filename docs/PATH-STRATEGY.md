@@ -36,3 +36,17 @@ The path map lives on Profile: chapters as a road, "You are here", current chapt
 4. Arjun knows the path and recommends the next step
 
 Already in the app that this reuses: onboarding + performance check-in, skill paths (learn + quick check), Train drills, Arjun's practice → "did it help?" loop, Mind Journal, Weekly reviews, My practice.
+
+## Build rule: the Hook Model (founder, 22 Nov 2026)
+Everything is designed with Nir Eyal's **Hook Model**: **Trigger → Action → Variable reward → Investment**, and each investment loads the next trigger.
+
+| Phase | In Arjun |
+|---|---|
+| Trigger | Outside: Home cards, a reminder before a match, "rematch ready". Inside (the habit we want): feeling nervous / after a mistake → open Arjun. |
+| Action | One tap, short (≤4 min), no typing needed to start. |
+| Variable reward | Self: skill reveals and level-ups in the Mind Challenge, Arjun's personal reply. Hunt: what's the next chapter / my level? Tribe: share the Mind Stats card. |
+| Investment | Goal skill, next match date, Focus Cards, routines, journal lines, Arjun's memory — each makes the app more personal and sets up the next trigger. |
+
+Guard rails (users are 14–25, many under 18): no streaks or streak shame, no rankings against others, no fake urgency or countdowns, honest copy, reminders the athlete controls. Hooks build a *training habit*, not screen time.
+
+Mind Challenge mock-ups with the loop: canvas row "Mind Challenge × Hook Model" (H1 Trigger, H2 Reward, H3 Investment, H4 Next trigger).
