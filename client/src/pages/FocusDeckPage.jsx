@@ -119,7 +119,7 @@ export default function FocusDeckPage() {
   );
 
   return (
-    <div className="min-h-screen bg-tonepage-coral pb-[calc(7.5rem+env(safe-area-inset-bottom))]">
+    <div className="min-h-screen bg-tonepage-coral pb-[calc(7.5rem+env(safe-area-inset-bottom))] [&>*]:mx-auto [&>*]:max-w-lg">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-4 pb-3 sticky top-0 bg-tonepage-coral z-10">
         <button onClick={() => navigate('/train')} aria-label="Back" className="w-11 h-11 flex items-center justify-center rounded-2xl bg-dark-400 active:scale-95">
@@ -277,7 +277,7 @@ export default function FocusDeckPage() {
                   <button
                     disabled={actionLoading === card.id}
                     onClick={() => patch(card.id, { isMatchDayCard: false, matchDayContext: null })}
-                    className="text-xs font-semibold text-muted bg-dark-700 px-3 py-1.5 rounded-xl active:scale-95 disabled:opacity-50 mr-2"
+                    className="text-xs font-semibold text-muted bg-dark-700 px-3.5 min-h-[44px] rounded-xl active:scale-95 disabled:opacity-50 mr-2"
                   >
                     {hi ? 'Match Day से हटाओ' : 'Remove from match day'}
                   </button>
@@ -292,14 +292,14 @@ export default function FocusDeckPage() {
                           key={ctx.key}
                           disabled={actionLoading === card.id}
                           onClick={() => setMatchDay(card.id, ctx.key)}
-                          className="text-xs font-semibold text-brand-400 bg-brand-500/10 border border-brand-500/30 px-3 py-1.5 rounded-xl active:scale-95 disabled:opacity-50"
+                          className="text-xs font-semibold text-brand-400 bg-brand-500/10 border border-brand-500/30 px-3.5 min-h-[44px] rounded-xl active:scale-95 disabled:opacity-50"
                         >
                           {hi ? ctx.labelHi : ctx.labelEn}
                         </button>
                       ))}
                       <button
                         onClick={() => setContextMenuId(null)}
-                        className="text-xs font-semibold text-muted bg-dark-700 px-3 py-1.5 rounded-xl active:scale-95"
+                        className="text-xs font-semibold text-muted bg-dark-700 px-3.5 min-h-[44px] rounded-xl active:scale-95"
                       >
                         {hi ? 'रद्द' : 'Cancel'}
                       </button>
@@ -310,7 +310,7 @@ export default function FocusDeckPage() {
                     <button
                       disabled={actionLoading === card.id}
                       onClick={() => setContextMenuId(card.id)}
-                      className="text-xs font-semibold text-brand-400 bg-brand-500/10 px-3 py-1.5 rounded-xl active:scale-95 disabled:opacity-50"
+                      className="text-xs font-semibold text-brand-400 bg-brand-500/10 px-3.5 min-h-[44px] rounded-xl active:scale-95 disabled:opacity-50"
                     >
                       {hi ? 'Match day के लिए use करो' : 'Use for match day'}
                     </button>
@@ -322,13 +322,13 @@ export default function FocusDeckPage() {
                         <button
                           disabled={actionLoading === card.id}
                           onClick={() => deleteCard(card.id)}
-                          className="text-xs font-semibold text-white bg-red-600 px-3 py-1.5 rounded-xl active:scale-95 disabled:opacity-50"
+                          className="text-xs font-semibold text-white bg-red-600 px-3.5 min-h-[44px] rounded-xl active:scale-95 disabled:opacity-50"
                         >
                           {hi ? 'हाँ' : 'Yes'}
                         </button>
                         <button
                           onClick={() => setDeleteConfirmId(null)}
-                          className="text-xs font-semibold text-muted bg-dark-700 px-3 py-1.5 rounded-xl active:scale-95"
+                          className="text-xs font-semibold text-muted bg-dark-700 px-3.5 min-h-[44px] rounded-xl active:scale-95"
                         >
                           {hi ? 'नहीं' : 'No'}
                         </button>
@@ -337,7 +337,7 @@ export default function FocusDeckPage() {
                       <button
                         disabled={actionLoading === card.id}
                         onClick={() => setDeleteConfirmId(card.id)}
-                        className="text-xs font-semibold text-red-400 bg-dark-700 px-3 py-1.5 rounded-xl active:scale-95 disabled:opacity-50"
+                        className="text-xs font-semibold text-red-400 bg-dark-700 px-3.5 min-h-[44px] rounded-xl active:scale-95 disabled:opacity-50"
                       >
                         {hi ? 'हटाओ' : 'Delete'}
                       </button>
@@ -351,11 +351,11 @@ export default function FocusDeckPage() {
                     {deleteConfirmId === card.id ? (
                       <>
                         <span className="text-xs text-red-400 self-center">{hi ? 'हटाएं?' : 'Delete?'}</span>
-                        <button disabled={actionLoading === card.id} onClick={() => deleteCard(card.id)} className="text-xs font-semibold text-white bg-red-600 px-3 py-1.5 rounded-xl active:scale-95 disabled:opacity-50">{hi ? 'हाँ' : 'Yes'}</button>
-                        <button onClick={() => setDeleteConfirmId(null)} className="text-xs font-semibold text-muted bg-dark-700 px-3 py-1.5 rounded-xl active:scale-95">{hi ? 'नहीं' : 'No'}</button>
+                        <button disabled={actionLoading === card.id} onClick={() => deleteCard(card.id)} className="text-xs font-semibold text-white bg-red-600 px-3.5 min-h-[44px] rounded-xl active:scale-95 disabled:opacity-50">{hi ? 'हाँ' : 'Yes'}</button>
+                        <button onClick={() => setDeleteConfirmId(null)} className="text-xs font-semibold text-muted bg-dark-700 px-3.5 min-h-[44px] rounded-xl active:scale-95">{hi ? 'नहीं' : 'No'}</button>
                       </>
                     ) : (
-                      <button disabled={actionLoading === card.id} onClick={() => setDeleteConfirmId(card.id)} className="text-xs font-semibold text-red-400 bg-dark-700 px-3 py-1.5 rounded-xl active:scale-95 disabled:opacity-50">{hi ? 'हटाओ' : 'Delete'}</button>
+                      <button disabled={actionLoading === card.id} onClick={() => setDeleteConfirmId(card.id)} className="text-xs font-semibold text-red-400 bg-dark-700 px-3.5 min-h-[44px] rounded-xl active:scale-95 disabled:opacity-50">{hi ? 'हटाओ' : 'Delete'}</button>
                     )}
                   </div>
                 )}
