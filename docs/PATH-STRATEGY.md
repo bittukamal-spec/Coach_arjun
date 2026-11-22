@@ -2,7 +2,7 @@
 
 Status: direction agreed with the founder (21–22 Nov 2026). Mock-ups: claude.ai artifact "Arjun path & Mind Challenge".
 
-**Built so far:** Step 1 — the path on Profile, chapter page, 2-minute lessons for all 6 chapters (first drafts in `translations.en.path` — **to be reviewed by a sport psychologist**), API `/api/path` (Nov 2026). **Next:** Step 2 (more lessons per chapter), Step 3 (Mind Challenge + Mind Stats card), Step 4 (Arjun knows the path).
+**Built so far:** Step 1 — the path on Profile, chapter page, 2-minute lessons for all 6 chapters (first drafts in `translations.en.path` — **to be reviewed by a sport psychologist**), API `/api/path` (Nov 2026). Step 3 — Mind Challenge + Mind Stats card + Home trigger + investment screen (Nov 2026; questions = first draft for sport-psych review). **Next:** see `docs/HOOK-AUDIT.md` order (Home next step, Arjun knows the path + next match, play hand-off, reminders), then Step 2 (more lessons).
 
 ## Why
 Athletes start below beginner level in mental training. Four separate tabs (chat, drills, courses, tests) would leave them lost. So everything becomes **one guided path** with one "Next" button.
@@ -36,3 +36,17 @@ The path map lives on Profile: chapters as a road, "You are here", current chapt
 4. Arjun knows the path and recommends the next step
 
 Already in the app that this reuses: onboarding + performance check-in, skill paths (learn + quick check), Train drills, Arjun's practice → "did it help?" loop, Mind Journal, Weekly reviews, My practice.
+
+## Build rule: the Hook Model (founder, 22 Nov 2026)
+Everything is designed with Nir Eyal's **Hook Model**: **Trigger → Action → Variable reward → Investment**, and each investment loads the next trigger.
+
+| Phase | In Arjun |
+|---|---|
+| Trigger | Outside: Home cards, a reminder before a match, "rematch ready". Inside (the habit we want): feeling nervous / after a mistake → open Arjun. |
+| Action | One tap, short (≤4 min), no typing needed to start. |
+| Variable reward | Self: skill reveals and level-ups in the Mind Challenge, Arjun's personal reply. Hunt: what's the next chapter / my level? Tribe: share the Mind Stats card. |
+| Investment | Goal skill, next match date, Focus Cards, routines, journal lines, Arjun's memory — each makes the app more personal and sets up the next trigger. |
+
+Guard rails (users are 14–25, many under 18): no streaks or streak shame, no rankings against others, no fake urgency or countdowns, honest copy, reminders the athlete controls. Hooks build a *training habit*, not screen time.
+
+Mind Challenge mock-ups with the loop: canvas row "Mind Challenge × Hook Model" (H1 Trigger, H2 Reward, H3 Investment, H4 Next trigger).

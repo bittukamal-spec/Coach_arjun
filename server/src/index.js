@@ -92,6 +92,7 @@ app.use('/api/plan',            require('./routes/plan'));
 app.use('/api/mental-rep',      require('./routes/mentalRep'));
 app.use('/api/playbook',        require('./routes/playbook'));
 app.use('/api/path',            require('./routes/path'));
+app.use('/api/mind-challenge',  require('./routes/mindChallenge'));
 app.use('/api/prescriptions',   require('./routes/prescriptions'));
 app.use('/api/founder',         require('./routes/founder'));
 app.use('/api/founder/auth',            require('./routes/founderAuth'));

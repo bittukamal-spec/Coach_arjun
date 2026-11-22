@@ -3,6 +3,7 @@ import { Check, Lock, ChevronRight } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import Teer from '../visuals/Teer';
 import { usePath, pathText, CHAPTER_LOOK, STEP_ORDER, nextHref, nextLabel } from './pathData';
+import { SKILLS, SKILL_BAR, challengeText, daysUntil, useMindChallenge } from './mindChallengeData';
 
 // "Your path" on the Profile page: the chapters as a short road, the current
 // chapter with its 4 steps, and one Next button (docs/PATH-STRATEGY.md).
@@ -10,6 +11,8 @@ export default function PathSection() {
   const { language } = useAuth();
   const t = pathText(language);
   const { path, error, reload } = usePath();
+  const c = challengeText(language);
+  const { state: mc } = useMindChallenge();
 
   if (error) {
     return (
@@ -26,6 +29,31 @@ export default function PathSection() {
 
   return (
     <section aria-labelledby="path-title" data-testid="profile-path">
+      {mc && (
+        <Link to="/mind-challenge" data-testid="profile-mind-stats" className="mb-5 flex items-center gap-3 rounded-[22px] bg-inkblock px-4 py-3.5 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
+          {mc.latest ? (
+            <>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[11px] font-bold uppercase tracking-[0.12em] text-sun">Mind Stats</span>
+                <span className="block text-[18px] font-extrabold">{c.card.mindLevel} {mc.latest.mindLevel}</span>
+                <span className="mt-1.5 grid h-[30px] grid-cols-6 items-end gap-1.5" aria-hidden="true">
+                  {SKILLS.map(s => <span key={s} className={`rounded-[4px] ${SKILL_BAR[s]}`} style={{ height: `${mc.latest.levels[s] * 20}%` }} />)}
+                </span>
+              </span>
+              <span className="text-right text-[13px] font-bold">{c.card.nextIn(daysUntil(mc.nextAt))}</span>
+            </>
+          ) : (
+            <>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[11px] font-bold uppercase tracking-[0.12em] text-sun">{c.name}</span>
+                <span className="block text-[17px] font-extrabold leading-snug">{c.profileUnlock}</span>
+                <span className="block text-[13px] text-white/75">{c.profileUnlockLine}</span>
+              </span>
+              <Teer pose="point" height={76} className="shrink-0" />
+            </>
+          )}
+        </Link>
+      )}
       <div className="flex items-baseline justify-between">
         <h2 id="path-title" className="text-[20px] font-extrabold text-ink">{t.title}</h2>
         {!path.finished && <span className="text-[13px] text-slt">{t.chapterOf(currentIndex + 1, total)}</span>}

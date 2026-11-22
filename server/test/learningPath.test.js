@@ -125,3 +125,64 @@ test('API: needs sign-in, validates steps and only opens the current chapter', a
     assert.deepEqual(ok.next, { chapterKey: 'calm', stepKey: 'practise' });
   });
 });
+
+// ── Mind Challenge ─────────────────────────────────────────────────────────
+const { levelFromPoints, cleanPoints, scoreChallenge, createMindChallengeStore, REMATCH_DAYS } = require('../src/services/path/mindChallenge');
+const { reorderForGoal } = require('../src/services/path/pathService');
+const { createMindChallengeRouter } = require('../src/routes/mindChallenge');
+
+test('Mind Challenge: points map to Level 1–5, and the card picks strongest + grow-first', () => {
+  assert.deepEqual([0, 1, 2, 3, 4, 5, 6].map(levelFromPoints), [1, 1, 2, 3, 3, 4, 5]);
+  const r = scoreChallenge({ calm: 3, focus: 6, confidence: 4, routine: 1, bounce: 3, picture: 2 });
+  assert.equal(r.levels.focus, 5);
+  assert.equal(r.strongest, 'focus');
+  assert.equal(r.growFirst, 'routine');
+  assert.equal(r.mindLevel, 3);
+  assert.equal(cleanPoints({ calm: 7 }), null, 'out of range or missing skills are refused');
+});
+
+test('goal chapter moves first before any step, otherwise right after the current chapter', () => {
+  const order = ['calm', 'focus', 'confidence', 'routine', 'bounce', 'picture'];
+  assert.equal(reorderForGoal(order, [], 'routine')[0], 'routine');
+  const started = [{ chapterKey: 'calm', stepKey: 'learn', doneAt: at(10) }];
+  assert.deepEqual(reorderForGoal(order, started, 'routine').slice(0, 3), ['calm', 'routine', 'focus']);
+  assert.deepEqual(reorderForGoal(order, started, 'calm'), order, 'the current chapter never moves');
+});
+
+function fakeMcPrisma() {
+  const rows = [];
+  return {
+    rows,
+    mindChallengeResult: {
+      findMany: async ({ take }) => [...rows].sort((a, b) => b.createdAt - a.createdAt).slice(0, take),
+      findFirst: async () => [...rows].sort((a, b) => b.createdAt - a.createdAt)[0] || null,
+      create: async ({ data }) => { const r = { id: `r${rows.length}`, createdAt: new Date(), ...data }; rows.push(r); return r; },
+      update: async ({ where, data }) => Object.assign(rows.find(r => r.id === where.id), data),
+    },
+  };
+}
+
+test('API: one challenge per 4 weeks; the goal is saved and moves that chapter up', async () => {
+  const prisma = fakeMcPrisma();
+  const store = createMindChallengeStore(prisma);
+  const prioritised = [];
+  const app = express();
+  app.use(express.json());
+  app.use('/api/mind-challenge', createMindChallengeRouter({ store, pathStore: { prioritise: async (u, k) => prioritised.push(k) } }));
+  const server = await new Promise(r => { const s = app.listen(0, '127.0.0.1', () => r(s)); });
+  const base = `http://127.0.0.1:${server.address().port}/api/mind-challenge`;
+  const auth = { Authorization: `Bearer ${jwt.sign({ userId: 'u1' }, SECRET)}`, 'Content-Type': 'application/json' };
+  const points = { calm: 3, focus: 6, confidence: 4, routine: 1, bounce: 3, picture: 2 };
+  try {
+    assert.equal((await (await fetch(base, { headers: auth })).json()).canTake, true);
+    assert.equal((await fetch(base, { method: 'POST', headers: auth, body: JSON.stringify({ points: { calm: 9 } }) })).status, 400);
+    const saved = await (await fetch(base, { method: 'POST', headers: auth, body: JSON.stringify({ points }) })).json();
+    assert.equal(saved.latest.levels.focus, 5);
+    assert.equal(saved.canTake, false);
+    assert.equal(Math.round((new Date(saved.nextAt) - new Date(saved.latest.createdAt)) / 86400000), REMATCH_DAYS);
+    assert.equal((await fetch(base, { method: 'POST', headers: auth, body: JSON.stringify({ points }) })).status, 409);
+    const goal = await (await fetch(`${base}/latest/goal`, { method: 'PATCH', headers: auth, body: JSON.stringify({ focusSkill: 'routine', nextMatch: 'next_week' }) })).json();
+    assert.equal(goal.latest.focusSkill, 'routine');
+    assert.deepEqual(prioritised, ['routine']);
+  } finally { await new Promise(r => server.close(r)); }
+});

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import MindChallengeHomeCard from '../components/home/MindChallengeHomeCard';
 import Navbar from '../components/Navbar';
 import ConsentBanner from '../components/ConsentBanner';
 import { useAuth } from '../contexts/AuthContext';
@@ -80,6 +81,9 @@ export default function Dashboard() {
 
         {/* ── THIS WEEK — plain counts, no streaks or scores ───────────── */}
         <ThisWeekStrip />
+
+        {/* ── MIND CHALLENGE — Hook Model trigger; only when one can be played */}
+        <MindChallengeHomeCard />
 
         {/* ── YOUR PRACTICE FROM ARJUN — the blue block, only when Coach has
              already given a practice and no final result is reported yet.
