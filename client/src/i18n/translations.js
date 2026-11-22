@@ -114,7 +114,7 @@ export const translations = {
         { title: 'Made from real sport psychology', text: 'Every tip comes from methods top athletes use: breathing, focus cues, self-talk and routines.' },
         { title: 'Knows its limits', text: 'Arjun coaches your game. For anything bigger, it points you to real experts and helplines.' },
         { title: 'Parents in the loop', text: 'Under 18? A parent says yes before you start.' },
-        { title: 'Your space, only yours', text: 'What you share stays with you. No ads, ever.' },
+        { title: 'Your space, only yours', text: 'What you share with Arjun stays private to you.' },
       ],
       freeTitleLead: 'Start for',
       freeTitleWord: 'free',
