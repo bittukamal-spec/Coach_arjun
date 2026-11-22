@@ -46,6 +46,8 @@ import ResetHistoryPage from './pages/ResetHistoryPage';
 import MentalRepPage from './pages/MentalRepPage';
 import WeeklyReviewsPage from './pages/WeeklyReviewsPage';
 import MyPracticePage from './pages/MyPracticePage';
+import PathChapterPage from './pages/PathChapterPage';
+import PathLessonPage from './pages/PathLessonPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import BottomNav from './components/BottomNav';
 import AppUpdatePrompt from './components/AppUpdatePrompt';
@@ -372,6 +374,23 @@ function App() {
           <ProtectedRoute requireOnboarding={true}>
             <MyPracticePage />
             <BottomNav />
+          </ProtectedRoute>
+        }
+      />
+      {/* Learning path (docs/PATH-STRATEGY.md) — full-screen flows, no bottom nav */}
+      <Route
+        path="/path/:chapterKey"
+        element={
+          <ProtectedRoute requireOnboarding={true}>
+            <PathChapterPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/path/:chapterKey/learn"
+        element={
+          <ProtectedRoute requireOnboarding={true}>
+            <PathLessonPage />
           </ProtectedRoute>
         }
       />

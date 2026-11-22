@@ -29,7 +29,7 @@ Read at the start of every session. Verified against the code on **2026-10-21** 
 - `server/src/services/safety/` — deterministic safety screen (`screenSafetyText`), `recordSafetyEvent`, fixed guidance (`safetyMessages.js`)
 - `server/src/middleware/requireGuardianConsent.js` — blocks coaching endpoints for under-18s until a guardian consents
 - `server/src/routes/auth.js:15` — `SAFE_SELECT` — user fields safe to return
-- `server/prisma/schema.prisma` — 38 models (additive changes only)
+- `server/prisma/schema.prisma` — 40 models (additive changes only)
 - `server/src/index.js` — all route mounts, CORS allowlist, starts the push scheduler
 - `client/src/App.jsx` — all routes + redirects of retired pages
 - `client/src/i18n/translations.js` — every UI string, EN + HI (~4,400 lines — grep the namespace first). `client/src/i18n/languages.js` — `HINDI_ENABLED` switch
@@ -38,7 +38,7 @@ Read at the start of every session. Verified against the code on **2026-10-21** 
 - `client/tailwind.config.js` / `client/src/index.css` — design tokens + theme system
 - `client/src/api.js` — `apiFetch()` returns the raw Response; always `.then(r => r.json())`
 
-## 4. DATABASE MODELS (38)
+## 4. DATABASE MODELS (40)
 
 Additive changes only — never drop/rename. User has 30 relations; all cascade on user delete except as noted.
 
@@ -47,6 +47,7 @@ Additive changes only — never drop/rename. User has 30 relations; all cascade 
 - **Onboarding/profile:** `OnboardingSession`, `ActiveOnboardingSession`, `StartingPerformanceProfile`, `StartingProfileWording`
 - **Tools & records:** `MindJournalEntry`, `ToolReport`, `SelfTalkCard`, `BodyResetSession` (Pressure Reset), `Routine` + `RitualLegacyImport` (Ritual), `Debrief`, `GameSession`, `WeeklyReport`
 - **Safety & ops:** `SafetyEvent` (structured fields only, no message content; founder review status), `ProcessedWebhookEvent` (Razorpay dedup), `PilotCommunication` + `Target` + `Response`, `PushNotificationPreference`, `PushSubscription`, `FounderEmailCampaign`, `FounderEmailDelivery`
+- **Learning path (Nov 2026):** `PathProgress` (one per athlete: chapter `order` JSON, `startedAt`), `PathStep` (finished steps: chapterKey × stepKey learn/practise/play/reflect, `outcome` helped/tried for play; unique per user+chapter+step). Both cascade on user delete.
 - **Legacy, still in schema:** `CheckIn`, `MentalFitnessEntry`, `UserAchievement`, `DrillCompletion` (no route writes `CheckIn`/`DrillCompletion` any more)
 - `Routine`: steps JSON `[{id,kind,instruction,cue,origin}]`, max 5 per user under a User-row lock (`services/routines/routineStore.js`). `RitualLegacyImport` keeps legacy `User.ritualName/ritualSteps` mirrored to the imported routine (Coach still reads those legacy fields).
 - ⚠️ `Message` has no `@@index` (slow history queries at scale).
@@ -69,6 +70,7 @@ Mounted in `server/src/index.js`. All need JWT (`authenticate` → `req.userId`)
 | `/api/skills` | GET :skillKey, POST :skillKey/learn, POST :skillKey/quick-check | |
 | `/api/mental-rep` | POST complete | Quick Rep |
 | `/api/mind-journal` | POST, GET, PATCH context, GET/DELETE :id | AI reflection review; Consent on read/write |
+| `/api/path` | GET, POST steps | Learning path (`services/path/`): GET builds the path (order from the starting-profile priority, one current chapter) and records practise/reflect earned from ToolReports, Routines and Mind Journal entries since the path started; POST marks learn/practise/play (play needs outcome helped/tried) on the current or a finished chapter only. No AI |
 | `/api/playbook` | GET | Feeds My practice (`/my-practice`); old `/playbook` URL still redirects to Home |
 | `/api/weekly-reports` | GET (lazy-generates last week) | AI; Consent, no Access |
 | `/api/debrief` | POST, GET | AI; Consent, no Access (UI retired → redirect) |
@@ -129,7 +131,7 @@ Bottom nav: **Home** (`/dashboard`) · **Train** (`/train`) · **Arjun** (= Coac
 | Train | `/train` | Four colour-block practice tiles (Ritual sky, Pressure Reset mint, Quick Rep sun, Focus Card Builder coral) — name only, all titles dark ink, drawing scales with screen height — + "My practice" row |
 | Coach | `/coaching` | Main chat (see §9). Header: 34px Teer logo, "Arjun", subtitle "Your AI mental coach" (the "not a therapist" disclosure stays on the entry screen + info popover); athlete = blue bubble, Arjun = card-surface bubble; prescribed practice = sun card |
 | Mind Journal | `/mind-journal` (+ `/quick`, `/new`, `/new/details`, `/context`, `/:id`) | Guided reflections + quick notes; replaces debrief, check-in and mental-fitness |
-| Starting profile | `/starting-profile` (+ `/check-in`) | Onboarding performance profile. Saved view opens with the athlete's name + sport, then the blue Current focus block, My Game, pressure sequence, what helps, strengths, and a row to My practice |
+| Starting profile | `/starting-profile` (+ `/check-in`) | Onboarding performance profile. Saved view opens with the athlete's name + sport, then **Your path** (`components/path/PathSection.jsx`: chapters as a list — done/current/locked — current chapter with its 4 step bars + Teer, one sun Next button → lesson `/path/:chapter/learn`, the drill, the chapter page `/path/:chapter` (play), or `/mind-journal/new` (reflect)), then the blue Current focus block, My Game, pressure sequence, what helps, strengths, and a row to My practice |
 | Ritual | `/ritual` | Up to 5 routines: list → detail (steps, when-to-use tip, "Talk to Arjun" prefill) → builder with "Suggest steps for me". "Practise this routine" = one-step-per-screen rehearsal (`components/ritual/RoutineRun.jsx`), saves/tracks nothing |
 | Pressure Reset | `/body-reset` (+ `/history`) | Shared practice shell. Opt-in sound + vibration breathing cues (`utils/breathCues.js`, off by default) |
 | Quick Rep | `/mental-rep` | Delivers prescribed practices; cue step offers the athlete's own Focus Card words first |
