@@ -159,7 +159,7 @@ test('the wordmark size presets are unchanged by the logo swap — same determin
 
 test('the public website header carries the Arjun mark next to the name', () => {
   assert.match(landing, /import \{ ArjunLogo \} from '\.\.\/components\/ArjunLogo';/);
-  assert.match(landing, /<ArjunLogo size=\{28\} \/>/);
+  assert.match(landing, /<ArjunLogo size=\{32\} className="shrink-0" \/>/);
   assert.doesNotMatch(landing, /ArjunLogo[^/]*rounded-/s);
 });
 

@@ -108,11 +108,14 @@ export const translations = {
         { label: 'Deep personal problems', arjun: false, inPerson: true },
       ],
       safeTitle: 'Is AI coaching safe?',
+      safeSub: 'Simple rules, built in from day one.',
+      // Each point: a short bold title + one plain line (easy to skim).
       safePoints: [
-        'Sport coaching, not therapy — and it says so.',
-        'If you seem unsafe, it stops and shows real helplines.',
-        'Under 18? A parent or guardian says yes first.',
-        'Private to you. No ads. Delete anytime.',
+        { title: 'Built on real sport psychology', text: 'Breathing, focus cues, self-talk and routines — methods sport psychologists have used with athletes for decades.' },
+        { title: 'Coaching, not therapy', text: 'Arjun helps with your game, and always says it is an AI coach — not a therapist or doctor.' },
+        { title: 'Stops when it is serious', text: 'If something serious comes up, Arjun pauses and shows real helplines: iCall, KIRAN and 112.' },
+        { title: 'Under 18? A parent says yes first', text: 'A parent or guardian agrees by email before coaching starts.' },
+        { title: 'Your chats stay private', text: 'No ads, never sold. Delete your chats or your whole account any time.' },
       ],
       freeTitleLead: 'Start for',
       freeTitleWord: 'free',
