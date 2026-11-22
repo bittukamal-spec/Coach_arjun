@@ -39,6 +39,20 @@ const PRACTISE_TOOL_TYPES = {
 const SELF_MARKED_STEPS = new Set(['learn', 'practise', 'play']);
 const PLAY_OUTCOMES = new Set(['helped', 'tried']);
 
+// Play plan (Hook fix 3): the moments an athlete can pick at the end of a
+// practice. The words live in the client; `cue` is their own cue word or
+// routine name (max 60 chars, safety-screened).
+const PLAN_MOMENTS = {
+  reset: ['before_start', 'after_mistake', 'big_moment'],
+  rep: ['after_miss', 'before_each', 'tight'],
+  ritual: ['next_training', 'next_match'],
+};
+const PLAN_NOTES = {
+  reset: { before_start: 'before they start: 3 slow breaths with a long out-breath', after_mistake: 'after a mistake: one long out-breath, then reset their feet', big_moment: 'in a big moment: a long out-breath before they go' },
+  rep: { after_miss: 'after a miss: say their cue word "{cue}" and focus on the next one', before_each: 'before each play: say their cue word "{cue}"', tight: 'when they feel tight: say "{cue}" and breathe out' },
+  ritual: { next_training: 'at their next training: run their routine "{cue}"', next_match: 'at their next match: run their routine "{cue}"' },
+};
+
 // Next match (Hook fix 2): how the athlete says the match went.
 const MATCH_FEELS = new Set(['well', 'mixed', 'tough']);
 const MATCH_USED = new Set(['helped', 'tried', 'forgot']);
@@ -64,4 +78,4 @@ function chapterOrderFor(priorityId) {
 }
 
 module.exports = {
-  MATCH_FEELS, MATCH_USED, CHAPTER_NOTES, STEP_NOTES, CHAPTERS, STEPS, PRIORITY_TO_CHAPTER, PRACTISE_TOOL_TYPES, SELF_MARKED_STEPS, PLAY_OUTCOMES, chapterOrderFor };
+  PLAN_MOMENTS, PLAN_NOTES, MATCH_FEELS, MATCH_USED, CHAPTER_NOTES, STEP_NOTES, CHAPTERS, STEPS, PRIORITY_TO_CHAPTER, PRACTISE_TOOL_TYPES, SELF_MARKED_STEPS, PLAY_OUTCOMES, chapterOrderFor };

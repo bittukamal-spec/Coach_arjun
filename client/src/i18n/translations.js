@@ -182,6 +182,42 @@ export const translations = {
       talkToArjun: 'Talk to Arjun about it',
       homeNextTag: (chapter, n) => `Your next step · ${chapter} ${n}/4`,
       homeNextReflect: 'Write one line about how it went',
+      plan: {
+        tag: 'Take it into play',
+        question: { reset: 'When will you use it next?', rep: 'When will you say it?', ritual: 'Run it for real next…' },
+        moments: {
+          reset: { before_start: () => 'Before I start', after_mistake: () => 'After a mistake', big_moment: () => 'Big moment' },
+          rep: { after_miss: () => 'After a miss', before_each: (unit) => `Before each ${unit}`, tight: () => 'When I feel tight' },
+          ritual: { next_training: () => 'Next training', next_match: () => 'Next match' },
+        },
+        text: {
+          reset: {
+            before_start: () => 'Before I start → 3 slow breaths, long out-breath.',
+            after_mistake: () => 'After a mistake → one long out-breath, then reset my feet.',
+            big_moment: () => 'Big moment → one long out-breath before I go.',
+          },
+          rep: {
+            after_miss: (cue, unit) => `After a miss → say “${cue}”, then focus on the next ${unit}.`,
+            before_each: (cue, unit) => `Before each ${unit} → say “${cue}”.`,
+            tight: (cue) => `When I feel tight → say “${cue}” and breathe out.`,
+          },
+          ritual: {
+            next_training: (cue) => `Next training → run “${cue}” before I start.`,
+            next_match: (cue) => `Next match → run “${cue}” before I start.`,
+          },
+        },
+        unit: { cricket: 'ball', tennis: 'point', badminton: 'point', football: 'play', hockey: 'play', kabaddi: 'raid', athletics: 'race', swimming: 'race', wrestling: 'round', boxing: 'round' },
+        unitFallback: 'play',
+        yourPlan: 'Your plan:',
+        playPlan: 'Your play plan',
+        save: 'Save my plan',
+        saving: 'Saving…',
+        notNow: 'Not now',
+        saved: 'Plan saved. Arjun will bring it up before you play.',
+        addMatch: 'Add your match day',
+        error: 'Could not save. Try again.',
+        usedQ: 'Did you use your plan?',
+      },
       reflect: {
         back: 'Back',
         tag: (chapter) => `${chapter} · Reflect`,

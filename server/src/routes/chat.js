@@ -1321,7 +1321,7 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
     const coach = coachRequestSettings();
     const systemPrompt = buildCoachSystem(
       buildSystemPrompt(user, recentCheckIns, memories, sessionType, { ...promptExtra, coachingContext, reflectionContext, startingProfile, currentFocus }),
-      buildLanguageHintSection(languageHints) + buildClarificationSection(clarification) + buildRoutineFocusSection(focusRoutine) + buildPathCoachSection(pathContext || {}),
+      buildLanguageHintSection(languageHints) + buildClarificationSection(clarification) + buildRoutineFocusSection(focusRoutine) + buildPathCoachSection(pathContext ? { path: pathContext, match: pathContext.match, plan: pathContext.plan } : {}),
     );
     const loop = await runBufferedToolLoop({
       anthropic,

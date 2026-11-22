@@ -1382,6 +1382,9 @@ model PathProgress {
   nextMatchDay  String?
   lastMatchDay  String?
   lastMatchFeel String?  // well | mixed | tough (null = skipped)
+  // Play plan (Hook fix 3): the if–then plan picked at the end of a practice,
+  // { tool: reset|rep|ritual, moment, cue?, at }. Cleared after "How did it go?".
+  playPlan      Json?
 }
 
 // One row per finished step of a chapter (learn | practise | play | reflect).

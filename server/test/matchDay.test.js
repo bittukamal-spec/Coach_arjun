@@ -127,6 +127,39 @@ test('API: "Forgot" or skipping clears the match without ticking anything', asyn
 
 test('chat wires the path note in, best-effort, after the other internal notes', () => {
   const src = require('fs').readFileSync(require('path').join(__dirname, '../src/routes/chat.js'), 'utf8');
-  assert.match(src, /buildRoutineFocusSection\(focusRoutine\) \+ buildPathCoachSection\(pathContext \|\| \{\}\)/);
+  assert.match(src, /buildRoutineFocusSection\(focusRoutine\) \+ buildPathCoachSection\(pathContext \? \{ path: pathContext, match: pathContext\.match, plan: pathContext\.plan \} : \{\}\)/);
   assert.match(src, /createPathStore\(prisma\)\.getPath\(req\.userId\)\.catch\(/);
+});
+
+// ── Hook fix 3: play plan ─────────────────────────────────────────────────
+const { planText } = require('../src/services/path/matchDay');
+
+test('play plan text for Coach; the note includes the plan and the chapter', () => {
+  assert.match(planText({ tool: 'rep', moment: 'after_miss', cue: 'Next ball' }), /after a miss: say their cue word "Next ball"/);
+  assert.equal(planText({ tool: 'rep', moment: 'nope' }), null);
+  const path = { finished: false, next: { chapterKey: 'focus', stepKey: 'play' }, plan: { tool: 'reset', moment: 'before_start' } };
+  const note = buildPathCoachSection({ path, match: { nextDay: null } }, '2026-11-22');
+  assert.match(note, /Focus/);
+  assert.match(note, /play plan.*before they start/);
+});
+
+test('API: play plan is validated, screened, saved, and cleared by the match review', async () => {
+  const prisma = fakePrisma();
+  await withApp(createPathStore(prisma), async (base, auth) => {
+    const put = (b) => fetch(`${base}/plan`, { method: 'PUT', headers: auth, body: JSON.stringify(b) });
+    assert.equal((await put({ tool: 'rep', moment: 'whenever' })).status, 400);
+    assert.equal((await put({ tool: 'rep', moment: 'after_miss' })).status, 400, 'a cue plan needs the cue');
+    assert.equal((await put({ tool: 'rep', moment: 'after_miss', cue: 'x'.repeat(61) })).status, 400);
+    const saved = await (await put({ tool: 'rep', moment: 'after_miss', cue: '  Next   ball ' })).json();
+    assert.deepEqual({ tool: saved.plan.tool, moment: saved.plan.moment, cue: saved.plan.cue }, { tool: 'rep', moment: 'after_miss', cue: 'Next ball' });
+    const reset = await (await put({ tool: 'reset', moment: 'before_start' })).json();
+    assert.equal(reset.plan.tool, 'reset');
+
+    prisma.db.progress.nextMatchDay = addDays(indiaToday(), -1);
+    const done = await (await fetch(`${base}/match/review`, { method: 'POST', headers: auth, body: JSON.stringify({ feel: 'well', used: 'tried' }) })).json();
+    assert.equal(done.plan, null, 'the plan was for that match');
+
+    const cleared = await (await put({ plan: null })).json();
+    assert.equal(cleared.plan, null);
+  });
 });

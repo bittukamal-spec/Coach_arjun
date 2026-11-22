@@ -8,6 +8,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { apiFetch } from '../api';
 import { PracticeIntro, PracticeScreen, PracticeCompletion, CompletionMascot } from '../components/practice/PracticeShell';
 import { practiceHome } from '../utils/practiceReturn';
+import PlayPlanCard from '../components/path/PlayPlanCard';
 
 // ─── Quick Rep (Daily Mental Rep) — the core Healthy Hook habit ────────────
 // Flow: intro → context → state → moment → short guided rep → one cue →
@@ -418,7 +419,9 @@ export default function MentalRepPage() {
       <CompletionMascot pose="cheer" />
       <h1 className="text-[28px] font-extrabold text-white mb-6">{hi ? 'रेप पूरा।' : 'Rep complete.'}</h1>
       <p className="text-xs font-bold text-white/75 uppercase tracking-widest mb-2">{hi ? 'आज का cue' : "Today's cue"}</p>
-      <p className="text-3xl font-black text-sun mb-8">"{cue}"</p>
+      <p className="text-3xl font-black text-sun mb-6">"{cue}"</p>
+      {/* Hook fix 3: when will you say it? — an if–then plan */}
+      <div className="mb-6 w-full max-w-xs"><PlayPlanCard tool="rep" cue={cue} variant="dark" /></div>
       <p className="text-sm text-white/85 mb-10 max-w-xs leading-relaxed">
         {context === 'match'
           ? (hi ? 'इसे मैच में लेकर जाओ। फोन रखो और खेलने चलो।' : 'Take this into the match. Put the phone away and go play.')

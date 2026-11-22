@@ -3,12 +3,14 @@
 //   POST /api/path/steps   → { chapterKey, stepKey: learn|practise|play, outcome? } marks a step done
 //   PUT  /api/path/match   → { day: "YYYY-MM-DD" | null } sets or clears the next match (India time)
 //   POST /api/path/match/review → { feel: well|mixed|tough|null, used: helped|tried|forgot|null }
-//        clears the match; helped/tried also ticks the current chapter's Play step
+//        clears the match + play plan; helped/tried also ticks the current chapter's Play step
+//   PUT  /api/path/plan    → { tool, moment, cue? } | { plan: null } the if–then play plan (Hook fix 3)
 // Only the CURRENT chapter (or an already-finished one) can be marked, so the
 // path is walked in order.
 const express = require('express');
 const authenticate = require('../middleware/authenticate');
-const { CHAPTERS, SELF_MARKED_STEPS, PLAY_OUTCOMES, MATCH_FEELS, MATCH_USED } = require('../services/path/pathConfig');
+const { CHAPTERS, SELF_MARKED_STEPS, PLAY_OUTCOMES, MATCH_FEELS, MATCH_USED, PLAN_MOMENTS } = require('../services/path/pathConfig');
+const { screenSafetyText, recordSafetyEvent, getSafetyGuidance } = require('../services/safety');
 const { isPickableDay, matchPhase } = require('../services/path/matchDay');
 const { createPathStore } = require('../services/path/pathService');
 
@@ -51,6 +53,34 @@ function createPathRouter({ store } = {}) {
       res.json(await s.getPath(req.userId));
     } catch (err) {
       console.error('[path] POST error:', err?.message);
+      res.status(500).json({ error: 'Server error' });
+    }
+  });
+
+  router.put('/plan', authenticate, async (req, res) => {
+    const body = req.body || {};
+    let plan = null;
+    if (!(Object.prototype.hasOwnProperty.call(body, 'plan') && body.plan === null)) {
+      const { tool, moment } = body;
+      if (!PLAN_MOMENTS[tool] || !PLAN_MOMENTS[tool].includes(moment)) return res.status(400).json({ error: 'Invalid plan' });
+      let cue = body.cue == null ? null : String(body.cue).replace(/\s+/g, ' ').trim();
+      if (cue && cue.length > 60) return res.status(400).json({ error: 'Cue too long' });
+      if ((tool === 'rep' || tool === 'ritual') && !cue) return res.status(400).json({ error: 'Cue required' });
+      if (cue) {
+        const screen = screenSafetyText(cue);
+        if (screen.flagged) {
+          try { await recordSafetyEvent(req.userId, 'path_plan', screen.category, { riskLevel: screen.riskLevel, sourceType: 'path_play_plan' }); } catch { /* best effort */ }
+          return res.json({ safetyFlag: 'needs_support', guidance: getSafetyGuidance(screen.category) });
+        }
+      }
+      plan = { tool, moment, ...(cue ? { cue } : {}) };
+    }
+    try {
+      const s = getStore();
+      await s.setPlan(req.userId, plan);
+      res.json(await s.getPath(req.userId));
+    } catch (err) {
+      console.error('[path] plan error:', err?.message);
       res.status(500).json({ error: 'Server error' });
     }
   });

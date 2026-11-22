@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import MascotArt from '../visuals/MascotArt';
 import { Button, PageHeader, TonePage } from '../ui';
+import PlayPlanCard from '../path/PlayPlanCard';
 
 // Rehearsal walkthrough for one saved routine — one step per screen.
 //
 // Routines are used on the field, not on the phone; this exists so the
 // athlete can rehearse the sequence beforehand until it is automatic
 // (spec §3.2: a pre-performance routine is "rehearsed in training first").
-// Entirely client-side: nothing is saved, timed, counted or scored.
+// Nothing is timed, counted or scored; the only thing that can be saved is
+// the optional "Take it into play" plan at the end (Hook fix 3).
 export default function RoutineRun({ routine, title, block = 'bg-sky', t, onExit }) {
   const steps = Array.isArray(routine?.steps) ? routine.steps : [];
   const [index, setIndex] = useState(0);
@@ -59,7 +61,9 @@ export default function RoutineRun({ routine, title, block = 'bg-sky', t, onExit
           <div className="flex-1 flex flex-col justify-center text-center">
             <MascotArt pose="cheer" className="mb-5 h-[clamp(130px,23dvh,200px)]" />
             <h2 className="text-title font-black text-ink mb-2">{t.runDoneTitle}</h2>
-            <p className="text-body text-slt leading-relaxed mb-8">{t.runDoneBody}</p>
+            <p className="text-body text-slt leading-relaxed mb-5">{t.runDoneBody}</p>
+            {/* Hook fix 3: run it for real next — an if–then plan */}
+            <div className="mb-6"><PlayPlanCard tool="ritual" cue={routine?.name} variant="light" /></div>
             <div className="flex flex-col gap-3">
               <button
                 type="button"

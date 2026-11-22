@@ -89,6 +89,11 @@ function matchOf(progress) {
   };
 }
 
+function planOf(progress) {
+  const p = progress?.playPlan;
+  return p && typeof p === 'object' && p.tool && p.moment ? p : null;
+}
+
 function createPathStore(prisma) {
   async function priorityFor(userId) {
     const profile = await prisma.startingPerformanceProfile.findFirst({
@@ -148,7 +153,7 @@ function createPathStore(prisma) {
       steps = await loadSteps(userId);
       path = buildPath({ order: progress.order, steps });
     }
-    return { ...path, match: matchOf(progress) };
+    return { ...path, match: matchOf(progress), plan: planOf(progress) };
   }
 
   // Next match (Hook fix 2): set or clear the day.
@@ -157,13 +162,22 @@ function createPathStore(prisma) {
     await prisma.pathProgress.update({ where: { userId }, data: { nextMatchDay: day || null } });
   }
 
+  // Play plan (Hook fix 3): set or clear the if–then plan.
+  async function setPlan(userId, plan) {
+    await ensureProgress(userId);
+    await prisma.pathProgress.update({
+      where: { userId },
+      data: { playPlan: plan ? { ...plan, at: new Date().toISOString() } : null },
+    });
+  }
+
   // "How did it go?": remember the answer, clear the match, and when the
   // athlete used the chapter's skill, tick the path's Play step.
   async function reviewMatch(userId, { feel = null, used = null, chapterKey = null }) {
     const progress = await ensureProgress(userId);
     await prisma.pathProgress.update({
       where: { userId },
-      data: { lastMatchDay: progress.nextMatchDay || null, lastMatchFeel: feel, nextMatchDay: null },
+      data: { lastMatchDay: progress.nextMatchDay || null, lastMatchFeel: feel, nextMatchDay: null, playPlan: null },
     });
     if (chapterKey && (used === 'helped' || used === 'tried')) {
       await record(userId, { chapterKey, stepKey: 'play', outcome: used });
@@ -177,7 +191,7 @@ function createPathStore(prisma) {
     await prisma.pathProgress.update({ where: { userId }, data: { order } });
   }
 
-  return { getPath, record, ensureProgress, prioritise, setMatch, reviewMatch };
+  return { getPath, record, ensureProgress, prioritise, setMatch, reviewMatch, setPlan };
 }
 
 module.exports = { buildPath, stepsToRecord, validOrder, reorderForGoal, createPathStore };

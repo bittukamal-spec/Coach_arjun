@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Check, Lock, ChevronRight } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import Teer from '../visuals/Teer';
-import { usePath, pathText, CHAPTER_LOOK, STEP_ORDER, nextHref, nextLabel, takeNewlyFinished } from './pathData';
+import { usePath, pathText, CHAPTER_LOOK, STEP_ORDER, nextHref, nextLabel, takeNewlyFinished, planText } from './pathData';
 import { SKILLS, SKILL_BAR, challengeText, daysUntil, useMindChallenge } from './mindChallengeData';
 import { markFromPath } from '../../utils/practiceReturn';
 
@@ -11,7 +11,7 @@ import { markFromPath } from '../../utils/practiceReturn';
 // chapter with its 4 steps, and one Next button (docs/PATH-STRATEGY.md).
 // Steps opened from here return to Train when they end (utils/practiceReturn).
 export default function PathSection() {
-  const { language } = useAuth();
+  const { language, user } = useAuth();
   const t = pathText(language);
   const { path, error, reload } = usePath();
   const c = challengeText(language);
@@ -78,6 +78,13 @@ export default function PathSection() {
           {nextLabel(path.next.chapterKey, path.next.stepKey, t)}
           <ChevronRight size={18} strokeWidth={2.6} aria-hidden="true" />
         </Link>
+        </div>
+      )}
+
+      {planText(path.plan, user?.sport, t) && (
+        <div className="mt-3 rounded-[20px] bg-sun px-4 py-3 text-inkblock" data-testid="train-plan">
+          <p className="text-[11px] font-extrabold uppercase tracking-[0.08em]">{t.plan.playPlan}</p>
+          <p className="mt-1 text-[15px] font-extrabold leading-snug">{planText(path.plan, user?.sport, t)}</p>
         </div>
       )}
 

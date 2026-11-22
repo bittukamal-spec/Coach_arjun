@@ -2,7 +2,7 @@
 // Days are plain calendar days "YYYY-MM-DD" in India time (the app is
 // India-only), so "tomorrow" means the same thing to the athlete and Coach.
 
-const { CHAPTER_NOTES, STEP_NOTES } = require('./pathConfig');
+const { CHAPTER_NOTES, STEP_NOTES, PLAN_NOTES } = require('./pathConfig');
 
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_AHEAD_DAYS = 180;
@@ -47,7 +47,12 @@ const FEEL_TEXT = { well: 'went well', mixed: 'was mixed', tough: 'was tough' };
 
 // Internal system note for Coach (uncached, after the stable prompt).
 // Empty when there is nothing useful to say.
-function buildPathCoachSection({ path, match } = {}, today = indiaToday()) {
+function planText(plan) {
+  const t = plan && PLAN_NOTES[plan.tool]?.[plan.moment];
+  return t ? t.replace('{cue}', String(plan.cue || '').slice(0, 60)) : null;
+}
+
+function buildPathCoachSection({ path, match, plan } = {}, today = indiaToday()) {
   const lines = [];
   if (path && !path.finished && path.next) {
     const ch = CHAPTER_NOTES[path.next.chapterKey];
@@ -64,6 +69,8 @@ function buildPathCoachSection({ path, match } = {}, today = indiaToday()) {
   } else if (phase === 'review') {
     lines.push(`They had a match ${-dayDiff(today, match.nextDay)} day(s) ago and have not said how it went yet. If it fits, ask how it went before anything else.`);
   }
+  const pt = planText(plan || path?.plan);
+  if (pt) lines.push(`Their play plan (an if–then plan they chose after a practice): ${pt}. Back it up and ask how it went after they have played; don't add new plans on top.`);
   if (match?.lastFeel && match?.lastDay && dayDiff(match.lastDay, today) <= 7) {
     lines.push(`Their last match (${match.lastDay}) ${FEEL_TEXT[match.lastFeel] || 'happened'}, in their words.`);
   }
@@ -71,4 +78,4 @@ function buildPathCoachSection({ path, match } = {}, today = indiaToday()) {
   return `\n\n## Path and next match (internal)\n${lines.join('\n')}`;
 }
 
-module.exports = { indiaToday, dayDiff, isValidDay, isPickableDay, matchPhase, buildPathCoachSection, REVIEW_WINDOW_DAYS };
+module.exports = { planText, indiaToday, dayDiff, isValidDay, isPickableDay, matchPhase, buildPathCoachSection, REVIEW_WINDOW_DAYS };
