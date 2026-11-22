@@ -68,6 +68,9 @@ function createPushNotificationsRouter(client = new PrismaClient()) {
       enabled: pref?.enabled ?? false,
       reminderTime: pref?.reminderTime ?? null,
       timezone: pref?.timezone ?? null,
+      matchReminders: pref?.matchReminders ?? true,
+      rematchReminders: pref?.rematchReminders ?? true,
+      weeklyReminders: pref?.weeklyReminders ?? true,
     };
   }
 
@@ -162,6 +165,13 @@ function createPushNotificationsRouter(client = new PrismaClient()) {
       if (timezone !== undefined) {
         if (!isValidTimeZone(timezone)) return res.status(400).json({ error: 'A valid IANA timezone is required' });
         data.timezone = timezone;
+      }
+      // Hook fix 4: per-kind switches for moment reminders.
+      for (const key of ['matchReminders', 'rematchReminders', 'weeklyReminders']) {
+        const v = (req.body || {})[key];
+        if (v === undefined) continue;
+        if (typeof v !== 'boolean') return res.status(400).json({ error: `${key} must be a boolean` });
+        data[key] = v;
       }
       if (Object.keys(data).length === 0) {
         return res.status(400).json({ error: 'No valid fields to update' });

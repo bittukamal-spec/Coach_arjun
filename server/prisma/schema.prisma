@@ -1257,6 +1257,12 @@ model PushNotificationPreference {
   // later sweep the same day may still retry.
   lastSentLocalDate String?
 
+  // Moment reminders (Hook fix 4, Nov 2026). The one daily reminder becomes
+  // specific on days that matter; each kind can be switched off.
+  matchReminders   Boolean @default(true) // day before a match + "how did it go?"
+  rematchReminders Boolean @default(true) // Mind Challenge rematch is ready
+  weeklyReminders  Boolean @default(true) // Monday: your week with Arjun
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

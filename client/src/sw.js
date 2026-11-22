@@ -146,7 +146,7 @@ registerRoute(
 // Communications' own CTA allowlist (services/pilotCommunications.js).
 // Same pattern, intentionally un-shared code, so the two systems stay
 // fully decoupled per product decision.
-const ALLOWED_NOTIFICATION_ROUTES = ['/mental-rep', '/dashboard'];
+const ALLOWED_NOTIFICATION_ROUTES = ['/mental-rep', '/dashboard', '/mind-challenge', '/weekly-reviews'];
 const DEFAULT_NOTIFICATION_ROUTE = '/dashboard';
 
 function safeRoute(route) {

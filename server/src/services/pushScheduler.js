@@ -19,6 +19,7 @@ const {
   minutesSinceMidnight,
 } = require('./pushTimezone');
 const { buildReminderPayload, sendPushToSubscription } = require('./pushSend');
+const { pickMoment, loadMomentContext, buildMomentPayload } = require('./pushMoments');
 
 // A reminder is considered due for the ten minutes starting at
 // SYSTEM_REMINDER_TIME local time — "around 18:00–18:10", never promised
@@ -92,7 +93,12 @@ async function processOnePreference(client, pref, nowDate) {
   }
 
   const user = await client.user.findUnique({ where: { id: pref.userId }, select: { language: true } });
-  const payload = buildReminderPayload(user?.language, localDateStr);
+  // Hook fix 4: on a day that matters the one reminder is specific (match
+  // tomorrow, how did it go, rematch ready, weekly review); otherwise generic.
+  const ctx = await loadMomentContext(client, pref.userId, nowDate);
+  const localWeekday = new Date(`${localDateStr}T12:00:00Z`).getUTCDay();
+  const moment = pickMoment({ localDate: localDateStr, localWeekday, nowMs: nowDate.getTime(), ...ctx, pref });
+  const payload = (moment && buildMomentPayload(moment)) || buildReminderPayload(user?.language, localDateStr);
 
   let anySucceeded = false;
   for (const sub of subscriptions) {
@@ -121,7 +127,7 @@ async function processOnePreference(client, pref, nowDate) {
     return { userId: pref.userId, status: 'all_sends_failed' };
   }
 
-  return { userId: pref.userId, status: 'sent' };
+  return { userId: pref.userId, status: 'sent', ...(moment ? { moment } : {}) };
 }
 
 async function runSweepOnce(client, now) {
