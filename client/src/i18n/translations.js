@@ -108,11 +108,13 @@ export const translations = {
         { label: 'Deep personal problems', arjun: false, inPerson: true },
       ],
       safeTitle: 'Is AI coaching safe?',
+      safeSub: "Yes, and it's on your side.",
+      // Each point: a short bold title + one plain line (easy to skim).
       safePoints: [
-        'Sport coaching, not therapy — and it says so.',
-        'If you seem unsafe, it stops and shows real helplines.',
-        'Under 18? A parent or guardian says yes first.',
-        'Private to you. No ads. Delete anytime.',
+        { title: 'Built by sport science', text: 'Tips from methods top athletes use every day.' },
+        { title: 'Your personal coach', text: 'Learns your sport, your nerves, your game.' },
+        { title: 'Parents can trust it', text: 'Under 18? A parent gives the go-ahead first.' },
+        { title: 'Just between you two', text: 'Your chats stay private to you.' },
       ],
       freeTitleLead: 'Start for',
       freeTitleWord: 'free',
@@ -123,7 +125,7 @@ export const translations = {
       faqs: [
         { q: 'Is Arjun therapy?', a: 'No. Arjun is a mind coach for sport. If something feels bigger than sport, it points you to people who can help, like iCall and KIRAN.' },
         { q: 'Does it actually work?', a: 'Arjun uses methods sport psychology research supports: breathing resets, cue words, routines and reflection. Like any training, it works when you practise, and Arjun checks what helps you.' },
-        { q: 'Who can see my chats?', a: 'Only you. Your messages go to our AI provider so Arjun can reply. We never sell your data and there are no ads. Delete your chats or account any time.' },
+        { q: 'Who can see my chats?', a: 'Only you. Your messages go to our AI provider so Arjun can reply. We never sell your data. Delete your chats or account any time.' },
         { q: 'Is it safe for under-18s?', a: 'Athletes must be 13 or older. Under 18, a parent or guardian gets an email and must say yes first. If Arjun sees signs you might be unsafe, it shows helplines.' },
         { q: 'Which sports?', a: 'Any sport. Arjun asks about your sport, position and level, and fits its advice to you.' },
         { q: 'Can I talk in Hinglish?', a: 'Yes. Write in English or Hinglish and Arjun replies the same way.' },

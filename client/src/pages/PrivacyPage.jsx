@@ -13,7 +13,7 @@ function PrivacyPage() {
 
         {/* Plain-language summary (founder-approved Nov 2026). */}
         <InShort points={[
-          'We never sell your data. No ads.',
+          'We never sell your data.',
           'Your messages go to our AI provider only so Arjun can reply.',
           'Delete your chats or your account any time.',
         ]} />
