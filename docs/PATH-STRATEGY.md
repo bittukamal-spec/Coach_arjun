@@ -1,6 +1,8 @@
 # Arjun — the learning path (strategy, Nov 2026)
 
-Status: direction agreed with the founder (21–22 Nov 2026). Mock-ups: claude.ai artifact "Arjun path & Mind Challenge". Nothing built yet.
+Status: direction agreed with the founder (21–22 Nov 2026). Mock-ups: claude.ai artifact "Arjun path & Mind Challenge".
+
+**Built so far:** Step 1 — the path on Profile, chapter page, 2-minute lessons for all 6 chapters (first drafts in `translations.en.path` — **to be reviewed by a sport psychologist**), API `/api/path` (Nov 2026). **Next:** Step 2 (more lessons per chapter), Step 3 (Mind Challenge + Mind Stats card), Step 4 (Arjun knows the path).
 
 ## Why
 Athletes start below beginner level in mental training. Four separate tabs (chat, drills, courses, tests) would leave them lost. So everything becomes **one guided path** with one "Next" button.

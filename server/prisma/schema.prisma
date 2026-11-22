@@ -162,6 +162,8 @@ model User {
   pilotCommunicationTargets   PilotCommunicationTarget[]
   pilotCommunicationResponses PilotCommunicationResponse[]
   routines                    Routine[]
+  pathProgress                PathProgress?
+  pathSteps                   PathStep[]
   ritualLegacyImport          RitualLegacyImport?
   pushNotificationPreference  PushNotificationPreference?
   pushSubscriptions           PushSubscription[]
@@ -1361,5 +1363,32 @@ model FounderEmailDelivery {
   createdAt DateTime @default(now())
 
   @@index([campaignId])
+  @@index([userId])
+}
+
+// ── Learning path (docs/PATH-STRATEGY.md, Nov 2026) ──────────────────────────
+// One row per athlete: the chapter order chosen for them (from their starting
+// profile priority) and when the path began. Additive only.
+model PathProgress {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  order     Json     // chapter keys, e.g. ["calm","focus","confidence","routine","bounce","picture"]
+  startedAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// One row per finished step of a chapter (learn | practise | play | reflect).
+// `outcome` is only used by the "play" step: helped | tried.
+model PathStep {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chapterKey String
+  stepKey    String
+  outcome    String?
+  doneAt     DateTime @default(now())
+
+  @@unique([userId, chapterKey, stepKey])
   @@index([userId])
 }
