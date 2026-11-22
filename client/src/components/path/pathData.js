@@ -140,3 +140,13 @@ export function nextStepText(chapterKey, stepKey, t) {
   if (stepKey === 'play') return ch.play;
   return t.homeNextReflect;
 }
+
+// ── Play plan (Hook fix 3) ───────────────────────────────────────────────
+export function planUnit(sport, t) {
+  return t.plan.unit[String(sport || '').toLowerCase()] || t.plan.unitFallback;
+}
+
+export function planText(plan, sport, t) {
+  const fn = plan && t.plan.text[plan.tool]?.[plan.moment];
+  return fn ? fn(plan.cue || '', planUnit(sport, t)) : null;
+}

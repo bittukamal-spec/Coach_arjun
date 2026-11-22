@@ -2,13 +2,13 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import Teer from '../visuals/Teer';
-import { pathText, weekdayOf } from '../path/pathData';
+import { pathText, weekdayOf, planText } from '../path/pathData';
 
 // "How did Saturday go?" (Hook fix 2 — reward + investment). Two taps, no
 // typing. "It helped / I tried it" ticks the chapter's Play step on the
 // server; then the athlete can tell Arjun more or set the next match.
 export default function MatchReviewCard({ path, reviewMatch, onNextMatch }) {
-  const { language } = useAuth();
+  const { language, user } = useAuth();
   const t = pathText(language);
   const m = t.match;
   const [feel, setFeel] = useState(null);
@@ -18,7 +18,9 @@ export default function MatchReviewCard({ path, reviewMatch, onNextMatch }) {
 
   const weekday = weekdayOf(path.match.nextDay);
   const chapterKey = path.finished ? null : path.currentKey;
+  const plan = planText(path.plan, user?.sport, t);
   const skill = (chapterKey && m.skill[chapterKey]) || null;
+  const asks = !!(plan || skill);
 
   async function submit(f, used) {
     setBusy(true); setError(false);
@@ -59,12 +61,13 @@ export default function MatchReviewCard({ path, reviewMatch, onNextMatch }) {
       </div>
       <div className="mt-3 grid grid-cols-3 gap-2" role="radiogroup" aria-labelledby="match-review-title">
         {Object.entries(m.feel).map(([k, label]) => (
-          <button key={k} type="button" role="radio" aria-checked={feel === k} disabled={busy} onClick={() => (skill ? setFeel(k) : submit(k, null))} className={chip(feel === k)}>{label}</button>
+          <button key={k} type="button" role="radio" aria-checked={feel === k} disabled={busy} onClick={() => (asks ? setFeel(k) : submit(k, null))} className={chip(feel === k)}>{label}</button>
         ))}
       </div>
-      {feel && skill && (
+      {feel && asks && (
         <>
-          <p id="match-used-q" className="mt-4 mb-2 text-[15px] font-extrabold text-ink">{m.usedQ(skill)}</p>
+          <p id="match-used-q" className="mt-4 mb-2 text-[15px] font-extrabold text-ink">{plan ? t.plan.usedQ : m.usedQ(skill)}</p>
+          {plan && <p className="-mt-1 mb-2 text-[13.5px] text-slt" data-testid="review-plan">{plan}</p>}
           <div className="grid grid-cols-3 gap-2" role="group" aria-labelledby="match-used-q">
             {Object.entries(m.used).map(([k, label]) => (
               <button key={k} type="button" disabled={busy} onClick={() => submit(feel, k)} className={chip(false)}>{label}</button>

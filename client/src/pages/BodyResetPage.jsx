@@ -11,6 +11,7 @@ import { translations } from '../i18n/translations';
 import HelplineList from '../components/HelplineList';
 import { PracticeIntro, PracticeScreen, PracticeCompletion, CompletionMascot } from '../components/practice/PracticeShell';
 import { practiceHome } from '../utils/practiceReturn';
+import PlayPlanCard from '../components/path/PlayPlanCard';
 
 const CRISIS_KEYWORDS = [
   'suicide', 'kill myself', 'end my life', 'self harm', 'hurt myself',
@@ -952,6 +953,8 @@ export default function BodyResetPage() {
             {t.card.tensionLabel}: {delta.label}
           </p>
         )}
+        {/* Hook fix 3: take it into play — an if–then plan */}
+        <div className="mb-4 w-full"><PlayPlanCard tool="reset" variant="dark" /></div>
         <div className="w-full space-y-3">
           <button
             onClick={() => navigate('/body-reset')}
