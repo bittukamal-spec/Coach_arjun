@@ -108,13 +108,13 @@ export const translations = {
         { label: 'Deep personal problems', arjun: false, inPerson: true },
       ],
       safeTitle: 'Is AI coaching safe?',
-      safeSub: 'Yes. It is built to look after you.',
+      safeSub: "Yes, and it's on your side.",
       // Each point: a short bold title + one plain line (easy to skim).
       safePoints: [
-        { title: 'Made from real sport psychology', text: 'Every tip comes from methods top athletes use: breathing, focus cues, self-talk and routines.' },
-        { title: 'Knows its limits', text: 'Arjun coaches your game. For anything bigger, it points you to real experts and helplines.' },
-        { title: 'Parents in the loop', text: 'Under 18? A parent says yes before you start.' },
-        { title: 'Your space, only yours', text: 'What you share with Arjun stays private to you.' },
+        { title: 'Built by sport science', text: 'Tips from methods top athletes use every day.' },
+        { title: 'Your personal coach', text: 'Learns your sport, your nerves, your game.' },
+        { title: 'Parents can trust it', text: 'Under 18? A parent gives the go-ahead first.' },
+        { title: 'Just between you two', text: 'Your chats stay private to you.' },
       ],
       freeTitleLead: 'Start for',
       freeTitleWord: 'free',

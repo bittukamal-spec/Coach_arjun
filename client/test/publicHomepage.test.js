@@ -93,9 +93,11 @@ test('the tick table is honest: in person wins for deep personal problems', () =
 
 test('the safety block names the real safeguards', () => {
   const s = site.safePoints.map(p => `${p.title} ${p.text}`).join(' ');
-  assert.match(s, /sport psychology/);
-  assert.match(s, /experts and helplines/);
+  // Founder decision (Nov 2026): positive marketing lines; helplines are not
+  // advertised here (they still appear in the app whenever needed).
+  assert.match(s, /sport science/);
   assert.match(s, /Under 18/);
+  assert.match(s, /private/);
 });
 
 test('nothing "coming soon" is advertised', () => {
