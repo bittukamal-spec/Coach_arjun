@@ -97,7 +97,7 @@ export default function PathChapterPage() {
                     </div>
                   )}
                   {isNext && st === 'reflect' && (
-                    <Link to="/mind-journal/new" onClick={markFromPath} className="mt-3 flex min-h-[48px] items-center justify-center rounded-[14px] bg-sun text-[15px] font-extrabold text-inkblock">{t.writeReflection}</Link>
+                    <Link to={nextHref(chapterKey, 'reflect', t)} onClick={markFromPath} className="mt-3 flex min-h-[48px] items-center justify-center rounded-[14px] bg-sun text-[15px] font-extrabold text-inkblock">{t.writeReflection}</Link>
                   )}
                 </li>
               );

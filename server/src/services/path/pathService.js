@@ -81,6 +81,14 @@ function reorderForGoal(order, steps, chapterKey) {
   return [...rest.slice(0, at), chapterKey, ...rest.slice(at)];
 }
 
+function matchOf(progress) {
+  return {
+    nextDay: progress?.nextMatchDay || null,
+    lastDay: progress?.lastMatchDay || null,
+    lastFeel: progress?.lastMatchFeel || null,
+  };
+}
+
 function createPathStore(prisma) {
   async function priorityFor(userId) {
     const profile = await prisma.startingPerformanceProfile.findFirst({
@@ -140,7 +148,26 @@ function createPathStore(prisma) {
       steps = await loadSteps(userId);
       path = buildPath({ order: progress.order, steps });
     }
-    return path;
+    return { ...path, match: matchOf(progress) };
+  }
+
+  // Next match (Hook fix 2): set or clear the day.
+  async function setMatch(userId, day) {
+    await ensureProgress(userId);
+    await prisma.pathProgress.update({ where: { userId }, data: { nextMatchDay: day || null } });
+  }
+
+  // "How did it go?": remember the answer, clear the match, and when the
+  // athlete used the chapter's skill, tick the path's Play step.
+  async function reviewMatch(userId, { feel = null, used = null, chapterKey = null }) {
+    const progress = await ensureProgress(userId);
+    await prisma.pathProgress.update({
+      where: { userId },
+      data: { lastMatchDay: progress.nextMatchDay || null, lastMatchFeel: feel, nextMatchDay: null },
+    });
+    if (chapterKey && (used === 'helped' || used === 'tried')) {
+      await record(userId, { chapterKey, stepKey: 'play', outcome: used });
+    }
   }
 
   async function prioritise(userId, chapterKey) {
@@ -150,7 +177,7 @@ function createPathStore(prisma) {
     await prisma.pathProgress.update({ where: { userId }, data: { order } });
   }
 
-  return { getPath, record, ensureProgress, prioritise };
+  return { getPath, record, ensureProgress, prioritise, setMatch, reviewMatch };
 }
 
 module.exports = { buildPath, stepsToRecord, validOrder, reorderForGoal, createPathStore };

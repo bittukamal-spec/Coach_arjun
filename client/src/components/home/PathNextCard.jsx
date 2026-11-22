@@ -9,12 +9,20 @@ import { markFromPath } from '../../utils/practiceReturn';
 // Home "Your next step" (Hook Model trigger + one-tap action): the one thing
 // to do next on the athlete's path. Hidden while the Mind Challenge card is
 // showing (one ask at a time) and when the path is finished.
-export default function PathNextCard() {
+// `path` / `mc` can be passed in by a parent that already loaded them
+// (Home's HomePathArea); otherwise the card loads its own.
+export default function PathNextCard(props) {
+  const own = usePath();
+  const ownMc = useMindChallenge();
+  const path = props.path !== undefined ? props.path : own.path;
+  const mc = props.mc !== undefined ? props.mc : ownMc.state;
+  return <PathNextCardView path={path} mc={mc} />;
+}
+
+export function PathNextCardView({ path, mc }) {
   const { language } = useAuth();
   const t = pathText(language);
   const navigate = useNavigate();
-  const { path } = usePath();
-  const { state: mc } = useMindChallenge();
 
   useEffect(() => {
     const fresh = takeNewlyFinished(path);

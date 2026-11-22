@@ -18,6 +18,7 @@ import RitualPage from './pages/RitualPage';
 import StartingProfilePage from './pages/StartingProfilePage';
 import PerformanceCheckinPage from './pages/PerformanceCheckinPage';
 import TrainPage from './pages/TrainPage';
+import PathReflectPage from './pages/PathReflectPage';
 import ToolsPage from './pages/ToolsPage';
 import DebriefRedirect from './pages/DebriefRedirect';
 import FocusLockGame from './pages/games/FocusLockGame';
@@ -421,6 +422,14 @@ function App() {
         element={
           <ProtectedRoute requireOnboarding={true}>
             <PathLessonPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/path/:chapterKey/reflect"
+        element={
+          <ProtectedRoute requireOnboarding={true}>
+            <PathReflectPage />
           </ProtectedRoute>
         }
       />

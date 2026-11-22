@@ -20,7 +20,7 @@ Legend: ✅ already there · 🟡 partly · ❌ missing → proposal.
 
 ## Proposed order (each a small PR, mock-ups first)
 1. ✅ **Home "Your next step" card** from the path + "Chapter unlocked!" moment — built (Nov 2026).
-2. **Arjun knows the path + next match** (path step 4): pre-match check-in, chapter-aware coaching.
+2. ✅ **Arjun knows the path + next match** — built (Nov 2026): match day picker, day-before prep card, "How did it go?" (ticks Play), chapter-aware Coach note. Also: the path's Reflect step is now one screen that knows the chapter.
 3. **"Use it in play" hand-off** at the end of Pressure Reset / Quick Rep / Ritual → path Play step.
 4. **Reminders** (push, athlete controls them): rematch ready · day before a match · weekly review ready.
 5. **First-run**: new athletes play the Mind Challenge right after onboarding.

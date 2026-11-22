@@ -214,7 +214,7 @@ test('the internal hint note is system-context only and carries no athlete ident
 
   // Appended to the SYSTEM prompt only — never a message, never streamed.
   // Passed as the uncached second system block (buildCoachSystem), never a message.
-  assert.match(chatSrc, /buildCoachSystem\([\s\S]{0,400}?buildLanguageHintSection\(languageHints\) \+ buildClarificationSection\(clarification\) \+ buildRoutineFocusSection\(focusRoutine\),/);
+  assert.match(chatSrc, /buildCoachSystem\([\s\S]{0,400}?buildLanguageHintSection\(languageHints\) \+ buildClarificationSection\(clarification\) \+ buildRoutineFocusSection\(focusRoutine\) \+ buildPathCoachSection\(pathContext \|\| \{\}\),/);
   assert.doesNotMatch(chatSrc, /role: 'user', content: buildClarificationSection/);
   assert.doesNotMatch(chatSrc, /role: 'user', content: buildLanguageHintSection/);
 });

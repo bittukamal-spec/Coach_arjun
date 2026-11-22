@@ -18,6 +18,8 @@ const {
 } = require('../services/coaching');
 const { coachRequestSettings, buildCoachSystem } = require('../services/coaching/coachModel');
 const { buildRoutineFocusSection, buildRoutineProposalEvent } = require('../services/coaching/routineFocus');
+const { createPathStore } = require('../services/path/pathService');
+const { buildPathCoachSection } = require('../services/path/matchDay');
 const { priorityPhrase } = require('../profile/ruleEngine');
 const loadReflectionContext = require('../services/mindJournal/loadReflectionContext');
 const { buildReflectionContextSection } = loadReflectionContext;
@@ -1296,6 +1298,17 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
       console.log('[chat] language_hints', JSON.stringify(describeHints(languageHints)));
     }
 
+    // Hook fix 2: Coach knows the athlete's path chapter and next match
+    // (internal note, only for the main chat). Best-effort — a failure here
+    // never blocks the reply.
+    let pathContext = null;
+    if (!isQuickChat) {
+      pathContext = await createPathStore(prisma).getPath(req.userId).catch((err) => {
+        console.error('[chat] path context error:', err?.message);
+        return null;
+      });
+    }
+
     // "matlab?", "samjha nahi", "what?" — the athlete did not understand the
     // last reply. Deterministic and internal only, like the hints above:
     // appended to the SYSTEM prompt, never streamed or persisted.
@@ -1308,7 +1321,7 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
     const coach = coachRequestSettings();
     const systemPrompt = buildCoachSystem(
       buildSystemPrompt(user, recentCheckIns, memories, sessionType, { ...promptExtra, coachingContext, reflectionContext, startingProfile, currentFocus }),
-      buildLanguageHintSection(languageHints) + buildClarificationSection(clarification) + buildRoutineFocusSection(focusRoutine),
+      buildLanguageHintSection(languageHints) + buildClarificationSection(clarification) + buildRoutineFocusSection(focusRoutine) + buildPathCoachSection(pathContext || {}),
     );
     const loop = await runBufferedToolLoop({
       anthropic,

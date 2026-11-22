@@ -39,9 +39,29 @@ const PRACTISE_TOOL_TYPES = {
 const SELF_MARKED_STEPS = new Set(['learn', 'practise', 'play']);
 const PLAY_OUTCOMES = new Set(['helped', 'tried']);
 
+// Next match (Hook fix 2): how the athlete says the match went.
+const MATCH_FEELS = new Set(['well', 'mixed', 'tough']);
+const MATCH_USED = new Set(['helped', 'tried', 'forgot']);
+// Plain names for Coach's internal note only (athlete copy lives in the client).
+const CHAPTER_NOTES = {
+  calm: { name: 'Calm body', skill: 'calming the body under pressure (Pressure Reset breathing)', practise: 'a Pressure Reset' },
+  focus: { name: 'Focus', skill: 'bringing attention back with a cue word', practise: 'a Quick Rep with a cue word' },
+  confidence: { name: 'Confidence', skill: 'replacing a pressure thought with their own Focus Card words', practise: 'building a Focus Card' },
+  routine: { name: 'Same every time', skill: 'a short routine before and between moments', practise: 'building a Ritual routine' },
+  bounce: { name: 'Bounce back', skill: 'the 5-second reset after a mistake', practise: 'a Quick Rep reset' },
+  picture: { name: 'Picture it', skill: 'seeing the next performance going well (visualisation)', practise: 'a visualisation' },
+};
+const STEP_NOTES = {
+  learn: 'read the 2-minute lesson',
+  practise: 'practise it once in the app',
+  play: 'use it in a real match or training',
+  reflect: 'write a short Mind Journal reflection on how it went',
+};
+
 function chapterOrderFor(priorityId) {
   const first = PRIORITY_TO_CHAPTER[priorityId] || 'calm';
   return [first, ...CHAPTERS.filter(c => c !== first)];
 }
 
-module.exports = { CHAPTERS, STEPS, PRIORITY_TO_CHAPTER, PRACTISE_TOOL_TYPES, SELF_MARKED_STEPS, PLAY_OUTCOMES, chapterOrderFor };
+module.exports = {
+  MATCH_FEELS, MATCH_USED, CHAPTER_NOTES, STEP_NOTES, CHAPTERS, STEPS, PRIORITY_TO_CHAPTER, PRACTISE_TOOL_TYPES, SELF_MARKED_STEPS, PLAY_OUTCOMES, chapterOrderFor };

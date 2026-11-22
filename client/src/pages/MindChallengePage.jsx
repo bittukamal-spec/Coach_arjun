@@ -7,6 +7,8 @@ import Teer from '../components/visuals/Teer';
 import MindStatsCard from '../components/path/MindStatsCard';
 import FocusGame from '../components/path/FocusGame';
 import { SKILLS, SKILL_BAR, challengeText, levelFromPoints, daysUntil, useMindChallenge } from '../components/path/mindChallengeData';
+import MatchDaySheet from '../components/match/MatchDaySheet';
+import { usePath } from '../components/path/pathData';
 
 // Mind Challenge (docs/PATH-STRATEGY.md) built on the Hook Model:
 // Action (one tap, 6 short rounds) → Variable reward (a skill reveal after
@@ -56,6 +58,8 @@ export default function MindChallengePage() {
   const [justTook, setJustTook] = useState(false);
   const [goalSkill, setGoalSkill] = useState(null);
   const [nextMatch, setNextMatch] = useState(null);
+  const [matchSheet, setMatchSheet] = useState(false);
+  const { setMatchDay } = usePath();
   const [busy, setBusy] = useState(false);
   const cardRef = useRef(null);
 
@@ -79,6 +83,9 @@ export default function MindChallengePage() {
     if (!goalSkill) return;
     setBusy(true);
     try { await setGoal(goalSkill, nextMatch); } catch { /* the card is saved; the goal can be set later */ }
+    // A match this week or next: ask for the actual day (Hook fix 2), so
+    // Arjun can help the day before. Skippable.
+    if (nextMatch === 'this_week' || nextMatch === 'next_week') { setBusy(false); setMatchSheet(true); return; }
     navigate('/train', { replace: true });
   }
 
@@ -254,6 +261,11 @@ export default function MindChallengePage() {
       <p className="mt-2 text-[13px] text-white/70">{t.invest.matchNote}</p>
       <div className="flex-1" />
       <button type="button" disabled={!goalSkill || busy} onClick={buildPath} className="mt-6 min-h-[56px] rounded-[18px] bg-sun text-[16px] font-extrabold text-inkblock disabled:opacity-50">{t.invest.build}</button>
+      <MatchDaySheet
+        open={matchSheet}
+        onClose={() => navigate('/train', { replace: true })}
+        onSave={async (d) => { await setMatchDay(d); navigate('/train', { replace: true }); }}
+      />
     </div>,
   );
 }
