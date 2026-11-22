@@ -1377,6 +1377,11 @@ model PathProgress {
   order     Json     // chapter keys, e.g. ["calm","focus","confidence","routine","bounce","picture"]
   startedAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  // Next match (Hook fix 2, Nov 2026): a calendar day "YYYY-MM-DD" the
+  // athlete picked (India time). Cleared when they say how it went.
+  nextMatchDay  String?
+  lastMatchDay  String?
+  lastMatchFeel String?  // well | mixed | tough (null = skipped)
 }
 
 // One row per finished step of a chapter (learn | practise | play | reflect).

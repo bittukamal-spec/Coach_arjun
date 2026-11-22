@@ -23,7 +23,7 @@ export const STEP_ORDER = ['learn', 'practise', 'play', 'reflect'];
 export function nextHref(chapterKey, stepKey, t) {
   if (stepKey === 'learn') return `/path/${chapterKey}/learn`;
   if (stepKey === 'practise') return t.chapters[chapterKey]?.route || `/path/${chapterKey}`;
-  if (stepKey === 'reflect') return '/mind-journal/new';
+  if (stepKey === 'reflect') return `/path/${chapterKey}/reflect`;
   return `/path/${chapterKey}`;
 }
 
@@ -65,7 +65,53 @@ export function usePath() {
     return next;
   }, [token]);
 
-  return { path, error, reload: load, markStep };
+  // Next match (Hook fix 2): set/clear the day, and "How did it go?".
+  const send = useCallback(async (url, method, body) => {
+    const res = await apiFetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error(String(res.status));
+    const next = await res.json();
+    setPath(next);
+    return next;
+  }, [token]);
+  const setMatchDay = useCallback((day) => send('/api/path/match', 'PUT', { day }), [send]);
+  const reviewMatch = useCallback((feel, used) => send('/api/path/match/review', 'POST', { feel, used }), [send]);
+
+  return { path, error, reload: load, markStep, setMatchDay, reviewMatch };
+}
+
+// ── Next match days (calendar days "YYYY-MM-DD" on the athlete's phone) ──
+export function dayKey(date = new Date()) {
+  const p = (n) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${p(date.getMonth() + 1)}-${p(date.getDate())}`;
+}
+
+export function dayFromKey(key) {
+  const [y, m, d] = String(key).split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+export function daysFromToday(key, now = new Date()) {
+  const today = dayFromKey(dayKey(now));
+  return Math.round((dayFromKey(key) - today) / 86400000);
+}
+
+// none | ahead | tomorrow | today | review (1–3 days after) | stale
+export function matchPhase(key, now = new Date()) {
+  if (!key || !/^\d{4}-\d{2}-\d{2}$/.test(key)) return 'none';
+  const d = daysFromToday(key, now);
+  if (d > 1) return 'ahead';
+  if (d === 1) return 'tomorrow';
+  if (d === 0) return 'today';
+  if (d >= -3) return 'review';
+  return 'stale';
+}
+
+export function weekdayOf(key, style = 'long') {
+  return dayFromKey(key).toLocaleDateString('en-IN', { weekday: style });
 }
 
 // "Chapter unlocked!" moment (Hook Model reward): remembers which finished

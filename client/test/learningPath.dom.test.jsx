@@ -50,7 +50,7 @@ describe('Profile path section', () => {
     cleanup();
     apiFetch.mockResolvedValue(respond(makePath({ focusSteps: { learn: true, practise: true, play: true, reflect: false } })));
     render(<MemoryRouter><PathSection /></MemoryRouter>);
-    expect((await screen.findByTestId('path-next')).getAttribute('href')).toBe('/mind-journal/new');
+    expect((await screen.findByTestId('path-next')).getAttribute('href')).toBe('/path/focus/reflect');
   });
 });
 
