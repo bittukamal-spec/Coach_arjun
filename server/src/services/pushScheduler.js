@@ -20,6 +20,7 @@ const {
 } = require('./pushTimezone');
 const { buildReminderPayload, sendPushToSubscription } = require('./pushSend');
 const { pickMoment, loadMomentContext, buildMomentPayload } = require('./pushMoments');
+const { loadPersonal, reminderTimeFor } = require('./path/personal');
 
 // A reminder is considered due for the ten minutes starting at
 // SYSTEM_REMINDER_TIME local time — "around 18:00–18:10", never promised
@@ -56,7 +57,9 @@ async function processOnePreference(client, pref, nowDate) {
   }
 
   const nowMinutes = minutesSinceMidnight(getLocalTimeString(nowDate, pref.timezone));
-  const dueStart = minutesSinceMidnight(SYSTEM_REMINDER_TIME);
+  // Onboarding v2 (Nov 2026): shortly before they usually train; 18:00 if unknown.
+  const personal = await loadPersonal(client, pref.userId);
+  const dueStart = minutesSinceMidnight(personal.trainingTime ? reminderTimeFor(personal.trainingTime) : SYSTEM_REMINDER_TIME);
   const dueEnd = dueStart + DUE_WINDOW_MINUTES;
   if (nowMinutes < dueStart || nowMinutes >= dueEnd) {
     return { userId: pref.userId, status: 'not_due' };

@@ -40,7 +40,7 @@ function tPath(obj, key) {
 // `pattern` is the pre-simplification name for the pressure section, kept so an
 // old bookmark or an in-flight client bundle still lands somewhere sensible.
 const SECTION_ALIASES = { pattern: 'pressure' };
-const VALID_SECTIONS = new Set(['pressure', 'helps', 'strengths', 'goals']);
+const VALID_SECTIONS = new Set(['pressure', 'helps', 'strengths', 'goals', 'personal']);
 
 export default function PerformanceCheckinPage() {
   const { token, language } = useAuth();

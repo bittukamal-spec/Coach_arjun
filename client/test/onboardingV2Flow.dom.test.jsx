@@ -52,6 +52,7 @@ function makeServer(overrides = {}) {
         session = { ...session, status: 'COMPLETED', completedAt: new Date().toISOString(), revision: session.revision + 1 };
         return [200, { user: { id: 'u1', onboardingDone: true, goals: [] }, session }];
       }
+      if (path === '/api/path/match' && method === 'PUT') return [200, { match: { nextDay: body.day } }];
       return [404, { error: 'NOPE' }];
     },
   };
@@ -90,7 +91,7 @@ async function toSituation(user) {
   await user.click(await screen.findByRole('radio', { name: 'Cricket' }));
   await user.click(await screen.findByRole('radio', { name: 'No fixed role' }));
   await user.click(cont());
-  await screen.findByRole('heading', { name: 'Where do you play?' });
+  await screen.findByRole('heading', { name: 'Level' });
   await user.click(radio('State level'));
   await user.click(cont());
   await screen.findByRole('heading', { name: 'Which situation gives you the most trouble right now?' });
@@ -109,15 +110,15 @@ describe('Adaptive onboarding v2 (short flow)', () => {
   test('shows a loading state, then resumes on the first screen from the server session', async () => {
     wire(makeServer());
     render(<App />);
-    expect(await screen.findByRole('heading', { name: 'What do you play?' })).toBeTruthy();
-    expect(screen.getAllByText('Stage 1 of 2').length).toBeGreaterThan(0);
+    expect(await screen.findByRole('heading', { name: 'What sport do you play?' })).toBeTruthy();
+    expect(screen.getAllByText('Stage 1 of 3').length).toBeGreaterThan(0);
   });
 
   test('sport and role sit on one screen; the role choices follow the sport', async () => {
     wire(makeServer());
     render(<App />);
     const user = userEvent.setup();
-    await screen.findByRole('heading', { name: 'What do you play?' });
+    await screen.findByRole('heading', { name: 'What sport do you play?' });
     expect(screen.queryByRole('radio', { name: 'Batter' })).toBeNull();
     expect(cont().disabled).toBe(true);
     await user.click(radio('Cricket'));
@@ -134,7 +135,7 @@ describe('Adaptive onboarding v2 (short flow)', () => {
     await user.click(await screen.findByRole('radio', { name: 'Cricket' }));
     await user.click(await screen.findByRole('radio', { name: 'No fixed role' }));
     await user.click(cont());
-    await screen.findByRole('heading', { name: 'Where do you play?' });
+    await screen.findByRole('heading', { name: 'Level' });
     expect(screen.queryByText('How would you describe your experience?')).toBeNull();
     await user.click(radio('State level'));
     expect(cont().disabled).toBe(false);
@@ -145,7 +146,7 @@ describe('Adaptive onboarding v2 (short flow)', () => {
     render(<App />);
     const user = userEvent.setup();
     await toSituation(user);
-    for (const name of ['After I make a mistake', 'Before an important performance', 'When I lose focus', 'When my confidence drops', 'My situation is different']) {
+    for (const name of ['After I make a mistake', 'Nervousness before matches', 'When I lose focus', 'When my confidence drops', 'My situation is different']) {
       expect(radio(name)).toBeTruthy();
     }
     expect(screen.queryByRole('radio', { name: "I'm not sure yet" })).toBeNull();
@@ -163,21 +164,38 @@ describe('Adaptive onboarding v2 (short flow)', () => {
     expect(cont().disabled).toBe(false);
   });
 
-  test('the mistakes branch asks ONE follow-up, and it is the last screen', async () => {
+  test('after the situation: what you notice first, then ONE follow-up, then pressure / what helps / your week', async () => {
     wire(makeServer());
     render(<App />);
     const user = userEvent.setup();
     await toSituation(user);
     await user.click(radio('After I make a mistake'));
     await user.click(cont());
+    expect(await screen.findByRole('heading', { name: 'When it happens, what do you notice first?' })).toBeTruthy();
+    expect(screen.getByTestId('onb-uses').textContent).toMatch(/Arjun uses this to.*Pressure Reset/);
+    await user.click(screen.getByRole('radio', { name: /^My thoughts/ }));
+    await user.click(cont());
     expect(await screen.findByRole('heading', { name: 'What usually happens to your performance next?' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Finish' })).toBeTruthy();
+    await user.click(radio('I hesitate'));
+    await user.click(cont());
+    expect(await screen.findByRole('heading', { name: 'Where does the pressure come from?' })).toBeTruthy();
+    expect(screen.getAllByText('Stage 3 of 3').length).toBeGreaterThan(0);
+    expect(cont().disabled).toBe(false); // optional
+    await user.click(cont());
+    expect(await screen.findByRole('heading', { name: 'What already helps you?' })).toBeTruthy();
+    expect(cont().disabled).toBe(false); // optional
+    await user.click(cont());
+    expect(await screen.findByRole('heading', { name: 'Your week' })).toBeTruthy();
+    expect(screen.getByTestId('onb-match')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Finish' }).disabled).toBe(true);
+    await user.click(radio('Evening'));
+    expect(screen.getByRole('button', { name: 'Finish' }).disabled).toBe(false);
   });
 
   test('a session saved on a screen from the old, longer onboarding resumes inside the short flow', async () => {
     wire(makeServer({ answers: { ...DONE_ANSWERS, supports: { answerIds: ['clear_preparation'] } }, currentStepId: 'strengths', branchId: 'mistakes' }));
     render(<App />);
-    expect(await screen.findByRole('heading', { name: 'What usually happens to your performance next?' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'When it happens, what do you notice first?' })).toBeTruthy();
   });
 
   test('a historical "not sure yet" session still keeps its unsure branch', async () => {
@@ -200,9 +218,9 @@ describe('Adaptive onboarding v2 (short flow)', () => {
     opts.failNext = true;
     await user.click(cont());
     expect(await screen.findByText("Couldn't save")).toBeTruthy();
-    expect(screen.getByRole('heading', { name: 'What do you play?' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'What sport do you play?' })).toBeTruthy();
     await user.click(screen.getByRole('button', { name: 'Retry' }));
-    expect(await screen.findByRole('heading', { name: 'Where do you play?' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Level' })).toBeTruthy();
   });
 
   test('changing the primary priority to a new branch warns before clearing branch answers', async () => {
@@ -214,7 +232,7 @@ describe('Adaptive onboarding v2 (short flow)', () => {
     await user.click(cont());
     expect(await screen.findByRole('dialog')).toBeTruthy();
     await user.click(screen.getByRole('button', { name: 'Yes, change it' }));
-    expect(await screen.findByRole('heading', { name: 'What usually happens to your performance next?' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'When it happens, what do you notice first?' })).toBeTruthy();
   });
 
   test('a newer server revision with unsaved local edits surfaces a conflict choice', async () => {
@@ -228,14 +246,17 @@ describe('Adaptive onboarding v2 (short flow)', () => {
     expect(screen.getByRole('button', { name: 'Use the saved version' })).toBeTruthy();
   });
 
-  test('completion posts complete, updates the user, and lands on the first-run welcome', async () => {
-    wire(makeServer({ answers: { ...DONE_ANSWERS }, currentStepId: 'mistakes_next', branchId: 'mistakes' }));
+  test('completion posts complete, saves the match day, and lands on the first-run welcome', async () => {
+    wire(makeServer({ answers: { ...DONE_ANSWERS, first_signal: { answerIds: ['body'] }, mistakes_next: { answerIds: ['hesitate'] } }, currentStepId: 'training_time', branchId: 'mistakes' }));
     render(<App />);
     const user = userEvent.setup();
-    await user.click(await screen.findByRole('radio', { name: 'I hesitate' }));
+    await user.click(await screen.findByRole('radio', { name: 'Evening' }));
+    const days = within(screen.getByTestId('onb-match')).getAllByRole('radio');
+    await user.click(days[2]);
     await user.click(screen.getByRole('button', { name: 'Finish' }));
     await screen.findByText('welcome');
     expect(authState.updateUser).toHaveBeenCalled();
+    expect(apiFetch).toHaveBeenCalledWith('/api/path/match', expect.objectContaining({ method: 'PUT' }));
   });
 
   test('an already-onboarded user is redirected away from onboarding', async () => {
@@ -249,14 +270,14 @@ describe('Adaptive onboarding v2 (short flow)', () => {
     wire(makeServer());
     document.documentElement.setAttribute('data-theme', 'light');
     const { container: light } = render(<App />);
-    await screen.findByRole('heading', { name: 'What do you play?' });
+    await screen.findByRole('heading', { name: 'What sport do you play?' });
     const lightHtml = light.innerHTML;
     cleanup();
     localStorage.clear();
     wire(makeServer());
     document.documentElement.setAttribute('data-theme', 'dark');
     const { container: dark } = render(<App />);
-    await screen.findByRole('heading', { name: 'What do you play?' });
+    await screen.findByRole('heading', { name: 'What sport do you play?' });
     expect(dark.innerHTML).toBe(lightHtml);
     document.documentElement.removeAttribute('data-theme');
   });
@@ -265,7 +286,7 @@ describe('Adaptive onboarding v2 (short flow)', () => {
     authState.language = 'hi';
     wire(makeServer());
     render(<App />);
-    expect(await screen.findByRole('heading', { name: 'आप क्या खेलते हैं?' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'आप कौन सा खेल खेलते हैं?' })).toBeTruthy();
   });
 
   test('advancing a screen moves focus to the new heading (focus management)', async () => {
@@ -275,14 +296,14 @@ describe('Adaptive onboarding v2 (short flow)', () => {
     await user.click(await screen.findByRole('radio', { name: 'Cricket' }));
     await user.click(await screen.findByRole('radio', { name: 'No fixed role' }));
     await user.click(cont());
-    const levelHeading = await screen.findByRole('heading', { name: 'Where do you play?' });
+    const levelHeading = await screen.findByRole('heading', { name: 'Level' });
     await waitFor(() => expect(document.activeElement).toBe(levelHeading));
   });
 
   test('the onboarding heading is programmatically focusable and options are accessible controls', async () => {
     wire(makeServer());
     render(<App />);
-    const heading = await screen.findByRole('heading', { name: 'What do you play?' });
+    const heading = await screen.findByRole('heading', { name: 'What sport do you play?' });
     expect(heading.getAttribute('tabindex')).toBe('-1');
     const cricket = radio('Cricket');
     expect(cricket.getAttribute('aria-checked')).toBe('false');
@@ -327,7 +348,7 @@ describe('Adaptive onboarding v2 (short flow)', () => {
     const before = getCount();
     failGet = false;
     await user.click(screen.getByRole('button', { name: 'Retry' }));
-    expect(await screen.findByRole('heading', { name: 'What do you play?' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'What sport do you play?' })).toBeTruthy();
     expect(getCount()).toBeGreaterThan(before);
   });
 
@@ -346,7 +367,7 @@ describe('Adaptive onboarding v2 (short flow)', () => {
     expect(screen.queryByText('Loading your onboarding…')).toBeNull();
     failGet = false;
     await user.click(screen.getByRole('button', { name: 'Retry' }));
-    expect(await screen.findByRole('heading', { name: 'What do you play?' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'What sport do you play?' })).toBeTruthy();
   });
 
   // ── Stage G: presentation. These sit ON TOP of the behavioural coverage
@@ -358,7 +379,7 @@ describe('Adaptive onboarding v2 (short flow)', () => {
     const user = userEvent.setup();
 
     // sport: longest label "Other sport" (11 chars) → grid of tiles.
-    await screen.findByRole('heading', { name: 'What do you play?' });
+    await screen.findByRole('heading', { name: 'What sport do you play?' });
     expect(radio('Cricket').closest('[role="radiogroup"]').className).toMatch(/grid-cols-2/);
 
     await user.click(radio('Cricket'));
@@ -373,7 +394,7 @@ describe('Adaptive onboarding v2 (short flow)', () => {
     authState.language = 'hi';
     wire(makeServer());
     render(<App />);
-    await screen.findByRole('heading', { name: 'आप क्या खेलते हैं?' });
+    await screen.findByRole('heading', { name: 'आप कौन सा खेल खेलते हैं?' });
     // Same set, same decision, regardless of which language is rendering.
     const group = screen.getAllByRole('radiogroup')[0];
     expect(group.className).toMatch(/grid-cols-2/);
@@ -383,7 +404,7 @@ describe('Adaptive onboarding v2 (short flow)', () => {
     wire(makeServer());
     render(<App />);
     const user = userEvent.setup();
-    await screen.findByRole('heading', { name: 'What do you play?' });
+    await screen.findByRole('heading', { name: 'What sport do you play?' });
     expect(radio('Football').textContent).not.toContain('✓');
     await user.click(radio('Cricket'));
     expect(radio('Cricket').textContent).toContain('✓');
@@ -401,7 +422,7 @@ describe('Adaptive onboarding v2 (short flow)', () => {
   test('Stage G: onboarding mounts no app navigation of any kind', async () => {
     wire(makeServer());
     render(<App />);
-    await screen.findByRole('heading', { name: 'What do you play?' });
+    await screen.findByRole('heading', { name: 'What sport do you play?' });
     expect(screen.queryByRole('navigation')).toBeNull();
     for (const label of ['Home', 'Train', 'Coach', 'Playbook', 'Profile', 'Settings']) {
       expect(screen.queryByRole('link', { name: label })).toBeNull();

@@ -90,9 +90,9 @@ test('the old mental-game-profile route redirects to the starting profile', () =
 
 // ── The post-onboarding flow ────────────────────────────────────────────────
 
-test('onboarding completion opens the starting profile, not the Mind Journal', () => {
+test('onboarding completion opens the first-run welcome (Mind Challenge), not the Mind Journal', () => {
   const onboarding = clientSrc('pages/OnboardingPage.jsx');
-  assert.match(onboarding, /navigate\('\/starting-profile'/);
+  assert.match(onboarding, /navigate\('\/welcome'/);
   assert.doesNotMatch(onboarding, /'\/mind-journal'/);
 });
 

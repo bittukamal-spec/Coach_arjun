@@ -146,7 +146,7 @@ async function getOrCreateWording(client, profile, user, language, deps = {}) {
 // Still never editable here: sport / role / competition level / experience
 // (Settings-owned) and `difficult_moments` (a historical multi-select that no
 // longer drives anything the athlete can see).
-const CHECKIN_ALWAYS_EDITABLE = ['broad_goals', 'four_week_outcome', 'supports', 'strengths'];
+const CHECKIN_ALWAYS_EDITABLE = ['broad_goals', 'four_week_outcome', 'supports', 'strengths', 'first_signal', 'contextual_pressures', 'what_helps', 'training_time'];
 const SITUATION_QID = C.SITUATION_QUESTION_ID;
 
 // Screen ids for the athlete's own branch (config-driven — no per-branch
@@ -170,6 +170,8 @@ function checkinScreens(session) {
   return {
     goals: ['broad_goals', 'four_week_outcome'],
     helps: ['supports'],
+    // Onboarding v2 (Nov 2026): the answers that personalise the app.
+    personal: ['first_signal', 'contextual_pressures', 'what_helps', 'training_time'],
     strengths: ['strengths'],
     // Situation first, then this branch's follow-ups: the sequence the
     // profile displays is the sequence the athlete is asked.

@@ -1045,6 +1045,27 @@ export const translations = {
     // The five real practices only — no invented categories, no practice
     // counts (there is no count data to render). Names and descriptions are
     // the existing approved wording, moved out of inline JSX conditionals.
+    knows: {
+      title: 'What Arjun knows — and what it does with it',
+      change: 'Change',
+      rows: {
+        hardest: 'Where your path starts',
+        signal: 'What you notice first',
+        pressure: 'Pressure comes from',
+        helps: 'What helps',
+        week: 'Your week',
+      },
+      effect: {
+        hardest: () => 'Chosen from what you said is hardest right now',
+        signal: { body: 'Pressure Reset comes first', thoughts: 'Focus Cards and cue words come first', feelings: 'The Mind Journal comes first', not_sure: 'Arjun will learn this as you go' },
+        pressure: 'Arjun keeps this in mind when you talk',
+        helps: 'Your match prep starts with these',
+        week: (time) => `Reminders around ${time}, prep the day before your match`,
+      },
+      reminder: { morning: '7 am', afternoon: '12:30 pm', evening: '4 pm', varies: '6 pm' },
+      notSet: 'Not set yet',
+      matchOn: (d) => `match ${d}`,
+    },
     welcome: {
       almost: 'Almost done',
       saveMatch: 'Save and continue',
@@ -1060,6 +1081,7 @@ export const translations = {
       subtitle: 'Pick by moment. Swipe for more.',
       weekly: { name: 'Weekly reviews', desc: 'Your week with Arjun.' },
       sections: { before: 'Before you play', moment: 'In the moment', after: 'After you play' },
+      startHere: 'Start here',
       journal: 'Mind Journal',
       myPractice: 'My practice',
       weeklyShort: 'Weekly reviews',
