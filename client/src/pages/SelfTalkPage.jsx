@@ -530,7 +530,7 @@ export default function SelfTalkPage() {
       <div className="text-center mb-8">
         <MascotArt pose="cheer" className="mb-4 h-[clamp(130px,23dvh,200px)]" />
         <h2 className="text-2xl font-bold text-ink mb-2">{t.saved.heading}</h2>
-        <p className="text-sm text-slt">{hi ? 'तुम्हारा Focus Card save हो गया।' : 'Your Focus Card is saved.'}</p>
+        <p className="text-sm text-slt">{hi ? 'तुम्हारा Self-Talk Card save हो गया।' : 'Your Self-Talk Card is saved.'}</p>
       </div>
       <div className="w-full space-y-3">
         <button

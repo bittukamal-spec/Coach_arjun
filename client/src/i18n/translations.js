@@ -282,7 +282,7 @@ export const translations = {
         skill: {
           calm: 'your Pressure Reset breathing',
           focus: 'your focus word',
-          confidence: 'your Focus Card words',
+          confidence: 'your Self-Talk Card words',
           routine: 'your routine',
           bounce: 'the 5-second reset',
           picture: 'your picture of it going right',
@@ -314,7 +314,7 @@ export const translations = {
         },
         focus: {
           title: 'Focus', line: 'Get back to the next ball, fast',
-          practise: 'Do a Quick Rep and pick your focus word', route: '/mental-rep',
+          practise: 'Do a Mind Warm-up and pick your focus word', route: '/mental-rep',
           play: 'Say your focus word after every miss in your next match',
           lesson: {
             title: 'Why your mind replays mistakes',
@@ -328,8 +328,8 @@ export const translations = {
         },
         confidence: {
           title: 'Confidence', line: 'Talk to yourself like a teammate',
-          practise: 'Build your Focus Card', route: '/self-talk',
-          play: 'Say your Focus Card words before your next big moment',
+          practise: 'Build your Self-Talk Card', route: '/self-talk',
+          play: 'Say your Self-Talk Card words before your next big moment',
           lesson: {
             title: 'The voice in your head',
             cards: [
@@ -1060,7 +1060,7 @@ export const translations = {
     // the existing approved wording, moved out of inline JSX conditionals.
     yourWords: {
       tag: {
-        card: () => 'Your Focus Card',
+        card: () => 'Your Self-Talk Card',
         cue: () => 'Your focus word',
         journal: (when) => (when ? `You wrote · ${when}` : 'You wrote'),
         lesson: () => 'What you learned',
@@ -1084,7 +1084,7 @@ export const translations = {
       },
       effect: {
         hardest: () => 'Chosen from what you said is hardest right now',
-        signal: { body: 'Pressure Reset comes first', thoughts: 'Focus Cards and focus words come first', feelings: 'The Mind Journal comes first', not_sure: 'Arjun will learn this as you go' },
+        signal: { body: 'Pressure Reset comes first', thoughts: 'Self-Talk Cards and focus words come first', feelings: 'The Mind Journal comes first', not_sure: 'Arjun will learn this as you go' },
         pressure: 'Arjun keeps this in mind when you talk',
         helps: 'Your match prep starts with these',
         week: (time) => `Reminders around ${time}, prep the day before your match`,
@@ -1127,10 +1127,10 @@ export const translations = {
       lookBackLabel: 'Look back',
       myPractice: { name: 'My practice', desc: 'What you have practised and how it went.' },
       practices: {
-        ritual:      { name: 'Ritual',                     desc: 'Your routine before you play.' },
+        ritual:      { name: 'Mental Routines',                     desc: 'Your routine before you play.' },
         pressure:    { name: 'Pressure Reset',             desc: 'Steady your body before the next action.' },
-        focusCard:   { name: 'Focus Card Builder',         desc: 'Turn a worried thought into a few strong words you can say to yourself.' },
-        quickRep:    { name: 'Quick Rep',                  desc: '4 minutes. You end with one short word to say to yourself in training.' },
+        focusCard:   { name: 'Self-Talk Cards',         desc: 'Turn a worried thought into a few strong words you can say to yourself.' },
+        quickRep:    { name: 'Mind Warm-up',                  desc: '4 minutes. You end with one short word to say to yourself in training.' },
       },
     },
     dashboard: {
@@ -1345,10 +1345,10 @@ export const translations = {
         saveNew: 'Save as new routine',
         notNow: 'Not now',
         saving: 'Saving…',
-        saved: 'Saved to Ritual ✓',
+        saved: 'Saved to Mental Routines ✓',
         view: 'View routine',
-        limit: 'You already have 5 routines. Delete one in Ritual to add another.',
-        missing: 'That routine no longer exists. Save it as a new one from Ritual.',
+        limit: 'You already have 5 routines. Delete one in Mental Routines to add another.',
+        missing: 'That routine no longer exists. Save it as a new one from Mental Routines.',
         error: 'Could not save. Try again.',
       },
       startFresh: {
@@ -1525,7 +1525,7 @@ export const translations = {
       },
     },
     ritual: {
-      title: 'Your routines',
+      title: 'Mental Routines',
       subtitle: 'Short routines you can run before you play, or in the moments that matter.',
       heroTitle: 'Get ready the same way, every time',
       savedCount: (n, limit) => `${n} of ${limit} saved`,
@@ -1634,7 +1634,7 @@ export const translations = {
       weekLabel: 'This week',
       weekPractices: 'Practices this week',
       weekLine: (reps, resets) => [
-        reps ? `${reps} Quick Rep${reps === 1 ? '' : 's'}` : '',
+        reps ? `${reps} Mind Warm-up${reps === 1 ? '' : 's'}` : '',
         resets ? `${resets} Pressure Reset${resets === 1 ? '' : 's'}` : '',
       ].filter(Boolean).join(' · '),
       practicesLabel: 'Practices from Arjun',
@@ -1732,7 +1732,7 @@ export const translations = {
       feature1:         'Unlimited coaching chats with Arjun',
       feature2:         'One clear practice at a time, with follow-up',
       feature3:         'Pressure Reset and pre-match routines',
-      feature4:         'Focus Cards built from your own words',
+      feature4:         'Self-Talk Cards built from your own words',
       feature5:         'Mind Journal with reflections from Arjun',
       feature6:         'A weekly review of your coaching',
       loading:          'Setting up…',
@@ -1751,7 +1751,7 @@ export const translations = {
     },
     selfTalk: {
       learn: {
-        title:    'Focus Card Builder',
+        title:    'Self-Talk Cards',
         duration: '5 minutes',
         desc:     'What you say to yourself during sport matters.',
         benefit1: 'Turn a worried thought into strong words',
@@ -1759,7 +1759,7 @@ export const translations = {
         benefit3: 'Use them before, during or after you play',
         educTitle: 'What you say to yourself changes how you play.',
         educBody:  "It gives your mind a clear job.\n\nExample:\n\'Don\'t mess up' creates pressure.\n\'Next action' gives focus.",
-        startBtn:  'Build My Focus Card',
+        startBtn:  'Build My Self-Talk Card',
       },
       sport: {
         progress:         '1 of 5',
@@ -1810,11 +1810,11 @@ export const translations = {
       },
       generating: {
         progress: '4 of 5',
-        text:     'Arjun is building your Focus Card…',
+        text:     'Arjun is building your Self-Talk Card…',
       },
       safety: {
         heading:    'This matters.',
-        message:    "I\'m sorry you\'re feeling this. This goes beyond what a Focus Card can help with right now. Please speak to a trusted adult, parent, coach, or school counsellor. This tool is for sport performance, not personal crisis support.",
+        message:    "I\'m sorry you\'re feeling this. This goes beyond what a Self-Talk Card can help with right now. Please speak to a trusted adult, parent, coach, or school counsellor. This tool is for sport performance, not personal crisis support.",
         iCallLabel: 'iCall helpline: 9152987821',
         backBtn:    'Back to training',
       },
@@ -1824,23 +1824,23 @@ export const translations = {
       },
       card: {
         progress:         '5 of 5',
-        heading:          'Your Focus Card',
+        heading:          'Your Self-Talk Card',
         focusWordLabel:   'Focus word',
         resetWordLabel:   'After a mistake, say',
         powerLineLabel:   'Your strong line',
         reminderLabel:    'Remember',
         arjunNoteLabel:   "Arjun\'s note",
         whenText:         'Use this before your next action, after a mistake, or when pressure thoughts show up.',
-        saveBtn:          'Save Focus Card',
+        saveBtn:          'Save Self-Talk Card',
         regenBtn:         'Make a new one',
         saving:           'Saving…',
       },
       maxCards: {
-        message: 'You have 5 Focus Cards. Put one away to add a new one.',
+        message: 'You have 5 Self-Talk Cards. Put one away to add a new one.',
         link:    'View my deck →',
       },
       saved: {
-        heading:     'Focus Card saved.',
+        heading:     'Self-Talk Card saved.',
         summary:     (w, s) => `${w} — ready for ${s}`,
         practiceBtn: 'Practice now',
         deckBtn:     'View my deck',
@@ -1854,8 +1854,8 @@ export const translations = {
         backBtn:  'Back to training',
       },
       deck: {
-        title:         'Focus Cards',
-        emptyTitle:    'No Focus Cards yet. Build your first one.',
+        title:         'Self-Talk Cards',
+        emptyTitle:    'No Self-Talk Cards yet. Build your first one.',
         emptyBtn:      'Build a card',
         filterAll:     'All',
         matchDayBadge: 'Match Day',
@@ -2169,7 +2169,7 @@ export const translations = {
       profile: { label: 'Mental profile', sub: 'Onboarding answers and preferences' },
       cue: { label: 'Cue word', sub: 'Your personal focus cue' },
       checkin: { label: 'Check-in history', sub: 'All daily mental fitness scores' },
-      routines: { label: 'Ritual routines', sub: 'Your saved Ritual routines' },
+      routines: { label: 'Mental Routines', sub: 'Your saved routines' },
       confirm: {
         title: 'Delete this data?',
         body: 'This cannot be undone.',
@@ -2267,7 +2267,7 @@ export const translations = {
           text:  (cue) => `One breath → say “${cue}” → next action`,
           noCue: 'One breath → reset → next action',
         },
-        cue_missing_cta: 'Build one in Focus Card Builder →',
+        cue_missing_cta: 'Build one in Self-Talk Cards →',
         arjun: {
           nervous:    'You practised the moment. Nerves are normal. Say your focus word when they come.',
           flat:       'Switched on. You know what to do first.',
@@ -2373,7 +2373,7 @@ export const translations = {
         sectionLabel: 'What to do now',
         pressureReset: { title: 'Pressure Reset',      desc: 'Controlled breathing · 3 min' },
         focusLock:  { title: 'Train Your Focus',      desc: 'Focus Lock · 60-second rep' },
-        selftalk:   { title: 'Build Your Focus Card', desc: 'Focus Card Builder · 5 min' },
+        selftalk:   { title: 'Build Your Self-Talk Card', desc: 'Self-Talk Cards · 5 min' },
         resetRally: { title: 'Practise Your Reset',   desc: 'Reset Rally · 60-second rep' },
         debrief:    { title: 'Reflect and Learn',     desc: 'After Match / Training · 4 min' },
       },
@@ -2817,7 +2817,7 @@ export const translations = {
       focus: {
         heading:      'Add your focus word?',
         sub:          'Say your word as you breathe out. It makes the reset stronger.',
-        noCards:      'No Focus Cards saved yet — you can still do the reset.',
+        noCards:      'No Self-Talk Cards saved yet — you can still do the reset.',
         skip:         'Skip for now',
         loadingCards: 'Loading your cards…',
       },

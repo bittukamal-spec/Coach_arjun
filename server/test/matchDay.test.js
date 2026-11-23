@@ -127,7 +127,7 @@ test('API: "Forgot" or skipping clears the match without ticking anything', asyn
 
 test('chat wires the path note in, best-effort, after the other internal notes', () => {
   const src = require('fs').readFileSync(require('path').join(__dirname, '../src/routes/chat.js'), 'utf8');
-  assert.match(src, /buildRoutineFocusSection\(focusRoutine\) \+ buildPathCoachSection\(pathContext \? \{ path: pathContext, match: pathContext\.match, plan: pathContext\.plan \} : \{\}\)/);
+  assert.match(src, /buildRoutineFocusSection\(focusRoutine\) \+ buildPathCoachSection\(pathContext \? \{ path: pathContext, match: pathContext\.match, plan: pathContext\.plan \} : \{\}\) \+ TOOL_NAMES_NOTE/);
   assert.match(src, /createPathStore\(prisma\)\.getPath\(req\.userId\)\.catch\(/);
 });
 

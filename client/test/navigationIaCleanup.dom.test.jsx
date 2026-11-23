@@ -334,7 +334,7 @@ describe('Tools page — tiles by moment, real router integration', () => {
     render(<TrainApp />);
     const user = userEvent.setup();
 
-    const ritualEntry = screen.getByRole('link', { name: /Ritual/i });
+    const ritualEntry = screen.getByRole('link', { name: /Mental Routines/i });
     expect(ritualEntry).toBeTruthy();
     // Founder decision (Nov 2026): tiles show the practice name only.
     expect(screen.queryByText('Your routine before you play.')).toBeNull();
@@ -355,9 +355,9 @@ describe('Tools page — tiles by moment, real router integration', () => {
     expect(screen.getByText('Before you play')).toBeTruthy();
     expect(screen.getByText('In the moment')).toBeTruthy();
     expect(screen.getByText('After you play')).toBeTruthy();
-    expect(screen.getByText('Quick Rep')).toBeTruthy();
+    expect(screen.getByText('Mind Warm-up')).toBeTruthy();
     expect(screen.queryByText('Daily Mental Rep')).toBeNull();
-    expect(screen.getByText('Focus Card Builder')).toBeTruthy();
+    expect(screen.getByText('Self-Talk Cards')).toBeTruthy();
 
     // Stage E: the whole tile is the control, so it is named by its
     // practice rather than by a separate "Start" CTA. Clicking the tile
@@ -368,10 +368,10 @@ describe('Tools page — tiles by moment, real router integration', () => {
 
   test('every one of the four remaining practice tiles opens its existing route', async () => {
     const cases = [
-      [/Ritual/, 'ritual:/ritual'],
+      [/Mental Routines/, 'ritual:/ritual'],
       [/Pressure Reset/, 'body-reset:/body-reset'],
-      [/Quick Rep/, 'mental-rep:/mental-rep'],
-      [/Focus Card Builder/, 'self-talk:/self-talk'],
+      [/Mind Warm-up/, 'mental-rep:/mental-rep'],
+      [/Self-Talk Cards/, 'self-talk:/self-talk'],
     ];
     for (const [name, expected] of cases) {
       const { unmount } = render(<TrainApp />);

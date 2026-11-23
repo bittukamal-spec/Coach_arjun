@@ -236,7 +236,7 @@ export default function MentalRepPage() {
       Art={RepArt}
       mascot="think"
       tag={hi ? '4 मिनट' : '4 min'}
-      title="Quick Rep"
+      title="Mind Warm-up"
       desc={hi
         ? '4 मिनट में मन तैयार करो और एक cue लेकर निकलो।'
         : '4 minutes. You end with one short word to say to yourself in training.'}
