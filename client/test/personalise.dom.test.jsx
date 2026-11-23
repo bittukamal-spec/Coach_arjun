@@ -24,19 +24,20 @@ beforeEach(() => apiFetch.mockReset());
 afterEach(() => cleanup());
 
 describe('personalised from onboarding', () => {
-  test('Tools tags the first tool from what they notice first (thoughts → Focus Cards)', async () => {
+  test('Tools explains the best tool to start with (thoughts → Self-Talk Cards)', async () => {
     serve(path({ firstSignal: 'thoughts', pressures: [], helps: [], trainingTime: null }));
     render(<MemoryRouter><ToolsPage /></MemoryRouter>);
-    const badge = await screen.findByTestId('tool-badge');
-    expect(badge.closest('a').getAttribute('href')).toBe('/self-talk');
-    expect(screen.getAllByTestId('tool-badge')).toHaveLength(1);
+    const best = await screen.findByTestId('tools-best');
+    expect(best.getAttribute('href')).toBe('/self-talk');
+    expect(best.textContent).toMatch(/Best for you/);
+    expect(best.textContent).toMatch(/You said pressure shows up first in your thoughts/);
   });
 
   test('no first signal → no badge', async () => {
     serve(path({ firstSignal: null, pressures: [], helps: [], trainingTime: null }));
     render(<MemoryRouter><ToolsPage /></MemoryRouter>);
     await screen.findByTestId('tools-before');
-    expect(screen.queryByTestId('tool-badge')).toBeNull();
+    expect(screen.queryByTestId('tools-best')).toBeNull();
   });
 
   test('profile shows each answer and what it changes, with Change links', async () => {

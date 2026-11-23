@@ -1,4 +1,6 @@
 import { useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { ChevronRight } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
@@ -47,6 +49,8 @@ export default function ToolsPage() {
   const phase = matchPhase(path?.match?.nextDay);
   const review = phase === 'review';
   const order = review ? ['after', 'before', 'moment'] : ['before', 'moment', 'after'];
+  const bestKey = START_HERE[path?.personal?.firstSignal];
+  const bestTool = bestKey ? Object.values(SECTIONS).flat().find(x => x.key === bestKey) : null;
   const name = (key) => t.practices[key]?.name || { journal: tt.journal, myPractice: tt.myPractice, weekly: tt.weeklyShort }[key];
 
   return (
@@ -64,13 +68,27 @@ export default function ToolsPage() {
           <MatchMoment path={path} reviewMatch={reviewMatch} setMatchDay={setMatchDay} />
         </div>
 
+        {/* "Best for you" (onboarding: what they notice first) — explained, not just a tag */}
+        {bestTool && (
+          <div className="px-5">
+            <Link to={bestTool.to} data-testid="tools-best"
+              className="mb-1 flex items-center gap-3 rounded-[22px] border-2 border-sun bg-dark-400 px-4 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
+              <span className="min-w-0 flex-1">
+                <span className="block text-[11px] font-extrabold uppercase tracking-[0.1em] text-slt">{tt.startHere}</span>
+                <span className="block text-[16px] font-extrabold text-ink">{name(bestTool.key)}</span>
+                <span className="block text-[13px] leading-snug text-slt">{tt.startHereLine[path.personal.firstSignal]}</span>
+              </span>
+              <ChevronRight size={18} className="shrink-0 text-ink" aria-hidden="true" />
+            </Link>
+          </div>
+        )}
+
         {order.map(id => (
           <section key={id} aria-labelledby={`tools-${id}`} className="mt-4" data-testid={`tools-${id}`}>
             <h2 id={`tools-${id}`} className="px-5 text-[12px] font-extrabold uppercase tracking-[0.1em] text-slt">{tt.sections[id]}</h2>
-            <div className="mt-2 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-5 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="mt-2 flex snap-x snap-mandatory scroll-px-5 gap-2.5 overflow-x-auto px-5 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {SECTIONS[id].map(tool => (
-                <ToolTile key={tool.key} to={tool.to} tone={tool.tone} title={name(tool.key)} art={tool.art}
-                  badge={START_HERE[path?.personal?.firstSignal] === tool.key ? tt.startHere : null} />
+                <ToolTile key={tool.key} to={tool.to} tone={tool.tone} title={name(tool.key)} art={tool.art} />
               ))}
             </div>
           </section>

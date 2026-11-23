@@ -53,19 +53,33 @@ export default function PathSection() {
           <p className="mt-1 text-[14px]">{t.finishedLine}</p>
         </div>
       ) : (
-        <div className="mt-3 rounded-[24px] bg-dark-400 p-4">
+        <div className="mt-3 rounded-[24px] bg-dark-400 p-4" data-testid="path-panel">
           {(() => {
             const cur = path.chapters.find(c => c.key === path.currentKey);
+            const ch = t.chapters[cur.key];
             const stepIndex = STEP_ORDER.indexOf(path.next.stepKey);
             return (
               <>
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[14px] font-extrabold text-ink">{t.chapters[cur.key].title} · {t.stepOf(stepIndex + 1).toLowerCase()}</span>
-                  <span className="text-[12px] text-slt">{STEP_ORDER.map(st => `${t.steps[st]}${cur.steps[st].done ? ' ✓' : ''}`).join(' · ')}</span>
-                </div>
-                <div className="mt-2 h-2 rounded-full bg-dark-600" aria-hidden="true">
-                  <div className="h-2 rounded-full bg-brand-500" style={{ width: `${(STEP_ORDER.filter(st => cur.steps[st].done).length / 4) * 100}%` }} />
-                </div>
+                <p className="text-[18px] font-extrabold leading-tight text-ink">{t.chapterHead(currentIndex + 1, ch.title)}</p>
+                <p className="mt-0.5 text-[14px] text-slt">{ch.line}</p>
+                <p className="mt-3 text-[13px] font-bold text-ink">{t.stepsIntro}</p>
+                <ol className="mt-2 flex flex-col gap-1.5">
+                  {STEP_ORDER.map((st, i) => {
+                    const done = cur.steps[st].done;
+                    const now = i === stepIndex;
+                    return (
+                      <li key={st} data-testid={`path-step-${st}`} className={`flex items-start gap-3 rounded-[14px] px-3 py-2 ${now ? 'bg-sun/25' : ''}`}>
+                        <span className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[12px] font-extrabold ${done ? 'bg-mint text-inkblock' : now ? 'bg-sun text-inkblock' : 'bg-dark-600 text-slt'}`} aria-hidden="true">
+                          {done ? <Check size={14} strokeWidth={3} /> : i + 1}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className={`block text-[14px] font-extrabold ${done ? 'text-slt' : 'text-ink'}`}>{t.steps[st]}{now && <span className="ml-2 rounded-full bg-inkblock px-2 py-0.5 text-[10.5px] font-extrabold uppercase text-white">{t.stepNow}</span>}</span>
+                          <span className="block text-[13px] leading-snug text-slt">{t.stepDesc[st](ch)}</span>
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ol>
               </>
             );
           })()}
@@ -75,7 +89,7 @@ export default function PathSection() {
           data-testid="path-next"
           className="mt-3 flex min-h-[56px] items-center justify-center gap-2 rounded-[18px] bg-sun px-4 text-center text-[15px] font-extrabold text-inkblock active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
         >
-          {nextLabel(path.next.chapterKey, path.next.stepKey, t)}
+          {t.stepButton[path.next.stepKey](STEP_ORDER.indexOf(path.next.stepKey) + 1, t.chapters[path.next.chapterKey])}
           <ChevronRight size={18} strokeWidth={2.6} aria-hidden="true" />
         </Link>
         </div>
@@ -88,6 +102,8 @@ export default function PathSection() {
         </div>
       )}
 
+      <h3 className="mt-6 text-[16px] font-extrabold text-ink">{t.roadTitle}</h3>
+      <p className="mt-0.5 text-[13px] text-slt">{t.roadLine}</p>
       <PathRoad path={path} t={t} />
     </section>
   );
