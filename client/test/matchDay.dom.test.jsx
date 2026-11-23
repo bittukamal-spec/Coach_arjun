@@ -52,8 +52,10 @@ describe('next match on Home', () => {
     expect(screen.getByTestId('match-sheet')).toBeTruthy();
     const tomorrow = shift(1);
     fireEvent.click(screen.getAllByRole('radio')[1]);
+    // What kind of match (optional)
+    fireEvent.click(screen.getByRole('radio', { name: 'Selection / trial' }));
     fireEvent.click(screen.getByTestId('match-save'));
-    await waitFor(() => expect(apiFetch).toHaveBeenCalledWith('/api/path/match', expect.objectContaining({ method: 'PUT', body: JSON.stringify({ day: tomorrow }) })));
+    await waitFor(() => expect(apiFetch).toHaveBeenCalledWith('/api/path/match', expect.objectContaining({ method: 'PUT', body: JSON.stringify({ day: tomorrow, type: 'selection' }) })));
     expect(await screen.findByTestId('home-match-chip')).toBeTruthy();
     expect(screen.queryByTestId('match-prep')).toBeNull();
   });

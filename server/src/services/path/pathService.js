@@ -86,6 +86,7 @@ const { loadPersonal } = require('./personal');
 function matchOf(progress) {
   return {
     nextDay: progress?.nextMatchDay || null,
+    type: progress?.nextMatchDay ? (progress?.nextMatchType || null) : null,
     lastDay: progress?.lastMatchDay || null,
     lastFeel: progress?.lastMatchFeel || null,
   };
@@ -159,9 +160,9 @@ function createPathStore(prisma) {
   }
 
   // Next match (Hook fix 2): set or clear the day.
-  async function setMatch(userId, day) {
+  async function setMatch(userId, day, type = null) {
     await ensureProgress(userId);
-    await prisma.pathProgress.update({ where: { userId }, data: { nextMatchDay: day || null } });
+    await prisma.pathProgress.update({ where: { userId }, data: { nextMatchDay: day || null, nextMatchType: day ? (type || null) : null } });
   }
 
   // Play plan (Hook fix 3): set or clear the if–then plan.
@@ -179,7 +180,7 @@ function createPathStore(prisma) {
     const progress = await ensureProgress(userId);
     await prisma.pathProgress.update({
       where: { userId },
-      data: { lastMatchDay: progress.nextMatchDay || null, lastMatchFeel: feel, nextMatchDay: null, playPlan: null },
+      data: { lastMatchDay: progress.nextMatchDay || null, lastMatchFeel: feel, nextMatchDay: null, nextMatchType: null, playPlan: null },
     });
     if (chapterKey && (used === 'helped' || used === 'tried')) {
       await record(userId, { chapterKey, stepKey: 'play', outcome: used });

@@ -37,15 +37,16 @@ export default function HomePathArea() {
         <button type="button" onClick={() => setSheet(true)} data-testid="match-chip"
           className="mb-3 -mt-1 inline-flex min-h-[44px] items-center gap-2 rounded-full bg-dark-400 pl-3 pr-2.5 text-[13px] font-bold text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
           <CalendarDays size={16} aria-hidden="true" />
-          {phase === 'ahead' ? m.chipSet(weekdayOf(day, 'short'), dayFromKey(day).getDate()) : m.chipAdd}
+          {phase === 'ahead' ? m.chipSet(weekdayOf(day, 'short'), dayFromKey(day).getDate(), m.typeShort[path.match?.type]) : m.chipAdd}
           <ChevronRight size={16} aria-hidden="true" />
         </button>
       )}
       <MatchDaySheet
         open={sheet}
         initialDay={phase === 'ahead' ? day : null}
+        initialType={phase === 'ahead' ? (path.match?.type || null) : null}
         onClose={() => setSheet(false)}
-        onSave={async (d) => { await setMatchDay(d); setSheet(false); }}
+        onSave={async (d, ty) => { await setMatchDay(d, ty); setSheet(false); }}
       />
     </>
   );

@@ -77,7 +77,7 @@ export function usePath() {
     setPath(next);
     return next;
   }, [token]);
-  const setMatchDay = useCallback((day) => send('/api/path/match', 'PUT', { day }), [send]);
+  const setMatchDay = useCallback((day, type = null) => send('/api/path/match', 'PUT', { day, type: day ? type : null }), [send]);
   const reviewMatch = useCallback((feel, used) => send('/api/path/match/review', 'POST', { feel, used }), [send]);
 
   return { path, error, reload: load, markStep, setMatchDay, reviewMatch };

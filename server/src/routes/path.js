@@ -1,7 +1,7 @@
 // Learning path API (docs/PATH-STRATEGY.md). No AI, no athlete text stored.
 //   GET  /api/path         → the athlete's path (chapters, current chapter, next step)
 //   POST /api/path/steps   → { chapterKey, stepKey: learn|practise|play, outcome? } marks a step done
-//   PUT  /api/path/match   → { day: "YYYY-MM-DD" | null } sets or clears the next match (India time)
+//   PUT  /api/path/match   → { day: "YYYY-MM-DD" | null, type? } sets or clears the next match (India time); type = practice|league|tournament|selection|final
 //   POST /api/path/match/review → { feel: well|mixed|tough|null, used: helped|tried|forgot|null }
 //        clears the match + play plan; helped/tried also ticks the current chapter's Play step
 //   PUT  /api/path/plan    → { tool, moment, cue? } | { plan: null } the if–then play plan (Hook fix 3)
@@ -9,7 +9,7 @@
 // path is walked in order.
 const express = require('express');
 const authenticate = require('../middleware/authenticate');
-const { CHAPTERS, SELF_MARKED_STEPS, PLAY_OUTCOMES, MATCH_FEELS, MATCH_USED, PLAN_MOMENTS } = require('../services/path/pathConfig');
+const { CHAPTERS, SELF_MARKED_STEPS, PLAY_OUTCOMES, MATCH_FEELS, MATCH_USED, PLAN_MOMENTS, MATCH_TYPES } = require('../services/path/pathConfig');
 const { screenSafetyText, recordSafetyEvent, getSafetyGuidance } = require('../services/safety');
 const { isPickableDay, matchPhase } = require('../services/path/matchDay');
 const { createPathStore } = require('../services/path/pathService');
@@ -87,10 +87,12 @@ function createPathRouter({ store } = {}) {
 
   router.put('/match', authenticate, async (req, res) => {
     const day = req.body?.day ?? null;
+    const type = req.body?.type ?? null;
     if (day !== null && !isPickableDay(day)) return res.status(400).json({ error: 'Invalid day' });
+    if (type !== null && !MATCH_TYPES.has(type)) return res.status(400).json({ error: 'Invalid match type' });
     try {
       const s = getStore();
-      await s.setMatch(req.userId, day);
+      await s.setMatch(req.userId, day, type);
       res.json(await s.getPath(req.userId));
     } catch (err) {
       console.error('[path] match error:', err?.message);

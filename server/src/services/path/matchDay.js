@@ -2,7 +2,7 @@
 // Days are plain calendar days "YYYY-MM-DD" in India time (the app is
 // India-only), so "tomorrow" means the same thing to the athlete and Coach.
 
-const { CHAPTER_NOTES, STEP_NOTES, PLAN_NOTES } = require('./pathConfig');
+const { CHAPTER_NOTES, STEP_NOTES, PLAN_NOTES, MATCH_TYPE_NOTES } = require('./pathConfig');
 const { personalNoteLines } = require('./personal');
 
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -64,9 +64,10 @@ function buildPathCoachSection({ path, match, plan } = {}, today = indiaToday())
   }
   const phase = matchPhase(match?.nextDay, today);
   if (phase === 'tomorrow' || phase === 'today') {
-    lines.push(`Their next match is ${phase === 'today' ? 'TODAY' : 'TOMORROW'}. If they have not raised something else, start by asking how they feel about it (calm, nervous or excited) and offer one short match-prep step (a 2-minute Pressure Reset, their Focus Card words, or the skill from their chapter). Keep it light — no pressure, no "must win" talk.`);
+    const kind = MATCH_TYPE_NOTES[match?.type] ? ` (${MATCH_TYPE_NOTES[match.type]})` : '';
+    lines.push(`Their next match is ${phase === 'today' ? 'TODAY' : 'TOMORROW'}${kind}. If they have not raised something else, start by asking how they feel about it (calm, nervous or excited) and offer one short match-prep step (a 2-minute Pressure Reset, their Focus Card words, or the skill from their chapter). Keep it light — no pressure, no "must win" talk.`);
   } else if (phase === 'ahead') {
-    lines.push(`Their next match is in ${dayDiff(today, match.nextDay)} days (${match.nextDay}).`);
+    lines.push(`Their next match is in ${dayDiff(today, match.nextDay)} days (${match.nextDay})${MATCH_TYPE_NOTES[match?.type] ? ` — ${MATCH_TYPE_NOTES[match.type]}` : ''}.`);
   } else if (phase === 'review') {
     lines.push(`They had a match ${-dayDiff(today, match.nextDay)} day(s) ago and have not said how it went yet. If it fits, ask how it went before anything else.`);
   }
