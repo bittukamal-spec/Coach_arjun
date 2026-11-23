@@ -30,7 +30,7 @@ describe('Profile path section', () => {
   test('shows done, current and locked chapters and one Next button for the next step', async () => {
     apiFetch.mockResolvedValue(respond(makePath()));
     render(<MemoryRouter><PathSection /></MemoryRouter>);
-    expect(await screen.findByText('Your path')).toBeTruthy();
+    expect(await screen.findByText('Your training plan')).toBeTruthy();
     expect(screen.getByText('Chapter 2 of 6')).toBeTruthy();
     expect(screen.getByText('It helped')).toBeTruthy();
     expect(screen.getByTestId('path-current').getAttribute('href')).toBe('/path/focus');

@@ -157,7 +157,7 @@ export const translations = {
     // Learning path (docs/PATH-STRATEGY.md). Lessons are a first draft —
     // to be reviewed by a sport psychologist.
     path: {
-      title: 'Your path',
+      title: 'Your training plan',
       chapterOf: (n, total) => `Chapter ${n} of ${total}`,
       chapterLabel: (n) => `Chapter ${n}`,
       youAreHere: 'You are here',
@@ -192,9 +192,9 @@ export const translations = {
       helpedNote: 'It helped',
       triedNote: 'Tried it',
       locked: 'Opens when you finish the chapter before',
-      finishedTitle: 'Path complete',
+      finishedTitle: 'Training plan complete',
       finishedLine: 'Keep using what works. Arjun is here when you need him.',
-      loadError: 'Could not load your path.',
+      loadError: 'Could not load your training plan.',
       retry: 'Try again',
       back: 'Back',
       reflectStep: 'One line in your Mind Journal about how it went',
@@ -310,9 +310,9 @@ export const translations = {
         line: 'You learned it, tried it and used it in a match.',
         nextTag: (n) => `Unlocked · Chapter ${n}`,
         start: (n) => `Start chapter ${n}`,
-        allDoneTitle: 'Path complete!',
+        allDoneTitle: 'Training plan complete!',
         allDoneLine: 'You finished every chapter. Keep using what works.',
-        backToProfile: 'See my path',
+        backToProfile: 'See my training plan',
       },
       chapters: {
         calm: {
@@ -1093,7 +1093,7 @@ export const translations = {
       title: 'What Arjun knows — and what it does with it',
       change: 'Change',
       rows: {
-        hardest: 'Where your path starts',
+        hardest: 'Where your training plan starts',
         signal: 'What you notice first',
         pressure: 'Pressure comes from',
         helps: 'What helps',
@@ -1134,7 +1134,7 @@ export const translations = {
     },
     trainHome: {
       title: 'Train',
-      subtitle: 'Your path, one step at a time.',
+      subtitle: 'Your training plan, one step at a time.',
     },
     trainPage: {
       title: 'Train',
