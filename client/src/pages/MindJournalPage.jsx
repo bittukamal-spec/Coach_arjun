@@ -1,5 +1,6 @@
 import { useToneStatusBar } from '../components/ui/TonePage';
 import MascotArt from '../components/visuals/MascotArt';
+import ExampleCard from '../components/practice/ExampleCard';
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { ArrowRight, ChevronRight } from 'lucide-react';
@@ -200,6 +201,10 @@ export default function MindJournalPage() {
             <ArrowRight size={18} aria-hidden="true" />
           </span>
         </Link>
+
+        {Array.isArray(entries) && entries.length === 0 && (
+          <ExampleCard example={translations.en.examples.journal} className="mt-6" />
+        )}
 
         {/* ── Recent entries ───────────────────────────────────────────────
             Nothing sits between the hero and this list any more: the coaching

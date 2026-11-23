@@ -34,7 +34,7 @@ const SECTIONS = {
   after: [
     { key: 'journal', to: '/mind-journal', tone: 'blush', art: <JournalArt size={64} /> },
     { key: 'myPractice', to: '/my-practice', tone: 'brand', art: <PracticeLogArt /> },
-    { key: 'weekly', to: '/weekly-reviews', tone: 'card', art: <PracticeLogArt /> },
+    { key: 'weekly', to: '/weekly-reviews', tone: 'ink', art: <PracticeLogArt /> },
   ],
 };
 

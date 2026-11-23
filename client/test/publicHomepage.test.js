@@ -58,10 +58,10 @@ test('the hero is the app on a phone, rotating through three real screens', () =
   assert.match(landing, /onClick=\{\(\) => \{ setScreen\(n\); setPaused\(true\); \}\}/);
 });
 
-test('the final section uses a drawing of the app, not a stock photo', () => {
-  assert.match(landing, /<FinalArt label=\{t\.finalPhotoAlt\}/);
+test('the final section shows a real app screenshot on a phone, not a stock photo', () => {
+  assert.match(landing, /aria-label=\{t\.finalPhotoAlt\}/);
+  assert.match(landing, /<RealScreen \{\.\.\.SCREENS\.tools\} \/>/);
   assert.doesNotMatch(landing, /\/photos\//);
-  assert.match(bits, /export function FinalArt/);
 });
 
 test('the Say hi pill is see-through so it never hides the phone screen', () => {

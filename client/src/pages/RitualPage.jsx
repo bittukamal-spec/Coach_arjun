@@ -1,5 +1,6 @@
 import useScrollTopOnChange from '../hooks/useScrollTopOnChange';
 import MascotArt from '../components/visuals/MascotArt';
+import ExampleCard from '../components/practice/ExampleCard';
 import { useState, useEffect, useCallback, useRef, useId } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -823,10 +824,13 @@ function RitualPage() {
         <RoutinesHero count={routines.length} limit={limit} t={t} />
 
         {routines.length === 0 ? (
+          <>
           <div className="rounded-3xl bg-dark-400 p-5 mb-6 text-center">
             <h2 className="text-heading font-bold text-ink mb-1">{t.emptyTitle}</h2>
             <p className="text-body text-slt">{t.emptySub}</p>
           </div>
+          <ExampleCard example={translations.en.examples.routine} className="mb-6" />
+          </>
         ) : (
           <>
             <SectionLabel>{t.listLabel}</SectionLabel>

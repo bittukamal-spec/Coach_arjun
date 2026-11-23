@@ -1,5 +1,6 @@
 import LaunchScreen from './components/LaunchScreen';
 import ScrollManager from './components/ScrollManager';
+import WebsiteLightTheme from './components/WebsiteLightTheme';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import { useTheme } from './hooks/useTheme';
@@ -87,6 +88,7 @@ function App() {
     <>
     {updatePrompt}
     <ScrollManager />
+    <WebsiteLightTheme />
     <Routes>
       {/* Public */}
       <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <LandingPage />} />
