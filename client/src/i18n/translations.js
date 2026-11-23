@@ -54,7 +54,7 @@ export const translations = {
       levelOf: (n) => `Level ${n} of 5`,
       skillMeaning: {
         calm: 'Staying calm when you feel nervous',
-        focus: 'Keeping your mind on the next ball',
+        focus: 'Keeping your mind on the next moment',
         confidence: 'Believing in yourself under pressure',
         routine: 'Doing the same steps to get ready',
         bounce: 'Moving on quickly after a mistake',
@@ -99,7 +99,7 @@ export const translations = {
           { q: 'Just before the match starts, your heart beats fast. What do you usually do?', a: [['I take a slow breath and calm down', 3], ['I like the feeling — it gets me ready', 2], ['I try to ignore it', 1], ['I start to panic a little', 0]] },
         ],
         focus: [
-          { q: 'You just made a mistake. When the next ball or point comes, where is your mind?', a: [['Already on the next ball', 3], ['Back after a few seconds', 2], ['Half thinking about the mistake', 1], ['Still stuck on the mistake', 0]] },
+          { q: 'You just made a mistake. When the game starts again, where is your mind?', a: [['Already on the next moment', 3], ['Back after a few seconds', 2], ['Half thinking about the mistake', 1], ['Still stuck on the mistake', 0]] },
         ],
         confidence: [
           { q: 'Just before an important moment in a match, what do you usually tell yourself?', a: [['“I can do this”', 3], ['“Stay calm, keep it simple”', 2], ['“Let’s see what happens”', 1], ['“Don’t mess this up”', 0]] },
@@ -341,7 +341,7 @@ export const translations = {
           },
         },
         focus: {
-          title: 'Focus', line: 'Get back to the next ball, fast',
+          title: 'Focus', line: 'Get back to the next moment, fast',
           practise: 'Do a Mind Warm-up and pick your focus word', route: '/mental-rep',
           play: 'Say your focus word after every miss in your next match',
           lesson: {
@@ -1107,37 +1107,6 @@ export const translations = {
         journal: 'Still true? Keep it in mind today.',
         lesson: 'From your own practice.',
       },
-    },
-    examples: {
-      selfTalk: { label: 'Example card', title: 'After a dropped catch', rows: [
-        ['Worried thought', '“Everyone saw that.”'],
-        ['Focus word', '“Next ball”'],
-        ['After a mistake, say', '“Shake it, reset.”'],
-        ['Your strong line', '“I have caught a hundred of these.”'],
-      ] },
-      warmUp: { label: 'Example', title: 'Before a match', rows: [
-        ['How you feel', 'Nervous, heart beating fast'],
-        ['The moment', 'Your first over'],
-        ['One thing to watch', 'The bowler’s hand'],
-        ['Your word for today', '“Watch it”'],
-      ] },
-      reset: { label: 'Example', title: 'Before a big match', rows: [
-        ['Before', 'Body tension 7 out of 10'],
-        ['What you do', 'Breathe in 4 seconds, out 6 seconds, for 3 minutes'],
-        ['After', 'Body tension 3 out of 10'],
-      ] },
-      routine: { label: 'Example routine', title: 'Before I bat', rows: [
-        ['Step 1', 'Two slow breaths'],
-        ['Step 2', 'Tap the bat twice'],
-        ['Step 3', 'Look at the sightscreen'],
-        ['Step 4', 'Say “Watch it”'],
-      ] },
-      journal: { label: 'Example entry', title: 'Match day', rows: [
-        ['How you felt', 'Nervous, then calm'],
-        ['What happened', 'Dropped an easy catch in the 5th over'],
-        ['What helped', 'One slow breath out, then focus on the next ball'],
-        ['Next time', 'Say my focus word straight away'],
-      ] },
     },
     knows: {
       title: 'What Arjun knows — and what it does with it',

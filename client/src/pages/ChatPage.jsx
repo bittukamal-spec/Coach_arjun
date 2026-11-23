@@ -15,6 +15,7 @@ import RoutineProposalCard from '../components/coach/RoutineProposalCard';
 import { practiceRouteFor } from '../utils/prescriptionPractice';
 import { filterInternalMessages, isInternalContent, INTERNAL_CONTENT_FILTERED } from '../utils/internalContentFilter';
 import ChatEmptyPrompts from '../components/coach/ChatEmptyPrompts';
+import { chatExamples } from '../i18n/sportExamples';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -470,10 +471,12 @@ function ChatPage() {
 
         // ── Usage (trial days left) — independent of sessions; a failure
         // here must not block the rest of the page from loading.
+        let usageNow = null;
         try {
           const usageRes = await apiFetch('/api/chat/usage', { headers: { Authorization: `Bearer ${token}` } });
           if (usageRes.ok) {
-            setUsage(await usageRes.json());
+            usageNow = await usageRes.json();
+            setUsage(usageNow);
           } else {
             console.error('[ChatPage] GET /api/chat/usage returned', usageRes.status);
           }
@@ -484,9 +487,11 @@ function ChatPage() {
         // ── Sessions — independent of usage; a failure here must not block
         // the rest of the page from loading either.
         let sessionLoaded = false;
+        let sessionsOk = false;
         try {
           const sessionsRes = await apiFetch('/api/sessions', { headers: { Authorization: `Bearer ${token}` } });
           if (sessionsRes.ok) {
+            sessionsOk = true;
             const data = await sessionsRes.json();
             const sessions = Array.isArray(data?.sessions) ? data.sessions : [];
             setRecentSessions(sessions);
@@ -524,8 +529,21 @@ function ChatPage() {
           console.error('[ChatPage] GET /api/sessions failed:', err);
         }
 
+        // No conversation yet (founder, Nov 2026): skip the "Continue with
+        // Arjun" step and open a fresh chat straight away. The start screen
+        // stays only when something blocks chatting (guardian consent still
+        // pending, free days over) or the sessions could not be loaded.
         if (!sessionLoaded) {
-          setShowStartScreen(true);
+          const limitReached = !!usageNow && !usageNow.isPremium && !usageNow.hasPilotAccess && usageNow.trialDaysRemaining === 0;
+          if (sessionsOk && !consentPending && !limitReached) {
+            try {
+              await handleContinueMain();
+              sessionLoaded = true;
+            } catch (err) {
+              console.error('[ChatPage] auto-start failed:', err);
+            }
+          }
+          if (!sessionLoaded) setShowStartScreen(true);
         }
 
         if (prefillMsgRef.current) {
@@ -1246,7 +1264,7 @@ function ChatPage() {
           {!showStartScreen && messages.length === 0 && !waitingForFirst && (
             <div className="flex flex-col items-center justify-center min-h-[50vh] gap-2">
               {freshNote && <p role="status" className="text-caption text-slt text-center max-w-xs">{freshNote}</p>}
-              <ChatEmptyPrompts t={t} onPick={(ex) => { setInput(ex); }} />
+              <ChatEmptyPrompts t={t} examples={chatExamples(user?.sport)} onPick={(ex) => { setInput(ex); }} />
             </div>
           )}
 

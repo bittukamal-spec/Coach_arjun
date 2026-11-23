@@ -5,8 +5,8 @@ import Teer from '../visuals/Teer';
 // mind?", show what athletes can talk about — one example at a time that
 // changes every few seconds, plus three to tap. Tapping puts the words in
 // the message box (the athlete can edit before sending).
-export default function ChatEmptyPrompts({ t, onPick }) {
-  const examples = t.emptyExamples || [];
+export default function ChatEmptyPrompts({ t, examples: given, onPick }) {
+  const examples = given?.length ? given : (t.emptyExamples || []);
   const [i, setI] = useState(0);
   useEffect(() => {
     if (examples.length < 2) return undefined;
@@ -31,6 +31,9 @@ export default function ChatEmptyPrompts({ t, onPick }) {
           </button>
         ))}
       </div>
+      {t.entryDisclosure && (
+        <p className="mt-5 text-[12px] leading-relaxed text-slt" data-testid="chat-disclosure">{t.entryDisclosure}</p>
+      )}
     </div>
   );
 }

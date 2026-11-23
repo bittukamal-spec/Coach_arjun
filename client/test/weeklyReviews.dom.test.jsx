@@ -297,8 +297,9 @@ describe('Fresh cycle after rollover — coaching continuity', () => {
     renderCoach();
     const user = userEvent.setup();
 
-    // Post-rollover entry screen (no active session listed).
-    await user.click(await screen.findByRole('button', { name: 'Continue with Arjun' }));
+    // Post-rollover (no active session listed): the chat opens a new
+    // conversation straight away — no "Continue with Arjun" step.
+    expect(screen.queryByRole('button', { name: 'Continue with Arjun' })).toBeNull();
 
     // The opener renders from the refetched, persisted message — in the
     // NEW session — and the deterministic outcome chips are offered.
@@ -317,7 +318,6 @@ describe('Fresh cycle after rollover — coaching continuity', () => {
     renderCoach();
     const user = userEvent.setup();
 
-    await user.click(await screen.findByRole('button', { name: 'Continue with Arjun' }));
     await screen.findByText(OPENER_TEXT);
 
     // Tapping an outcome chip sends ONLY its label through the normal

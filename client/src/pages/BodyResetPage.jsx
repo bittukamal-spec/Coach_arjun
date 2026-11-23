@@ -12,6 +12,7 @@ import HelplineList from '../components/HelplineList';
 import { PracticeIntro, PracticeScreen, PracticeCompletion, CompletionMascot } from '../components/practice/PracticeShell';
 import { practiceHome } from '../utils/practiceReturn';
 import PlayPlanCard from '../components/path/PlayPlanCard';
+import { toolExamples } from '../i18n/sportExamples';
 
 const CRISIS_KEYWORDS = [
   'suicide', 'kill myself', 'end my life', 'self harm', 'hurt myself',
@@ -450,7 +451,7 @@ export default function BodyResetPage() {
   if (screen === 'intro') {
     return (
       <PracticeIntro
-        example={translations.en.examples.reset}
+        example={toolExamples(user?.sport).reset}
         onBack={goBack}
         headerTitle={headerTitle}
         icon={Wind}

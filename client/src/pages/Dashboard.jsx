@@ -11,6 +11,7 @@ import { JournalArt } from '../components/visuals/HomeArt';
 import Teer from '../components/visuals/Teer';
 import PilotCommunicationPopup from '../components/pilotCommunications/PilotCommunicationPopup';
 import CurrentPracticeCard from '../components/home/CurrentPracticeCard';
+import { journalLines } from '../i18n/sportExamples';
 
 // Problem shortcuts — all four enter Coach with a visible, unsent prefill
 // instead of jumping straight to a tool. Stable internal starter values,
@@ -40,6 +41,7 @@ function partOfDay(hour) {
 
 export default function Dashboard() {
   const { user, language } = useAuth();
+  const journalEx = journalLines(user?.sport);
   const hi = language === 'hi';
 
   // ── derived ────────────────────────────────────────────────────────────────
@@ -130,9 +132,9 @@ export default function Dashboard() {
             <span className="block text-[21px] leading-tight font-extrabold">{t.journalTitle}</span>
             <span className="block mt-1 text-[14px] leading-snug text-[#4A1238]">{t.journalShort}</span>
             {/* A different real-life example each day, so athletes see what to write */}
-            {t.journalExamples && (
+            {journalEx.length > 0 && (
               <span className="mt-1.5 block text-[13px] italic leading-snug text-[#4A1238]" data-testid="journal-example">
-                {t.journalExampleLabel} “{t.journalExamples[Math.floor(Date.now() / 86400000) % t.journalExamples.length]}”
+                {t.journalExampleLabel} “{journalEx[Math.floor(Date.now() / 86400000) % journalEx.length]}”
               </span>
             )}
           </span>
