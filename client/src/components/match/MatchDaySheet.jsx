@@ -6,13 +6,14 @@ import { pathText, dayKey, dayFromKey, weekdayOf } from '../path/pathData';
 // "Which day is your match?" (Hook fix 2 — investment). The athlete picks a
 // day in the next week, a later date, or "No match soon" (clears it). The
 // day is theirs to change or clear any time; nothing is assumed.
-export default function MatchDaySheet({ open, initialDay = null, onSave, onClose, inline = false, saveLabel = null }) {
+export default function MatchDaySheet({ open, initialDay = null, initialType = null, onSave, onClose, inline = false, saveLabel = null }) {
   const { language } = useAuth();
   const t = pathText(language).match;
   const [day, setDay] = useState(initialDay);
+  const [type, setType] = useState(initialType);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
-  useEffect(() => { if (open) { setDay(initialDay); setError(false); } }, [open, initialDay]);
+  useEffect(() => { if (open) { setDay(initialDay); setType(initialType); setError(false); } }, [open, initialDay, initialType]);
 
   const week = useMemo(() => {
     const now = new Date();
@@ -24,7 +25,7 @@ export default function MatchDaySheet({ open, initialDay = null, onSave, onClose
 
   async function save(value) {
     setBusy(true); setError(false);
-    try { await onSave(value); } catch { setError(true); } finally { setBusy(false); }
+    try { await onSave(value, value ? type : null); } catch { setError(true); } finally { setBusy(false); }
   }
 
   const outer = inline
@@ -67,6 +68,16 @@ export default function MatchDaySheet({ open, initialDay = null, onSave, onClose
             <input type="date" min={today} aria-label={t.later} className="absolute inset-0 opacity-0" value={day && !week.includes(day) ? day : ''} onChange={e => e.target.value && setDay(e.target.value)} />
           </label>
           <button type="button" disabled={busy} onClick={() => save(null)} className="min-h-[48px] rounded-[14px] bg-dark-400 text-[14px] font-bold text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">{t.none}</button>
+        </div>
+
+        {/* What kind of match (founder, Nov 2026) — optional */}
+        <p id="match-type-q" className="mt-5 text-[13px] font-extrabold">{t.typeQ}</p>
+        <p className="mb-2 text-[12px] text-slt">{t.typeHint}</p>
+        <div className="flex flex-wrap gap-2" role="radiogroup" aria-labelledby="match-type-q" data-testid="match-types">
+          {Object.entries(t.types).map(([k, label]) => (
+            <button key={k} type="button" role="radio" aria-checked={type === k} onClick={() => setType(type === k ? null : k)}
+              className={`min-h-[44px] rounded-full px-4 text-[13.5px] font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${type === k ? 'bg-brand-500 text-white' : 'bg-dark-400 text-ink'}`}>{label}</button>
+          ))}
         </div>
 
         {error && <p className="mt-3 text-center text-[13px] text-red-400" role="alert">{t.saveError}</p>}

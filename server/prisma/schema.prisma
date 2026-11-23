@@ -1386,6 +1386,8 @@ model PathProgress {
   // Next match (Hook fix 2, Nov 2026): a calendar day "YYYY-MM-DD" the
   // athlete picked (India time). Cleared when they say how it went.
   nextMatchDay  String?
+  // practice | league | tournament | selection | final (optional, Nov 2026)
+  nextMatchType String?
   lastMatchDay  String?
   lastMatchFeel String?  // well | mixed | tough (null = skipped)
   // Play plan (Hook fix 3): the if–then plan picked at the end of a practice,

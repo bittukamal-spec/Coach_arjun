@@ -36,7 +36,7 @@ export default function MatchPrepCard({ path, phase }) {
     <section className="mb-3 rounded-[28px] bg-inkblock p-[18px] text-white" data-testid="match-prep" aria-labelledby="match-prep-title">
       <div className="flex items-start justify-between gap-2">
         <span className="min-w-0">
-          <span className="block text-[11px] font-extrabold uppercase tracking-[0.1em] text-sun">{m.prepTag(when, weekdayOf(path.match.nextDay, 'short'))}</span>
+          <span className="block text-[11px] font-extrabold uppercase tracking-[0.1em] text-sun">{m.prepTag(when, weekdayOf(path.match.nextDay, 'short'), m.types[path.match?.type])}</span>
           <span id="match-prep-title" className="mt-1 block text-[22px] font-extrabold leading-tight">{phase === 'today' ? m.prepTitleToday : m.prepTitleTomorrow}</span>
         </span>
         <Teer pose="wave" height={72} className="-mt-2 shrink-0" />

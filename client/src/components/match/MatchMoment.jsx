@@ -23,7 +23,7 @@ export default function MatchMoment({ path, reviewMatch, setMatchDay }) {
   return (
     <>
       {card}
-      <MatchDaySheet open={sheet} onClose={() => setSheet(false)} onSave={async (d) => { await setMatchDay(d); setSheet(false); setReviewing(null); }} />
+      <MatchDaySheet open={sheet} onClose={() => setSheet(false)} onSave={async (d, ty) => { await setMatchDay(d, ty); setSheet(false); setReviewing(null); }} />
     </>
   );
 }

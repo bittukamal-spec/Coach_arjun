@@ -55,6 +55,9 @@ const PLAN_NOTES = {
 
 // Next match (Hook fix 2): how the athlete says the match went.
 const MATCH_FEELS = new Set(['well', 'mixed', 'tough']);
+// What kind of match is coming (founder, Nov 2026).
+const MATCH_TYPES = new Set(['practice', 'league', 'tournament', 'selection', 'final']);
+const MATCH_TYPE_NOTES = { practice: 'a practice match', league: 'a league match', tournament: 'a tournament', selection: 'a selection trial', final: 'a final or big game' };
 const MATCH_USED = new Set(['helped', 'tried', 'forgot']);
 // Plain names for Coach's internal note only (athlete copy lives in the client).
 const CHAPTER_NOTES = {
@@ -78,4 +81,4 @@ function chapterOrderFor(priorityId) {
 }
 
 module.exports = {
-  PLAN_MOMENTS, PLAN_NOTES, MATCH_FEELS, MATCH_USED, CHAPTER_NOTES, STEP_NOTES, CHAPTERS, STEPS, PRIORITY_TO_CHAPTER, PRACTISE_TOOL_TYPES, SELF_MARKED_STEPS, PLAY_OUTCOMES, chapterOrderFor };
+  PLAN_MOMENTS, PLAN_NOTES, MATCH_FEELS, MATCH_TYPES, MATCH_TYPE_NOTES, MATCH_USED, CHAPTER_NOTES, STEP_NOTES, CHAPTERS, STEPS, PRIORITY_TO_CHAPTER, PRACTISE_TOOL_TYPES, SELF_MARKED_STEPS, PLAY_OUTCOMES, chapterOrderFor };

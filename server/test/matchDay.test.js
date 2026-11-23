@@ -163,3 +163,18 @@ test('API: play plan is validated, screened, saved, and cleared by the match rev
     assert.equal(cleared.plan, null);
   });
 });
+
+test('match type: validated, stored with the day, cleared with it, and told to Coach', async () => {
+  const prisma = fakePrisma();
+  await withApp(createPathStore(prisma), async (base, auth) => {
+    const put = (b) => fetch(`${base}/match`, { method: 'PUT', headers: auth, body: JSON.stringify(b) });
+    const tomorrow = addDays(indiaToday(), 1);
+    assert.equal((await put({ day: tomorrow, type: 'friendly-ish' })).status, 400);
+    const set = await (await put({ day: tomorrow, type: 'selection' })).json();
+    assert.deepEqual([set.match.nextDay, set.match.type], [tomorrow, 'selection']);
+    const cleared = await (await put({ day: null, type: 'selection' })).json();
+    assert.equal(cleared.match.type, null);
+  });
+  const note = buildPathCoachSection({ path: null, match: { nextDay: '2026-11-23', type: 'selection' } }, '2026-11-22');
+  assert.match(note, /TOMORROW \(a selection trial\)/);
+});

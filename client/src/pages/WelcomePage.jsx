@@ -43,7 +43,7 @@ export default function WelcomePage() {
           <div className="mt-3">
             <MatchDaySheet inline open initialDay={null} saveLabel={t.saveMatch}
               onClose={() => setStep('challenge')}
-              onSave={async (d) => { if (d) await setMatchDay(d); setStep('challenge'); }} />
+              onSave={async (d, ty) => { if (d) await setMatchDay(d, ty); setStep('challenge'); }} />
           </div>
         </div>
       </div>

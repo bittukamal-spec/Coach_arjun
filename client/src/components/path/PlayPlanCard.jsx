@@ -47,8 +47,8 @@ export default function PlayPlanCard({ tool, cue = null, variant = 'dark' }) {
     } catch { setError(true); setState('pick'); }
   }
 
-  async function saveMatchDay(day) {
-    const res = await apiFetch('/api/path/match', { method: 'PUT', headers: auth, body: JSON.stringify({ day }) });
+  async function saveMatchDay(day, type = null) {
+    const res = await apiFetch('/api/path/match', { method: 'PUT', headers: auth, body: JSON.stringify({ day, type: day ? type : null }) });
     if (!res.ok) throw new Error(String(res.status));
     setHasMatch(!!day); setSheet(false);
   }

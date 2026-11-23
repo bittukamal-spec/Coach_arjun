@@ -277,7 +277,7 @@ export default function MindChallengePage() {
       <MatchDaySheet
         open={matchSheet}
         onClose={() => navigate('/train', { replace: true })}
-        onSave={async (d) => { await setMatchDay(d); navigate('/train', { replace: true }); }}
+        onSave={async (d, ty) => { await setMatchDay(d, ty); navigate('/train', { replace: true }); }}
       />
     </div>,
   );

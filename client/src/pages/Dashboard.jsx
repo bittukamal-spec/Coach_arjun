@@ -102,13 +102,12 @@ export default function Dashboard() {
              touches any chat API. All of that stays inside Coach itself. */}
         <Link
           to="/coaching"
-          className="mb-3 flex items-center gap-4 min-h-[124px] rounded-[28px] bg-sun text-inkblock px-5 py-5 active:scale-[0.99] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+          data-testid="home-talk"
+          className="mb-3 flex items-center gap-3 min-h-[104px] rounded-[28px] bg-sun text-inkblock pl-4 pr-5 py-3 active:scale-[0.99] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
         >
-          <Teer pose="wave" height={92} motion="twice" eager className="-my-2 shrink-0 drop-shadow-[0_8px_12px_rgba(16,21,51,0.18)]" />
-          <span className="flex-1 min-w-0">
-            <span className="block text-[23px] leading-tight font-extrabold">{L.dashboard.openCoach}</span>
-            <span className="block mt-1 text-[14px] leading-snug text-[#3A3206]">{t.heroSub}</span>
-          </span>
+          <Teer pose="wave" height={84} motion="twice" eager className="shrink-0 drop-shadow-[0_8px_12px_rgba(16,21,51,0.18)]" />
+          {/* Founder (Nov 2026): title only, one line, centred in the block */}
+          <span className="flex-1 min-w-0 whitespace-nowrap text-[24px] leading-tight font-extrabold">{L.dashboard.openCoach}</span>
           <ArrowRight size={24} strokeWidth={2.6} aria-hidden="true" />
         </Link>
 
