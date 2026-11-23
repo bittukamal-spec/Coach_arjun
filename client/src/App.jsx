@@ -18,6 +18,7 @@ import RitualPage from './pages/RitualPage';
 import StartingProfilePage from './pages/StartingProfilePage';
 import PerformanceCheckinPage from './pages/PerformanceCheckinPage';
 import TrainPage from './pages/TrainPage';
+import WelcomePage from './pages/WelcomePage';
 import PathReflectPage from './pages/PathReflectPage';
 import ToolsPage from './pages/ToolsPage';
 import DebriefRedirect from './pages/DebriefRedirect';
@@ -406,6 +407,15 @@ function App() {
         element={
           <ProtectedRoute requireOnboarding={true}>
             <PathUnlockedPage />
+          </ProtectedRoute>
+        }
+      />
+      {/* First run after the short onboarding: next match → Mind Challenge */}
+      <Route
+        path="/welcome"
+        element={
+          <ProtectedRoute requireOnboarding={true}>
+            <WelcomePage />
           </ProtectedRoute>
         }
       />

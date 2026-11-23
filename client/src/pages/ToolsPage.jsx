@@ -1,46 +1,53 @@
 import { useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { ChevronRight } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
-import PracticeBlock from '../components/train/PracticeBlock';
+import ToolTile from '../components/tools/ToolTile';
 import { RitualArt, ResetArt, RepArt, FocusArt, PracticeLogArt } from '../components/visuals/TrainArt';
+import { JournalArt } from '../components/visuals/HomeArt';
+import { usePath, matchPhase } from '../components/path/pathData';
+import MatchMoment from '../components/match/MatchMoment';
 import { clearFromPath } from '../utils/practiceReturn';
 
-// Tools tab (Nov 2026): the practices to repeat on your own. The guided
-// path lives on Train; this is the toolbox.
-//
-// The FOUR real practices Arjun actually ships — nothing else. There is no
-// practice-count metadata anywhere in the product, so none is rendered here.
-// Routes are the existing ones.
-//
-// Playbook redesign: one flat colour block per practice in a single 2×2 grid,
-// each with its own drawing and its name only — no description line
-// (founder decision, Nov 2026: athletes find out by opening the practice). The two group labels are gone — four tiles do
-// not need sorting — and reflection stays in the Mind Journal (its entry is
-// on Home), so it is deliberately NOT re-added here as a tile. Pressure
-// Reset's history link lives on the Pressure Reset intro screen itself.
-const PRACTICES = [
-  { key: 'ritual',    to: '/ritual',     tone: 'sky',   Art: RitualArt },
-  { key: 'pressure',  to: '/body-reset', tone: 'mint',  Art: ResetArt },
-  { key: 'quickRep',  to: '/mental-rep', tone: 'sun',   Art: RepArt },
-  { key: 'focusCard', to: '/self-talk',  tone: 'coral', Art: FocusArt },
-];
+// Tools tab (founder layout, Nov 2026): the practices grouped by MOMENT —
+// Before you play · In the moment · After you play — each a sideways row of
+// square tiles. Match moments live here too: the day before / on the match
+// day the prep card sits on top; after the match "How did it go?" sits on
+// top and "After you play" moves first. Home only shows a one-line chip.
+const ART = 'h-full w-auto max-h-[72px]';
+const SECTIONS = {
+  before: [
+    { key: 'pressure', to: '/body-reset', tone: 'mint', art: <ResetArt className={ART} /> },
+    { key: 'ritual', to: '/ritual', tone: 'sky', art: <RitualArt className={ART} /> },
+  ],
+  moment: [
+    { key: 'quickRep', to: '/mental-rep', tone: 'sun', art: <RepArt className={ART} /> },
+    { key: 'focusCard', to: '/self-talk', tone: 'coral', art: <FocusArt className={ART} /> },
+  ],
+  after: [
+    { key: 'journal', to: '/mind-journal', tone: 'blush', art: <JournalArt size={64} /> },
+    { key: 'myPractice', to: '/my-practice', tone: 'brand', art: <PracticeLogArt /> },
+    { key: 'weekly', to: '/weekly-reviews', tone: 'card', art: <PracticeLogArt /> },
+  ],
+};
 
 export default function ToolsPage() {
-  const navigate = useNavigate();
   const { language } = useAuth();
-  const t = (translations[language] || translations.en).trainPage;
-  const tt = (translations[language] || translations.en).toolsPage || translations.en.toolsPage;
+  const L = translations[language] || translations.en;
+  const t = L.trainPage;
+  const tt = L.toolsPage || translations.en.toolsPage;
+  const { path, reviewMatch, setMatchDay } = usePath();
   useEffect(() => { clearFromPath(); }, []);
+
+  const phase = matchPhase(path?.match?.nextDay);
+  const review = phase === 'review';
+  const order = review ? ['after', 'before', 'moment'] : ['before', 'moment', 'after'];
+  const name = (key) => t.practices[key]?.name || { journal: tt.journal, myPractice: tt.myPractice, weekly: tt.weeklyShort }[key];
 
   return (
     <div className="min-h-screen bg-dark-900">
-      <main className="max-w-lg md:max-w-2xl mx-auto px-5 pt-[calc(1rem+env(safe-area-inset-top))] pb-[calc(7.5rem+env(safe-area-inset-bottom))] animate-fade-in">
-
-        {/* Page header */}
-        <div className="pt-1 mb-5 flex items-start justify-between gap-3">
+      <main className="max-w-lg md:max-w-2xl mx-auto pt-[calc(1rem+env(safe-area-inset-top))] pb-[calc(7.5rem+env(safe-area-inset-bottom))] animate-fade-in">
+        <div className="px-5 pt-1 mb-4 flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h1 className="text-[32px] leading-[1.1] font-extrabold tracking-tight text-ink">{tt.title}</h1>
             <p className="text-sm text-slt mt-1">{tt.subtitle}</p>
@@ -48,46 +55,20 @@ export default function ToolsPage() {
           <Navbar bare />
         </div>
 
-        <div className="grid grid-cols-2 gap-2.5 items-stretch">
-          {PRACTICES.map(p => {
-            const copy = t.practices[p.key];
-            return (
-              <PracticeBlock
-                key={p.key}
-                tone={p.tone}
-                title={copy.name}
-                Art={p.Art}
-                onClick={() => navigate(p.to)}
-              />
-            );
-          })}
+        <div className="px-5" data-testid="tools-match">
+          <MatchMoment path={path} reviewMatch={reviewMatch} setMatchDay={setMatchDay} />
         </div>
 
-        {/* Look back — one row to "My practice" (what the athlete has done
-            and how it went; Weekly Reviews are reached from there). */}
-        <Link
-          to="/my-practice"
-          className="mt-3 flex items-center gap-3.5 min-h-[68px] rounded-[22px] bg-[#1B3FD1] text-white px-4 py-2.5 active:scale-[0.99] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
-        >
-          <PracticeLogArt />
-          <span className="flex-1 min-w-0">
-            <span className="block text-[15px] font-extrabold">{t.myPractice.name}</span>
-            <span className="block text-[12.5px] text-white/90">{t.myPractice.desc}</span>
-          </span>
-          <ChevronRight size={18} strokeWidth={2.4} aria-hidden="true" />
-        </Link>
-
-        <Link
-          to="/weekly-reviews"
-          className="mt-2.5 flex items-center gap-3.5 min-h-[60px] rounded-[22px] bg-dark-400 text-ink px-4 py-2.5 active:scale-[0.99] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
-        >
-          <span className="flex-1 min-w-0">
-            <span className="block text-[15px] font-extrabold">{tt.weekly.name}</span>
-            <span className="block text-[12.5px] text-slt">{tt.weekly.desc}</span>
-          </span>
-          <ChevronRight size={18} strokeWidth={2.4} aria-hidden="true" />
-        </Link>
-
+        {order.map(id => (
+          <section key={id} aria-labelledby={`tools-${id}`} className="mt-4" data-testid={`tools-${id}`}>
+            <h2 id={`tools-${id}`} className="px-5 text-[12px] font-extrabold uppercase tracking-[0.1em] text-slt">{tt.sections[id]}</h2>
+            <div className="mt-2 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-5 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {SECTIONS[id].map(tool => (
+                <ToolTile key={tool.key} to={tool.to} tone={tool.tone} title={name(tool.key)} art={tool.art} />
+              ))}
+            </div>
+          </section>
+        ))}
       </main>
     </div>
   );

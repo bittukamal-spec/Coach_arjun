@@ -42,9 +42,8 @@ test('Train: inspection confirms there is no Mental Fitness / Mind Journal actio
 // Starting Performance Profile (Arjun's one interpretation of the athlete),
 // which is where the first coaching conversation is started from. The old
 // scored page stays permanently off-limits as a destination.
-test('Onboarding: the post-onboarding redirect opens the Starting Performance Profile, not the old scored page', () => {
-  assert.match(onboarding, /navigate\('\/starting-profile', \{\s*replace: true,/);
-  assert.match(onboarding, /state: \{ fromOnboarding: true, entryMode: 'onboarding-completion' \}/);
+test('Onboarding: the post-onboarding redirect opens the first-run welcome (next match → Mind Challenge), not the old scored page', () => {
+  assert.match(onboarding, /navigate\('\/welcome', \{ replace: true \}\)/);
   assert.doesNotMatch(onboarding, /navigate\('\/mental-fitness'/, 'Onboarding must never navigate to the old scored route');
   assert.doesNotMatch(onboarding, /navigate\('\/mind-journal'/, 'Onboarding no longer redirects into Mind Journal');
 });

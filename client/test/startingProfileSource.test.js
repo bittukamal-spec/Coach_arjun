@@ -202,7 +202,9 @@ test('Modernization pass 2: "Continue coaching" was removed from the saved view 
 });
 
 test('entry modes are passed from onboarding, Account and the legacy redirect', () => {
-  assert.match(src('pages/OnboardingPage.jsx'), /entryMode: 'onboarding-completion'/);
+  // Short onboarding (Nov 2026): onboarding now ends on /welcome, which
+  // confirms the profile quietly; the profile opens from My profile.
+  assert.match(src('pages/WelcomePage.jsx'), /\/api\/profile\/confirm/);
   assert.match(src('pages/AccountPage.jsx'), /state=\{\{ entryMode: 'saved-profile' \}\}/);
   const app = src('App.jsx');
   const idx = app.indexOf('path="/mental-game-profile"');

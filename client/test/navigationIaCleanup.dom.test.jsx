@@ -329,12 +329,12 @@ describe('Account menu — My profile and Settings are distinct destinations', (
   });
 });
 
-describe('TrainPage — Ritual entry, real router integration', () => {
+describe('Tools page — tiles by moment, real router integration', () => {
   test('renders a visible Ritual entry that navigates to /ritual on click', async () => {
     render(<TrainApp />);
     const user = userEvent.setup();
 
-    const ritualEntry = screen.getByRole('button', { name: /Ritual/i });
+    const ritualEntry = screen.getByRole('link', { name: /Ritual/i });
     expect(ritualEntry).toBeTruthy();
     // Founder decision (Nov 2026): tiles show the practice name only.
     expect(screen.queryByText('Your routine before you play.')).toBeNull();
@@ -349,10 +349,12 @@ describe('TrainPage — Ritual entry, real router integration', () => {
     const user = userEvent.setup();
 
     expect(screen.getByText('Pressure Reset')).toBeTruthy();
-    // PR 2 cutover: the separate reflection tool is gone from Train — and is
-    // not replaced by a duplicate Mind Journal tile.
     expect(screen.queryByText('Match & Practice Reflection')).toBeNull();
-    expect(screen.queryByText(/Mind Journal/i)).toBeNull();
+    // Tools by moment (Nov 2026): Mind Journal sits under "After you play".
+    expect(screen.getByRole('link', { name: /Mind Journal/ }).getAttribute('href')).toBe('/mind-journal');
+    expect(screen.getByText('Before you play')).toBeTruthy();
+    expect(screen.getByText('In the moment')).toBeTruthy();
+    expect(screen.getByText('After you play')).toBeTruthy();
     expect(screen.getByText('Quick Rep')).toBeTruthy();
     expect(screen.queryByText('Daily Mental Rep')).toBeNull();
     expect(screen.getByText('Focus Card Builder')).toBeTruthy();
@@ -360,7 +362,7 @@ describe('TrainPage — Ritual entry, real router integration', () => {
     // Stage E: the whole tile is the control, so it is named by its
     // practice rather than by a separate "Start" CTA. Clicking the tile
     // must still land on the practice's existing route.
-    await user.click(screen.getByRole('button', { name: /Pressure Reset/ }));
+    await user.click(screen.getByRole('link', { name: /Pressure Reset/ }));
     expect(await screen.findByTestId('route-probe')).toHaveProperty('textContent', 'body-reset:/body-reset');
   });
 
@@ -374,7 +376,7 @@ describe('TrainPage — Ritual entry, real router integration', () => {
     for (const [name, expected] of cases) {
       const { unmount } = render(<TrainApp />);
       const user = userEvent.setup();
-      await user.click(screen.getByRole('button', { name }));
+      await user.click(screen.getByRole('link', { name }));
       expect(await screen.findByTestId('route-probe')).toHaveProperty('textContent', expected);
       unmount();
     }
@@ -395,7 +397,7 @@ describe('TrainPage — Ritual entry, real router integration', () => {
   test('Ritual renders in Hindi, name only', async () => {
     authState.language = 'hi';
     render(<TrainApp />);
-    expect(screen.getByRole('button', { name: /Ritual/i })).toBeTruthy();
+    expect(screen.getByRole('link', { name: /Ritual/i })).toBeTruthy();
     expect(screen.queryByText('खेलने से पहले की अपनी रूटीन।')).toBeNull();
   });
 

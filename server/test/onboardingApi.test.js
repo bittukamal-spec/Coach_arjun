@@ -309,7 +309,7 @@ test('PATCH prunes now-unreachable branch answers when the primary priority chan
   });
 });
 
-test('complete rejects incomplete onboarding with 422 + missing (incl. pre-performance 4th question)', async () => {
+test('complete rejects incomplete onboarding with 422 + missing (the one follow-up)', async () => {
   const client = makeClient({ users: { u1: makeUser() } });
   await withApp(client, {}, async (baseUrl) => {
     const call = api(baseUrl, tokenFor('u1'));
@@ -326,13 +326,14 @@ test('complete rejects incomplete onboarding with 422 + missing (incl. pre-perfo
     await patch({ primary_priority: { answerIds: ['before_important_performance'] } }, 'primary_priority');
     await patch({ pre_performance_onset: { answerIds: ['just_before'] } }, 'pre_performance_onset');
     await patch({ pre_performance_signs: { answerIds: ['tense_body'] } }, 'pre_performance_signs');
-    await patch({ pre_performance_effect: { answerIds: ['rush'] } }, 'pre_performance_effect');
-    // deliberately skip pre_performance_duration + tail
+    // Short onboarding (Nov 2026): the one follow-up is the effect question —
+    // deliberately skip it.
     const r = await call('POST', '/api/onboarding/session/complete', { onboardingVersion: 2, expectedRevision: rev });
     const j = await r.json();
     assert.equal(r.status, 422);
     assert.equal(j.error, 'INCOMPLETE');
-    assert.ok(j.missing.includes('pre_performance_duration'), 'the 4th pre-performance question is required');
+    assert.ok(j.missing.includes('pre_performance_effect'), 'the one follow-up is required');
+    assert.ok(!j.missing.includes('pre_performance_duration'), 'the old 3rd follow-up is no longer asked');
   });
 });
 

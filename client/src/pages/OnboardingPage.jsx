@@ -60,6 +60,16 @@ function longestLabelAcrossLanguages(options) {
   return longest;
 }
 
+// A saved step from the longer onboarding (e.g. 'sport', 'broad_goals',
+// 'supports') may no longer be in the short flow (Nov 2026): resume at the
+// first flow screen with an unanswered required question instead.
+function resumeStep(saved, answers) {
+  const flow = CFG.computeFlowScreenIds(answers);
+  if (saved && flow.includes(saved)) return saved;
+  const open = flow.find((sid) => (CFG.getScreen(sid)?.questionIds || []).some((q) => CFG.getQuestion(q)?.required && !(answers[q]?.answerIds?.length)));
+  return open || flow[flow.length - 1] || flow[0];
+}
+
 export default function OnboardingPage() {
   const { user, token, language, updateUser } = useAuth();
   const navigate = useNavigate();
@@ -83,7 +93,7 @@ export default function OnboardingPage() {
   useEffect(() => {
     if (!session) return;
     setWorking(session.answers || {});
-    setCurrentStepId((cur) => cur || session.currentStepId || 'sport');
+    setCurrentStepId((cur) => cur || resumeStep(session.currentStepId, session.answers || {}));
   }, [session]);
 
   // ── Completed-user guard ────────────────────────────────────────────────
@@ -123,7 +133,10 @@ export default function OnboardingPage() {
   const questionIds = screen?.questionIds || [];
   const sportId = working.sport?.answerIds?.[0];
 
-  const stages = CFG.STAGES.map((s) => ({ key: s.id, label: label(s.titleKey) }));
+  // Only stages this flow actually visits (the short onboarding, Nov 2026,
+  // has no "goals" screens any more).
+  const usedStages = new Set(flow.map((sid) => CFG.getScreen(sid)?.stage).filter(Boolean));
+  const stages = CFG.STAGES.filter((s) => usedStages.has(s.id)).map((s) => ({ key: s.id, label: label(s.titleKey) }));
 
   // ── Answer editing ─────────────────────────────────────────────────────
   const setAnswer = (qid, updater) =>
@@ -188,10 +201,9 @@ export default function OnboardingPage() {
       const done = await complete(result.session.revision);
       if (done.ok) {
         updateUser(done.user);
-        navigate('/starting-profile', {
-          replace: true,
-          state: { fromOnboarding: true, entryMode: 'onboarding-completion' },
-        });
+        // Short onboarding (Nov 2026): next match, then the Mind Challenge
+        // as the first reward — not a profile page to read.
+        navigate('/welcome', { replace: true });
       } else if (done.missing?.length) {
         // Jump back to the first missing screen.
         const missingScreen = CFG.computeFlowScreenIds(working).find((sid) =>
@@ -353,11 +365,15 @@ export default function OnboardingPage() {
         liveMessage={live}
         footer={footer}
       >
-        {isContext
+        {isContext && questionIds.length > 1
           ? questionIds.map((qid) =>
               renderQuestion(qid, qid === 'competition_level' ? ui.competitionGroup : ui.experienceGroup)
             )
-          : questionIds.map((qid) => renderQuestion(qid))}
+          : currentStepId === 'sport_role'
+            // Sport + role on one screen (Nov 2026): the role chips follow the
+            // chosen sport, so they appear once a sport is picked.
+            ? [renderQuestion('sport', ui.sportGroup), sportId ? renderQuestion('role_position', ui.roleGroup) : null]
+            : questionIds.map((qid) => renderQuestion(qid))}
       </OnboardingShell>
 
       {/* Branch-change confirmation before orphaning branch answers. */}

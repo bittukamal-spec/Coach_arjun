@@ -11,6 +11,7 @@ vi.mock('../src/api', () => ({ apiFetch: vi.fn() }));
 
 const { apiFetch } = await import('../src/api');
 const { default: HomePathArea } = await import('../src/components/home/HomePathArea');
+const { default: ToolsPage } = await import('../src/pages/ToolsPage');
 const { matchPhase, dayKey } = await import('../src/components/path/pathData');
 
 const step = (done, outcome = null) => ({ done, outcome, at: done ? '2026-11-20T10:00:00Z' : null });
@@ -53,23 +54,36 @@ describe('next match on Home', () => {
     fireEvent.click(screen.getAllByRole('radio')[1]);
     fireEvent.click(screen.getByTestId('match-save'));
     await waitFor(() => expect(apiFetch).toHaveBeenCalledWith('/api/path/match', expect.objectContaining({ method: 'PUT', body: JSON.stringify({ day: tomorrow }) })));
-    expect(await screen.findByTestId('match-prep')).toBeTruthy();
+    expect(await screen.findByTestId('home-match-chip')).toBeTruthy();
+    expect(screen.queryByTestId('match-prep')).toBeNull();
   });
 
-  test('the day before: prep card with their Focus Card words, the chapter skill and Talk it through', async () => {
-    serve(makePath(shift(1)), [{ focusWord: 'Next ball' }]);
+  test('Home shows only a one-line chip that opens Tools', async () => {
+    serve(makePath(shift(1)));
     render(<MemoryRouter><HomePathArea /></MemoryRouter>);
+    const chip = await screen.findByTestId('home-match-chip');
+    expect(chip.getAttribute('href')).toBe('/tools');
+    expect(chip.textContent).toMatch(/Match tomorrow · Your prep/);
+    expect(screen.queryByTestId('match-prep')).toBeNull();
+  });
+
+  test('the day before, on Tools: prep card with their Focus Card words, the chapter skill and Talk it through', async () => {
+    serve(makePath(shift(1)), [{ focusWord: 'Next ball' }]);
+    render(<MemoryRouter><ToolsPage /></MemoryRouter>);
     expect(await screen.findByText('Ready for tomorrow?')).toBeTruthy();
     expect(await screen.findByText('Read your card: “Next ball”')).toBeTruthy();
     expect(screen.getByText('Your plan: the 5-second reset').closest('a').getAttribute('href')).toBe('/path/bounce');
     expect(screen.getByText('Talk it through with Arjun').closest('a').getAttribute('href')).toBe('/coaching');
-    expect(screen.queryByTestId('home-path-next')).toBeNull();
+    expect(screen.getByTestId('tools-before')).toBeTruthy();
   });
 
-  test('after the match: two taps — "It helped" ticks Play and offers Tell Arjun more', async () => {
+  test('after the match, on Tools: "After you play" comes first; two taps — "It helped" ticks Play', async () => {
     serve(makePath(shift(-1)));
-    render(<MemoryRouter><HomePathArea /></MemoryRouter>);
-    fireEvent.click(await screen.findByRole('radio', { name: 'Mixed' }));
+    render(<MemoryRouter><ToolsPage /></MemoryRouter>);
+    const mixed = await screen.findByRole('radio', { name: 'Mixed' });
+    const sections = screen.getAllByRole('heading', { level: 2 }).map(h => h.textContent);
+    expect(sections[0]).toBe('After you play');
+    fireEvent.click(mixed);
     fireEvent.click(screen.getByRole('button', { name: 'It helped' }));
     await waitFor(() => expect(apiFetch).toHaveBeenCalledWith('/api/path/match/review', expect.objectContaining({ body: JSON.stringify({ feel: 'mixed', used: 'helped' }) })));
     expect(await screen.findByText('✓ Bounce back · Use it in play — done.')).toBeTruthy();

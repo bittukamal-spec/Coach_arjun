@@ -86,17 +86,23 @@ function branchScreenVisible(branchId, screenId, answers) {
 }
 
 // Ordered reachable SCREEN ids given the current answers.
-export function computeFlowScreenIds(answers) {
+export function computeFlowScreenIds(answers, { full = false } = {}) {
   const pre = config.flow.preBranchScreens.filter(
     (sid) => sid !== 'primary_priority' || hasPriority(answers)
   );
   const branchId = resolveBranch(answers);
   let branchScreens = [];
   if (branchId) {
-    branchScreens = (config.branches[branchId].screenIds || []).filter((sid) =>
+    // Onboarding asks ONE follow-up per situation (Nov 2026); the full
+    // screen list stays for the profile check-in and stored answers.
+    const b = config.branches[branchId];
+    branchScreens = ((!full && b.onboardingScreenIds) || b.screenIds || []).filter((sid) =>
       branchScreenVisible(branchId, sid, answers)
     );
   }
+  // `full`: every screen an athlete may ever have answered (used for
+  // pruning), so answers from the longer onboarding are never deleted.
+  if (full) return [...new Set([...config.screens.map((x) => x.id), ...branchScreens])];
   return [...pre, ...branchScreens, ...config.flow.postBranchScreens];
 }
 
@@ -110,7 +116,7 @@ export function displayAnswers(qid) {
 // All question ids reachable under the current answers (for prune detection).
 export function reachableQuestionIds(answers) {
   const ids = new Set();
-  for (const sid of computeFlowScreenIds(answers)) {
+  for (const sid of computeFlowScreenIds(answers, { full: true })) {
     for (const qid of getScreen(sid)?.questionIds || []) ids.add(qid);
   }
   return ids;
