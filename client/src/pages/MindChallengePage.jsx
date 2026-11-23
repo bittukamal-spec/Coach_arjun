@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { X, Share2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useStatusBarColour } from '../components/ui/TonePage';
@@ -50,7 +50,10 @@ export default function MindChallengePage() {
   useStatusBarColour({ colour: NIGHT });
 
   const steps = useMemo(() => buildSteps(t), [t]);
-  const [phase, setPhase] = useState(null); // intro | play | saving | card | invest
+  const location = useLocation();
+  // First run (from /welcome): its intro was the welcome screen, so start playing.
+  const firstRun = !!location.state?.firstRun;
+  const [phase, setPhase] = useState(firstRun ? 'play' : null); // intro | play | saving | card | invest
   const [stepIndex, setStepIndex] = useState(0);
   const [points, setPoints] = useState(() => Object.fromEntries(SKILLS.map(s => [s, 0])));
   const [choice, setChoice] = useState(null);
@@ -85,7 +88,7 @@ export default function MindChallengePage() {
     try { await setGoal(goalSkill, nextMatch); } catch { /* the card is saved; the goal can be set later */ }
     // A match this week or next: ask for the actual day (Hook fix 2), so
     // Arjun can help the day before. Skippable.
-    if (nextMatch === 'this_week' || nextMatch === 'next_week') { setBusy(false); setMatchSheet(true); return; }
+    if (!firstRun && (nextMatch === 'this_week' || nextMatch === 'next_week')) { setBusy(false); setMatchSheet(true); return; }
     navigate('/train', { replace: true });
   }
 
@@ -251,6 +254,9 @@ export default function MindChallengePage() {
           );
         })}
       </div>
+      {/* First run already asked for the match day on /welcome. */}
+      {!firstRun && (
+        <>
       <p className="mt-6 text-[15px] font-bold">{t.invest.matchQ}</p>
       <div className="mt-2 grid grid-cols-3 gap-2" role="radiogroup" aria-label={t.invest.matchQ}>
         {Object.entries(t.invest.match).map(([k, label]) => (
@@ -259,6 +265,8 @@ export default function MindChallengePage() {
         ))}
       </div>
       <p className="mt-2 text-[13px] text-white/70">{t.invest.matchNote}</p>
+        </>
+      )}
       <div className="flex-1" />
       <button type="button" disabled={!goalSkill || busy} onClick={buildPath} className="mt-6 min-h-[56px] rounded-[18px] bg-sun text-[16px] font-extrabold text-inkblock disabled:opacity-50">{t.invest.build}</button>
       <MatchDaySheet

@@ -230,6 +230,8 @@ export const translations = {
       },
       match: {
         chipSet: (weekday, date) => `Next match: ${weekday} ${date}`,
+        homePrep: (when) => `Match ${when} · Your prep`,
+        homeReview: (weekday) => `How did ${weekday} go?`,
         chipAdd: 'Add your next match',
         sheetTitle: 'Which day is your match?',
         sheetLine: 'Arjun will help you get ready the day before.',
@@ -1043,10 +1045,25 @@ export const translations = {
     // The five real practices only — no invented categories, no practice
     // counts (there is no count data to render). Names and descriptions are
     // the existing approved wording, moved out of inline JSX conditionals.
+    welcome: {
+      almost: 'Almost done',
+      saveMatch: 'Save and continue',
+      back: 'Back',
+      lastStep: 'Last step · 4 minutes',
+      title: (name) => (name ? `How strong is your mind game, ${name}?` : 'How strong is your mind game?'),
+      line: '6 quick rounds. Unlock your Mind Stats card — and your path.',
+      play: 'Play the Mind Challenge',
+      skip: 'Skip for now',
+    },
     toolsPage: {
       title: 'Tools',
-      subtitle: 'Do any practice again, any time.',
+      subtitle: 'Pick by moment. Swipe for more.',
       weekly: { name: 'Weekly reviews', desc: 'Your week with Arjun.' },
+      sections: { before: 'Before you play', moment: 'In the moment', after: 'After you play' },
+      journal: 'Mind Journal',
+      myPractice: 'My practice',
+      weeklyShort: 'Weekly reviews',
+      visualization: 'Picture it',
     },
     trainHome: {
       title: 'Train',

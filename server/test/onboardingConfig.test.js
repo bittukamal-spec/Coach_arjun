@@ -80,10 +80,23 @@ test('the real canonical config passes validation', () => {
 });
 
 // ── Branch resolution + required-per-branch ─────────────────────────────────
-test('pre_performance branch asks first response → impact → reset, all required', () => {
+test('short onboarding (Nov 2026): one follow-up per situation; the full branch stays for check-in + pruning', () => {
   const a = { primary_priority: { answerIds: ['before_important_performance'] } };
   assert.equal(C.resolveBranch(a), 'pre_performance');
   const flow = C.computeFlowScreenIds(a);
+  assert.deepEqual(flow, ['sport_role', 'playing_context', 'primary_priority', 'pre_performance_effect']);
+  assert.deepEqual(C.requiredQuestionIds(a).sort(), ['competition_level', 'pre_performance_effect', 'primary_priority', 'role_position', 'sport'].sort());
+  const full = C.computeFlowScreenIds(a, { full: true });
+  for (const s of ['pre_performance_signs', 'pre_performance_effect', 'pre_performance_duration', 'supports', 'strengths', 'broad_goals']) {
+    assert.ok(full.includes(s), `answers to ${s} must never be pruned`);
+  }
+  assert.ok(C.reachableQuestionIds(a).has('pre_performance_duration'));
+  assert.ok(C.reachableQuestionIds(a).has('strengths'));
+});
+
+test('pre_performance branch (check-in) still holds first response → impact → reset', () => {
+  const a = { primary_priority: { answerIds: ['before_important_performance'] } };
+  const flow = C.computeFlowScreenIds(a, { full: true });
   for (const s of ['pre_performance_signs', 'pre_performance_effect', 'pre_performance_duration']) {
     assert.ok(flow.includes(s), `missing ${s}`);
   }
@@ -91,16 +104,14 @@ test('pre_performance branch asks first response → impact → reset, all requi
   // no longer asked, and asking it is what made this branch a question longer
   // than every other one.
   assert.ok(!flow.includes('pre_performance_onset'), 'onset must not be in the flow');
-  const req = C.requiredQuestionIds(a);
-  assert.ok(req.includes('pre_performance_duration'), 'the reset question must be required');
-  assert.ok(!req.includes('pre_performance_onset'));
+  assert.ok(!C.requiredQuestionIds(a).includes('pre_performance_onset'));
 });
 
-test('mistakes branch has three required branch questions', () => {
+test('mistakes branch asks one required follow-up: what happens next', () => {
   const a = { primary_priority: { answerIds: ['after_mistake'] } };
   assert.equal(C.resolveBranch(a), 'mistakes');
   const req = C.requiredQuestionIds(a).filter((q) => q.startsWith('mistakes_'));
-  assert.deepEqual(req.sort(), ['mistakes_first_response', 'mistakes_next', 'mistakes_recovery']);
+  assert.deepEqual(req, ['mistakes_next']);
 });
 
 test('difficult_moments = [not_sure] resolves to the shallow unsure branch and skips priority', () => {
@@ -115,7 +126,8 @@ test('difficult_moments = [not_sure] resolves to the shallow unsure branch and s
 test('custom priority routes to the custom branch (free text never drives branch logic)', () => {
   const a = { primary_priority: { answerIds: ['different'], customText: 'exam stress bleeds into matches' } };
   assert.equal(C.resolveBranch(a), 'custom');
-  assert.ok(C.computeFlowScreenIds(a).includes('custom_response'));
+  assert.ok(C.computeFlowScreenIds(a).includes('custom_effect'));
+  assert.ok(C.computeFlowScreenIds(a, { full: true }).includes('custom_response'));
 });
 
 // ── Validation units ────────────────────────────────────────────────────────
@@ -213,7 +225,8 @@ test('schema deletes onboarding data on account/session deletion (onDelete: Casc
 
 test('missingRequired lists unanswered required questions and clears when complete', () => {
   const partial = { difficult_moments: { answerIds: ['after_mistake'] }, primary_priority: { answerIds: ['after_mistake'] } };
-  assert.ok(missingRequired(partial).includes('supports'));
+  assert.ok(missingRequired(partial).includes('mistakes_next'));
+  assert.ok(!missingRequired(partial).includes('supports'), 'supports is no longer asked in onboarding');
   assert.equal(isAnswered(partial, 'difficult_moments'), true);
 });
 
@@ -243,7 +256,7 @@ test('legacy not_sure plus an explicit Situation resolves to that situation\'s b
   assert.equal(C.resolveBranch(merged), 'mistakes');
   assert.equal(C.hasPriority(merged), true);
   const flow = C.computeFlowScreenIds(merged);
-  assert.ok(flow.includes('mistakes_first_response'));
+  assert.ok(flow.includes('mistakes_next'));
   assert.ok(!flow.includes('unsure_recognition'), 'the old branch is no longer active');
 });
 
