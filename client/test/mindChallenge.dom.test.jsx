@@ -29,7 +29,9 @@ describe('Home trigger card', () => {
   test('shows "New" before the first challenge and hides when none can be played', async () => {
     apiFetch.mockImplementation(() => respond({ latest: null, previous: null, nextAt: null, canTake: true }));
     render(<MemoryRouter><MindChallengeHomeCard /></MemoryRouter>);
-    expect((await screen.findByTestId('home-mind-challenge')).textContent).toMatch(/How strong is your mind game/);
+    expect((await screen.findByTestId('home-mind-challenge')).textContent).toMatch(/Find out how strong your mind game is/);
+    // Plain language for someone new to mental training: no jargon tag.
+    expect(screen.getByTestId('home-mind-challenge').textContent).not.toMatch(/New ·/);
     cleanup();
     apiFetch.mockImplementation(() => respond({ latest: LATEST, previous: null, nextAt: '2099-01-01T00:00:00Z', canTake: false }));
     render(<MemoryRouter><MindChallengeHomeCard /></MemoryRouter>);
@@ -40,7 +42,7 @@ describe('Home trigger card', () => {
   test('turns into the rematch card when the rematch is ready', async () => {
     apiFetch.mockImplementation(() => respond({ latest: LATEST, previous: null, nextAt: '2026-01-01T00:00:00Z', canTake: true }));
     render(<MemoryRouter><MindChallengeHomeCard /></MemoryRouter>);
-    expect((await screen.findByTestId('home-mind-challenge')).textContent).toMatch(/Beat your Mind Level 3/);
+    expect((await screen.findByTestId('home-mind-challenge')).textContent).toMatch(/Take the Mind Challenge again/);
   });
 });
 
@@ -50,16 +52,16 @@ describe('Challenge page', () => {
     render(<MemoryRouter><MindChallengePage /></MemoryRouter>);
     fireEvent.click(await screen.findByRole('button', { name: 'Start the challenge' }));
     expect(screen.getByText('Round 1 / 6')).toBeTruthy();
-    const lockIn = screen.getByRole('button', { name: 'Lock it in' });
+    const lockIn = screen.getByRole('button', { name: 'Next' });
     expect(lockIn.disabled).toBe(true);
-    fireEvent.click(screen.getByRole('radio', { name: /Sleep fine/ }));
+    fireEvent.click(screen.getByRole('radio', { name: /I sleep well/ }));
     fireEvent.click(lockIn);
-    fireEvent.click(screen.getByRole('radio', { name: /Take a slow breath/ }));
-    fireEvent.click(screen.getByRole('button', { name: 'Lock it in' }));
+    fireEvent.click(screen.getByRole('radio', { name: /I take a slow breath/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
     const reveal = screen.getByTestId('skill-reveal');
     expect(reveal.textContent).toMatch(/Calm/);
-    expect(reveal.textContent).toMatch(/Lv 5/);
-    expect(screen.getByText('? · 5 to go')).toBeTruthy();
+    expect(reveal.textContent).toMatch(/Level 5 of 5/);
+    expect(screen.getByText('5 rounds to go')).toBeTruthy();
   });
 
   test('when the rematch is not open yet, the card shows with the days left', async () => {
