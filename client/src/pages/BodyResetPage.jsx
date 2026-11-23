@@ -450,6 +450,7 @@ export default function BodyResetPage() {
   if (screen === 'intro') {
     return (
       <PracticeIntro
+        example={translations.en.examples.reset}
         onBack={goBack}
         headerTitle={headerTitle}
         icon={Wind}

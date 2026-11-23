@@ -225,9 +225,22 @@ export default function MindChallengePage() {
           <div className="rounded-[18px] bg-white/10 p-3"><p className="text-[12px] text-white/70">{t.card.growFirst}</p><p className="mt-1 text-[16px] font-extrabold text-sun">{t.skills[latest.growFirst]}</p></div>
         </div>
         <p className="mt-3 text-[12px] text-white/60">{t.card.notATest}</p>
-        {!justTook && <p className="mt-2 text-[14px] font-bold">{t.card.nextIn(daysUntil(state.nextAt))}</p>}
+        {/* Arjun's short, personal note on the last challenge (rule-based) */}
+        <div className="mt-4 w-full rounded-[20px] bg-white/[0.07] p-4 text-left" data-testid="challenge-summary">
+          <p className="text-[13px] font-extrabold text-sun">{t.card.summaryTitle}</p>
+          <ul className="mt-2 flex flex-col gap-1.5 text-[14px] leading-snug text-white/90">
+            {latest.createdAt && <li>{t.card.summaryTaken(new Date(latest.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long' }))}</li>}
+            <li>{t.card.summaryBest(t.skills[latest.strongest], t.skillMeaning[latest.strongest])}</li>
+            <li>{t.card.summaryGrow(t.skills[latest.growFirst], t.skillMeaning[latest.growFirst])}</li>
+            {prev && SKILLS.some(s => latest.levels[s] > prev.levels[s]) && (
+              <li>{t.card.summaryUp(SKILLS.filter(s => latest.levels[s] > prev.levels[s]).map(s => `${t.skills[s]} (Lv ${prev.levels[s]} → ${latest.levels[s]})`).join(', '))}</li>
+            )}
+            <li>{t.card.summaryNext(t.skills[latest.focusSkill || latest.growFirst])}</li>
+          </ul>
+        </div>
+        {!justTook && <p className="mt-3 text-[14px] font-bold">{t.card.nextIn(daysUntil(state.nextAt))}</p>}
         <div className="flex-1" />
-        <button type="button" onClick={() => (justTook ? setPhase('invest') : navigate(-1))} className="mt-6 min-h-[56px] w-full rounded-[18px] bg-sun text-[16px] font-extrabold text-inkblock">{t.card.continue}</button>
+        <button type="button" onClick={() => (justTook ? setPhase('invest') : navigate('/train'))} className="mt-6 min-h-[56px] w-full rounded-[18px] bg-sun text-[16px] font-extrabold text-inkblock">{justTook ? t.card.continue : t.card.continueDone}</button>
         <button type="button" onClick={() => cardRef.current && shareCard(cardRef.current, t)} className="mt-2 flex min-h-[44px] items-center gap-2 text-[14px] font-semibold text-white/85">
           <Share2 size={16} aria-hidden="true" /> {t.card.share}
         </button>

@@ -3,6 +3,7 @@ import { ArrowLeft, ChevronDown, CheckCircle2 } from 'lucide-react';
 import TonePage, { useStatusBarColour } from '../ui/TonePage';
 import Teer from '../visuals/Teer';
 import SceneBackdrop from '../visuals/SceneBackdrop';
+import ExampleCard from './ExampleCard';
 
 // Photo scenes fade into the feature's page colour (literal classes for Tailwind).
 const SCENE_FADE = {
@@ -62,7 +63,7 @@ const START_CLASS = {
 
 export function PracticeIntro({
   onBack, headerTitle,
-  icon: Icon, variant = 'blue', tone, Art, mascot, scene, tag, title, desc, checklist,
+  icon: Icon, variant = 'blue', tone, Art, mascot, scene, tag, title, desc, checklist, example,
   whyLabel, whyBody,
   onStart, startLabel,
   secondaryLabel, onSecondary,
@@ -96,6 +97,8 @@ export function PracticeIntro({
             <span className="mt-4 inline-block rounded-full bg-inkblock text-white text-micro font-bold uppercase px-3.5 py-1.5">{tag}</span>
           )}
         </section>
+
+        {example && <ExampleCard example={example} className="mt-6" />}
 
         {checklist && (
           <section className="mt-8">

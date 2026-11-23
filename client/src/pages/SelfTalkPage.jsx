@@ -149,6 +149,7 @@ export default function SelfTalkPage() {
   // ── SCREEN 1: Learn ──────────────────────────────────────────────────────
   if (screen === 1) return (
     <PracticeIntro
+      example={translations.en.examples.selfTalk}
       onBack={goBack}
       tone="coral"
       Art={FocusArt}

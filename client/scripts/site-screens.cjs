@@ -83,6 +83,7 @@ async function main() {
   await shot('reset', '/body-reset');
   await shot('focus', '/focus-deck');
   await shot('practice', '/my-practice');
+  await shot('tools', '/tools');
   await browser.close();
 }
 main().catch(e => { console.error(e); process.exit(1); });

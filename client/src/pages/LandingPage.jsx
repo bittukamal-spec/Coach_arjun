@@ -4,7 +4,7 @@ import { ArrowRight, Menu, X, ChevronDown, FlaskConical, Globe, Timer, Lock, Mes
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
 import { ArjunLogo } from '../components/ArjunLogo';
-import { CheckDot, FinalArt } from '../components/site/SiteBits';
+import { CheckDot } from '../components/site/SiteBits';
 import Teer from '../components/visuals/Teer';
 import { useStatusBarColour } from '../components/ui/TonePage';
 import SceneBackdrop from '../components/visuals/SceneBackdrop';
@@ -18,6 +18,7 @@ const SCREENS = {
   reset:    { src: '/site-screens/reset.jpg',    bg: '#B4C3E4' },
   focus:    { src: '/site-screens/focus.jpg',    bg: '#FFBBAE' },
   practice: { src: '/site-screens/practice.jpg', bg: '#EFF3FF' },
+  tools:    { src: '/site-screens/tools.jpg',    bg: '#EFF3FF' },
 };
 
 // ─── Public website (Playbook redesign, Nov 2026) ─────────────────────────────
@@ -344,7 +345,9 @@ function LandingPage() {
         {/* ── Final call ─────────────────────────────────────────────────── */}
         <section className="bg-sun pb-8 pt-10 text-inkblock">
           <div className="mx-auto flex max-w-3xl flex-col items-center gap-4 px-5 text-center lg:flex-row lg:text-left">
-            <FinalArt label={t.finalPhotoAlt} className="h-[170px] w-full lg:h-[180px] lg:w-[320px]" />
+            <div role="img" aria-label={t.finalPhotoAlt} className="flex justify-center lg:shrink-0" data-testid="final-phone">
+              <PhoneFrame maxWidth={200} share={0.5}><RealScreen {...SCREENS.tools} /></PhoneFrame>
+            </div>
             <div className="flex w-full flex-col gap-3 lg:pl-6">
               <h2 className="text-[26px] leading-tight font-extrabold">{t.finalTitle}</h2>
               <button

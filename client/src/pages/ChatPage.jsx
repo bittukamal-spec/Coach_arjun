@@ -14,6 +14,7 @@ import { parseServerCardEvent, mergeUniqueServerCard } from '../utils/serverCard
 import RoutineProposalCard from '../components/coach/RoutineProposalCard';
 import { practiceRouteFor } from '../utils/prescriptionPractice';
 import { filterInternalMessages, isInternalContent, INTERNAL_CONTENT_FILTERED } from '../utils/internalContentFilter';
+import ChatEmptyPrompts from '../components/coach/ChatEmptyPrompts';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -1245,7 +1246,7 @@ function ChatPage() {
           {!showStartScreen && messages.length === 0 && !waitingForFirst && (
             <div className="flex flex-col items-center justify-center min-h-[50vh] gap-2">
               {freshNote && <p role="status" className="text-caption text-slt text-center max-w-xs">{freshNote}</p>}
-              <p className="text-sm text-muted text-center">{t.emptyPrompt}</p>
+              <ChatEmptyPrompts t={t} onPick={(ex) => { setInput(ex); }} />
             </div>
           )}
 

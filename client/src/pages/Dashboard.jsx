@@ -129,6 +129,12 @@ export default function Dashboard() {
           <span className="flex-1 min-w-0">
             <span className="block text-[21px] leading-tight font-extrabold">{t.journalTitle}</span>
             <span className="block mt-1 text-[14px] leading-snug text-[#4A1238]">{t.journalShort}</span>
+            {/* A different real-life example each day, so athletes see what to write */}
+            {t.journalExamples && (
+              <span className="mt-1.5 block text-[13px] italic leading-snug text-[#4A1238]" data-testid="journal-example">
+                {t.journalExampleLabel} “{t.journalExamples[Math.floor(Date.now() / 86400000) % t.journalExamples.length]}”
+              </span>
+            )}
           </span>
           <ChevronRight size={22} strokeWidth={2.6} aria-hidden="true" />
         </Link>

@@ -15,7 +15,7 @@ import { useOnboardingSession } from '../hooks/useOnboardingSession';
 import { isValidCustomText } from '../utils/sanitizeCustomText';
 import * as CFG from '../onboarding/config';
 import { apiFetch } from '../api';
-import { dayKey, dayFromKey, weekdayOf } from '../components/path/pathData';
+import { dayKey, dayFromKey, weekdayOf, pathText } from '../components/path/pathData';
 
 // ─── Adaptive onboarding (v2) ───────────────────────────────────────────────
 // Config-driven, server-authoritative flow built on the PR 1 shell + option
@@ -92,6 +92,8 @@ export default function OnboardingPage() {
   const pendingRef = useRef(null); // last Continue action, for Retry
   // "Your week" screen: the next match day (saved to the path on Finish).
   const [matchDay, setMatchDay] = useState(null);
+  const [matchType, setMatchType] = useState(null);
+  const mt = pathText(language).match;
   const weekDays = (() => { const n = new Date(); return Array.from({ length: 7 }, (_, i) => dayKey(new Date(n.getFullYear(), n.getMonth(), n.getDate() + i))); })();
 
   // Hydrate working state from the server session on load and after each save.
@@ -212,7 +214,7 @@ export default function OnboardingPage() {
           await apiFetch('/api/path/match', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ day: matchDay }),
+            body: JSON.stringify({ day: matchDay, type: matchType }),
           }).catch(() => {});
         }
         navigate('/welcome', { replace: true, state: { matchAsked: true } });
@@ -401,6 +403,17 @@ export default function OnboardingPage() {
                       ))}
                     </div>
                     <p className="mt-2 text-[12.5px] text-slt">{ui.noMatchHint}</p>
+                    {matchDay && (
+                      <>
+                        <p id="onb-match-type" className="mt-4 mb-2 text-[14px] font-extrabold text-ink">{mt.typeQ}</p>
+                        <div className="flex flex-wrap gap-2" role="radiogroup" aria-labelledby="onb-match-type">
+                          {Object.entries(mt.types).map(([k, labelText]) => (
+                            <button key={k} type="button" role="radio" aria-checked={matchType === k} onClick={() => setMatchType(matchType === k ? null : k)}
+                              className={`min-h-[44px] rounded-full px-4 text-[13.5px] font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${matchType === k ? 'bg-brand-500 text-white' : 'bg-dark-400 text-ink'}`}>{labelText}</button>
+                          ))}
+                        </div>
+                      </>
+                    )}
                   </div>
                 )]
               : questionIds.map((qid) => renderQuestion(qid))}

@@ -1,3 +1,4 @@
+import { translations } from '../i18n/translations';
 import useScrollTopOnChange from '../hooks/useScrollTopOnChange';
 import MascotArt from '../components/visuals/MascotArt';
 import { RepArt } from '../components/visuals/TrainArt';
@@ -229,6 +230,7 @@ export default function MentalRepPage() {
   // ── STEP: Intro ────────────────────────────────────────────────────────────
   if (step === 'intro') return (
     <PracticeIntro
+      example={translations.en.examples.warmUp}
       onBack={goBack}
       headerTitle={headerTitle}
       icon={Zap}
