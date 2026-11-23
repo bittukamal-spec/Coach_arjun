@@ -1045,6 +1045,20 @@ export const translations = {
     // The five real practices only — no invented categories, no practice
     // counts (there is no count data to render). Names and descriptions are
     // the existing approved wording, moved out of inline JSX conditionals.
+    yourWords: {
+      tag: {
+        card: () => 'Your Focus Card',
+        cue: () => 'Your cue',
+        journal: (when) => (when ? `You wrote · ${when}` : 'You wrote'),
+        lesson: () => 'What you learned',
+      },
+      line: {
+        card: 'Say it once before you train today.',
+        cue: 'Take it into your next session.',
+        journal: 'Still true? Keep it in mind today.',
+        lesson: 'From your own practice.',
+      },
+    },
     knows: {
       title: 'What Arjun knows — and what it does with it',
       change: 'Change',

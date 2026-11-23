@@ -24,4 +24,4 @@ Legend: ✅ already there · 🟡 partly · ❌ missing → proposal.
 3. ✅ **"Use it in play" hand-off** — built (Nov 2026): an if–then play plan at the end of Pressure Reset / Quick Rep / Ritual; it comes back on Train, before the match and in "How did it go?" (ticks Play).
 4. ✅ **Reminders** — built (Nov 2026): the one daily reminder becomes specific (match tomorrow · how did it go · rematch ready · weekly review), each kind with its own switch in Settings.
 5. ✅ **First-run** — built (Nov 2026): onboarding cut to 4 screens, then next match → the Mind Challenge as the first reward (`/welcome`).
-6. **Investment comes back**: card of the day, a past journal takeaway.
+6. ✅ **Investment comes back** — built (Nov 2026): "Your words" on Home — one of their own Focus Card words, cues, journal take-forward lines or practice lessons, rotating daily.

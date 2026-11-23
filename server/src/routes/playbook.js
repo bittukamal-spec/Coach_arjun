@@ -97,7 +97,7 @@ router.get('/', authenticate, async (req, res) => {
     const weekAgo  = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-    const [reports, focusCards, journalReflections, legacyDebriefs, outcomePrescriptions, weekJournalDates] = await Promise.all([
+    const [reports, focusCards, journalReflections, legacyDebriefs, outcomePrescriptions, weekJournalDates, takeForwardRows] = await Promise.all([
       prisma.toolReport.findMany({
         where: { userId: req.userId, createdAt: { gte: monthAgo } },
         orderBy: { createdAt: 'desc' },
@@ -147,6 +147,14 @@ router.get('/', authenticate, async (req, res) => {
       prisma.mindJournalEntry.findMany({
         where: { userId: req.userId, createdAt: { gte: weekAgo } },
         select: { createdAt: true },
+      }),
+      // Hook fix 6 — "your words come back": the athlete's own "take this
+      // forward" lines (already safety-screened when saved), newest first.
+      prisma.mindJournalEntry.findMany({
+        where: { userId: req.userId, takeForward: { not: null } },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+        select: { id: true, takeForward: true, createdAt: true },
       }),
     ]);
 
@@ -217,6 +225,7 @@ router.get('/', authenticate, async (req, res) => {
       insight,
       practiceOutcomes,
       thisWeek: buildThisWeek({ weekReports, weekJournalDates, outcomes: outcomePrescriptions, weekAgo }),
+      takeForwards: (takeForwardRows || []).filter(r => String(r.takeForward || '').trim()).map(r => ({ id: r.id, text: String(r.takeForward).trim(), createdAt: r.createdAt })),
     });
   } catch (err) {
     console.error('[playbook] GET error:', err?.message);

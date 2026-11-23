@@ -128,6 +128,7 @@ describe('Dashboard problem shortcuts — real router integration', () => {
       '/api/mind-challenge',
       '/api/path',
       '/api/pilot-communications/next',
+      '/api/playbook',
       '/api/prescriptions/active',
       '/api/push-notifications/preferences',
     ]);

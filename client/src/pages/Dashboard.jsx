@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import HomePathArea from '../components/home/HomePathArea';
+import YourWordsCard from '../components/home/YourWordsCard';
 import MindChallengeHomeCard from '../components/home/MindChallengeHomeCard';
 import Navbar from '../components/Navbar';
 import ConsentBanner from '../components/ConsentBanner';
@@ -84,6 +85,9 @@ export default function Dashboard() {
 
         {/* ── YOUR NEXT STEP on the path, or the match prep / "How did it go?" card */}
         <HomePathArea />
+
+        {/* ── YOUR WORDS — Hook fix 6: one thing they made comes back, changes daily */}
+        <YourWordsCard />
 
         {/* ── YOUR PRACTICE FROM ARJUN — the blue block, only when Coach has
              already given a practice and no final result is reported yet.
