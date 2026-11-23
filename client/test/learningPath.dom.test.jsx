@@ -35,7 +35,13 @@ describe('Profile path section', () => {
     expect(screen.getByText('It helped')).toBeTruthy();
     expect(screen.getByTestId('path-current').getAttribute('href')).toBe('/path/focus');
     const next = screen.getByTestId('path-next');
-    expect(next.textContent).toMatch(/use it in a match or at training/);
+    expect(next.textContent).toMatch(/I used it — tell Arjun how it went/);
+    // Plain 4-step list: what each step is, which one is now, done ones ticked.
+    expect(screen.getByText('Chapter 2 · Focus')).toBeTruthy();
+    expect(screen.getByText('Do these 4 small steps, one at a time:')).toBeTruthy();
+    expect(screen.getByTestId('path-step-play').textContent).toMatch(/Now/);
+    expect(screen.getByText('Read a 2-minute lesson')).toBeTruthy();
+    expect(screen.getByText('All chapters')).toBeTruthy();
     expect(next.getAttribute('href')).toBe('/path/focus');
   });
 
