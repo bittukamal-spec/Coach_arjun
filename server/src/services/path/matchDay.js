@@ -80,4 +80,11 @@ function buildPathCoachSection({ path, match, plan } = {}, today = indiaToday())
   return `\n\n## Path and next match (internal)\n${lines.join('\n')}`;
 }
 
-module.exports = { planText, indiaToday, dayDiff, isValidDay, isPickableDay, matchPhase, buildPathCoachSection, REVIEW_WINDOW_DAYS };
+// The app's tool names changed (founder, Nov 2026). Coach is told the names
+// athletes now see, so chat matches the screens.
+const TOOL_NAMES_NOTE = `
+
+## App tool names (internal)
+Use these names when you mention the app's tools: "Mind Warm-up" (the 4-minute mind prep that ends with a focus word; it used to be called Quick Rep), "Pressure Reset" (slow breathing), "Self-Talk Cards" (strong words to say to yourself; used to be Focus Cards), "Mental Routines" (step-by-step routines; used to be Ritual), "Mind Journal". Say "focus word", not "cue".`;
+
+module.exports = { TOOL_NAMES_NOTE, planText, indiaToday, dayDiff, isValidDay, isPickableDay, matchPhase, buildPathCoachSection, REVIEW_WINDOW_DAYS };

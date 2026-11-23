@@ -33,7 +33,7 @@ const PLAN_TOOLS = {
   },
   focus_card_builder: {
     toolId: 'focus_card_builder',
-    label: 'Focus Card Builder',
+    label: 'Self-Talk Cards',
     route: '/self-talk',
     skillKey: 'confidence_self_talk',
     duration: 5,
@@ -84,14 +84,14 @@ function pickPlanShape(user) {
   const goals = safeGoals(user.goals);
   const strugglesWithPressure = user.pressureResponse === 'struggles' || user.pressureResponse === 'unaware';
 
-  // Confidence / fear of failure → build the Focus Card first
+  // Confidence / fear of failure → build the Self-Talk Card first
   if (challenge === 'failure' || goals.includes('confidence')) {
     return {
       key: 'confidence',
       order: ['focus_card_builder', 'focus_words', 'pressure_reset', 'reset_rally', 'reflect_like_an_athlete'],
       primary: 'confidence_self_talk',
       secondary: 'focus_clarity',
-      noteEn: (sport) => `You told me self-belief is the fight right now. We'll build your own Focus Card first, then train the focus and reset skills around it${sport ? ` for ${sport}` : ''}.`,
+      noteEn: (sport) => `You told me self-belief is the fight right now. We'll build your own Self-Talk Card first, then train the focus and reset skills around it${sport ? ` for ${sport}` : ''}.`,
       reason: 'Primary challenge points at confidence and fear of failure.',
     };
   }
@@ -140,7 +140,7 @@ function pickPlanShape(user) {
     secondary: 'focus_clarity',
     noteEn: (sport) => strugglesWithPressure
       ? `You told me pressure hits your body first. We'll train a quick reset before anything else, then build your Focus Word on top of it${sport ? ` for ${sport}` : ''}.`
-      : `We'll start with steadying your body under pressure, then build your Focus Word and Focus Card on top of it${sport ? ` for ${sport}` : ''}.`,
+      : `We'll start with steadying your body under pressure, then build your Focus Word and Self-Talk Card on top of it${sport ? ` for ${sport}` : ''}.`,
     reason: 'Default pressure-first plan (nerves / pressure response / no clearer signal).',
   };
 }
@@ -176,9 +176,9 @@ function sessionTitle(toolId, user) {
       if (sport === 'athletics') return 'Find Your Race Focus Word';
       return 'Find Your Focus Word';
     case 'focus_card_builder':
-      if (position)              return `Build Your ${capitalize(position)} Focus Card`;
-      if (sport)                 return `Build Your ${capitalize(sport)} Focus Card`;
-      return 'Build Your Focus Card';
+      if (position)              return `Build Your ${capitalize(position)} Self-Talk Card`;
+      if (sport)                 return `Build Your ${capitalize(sport)} Self-Talk Card`;
+      return 'Build Your Self-Talk Card';
     case 'reset_rally':
       if (sport === 'cricket')   return 'Reset After a Bad Over';
       if (sport === 'football')  return 'Reset After a Mistake';
@@ -188,7 +188,7 @@ function sessionTitle(toolId, user) {
     case 'reflect_like_an_athlete':
       return 'Reflect Like an Athlete';
     case 'focus_deck':
-      return 'Practise Your Focus Cards';
+      return 'Practise Your Self-Talk Cards';
     default:
       return PLAN_TOOLS[toolId]?.label || 'Mental Rep';
   }
@@ -212,7 +212,7 @@ function sessionReason(toolId, user, shapeKey) {
       : `Turning your pressure thoughts into your own words locks the skill in.`;
     case 'reset_rally':             return `Practising the reset in a game makes it automatic when a real mistake happens.`;
     case 'reflect_like_an_athlete': return `One honest takeaway per session is how athletes actually improve.`;
-    case 'focus_deck':              return `Reviewing your saved Focus Cards keeps the words sharp for match day.`;
+    case 'focus_deck':              return `Reviewing your saved Self-Talk Cards keeps the words sharp for match day.`;
     default: return null;
   }
 }

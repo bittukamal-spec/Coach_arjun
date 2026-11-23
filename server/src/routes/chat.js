@@ -19,7 +19,7 @@ const {
 const { coachRequestSettings, buildCoachSystem } = require('../services/coaching/coachModel');
 const { buildRoutineFocusSection, buildRoutineProposalEvent } = require('../services/coaching/routineFocus');
 const { createPathStore } = require('../services/path/pathService');
-const { buildPathCoachSection } = require('../services/path/matchDay');
+const { buildPathCoachSection, TOOL_NAMES_NOTE } = require('../services/path/matchDay');
 const { priorityPhrase } = require('../profile/ruleEngine');
 const loadReflectionContext = require('../services/mindJournal/loadReflectionContext');
 const { buildReflectionContextSection } = loadReflectionContext;
@@ -1321,7 +1321,7 @@ router.post('/message', authenticate, aiLimiter, requireGuardianConsent, checkFr
     const coach = coachRequestSettings();
     const systemPrompt = buildCoachSystem(
       buildSystemPrompt(user, recentCheckIns, memories, sessionType, { ...promptExtra, coachingContext, reflectionContext, startingProfile, currentFocus }),
-      buildLanguageHintSection(languageHints) + buildClarificationSection(clarification) + buildRoutineFocusSection(focusRoutine) + buildPathCoachSection(pathContext ? { path: pathContext, match: pathContext.match, plan: pathContext.plan } : {}),
+      buildLanguageHintSection(languageHints) + buildClarificationSection(clarification) + buildRoutineFocusSection(focusRoutine) + buildPathCoachSection(pathContext ? { path: pathContext, match: pathContext.match, plan: pathContext.plan } : {}) + TOOL_NAMES_NOTE,
     );
     const loop = await runBufferedToolLoop({
       anthropic,

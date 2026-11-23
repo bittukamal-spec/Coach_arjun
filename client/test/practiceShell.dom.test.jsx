@@ -49,7 +49,7 @@ describe('Quick Rep — shared practice shell (Stage 6)', () => {
   test('opens on exactly one intro screen with one Start action, not directly on the wizard', async () => {
     render(<TestApp />);
 
-    expect(screen.getByText('Quick Rep')).toBeTruthy();
+    expect(screen.getByText('Mind Warm-up')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Start' })).toBeTruthy();
     // The first wizard question must not be visible yet.
     expect(screen.queryByText('What are you preparing for?')).toBeNull();
@@ -122,7 +122,7 @@ describe('Quick Rep — shared practice shell (Stage 6)', () => {
     authState.language = 'hi';
     render(<TestApp />);
 
-    expect(screen.getByText('Quick Rep')).toBeTruthy();
+    expect(screen.getByText('Mind Warm-up')).toBeTruthy();
     expect(screen.getByText('4 मिनट में मन तैयार करो और एक cue लेकर निकलो।')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'शुरू करो' })).toBeTruthy();
   });

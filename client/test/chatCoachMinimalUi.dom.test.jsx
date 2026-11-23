@@ -422,7 +422,7 @@ describe('Coach — routine card', () => {
     expect(screen.getByText('Set your stance')).toBeTruthy();
     await user.click(screen.getByRole('button', { name: 'Save to "After each ball while batting"' }));
 
-    expect(await screen.findByText(/Saved to Ritual/)).toBeTruthy();
+    expect(await screen.findByText(/Saved to Mental Routines/)).toBeTruthy();
     expect(screen.getByRole('link', { name: 'View routine' }).getAttribute('href')).toBe('/ritual');
     expect(patched).toEqual({ steps: PROPOSAL.steps.map((instruction) => ({ kind: 'custom', instruction, origin: 'suggested' })) });
   });
@@ -441,7 +441,7 @@ describe('Coach — routine card', () => {
     render(<App />);
     const user = await sendAndReceiveProposal(stream, { mode: 'create', routineId: null, routineName: null, name: 'Before I bat', category: 'pressure_moment', steps: ['Two slow breaths'] });
     await user.click(await screen.findByRole('button', { name: 'Save as new routine' }));
-    await screen.findByText(/Saved to Ritual/);
+    await screen.findByText(/Saved to Mental Routines/);
     expect(posted).toEqual({ name: 'Before I bat', category: 'pressure_moment', steps: [{ kind: 'custom', instruction: 'Two slow breaths', origin: 'suggested' }] });
   });
 
@@ -455,7 +455,7 @@ describe('Coach — routine card', () => {
     const user = await sendAndReceiveProposal(stream);
     await user.click(await screen.findByRole('button', { name: /Save to/ }));
     expect(await screen.findByText('Please talk to a trusted adult.')).toBeTruthy();
-    expect(screen.queryByText(/Saved to Ritual/)).toBeNull();
+    expect(screen.queryByText(/Saved to Mental Routines/)).toBeNull();
 
     await user.click(screen.getByRole('button', { name: 'Not now' }));
     expect(screen.queryByText('Updated routine: After each ball while batting')).toBeNull();

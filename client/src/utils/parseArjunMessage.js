@@ -43,7 +43,7 @@ const RAW_APP_TOOL_CONFIG = {
     route: '/mind-journal/new',
   },
   'self-talk': {
-    label: 'Focus Card Builder',
+    label: 'Self-Talk Cards',
     sub: 'Turn pressure thoughts into one cue you can use in training or match.',
     why: 'Your own words beat borrowed motivation.',
     cta: 'Build Card',

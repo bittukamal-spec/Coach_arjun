@@ -170,7 +170,7 @@ export default function FocusDeckPage() {
           </p>
           <div className="space-y-2.5">
             {[
-              hi ? 'Focus Card Builder में अपनी situation डालो।' : 'Build a Focus Card from your own pressure situation.',
+              hi ? 'Self-Talk Cards में अपनी situation डालो।' : 'Build a Self-Talk Card from your own pressure situation.',
               hi ? 'अपने Focus Word और Reset Word के साथ card save करो।' : 'Save it with your Focus Word, Reset Word, and mantra.',
               hi ? 'Focus Lock में अपने word को distraction के बीच ट्रेन करो।' : 'Train your word under distraction in Focus Lock.',
             ].map((s, i) => (
@@ -208,7 +208,7 @@ export default function FocusDeckPage() {
 
       {/* Cards */}
       {cards.length > 0 && (
-        <p className="section-label px-4">{hi ? 'Saved Focus Cards' : 'Saved Focus Cards'}</p>
+        <p className="section-label px-4">{hi ? 'Saved Self-Talk Cards' : 'Saved Self-Talk Cards'}</p>
       )}
       <div className="px-4 space-y-3">
         {cards.map(card => {

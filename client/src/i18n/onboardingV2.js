@@ -65,7 +65,7 @@ export const onboardingV2En = {
     sport: { title: 'What sport do you play?', subtitle: 'Pick your main sport so Arjun can personalise your coaching.' },
     sportRole: { title: 'What sport do you play?', subtitle: 'Pick your sport, then your role.', uses: 'speak your sport — examples, plans and drawings.' },
     level: { title: 'Level', subtitle: 'Pick one', uses: 'pitch the coaching right — simple when you’re starting, sharper at state and national level.' },
-    firstSignal: { title: 'When it happens, what do you notice first?', subtitle: 'Go with your gut.', uses: 'pick your first tool — body → Pressure Reset, thoughts → Focus Cards and cue words, feelings → Mind Journal.' },
+    firstSignal: { title: 'When it happens, what do you notice first?', subtitle: 'Go with your gut.', uses: 'pick your first tool — body → Pressure Reset, thoughts → Self-Talk Cards and cue words, feelings → Mind Journal.' },
     pressureSource: { title: 'Where does the pressure come from?', subtitle: 'Pick up to three. Only Arjun sees this.', uses: 'understand where the pressure really comes from, so the advice fits your life.' },
     whatHelps: { title: 'What already helps you?', subtitle: 'Pick any. We build on what works.', uses: 'start from what already works for you instead of from zero.' },
     trainingTime: { title: 'Your week', subtitle: 'So Arjun shows up at the right time.', uses: 'send reminders before you train and get you ready the day before your match.' },
