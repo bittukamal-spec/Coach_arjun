@@ -84,8 +84,11 @@ test('short onboarding (Nov 2026): one follow-up per situation; the full branch 
   const a = { primary_priority: { answerIds: ['before_important_performance'] } };
   assert.equal(C.resolveBranch(a), 'pre_performance');
   const flow = C.computeFlowScreenIds(a);
-  assert.deepEqual(flow, ['sport_role', 'playing_context', 'primary_priority', 'pre_performance_effect']);
-  assert.deepEqual(C.requiredQuestionIds(a).sort(), ['competition_level', 'pre_performance_effect', 'primary_priority', 'role_position', 'sport'].sort());
+  // Onboarding v2 (Nov 2026): 8 screens, every answer personalises something.
+  assert.deepEqual(flow, ['sport_role', 'playing_context', 'primary_priority', 'first_signal', 'pre_performance_effect', 'contextual_pressures', 'what_helps', 'training_time']);
+  assert.deepEqual(C.requiredQuestionIds(a).sort(), ['competition_level', 'first_signal', 'pre_performance_effect', 'primary_priority', 'role_position', 'sport', 'training_time'].sort());
+  assert.equal(C.getQuestion('contextual_pressures').required, false, 'pressure source can be skipped');
+  assert.equal(C.getQuestion('what_helps').required, false, 'what helps can be skipped');
   const full = C.computeFlowScreenIds(a, { full: true });
   for (const s of ['pre_performance_signs', 'pre_performance_effect', 'pre_performance_duration', 'supports', 'strengths', 'broad_goals']) {
     assert.ok(full.includes(s), `answers to ${s} must never be pruned`);

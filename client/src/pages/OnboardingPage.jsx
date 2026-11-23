@@ -14,6 +14,8 @@ import ModalDialog from '../components/onboarding/ModalDialog';
 import { useOnboardingSession } from '../hooks/useOnboardingSession';
 import { isValidCustomText } from '../utils/sanitizeCustomText';
 import * as CFG from '../onboarding/config';
+import { apiFetch } from '../api';
+import { dayKey, dayFromKey, weekdayOf } from '../components/path/pathData';
 
 // ─── Adaptive onboarding (v2) ───────────────────────────────────────────────
 // Config-driven, server-authoritative flow built on the PR 1 shell + option
@@ -88,6 +90,9 @@ export default function OnboardingPage() {
   const [live, setLive] = useState('');
   const [confirmPrune, setConfirmPrune] = useState(null); // { payload, nextStepId, isLast }
   const pendingRef = useRef(null); // last Continue action, for Retry
+  // "Your week" screen: the next match day (saved to the path on Finish).
+  const [matchDay, setMatchDay] = useState(null);
+  const weekDays = (() => { const n = new Date(); return Array.from({ length: 7 }, (_, i) => dayKey(new Date(n.getFullYear(), n.getMonth(), n.getDate() + i))); })();
 
   // Hydrate working state from the server session on load and after each save.
   useEffect(() => {
@@ -201,9 +206,16 @@ export default function OnboardingPage() {
       const done = await complete(result.session.revision);
       if (done.ok) {
         updateUser(done.user);
-        // Short onboarding (Nov 2026): next match, then the Mind Challenge
-        // as the first reward — not a profile page to read.
-        navigate('/welcome', { replace: true });
+        // Then the Mind Challenge as the first reward — not a profile page
+        // to read. The match day picked on "Your week" goes to the path.
+        if (matchDay) {
+          await apiFetch('/api/path/match', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ day: matchDay }),
+          }).catch(() => {});
+        }
+        navigate('/welcome', { replace: true, state: { matchAsked: true } });
       } else if (done.missing?.length) {
         // Jump back to the first missing screen.
         const missingScreen = CFG.computeFlowScreenIds(working).find((sid) =>
@@ -373,7 +385,30 @@ export default function OnboardingPage() {
             // Sport + role on one screen (Nov 2026): the role chips follow the
             // chosen sport, so they appear once a sport is picked.
             ? [renderQuestion('sport', ui.sportGroup), sportId ? renderQuestion('role_position', ui.roleGroup) : null]
-            : questionIds.map((qid) => renderQuestion(qid))}
+            : currentStepId === 'training_time'
+              // "Your week" (Nov 2026): training time + the next match day.
+              ? [renderQuestion('training_time', ui.trainingGroup), (
+                  <div key="match" className="mt-5" data-testid="onb-match">
+                    <p className="mb-2 text-[14px] font-extrabold text-ink">{ui.matchGroup}</p>
+                    <div className="grid grid-cols-7 gap-1.5" role="radiogroup" aria-label={ui.matchGroup}>
+                      {weekDays.map((k) => (
+                        <button key={k} type="button" role="radio" aria-checked={matchDay === k} onClick={() => setMatchDay(matchDay === k ? null : k)}
+                          aria-label={dayFromKey(k).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
+                          className={`flex min-h-[54px] flex-col items-center justify-center rounded-[12px] text-[11px] font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${matchDay === k ? 'bg-brand-500 text-white' : 'bg-dark-400 text-ink'}`}>
+                          {weekdayOf(k, 'short')}
+                          <span className="text-[15px] font-extrabold">{dayFromKey(k).getDate()}</span>
+                        </button>
+                      ))}
+                    </div>
+                    <p className="mt-2 text-[12.5px] text-slt">{ui.noMatchHint}</p>
+                  </div>
+                )]
+              : questionIds.map((qid) => renderQuestion(qid))}
+        {screen?.titleKey && label(screen.titleKey.replace(/\.title$/, '.uses')) !== screen.titleKey.replace(/\.title$/, '.uses') && (
+          <p className="mt-4 rounded-[16px] bg-mint/30 px-3 py-2.5 text-[12.5px] leading-relaxed text-ink" data-testid="onb-uses">
+            <b className="font-extrabold">{ui.usesLabel}</b> {label(screen.titleKey.replace(/\.title$/, '.uses'))}
+          </p>
+        )}
       </OnboardingShell>
 
       {/* Branch-change confirmation before orphaning branch answers. */}

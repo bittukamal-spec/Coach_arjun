@@ -9,6 +9,11 @@ import { usePath, matchPhase } from '../components/path/pathData';
 import MatchMoment from '../components/match/MatchMoment';
 import { clearFromPath } from '../utils/practiceReturn';
 
+// "Start here" (onboarding v2): the tool that fits what the athlete notices
+// first under pressure — body → Pressure Reset, thoughts → Focus Cards,
+// feelings → Mind Journal.
+const START_HERE = { body: 'pressure', thoughts: 'focusCard', feelings: 'journal' };
+
 // Tools tab (founder layout, Nov 2026): the practices grouped by MOMENT —
 // Before you play · In the moment · After you play — each a sideways row of
 // square tiles. Match moments live here too: the day before / on the match
@@ -64,7 +69,8 @@ export default function ToolsPage() {
             <h2 id={`tools-${id}`} className="px-5 text-[12px] font-extrabold uppercase tracking-[0.1em] text-slt">{tt.sections[id]}</h2>
             <div className="mt-2 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-5 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {SECTIONS[id].map(tool => (
-                <ToolTile key={tool.key} to={tool.to} tone={tool.tone} title={name(tool.key)} art={tool.art} />
+                <ToolTile key={tool.key} to={tool.to} tone={tool.tone} title={name(tool.key)} art={tool.art}
+                  badge={START_HERE[path?.personal?.firstSignal] === tool.key ? tt.startHere : null} />
               ))}
             </div>
           </section>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiFetch } from '../api';
@@ -20,7 +20,9 @@ export default function WelcomePage() {
   const t = ((translations[language] || translations.en).welcome) || translations.en.welcome;
   const navigate = useNavigate();
   const { setMatchDay } = usePath();
-  const [step, setStep] = useState('match');
+  const location = useLocation();
+  // Onboarding's "Your week" screen already asked for the match day.
+  const [step, setStep] = useState(location.state?.matchAsked ? 'challenge' : 'match');
   useStatusBarColour(step === 'challenge' ? { colour: '#101533' } : {});
 
   useEffect(() => {

@@ -180,6 +180,9 @@ async function fillMistakes(call, ver = 2) {
   await patch({ strengths: { answerIds: ['hard_working'] } }, 'strengths');
   await patch({ broad_goals: { answerIds: ['confidence', 'focus'] } }, 'broad_goals');
   await patch({ four_week_outcome: { answerIds: ['recover_faster'] } }, 'four_week_outcome');
+  // Onboarding v2 (Nov 2026)
+  await patch({ first_signal: { answerIds: ['thoughts'] } }, 'first_signal');
+  await patch({ training_time: { answerIds: ['evening'] } }, 'training_time');
   return rev;
 }
 

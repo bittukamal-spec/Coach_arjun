@@ -81,6 +81,8 @@ function reorderForGoal(order, steps, chapterKey) {
   return [...rest.slice(0, at), chapterKey, ...rest.slice(at)];
 }
 
+const { loadPersonal } = require('./personal');
+
 function matchOf(progress) {
   return {
     nextDay: progress?.nextMatchDay || null,
@@ -153,7 +155,7 @@ function createPathStore(prisma) {
       steps = await loadSteps(userId);
       path = buildPath({ order: progress.order, steps });
     }
-    return { ...path, match: matchOf(progress), plan: planOf(progress) };
+    return { ...path, match: matchOf(progress), plan: planOf(progress), personal: await loadPersonal(prisma, userId) };
   }
 
   // Next match (Hook fix 2): set or clear the day.

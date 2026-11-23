@@ -3,6 +3,7 @@
 // India-only), so "tomorrow" means the same thing to the athlete and Coach.
 
 const { CHAPTER_NOTES, STEP_NOTES, PLAN_NOTES } = require('./pathConfig');
+const { personalNoteLines } = require('./personal');
 
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_AHEAD_DAYS = 180;
@@ -74,6 +75,7 @@ function buildPathCoachSection({ path, match, plan } = {}, today = indiaToday())
   if (match?.lastFeel && match?.lastDay && dayDiff(match.lastDay, today) <= 7) {
     lines.push(`Their last match (${match.lastDay}) ${FEEL_TEXT[match.lastFeel] || 'happened'}, in their words.`);
   }
+  lines.push(...personalNoteLines(path?.personal));
   if (!lines.length) return '';
   return `\n\n## Path and next match (internal)\n${lines.join('\n')}`;
 }

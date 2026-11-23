@@ -7,12 +7,12 @@
       "titleKey": "onboarding.v2.stages.about"
     },
     {
-      "id": "goals",
-      "titleKey": "onboarding.v2.stages.goals"
-    },
-    {
       "id": "performance",
       "titleKey": "onboarding.v2.stages.performance"
+    },
+    {
+      "id": "goals",
+      "titleKey": "onboarding.v2.stages.goals"
     }
   ],
   "screens": [
@@ -73,13 +73,22 @@
       "subtitleKey": "onboarding.v2.screens.primaryPriority.subtitle"
     },
     {
-      "id": "contextual_pressures",
+      "id": "first_signal",
       "stage": "performance",
+      "questionIds": [
+        "first_signal"
+      ],
+      "titleKey": "onboarding.v2.screens.firstSignal.title",
+      "subtitleKey": "onboarding.v2.screens.firstSignal.subtitle"
+    },
+    {
+      "id": "contextual_pressures",
+      "stage": "goals",
       "questionIds": [
         "contextual_pressures"
       ],
-      "titleKey": "onboarding.v2.screens.contextualPressures.title",
-      "subtitleKey": "onboarding.v2.screens.contextualPressures.subtitle"
+      "titleKey": "onboarding.v2.screens.pressureSource.title",
+      "subtitleKey": "onboarding.v2.screens.pressureSource.subtitle"
     },
     {
       "id": "supports",
@@ -89,6 +98,24 @@
       ],
       "titleKey": "onboarding.v2.screens.supports.title",
       "subtitleKey": "onboarding.v2.screens.supports.subtitle"
+    },
+    {
+      "id": "what_helps",
+      "stage": "goals",
+      "questionIds": [
+        "what_helps"
+      ],
+      "titleKey": "onboarding.v2.screens.whatHelps.title",
+      "subtitleKey": "onboarding.v2.screens.whatHelps.subtitle"
+    },
+    {
+      "id": "training_time",
+      "stage": "goals",
+      "questionIds": [
+        "training_time"
+      ],
+      "titleKey": "onboarding.v2.screens.trainingTime.title",
+      "subtitleKey": "onboarding.v2.screens.trainingTime.subtitle"
     },
     {
       "id": "strengths",
@@ -122,9 +149,14 @@
     "preBranchScreens": [
       "sport_role",
       "playing_context",
-      "primary_priority"
+      "primary_priority",
+      "first_signal"
     ],
-    "postBranchScreens": []
+    "postBranchScreens": [
+      "contextual_pressures",
+      "what_helps",
+      "training_time"
+    ]
   },
   "branches": {
     "pre_performance": {
@@ -2273,6 +2305,92 @@
           "key": "onboarding.v2.fourWeekOutcome.ownGoal",
           "custom": true,
           "max": 120
+        }
+      ]
+    },
+    "first_signal": {
+      "type": "single",
+      "limit": 1,
+      "required": true,
+      "answers": [
+        {
+          "id": "body",
+          "key": "onboarding.v2.firstSignal.body"
+        },
+        {
+          "id": "thoughts",
+          "key": "onboarding.v2.firstSignal.thoughts"
+        },
+        {
+          "id": "feelings",
+          "key": "onboarding.v2.firstSignal.feelings"
+        },
+        {
+          "id": "not_sure",
+          "key": "onboarding.v2.firstSignal.notSure"
+        }
+      ]
+    },
+    "what_helps": {
+      "type": "multi",
+      "limit": 4,
+      "required": false,
+      "answers": [
+        {
+          "id": "music",
+          "key": "onboarding.v2.whatHelps.music"
+        },
+        {
+          "id": "slow_breathing",
+          "key": "onboarding.v2.whatHelps.slowBreathing"
+        },
+        {
+          "id": "talking",
+          "key": "onboarding.v2.whatHelps.talking"
+        },
+        {
+          "id": "routine",
+          "key": "onboarding.v2.whatHelps.routine"
+        },
+        {
+          "id": "praying",
+          "key": "onboarding.v2.whatHelps.praying"
+        },
+        {
+          "id": "visualising",
+          "key": "onboarding.v2.whatHelps.visualising"
+        },
+        {
+          "id": "being_alone",
+          "key": "onboarding.v2.whatHelps.beingAlone"
+        },
+        {
+          "id": "nothing_yet",
+          "key": "onboarding.v2.whatHelps.nothingYet",
+          "exclusive": true
+        }
+      ]
+    },
+    "training_time": {
+      "type": "single",
+      "limit": 1,
+      "required": true,
+      "answers": [
+        {
+          "id": "morning",
+          "key": "onboarding.v2.trainingTime.morning"
+        },
+        {
+          "id": "afternoon",
+          "key": "onboarding.v2.trainingTime.afternoon"
+        },
+        {
+          "id": "evening",
+          "key": "onboarding.v2.trainingTime.evening"
+        },
+        {
+          "id": "varies",
+          "key": "onboarding.v2.trainingTime.varies"
         }
       ]
     }
