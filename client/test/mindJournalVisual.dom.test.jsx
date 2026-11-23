@@ -62,7 +62,7 @@ describe('Mind Journal visual / a11y smoke', () => {
       </MemoryRouter>
     );
     await userEvent.click(await screen.findByRole('button', { name: 'Something else' }));
-    const field = screen.getByLabelText('Write your own state');
+    const field = screen.getByLabelText('Write your own feeling');
     expect(field).toBeTruthy();
     expect(field.getAttribute('maxLength')).toBe('30');
     await userEvent.type(field, LONG);
@@ -80,7 +80,7 @@ describe('Mind Journal visual / a11y smoke', () => {
     );
     await userEvent.click(await screen.findByRole('button', { name: 'कुछ और' }));
     expect(screen.getByLabelText('अपनी स्थिति लिखो')).toBeTruthy();
-    expect(screen.queryByLabelText('Write your own state')).toBeNull();
+    expect(screen.queryByLabelText('Write your own feeling')).toBeNull();
   });
 
   test('Guided Step 1 exposes Something else under dark theme tokens', async () => {

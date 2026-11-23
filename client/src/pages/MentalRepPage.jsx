@@ -53,7 +53,7 @@ const REP_STEPS = {
   },
   distracted: {
     interaction: 'chips',
-    title:   { en: 'Pick ONE thing to lock onto.', hi: 'एक चीज़ चुनो जिस पर लॉक करना है।' },
+    title:   { en: 'Pick ONE thing to keep your mind on.', hi: 'एक चीज़ चुनो जिस पर लॉक करना है।' },
     sub:     { en: 'For your first minute, your eyes stay on this.', hi: 'पहले मिनट में तुम्हारी नज़र इसी पर रहेगी।' },
     choices: [
       { en: 'The ball',        hi: 'बॉल' },
@@ -75,7 +75,7 @@ const REP_STEPS = {
   },
   flat: {
     interaction: 'chips',
-    title:   { en: 'Low energy is a signal, not a verdict.', hi: 'कम एनर्जी एक संकेत है, फैसला नहीं।' },
+    title:   { en: 'Low energy is normal. It does not decide how you will play.', hi: 'कम एनर्जी एक संकेत है, फैसला नहीं।' },
     sub:     { en: 'Pick one thing to attack first.', hi: 'एक चीज़ चुनो जिस पर पहले अटैक करना है।' },
     choices: [
       { en: 'First rep',    hi: 'पहला रेप' },
@@ -239,11 +239,11 @@ export default function MentalRepPage() {
       title="Quick Rep"
       desc={hi
         ? '4 मिनट में मन तैयार करो और एक cue लेकर निकलो।'
-        : 'A 4-minute rep that ends with one cue you take to training.'}
+        : '4 minutes. You end with one short word to say to yourself in training.'}
       whyLabel={hi ? 'यह क्यों काम करता है' : 'Why this works'}
       whyBody={hi
         ? 'अपनी स्थिति को पहचानना और एक साफ फोकस पॉइंट चुनना ध्यान को उस चीज़ पर लाता है जिसे तुम अभी नियंत्रित कर सकते हो — यही "process focus" तकनीक स्पोर्ट्स साइकोलॉजिस्ट दबाव के पलों से पहले इस्तेमाल करवाते हैं। एक छोटा बोला गया cue लेकर खत्म करने से उसे उस पल में याद रखना आसान हो जाता है।'
-        : 'Naming your state and picking one clear focus point narrows your attention onto what you can control right now — the same "process focus" technique sports psychologists use before high-pressure moments. Ending with one short, spoken cue makes it easy to recall in the moment.'}
+        : 'Saying how you feel and picking one thing to focus on keeps your mind on what you can control right now. Ending with one short word makes it easy to remember in the match.'}
       onStart={() => setStep(preContext ? 'state' : 'context')}
       startLabel={hi ? 'शुरू करो' : 'Start'}
     />
@@ -349,8 +349,8 @@ export default function MentalRepPage() {
   // ── STEP: Cue ──────────────────────────────────────────────────────────────
   if (step === 'cue') return (
     <Screen
-      title={hi ? 'अपना cue चुनो।' : 'Pick your cue.'}
-      sub={hi ? 'छोटे शब्द जो तुम खेल के बीच खुद से कह सको।' : 'Short words you can actually say mid-game.'}
+      title={hi ? 'अपना cue चुनो।' : 'Pick your focus word.'}
+      sub={hi ? 'छोटे शब्द जो तुम खेल के बीच खुद से कह सको।' : 'Short words you can say to yourself during a match.'}
     >
       {ownCues.length > 0 && (
         <>
@@ -381,7 +381,7 @@ export default function MentalRepPage() {
         className="w-full text-sm mt-2.5 disabled:opacity-40 min-h-[52px] rounded-[18px] bg-brand-500 text-white font-extrabold active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
         style={{ minHeight: '48px' }}
       >
-        {hi ? 'यह मेरा cue है' : 'Use this cue'}
+        {hi ? 'यह मेरा cue है' : 'Use this word'}
       </button>
     </Screen>
   );
@@ -394,14 +394,14 @@ export default function MentalRepPage() {
       <p className="text-3xl font-black text-ink mb-8">"{cue}"</p>
       {/* Copy only: the cue is still saved by exactly the same call, but the
           Playbook page it used to name no longer exists. */}
-      <p className="text-sm text-slt mb-6 max-w-xs">{hi ? 'इस cue को save करें?' : 'Save this cue?'}</p>
+      <p className="text-sm text-slt mb-6 max-w-xs">{hi ? 'इस cue को save करें?' : 'Save this word?'}</p>
       <button
         onClick={() => finishRep(true)}
         disabled={saving}
         className="w-full max-w-xs text-base mb-3 disabled:opacity-60 min-h-[52px] rounded-[18px] bg-brand-500 text-white font-extrabold active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
         style={{ minHeight: '56px' }}
       >
-        {hi ? 'Cue save करो' : 'Save cue'}
+        {hi ? 'Cue save करो' : 'Save word'}
       </button>
       <button
         onClick={() => finishRep(false)}
@@ -417,8 +417,8 @@ export default function MentalRepPage() {
   if (step === 'done') return (
     <PracticeCompletion tone="sun" scene="stadium-dusk">
       <CompletionMascot pose="cheer" />
-      <h1 className="text-[28px] font-extrabold text-white mb-6">{hi ? 'रेप पूरा।' : 'Rep complete.'}</h1>
-      <p className="text-xs font-bold text-white/75 uppercase tracking-widest mb-2">{hi ? 'आज का cue' : "Today's cue"}</p>
+      <h1 className="text-[28px] font-extrabold text-white mb-6">{hi ? 'रेप पूरा।' : 'Practice done.'}</h1>
+      <p className="text-xs font-bold text-white/75 uppercase tracking-widest mb-2">{hi ? 'आज का cue' : 'Your word for today'}</p>
       <p className="text-3xl font-black text-sun mb-6">"{cue}"</p>
       {/* Hook fix 3: when will you say it? — an if–then plan */}
       <div className="mb-6 w-full max-w-xs"><PlayPlanCard tool="rep" cue={cue} variant="dark" /></div>

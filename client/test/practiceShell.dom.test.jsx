@@ -61,11 +61,11 @@ describe('Quick Rep — shared practice shell (Stage 6)', () => {
 
     const toggle = screen.getByRole('button', { name: /Why this works/i });
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
-    expect(screen.queryByText(/process focus/i)).toBeNull();
+    expect(screen.queryByText(/keeps your mind on what you can control/i)).toBeNull();
 
     await user.click(toggle);
     expect(toggle.getAttribute('aria-expanded')).toBe('true');
-    expect(screen.getByText(/process focus/i)).toBeTruthy();
+    expect(screen.getByText(/keeps your mind on what you can control/i)).toBeTruthy();
   });
 
   test('Start advances from intro into the existing context question', async () => {
@@ -112,9 +112,9 @@ describe('Quick Rep — shared practice shell (Stage 6)', () => {
     // 'ready' state's rep step is a single chip choice.
     await user.click(await screen.findByText('Strong start'));
     await user.click(await screen.findByText(/^"Strong start"$/));
-    await user.click(await screen.findByRole('button', { name: /Save cue/i }));
+    await user.click(await screen.findByRole('button', { name: /Save word/i }));
 
-    expect(await screen.findByText('Rep complete.')).toBeTruthy();
+    expect(await screen.findByText('Practice done.')).toBeTruthy();
     expect(apiFetch).toHaveBeenCalledWith('/api/mental-rep/complete', expect.objectContaining({ method: 'POST' }));
   });
 

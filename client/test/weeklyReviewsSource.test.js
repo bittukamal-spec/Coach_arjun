@@ -108,7 +108,7 @@ test('translations: weeklyReviews namespace exists in English and Hindi with the
     }
     assert.ok(block.includes('weeklyReviewsLabel:'), 'chat header label missing in a language');
   }
-  assert.ok(enBlock.includes('Arjun looks back on each coaching week.'));
+  assert.ok(enBlock.includes('Each week, Arjun sums up what happened and what helped.'));
   assert.ok(enBlock.includes('No weekly reviews yet.'));
-  assert.ok(enBlock.includes('Your first review will appear after a completed coaching week.'));
+  assert.ok(enBlock.includes('Your first review shows up after your first week of talking to Arjun.'));
 });

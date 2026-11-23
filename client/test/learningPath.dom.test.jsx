@@ -35,7 +35,7 @@ describe('Profile path section', () => {
     expect(screen.getByText('It helped')).toBeTruthy();
     expect(screen.getByTestId('path-current').getAttribute('href')).toBe('/path/focus');
     const next = screen.getByTestId('path-next');
-    expect(next.textContent).toMatch(/use it in a match or training/);
+    expect(next.textContent).toMatch(/use it in a match or at training/);
     expect(next.getAttribute('href')).toBe('/path/focus');
   });
 

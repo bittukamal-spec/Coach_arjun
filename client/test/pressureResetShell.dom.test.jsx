@@ -65,11 +65,11 @@ describe('Pressure Reset — shared practice shell (Stage 7)', () => {
 
     const toggle = screen.getByRole('button', { name: /Why this works/i });
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
-    expect(screen.queryByText(/reset switch/i)).toBeNull();
+    expect(screen.queryByText(/tells your body it is safe/i)).toBeNull();
 
     await user.click(toggle);
     expect(toggle.getAttribute('aria-expanded')).toBe('true');
-    expect(screen.getByText(/reset switch/i)).toBeTruthy();
+    expect(screen.getByText(/tells your body it is safe/i)).toBeTruthy();
   });
 
   test('Start advances from intro into the existing feeling question', async () => {
@@ -177,7 +177,7 @@ describe('Pressure Reset — shared practice shell (Stage 7)', () => {
 
     await user.click(await screen.findByRole('button', { name: /Skip for now/i }));
 
-    expect(await screen.findByText('Inhale')).toBeTruthy();
+    expect(await screen.findByText('Breathe in')).toBeTruthy();
     expect(screen.getAllByText('Pressure Reset').length).toBeGreaterThan(0);
   });
 

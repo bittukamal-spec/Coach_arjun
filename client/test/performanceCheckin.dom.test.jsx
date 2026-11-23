@@ -129,7 +129,7 @@ afterEach(() => cleanup());
 describe('the retired full check-in', () => {
   test('the bare check-in URL lands on the Performance Profile instead of a 5–7 minute flow', async () => {
     renderAt('/starting-profile/check-in');
-    expect(await screen.findByRole('heading', { name: 'Your Performance Profile' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Your profile' })).toBeTruthy();
     expect(screen.queryByText(/Takes about 5–7 minutes/)).toBeNull();
     expect(screen.queryByRole('button', { name: 'Start check-in' })).toBeNull();
   });
@@ -202,7 +202,7 @@ describe('a scoped edit saves straight from its last question', () => {
     await user.click(screen.getByRole('button', { name: 'Save changes' }));
     expect(screen.queryByRole('heading', { name: 'Review your changes' })).toBeNull();
     expect(screen.queryByText('Unchanged')).toBeNull();
-    expect(await screen.findByRole('heading', { name: 'Your Performance Profile' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Your profile' })).toBeTruthy();
   });
 
   test('strengths: Save changes PATCHes only the strengths answer, then returns to the profile', async () => {
@@ -217,7 +217,7 @@ describe('a scoped edit saves straight from its last question', () => {
     // Unrelated sections are untouched, both in the request and in the store.
     expect(server.state.profile.checkin.answers.supports.answerIds).toEqual(['clear_preparation']);
     expect(server.state.profile.checkin.answers.mistakes_next.answerIds).toEqual(['hesitate']);
-    expect(await screen.findByRole('heading', { name: 'Your Performance Profile' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Your profile' })).toBeTruthy();
   });
 
   test('helps: Save changes PATCHes only the supports answer', async () => {
@@ -310,7 +310,7 @@ describe('drafts and navigation', () => {
     renderAt('/starting-profile/check-in?section=strengths');
     await screen.findByRole('checkbox', { name: /Hard-working/i });
     await user.click(screen.getAllByRole('button')[0]); // the back chevron button
-    expect(await screen.findByRole('heading', { name: 'Your Performance Profile' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Your profile' })).toBeTruthy();
   });
 });
 

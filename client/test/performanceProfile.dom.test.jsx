@@ -171,7 +171,7 @@ afterEach(() => cleanup());
 
 test('the saved profile renders the modernized compact visual structure (approved mockup)', async () => {
   renderPage();
-  expect(await screen.findByRole('heading', { level: 1, name: 'Your Performance Profile' })).toBeTruthy();
+  expect(await screen.findByRole('heading', { level: 1, name: 'Your profile' })).toBeTruthy();
   expect(screen.getByText('Current Focus')).toBeTruthy();
   expect(screen.getByText('Bounce back after mistakes')).toBeTruthy();
   expect(screen.getByText('My Game')).toBeTruthy();
@@ -195,14 +195,14 @@ test('the saved profile renders the modernized compact visual structure (approve
 
 test('the five sections are exactly Current Focus, My Game, When Pressure Hits, What Helps Me, My Strengths', async () => {
   renderPage();
-  await screen.findByRole('heading', { level: 1, name: 'Your Performance Profile' });
+  await screen.findByRole('heading', { level: 1, name: 'Your profile' });
   const headings = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent.trim());
   expect(headings).toEqual(['Current Focus', 'My Game', 'When Pressure Hits', 'What Helps Me', 'My Strengths']);
 });
 
 test('there is no subtitle under "Your Performance Profile"', async () => {
   renderPage();
-  await screen.findByRole('heading', { level: 1, name: 'Your Performance Profile' });
+  await screen.findByRole('heading', { level: 1, name: 'Your profile' });
   expect(screen.queryByText(/starting point, not a verdict/i)).toBeNull();
   expect(screen.queryByText(/This is what Arjun picked up/i)).toBeNull();
 });
@@ -592,7 +592,7 @@ test('an athlete with no goals still gets the goals block and the way to set the
 
 test('nothing on the saved profile starts a full-profile refresh', async () => {
   renderPage();
-  await screen.findByRole('heading', { level: 1, name: 'Your Performance Profile' });
+  await screen.findByRole('heading', { level: 1, name: 'Your profile' });
   // Every edit entry point is section-scoped.
   const scoped = ['?section=pressure', '?section=helps', '?section=strengths', '?section=goals'];
   const pageSrc = srcOf('pages/StartingProfilePage.jsx');
@@ -602,7 +602,7 @@ test('nothing on the saved profile starts a full-profile refresh', async () => {
 
 test('saved mode has no onboarding-completion language', async () => {
   renderPage();
-  await screen.findByRole('heading', { level: 1, name: 'Your Performance Profile' });
+  await screen.findByRole('heading', { level: 1, name: 'Your profile' });
   for (const label of ['Looks right', 'Change something', 'Got it', 'Start with Arjun', 'Not now']) {
     expect(screen.queryByText(label)).toBeNull();
   }
@@ -867,14 +867,14 @@ test('the saved-profile Current Focus still updates successfully after the metad
 
 test('a direct visit with no navigation state still lands in saved mode from stored data', async () => {
   renderPage({ entryMode: null });
-  expect(await screen.findByRole('heading', { level: 1, name: 'Your Performance Profile' })).toBeTruthy();
+  expect(await screen.findByRole('heading', { level: 1, name: 'Your profile' })).toBeTruthy();
   expect(screen.queryByRole('button', { name: 'Looks right' })).toBeNull();
 });
 
 test('consent-pending: the full profile is readable, resend works, and there is no route into coaching', async () => {
   const s = makeServer({ consent: { pending: true, guardianEmailMasked: 'p•••••@example.com' } });
   renderPage({ server: s });
-  await screen.findByRole('heading', { level: 1, name: 'Your Performance Profile' });
+  await screen.findByRole('heading', { level: 1, name: 'Your profile' });
   expect(screen.getByText('When Pressure Hits')).toBeTruthy();
   expect(screen.getByText('Waiting for parent/guardian consent')).toBeTruthy();
   expect(screen.getByText(/p•••••@example\.com/)).toBeTruthy();
@@ -1033,19 +1033,19 @@ const navBar = () => screen.queryByRole('navigation');
 
 test('the saved profile mounts the app navigation, exactly once', async () => {
   renderPage();
-  await screen.findByRole('heading', { level: 1, name: 'Your Performance Profile' });
+  await screen.findByRole('heading', { level: 1, name: 'Your profile' });
   expect(screen.getAllByRole('navigation')).toHaveLength(1);
 });
 
 test('no tab is active on /starting-profile — Profile opens from the account menu', async () => {
   renderPage();
-  await screen.findByRole('heading', { level: 1, name: 'Your Performance Profile' });
+  await screen.findByRole('heading', { level: 1, name: 'Your profile' });
   expect(within(navBar()).queryByRole('link', { current: 'page' })).toBeNull();
 });
 
 test('the navigation keeps its four destinations, and Settings is not one of them', async () => {
   renderPage();
-  await screen.findByRole('heading', { level: 1, name: 'Your Performance Profile' });
+  await screen.findByRole('heading', { level: 1, name: 'Your profile' });
   const hrefs = within(navBar()).getAllByRole('link').map((a) => a.getAttribute('href'));
   expect(hrefs).toEqual(['/dashboard', '/train', '/coaching', '/tools']);
   // Account/Settings stays in the avatar menu, never promoted into the bar.
@@ -1104,7 +1104,7 @@ test('the Got-it transition renders no navigation, and keeps its actions distinc
 test('the saved profile carries no Continue coaching action at all — Coach stays reachable via the bottom nav', async () => {
   const s = makeServer();
   renderPage({ server: s });
-  await screen.findByRole('heading', { level: 1, name: 'Your Performance Profile' });
+  await screen.findByRole('heading', { level: 1, name: 'Your profile' });
   expect(screen.queryByRole('button', { name: /Continue coaching/ })).toBeNull();
   expect(screen.getByRole('link', { name: /^Arjun$/ })).toBeTruthy();
 });
@@ -1112,7 +1112,7 @@ test('the saved profile carries no Continue coaching action at all — Coach sta
 test('merely loading the saved profile never starts a conversation', async () => {
   const s = makeServer();
   renderPage({ server: s });
-  await screen.findByRole('heading', { level: 1, name: 'Your Performance Profile' });
+  await screen.findByRole('heading', { level: 1, name: 'Your profile' });
   expect(s.state.calls.some((c) => c.includes('start-chat'))).toBe(false);
 });
 

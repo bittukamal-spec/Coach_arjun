@@ -21,7 +21,7 @@ describe('PlayPlanCard', () => {
   test('Quick Rep: sport-aware moments, plan preview, one tap saves the plan', async () => {
     apiFetch.mockResolvedValue(respond({ match: { nextDay: null }, plan: { tool: 'rep', moment: 'before_each', cue: 'Next ball' } }));
     render(<PlayPlanCard tool="rep" cue="Next ball" />);
-    expect(screen.getByText('When will you say it?')).toBeTruthy();
+    expect(screen.getByText('When will you say your word?')).toBeTruthy();
     fireEvent.click(screen.getByRole('radio', { name: 'Before each ball' }));
     expect(screen.getByText('Before each ball → say “Next ball”.')).toBeTruthy();
     fireEvent.click(screen.getByTestId('plan-save'));
@@ -34,7 +34,7 @@ describe('PlayPlanCard', () => {
 
   test('Pressure Reset sends no cue; Not now hides the card and saves nothing', () => {
     render(<PlayPlanCard tool="reset" />);
-    expect(screen.getByText('Before I start → 3 slow breaths, long out-breath.')).toBeTruthy();
+    expect(screen.getByText('Before I start → 3 slow breaths, long breath out.')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Not now' }));
     expect(screen.queryByTestId('play-plan')).toBeNull();
     expect(apiFetch).not.toHaveBeenCalled();

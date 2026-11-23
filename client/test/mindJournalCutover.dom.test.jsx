@@ -72,7 +72,7 @@ async function answerAndAdvance() {
     await userEvent.click(chips[0]);
   }
   const btn = screen.queryByRole('button', { name: 'Next' })
-    || screen.queryByRole('button', { name: 'Save reflection' });
+    || screen.queryByRole('button', { name: 'Save' });
   if (btn) await userEvent.click(btn);
 }
 
@@ -80,7 +80,7 @@ async function completeReflection() {
   for (let i = 0; i < 7; i++) {
     if (screen.queryByTestId('pathname')?.textContent !== '/mind-journal/new') break;
     if (!screen.queryByRole('button', { name: 'Next' })
-      && !screen.queryByRole('button', { name: 'Save reflection' })) break;
+      && !screen.queryByRole('button', { name: 'Save' })) break;
     await answerAndAdvance();
   }
 }
