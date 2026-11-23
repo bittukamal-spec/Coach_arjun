@@ -80,7 +80,7 @@ describe('CurrentPracticeCard', () => {
   test('a practice with no in-app flow offers only "Tell Arjun how it went"', async () => {
     respondWith({ ...BASE, practiceKey: 'acclimatization_homework' });
     render(<App />);
-    await screen.findByText('Pressure practice in training');
+    await screen.findByText('Practising pressure in training');
     expect(screen.queryByRole('button', { name: 'Start practice' })).toBeNull();
     await userEvent.click(screen.getByRole('link', { name: 'Tell Arjun how it went' }));
     expect(screen.getByTestId('probe').textContent).toBe('/coaching|null');

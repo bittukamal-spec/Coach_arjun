@@ -131,8 +131,8 @@ describe('Quick note', () => {
     renderFlow('/mind-journal/quick');
 
     await clickByName('Something else');
-    expect(await screen.findByLabelText('Write your own state')).toBeTruthy();
-    await userEvent.type(screen.getByLabelText('Write your own state'), 'Match-day wired');
+    expect(await screen.findByLabelText('Write your own feeling')).toBeTruthy();
+    await userEvent.type(screen.getByLabelText('Write your own feeling'), 'Match-day wired');
     await clickByName('Save note');
     expect(postedEntry()).toEqual({
       entryType: 'QUICK_NOTE',
@@ -151,7 +151,7 @@ describe('Quick note', () => {
     renderFlow('/mind-journal/quick');
     await clickByName('Calm');
     await clickByName('Something else');
-    await userEvent.type(screen.getByLabelText('Write your own state'), 'wired');
+    await userEvent.type(screen.getByLabelText('Write your own feeling'), 'wired');
     await clickByName('Focused');
     expect((await screen.findByRole('button', { name: 'Focused' })).getAttribute('aria-pressed')).toBe('false');
     await clickByName('Save note');
@@ -169,10 +169,10 @@ describe('Quick note', () => {
     });
     renderFlow('/mind-journal/quick');
     await clickByName('Something else');
-    await userEvent.type(screen.getByLabelText('Write your own state'), 'still here');
+    await userEvent.type(screen.getByLabelText('Write your own feeling'), 'still here');
     await clickByName('Save note');
     expect(await screen.findByText(/server_error|Something went wrong/)).toBeTruthy();
-    expect(screen.getByLabelText('Write your own state').value).toBe('still here');
+    expect(screen.getByLabelText('Write your own feeling').value).toBe('still here');
     expect(screen.getByTestId('pathname').textContent).toBe('/mind-journal/quick');
   });
 });
@@ -212,7 +212,7 @@ describe('Quick note back navigation', () => {
     renderFlow('/mind-journal/new');
     await clickRadio('A tough moment');
     await clickByName('Something else');
-    await userEvent.type(screen.getByLabelText('Write your own state'), 'heavy legs');
+    await userEvent.type(screen.getByLabelText('Write your own feeling'), 'heavy legs');
     await clickByName('Continue');
     await screen.findByLabelText('What happened?');
     expect(screen.getByTestId('mj-custom-state-pill').textContent).toBe('heavy legs');
@@ -220,7 +220,7 @@ describe('Quick note back navigation', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Back' }));
     expect((await screen.findByTestId('pathname')).textContent).toBe('/mind-journal/new');
     expect((await screen.findByRole('radio', { name: 'A tough moment' })).getAttribute('aria-pressed')).toBe('true');
-    expect(screen.getByLabelText('Write your own state').value).toBe('heavy legs');
+    expect(screen.getByLabelText('Write your own feeling').value).toBe('heavy legs');
   });
 });
 
@@ -241,7 +241,7 @@ describe('Guided reflection', () => {
 
     await userEvent.type(screen.getByLabelText('What happened?'), 'lost the first set');
     await userEvent.type(screen.getByLabelText('What do you want to try or repeat next time?'), 'breathe first');
-    await clickByName('Save reflection');
+    await clickByName('Save');
 
     const body = postedEntry();
     expect(body).toEqual({
@@ -266,7 +266,7 @@ describe('Guided reflection', () => {
     await clickRadio('Training');
     await clickByName('Continue');
     await userEvent.type(screen.getByLabelText('What happened?'), 'good session');
-    await clickByName('Save reflection');
+    await clickByName('Save');
 
     expect((await screen.findByTestId('pathname')).textContent).toBe('/mind-journal/saved/r9');
     expect(await screen.findByRole('heading', { level: 2, name: 'Reflection saved' })).toBeTruthy();
@@ -320,7 +320,7 @@ describe('Guided reflection', () => {
     expect(screen.getByLabelText('What was it about?').value).toBe('selection trial');
     await clickByName('Continue');
     await userEvent.type(screen.getByLabelText('What do you want to try or repeat next time?'), 'stay steady');
-    await clickByName('Save reflection');
+    await clickByName('Save');
 
     expect(postedEntry()).toEqual({
       entryType: 'GUIDED_REFLECTION',
@@ -345,7 +345,7 @@ describe('Guided reflection', () => {
     expect(screen.queryByTestId('mj-custom-context-field')).toBeNull();
     await clickByName('Continue');
     await userEvent.type(screen.getByLabelText('What happened?'), 'session');
-    await clickByName('Save reflection');
+    await clickByName('Save');
     expect(postedEntry()).toEqual({
       entryType: 'GUIDED_REFLECTION',
       contextType: 'TRAINING',
@@ -379,12 +379,12 @@ describe('Guided reflection', () => {
     renderFlow('/mind-journal/new');
     await clickRadio('Training');
     await clickByName('Something else');
-    await userEvent.type(screen.getByLabelText('Write your own state'), 'heavy legs');
+    await userEvent.type(screen.getByLabelText('Write your own feeling'), 'heavy legs');
     await clickByName('Continue');
 
     expect(screen.getByTestId('mj-custom-state-pill').textContent).toBe('heavy legs');
     await userEvent.type(screen.getByLabelText('What do you want to try or repeat next time?'), 'ease in');
-    await clickByName('Save reflection');
+    await clickByName('Save');
 
     expect(postedEntry()).toEqual({
       entryType: 'GUIDED_REFLECTION',
@@ -401,9 +401,9 @@ describe('Guided reflection', () => {
     await userEvent.type(screen.getByLabelText('What was it about?'), 'team meeting');
     await clickByName('Continue');
 
-    const save = await screen.findByRole('button', { name: 'Save reflection' });
+    const save = await screen.findByRole('button', { name: 'Save' });
     expect(save.disabled).toBe(true);
-    expect(screen.getByText('Add at least one state or one answer before saving.')).toBeTruthy();
+    expect(screen.getByText('Add at least one feeling or one answer before saving.')).toBeTruthy();
 
     await userEvent.type(screen.getByLabelText('What did you notice?'), 'tight shoulders');
     expect(save.disabled).toBe(false);
@@ -469,11 +469,11 @@ describe('Mind Journal home', () => {
   test('leads with the frozen hero copy and exactly one way in', async () => {
     renderFlow();
     const hero = await screen.findByTestId('mj-hero-new');
-    expect(within(hero).getByText('Reflect. Learn. Perform.')).toBeTruthy();
+    expect(within(hero).getByText('Look back. Learn. Play better.')).toBeTruthy();
     expect(within(hero).getByText('About 2–3 minutes · Mostly taps')).toBeTruthy();
-    expect(within(hero).getByText('Start a reflection')).toBeTruthy();
+    expect(within(hero).getByText('Start writing')).toBeTruthy();
     expect(hero.getAttribute('href')).toBe('/mind-journal/new');
-    expect(hero.getAttribute('aria-label')).toBe('Reflect. Learn. Perform.');
+    expect(hero.getAttribute('aria-label')).toBe('Look back. Learn. Play better.');
     // The superseded effort line and intro paragraph are gone.
     expect(screen.queryByText('About 3 minutes · 6 questions')).toBeNull();
     expect(screen.queryByText('Notice the moment. Carry something useful forward.')).toBeNull();

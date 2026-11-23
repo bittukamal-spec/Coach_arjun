@@ -239,11 +239,11 @@ test('translations.js: Hindi Mind Journal copy is genuine Devanagari, not Englis
 test('translations.js: the home intro uses the approved headline and score-free supporting line', () => {
   assert.equal(
     translations.en.mindJournal.introHeadline,
-    'Notice the moment. Carry something useful forward.'
+    'Write about your day. Keep what helps.'
   );
   assert.equal(
     translations.en.mindJournal.subtitle,
-    'A personal, score-free space for quick notes and guided reflections.'
+    'Your own place to write about training, matches and how you feel. No scores.'
   );
   assert.equal(
     translations.hi.mindJournal.introHeadline,
@@ -301,9 +301,9 @@ test('home: leads with the frozen hero copy and one way in', () => {
 });
 
 test('translations: the hero states the effort as time and taps, never a question count', () => {
-  assert.equal(translations.en.mindJournal.hero.heading, 'Reflect. Learn. Perform.');
+  assert.equal(translations.en.mindJournal.hero.heading, 'Look back. Learn. Play better.');
   assert.equal(translations.en.mindJournal.hero.effort, 'About 2–3 minutes · Mostly taps');
-  assert.equal(translations.en.mindJournal.hero.cta, 'Start a reflection');
+  assert.equal(translations.en.mindJournal.hero.cta, 'Start writing');
   for (const lang of ['en', 'hi']) {
     const effort = translations[lang].mindJournal.hero.effort;
     assert.doesNotMatch(effort, /\b6\b|question|सवाल|प्रश्न/i, `${lang} must not promise a question count`);

@@ -54,7 +54,7 @@ const postedBody = () => {
 const clickName = async (name) => userEvent.click(await screen.findByRole('button', { name }));
 const clickRadio = async (name) => userEvent.click(await screen.findByRole('radio', { name }));
 const next = () => clickName('Next');
-const save = () => clickName('Save reflection');
+const save = () => clickName('Save');
 
 // Answer whichever question is on screen with its first available option,
 // then advance. Chips-only throughout — this helper never types, which is
@@ -70,7 +70,7 @@ async function answerAndAdvance() {
       .filter((b) => !/Write my own/.test(b.textContent));
     await userEvent.click(chips[0]);
   }
-  const btn = screen.queryByRole('button', { name: 'Next' }) || screen.getByRole('button', { name: 'Save reflection' });
+  const btn = screen.queryByRole('button', { name: 'Next' }) || screen.getByRole('button', { name: 'Save' });
   await userEvent.click(btn);
 }
 
@@ -84,7 +84,7 @@ async function pickContext(label) {
 async function completeFrom(steps = 6) {
   for (let i = 0; i < steps; i++) {
     if (screen.queryByTestId('pathname')?.textContent !== '/mind-journal/new') break;
-    if (!screen.queryByRole('button', { name: 'Next' }) && !screen.queryByRole('button', { name: 'Save reflection' })) break;
+    if (!screen.queryByRole('button', { name: 'Next' }) && !screen.queryByRole('button', { name: 'Save' })) break;
     await answerAndAdvance();
   }
 }
@@ -121,7 +121,7 @@ describe('one question per screen', () => {
     await clickName('I knew what I wanted to do'); await next();
     expect(await screen.findByRole('heading', { level: 2, name: 'What did you do when this happened?' })).toBeTruthy();
     expect(screen.getByTestId('mj-step-progress').textContent).toMatch(/Step 5 of 5/);
-    expect(screen.getByRole('button', { name: 'Save reflection' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy();
   });
 
   test('there is no Skip — every structured question must be answered', async () => {
@@ -144,13 +144,13 @@ describe('one question per screen', () => {
       await pickContext('Training');
       while (document.querySelector('h2').textContent !== heading) await answerAndAdvance();
 
-      const btn = screen.queryByRole('button', { name: 'Next' }) || screen.getByRole('button', { name: 'Save reflection' });
+      const btn = screen.queryByRole('button', { name: 'Next' }) || screen.getByRole('button', { name: 'Save' });
       expect(btn.disabled).toBe(true);
       await userEvent.click(btn);
       expect(document.querySelector('h2').textContent).toBe(heading);
 
       await clickName(chip);
-      expect((screen.queryByRole('button', { name: 'Next' }) || screen.getByRole('button', { name: 'Save reflection' })).disabled).toBe(false);
+      expect((screen.queryByRole('button', { name: 'Next' }) || screen.getByRole('button', { name: 'Save' })).disabled).toBe(false);
     });
   }
 
@@ -245,7 +245,7 @@ describe('conditional Q6', () => {
     await clickName('Calm'); await next();
     await clickName('I knew what I wanted to do'); await next();
     expect(screen.getByTestId('mj-step-progress').textContent).toMatch(/Step 5 of 5/);
-    expect(screen.getByRole('button', { name: 'Save reflection' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeTruthy();
   });
 
   test('reporting nerves in training adds the body question', async () => {
@@ -265,9 +265,9 @@ describe('conditional Q6', () => {
     await pickContext('Match / competition');
     await completeFrom(4);
     expect(await screen.findByRole('heading', { level: 2, name: 'What did you notice in your body?' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Save reflection' }).disabled).toBe(true);
+    expect(screen.getByRole('button', { name: 'Save' }).disabled).toBe(true);
     await clickName('Tense');
-    expect(screen.getByRole('button', { name: 'Save reflection' }).disabled).toBe(false);
+    expect(screen.getByRole('button', { name: 'Save' }).disabled).toBe(false);
   });
 
   test('with no Focus Card, a competition reflection gets the body question, never the cue one', async () => {
@@ -354,7 +354,7 @@ describe('save', () => {
     await clickName('Calm'); await next();
     await clickName('I knew what I wanted to do'); await next();
     // On the last question with nothing selected — Save stays disabled.
-    expect(screen.getByRole('button', { name: 'Save reflection' }).disabled).toBe(true);
+    expect(screen.getByRole('button', { name: 'Save' }).disabled).toBe(true);
     await save();
     expect(apiFetch.mock.calls.filter(([p, i]) => p === '/api/mind-journal' && i?.method === 'POST')).toHaveLength(0);
   });
@@ -393,7 +393,7 @@ describe('nothing here asks the athlete to diagnose or fix themselves', () => {
     await pickContext('Match / competition');
     for (let i = 0; i < 5; i++) {
       seen.push(document.body.textContent);
-      if (!screen.queryByRole('button', { name: 'Next' }) && !screen.queryByRole('button', { name: 'Save reflection' })) break;
+      if (!screen.queryByRole('button', { name: 'Next' }) && !screen.queryByRole('button', { name: 'Save' })) break;
       await answerAndAdvance();
     }
     for (const text of seen) expect(text).not.toMatch(banned);

@@ -171,7 +171,7 @@ test('the saved view has its own heading and NO subtitle underneath it', () => {
   // The subtitle renders only in first-time mode.
   assert.match(page, /\{!savedMode && <p[^>]*>\{t\.summarySubtitle\}<\/p>\}/);
   const en = namespaceBlock('en');
-  assert.match(en, /savedTitleShort: 'Your Performance Profile'/);
+  assert.match(en, /savedTitleShort: 'Your profile'/);
   assert.match(en, /summaryTitle: 'Your starting profile'/);
 });
 

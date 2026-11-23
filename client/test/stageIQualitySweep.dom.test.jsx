@@ -72,7 +72,7 @@ describe('Performance Profile under React StrictMode', () => {
 
     // The real assertion: the profile renders. Before the fix this timed out on
     // the loading skeleton no matter how long it waited.
-    expect(await screen.findByRole('heading', { level: 1, name: 'Your Performance Profile' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Your profile' })).toBeTruthy();
     expect(screen.getByText('Bounce back after mistakes')).toBeTruthy();
     expect(screen.queryByText('Putting this together…')).toBeNull();
   });

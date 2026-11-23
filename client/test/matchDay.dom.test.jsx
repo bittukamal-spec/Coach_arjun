@@ -86,7 +86,7 @@ describe('next match on Home', () => {
     fireEvent.click(mixed);
     fireEvent.click(screen.getByRole('button', { name: 'It helped' }));
     await waitFor(() => expect(apiFetch).toHaveBeenCalledWith('/api/path/match/review', expect.objectContaining({ body: JSON.stringify({ feel: 'mixed', used: 'helped' }) })));
-    expect(await screen.findByText('✓ Bounce back · Use it in play — done.')).toBeTruthy();
+    expect(await screen.findByText('✓ Done — you used Bounce back in a match.')).toBeTruthy();
     expect(screen.getByText('Tell Arjun more').closest('a').getAttribute('href')).toBe('/coaching');
     expect(screen.getByRole('button', { name: 'Next match?' })).toBeTruthy();
   });
@@ -105,7 +105,7 @@ describe('path Reflect step (founder feedback: no "What are you reflecting on?")
         </Routes>
       </MemoryRouter>,
     );
-    expect(screen.getByText('How did your cue word go?')).toBeTruthy();
+    expect(screen.getByText('How did your focus word go?')).toBeTruthy();
     expect(screen.queryByText(/What are you reflecting on/)).toBeNull();
     expect(screen.getByTestId('reflect-save').disabled).toBe(true);
     fireEvent.click(screen.getByRole('radio', { name: 'Focused' }));

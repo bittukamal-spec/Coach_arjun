@@ -377,7 +377,7 @@ describe('Starting Performance Profile — first-time vs saved modes', () => {
     await screen.findByText(PATTERN_ANCHOR);
     expect(screen.getByRole('heading', { level: 1, name: 'Your starting profile' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Looks right' })).toBeTruthy();
-    expect(screen.queryByText('Your Performance Profile')).toBeNull();
+    expect(screen.queryByText('Your profile')).toBeNull();
   });
 
   test('confirming during the onboarding flow shows the one-time transition', async () => {
@@ -398,7 +398,7 @@ describe('Starting Performance Profile — first-time vs saved modes', () => {
     expect(screen.getByText('Got it')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Not now' })).toBeTruthy();
     // The heading has not switched to the saved view mid-transition.
-    expect(screen.queryByText('Your Performance Profile')).toBeNull();
+    expect(screen.queryByText('Your profile')).toBeNull();
   });
 
   test('a confirmed profile opened from Account shows the saved view, with no completion controls', async () => {
@@ -406,7 +406,7 @@ describe('Starting Performance Profile — first-time vs saved modes', () => {
     render(<App entry="/account" />);
     const user = userEvent.setup();
     await user.click(await screen.findByRole('link', { name: 'open profile' }));
-    await screen.findByText('Your Performance Profile');
+    await screen.findByText('Your profile');
     // The redesign deliberately has no subtitle under the saved-view heading.
     expect(screen.queryByText('Your starting profile based on what you shared during onboarding.')).toBeNull();
     expect(screen.queryByText(/starting point, not a verdict/i)).toBeNull();
@@ -416,7 +416,7 @@ describe('Starting Performance Profile — first-time vs saved modes', () => {
   test('the saved view shows the modernized visual sections, the current focus, the response and the date', async () => {
     wire(makeServer({ profile: CONFIRMED }));
     render(<App />);
-    await screen.findByText('Your Performance Profile');
+    await screen.findByText('Your profile');
     expect(screen.getByText('Current Focus')).toBeTruthy();
     expect(screen.getByText('My Game')).toBeTruthy();
     expect(screen.getByText('When Pressure Hits')).toBeTruthy();
@@ -446,7 +446,7 @@ describe('Starting Performance Profile — first-time vs saved modes', () => {
       cleanup();
       wire(makeServer({ profile: { ...CONFIRMED, fitResponse } }));
       render(<App />);
-      await screen.findByText('Your Performance Profile');
+      await screen.findByText('Your profile');
       expect(screen.queryByText('Corrected')).toBeNull();
       expect(screen.queryByText('Partly corrected')).toBeNull();
       expect(screen.queryByText(/Current response/i)).toBeNull();
@@ -459,26 +459,26 @@ describe('Starting Performance Profile — first-time vs saved modes', () => {
   test('direct navigation and a refresh both land on the saved view (no navigation state at all)', async () => {
     wire(makeServer({ profile: CONFIRMED }));
     const first = render(<App />);
-    await screen.findByText('Your Performance Profile');
+    await screen.findByText('Your profile');
     expectNoCompletionUi();
     // A refresh is a fresh mount with no in-memory state.
     first.unmount();
     render(<App />);
-    await screen.findByText('Your Performance Profile');
+    await screen.findByText('Your profile');
     expectNoCompletionUi();
   });
 
   test('the retired /mental-game-profile link opens the saved view', async () => {
     wire(makeServer({ profile: CONFIRMED }));
     render(<App entry="/mental-game-profile" />);
-    await screen.findByText('Your Performance Profile');
+    await screen.findByText('Your profile');
     expectNoCompletionUi();
   });
 
   test('the saved view is read-only — no fit controls, no correction field, no editing', async () => {
     wire(makeServer({ profile: CONFIRMED }));
     render(<App />);
-    await screen.findByText('Your Performance Profile');
+    await screen.findByText('Your profile');
     expect(screen.queryAllByRole('radio').length).toBe(0);
     expect(screen.queryByRole('textbox')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Looks right' })).toBeNull();
@@ -487,7 +487,7 @@ describe('Starting Performance Profile — first-time vs saved modes', () => {
   test('Modernization pass 2: the saved view has no Continue coaching action — Coach stays reachable via the bottom nav', async () => {
     wire(makeServer({ profile: CONFIRMED }));
     render(<App />);
-    await screen.findByText('Your Performance Profile');
+    await screen.findByText('Your profile');
     expect(screen.queryByRole('button', { name: 'Continue coaching' })).toBeNull();
     expect(screen.getByRole('link', { name: /^Arjun$/ })).toBeTruthy();
   });
@@ -498,7 +498,7 @@ describe('Starting Performance Profile — first-time vs saved modes', () => {
       consent: { pending: true, guardianEmailMasked: 'p•••••@example.com' },
     }));
     render(<App />);
-    await screen.findByText('Your Performance Profile');
+    await screen.findByText('Your profile');
     expect(screen.getByText(/Waiting for parent\/guardian consent/i)).toBeTruthy();
     expect(screen.getByText(/p•••••@example\.com/)).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Resend consent email' })).toBeTruthy();
@@ -520,14 +520,14 @@ describe('Starting Performance Profile — first-time vs saved modes', () => {
     wire(makeServer({ profile: CONFIRMED }));
     document.documentElement.setAttribute('data-theme', 'light');
     const light = render(<App />);
-    await screen.findByText('Your Performance Profile');
+    await screen.findByText('Your profile');
     const lightHtml = light.container.innerHTML;
     cleanup();
 
     wire(makeServer({ profile: CONFIRMED }));
     document.documentElement.setAttribute('data-theme', 'dark');
     const dark = render(<App />);
-    await screen.findByText('Your Performance Profile');
+    await screen.findByText('Your profile');
     expect(dark.container.innerHTML).toBe(lightHtml);
     document.documentElement.removeAttribute('data-theme');
   });
@@ -535,7 +535,7 @@ describe('Starting Performance Profile — first-time vs saved modes', () => {
   test('the saved view uses the shared mobile column, with no fixed-width or horizontally scrolling layout', async () => {
     wire(makeServer({ profile: CONFIRMED }));
     const { container } = render(<App />);
-    await screen.findByText('Your Performance Profile');
+    await screen.findByText('Your profile');
     const column = container.querySelector('.max-w-md');
     expect(column).toBeTruthy();
     expect(column.className).toContain('mx-auto');

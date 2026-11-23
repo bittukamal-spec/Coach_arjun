@@ -182,7 +182,7 @@ describe('Weekly Reviews page', () => {
     renderPage();
 
     expect(await screen.findByText('No weekly reviews yet.')).toBeTruthy();
-    expect(screen.getByText('Your first review will appear after a completed coaching week.')).toBeTruthy();
+    expect(screen.getByText('Your first review shows up after your first week of talking to Arjun.')).toBeTruthy();
   });
 
   test('back control returns to Coach', async () => {
