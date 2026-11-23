@@ -120,9 +120,13 @@ export default function MindChallengePage() {
         <Teer pose="point" height={180} motion="float" eager className="mt-4" />
         <h1 className="mt-3 text-[30px] font-extrabold leading-tight">{rematch ? t.homeCard.rematchTitle(state.latest.mindLevel) : t.introTitle}</h1>
         <p className="mt-2 text-[15px] leading-relaxed text-white/80">{t.introLine}</p>
-        <ul className="mt-5 grid w-full grid-cols-3 gap-2" aria-hidden="true">
-          {SKILLS.map(s => <li key={s} className={`rounded-[14px] px-1.5 py-2.5 text-[13px] font-bold text-inkblock ${SKILL_BAR[s]}`}>{t.skills[s]}</li>)}
-        </ul>
+        {/* Plain "why" for someone new to mental training (founder, Nov 2026) */}
+        <div className="mt-5 w-full rounded-[20px] bg-white/[0.07] p-4 text-left">
+          <p className="text-[14px] font-extrabold text-sun">{t.introWhyTitle}</p>
+          <ul className="mt-2 flex flex-col gap-1.5">
+            {t.introWhy.map(w => <li key={w} className="flex gap-2 text-[14px] leading-snug text-white/90"><span className="text-sun" aria-hidden="true">✓</span>{w}</li>)}
+          </ul>
+        </div>
         <p className="mt-4 flex flex-wrap justify-center gap-x-4 gap-y-1 text-[13px] text-white/75">{t.introFacts.map(f => <span key={f}>{f}</span>)}</p>
         <div className="flex-1" />
         <button type="button" onClick={() => setPhase('play')} className="mt-6 min-h-[58px] w-full rounded-[18px] bg-sun text-[17px] font-extrabold text-inkblock focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">{t.start}</button>
@@ -159,10 +163,11 @@ export default function MindChallengePage() {
       return shell(
         <div className="flex flex-1 flex-col items-center text-center">
           {progress}
-          <p className="mt-8 text-[13px] font-bold uppercase tracking-[0.12em] text-[#9DB4FF]">{t.skillRevealed}</p>
-          <div data-testid="skill-reveal" className={`mt-4 w-[230px] rounded-[26px] p-5 text-inkblock ${SKILL_BAR[step.skill]} shadow-[0_0_0_6px_rgba(255,255,255,0.12),0_24px_50px_rgba(0,0,0,0.4)] motion-safe:animate-fade-in`}>
+          <p className="mt-8 text-[13px] font-bold uppercase tracking-[0.12em] text-[#9DB4FF]">{t.revealLabel}</p>
+          <div data-testid="skill-reveal" className={`mt-4 w-[260px] rounded-[26px] p-5 text-inkblock ${SKILL_BAR[step.skill]} shadow-[0_0_0_6px_rgba(255,255,255,0.12),0_24px_50px_rgba(0,0,0,0.4)] motion-safe:animate-fade-in`}>
             <p className="text-[24px] font-extrabold uppercase">{t.skills[step.skill]}</p>
-            <p className="text-[44px] font-extrabold leading-none">{t.levelShort(lv)}</p>
+            <p className="text-[13px] font-semibold">{t.skillMeaning[step.skill]}</p>
+            <p className="mt-2 whitespace-nowrap text-[28px] font-extrabold leading-none">{t.levelOf(lv)}</p>
             <p className="mt-2 text-[14px] font-semibold">{t.levelLines[lv]}</p>
           </div>
           <Teer pose="cheer" height={130} motion="hop" eager className="mt-5" />
@@ -177,8 +182,8 @@ export default function MindChallengePage() {
         {progress}
         <div className="mt-6 flex items-end gap-3 rounded-[26px] bg-white/[0.07] p-4">
           <div className="flex-1">
-            <p className="text-[12px] font-bold uppercase tracking-[0.1em] text-[#9DB4FF]">{t.matchMoment} · {t.skills[step.skill]}</p>
-            <p className="mt-2 text-[19px] font-bold leading-snug">{step.q.q}</p>
+            <p className="text-[19px] font-bold leading-snug">{step.q.q}</p>
+            <p className="mt-2 text-[13px] text-white/70">{t.questionHelp}</p>
           </div>
           <Teer pose="think" height={96} />
         </div>
