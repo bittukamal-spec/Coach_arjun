@@ -8,6 +8,7 @@ import MascotArt from '../components/visuals/MascotArt';
 import { pathText } from '../components/path/pathData';
 import { SafetyGuidanceCard, useMindJournalSave } from './mindJournal/shared';
 import { MAX_NOTE_LENGTH, textOrUndefined } from './mindJournal/constants';
+import { sportBlock } from '../i18n/sportExamples';
 
 // The path's Reflect step (founder feedback, Nov 2026): one screen that
 // already knows the chapter — no "What are you reflecting on?" picker.
@@ -18,7 +19,7 @@ const FEELINGS = ['calm', 'focused', 'confident', 'motivated', 'nervous', 'frust
 
 export default function PathReflectPage() {
   const { chapterKey } = useParams();
-  const { language } = useAuth();
+  const { language, user } = useAuth();
   const navigate = useNavigate();
   const t = pathText(language);
   const r = t.reflect;
@@ -64,7 +65,7 @@ export default function PathReflectPage() {
             <label htmlFor="reflect-note" className="mt-5 mb-2 block text-[15px] font-extrabold text-ink">{r.noteQ}</label>
             <textarea id="reflect-note" rows={3} maxLength={MAX_NOTE_LENGTH} value={note}
               onChange={e => setNote(e.target.value.slice(0, MAX_NOTE_LENGTH))}
-              placeholder={r.notePlaceholder}
+              placeholder={`e.g. I said “${sportBlock(user?.sport).resetWord}” and felt calmer`}
               className="input-field w-full resize-none border-0 bg-dark-400" />
 
             {saveError && <p className="mt-3 text-[13px] text-red-500" role="alert">{saveError}</p>}

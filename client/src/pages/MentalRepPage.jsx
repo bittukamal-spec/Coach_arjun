@@ -10,6 +10,7 @@ import { apiFetch } from '../api';
 import { PracticeIntro, PracticeScreen, PracticeCompletion, CompletionMascot } from '../components/practice/PracticeShell';
 import { practiceHome } from '../utils/practiceReturn';
 import PlayPlanCard from '../components/path/PlayPlanCard';
+import { toolExamples } from '../i18n/sportExamples';
 
 // ─── Quick Rep (Daily Mental Rep) — the core Healthy Hook habit ────────────
 // Flow: intro → context → state → moment → short guided rep → one cue →
@@ -230,7 +231,7 @@ export default function MentalRepPage() {
   // ── STEP: Intro ────────────────────────────────────────────────────────────
   if (step === 'intro') return (
     <PracticeIntro
-      example={translations.en.examples.warmUp}
+      example={toolExamples(user?.sport).warmUp}
       onBack={goBack}
       headerTitle={headerTitle}
       icon={Zap}

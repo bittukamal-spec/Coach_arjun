@@ -14,6 +14,7 @@ import { SafetyGuidanceCard } from './mindJournal/shared';
 import TonePage from '../components/ui/TonePage';
 import RoutineRun from '../components/ritual/RoutineRun';
 import { practiceHome } from '../utils/practiceReturn';
+import { toolExamples, sportBlock } from '../i18n/sportExamples';
 
 // ─── Ritual rebuild (PR 3) — the athlete's saved routines. /ritual now reads
 // and writes /api/routines (up to 5 routines) instead of the legacy single
@@ -112,6 +113,8 @@ function routineTitle(routine, t) {
 // ── Builder (create + edit) ───────────────────────────────────────────────────
 
 function Builder({ initial, onSubmit, onSuggest, onCancel, t }) {
+  const { user } = useAuth();
+  const sportPlaceholder = sportBlock(user?.sport).routine.title;
   const [name, setName] = useState(initial?.name || '');
   const [category, setCategory] = useState(initial?.category || null);
   const [steps, setSteps] = useState(() => (
@@ -214,7 +217,7 @@ function Builder({ initial, onSubmit, onSuggest, onCancel, t }) {
           id={`${ids}-name`}
           value={name}
           onChange={e => setName(e.target.value)}
-          placeholder={t.namePlaceholder}
+          placeholder={sportPlaceholder ? `e.g. ${sportPlaceholder}` : t.namePlaceholder}
           maxLength={NAME_MAX}
           className={inputClass}
         />
@@ -538,7 +541,7 @@ function DeleteConfirm({ t, deleting, error, onCancel, onConfirm }) {
 // ── Main component ────────────────────────────────────────────────────────────
 
 function RitualPage() {
-  const { token, language } = useAuth();
+  const { token, language, user } = useAuth();
   const t = translations[language].ritual;
 
   // view.name: loading | error | list | detail | build
@@ -829,7 +832,7 @@ function RitualPage() {
             <h2 className="text-heading font-bold text-ink mb-1">{t.emptyTitle}</h2>
             <p className="text-body text-slt">{t.emptySub}</p>
           </div>
-          <ExampleCard example={translations.en.examples.routine} className="mb-6" />
+          <ExampleCard example={toolExamples(user?.sport).routine} className="mb-6" />
           </>
         ) : (
           <>

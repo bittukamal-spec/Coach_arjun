@@ -9,6 +9,7 @@ import { translations } from '../i18n/translations';
 import { apiFetch } from '../api';
 import { Card, PageHeader, SectionLabel, SaveStatus } from '../components/ui';
 import AiAccessPopover from '../components/mindJournal/AiAccessPopover';
+import { toolExamples } from '../i18n/sportExamples';
 import {
   guidedPreview,
   mindJournalOriginState,
@@ -124,7 +125,7 @@ export default function MindJournalPage() {
   useToneStatusBar('blush');
   const navigate = useNavigate();
   const location = useLocation();
-  const { token, language } = useAuth();
+  const { token, language, user } = useAuth();
   const t = translations[language];
   const mj = t.mindJournal;
 
@@ -203,7 +204,7 @@ export default function MindJournalPage() {
         </Link>
 
         {Array.isArray(entries) && entries.length === 0 && (
-          <ExampleCard example={translations.en.examples.journal} className="mt-6" />
+          <ExampleCard example={toolExamples(user?.sport).journal} className="mt-6" />
         )}
 
         {/* ── Recent entries ───────────────────────────────────────────────

@@ -11,6 +11,7 @@ import HelplineList from '../components/HelplineList';
 import { PracticeHeader, PracticeIntro } from '../components/practice/PracticeShell';
 import { FocusArt } from '../components/visuals/TrainArt';
 import { practiceHome } from '../utils/practiceReturn';
+import { toolExamples } from '../i18n/sportExamples';
 
 export default function SelfTalkPage() {
   const { user, token, language } = useAuth();
@@ -149,7 +150,7 @@ export default function SelfTalkPage() {
   // ── SCREEN 1: Learn ──────────────────────────────────────────────────────
   if (screen === 1) return (
     <PracticeIntro
-      example={translations.en.examples.selfTalk}
+      example={toolExamples(user?.sport).selfTalk}
       onBack={goBack}
       tone="coral"
       Art={FocusArt}
