@@ -12,7 +12,9 @@ import HelplineList from '../components/HelplineList';
 import { PracticeIntro, PracticeScreen, PracticeCompletion, CompletionMascot } from '../components/practice/PracticeShell';
 import { practiceHome } from '../utils/practiceReturn';
 import PlayPlanCard from '../components/path/PlayPlanCard';
-import { toolExamples } from '../i18n/sportExamples';
+import { introExamples } from '../i18n/sportExamples';
+
+const TI = translations.en.toolIntro;
 
 const CRISIS_KEYWORDS = [
   'suicide', 'kill myself', 'end my life', 'self harm', 'hurt myself',
@@ -451,7 +453,10 @@ export default function BodyResetPage() {
   if (screen === 'intro') {
     return (
       <PracticeIntro
-        example={toolExamples(user?.sport).reset}
+        steps={TI.reset.steps}
+        exampleLine={introExamples(user?.sport).reset}
+        howLabel={TI.how}
+        exampleLabel={TI.example}
         onBack={goBack}
         headerTitle={headerTitle}
         icon={Wind}
@@ -461,18 +466,7 @@ export default function BodyResetPage() {
         scene="lake"
         tag={t.learn.duration}
         title={t.learn.title}
-        desc={t.learn.desc}
-        checklist={{
-          title: hi ? 'क्या उम्मीद करें' : 'What to expect',
-          items: [t.learn.benefit1, t.learn.benefit2, t.learn.benefit3],
-        }}
-        whyLabel={t.learn.whyLabel}
-        whyBody={
-          <>
-            <p className="font-semibold text-ink mb-2">{t.learn.educTitle}</p>
-            <p className="whitespace-pre-line">{t.learn.educBody}</p>
-          </>
-        }
+        desc={TI.reset.desc}
         onStart={() => setScreen('feeling')}
         startLabel={t.learn.startBtn}
         secondaryLabel={hi ? 'Reset history देखो →' : 'View history →'}

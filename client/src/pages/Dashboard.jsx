@@ -11,7 +11,6 @@ import { JournalArt } from '../components/visuals/HomeArt';
 import Teer from '../components/visuals/Teer';
 import PilotCommunicationPopup from '../components/pilotCommunications/PilotCommunicationPopup';
 import CurrentPracticeCard from '../components/home/CurrentPracticeCard';
-import { journalLines } from '../i18n/sportExamples';
 
 // Problem shortcuts — all four enter Coach with a visible, unsent prefill
 // instead of jumping straight to a tool. Stable internal starter values,
@@ -41,7 +40,6 @@ function partOfDay(hour) {
 
 export default function Dashboard() {
   const { user, language } = useAuth();
-  const journalEx = journalLines(user?.sport);
   const hi = language === 'hi';
 
   // ── derived ────────────────────────────────────────────────────────────────
@@ -125,18 +123,12 @@ export default function Dashboard() {
              /mind-journal route and nothing else. */}
         <Link
           to="/mind-journal"
-          className="mb-3 flex items-center gap-4 min-h-[108px] rounded-[28px] bg-blush text-inkblock px-5 py-4 active:scale-[0.99] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+          className="mb-3 flex items-center gap-3 min-h-[76px] rounded-[24px] bg-blush text-inkblock px-4 py-3 active:scale-[0.99] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
         >
-          <JournalArt size={64} />
+          <JournalArt size={44} />
           <span className="flex-1 min-w-0">
-            <span className="block text-[21px] leading-tight font-extrabold">{t.journalTitle}</span>
-            <span className="block mt-1 text-[14px] leading-snug text-[#4A1238]">{t.journalShort}</span>
-            {/* A different real-life example each day, so athletes see what to write */}
-            {journalEx.length > 0 && (
-              <span className="mt-1.5 block text-[13px] italic leading-snug text-[#4A1238]" data-testid="journal-example">
-                {t.journalExampleLabel} “{journalEx[Math.floor(Date.now() / 86400000) % journalEx.length]}”
-              </span>
-            )}
+            <span className="block text-[19px] leading-tight font-extrabold">{t.journalTitle}</span>
+            <span className="block mt-0.5 text-[14px] leading-snug text-[#4A1238]" data-testid="journal-benefit">{t.journalShort}</span>
           </span>
           <ChevronRight size={22} strokeWidth={2.6} aria-hidden="true" />
         </Link>

@@ -60,7 +60,7 @@ test('the hero is the app on a phone, rotating through three real screens', () =
 
 test('the final section shows a real app screenshot on a phone, not a stock photo', () => {
   assert.match(landing, /aria-label=\{t\.finalPhotoAlt\}/);
-  assert.match(landing, /<RealScreen \{\.\.\.SCREENS\.tools\} \/>/);
+  assert.match(landing, /<RealScreen \{\.\.\.SCREENS\.coach\} \/>/);
   assert.doesNotMatch(landing, /\/photos\//);
 });
 

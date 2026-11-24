@@ -134,12 +134,10 @@ export function toolExamples(sport) {
       ['What you do', 'Breathe in 4 seconds, out 6 seconds, for 3 minutes'],
       ['After', 'Body tension 3 out of 10'],
     ] },
-    routine: { label: 'Example routine', title: s.routine.title, rows: s.routine.steps.map((x, i) => [`Step ${i + 1}`, x]) },
-    journal: { label: 'Example entry', title: `${s.event[0].toUpperCase()}${s.event.slice(1)} day`, rows: [
-      ['How you felt', 'Nervous, then calm'],
+    routine: { label: 'Example routine', title: s.routine.title, flow: s.routine.steps },
+    journal: { label: 'Example entry', rows: [
       ['What happened', s.mistake],
       ['What helped', s.helped],
-      ['Next time', `Say “${s.resetWord}” straight away`],
     ] },
   };
 }
@@ -159,4 +157,15 @@ export function journalLines(sport) {
 // Things to say to Arjun in an empty chat: the sport ones first.
 export function chatExamples(sport) {
   return [...sportBlock(sport).chat, ...GENERAL_CHAT];
+}
+
+// One short example line for each tool's first screen (founder, Nov 2026:
+// keep intros short — one line, not a card).
+export function introExamples(sport) {
+  const s = sportBlock(sport);
+  return {
+    selfTalk: `${s.mistake}? Say “${s.resetWord}”.`,
+    warmUp: `${s.moment}: “${s.focusWord}”.`,
+    reset: 'Tight 7/10 → 3/10 in 3 minutes.',
+  };
 }

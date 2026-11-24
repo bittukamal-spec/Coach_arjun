@@ -120,7 +120,7 @@ describe('Chat header — Weekly Reviews entry', () => {
     );
     await screen.findByText('Hello athlete');
 
-    const box = screen.getByPlaceholderText("What's on your mind?");
+    const box = screen.getByPlaceholderText('Type a message…');
     await userEvent.setup().type(box, 'ready for the match');
     expect(box.value).toBe('ready for the match');
     expect(screen.getByRole('button', { name: 'Send' })).toBeTruthy();

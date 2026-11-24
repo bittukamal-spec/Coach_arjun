@@ -59,17 +59,12 @@ describe('Pressure Reset — shared practice shell (Stage 7)', () => {
     expect(screen.queryByText('How are you feeling in your body?')).toBeNull();
   });
 
-  test('the "why this works" disclosure is collapsed by default and expands on tap', async () => {
+  test('the intro stays short: 3 small steps and one example line, no long "why" text', () => {
     render(<TestApp />);
-    const user = userEvent.setup();
-
-    const toggle = screen.getByRole('button', { name: /Why this works/i });
-    expect(toggle.getAttribute('aria-expanded')).toBe('false');
-    expect(screen.queryByText(/tells your body it is safe/i)).toBeNull();
-
-    await user.click(toggle);
-    expect(toggle.getAttribute('aria-expanded')).toBe('true');
-    expect(screen.getByText(/tells your body it is safe/i)).toBeTruthy();
+    const steps = screen.getByTestId('intro-steps');
+    expect(steps.querySelectorAll('li').length).toBe(3);
+    expect(screen.getByTestId('intro-example')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Why this works/i })).toBeNull();
   });
 
   test('Start advances from intro into the existing feeling question', async () => {
@@ -194,6 +189,5 @@ describe('Pressure Reset — shared practice shell (Stage 7)', () => {
 
     expect(screen.getAllByText('Pressure Reset').length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: 'शुरू करो' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: /यह क्यों काम करता है/i })).toBeTruthy();
   });
 });

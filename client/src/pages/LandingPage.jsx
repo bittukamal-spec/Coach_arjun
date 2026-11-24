@@ -346,7 +346,7 @@ function LandingPage() {
         <section className="bg-sun pb-8 pt-10 text-inkblock">
           <div className="mx-auto flex max-w-3xl flex-col items-center gap-4 px-5 text-center lg:flex-row lg:text-left">
             <div role="img" aria-label={t.finalPhotoAlt} className="flex justify-center lg:shrink-0" data-testid="final-phone">
-              <PhoneFrame maxWidth={200} share={0.5}><RealScreen {...SCREENS.tools} /></PhoneFrame>
+              <PhoneFrame maxWidth={200} share={0.5}><RealScreen {...SCREENS.coach} /></PhoneFrame>
             </div>
             <div className="flex w-full flex-col gap-3 lg:pl-6">
               <h2 className="text-[26px] leading-tight font-extrabold">{t.finalTitle}</h2>
