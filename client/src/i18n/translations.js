@@ -107,7 +107,7 @@ export const translations = {
         ],
         routine: [
           { q: 'What do you do just before you start playing?', a: [['The same few things every time', 3], ['Sometimes the same things', 2], ['Nothing special — I just start', 1], ['I rush and don’t feel ready', 0]] },
-          { q: 'In the short break between balls or points, what do you do?', a: [['The same quick reset every time', 3], ['I take a breath, then go', 2], ['Something different each time', 1], ['I think about the score', 0]] },
+          { q: 'In the short breaks during play, what do you do?', a: [['The same quick reset every time', 3], ['I take a breath, then go', 2], ['Something different each time', 1], ['I think about the score', 0]] },
         ],
         bounce: [
           { q: 'You make a big mistake in a match. How long does it bother you?', a: [['A few seconds, then I move on', 3], ['About a minute', 2], ['Until the next break', 1], ['A long time — I stay upset', 0]] },
@@ -349,7 +349,7 @@ export const translations = {
             cards: [
               'After a mistake your mind keeps replaying it. That is normal — your brain is trying to protect you.',
               'But you can only play what is in front of you. Top players say one short word to themselves to come back to now.',
-              'Pick one word, like "Next ball" or "Watch it", and say it the same way every time.',
+              'Pick one word, like "{resetWord}" or "{focusWord}", and say it the same way every time.',
             ],
             takeaway: 'One short word brings you back to now.',
           },
@@ -363,7 +363,7 @@ export const translations = {
             cards: [
               'You talk to yourself all day. In tough moments that voice can get harsh.',
               'Talk to yourself like a good teammate would: short, calm and helpful.',
-              'Swap "Don\'t mess up" for "Stay strong, watch the ball". Say what to do, not what to avoid.',
+              'Swap "Don\'t mess up" for "{focusWord}". Say what to do, not what to avoid.',
             ],
             takeaway: 'Be your own best teammate.',
           },
@@ -375,7 +375,7 @@ export const translations = {
           lesson: {
             title: 'Why pros do the same thing every time',
             cards: [
-              'Top athletes do the same small things before every serve, ball or kick. That is a routine.',
+              'Top athletes do the same small things before every {unit}. That is a routine.',
               'A routine gives your mind a job, so there is less room for worry.',
               'Keep it short — 3 steps, like breathe, get set, say your word. Practise it in training first.',
             ],
@@ -1968,6 +1968,30 @@ export const translations = {
           training: { situation: 'You start a set badly.', unhelpful: '"This session is gone."', useful: '"Reset rhythm. Next rep."' },
           competition: { situation: 'Your start feels off.', unhelpful: '"I\'ve ruined this."', useful: '"Drive. Stay tall."' },
         },
+        wrestling: {
+          training: { situation: 'You get taken down in practice.', unhelpful: '"He is too strong for me."', useful: '"Low stance. Next grip."' },
+          competition: { situation: 'You give up an early point.', unhelpful: '"I\'ve already lost."', useful: '"Reset stance. Keep pushing."' },
+        },
+        boxing: {
+          training: { situation: 'You get caught on the pads drill.', unhelpful: '"I\'m too slow today."', useful: '"Hands up. Move."' },
+          competition: { situation: 'You take a clean punch in round one.', unhelpful: '"I\'m losing this."', useful: '"Breathe. Stick to the jab."' },
+        },
+        kabaddi: {
+          training: { situation: 'You get tackled in practice raids.', unhelpful: '"I can\'t get past them."', useful: '"Quick feet. Find the gap."' },
+          competition: { situation: 'You are caught on your first raid.', unhelpful: '"I let the team down."', useful: '"Next raid. Stay sharp."' },
+        },
+        tennis: {
+          training: { situation: 'You miss five forehands in a row.', unhelpful: '"My forehand is gone."', useful: '"Watch the ball. Swing free."' },
+          competition: { situation: 'You double fault on a big point.', unhelpful: '"I always choke."', useful: '"Next point. Slow down."' },
+        },
+        hockey: {
+          training: { situation: 'You miss traps in a drill.', unhelpful: '"I can\'t control anything today."', useful: '"Soft hands. Next ball."' },
+          competition: { situation: 'You miss a penalty corner.', unhelpful: '"I wasted our chance."', useful: '"Next play. Stick down."' },
+        },
+        swimming: {
+          training: { situation: 'Your times are slow in a set.', unhelpful: '"I\'m getting worse."', useful: '"Long and strong. Next rep."' },
+          competition: { situation: 'Your turn feels slow in a race.', unhelpful: '"My race is ruined."', useful: '"Next stroke. Finish strong."' },
+        },
         generic: {
           training: { situation: 'You make a mistake in training.', unhelpful: '"I always mess up."', useful: '"Next action."' },
           competition: { situation: 'You make a mistake in competition.', unhelpful: '"I\'ve ruined this."', useful: '"Next action. Stay in it."' },
@@ -1999,6 +2023,36 @@ export const translations = {
             { q: 'Your rhythm drops in a set. What helps most?', options: ['"This is gone."', '"Reset rhythm. Next rep."', '"Stop trying."'], correct: 1 },
             { q: 'What should focus words do?', options: ['Bring your mind back to one action.', 'Make you ignore your coach.', 'Guarantee a personal best.'], correct: 0 },
             { q: 'Your start feels off in a race. What should you do?', options: ['Judge yourself harder.', 'Stop trying.', 'Notice it and return to your focus words.'], correct: 2 },
+          ],
+          wrestling: [
+            { q: 'You get taken down in practice. Which words help you best?', options: ['"I can\'t beat anyone."', '"Low stance. Next grip."', '"Practice is ruined."'], correct: 1 },
+            { q: 'What should focus words do?', options: ['Bring your mind back to one action.', 'Make you ignore your coach.', 'Guarantee a medal.'], correct: 0 },
+            { q: 'You lose the first period. What should you do?', options: ['Judge yourself harder.', 'Stop trying.', 'Notice it and return to your focus words.'], correct: 2 },
+          ],
+          boxing: [
+            { q: 'You get hit in sparring. Which words help you best?', options: ['"I\'m useless today."', '"Hands up. Move."', '"Stop sparring."'], correct: 1 },
+            { q: 'What should focus words do?', options: ['Bring your mind back to one action.', 'Make you ignore your coach.', 'Guarantee a win.'], correct: 0 },
+            { q: 'Your mind stays on the punch you took. What should you do?', options: ['Judge yourself harder.', 'Stop trying.', 'Notice it and return to your focus words.'], correct: 2 },
+          ],
+          kabaddi: [
+            { q: 'You get tackled on a raid. Which words help you best?', options: ['"I\'ll never get through."', '"Next raid. Quick feet."', '"Let someone else raid."'], correct: 1 },
+            { q: 'What should focus words do?', options: ['Bring your mind back to one action.', 'Make you ignore your coach.', 'Guarantee a win.'], correct: 0 },
+            { q: 'Your mind drifts to a failed raid mid-match. What should you do?', options: ['Judge yourself harder.', 'Stop trying.', 'Notice it and return to your focus words.'], correct: 2 },
+          ],
+          tennis: [
+            { q: 'You lose a long rally on a big point. Which words help most?', options: ['"I always lose these."', '"Next point. Watch the ball."', '"This match is over."'], correct: 1 },
+            { q: 'What should focus words do?', options: ['Bring your mind back to one action.', 'Make you ignore your coach.', 'Guarantee a win.'], correct: 0 },
+            { q: 'Your mind drifts to a bad line call. What should you do?', options: ['Judge yourself harder.', 'Stop trying.', 'Notice it and return to your focus words.'], correct: 2 },
+          ],
+          hockey: [
+            { q: 'You lose the ball in the circle. Which words help most?', options: ['"I keep messing up."', '"Next play. Stick down."', '"Don\'t ask for the ball."'], correct: 1 },
+            { q: 'What should focus words do?', options: ['Bring your mind back to one action.', 'Make you ignore your coach.', 'Guarantee a goal.'], correct: 0 },
+            { q: 'Your mind drifts to a missed chance mid-match. What should you do?', options: ['Judge yourself harder.', 'Stop trying.', 'Notice it and return to your focus words.'], correct: 2 },
+          ],
+          swimming: [
+            { q: 'Your split is slow in training. Which words help most?', options: ['"I\'m getting worse."', '"Long and strong. Next rep."', '"Why do I even train?"'], correct: 1 },
+            { q: 'What should focus words do?', options: ['Bring your mind back to one action.', 'Make you ignore your coach.', 'Guarantee a personal best.'], correct: 0 },
+            { q: 'You think about your time in the middle of a race. What should you do?', options: ['Judge yourself harder.', 'Stop trying.', 'Notice it and return to your focus words.'], correct: 2 },
           ],
           generic: [
             { q: 'Which words help performance?', options: ['"I always mess up."', '"Next action."', '"Everyone is better than me."'], correct: 1 },
@@ -2078,6 +2132,30 @@ export const translations = {
           training: { situation: 'Your rhythm drops during a set.', reaction: 'Breathing feels heavy. Body tenses.', reset: 'Long exhale. Relax face. Next rep.' },
           competition: { situation: 'You feel tense before the start.', reaction: 'Shoulders rise. Breathing gets shallow.', reset: 'Exhale slowly. Set posture. First action.' },
         },
+        wrestling: {
+          training: { situation: 'You get pinned in practice.', reaction: 'Breathing gets fast. Arms feel heavy.', reset: 'Long exhale. Shake arms. Next grip.' },
+          competition: { situation: 'Your hands shake before the bout.', reaction: 'Heart races. Legs feel weak.', reset: 'Breathe out slowly. Set stance. First grip.' },
+        },
+        boxing: {
+          training: { situation: 'You get tired fast in sparring.', reaction: 'Shoulders tighten. You hold your breath.', reset: 'Exhale through the mouth. Drop shoulders. Hands up.' },
+          competition: { situation: 'You wait in the corner before the bell.', reaction: 'Heart pounds. Stomach feels tight.', reset: 'Slow exhale. Loosen arms. First jab.' },
+        },
+        kabaddi: {
+          training: { situation: 'You rush a practice raid.', reaction: 'Breathing speeds up. Feet get stiff.', reset: 'Exhale. Bounce light. Next raid.' },
+          competition: { situation: 'It is a do-or-die raid.', reaction: 'Body tightens. You want to rush.', reset: 'Breathe out at the line. Quick feet. Go.' },
+        },
+        tennis: {
+          training: { situation: 'You miss easy balls in practice.', reaction: 'Arm gets tight. Breathing gets short.', reset: 'Exhale. Loosen grip. Next ball.' },
+          competition: { situation: 'You serve at break point.', reaction: 'Arm tightens. Toss goes wrong.', reset: 'Turn away. Slow exhale. Bounce, then serve.' },
+        },
+        hockey: {
+          training: { situation: 'You rush passes in a drill.', reaction: 'Grip gets tight. Breathing speeds up.', reset: 'Exhale. Soft hands. Next pass.' },
+          competition: { situation: 'Your team concedes early.', reaction: 'Body tightens. You start chasing.', reset: 'Breathe out. Find your position. Next play.' },
+        },
+        swimming: {
+          training: { situation: 'A hard set feels too fast.', reaction: 'Breathing gets choppy. Shoulders tighten.', reset: 'Long exhale at the wall. Relax shoulders. Next rep.' },
+          competition: { situation: 'You stand behind the blocks.', reaction: 'Heart races. Stomach feels tight.', reset: 'Slow exhale. Shake arms. Think about your start.' },
+        },
         generic: {
           training: { situation: 'Training starts badly.', reaction: 'Your body gets tight and rushed.', reset: 'Slow exhale. Relax shoulders. Next action.' },
           competition: { situation: 'Pressure rises before performance.', reaction: 'Breathing gets fast. Muscles tighten.', reset: 'Breathe out. Set body. Next action.' },
@@ -2109,6 +2187,36 @@ export const translations = {
             { q: 'Before your start, shoulders rise and breath gets shallow. What helps first?', options: ['Hold your breath and tense up.', 'Slow exhale, set posture, first action.', 'Worry about the result.'], correct: 1 },
             { q: 'Pressure Reset is mainly for:', options: ['Making pressure disappear forever.', 'Steadying your body so you can act better now.', 'Ignoring your body completely.'], correct: 1 },
             { q: 'Your start feels off and your body speeds up. What is the best first step?', options: ['Breathe out slowly.', 'Think about the whole race.', 'Judge yourself harder.'], correct: 0 },
+          ],
+          wrestling: [
+            { q: 'Before your bout your heart races. What helps first?', options: ['Hold your breath and tense up.', 'Slow exhale, set stance, first grip.', 'Think about losing.'], correct: 1 },
+            { q: 'Pressure Reset is mainly for:', options: ['Making pressure disappear forever.', 'Steadying your body so you can act better now.', 'Ignoring your body completely.'], correct: 1 },
+            { q: 'You make a mistake and feel your body speed up. What is the best first step?', options: ['Breathe out slowly.', 'Think about the whole bout.', 'Judge yourself harder.'], correct: 0 },
+          ],
+          boxing: [
+            { q: 'You get hit and your shoulders tighten. What helps first?', options: ['Throw wild punches.', 'Exhale, drop shoulders, hands up.', 'Replay the punch in your head.'], correct: 1 },
+            { q: 'Pressure Reset is mainly for:', options: ['Making pressure disappear forever.', 'Steadying your body so you can act better now.', 'Ignoring your body completely.'], correct: 1 },
+            { q: 'You make a mistake and feel your body speed up. What is the best first step?', options: ['Breathe out slowly.', 'Think about the whole fight.', 'Judge yourself harder.'], correct: 0 },
+          ],
+          kabaddi: [
+            { q: 'Before a do-or-die raid your body tightens. What helps first?', options: ['Rush in fast.', 'Breathe out at the line, quick feet, go.', 'Think about the score.'], correct: 1 },
+            { q: 'Pressure Reset is mainly for:', options: ['Making pressure disappear forever.', 'Steadying your body so you can act better now.', 'Ignoring your body completely.'], correct: 1 },
+            { q: 'You make a mistake and feel your body speed up. What is the best first step?', options: ['Breathe out slowly.', 'Think about the whole match.', 'Judge yourself harder.'], correct: 0 },
+          ],
+          tennis: [
+            { q: 'At break point your arm feels tight. What helps first?', options: ['Hit harder.', 'Turn away, slow exhale, then serve.', 'Think about losing the set.'], correct: 1 },
+            { q: 'Pressure Reset is mainly for:', options: ['Making pressure disappear forever.', 'Steadying your body so you can act better now.', 'Ignoring your body completely.'], correct: 1 },
+            { q: 'You make a mistake and feel your body speed up. What is the best first step?', options: ['Breathe out slowly.', 'Think about the whole match.', 'Judge yourself harder.'], correct: 0 },
+          ],
+          hockey: [
+            { q: 'Your team concedes and your body rushes. What helps first?', options: ['Chase everything.', 'Breathe out, find your position, next play.', 'Blame a teammate.'], correct: 1 },
+            { q: 'Pressure Reset is mainly for:', options: ['Making pressure disappear forever.', 'Steadying your body so you can act better now.', 'Ignoring your body completely.'], correct: 1 },
+            { q: 'You make a mistake and feel your body speed up. What is the best first step?', options: ['Breathe out slowly.', 'Think about the whole match.', 'Judge yourself harder.'], correct: 0 },
+          ],
+          swimming: [
+            { q: 'Behind the blocks your heart races. What helps first?', options: ['Hold your breath.', 'Slow exhale, shake arms, think about your start.', 'Think about your time.'], correct: 1 },
+            { q: 'Pressure Reset is mainly for:', options: ['Making pressure disappear forever.', 'Steadying your body so you can act better now.', 'Ignoring your body completely.'], correct: 1 },
+            { q: 'You make a mistake and feel your body speed up. What is the best first step?', options: ['Breathe out slowly.', 'Think about the whole race.', 'Judge yourself harder.'], correct: 0 },
           ],
           generic: [
             { q: 'Your body feels tight before training. What helps most?', options: ['Rush harder.', 'Slow your breathing and return to the next action.', 'Keep thinking about what could go wrong.'], correct: 1 },
