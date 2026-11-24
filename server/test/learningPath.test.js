@@ -21,14 +21,14 @@ test('the first chapter comes from the starting-profile priority', () => {
 test('one current chapter at a time; the next step is the first unfinished one', () => {
   const p = buildPath({ order: ['calm', 'focus'], steps: [] });
   assert.equal(p.currentKey, 'calm');
-  assert.deepEqual(p.next, { chapterKey: 'calm', stepKey: 'learn' });
+  assert.deepEqual(p.next, { chapterKey: 'calm', stepKey: 'learn', level: 1 });
   assert.equal(p.chapters.find(c => c.key === 'focus').status, 'locked');
 
   const steps = ['learn', 'practise', 'play', 'reflect'].map(stepKey => ({ chapterKey: 'calm', stepKey, doneAt: at(10) }));
   const p2 = buildPath({ order: ['calm', 'focus'], steps: [...steps, { chapterKey: 'focus', stepKey: 'learn', doneAt: at(11) }] });
   assert.equal(p2.chapters[0].status, 'done');
   assert.equal(p2.currentKey, 'focus');
-  assert.deepEqual(p2.next, { chapterKey: 'focus', stepKey: 'practise' });
+  assert.deepEqual(p2.next, { chapterKey: 'focus', stepKey: 'practise', level: 1 });
 });
 
 test('an old saved order still gets every chapter', () => {
@@ -122,7 +122,7 @@ test('API: needs sign-in, validates steps and only opens the current chapter', a
 
     const ok = await (await fetch(`${base}/steps`, { method: 'POST', headers: auth, body: JSON.stringify({ chapterKey: 'calm', stepKey: 'learn' }) })).json();
     assert.equal(ok.chapters[0].steps.learn.done, true);
-    assert.deepEqual(ok.next, { chapterKey: 'calm', stepKey: 'practise' });
+    assert.deepEqual(ok.next, { chapterKey: 'calm', stepKey: 'practise', level: 1 });
   });
 });
 
@@ -185,4 +185,41 @@ test('API: one challenge per 4 weeks; the goal is saved and moves that chapter u
     assert.equal(goal.latest.focusSkill, 'routine');
     assert.deepEqual(prioritised, ['routine']);
   } finally { await new Promise(r => server.close(r)); }
+});
+
+// ── Levels (founder, Nov 2026) ─────────────────────────────────────────────
+const { levelKey: lk } = require('../src/services/path/pathConfig');
+const all4 = (key) => ['learn', 'practise', 'play', 'reflect'].map(stepKey => ({ chapterKey: key, stepKey, doneAt: new Date('2026-11-01') }));
+
+test('levels: Level 2 opens after Level 1, Level 3 after Level 2; old Level 1 data unchanged', () => {
+  const order = ['calm', 'focus', 'confidence', 'routine', 'bounce', 'picture'];
+  let p = buildPath({ order, steps: all4('calm') });
+  const calm = p.chapters[0];
+  assert.equal(calm.status, 'done');
+  assert.deepEqual(calm.levels.map(l => l.status), ['done', 'current', 'locked']);
+  assert.equal(calm.level, 2);
+  assert.equal(p.currentKey, 'focus');
+  assert.deepEqual(p.next, { chapterKey: 'focus', stepKey: 'learn', level: 1 });
+  p = buildPath({ order, steps: [...all4('calm'), ...all4(lk('calm', 2))] });
+  assert.deepEqual(p.chapters[0].levels.map(l => l.status), ['done', 'done', 'current']);
+  assert.equal(p.chapters[1].levels[1].status, 'locked');
+});
+
+test('levels: when every Level 1 is done, Next moves to the first open level', () => {
+  const order = ['calm', 'focus', 'confidence', 'routine', 'bounce', 'picture'];
+  const steps = order.flatMap(all4);
+  const p = buildPath({ order, steps: [...steps, { chapterKey: lk('calm', 2), stepKey: 'learn', doneAt: new Date() }] });
+  assert.equal(p.finished, true);
+  assert.equal(p.allMastered, false);
+  assert.deepEqual(p.next, { chapterKey: 'calm', stepKey: 'practise', level: 2 });
+});
+
+test('levels: practice counts for a higher level only after its lesson was read', () => {
+  const order = ['calm', 'focus', 'confidence', 'routine', 'bounce', 'picture'];
+  const learnAt = new Date('2026-11-10');
+  const p = buildPath({ order, steps: [...all4('calm'), { chapterKey: lk('calm', 2), stepKey: 'learn', doneAt: learnAt }] });
+  const before = stepsToRecord(p, { toolTypes: [{ toolType: 'body_reset', at: new Date('2026-11-09') }], journalAt: [] });
+  assert.equal(before.find(s => s.chapterKey === 'calm:2'), undefined);
+  const after = stepsToRecord(p, { toolTypes: [{ toolType: 'body_reset', at: new Date('2026-11-11') }], journalAt: [] });
+  assert.ok(after.find(s => s.chapterKey === 'calm:2' && s.stepKey === 'practise'));
 });

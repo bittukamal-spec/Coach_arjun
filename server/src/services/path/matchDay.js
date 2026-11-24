@@ -55,10 +55,11 @@ function planText(plan) {
 
 function buildPathCoachSection({ path, match, plan } = {}, today = indiaToday()) {
   const lines = [];
-  if (path && !path.finished && path.next) {
+  if (path && path.next) {
     const ch = CHAPTER_NOTES[path.next.chapterKey];
+    const lvl = Number(path.next.level) > 1 ? ` (level ${path.next.level} of 3: ${path.next.level === 2 ? 'using it in matches' : 'using it under big pressure'})` : '';
     if (ch) {
-      lines.push(`Learning path: they are on the chapter "${ch.name}" — ${ch.skill}. Their next step is to ${STEP_NOTES[path.next.stepKey] || 'continue the chapter'}.`);
+      lines.push(`Learning path: they are on the chapter "${ch.name}"${lvl} — ${ch.skill}. Their next step is to ${STEP_NOTES[path.next.stepKey] || 'continue the chapter'}.`);
       lines.push(`Bring this up only when it fits what they say (e.g. suggest ${ch.practise} when it matches their problem). Never push it in every message, and never mention "the path" if they came with something else.`);
     }
   }

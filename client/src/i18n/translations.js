@@ -322,7 +322,8 @@ export const translations = {
         nextTag: (n) => `Unlocked · Chapter ${n}`,
         start: (n) => `Start chapter ${n}`,
         allDoneTitle: 'Training plan complete!',
-        allDoneLine: 'You finished every chapter. Keep using what works.',
+        allDoneLine: 'You finished every chapter at level 1. Now go deeper, one level at a time.',
+        levelOpen: 'Level 2 of this chapter is open: use it in a match.',
         backToProfile: 'See my training plan',
       },
       chapters: {
@@ -409,6 +410,47 @@ export const translations = {
             ],
             takeaway: 'See it, then do it.',
           },
+        },
+      },
+      // Levels 2 and 3 of each chapter (founder, Nov 2026): the same 4 steps,
+      // a bit harder. First drafts for sport-psych review. {unit}, {focusWord}
+      // and {resetWord} are filled from the athlete's sport.
+      levelNames: { 1: 'Basics', 2: 'In the match', 3: 'Big pressure' },
+      levelLabel: (n) => `Level ${n}`,
+      levelOf: (n) => `Level ${n} of 3`,
+      levelsTitle: 'Levels',
+      levelsLine: 'Same 4 steps, a bit harder each level.',
+      levelNow: (done) => `Now · ${done} of 4 steps`,
+      levelDone: 'Done',
+      levelLocked: (n) => `Opens after level ${n}`,
+      levelStepsTitle: (n) => `Level ${n} steps`,
+      levelMastered: 'All 3 levels done. You own this skill.',
+      levelsNextTitle: 'Every chapter done at level 1!',
+      levelsNextLine: (title, n) => `Now go deeper: ${title}, level ${n}.`,
+      chapterLevels: {
+        calm: {
+          2: { lesson: { title: 'Calm between moments', cards: ['In a match there is no time for 3 minutes of breathing. You need a fast version.', 'Between each {unit}, take one long breath out — longer than the breath in. That is enough to settle your body.', 'Practise it in training first, so your body knows it when the match starts.'], takeaway: 'One long breath out between every {unit}.' }, practise: 'Do a Pressure Reset, then try one fast breath out', play: 'Use one long breath out between moments in a match' },
+          3: { lesson: { title: 'When your heart is racing', cards: ['In the biggest moments — a final, a trial — your heart races faster than ever. That is normal.', 'Name it: "This is my body getting ready." Then two long breaths out and drop your shoulders.', 'Say "{focusWord}" and go. You do not need to feel calm to play well — just steady.'], takeaway: 'Name it, breathe out twice, go.' }, practise: 'Do a Pressure Reset picturing your biggest match', play: 'Use it in your biggest moment: a final, a trial or a tight finish' },
+        },
+        focus: {
+          2: { lesson: { title: 'Your eyes lead your focus', cards: ['Where your eyes go, your mind follows.', 'Before each {unit}, look at one small spot. The same spot every time.', 'If your eyes drift to the crowd or the coach, bring them back to your spot and say "{focusWord}".'], takeaway: 'One spot. Every {unit}.' }, practise: 'Do a Mind Warm-up and pick your focus spot', play: 'Use your focus spot in a match' },
+          3: { lesson: { title: 'Focus when people are watching', cards: ['Selectors, parents, a crowd — when people watch, your mind starts playing for them.', 'Notice it: "I am thinking about them." Then come back: one breath, your spot, "{focusWord}".', 'You cannot control who watches. You can control your next {unit}.'], takeaway: 'Notice, breathe, back to your spot.' }, practise: 'Do a Mind Warm-up picturing people watching you', play: 'Use it when people are watching — a trial or a big crowd' },
+        },
+        confidence: {
+          2: { lesson: { title: 'Talk to yourself during the match', cards: ['Confidence is not a feeling you wait for. It is what you say to yourself in the moment.', 'Pick one strong line from your Self-Talk Card and say it before key moments.', 'If a worried thought comes, answer it like a teammate: "Yes, that was a miss. Next {unit}."'], takeaway: 'Answer the worry like a teammate.' }, practise: 'Practise your Self-Talk Card out loud', play: 'Say your strong line before key moments in a match' },
+          3: { lesson: { title: 'Confidence after a bad day', cards: ['After a bad match or being dropped, the voice in your head gets loud.', 'Write down 3 things you did well this month. Proof beats feelings.', 'Read your list before the next big match, then say your strong line.'], takeaway: 'Proof beats feelings.' }, practise: 'Add proof of what you do well to your Self-Talk Card', play: 'Read your proof list before your next big match' },
+        },
+        routine: {
+          2: { lesson: { title: 'A short routine between moments', cards: ['Before the match you have time. During the match you have seconds.', 'Make a 3-second version: one breath, one small action (like fixing your grip), your focus word.', 'Use it between every {unit}, good or bad.'], takeaway: 'Breath, action, word — every {unit}.' }, practise: 'Build a short routine for between moments', play: 'Use your short routine between every {unit} in a match' },
+          3: { lesson: { title: 'Keep your routine when it gets tense', cards: ['Under pressure, players rush and skip their routine — right when they need it most.', 'In big moments, slow it down on purpose. Same steps, same speed.', 'Your routine feels the same in training and in a final. That is what makes it safe.'], takeaway: 'Big moment? Same routine, same speed.' }, practise: 'Practise your routine picturing a tense moment', play: 'Keep your routine in the tensest moment of a match' },
+        },
+        bounce: {
+          2: { lesson: { title: 'Reset after a big mistake', cards: ['Small mistakes are easy to forget. Big ones, at a key time, follow you around.', 'Do the 5-second reset, then get involved in the next {unit} straight away.', 'Do not hide after a mistake. Ask for the next chance.'], takeaway: 'Reset, then get involved.' }, practise: 'Practise your reset with a big mistake in mind', play: 'Reset fast after a big mistake in a match' },
+          3: { lesson: { title: 'Stop one mistake becoming two', cards: ['One mistake is normal. The danger is the second one — made because you are still thinking about the first.', 'After a mistake, say "{resetWord}" and keep the next action simple and safe.', 'Simple and safe for one {unit}, then play your normal game again.'], takeaway: 'After a mistake: simple and safe, then normal.' }, practise: 'Practise your reset with two mistakes in a row', play: 'Stop one mistake from becoming two in a match' },
+        },
+        picture: {
+          2: { lesson: { title: 'Picture the hard moments', cards: ['Picturing things going well is good. Picturing the hard moments is even better.', 'See a tough moment — a mistake, a loud crowd — and see yourself handling it calmly.', 'When it happens for real, your mind has already been there.'], takeaway: 'See the hard moment, see yourself handle it.' }, practise: 'Picture a tough moment and handle it (5 min)', play: 'Picture a hard moment the night before a match' },
+          3: { lesson: { title: 'Picture it right before you play', cards: ['Just before you start, take 30 seconds and close your eyes.', 'See your first {unit} going well. Feel it and hear it.', 'Open your eyes, say "{focusWord}", and go.'], takeaway: '30 seconds. See it, feel it, go.' }, practise: 'Practise a 30-second picture before training', play: 'Picture your first {unit} right before a match' },
         },
       },
     },

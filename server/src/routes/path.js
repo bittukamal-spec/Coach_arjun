@@ -1,6 +1,6 @@
 // Learning path API (docs/PATH-STRATEGY.md). No AI, no athlete text stored.
 //   GET  /api/path         → the athlete's path (chapters, current chapter, next step)
-//   POST /api/path/steps   → { chapterKey, stepKey: learn|practise|play, outcome? } marks a step done
+//   POST /api/path/steps   → { chapterKey, stepKey: learn|practise|play, outcome?, level? (1–3) } marks a step done
 //   PUT  /api/path/match   → { day: "YYYY-MM-DD" | null, type? } sets or clears the next match (India time); type = practice|league|tournament|selection|final
 //   POST /api/path/match/review → { feel: well|mixed|tough|null, used: helped|tried|forgot|null }
 //        clears the match + play plan; helped/tried also ticks the current chapter's Play step
@@ -9,7 +9,7 @@
 // path is walked in order.
 const express = require('express');
 const authenticate = require('../middleware/authenticate');
-const { CHAPTERS, SELF_MARKED_STEPS, PLAY_OUTCOMES, MATCH_FEELS, MATCH_USED, PLAN_MOMENTS, MATCH_TYPES } = require('../services/path/pathConfig');
+const { CHAPTERS, LEVELS, levelKey, SELF_MARKED_STEPS, PLAY_OUTCOMES, MATCH_FEELS, MATCH_USED, PLAN_MOMENTS, MATCH_TYPES } = require('../services/path/pathConfig');
 const { screenSafetyText, recordSafetyEvent, getSafetyGuidance } = require('../services/safety');
 const { isPickableDay, matchPhase } = require('../services/path/matchDay');
 const { createPathStore } = require('../services/path/pathService');
@@ -36,7 +36,8 @@ function createPathRouter({ store } = {}) {
 
   router.post('/steps', authenticate, async (req, res) => {
     const { chapterKey, stepKey, outcome } = req.body || {};
-    if (!CHAPTERS.includes(chapterKey) || !SELF_MARKED_STEPS.has(stepKey)) {
+    const level = req.body?.level == null ? 1 : Number(req.body.level);
+    if (!CHAPTERS.includes(chapterKey) || !SELF_MARKED_STEPS.has(stepKey) || !LEVELS.includes(level)) {
       return res.status(400).json({ error: 'Invalid step' });
     }
     if (stepKey === 'play' && !PLAY_OUTCOMES.has(outcome)) {
@@ -46,10 +47,11 @@ function createPathRouter({ store } = {}) {
       const s = getStore();
       const path = await s.getPath(req.userId);
       const chapter = path.chapters.find(c => c.key === chapterKey);
-      if (!chapter || chapter.status === 'locked') {
+      const levelState = chapter?.levels ? chapter.levels.find(l => l.level === level) : (level === 1 ? chapter : null);
+      if (!chapter || !levelState || levelState.status === 'locked') {
         return res.status(409).json({ error: 'Chapter not open yet' });
       }
-      await s.record(req.userId, { chapterKey, stepKey, outcome: stepKey === 'play' ? outcome : null });
+      await s.record(req.userId, { chapterKey: levelKey(chapterKey, level), stepKey, outcome: stepKey === 'play' ? outcome : null });
       res.json(await s.getPath(req.userId));
     } catch (err) {
       console.error('[path] POST error:', err?.message);

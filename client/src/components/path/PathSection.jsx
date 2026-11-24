@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Check, Lock, ChevronRight } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import Teer from '../visuals/Teer';
-import { usePath, pathText, CHAPTER_LOOK, STEP_ORDER, nextHref, nextLabel, takeNewlyFinished, planText } from './pathData';
+import { usePath, pathText, CHAPTER_LOOK, STEP_ORDER, nextHref, nextLabel, takeNewlyFinished, planText, chapterAt } from './pathData';
 import { SKILLS, SKILL_BAR, challengeText, daysUntil, useMindChallenge } from './mindChallengeData';
 import { markFromPath } from '../../utils/practiceReturn';
 
@@ -47,7 +47,13 @@ export default function PathSection() {
       </div>
       <p className="mt-1 text-[14px] text-slt">{t.startsWith}</p>
 
-      {path.finished ? (
+      {path.finished && path.next && (
+        <div className="mt-3 rounded-[20px] bg-mint p-4 text-inkblock" data-testid="path-levels-next">
+          <p className="text-[16px] font-extrabold">{t.levelsNextTitle}</p>
+          <p className="mt-1 text-[14px]">{t.levelsNextLine(t.chapters[path.next.chapterKey]?.title, path.next.level)}</p>
+        </div>
+      )}
+      {!path.next ? (
         <div className="mt-3 rounded-[20px] bg-mint p-4 text-inkblock">
           <p className="text-[16px] font-extrabold">{t.finishedTitle}</p>
           <p className="mt-1 text-[14px]">{t.finishedLine}</p>
@@ -55,12 +61,15 @@ export default function PathSection() {
       ) : (
         <div className="mt-3 rounded-[24px] bg-dark-400 p-4" data-testid="path-panel">
           {(() => {
-            const cur = path.chapters.find(c => c.key === path.currentKey);
-            const ch = t.chapters[cur.key];
+            const lvl = path.next.level || 1;
+            const chapterRow = path.chapters.find(c => c.key === path.next.chapterKey);
+            const cur = chapterRow.levels ? chapterRow.levels[lvl - 1] : chapterRow;
+            const ch = chapterAt(t, chapterRow.key, lvl, user?.sport);
+            const chIndex = path.chapters.indexOf(chapterRow);
             const stepIndex = STEP_ORDER.indexOf(path.next.stepKey);
             return (
               <>
-                <p className="text-[18px] font-extrabold leading-tight text-ink">{t.chapterHead(currentIndex + 1, ch.title)}</p>
+                <p className="text-[18px] font-extrabold leading-tight text-ink">{t.chapterHead(chIndex + 1, ch.title)}{lvl > 1 ? ` · ${t.levelLabel(lvl)}` : ''}</p>
                 <p className="mt-0.5 text-[14px] text-slt">{ch.line}</p>
                 <p className="mt-3 text-[13px] font-bold text-ink">{t.stepsIntro}</p>
                 <ol className="mt-2 flex flex-col gap-1.5">
@@ -84,12 +93,12 @@ export default function PathSection() {
             );
           })()}
         <Link
-          to={nextHref(path.next.chapterKey, path.next.stepKey, t)}
+          to={nextHref(path.next.chapterKey, path.next.stepKey, t, path.next.level)}
           onClick={markFromPath}
           data-testid="path-next"
           className="mt-3 flex min-h-[56px] items-center justify-center gap-2 rounded-[18px] bg-sun px-4 text-center text-[15px] font-extrabold text-inkblock active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
         >
-          {t.stepButton[path.next.stepKey](STEP_ORDER.indexOf(path.next.stepKey) + 1, t.chapters[path.next.chapterKey])}
+          {t.stepButton[path.next.stepKey](STEP_ORDER.indexOf(path.next.stepKey) + 1, chapterAt(t, path.next.chapterKey, path.next.level, user?.sport))}
           <ChevronRight size={18} strokeWidth={2.6} aria-hidden="true" />
         </Link>
         </div>

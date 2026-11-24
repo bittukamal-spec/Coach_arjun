@@ -41,6 +41,7 @@ export default function PathUnlockedPage() {
           <h1 className="text-[24px] font-extrabold">{ch.title}</h1>
         </div>
         <p className="mt-3 text-[15px] text-white/80">{path?.finished ? t.unlocked.allDoneLine : t.unlocked.line}</p>
+        <p className="mt-2 rounded-full bg-white/10 px-3 py-1.5 text-[13px] font-bold text-sun" data-testid="unlocked-level2">{t.unlocked.levelOpen}</p>
         <Teer pose="cheer" height={190} motion="hop" eager className="mt-5" />
         {next && (
           <div className="mt-5 flex w-full items-center gap-3 rounded-[24px] bg-dark-400 p-4 text-left text-ink">

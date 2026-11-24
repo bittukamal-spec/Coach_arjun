@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { apiFetch } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
 import { translations } from '../../i18n/translations';
+import { sportBlock } from '../../i18n/sportExamples';
 import { Wind, Target, MessageCircle, ListChecks, RotateCcw, Eye } from 'lucide-react';
 
 // Learning path — shared bits for the Profile section, chapter and lesson
@@ -19,16 +20,43 @@ export const CHAPTER_LOOK = {
 
 export const STEP_ORDER = ['learn', 'practise', 'play', 'reflect'];
 
-// Where the "Next" button takes the athlete for a given step.
-export function nextHref(chapterKey, stepKey, t) {
-  if (stepKey === 'learn') return `/path/${chapterKey}/learn`;
-  if (stepKey === 'practise') return t.chapters[chapterKey]?.route || `/path/${chapterKey}`;
-  if (stepKey === 'reflect') return `/path/${chapterKey}/reflect`;
-  return `/path/${chapterKey}`;
+// ── Levels (founder, Nov 2026) ──────────────────────────────────────────
+// Lesson words follow the athlete's sport: {focusWord}, {resetWord}, {unit}.
+export function fillSportWords(text, sport, t) {
+  if (typeof text !== 'string') return text;
+  const sb = sportBlock(sport);
+  const words = { focusWord: sb.focusWord, resetWord: sb.resetWord, unit: planUnit(sport, t) };
+  return text.replace(/\{(focusWord|resetWord|unit)\}/g, (_, k) => words[k]);
 }
 
-export function nextLabel(chapterKey, stepKey, t) {
-  const ch = t.chapters[chapterKey];
+// A chapter's words at a level: level 1 = the chapter itself; levels 2–3
+// swap in that level's lesson, practise and play.
+export function chapterAt(t, chapterKey, level = 1, sport) {
+  const base = t.chapters[chapterKey];
+  if (!base) return null;
+  const extra = Number(level) > 1 ? t.chapterLevels?.[chapterKey]?.[Number(level)] : null;
+  const merged = extra ? { ...base, ...extra } : base;
+  const f = (x) => fillSportWords(x, sport, t);
+  return {
+    ...merged,
+    practise: f(merged.practise),
+    play: f(merged.play),
+    lesson: { title: f(merged.lesson.title), cards: merged.lesson.cards.map(f), takeaway: f(merged.lesson.takeaway) },
+  };
+}
+
+const levelQuery = (level) => (Number(level) > 1 ? `?level=${Number(level)}` : '');
+
+// Where the "Next" button takes the athlete for a given step.
+export function nextHref(chapterKey, stepKey, t, level = 1) {
+  if (stepKey === 'learn') return `/path/${chapterKey}/learn${levelQuery(level)}`;
+  if (stepKey === 'practise') return t.chapters[chapterKey]?.route || `/path/${chapterKey}${levelQuery(level)}`;
+  if (stepKey === 'reflect') return `/path/${chapterKey}/reflect${levelQuery(level)}`;
+  return `/path/${chapterKey}${levelQuery(level)}`;
+}
+
+export function nextLabel(chapterKey, stepKey, t, level = 1, sport) {
+  const ch = chapterAt(t, chapterKey, level, sport);
   if (!ch) return '';
   if (stepKey === 'learn') return t.next.learn(ch.lesson.title);
   if (stepKey === 'practise') return t.next.practise(ch.practise);
@@ -53,11 +81,11 @@ export function usePath() {
 
   useEffect(() => { load(); }, [load]);
 
-  const markStep = useCallback(async (chapterKey, stepKey, outcome) => {
+  const markStep = useCallback(async (chapterKey, stepKey, outcome, level = 1) => {
     const res = await apiFetch('/api/path/steps', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ chapterKey, stepKey, ...(outcome ? { outcome } : {}) }),
+      body: JSON.stringify({ chapterKey, stepKey, ...(outcome ? { outcome } : {}), ...(Number(level) > 1 ? { level: Number(level) } : {}) }),
     });
     if (!res.ok) throw new Error(String(res.status));
     const next = await res.json();
@@ -132,8 +160,8 @@ export function takeNewlyFinished(path) {
 }
 
 // What the next step asks for, in a few words (Home's "Your next step" card).
-export function nextStepText(chapterKey, stepKey, t) {
-  const ch = t.chapters[chapterKey];
+export function nextStepText(chapterKey, stepKey, t, level = 1, sport) {
+  const ch = chapterAt(t, chapterKey, level, sport);
   if (!ch) return '';
   if (stepKey === 'learn') return ch.lesson.title;
   if (stepKey === 'practise') return ch.practise;

@@ -4,6 +4,16 @@
 
 const CHAPTERS = ['calm', 'focus', 'confidence', 'routine', 'bounce', 'picture'];
 const STEPS = ['learn', 'practise', 'play', 'reflect'];
+// Levels (founder, Nov 2026): every chapter has 3 levels of the same 4 steps,
+// each a bit harder (1 Basics · 2 In the match · 3 Big pressure). Level 1 is
+// stored under the plain chapter key, so older progress keeps working; higher
+// levels are stored as "focus:2", "focus:3" (no schema change).
+const LEVELS = [1, 2, 3];
+const levelKey = (chapterKey, level = 1) => (Number(level) > 1 ? `${chapterKey}:${Number(level)}` : chapterKey);
+function parseLevelKey(stored) {
+  const m = /^([a-z]+)(?::([23]))?$/.exec(String(stored || ''));
+  return m ? { chapterKey: m[1], level: m[2] ? Number(m[2]) : 1 } : null;
+}
 
 // Which chapter comes first, from the athlete's starting-profile priority
 // (server/src/profile/ruleConfig.js PRIORITY_PHRASE ids). Unknown → calm.
@@ -81,4 +91,4 @@ function chapterOrderFor(priorityId) {
 }
 
 module.exports = {
-  PLAN_MOMENTS, PLAN_NOTES, MATCH_FEELS, MATCH_TYPES, MATCH_TYPE_NOTES, MATCH_USED, CHAPTER_NOTES, STEP_NOTES, CHAPTERS, STEPS, PRIORITY_TO_CHAPTER, PRACTISE_TOOL_TYPES, SELF_MARKED_STEPS, PLAY_OUTCOMES, chapterOrderFor };
+  LEVELS, levelKey, parseLevelKey, PLAN_MOMENTS, PLAN_NOTES, MATCH_FEELS, MATCH_TYPES, MATCH_TYPE_NOTES, MATCH_USED, CHAPTER_NOTES, STEP_NOTES, CHAPTERS, STEPS, PRIORITY_TO_CHAPTER, PRACTISE_TOOL_TYPES, SELF_MARKED_STEPS, PLAY_OUTCOMES, chapterOrderFor };
