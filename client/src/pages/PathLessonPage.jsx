@@ -1,36 +1,34 @@
 import { useState } from 'react';
-import { Navigate, useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import MascotArt from '../components/visuals/MascotArt';
-import { usePath, pathText, planUnit } from '../components/path/pathData';
-import { sportBlock } from '../i18n/sportExamples';
+import { usePath, pathText, chapterAt } from '../components/path/pathData';
 
 const POSE = { calm: 'breathe', focus: 'think', confidence: 'point', routine: 'notes', bounce: 'cheer', picture: 'think' };
 
 // A 2-minute lesson: one idea per card, then "Got it" marks the Learn step.
 export default function PathLessonPage() {
   const { chapterKey } = useParams();
+  const [params] = useSearchParams();
+  const level = [2, 3].includes(Number(params.get('level'))) ? Number(params.get('level')) : 1;
   const { language, user } = useAuth();
   const navigate = useNavigate();
   const t = pathText(language);
   const { markStep } = usePath();
   const [card, setCard] = useState(0);
   const [saving, setSaving] = useState(false);
-  const ch = t.chapters[chapterKey];
+  // Lesson words follow the level and the athlete's sport.
+  const ch = chapterAt(t, chapterKey, level, user?.sport);
   if (!ch) return <Navigate to="/train" replace />;
 
-  // Lesson words follow the athlete's sport: {focusWord}, {resetWord}, {unit}.
-  const sb = sportBlock(user?.sport);
-  const words = { focusWord: sb.focusWord, resetWord: sb.resetWord, unit: planUnit(user?.sport, t) };
-  const fill = (text) => String(text).replace(/\{(focusWord|resetWord|unit)\}/g, (_, k) => words[k]);
-  const cards = ch.lesson.cards.map(fill);
+  const cards = ch.lesson.cards;
   const last = card === cards.length - 1;
 
   async function finish() {
     setSaving(true);
-    try { await markStep(chapterKey, 'learn'); } catch { /* the lesson still counts as read on screen */ }
-    navigate(`/path/${chapterKey}`, { replace: true });
+    try { await markStep(chapterKey, 'learn', undefined, level); } catch { /* the lesson still counts as read on screen */ }
+    navigate(`/path/${chapterKey}${level > 1 ? `?level=${level}` : ''}`, { replace: true });
   }
 
   return (
@@ -44,14 +42,14 @@ export default function PathLessonPage() {
         </div>
       </header>
       <main className="max-w-lg mx-auto w-full flex-1 flex flex-col px-5 pb-8">
-        <p className="mt-5 text-[12px] font-bold uppercase tracking-[0.12em] text-slt">{ch.title} · {t.lessonMinutes}</p>
+        <p className="mt-5 text-[12px] font-bold uppercase tracking-[0.12em] text-slt">{ch.title}{level > 1 ? ` · ${t.levelLabel(level)}` : ''} · {t.lessonMinutes}</p>
         <h1 className="mt-1 text-[26px] leading-tight font-extrabold text-ink">{ch.lesson.title}</h1>
         <section className="mt-4 rounded-[26px] bg-dark-400 p-5" aria-live="polite">
           <MascotArt pose={POSE[chapterKey] || 'idle'} className="h-[clamp(110px,18dvh,150px)]" />
           <p className="mt-3 text-[17px] leading-relaxed text-ink">{cards[card]}</p>
           <p className="mt-3 text-[12px] text-slt">{t.lessonCardOf(card + 1, cards.length)}</p>
         </section>
-        {last && <p className="mt-4 rounded-[18px] bg-inkblock px-4 py-3 text-[15px] font-bold text-white">{fill(ch.lesson.takeaway)}</p>}
+        {last && <p className="mt-4 rounded-[18px] bg-inkblock px-4 py-3 text-[15px] font-bold text-white">{ch.lesson.takeaway}</p>}
         <div className="flex-1" />
         <button
           type="button"

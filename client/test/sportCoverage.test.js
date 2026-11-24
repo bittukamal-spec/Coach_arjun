@@ -27,5 +27,5 @@ for (const sport of SPORTS) {
 test('training-plan lessons use the athlete\'s sport words, not cricket ones', () => {
   const lessons = Object.values(translations.en.path.chapters).flatMap(c => [...c.lesson.cards, c.lesson.takeaway]).join(' ');
   assert.doesNotMatch(lessons, /next ball|watch the ball/i);
-  assert.match(readFileSync(new URL('../src/pages/PathLessonPage.jsx', import.meta.url), 'utf8'), /focusWord\|resetWord\|unit/);
+  assert.match(readFileSync(new URL('../src/components/path/pathData.js', import.meta.url), 'utf8'), /focusWord\|resetWord\|unit/);
 });

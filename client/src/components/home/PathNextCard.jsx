@@ -20,7 +20,7 @@ export default function PathNextCard(props) {
 }
 
 export function PathNextCardView({ path, mc }) {
-  const { language } = useAuth();
+  const { language, user } = useAuth();
   const t = pathText(language);
   const navigate = useNavigate();
 
@@ -29,21 +29,21 @@ export function PathNextCardView({ path, mc }) {
     if (fresh) navigate(`/path/unlocked/${fresh}`);
   }, [path, navigate]);
 
-  if (!path || path.finished || !path.next || !mc || mc.canTake) return null;
-  const { chapterKey, stepKey } = path.next;
+  if (!path || !path.next || !mc || mc.canTake) return null;
+  const { chapterKey, stepKey, level = 1 } = path.next;
   const ch = t.chapters[chapterKey];
   const { Icon, block } = CHAPTER_LOOK[chapterKey] || CHAPTER_LOOK.calm;
   return (
     <Link
-      to={nextHref(chapterKey, stepKey, t)}
+      to={nextHref(chapterKey, stepKey, t, level)}
       onClick={markFromPath}
       data-testid="home-path-next"
       className="mb-3 flex items-center gap-3 rounded-[22px] border-2 border-sun bg-dark-400 px-3.5 py-3 active:scale-[0.99] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
     >
       <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${block} text-inkblock`} aria-hidden="true"><Icon size={20} /></span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[11px] font-medium uppercase tracking-[0.1em] text-slt">{t.homeNextTag(ch.title, STEP_ORDER.indexOf(stepKey) + 1)}</span>
-        <span className="mt-0.5 block text-[15px] font-extrabold leading-snug text-ink">{nextStepText(chapterKey, stepKey, t)}</span>
+        <span className="block text-[11px] font-medium uppercase tracking-[0.1em] text-slt">{t.homeNextTag(level > 1 ? `${ch.title} · ${t.levelLabel(level)}` : ch.title, STEP_ORDER.indexOf(stepKey) + 1)}</span>
+        <span className="mt-0.5 block text-[15px] font-extrabold leading-snug text-ink">{nextStepText(chapterKey, stepKey, t, level, user?.sport)}</span>
       </span>
       <ChevronRight size={20} strokeWidth={2.6} className="shrink-0 text-ink" aria-hidden="true" />
     </Link>

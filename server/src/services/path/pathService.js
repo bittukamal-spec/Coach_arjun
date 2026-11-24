@@ -2,7 +2,7 @@
 // store. The path never deletes anything and never blocks any feature: it
 // only reads what the athlete did and records finished steps.
 
-const { CHAPTERS, STEPS, PRACTISE_TOOL_TYPES, chapterOrderFor } = require('./pathConfig');
+const { CHAPTERS, STEPS, LEVELS, PRACTISE_TOOL_TYPES, chapterOrderFor, levelKey, parseLevelKey } = require('./pathConfig');
 
 function validOrder(order) {
   const list = Array.isArray(order) ? order.filter(k => CHAPTERS.includes(k)) : [];
@@ -11,35 +11,67 @@ function validOrder(order) {
   return [...unique, ...CHAPTERS.filter(c => !unique.includes(c))];
 }
 
-// steps: [{ chapterKey, stepKey, outcome, doneAt }]
-// → { chapters: [{ key, status, steps: { learn: {done, outcome, at}, ... }, doneCount }], currentKey, next }
+// steps: [{ chapterKey, stepKey, outcome, doneAt }] — chapterKey may carry a
+// level ("focus:2"). → { chapters: [{ key, status, steps, doneCount, levels,
+// level }], currentKey, finished, next: { chapterKey, stepKey, level } }
+// The chapter-level fields (status, steps, doneCount) describe Level 1, as
+// before: the next chapter opens when Level 1 is done. Levels 2 and 3 open one
+// after another once the level before is done.
+function stepState(done) {
+  return Object.fromEntries(STEPS.map(st => [st, {
+    done: !!done[st], outcome: done[st]?.outcome || null, at: done[st]?.doneAt || null,
+  }]));
+}
+
 function buildPath({ order, steps }) {
   const keys = validOrder(order);
-  const byChapter = {};
+  const byLevel = {};
   for (const s of steps || []) {
     if (!STEPS.includes(s.stepKey)) continue;
-    (byChapter[s.chapterKey] ||= {})[s.stepKey] = s;
+    const parsed = parseLevelKey(s.chapterKey);
+    if (!parsed) continue;
+    ((byLevel[parsed.chapterKey] ||= {})[parsed.level] ||= {})[s.stepKey] = s;
   }
   let currentKey = null;
   const chapters = keys.map(key => {
-    const done = byChapter[key] || {};
-    const stepState = Object.fromEntries(STEPS.map(st => [st, {
-      done: !!done[st], outcome: done[st]?.outcome || null, at: done[st]?.doneAt || null,
-    }]));
-    const doneCount = STEPS.filter(st => done[st]).length;
-    let status;
-    if (doneCount === STEPS.length) status = 'done';
-    else if (!currentKey) { status = 'current'; currentKey = key; }
-    else status = 'locked';
-    return { key, status, steps: stepState, doneCount };
+    const levels = [];
+    for (const level of LEVELS) {
+      const done = byLevel[key]?.[level] || {};
+      const doneCount = STEPS.filter(st => done[st]).length;
+      let status;
+      if (doneCount === STEPS.length) status = 'done';
+      else if (level === 1) status = currentKey ? 'locked' : 'current';
+      else status = levels[level - 2].status === 'done' ? 'current' : 'locked';
+      levels.push({ level, status, steps: stepState(done), doneCount });
+    }
+    const first = levels[0];
+    if (first.status === 'current') currentKey = key;
+    const open = levels.find(l => l.status === 'current');
+    return {
+      key, status: first.status, steps: first.steps, doneCount: first.doneCount,
+      levels,
+      // The level the athlete is on in this chapter (3 when all are done).
+      level: open ? open.level : (first.status === 'locked' ? 1 : LEVELS[LEVELS.length - 1]),
+      mastered: levels.every(l => l.status === 'done'),
+    };
   });
+  let next = null;
   const current = chapters.find(c => c.key === currentKey);
-  const nextStep = current ? STEPS.find(st => !current.steps[st].done) : null;
+  if (current) {
+    next = { chapterKey: currentKey, stepKey: STEPS.find(st => !current.steps[st].done), level: 1 };
+  } else {
+    // Every chapter's Level 1 is done: carry on with the first open level.
+    for (const c of chapters) {
+      const open = c.levels.find(l => l.level > 1 && l.status === 'current');
+      if (open) { next = { chapterKey: c.key, stepKey: STEPS.find(st => !open.steps[st].done), level: open.level }; break; }
+    }
+  }
   return {
     chapters,
     currentKey,
     finished: !currentKey,
-    next: current ? { chapterKey: currentKey, stepKey: nextStep } : null,
+    allMastered: chapters.every(c => c.mastered),
+    next,
   };
 }
 
@@ -48,20 +80,32 @@ function buildPath({ order, steps }) {
 // time. evidence: { toolTypes: [{ toolType, at }], routineChangedAt: Date|null,
 // journalAt: Date[] } — all from after the path started.
 function stepsToRecord(path, evidence) {
-  const current = path.chapters.find(c => c.status === 'current');
-  if (!current) return [];
   const out = [];
-  if (!current.steps.practise.done) {
-    const types = PRACTISE_TOOL_TYPES[current.key] || [];
-    const hit = (evidence.toolTypes || []).find(t => types.includes(t.toolType));
-    const routineHit = current.key === 'routine' && evidence.routineChangedAt;
-    if (hit || routineHit) out.push({ chapterKey: current.key, stepKey: 'practise', doneAt: hit ? hit.at : evidence.routineChangedAt });
-  }
-  // Reflect: a Mind Journal entry written after the athlete used it in play.
-  const play = current.steps.play;
-  if (play.done && !current.steps.reflect.done) {
-    const after = (evidence.journalAt || []).find(at => new Date(at) > new Date(play.at));
-    if (after) out.push({ chapterKey: current.key, stepKey: 'reflect', doneAt: after });
+  const earn = (chapterKey, level, steps, since) => {
+    const key = levelKey(chapterKey, level);
+    if (!steps.practise.done) {
+      const types = PRACTISE_TOOL_TYPES[chapterKey] || [];
+      const after = (at) => !since || new Date(at) > new Date(since);
+      const hit = (evidence.toolTypes || []).find(t => types.includes(t.toolType) && after(t.at));
+      const routineHit = chapterKey === 'routine' && evidence.routineChangedAt && after(evidence.routineChangedAt);
+      if (hit || routineHit) out.push({ chapterKey: key, stepKey: 'practise', doneAt: hit ? hit.at : evidence.routineChangedAt });
+    }
+    // Reflect: a Mind Journal entry written after the athlete used it in play.
+    const play = steps.play;
+    if (play.done && !steps.reflect.done) {
+      const after = (evidence.journalAt || []).find(at => new Date(at) > new Date(play.at));
+      if (after) out.push({ chapterKey: key, stepKey: 'reflect', doneAt: after });
+    }
+  };
+  // Level 1: only the CURRENT chapter, so the path moves one chapter at a time.
+  const current = path.chapters.find(c => c.status === 'current');
+  if (current) earn(current.key, 1, current.steps, null);
+  // Levels 2–3: an open level counts practice done after its lesson was read,
+  // so a new level is never ticked by something done before it.
+  for (const c of path.chapters) {
+    for (const l of c.levels || []) {
+      if (l.level > 1 && l.status === 'current' && l.steps.learn.done) earn(c.key, l.level, l.steps, l.steps.learn.at);
+    }
   }
   return out;
 }
@@ -197,4 +241,4 @@ function createPathStore(prisma) {
   return { getPath, record, ensureProgress, prioritise, setMatch, reviewMatch, setPlan };
 }
 
-module.exports = { buildPath, stepsToRecord, validOrder, reorderForGoal, createPathStore };
+module.exports = { levelKey, buildPath, stepsToRecord, validOrder, reorderForGoal, createPathStore };
