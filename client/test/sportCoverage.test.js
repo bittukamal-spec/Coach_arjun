@@ -13,7 +13,7 @@ const rep = readFileSync(new URL('../src/pages/MentalRepPage.jsx', import.meta.u
 for (const sport of SPORTS) {
   test(`${sport}: has its own examples, lessons and warm-up words`, () => {
     assert.notEqual(sportBlock(sport), sportBlock('other'), 'own example block');
-    assert.ok(toolExamples(sport).routine.rows.length >= 3);
+    assert.ok(toolExamples(sport).routine.flow.length >= 3);
     assert.ok(chatExamples(sport).length >= 5);
     assert.ok(translations.en.skillPathFocus.example[sport], 'focus lesson example');
     assert.ok(translations.en.skillPathFocus.quiz.bySport[sport], 'focus quiz');

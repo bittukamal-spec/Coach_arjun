@@ -58,32 +58,57 @@ const CHAT = { messages: [
   { id: 'm3', role: 'assistant', content: "That's normal — your body is getting ready to play. Let's calm it first, then plan your first over. [APP:body-reset]", createdAt: iso(7) },
 ] };
 
+// Each website screen shows a different sport (founder, Nov 2026), so
+// visitors see the app is for every athlete, not only cricketers.
+const PEOPLE = {
+  rohan: user,
+  aarav: { ...user, id: 'demo2', name: 'Aarav Singh', sport: 'football' },
+  meera: { ...user, id: 'demo3', name: 'Meera Nair', sport: 'badminton' },
+  kabir: { ...user, id: 'demo4', name: 'Kabir Rao', sport: 'tennis' },
+  simran: { ...user, id: 'demo5', name: 'Simran Kaur', sport: 'hockey' },
+};
+const FOOTBALL_CHAT = { messages: [
+  { id: 'm1', role: 'assistant', content: 'Hi Aarav. How are you feeling about Sunday’s match?', createdAt: iso(9) },
+  { id: 'm2', role: 'user', content: 'Nervous. I hide from the ball after one bad pass.', createdAt: iso(8) },
+  { id: 'm3', role: 'assistant', content: 'That happens to a lot of players. After a bad pass, clap once and say “Next action” — then show for the ball again. Want to practise it now? [APP:mental-rep]', createdAt: iso(7) },
+] };
+const TENNIS_CARDS = [
+  { id: 'c1', focusWord: 'Watch the ball', resetWord: 'Next point', powerLine: 'I swing freely. One point at a time.', performanceMoment: 'Serving at break point' },
+  { id: 'c2', focusWord: 'Swing free', resetWord: 'Slow down', powerLine: 'Same toss, every serve.', performanceMoment: 'After a double fault' },
+];
+
 async function main() {
   const browser = await chromium.launch();
-  const ctx = await browser.newContext({ viewport: { width: 320, height: 628 }, deviceScaleFactor: 2, serviceWorkers: 'block', colorScheme: 'light', reducedMotion: 'reduce' });
-  await ctx.addInitScript(u => {
-    localStorage.setItem('mg_token', 'demo');
-    localStorage.setItem('mg_user', JSON.stringify(u));
-    localStorage.setItem('arjun_theme', 'light');
-  }, user);
-  const page = await ctx.newPage();
-  await page.route('**/api/**', route => {
-    const p = new URL(route.request().url()).pathname;
-    const body = p.endsWith('/messages') ? CHAT : (DEMO[p] ?? {});
-    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
-  });
-  const shot = async (name, url, wait = 1500) => {
+  const shot = async (name, url, person, extra = {}, wait = 1500) => {
+    const who = PEOPLE[person];
+    const ctx = await browser.newContext({ viewport: { width: 320, height: 628 }, deviceScaleFactor: 2, serviceWorkers: 'block', colorScheme: 'light', reducedMotion: 'reduce' });
+    await ctx.addInitScript(u => {
+      localStorage.setItem('mg_token', 'demo');
+      localStorage.setItem('mg_user', JSON.stringify(u));
+      localStorage.setItem('arjun_theme', 'light');
+    }, who);
+    const page = await ctx.newPage();
+    await page.route('**/api/**', route => {
+      const p = new URL(route.request().url()).pathname;
+      let body;
+      if (p === '/api/auth/me') body = { user: who };
+      else if (p.endsWith('/messages')) body = extra.chat || CHAT;
+      else if (extra[p] !== undefined) body = extra[p];
+      else body = DEMO[p] ?? {};
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
+    });
     await page.goto(BASE + url);
     await page.waitForTimeout(wait);
     await page.screenshot({ path: path.join(OUT, `${name}.jpg`), type: 'jpeg', quality: 82 });
-    console.log('saved', name);
+    await ctx.close();
+    console.log('saved', name, '·', who.sport);
   };
-  await shot('home', '/dashboard');
-  await shot('coach', '/coaching', 2200);
-  await shot('reset', '/body-reset');
-  await shot('focus', '/focus-deck');
-  await shot('practice', '/my-practice');
-  await shot('tools', '/tools');
+  await shot('home', '/dashboard', 'rohan');
+  await shot('coach', '/coaching', 'aarav', { chat: FOOTBALL_CHAT }, 2200);
+  await shot('reset', '/body-reset', 'meera');
+  await shot('focus', '/focus-deck', 'kabir', { '/api/self-talk/cards': TENNIS_CARDS });
+  await shot('practice', '/my-practice', 'simran');
+  await shot('tools', '/tools', 'rohan');
   await browser.close();
 }
 main().catch(e => { console.error(e); process.exit(1); });

@@ -506,7 +506,7 @@ export const translations = {
         { q: 'Can I cancel?', a: 'Yes, any time from your account. You keep Premium until the end of the period you paid for. See our Refund policy for refunds.' },
       ],
       finalTitle: 'Ready to play your best?',
-      finalPhotoAlt: 'The Arjun app on a phone, showing its training tools',
+      finalPhotoAlt: 'The Arjun app on a phone, showing a chat with Arjun',
       footerPrivacy: 'Privacy',
       footerTerms: 'Terms',
       footerRefund: 'Refund',
@@ -1043,7 +1043,7 @@ export const translations = {
       greeting: (name) => `Hi, ${name}`,
       athleteFallback: 'Athlete',
       heroSub: 'Talk through whatever is on your mind.',
-      journalShort: 'Write 2 minutes after training or a match — it shows you what helps.',
+      journalShort: 'See what helps you play better',
       journalExamples: [
         'Nervous before batting, fine after the first 2 balls',
         'Breathing out slowly helped after my mistake',
@@ -1094,6 +1094,13 @@ export const translations = {
     // The five real practices only — no invented categories, no practice
     // counts (there is no count data to render). Names and descriptions are
     // the existing approved wording, moved out of inline JSX conditionals.
+    toolIntro: {
+      how: 'How it works',
+      example: 'Example',
+      selfTalk: { desc: 'Strong words for tough moments.', steps: ['Pick a tough moment', 'Get your words', 'Save your card'] },
+      warmUp: { desc: 'Get your mind ready in 4 minutes.', steps: ['Say how you feel', 'Pick one moment', 'Get your focus word'] },
+      reset: { desc: 'Calm your body with slow breathing.', steps: ['Rate how tight', 'Breathe slowly', 'Feel the change'] },
+    },
     yourWords: {
       tag: {
         card: () => 'Your Self-Talk Card',
@@ -1398,7 +1405,7 @@ export const translations = {
         done: 'Fresh start. Arjun still remembers what matters.',
         error: 'Could not start fresh. Try again.',
       },
-      placeholder: 'What\'s on your mind?',
+      placeholder: 'Type a message…',
       send: 'Send',
       writeMyOwn: 'Write my own',
       startPractice: 'Start Practice',
@@ -1588,13 +1595,13 @@ export const translations = {
       untitled: 'My routine',
       categoryLabel: 'When is this routine for?',
       categories: {
-        repeated_moment: 'Between balls or points',
+        repeated_moment: 'In the breaks during play',
         pressure_moment: 'A big, nervous moment',
         session_preparation: 'Before I play or train',
         own_situation: 'Something else',
       },
       categoryHints: {
-        repeated_moment: 'Between points, balls, shots or plays',
+        repeated_moment: 'The short gaps between plays',
         pressure_moment: 'A big moment where nerves show up',
         session_preparation: 'Before a match or a training session',
         own_situation: 'Something else that matters to you',
@@ -1606,7 +1613,7 @@ export const translations = {
       stepExamples: [
         'e.g. Two slow breaths',
         "e.g. Say my word: 'Sharp'",
-        'e.g. Picture my first ball',
+        'e.g. Picture my first good play',
         'e.g. Bounce on my toes',
         'e.g. Pick my target',
       ],
@@ -1663,7 +1670,7 @@ export const translations = {
       tipTitle: 'When to use it',
       useWhen: {
         session_preparation: 'Use it before you play or train.',
-        repeated_moment: 'Use it every time this moment comes up — after each ball, point or shot.',
+        repeated_moment: 'Use it every time this moment comes up during play.',
         pressure_moment: 'Use it when the pressure moment arrives.',
         own_situation: 'Use it whenever this situation comes up.',
       },

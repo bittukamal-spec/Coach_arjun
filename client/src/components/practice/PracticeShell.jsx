@@ -63,7 +63,7 @@ const START_CLASS = {
 
 export function PracticeIntro({
   onBack, headerTitle,
-  icon: Icon, variant = 'blue', tone, Art, mascot, scene, tag, title, desc, checklist, example,
+  icon: Icon, variant = 'blue', tone, Art, mascot, scene, tag, title, desc, checklist, example, steps, exampleLine, howLabel = 'How it works', exampleLabel = 'Example',
   whyLabel, whyBody,
   onStart, startLabel,
   secondaryLabel, onSecondary,
@@ -97,6 +97,26 @@ export function PracticeIntro({
             <span className="mt-4 inline-block rounded-full bg-inkblock text-white text-micro font-bold uppercase px-3.5 py-1.5">{tag}</span>
           )}
         </section>
+
+        {steps && (
+          <section className="mt-7" aria-label={howLabel} data-testid="intro-steps">
+            <h3 className="text-[13px] font-extrabold uppercase tracking-[0.1em] text-ink/70">{howLabel}</h3>
+            <ol className="mt-3 grid gap-2" style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}>
+              {steps.map((step, i) => (
+                <li key={step} className="flex flex-col items-center gap-1.5 rounded-[18px] bg-dark-400 px-2 py-3">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-inkblock text-[13px] font-extrabold text-white" aria-hidden="true">{i + 1}</span>
+                  <span className="text-[13px] font-bold leading-snug text-ink">{step}</span>
+                </li>
+              ))}
+            </ol>
+          </section>
+        )}
+
+        {exampleLine && (
+          <p className="mt-4 rounded-[18px] bg-dark-400 px-4 py-3 text-[14px] leading-snug text-ink" data-testid="intro-example">
+            <span className="font-extrabold">{exampleLabel}: </span>{exampleLine}
+          </p>
+        )}
 
         {example && <ExampleCard example={example} className="mt-6" />}
 

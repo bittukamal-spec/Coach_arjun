@@ -11,7 +11,9 @@ import HelplineList from '../components/HelplineList';
 import { PracticeHeader, PracticeIntro } from '../components/practice/PracticeShell';
 import { FocusArt } from '../components/visuals/TrainArt';
 import { practiceHome } from '../utils/practiceReturn';
-import { toolExamples } from '../i18n/sportExamples';
+import { introExamples } from '../i18n/sportExamples';
+
+const TI = translations.en.toolIntro;
 
 export default function SelfTalkPage() {
   const { user, token, language } = useAuth();
@@ -150,7 +152,10 @@ export default function SelfTalkPage() {
   // ── SCREEN 1: Learn ──────────────────────────────────────────────────────
   if (screen === 1) return (
     <PracticeIntro
-      example={toolExamples(user?.sport).selfTalk}
+      steps={TI.selfTalk.steps}
+      exampleLine={introExamples(user?.sport).selfTalk}
+      howLabel={TI.how}
+      exampleLabel={TI.example}
       onBack={goBack}
       tone="coral"
       Art={FocusArt}
@@ -158,13 +163,7 @@ export default function SelfTalkPage() {
       icon={MessageSquare}
       tag={t.learn.duration}
       title={t.learn.title}
-      desc={t.learn.desc}
-      checklist={{
-        title: hi ? 'क्या उम्मीद करें' : 'What to expect',
-        items: [t.learn.benefit1, t.learn.benefit2, t.learn.benefit3],
-      }}
-      whyLabel={t.learn.educTitle}
-      whyBody={<p>{t.learn.educBody}</p>}
+      desc={TI.selfTalk.desc}
       onStart={() => setScreen(2)}
       startLabel={t.learn.startBtn}
     />

@@ -10,7 +10,9 @@ import { apiFetch } from '../api';
 import { PracticeIntro, PracticeScreen, PracticeCompletion, CompletionMascot } from '../components/practice/PracticeShell';
 import { practiceHome } from '../utils/practiceReturn';
 import PlayPlanCard from '../components/path/PlayPlanCard';
-import { toolExamples } from '../i18n/sportExamples';
+import { introExamples } from '../i18n/sportExamples';
+
+const TI = translations.en.toolIntro;
 
 // ─── Quick Rep (Daily Mental Rep) — the core Healthy Hook habit ────────────
 // Flow: intro → context → state → moment → short guided rep → one cue →
@@ -237,7 +239,10 @@ export default function MentalRepPage() {
   // ── STEP: Intro ────────────────────────────────────────────────────────────
   if (step === 'intro') return (
     <PracticeIntro
-      example={toolExamples(user?.sport).warmUp}
+      steps={TI.warmUp.steps}
+      exampleLine={introExamples(user?.sport).warmUp}
+      howLabel={TI.how}
+      exampleLabel={TI.example}
       onBack={goBack}
       headerTitle={headerTitle}
       icon={Zap}
@@ -246,13 +251,7 @@ export default function MentalRepPage() {
       mascot="think"
       tag={hi ? '4 मिनट' : '4 min'}
       title="Mind Warm-up"
-      desc={hi
-        ? '4 मिनट में मन तैयार करो और एक cue लेकर निकलो।'
-        : '4 minutes. You end with one short word to say to yourself in training.'}
-      whyLabel={hi ? 'यह क्यों काम करता है' : 'Why this works'}
-      whyBody={hi
-        ? 'अपनी स्थिति को पहचानना और एक साफ फोकस पॉइंट चुनना ध्यान को उस चीज़ पर लाता है जिसे तुम अभी नियंत्रित कर सकते हो — यही "process focus" तकनीक स्पोर्ट्स साइकोलॉजिस्ट दबाव के पलों से पहले इस्तेमाल करवाते हैं। एक छोटा बोला गया cue लेकर खत्म करने से उसे उस पल में याद रखना आसान हो जाता है।'
-        : 'Saying how you feel and picking one thing to focus on keeps your mind on what you can control right now. Ending with one short word makes it easy to remember in the match.'}
+      desc={TI.warmUp.desc}
       onStart={() => setStep(preContext ? 'state' : 'context')}
       startLabel={hi ? 'शुरू करो' : 'Start'}
     />

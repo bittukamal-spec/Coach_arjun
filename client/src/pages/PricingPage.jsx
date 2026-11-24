@@ -89,79 +89,74 @@ export default function PricingPage() {
     t.feature4, t.feature5, t.feature6,
   ];
 
+  // Playbook look (Nov 2026): yearly = the brand-blue block with a sun
+  // button, monthly = a card, then what's included. Prices, payment flow and
+  // copy are unchanged (they must match the live Razorpay plans).
   return (
     <div className="min-h-screen bg-dark-900">
-      {/* Header */}
-      <div className="max-w-lg mx-auto px-4 pt-5 pb-3 flex items-center gap-3">
+      <div className="max-w-lg mx-auto px-4 pt-4 pb-2 flex items-center gap-3">
         <button
           onClick={() => navigate(-1)}
-          className="w-9 h-9 flex items-center justify-center rounded-full bg-dark-800 border border-dark-600 text-slt hover:text-ink transition-colors"
+          aria-label="Back"
+          className="w-11 h-11 flex items-center justify-center rounded-2xl bg-dark-400 text-ink active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
         >
-          <ArrowLeft size={16} />
+          <ArrowLeft size={18} />
         </button>
-        <h1 className="text-lg font-bold text-ink">{t.pageTitle}</h1>
       </div>
 
-      <main className="max-w-lg mx-auto px-4 pb-16 animate-fade-in">
+      <main className="max-w-lg mx-auto px-page pb-16 animate-fade-in">
+        <h1 className="mt-2 text-[30px] leading-tight font-extrabold text-ink">{t.pageTitle}</h1>
 
-        {/* Plan cards */}
-        <div className="space-y-3 mb-8 mt-2">
-
-          {/* Yearly — highlighted */}
-          <div className="bg-dark-400 border-2 border-brand-500 rounded-2xl p-5 relative overflow-hidden">
-            <span className="inline-flex items-center bg-saffron-500/20 text-saffron-400 text-[10px] font-bold px-2.5 py-1 rounded-full mb-3">
+        <div className="mt-5 space-y-3">
+          {/* Yearly — the main choice */}
+          <section className="rounded-[28px] bg-brand-500 p-5 text-white" data-testid="plan-yearly">
+            <span className="inline-flex items-center rounded-full bg-sun px-3 py-1 text-[12px] font-extrabold text-inkblock">
               {t.bestValue} · {t.saveYearly}
             </span>
-            <p className="text-xs font-bold text-brand-400 uppercase tracking-wide mb-1">{t.yearly}</p>
-            <p className="text-3xl font-black text-ink leading-none mb-1">{t.yearlyPrice}</p>
-            <p className="text-xs text-brand-300 font-semibold">{t.monthlyEquiv}</p>
-            <p className="text-[11px] text-slt mt-0.5 mb-4">{t.billedYearly}</p>
+            <p className="mt-4 text-[13px] font-extrabold uppercase tracking-[0.1em] text-white/80">{t.yearly}</p>
+            <p className="mt-1 text-[34px] leading-none font-extrabold">{t.yearlyPrice}</p>
+            <p className="mt-2 text-[14px] font-bold">{t.monthlyEquiv}</p>
+            <p className="text-[13px] text-white/80">{t.billedYearly}</p>
             <button
               onClick={() => handleSubscribe('yearly')}
               disabled={!!loadingPlan}
-              className="w-full py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-sm font-bold transition-colors disabled:opacity-60"
+              className="mt-5 w-full min-h-[56px] rounded-[18px] bg-sun text-inkblock text-base font-extrabold active:scale-[0.98] transition-transform disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
               {loadingPlan === 'yearly' ? t.loading : t.startYearly}
             </button>
-          </div>
+          </section>
 
           {/* Monthly */}
-          <div className="bg-dark-800 border border-dark-600 rounded-2xl p-5">
-            <p className="text-xs font-bold text-slt uppercase tracking-wide mb-1">{t.monthly}</p>
-            <p className="text-3xl font-black text-ink leading-none mb-1">{t.monthlyPrice}</p>
-            <p className="text-xs text-slt mb-4">{t.billedMonthly}</p>
+          <section className="rounded-[28px] bg-dark-400 p-5" data-testid="plan-monthly">
+            <p className="text-[13px] font-extrabold uppercase tracking-[0.1em] text-slt">{t.monthly}</p>
+            <p className="mt-1 text-[30px] leading-none font-extrabold text-ink">{t.monthlyPrice}</p>
+            <p className="mt-2 text-[13px] text-slt">{t.billedMonthly}</p>
             <button
               onClick={() => handleSubscribe('monthly')}
               disabled={!!loadingPlan}
-              className="w-full py-3 rounded-xl bg-dark-700 border border-dark-500 hover:bg-dark-600 text-ink text-sm font-bold transition-colors disabled:opacity-60"
+              className="mt-5 w-full min-h-[52px] rounded-[18px] bg-inkblock text-white text-base font-extrabold active:scale-[0.98] transition-transform disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
             >
               {loadingPlan === 'monthly' ? t.loading : t.startMonthly}
             </button>
-          </div>
-
+          </section>
         </div>
 
-        {/* Error */}
-        {error && (
-          <p className="text-xs text-fire-500 text-center mb-5">{error}</p>
-        )}
+        {error && <p role="alert" className="mt-4 text-[13px] text-red-500 text-center">{error}</p>}
 
-        {/* Features list */}
-        <div className="bg-dark-800 border border-dark-600 rounded-2xl p-5 mb-5">
-          <p className="text-xs font-bold text-slt uppercase tracking-wide mb-4">{t.featuresTitle}</p>
-          <div className="space-y-3">
+        {/* What's included */}
+        <section className="mt-6 rounded-[28px] bg-dark-400 p-5">
+          <h2 className="text-[16px] font-extrabold text-ink">{t.featuresTitle}</h2>
+          <ul className="mt-3 space-y-3">
             {FEATURES.map((f, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <CheckCircle2 size={14} className="text-win-500 shrink-0" />
-                <span className="text-sm text-ink">{f}</span>
-              </div>
+              <li key={i} className="flex items-start gap-3">
+                <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-brand-500" aria-hidden="true" />
+                <span className="text-[14.5px] leading-snug text-ink">{f}</span>
+              </li>
             ))}
-          </div>
-        </div>
+          </ul>
+        </section>
 
-        {/* Reassurance */}
-        <p className="text-xs text-slt text-center leading-relaxed">{t.securePayment}</p>
-
+        <p className="mt-5 text-[13px] text-slt text-center leading-relaxed">{t.securePayment}</p>
       </main>
     </div>
   );
