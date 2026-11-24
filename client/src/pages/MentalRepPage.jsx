@@ -126,6 +126,12 @@ const SPORT_CUES = {
   football:  { frustrated: 'Next pass, head up', distracted: 'Scan early' },
   badminton: { frustrated: 'Next point', flat: 'Move early' },
   athletics: { frustrated: 'Next rep', ready: 'Drive, stay tall' },
+  wrestling: { nervous: 'Low and strong', frustrated: 'Reset stance', distracted: 'Watch the hips' },
+  boxing:    { nervous: 'Breathe, hands up', frustrated: 'Back to the jab', distracted: 'Eyes on the chest' },
+  kabaddi:   { nervous: 'Quick feet', frustrated: 'Next raid', distracted: 'Watch their feet' },
+  tennis:    { nervous: 'Swing free', frustrated: 'Next point', distracted: 'Watch the ball' },
+  hockey:    { nervous: 'Soft hands', frustrated: 'Next play', distracted: 'Eyes on the ball' },
+  swimming:  { nervous: 'Long and strong', frustrated: 'Next stroke', ready: 'Fast off the wall' },
 };
 
 export default function MentalRepPage() {

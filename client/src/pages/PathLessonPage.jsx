@@ -3,14 +3,15 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import MascotArt from '../components/visuals/MascotArt';
-import { usePath, pathText } from '../components/path/pathData';
+import { usePath, pathText, planUnit } from '../components/path/pathData';
+import { sportBlock } from '../i18n/sportExamples';
 
 const POSE = { calm: 'breathe', focus: 'think', confidence: 'point', routine: 'notes', bounce: 'cheer', picture: 'think' };
 
 // A 2-minute lesson: one idea per card, then "Got it" marks the Learn step.
 export default function PathLessonPage() {
   const { chapterKey } = useParams();
-  const { language } = useAuth();
+  const { language, user } = useAuth();
   const navigate = useNavigate();
   const t = pathText(language);
   const { markStep } = usePath();
@@ -19,7 +20,11 @@ export default function PathLessonPage() {
   const ch = t.chapters[chapterKey];
   if (!ch) return <Navigate to="/train" replace />;
 
-  const cards = ch.lesson.cards;
+  // Lesson words follow the athlete's sport: {focusWord}, {resetWord}, {unit}.
+  const sb = sportBlock(user?.sport);
+  const words = { focusWord: sb.focusWord, resetWord: sb.resetWord, unit: planUnit(user?.sport, t) };
+  const fill = (text) => String(text).replace(/\{(focusWord|resetWord|unit)\}/g, (_, k) => words[k]);
+  const cards = ch.lesson.cards.map(fill);
   const last = card === cards.length - 1;
 
   async function finish() {
@@ -46,7 +51,7 @@ export default function PathLessonPage() {
           <p className="mt-3 text-[17px] leading-relaxed text-ink">{cards[card]}</p>
           <p className="mt-3 text-[12px] text-slt">{t.lessonCardOf(card + 1, cards.length)}</p>
         </section>
-        {last && <p className="mt-4 rounded-[18px] bg-inkblock px-4 py-3 text-[15px] font-bold text-white">{ch.lesson.takeaway}</p>}
+        {last && <p className="mt-4 rounded-[18px] bg-inkblock px-4 py-3 text-[15px] font-bold text-white">{fill(ch.lesson.takeaway)}</p>}
         <div className="flex-1" />
         <button
           type="button"

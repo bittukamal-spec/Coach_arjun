@@ -91,9 +91,7 @@ export default function PressureResetSkillPath() {
   }
 
   // ── Sport-personalized content ───────────────────────────────────────────
-  const sportKey = ['football', 'cricket', 'badminton', 'athletics'].includes(user?.sport)
-    ? user.sport
-    : 'generic';
+  const sportKey = t.example[user?.sport] ? user.sport : 'generic';
   const example = t.example[sportKey];
   const quizSet = t.quiz.bySport[sportKey] || t.quiz.bySport.generic;
 
