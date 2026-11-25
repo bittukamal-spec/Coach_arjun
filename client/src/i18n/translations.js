@@ -218,6 +218,13 @@ export const translations = {
       lessonCardOf: (n, total) => `${n} of ${total}`,
       talkToArjun: 'Talk to Arjun about it',
       homeNextTag: (chapter) => `Next step · ${chapter}`,
+      // Home's next-step card says only the action, in a few words.
+      homeShort: {
+        learn: 'Read a 2-minute lesson',
+        practise: { calm: 'Do a Pressure Reset', focus: 'Do a Mind Warm-up', confidence: 'Make a Self-Talk Card', routine: 'Build your routine', bounce: 'Do a Mind Warm-up', picture: 'Picture it going well' },
+        play: 'Use it in training or a match',
+        reflect: 'Write one line about it',
+      },
       homeNextReflect: 'Write one line about how it went',
       plan: {
         tag: 'Use it in your next match',
@@ -274,6 +281,8 @@ export const translations = {
         homePrep: (when) => `Match ${when} · Your prep`,
         homeReview: (weekday) => `How did ${weekday} go?`,
         chipAdd: 'Add your next match',
+        tileAdd: 'Add next match',
+        tileSet: (weekday, date) => `Match ${weekday} ${date}`,
         sheetTitle: 'Which day is your match?',
         sheetLine: 'Arjun will help you get ready the day before.',
         thisWeek: 'Next 7 days',
