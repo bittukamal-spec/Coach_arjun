@@ -10,12 +10,22 @@ import MatchDaySheet from '../match/MatchDaySheet';
 // Home's path area. Home stays light (founder, Nov 2026): the match prep
 // and "How did it go?" cards live on Tools; Home shows one chip that opens
 // them. Then "Your next step", and on ordinary days a small "Next match" chip.
-export default function HomePathArea() {
+// Home loads the path once and shares it with the area and the match tile
+// (founder, Nov 2026: a calmer top — the "Next match" button now sits in the
+// Your space tile row instead of under the next step).
+export default function HomePathArea({ api }) {
+  return api ? <PathArea api={api} /> : <OwnPathArea />;
+}
+
+function OwnPathArea() {
+  return <PathArea api={usePath()} />;
+}
+
+function PathArea({ api }) {
+  const { path } = api;
+  const { state: mc } = useMindChallenge();
   const { language } = useAuth();
   const m = pathText(language).match;
-  const { path, setMatchDay } = usePath();
-  const { state: mc } = useMindChallenge();
-  const [sheet, setSheet] = useState(false);
 
   if (!path) return null;
   const day = path.match?.nextDay || null;
@@ -33,18 +43,37 @@ export default function HomePathArea() {
         </Link>
       )}
       <PathNextCardView path={path} mc={mc} />
-      {!moment && (
-        <button type="button" onClick={() => setSheet(true)} data-testid="match-chip"
-          className="mb-3 -mt-1 inline-flex min-h-[44px] items-center gap-2 rounded-full bg-dark-400 pl-3 pr-2.5 text-[13px] font-bold text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
-          <CalendarDays size={16} aria-hidden="true" />
-          {phase === 'ahead' ? m.chipSet(weekdayOf(day, 'short'), dayFromKey(day).getDate(), m.typeShort[path.match?.type]) : m.chipAdd}
-          <ChevronRight size={16} aria-hidden="true" />
-        </button>
-      )}
+    </>
+  );
+}
+
+// "Next match" square tile for Home's Your space row: add the day (and type)
+// or see the one that is set. Hidden on match moments (the dark chip at the
+// top of Home covers those).
+export function NextMatchTile({ api }) {
+  const { language } = useAuth();
+  const m = pathText(language).match;
+  const { path, setMatchDay } = api;
+  const [sheet, setSheet] = useState(false);
+  if (!path) return null;
+  const day = path.match?.nextDay || null;
+  const phase = matchPhase(day);
+  if (phase === 'tomorrow' || phase === 'today' || phase === 'review') return null;
+  const set = phase === 'ahead';
+  return (
+    <>
+      <button type="button" onClick={() => setSheet(true)} data-testid="match-chip"
+        className="flex aspect-square w-[42vw] max-w-[168px] shrink-0 snap-start flex-col justify-between rounded-[24px] bg-mint p-3.5 text-left text-inkblock active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2">
+        <CalendarDays size={40} strokeWidth={2.2} aria-hidden="true" />
+        <span className="block">
+          <span className="block text-[16px] font-extrabold leading-tight">{set ? m.tileSet(weekdayOf(day, 'short'), dayFromKey(day).getDate()) : m.tileAdd}</span>
+          {set && path.match?.type && <span className="block text-[13px] font-bold">{m.typeShort[path.match.type]}</span>}
+        </span>
+      </button>
       <MatchDaySheet
         open={sheet}
-        initialDay={phase === 'ahead' ? day : null}
-        initialType={phase === 'ahead' ? (path.match?.type || null) : null}
+        initialDay={set ? day : null}
+        initialType={set ? (path.match?.type || null) : null}
         onClose={() => setSheet(false)}
         onSave={async (d, ty) => { await setMatchDay(d, ty); setSheet(false); }}
       />

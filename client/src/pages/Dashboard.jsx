@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
-import HomePathArea from '../components/home/HomePathArea';
+import HomePathArea, { NextMatchTile } from '../components/home/HomePathArea';
+import { usePath } from '../components/path/pathData';
 import { YourWordsTile } from '../components/home/YourWordsCard';
 import ToolTile from '../components/tools/ToolTile';
 import { PracticeLogArt } from '../components/visuals/TrainArt';
@@ -33,24 +34,16 @@ const PROBLEM_SHORTCUTS = [
     prefill: { en: "I'm feeling low on confidence.", hi: 'मेरा confidence कम है।' } },
 ];
 
-// "Wednesday evening" — a plain, local line above the greeting.
-function partOfDay(hour) {
-  if (hour < 12) return 'morning';
-  if (hour < 17) return 'afternoon';
-  return 'evening';
-}
-
 export default function Dashboard() {
   const { user, language } = useAuth();
   const hi = language === 'hi';
+  const pathApi = usePath();
 
   // ── derived ────────────────────────────────────────────────────────────────
   const L = translations[language] || translations.en;
   const t = L.home;
   const tt = L.toolsPage || translations.en.toolsPage;
   const firstName = (user?.name || '').split(' ')[0] || t.athleteFallback;
-  const now = new Date();
-  const weekday = now.toLocaleDateString(hi ? 'hi-IN' : 'en-IN', { weekday: 'long' });
 
   // ── render ─────────────────────────────────────────────────────────────────
   // Playbook redesign. Home reads no API of its own: it renders immediately
@@ -71,11 +64,8 @@ export default function Dashboard() {
         {/* ── 1. GREETING ───────────────────────────────────────────────── */}
         {/* No logo bar on Home: the greeting leads, with the account
             button beside it. The greeting IS Home's page title (<h1>). */}
-        <div className="pt-1 mb-4 flex items-start justify-between gap-3">
+        <div className="pt-2 mb-4 flex items-center justify-between gap-3">
           <div className="min-w-0">
-          <p className="text-[13px] font-semibold text-slt">
-            {t.dayLine(weekday, t.partOfDay[partOfDay(now.getHours())])}
-          </p>
           <h1 className="text-[30px] leading-[1.1] font-extrabold tracking-tight text-ink">
             {t.greeting(firstName)}
           </h1>
@@ -87,7 +77,7 @@ export default function Dashboard() {
         <MindChallengeHomeCard />
 
         {/* ── YOUR NEXT STEP on the path, or the match prep / "How did it go?" card */}
-        <HomePathArea />
+        <HomePathArea api={pathApi} />
 
         {/* ── YOUR PRACTICE FROM ARJUN — the blue block, only when Coach has
              already given a practice and no final result is reported yet.
@@ -126,6 +116,7 @@ export default function Dashboard() {
           <div className="-mx-5 mt-2 flex snap-x snap-mandatory scroll-px-5 gap-2.5 overflow-x-auto px-5 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <ToolTile to="/mind-journal" tone="blush" title={tt.journal} art={<JournalArt size={56} />} />
             <YourWordsTile />
+            <NextMatchTile api={pathApi} />
             <ToolTile to="/my-practice" tone="brand" title={tt.myPractice} art={<PracticeLogArt />} />
             <ToolTile to="/weekly-reviews" tone="ink" title={tt.weeklyShort} art={<PracticeLogArt />} />
           </div>

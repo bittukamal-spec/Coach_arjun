@@ -40,10 +40,10 @@ export function PathNextCardView({ path, mc }) {
       data-testid="home-path-next"
       className="mb-3 flex items-center gap-3 rounded-[22px] border-2 border-sun bg-dark-400 px-3.5 py-3 active:scale-[0.99] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
     >
-      <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${block} text-inkblock`} aria-hidden="true"><Icon size={20} /></span>
+      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${block} text-inkblock`} aria-hidden="true"><Icon size={18} /></span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[11px] font-medium uppercase tracking-[0.1em] text-slt">{t.homeNextTag(level > 1 ? `${ch.title} · ${t.levelLabel(level)}` : ch.title, STEP_ORDER.indexOf(stepKey) + 1)}</span>
-        <span className="mt-0.5 block text-[15px] font-extrabold leading-snug text-ink">{nextStepText(chapterKey, stepKey, t, level, user?.sport)}</span>
+        <span className="block text-[11px] font-medium uppercase tracking-[0.1em] text-slt">{t.homeNextTag(ch.title)}</span>
+        <span className="mt-0.5 block text-[16px] font-extrabold leading-snug text-ink">{t.homeShort[stepKey] && typeof t.homeShort[stepKey] === 'object' ? t.homeShort[stepKey][chapterKey] : t.homeShort[stepKey] || nextStepText(chapterKey, stepKey, t, level, user?.sport)}</span>
       </span>
       <ChevronRight size={20} strokeWidth={2.6} className="shrink-0 text-ink" aria-hidden="true" />
     </Link>

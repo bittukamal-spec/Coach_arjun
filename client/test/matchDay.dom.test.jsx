@@ -10,7 +10,10 @@ vi.mock('../src/contexts/AuthContext', () => ({
 vi.mock('../src/api', () => ({ apiFetch: vi.fn() }));
 
 const { apiFetch } = await import('../src/api');
-const { default: HomePathArea } = await import('../src/components/home/HomePathArea');
+const { default: HomePathArea, NextMatchTile } = await import('../src/components/home/HomePathArea');
+const { usePath: usePathHook } = await import('../src/components/path/pathData');
+// Home shares one path load between the top area and the "Next match" tile.
+function HomeTop() { const api = usePathHook(); return <><HomePathArea api={api} /><NextMatchTile api={api} /></>; }
 const { default: ToolsPage } = await import('../src/pages/ToolsPage');
 const { matchPhase, dayKey } = await import('../src/components/path/pathData');
 
@@ -45,9 +48,9 @@ describe('next match on Home', () => {
     expect(matchPhase(shift(-5))).toBe('stale');
   });
 
-  test('no match yet: next step + "Add your next match" chip → the day picker saves the day', async () => {
+  test('no match yet: next step + "Add next match" tile → the day picker saves the day', async () => {
     serve(makePath(null));
-    render(<MemoryRouter><HomePathArea /></MemoryRouter>);
+    render(<MemoryRouter><HomeTop /></MemoryRouter>);
     fireEvent.click(await screen.findByTestId('match-chip'));
     expect(screen.getByTestId('match-sheet')).toBeTruthy();
     const tomorrow = shift(1);
