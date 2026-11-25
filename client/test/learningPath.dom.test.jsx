@@ -110,7 +110,7 @@ describe('Hook fix 1: next step on Home + chapter unlocked', () => {
     apiFetch.mockImplementation((url) => Promise.resolve(respond(url === '/api/path' ? makePath() : { latest: { mindLevel: 2 }, canTake: false })));
     render(<MemoryRouter><PathNextCard /></MemoryRouter>);
     const card = await screen.findByTestId('home-path-next');
-    expect(card.textContent).toMatch(/Your next step · Focus 3\/4/);
+    expect(card.textContent).toMatch(/Next step · Focus/);
     expect(card.getAttribute('href')).toBe('/path/focus');
     cleanup();
     apiFetch.mockImplementation((url) => Promise.resolve(respond(url === '/api/path' ? makePath() : { latest: null, canTake: true })));

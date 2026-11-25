@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 // scroll sideways, so each tile has a fixed square size.
 const TONES = {
   sky: 'bg-sky', mint: 'bg-mint', sun: 'bg-sun', coral: 'bg-coral', blush: 'bg-blush',
-  brand: 'bg-brand-500 text-white', card: 'bg-dark-400 text-ink', ink: 'bg-inkblock text-white',
+  brand: 'bg-brand-500 text-white', card: 'bg-dark-400 text-ink', ink: 'bg-inkblock text-white ring-1 ring-inset ring-white/25',
 };
 
 export default function ToolTile({ to, tone = 'sky', title, art, onClick, badge = null }) {

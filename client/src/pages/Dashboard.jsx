@@ -1,12 +1,14 @@
 import { Link } from 'react-router-dom';
 import HomePathArea from '../components/home/HomePathArea';
-import YourWordsCard from '../components/home/YourWordsCard';
+import { YourWordsTile } from '../components/home/YourWordsCard';
+import ToolTile from '../components/tools/ToolTile';
+import { PracticeLogArt } from '../components/visuals/TrainArt';
 import MindChallengeHomeCard from '../components/home/MindChallengeHomeCard';
 import Navbar from '../components/Navbar';
 import ConsentBanner from '../components/ConsentBanner';
 import { useAuth } from '../contexts/AuthContext';
 import { translations } from '../i18n/translations';
-import { ArrowRight, ChevronRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { JournalArt } from '../components/visuals/HomeArt';
 import Teer from '../components/visuals/Teer';
 import PilotCommunicationPopup from '../components/pilotCommunications/PilotCommunicationPopup';
@@ -45,6 +47,7 @@ export default function Dashboard() {
   // ── derived ────────────────────────────────────────────────────────────────
   const L = translations[language] || translations.en;
   const t = L.home;
+  const tt = L.toolsPage || translations.en.toolsPage;
   const firstName = (user?.name || '').split(' ')[0] || t.athleteFallback;
   const now = new Date();
   const weekday = now.toLocaleDateString(hi ? 'hi-IN' : 'en-IN', { weekday: 'long' });
@@ -61,7 +64,7 @@ export default function Dashboard() {
           there is no eligible communication. */}
       <PilotCommunicationPopup />
 
-      <main className="max-w-lg mx-auto px-5 pt-[calc(1rem+env(safe-area-inset-top))] pb-28 animate-fade-in">
+      <main className="max-w-lg mx-auto px-5 pt-[calc(1rem+env(safe-area-inset-top))] pb-[calc(7.5rem+env(safe-area-inset-bottom))] animate-fade-in">
         {/* ── Guardian consent pending (under-18 accounts) ──────────────── */}
         <ConsentBanner />
 
@@ -85,9 +88,6 @@ export default function Dashboard() {
 
         {/* ── YOUR NEXT STEP on the path, or the match prep / "How did it go?" card */}
         <HomePathArea />
-
-        {/* ── YOUR WORDS — Hook fix 6: one thing they made comes back, changes daily */}
-        <YourWordsCard />
 
         {/* ── YOUR PRACTICE FROM ARJUN — the blue block, only when Coach has
              already given a practice and no final result is reported yet.
@@ -118,43 +118,39 @@ export default function Dashboard() {
              it here would change when cycles roll over. Deferred rather than
              faked. ─────────────────────────────────────────────────────── */}
 
-        {/* ── 3. MIND JOURNAL — the blush block, a compact row. Only the
-             destination matters here: it navigates to the existing
-             /mind-journal route and nothing else. */}
-        <Link
-          to="/mind-journal"
-          className="mb-3 flex items-center gap-3 min-h-[76px] rounded-[24px] bg-blush text-inkblock px-4 py-3 active:scale-[0.99] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
-        >
-          <JournalArt size={44} />
-          <span className="flex-1 min-w-0">
-            <span className="block text-[19px] leading-tight font-extrabold">{t.journalTitle}</span>
-            <span className="block mt-0.5 text-[14px] leading-snug text-[#4A1238]" data-testid="journal-benefit">{t.journalShort}</span>
-          </span>
-          <ChevronRight size={22} strokeWidth={2.6} aria-hidden="true" />
-        </Link>
+        {/* ── 3. YOUR SPACE — founder (Nov 2026): Home was too busy, so the
+             journal, look-backs and the athlete's own saved word sit in one
+             sideways row of square tiles, like Tools. */}
+        <section aria-labelledby="home-space" className="mb-4" data-testid="home-tiles">
+          <h2 id="home-space" className="text-[12px] font-extrabold uppercase tracking-[0.1em] text-slt">{t.spaceTitle}</h2>
+          <div className="-mx-5 mt-2 flex snap-x snap-mandatory scroll-px-5 gap-2.5 overflow-x-auto px-5 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <ToolTile to="/mind-journal" tone="blush" title={tt.journal} art={<JournalArt size={56} />} />
+            <YourWordsTile />
+            <ToolTile to="/my-practice" tone="brand" title={tt.myPractice} art={<PracticeLogArt />} />
+            <ToolTile to="/weekly-reviews" tone="ink" title={tt.weeklyShort} art={<PracticeLogArt />} />
+          </div>
+        </section>
 
-        {/* ── 4. PICK WHAT YOU NEED NOW — the last, quietest section. Every
-             route stays a real <Link> to /coaching. The shortcut's message is
-             sent straight away (founder decision, Nov 2026) — one tap and
-             Arjun starts replying; see ChatPage's autoSend handling. */}
-        <div>
-          <h2 className="sr-only">{t.helpLabel}</h2>
-          <div className="grid grid-cols-2 gap-2">
+        {/* ── 4. QUICK STARTS — one slim sideways row. Each opens Coach with
+             the message sent straight away (founder decision, Nov 2026). */}
+        <section aria-labelledby="home-help">
+          <h2 id="home-help" className="text-[12px] font-extrabold uppercase tracking-[0.1em] text-slt">{t.helpLabel}</h2>
+          <div className="-mx-5 mt-2 flex gap-2 overflow-x-auto px-5 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {PROBLEM_SHORTCUTS.map(q => (
               <Link
                 key={q.id}
                 to="/coaching"
                 state={{ prefillMsg: q.prefill[hi ? 'hi' : 'en'], autoSend: true }}
-                className="rounded-2xl bg-dark-400 flex items-center gap-2 px-3 min-h-[48px] active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                className="shrink-0 rounded-full bg-dark-400 flex items-center gap-2 px-4 min-h-[44px] active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
               >
                 <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${q.dot}`} aria-hidden="true" />
-                <span className="text-[13px] font-bold text-ink leading-snug [text-wrap:pretty]">
+                <span className="whitespace-nowrap text-[13px] font-bold text-ink">
                   {q.label[hi ? 'hi' : 'en']}
                 </span>
               </Link>
             ))}
           </div>
-        </div>
+        </section>
       </main>
     </div>
   );

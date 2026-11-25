@@ -108,17 +108,14 @@ test('Dashboard: no day-context dropdown or recommended-practice CTA remains to 
 // text column it wraps into the corner arrow badge at the ≥430px
 // breakpoint (confirmed by screenshot) — so the illustration is
 // intentionally omitted here.
-test('Dashboard "Mind Journal" block: a blush row with its drawing, opening /mind-journal', () => {
-  // Playbook redesign (founder-approved Nov 2026): Mind Journal is a compact
-  // blush row under Talk to Arjun, not the large violet gradient card.
-  const idx = dashboard.indexOf('MIND JOURNAL');
-  assert.notEqual(idx, -1, 'the Mind Journal section should still exist');
-  const card = dashboard.slice(idx, idx + 1300);
-  assert.match(card, /to="\/mind-journal"/);
-  assert.match(card, /bg-blush/, 'the Mind Journal colour block');
-  assert.match(card, /<JournalArt size=\{\d+\} \/>/);
-  assert.match(card, /journalTitle/);
-  assert.match(card, /journalShort/);
+test('Dashboard "Mind Journal": a blush square tile in the Your space row, opening /mind-journal', () => {
+  // Founder (Nov 2026): Home was too busy, so Mind Journal, My practice and
+  // Weekly reviews sit in one sideways row of square tiles, like Tools.
+  const idx = dashboard.indexOf('YOUR SPACE');
+  assert.notEqual(idx, -1, 'the Your space row should exist');
+  const row = dashboard.slice(idx, dashboard.indexOf('QUICK STARTS'));
+  assert.match(row, /<ToolTile to="\/mind-journal" tone="blush"/);
+  assert.match(row, /<JournalArt size=\{\d+\} \/>/);
   assert.doesNotMatch(dashboard, /TrainGradientCard/, 'Home no longer uses the gradient card');
 });
 

@@ -217,7 +217,7 @@ export const translations = {
       lessonDone: 'Got it',
       lessonCardOf: (n, total) => `${n} of ${total}`,
       talkToArjun: 'Talk to Arjun about it',
-      homeNextTag: (chapter, n) => `Your next step · ${chapter} ${n}/4`,
+      homeNextTag: (chapter) => `Next step · ${chapter}`,
       homeNextReflect: 'Write one line about how it went',
       plan: {
         tag: 'Use it in your next match',
@@ -1085,6 +1085,7 @@ export const translations = {
       greeting: (name) => `Hi, ${name}`,
       athleteFallback: 'Athlete',
       heroSub: 'Talk through whatever is on your mind.',
+      spaceTitle: 'Your space',
       journalShort: 'See what helps you play better',
       journalExamples: [
         'Nervous before batting, fine after the first 2 balls',
@@ -3564,6 +3565,7 @@ export const translations = {
       greeting: (name) => `हाय, ${name}`,
       athleteFallback: 'एथलीट',
       heroSub: 'मन में जो है, उस पर बात करो।',
+      spaceTitle: 'आपकी जगह',
       journalShort: 'आज के session पर दो मिनट',
       journalExamples: [
         'बैटिंग से पहले घबराहट थी, पहली 2 गेंदों के बाद ठीक',

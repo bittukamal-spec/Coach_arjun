@@ -49,14 +49,14 @@ function homeNamespace(lang) {
 // "Pick what you need now" closes the page. Nothing sits between the Coach
 // hero and the shortcuts any more.
 
-test('Dashboard renders exactly the approved order: greeting → Talk to Arjun → Mind Journal → Pick what you need now', () => {
+test('Dashboard renders exactly the approved order: greeting → Talk to Arjun → Your space tiles → quick starts', () => {
   // Playbook redesign (founder-approved Nov 2026): Talk to Arjun leads, the
   // compact Mind Journal row follows, the shortcuts close the page.
   const order = [
     src.indexOf('1. GREETING'),
     src.indexOf('2. TALK TO ARJUN'),
-    src.indexOf('3. MIND JOURNAL'),
-    src.indexOf('4. PICK WHAT YOU NEED NOW'),
+    src.indexOf('3. YOUR SPACE'),
+    src.indexOf('4. QUICK STARTS'),
   ];
   for (const idx of order) assert.ok(idx !== -1, 'every approved section must exist');
   for (let i = 1; i < order.length; i++) {
@@ -135,7 +135,7 @@ test('the four shortcuts are visually demoted but keep accessible tap targets', 
   // Need Help is the last rendered section since Mind Journal moved to the
   // top of Home, so the block runs to end of file.
   const shortcutBlock = src.slice(src.indexOf('PROBLEM_SHORTCUTS.map'));
-  assert.match(shortcutBlock, /min-h-\[48px\]/, 'still a real tap target after demotion');
+  assert.match(shortcutBlock, /min-h-\[44px\]/, 'still a real tap target after demotion');
 });
 
 test('shortcut prefill messages are unchanged', () => {
@@ -163,12 +163,12 @@ test('Home no longer fetches /api/playbook — it makes no API call of its own',
   assert.doesNotMatch(codeOnly, /method:\s*'(POST|PUT|PATCH|DELETE)'/, 'Home writes nothing');
 });
 
-test('Mind Journal is a compact blush row linking to /mind-journal, with no score and no pressure to write daily', () => {
-  const block = src.slice(src.indexOf('3. MIND JOURNAL'), src.indexOf('4. PICK WHAT YOU NEED NOW'));
+test('Your space: square tiles for Mind Journal, My practice and Weekly reviews; no pressure to write daily', () => {
+  const block = src.slice(src.indexOf('3. YOUR SPACE'), src.indexOf('4. QUICK STARTS'));
   assert.match(block, /to="\/mind-journal"/);
-  assert.match(block, /bg-blush/);
-  assert.ok(block.includes('{t.journalTitle}'));
-  assert.ok(block.includes('{t.journalShort}'));
+  assert.match(block, /to="\/my-practice"/);
+  assert.match(block, /to="\/weekly-reviews"/);
+  assert.match(block, /tone="blush"/);
   assert.doesNotMatch(codeOnly, /daily habit|every day|har din likho/i, 'no pressure-to-write-daily copy');
 });
 

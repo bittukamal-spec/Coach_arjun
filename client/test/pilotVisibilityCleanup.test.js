@@ -55,8 +55,7 @@ test('Dashboard: renders a score-free Mind Journal card that opens /mind-journal
   // (onClick + navigate()), still score-free, with the founder-approved
   // heading/value copy.
   assert.match(dashboard, /to="\/mind-journal"|navigate\('\/mind-journal'\)/);
-  assert.match(dashboard, /\{t\.journalTitle\}/);
-  assert.match(dashboard, /\{t\.journalShort\}/);
+  assert.match(dashboard, /title=\{tt\.journal\}/);
   assert.doesNotMatch(dashboard, /\d+\s*\/\s*5|score:\s*\d/i, 'still no numeric score of any kind');
 });
 

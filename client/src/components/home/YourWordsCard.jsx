@@ -25,9 +25,7 @@ export function pickWords(data, now = new Date()) {
 
 const TONE = { card: 'bg-coral', cue: 'bg-sun', journal: 'bg-blush', lesson: 'bg-mint' };
 
-export default function YourWordsCard() {
-  const { token, language } = useAuth();
-  const t = ((translations[language] || translations.en).yourWords) || translations.en.yourWords;
+function usePlaybookWords(token) {
   const [data, setData] = useState(null);
   useEffect(() => {
     let live = true;
@@ -37,8 +35,30 @@ export default function YourWordsCard() {
       .catch(() => {});
     return () => { live = false; };
   }, [token]);
+  return pickWords(data);
+}
 
-  const item = pickWords(data);
+// Home tile row (founder, Nov 2026: a calmer Home): the same "your words"
+// as one square tile beside Mind Journal, My practice and Weekly reviews.
+export function YourWordsTile() {
+  const { token, language } = useAuth();
+  const t = ((translations[language] || translations.en).yourWords) || translations.en.yourWords;
+  const item = usePlaybookWords(token);
+  if (!item) return null;
+  const when = item.at ? new Date(item.at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : null;
+  return (
+    <Link to={item.to} data-testid="your-words"
+      className={`flex aspect-square w-[42vw] max-w-[168px] shrink-0 snap-start flex-col justify-between rounded-[24px] p-3.5 text-inkblock active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 ${TONE[item.kind]}`}>
+      <span className="text-[11px] font-extrabold uppercase tracking-[0.08em] opacity-80">{t.tag[item.kind](when)}</span>
+      <span className="text-[19px] font-extrabold leading-tight [overflow-wrap:anywhere] line-clamp-4">“{item.text}”</span>
+    </Link>
+  );
+}
+
+export default function YourWordsCard() {
+  const { token, language } = useAuth();
+  const t = ((translations[language] || translations.en).yourWords) || translations.en.yourWords;
+  const item = usePlaybookWords(token);
   if (!item) return null;
   const when = item.at ? new Date(item.at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : null;
   return (
